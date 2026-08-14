@@ -37,6 +37,7 @@ export function makeLoanInfo(overrides: Partial<LoanInfoView> = {}): LoanInfoVie
   return {
     contact: null,
     expectedReturnDate: null,
+    loanContactId: "55555555-5555-4555-8555-555555555555",
     loanDate: null,
     loanType: "lent_to_someone",
     loanUiStatus: "no_return_date",

@@ -83,9 +83,10 @@ export function LoansView({ type }: { type: LoanType }) {
       };
 
   const people: LoansPeople = {
-    activePerson: query.person,
+    activeContactId: query.contactId,
     items: summary.isError ? [] : (directionSummary?.topPeople ?? []),
-    onPersonSelect: (personName) => query.setPerson(personName === query.person ? "" : personName),
+    onPersonSelect: (contactId) =>
+      query.setContactId(contactId === query.contactId ? "" : contactId),
   };
 
   const loansContent = (

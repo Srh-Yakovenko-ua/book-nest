@@ -1824,8 +1824,6 @@
         },
         "submit": "Save",
         "errors": {
-          "personNameMin": "Name must be at least {min} characters.",
-          "personNameMax": "No more than {max} characters.",
           "dateInvalid": "Pick a valid date.",
           "loanDateFuture": "The date can’t be in the future.",
           "returnBeforeLoan": "Return can’t be before the loan date.",
@@ -3836,6 +3834,22 @@
     }
   },
   "loans": {
+    "contactPicker": {
+      "searching": "Searching contacts…",
+      "empty": "No contacts found.",
+      "contactsHeading": "Your contacts",
+      "createHeading": "New contact",
+      "createAction": "Create “{name}”",
+      "creating": "Creating…",
+      "loanCount": "{count, plural, one {# loan} other {# loans}}",
+      "clear": "Clear",
+      "required": "Pick a person from the list or create a new one.",
+      "errors": {
+        "archivedName": "An archived contact already uses this name. Pick a different name.",
+        "duplicateName": "A contact with this name already exists. Pick it from the list.",
+        "createFailed": "Couldn’t create the contact. Please try again."
+      }
+    },
     "pages": {
       "borrowed": {
         "metaTitle": "To return",

@@ -123,6 +123,14 @@ async function completeLoan(
   return active;
 }
 
+async function contactIdFor(name: string): Promise<string> {
+  const contact = await prisma.loanContact.findFirstOrThrow({
+    select: { id: true },
+    where: { name },
+  });
+  return contact.id;
+}
+
 function correctHistory(
   accessToken: string,
   loanId: string,
@@ -198,6 +206,14 @@ function loanColumns(loanId: string): Promise<LoanColumns> {
 
 function peopleOptions(res: Response): LoanHistoryPersonOption[] {
   return LoanHistoryPeopleViewSchema.parse(res.body).items;
+}
+
+async function renameContact(accessToken: string, contactId: string, name: string): Promise<void> {
+  const res = await request(app.getHttpServer())
+    .patch(`/api/loans/contacts/${contactId}`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ name });
+  expect(res.status).toBe(200);
 }
 
 function returnLoan(accessToken: string, bookId: string): request.Test {
@@ -516,7 +532,7 @@ describe("GET /api/loans/history direction filter", () => {
   });
 });
 
-describe("GET /api/loans/history person filter", () => {
+describe("GET /api/loans/history contact filter", () => {
   function seedCyrillicPerson(accessToken: string): Promise<CompletedLoanRef> {
     return completeLoan(accessToken, {
       direction: "borrowed",
@@ -551,31 +567,45 @@ describe("GET /api/loans/history person filter", () => {
     });
   }
 
-  it("returns only the completed loans of the selected person", async () => {
+  it("returns only the completed loans of the selected contact", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedTwoPeople(accessToken);
 
-    const res = await listHistory(accessToken, `?person=${encodeURIComponent("Olha")}`);
+    const res = await listHistory(accessToken, `?contactId=${await contactIdFor("Olha")}`);
 
     expect(historyTitles(res)).toEqual(["Olha second", "Olha first"]);
     expect(res.body.totalCount).toBe(2);
   });
 
-  it("matches the person name exactly", async () => {
+  it("reaches a Cyrillic contact through its id", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedCyrillicPerson(accessToken);
 
-    const res = await listHistory(accessToken, `?person=${encodeURIComponent("Олена")}`);
+    const res = await listHistory(accessToken, `?contactId=${await contactIdFor("Олена")}`);
 
     expect(historyTitles(res)).toEqual(["Cyrillic person book"]);
     expect(res.body.totalCount).toBe(1);
   });
 
-  it("does not match the person name written in another case", async () => {
+  it("returns 400 for a person name in place of the contact id", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedCyrillicPerson(accessToken);
 
-    const res = await listHistory(accessToken, `?person=${encodeURIComponent("олена")}`);
+    const res = await listHistory(accessToken, `?contactId=${encodeURIComponent("Олена")}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns an empty page for another user's contact id", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await seedTwoPeople(owner.accessToken);
+    const ownerContactId = await contactIdFor("Olha");
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const res = await listHistory(stranger.accessToken, `?contactId=${ownerContactId}`);
 
     expect(res.body).toMatchObject({ items: [], totalCount: 0 });
   });
@@ -820,6 +850,26 @@ describe("GET /api/loans/history search", () => {
     await seedSearchableHistory(accessToken);
 
     const res = await listHistory(accessToken, "?search=MELNYK");
+
+    expect(historyTitles(res)).toEqual(["The Left Hand of Darkness"]);
+  });
+
+  it("matches a completed loan by the new name of a renamed contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSearchableHistory(accessToken);
+    await renameContact(accessToken, await contactIdFor("Olha Melnyk"), "Olha Sydorenko");
+
+    const res = await listHistory(accessToken, "?search=sydorenko");
+
+    expect(historyTitles(res)).toEqual(["The Left Hand of Darkness"]);
+  });
+
+  it("still matches a completed loan by the person name it stored when it started", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSearchableHistory(accessToken);
+    await renameContact(accessToken, await contactIdFor("Olha Melnyk"), "Olha Sydorenko");
+
+    const res = await listHistory(accessToken, "?search=melnyk");
 
     expect(historyTitles(res)).toEqual(["The Left Hand of Darkness"]);
   });
@@ -1210,11 +1260,11 @@ describe("GET /api/loans/history/overview scope", () => {
     });
   });
 
-  it("narrows the overview by person", async () => {
+  it("narrows the overview by contact", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedOverviewHistory(accessToken);
 
-    const res = await historyOverview(accessToken, "?person=Olha");
+    const res = await historyOverview(accessToken, `?contactId=${await contactIdFor("Olha")}`);
 
     expect(LoanHistoryOverviewViewSchema.parse(res.body).summary).toMatchObject({
       borrowedCount: 2,
@@ -1276,8 +1326,20 @@ describe("GET /api/loans/history/overview top people", () => {
     const res = await historyOverview(accessToken);
 
     expect(LoanHistoryOverviewViewSchema.parse(res.body).topPeople).toEqual([
-      { borrowedCount: 0, lentCount: 2, personName: "Ivan", totalCount: 2 },
-      { borrowedCount: 2, lentCount: 0, personName: "Olha", totalCount: 2 },
+      {
+        borrowedCount: 0,
+        contactId: await contactIdFor("Ivan"),
+        lentCount: 2,
+        personName: "Ivan",
+        totalCount: 2,
+      },
+      {
+        borrowedCount: 2,
+        contactId: await contactIdFor("Olha"),
+        lentCount: 0,
+        personName: "Olha",
+        totalCount: 2,
+      },
     ]);
   });
 
@@ -1469,8 +1531,8 @@ describe("GET /api/loans/history/people", () => {
 
     expect(res.status).toBe(200);
     expect(peopleOptions(res)).toEqual([
-      { personName: "Ivan", totalCount: 1 },
-      { personName: "Olha", totalCount: 2 },
+      { contactId: await contactIdFor("Ivan"), personName: "Ivan", totalCount: 1 },
+      { contactId: await contactIdFor("Olha"), personName: "Olha", totalCount: 2 },
     ]);
   });
 
@@ -1507,6 +1569,31 @@ describe("GET /api/loans/history/people", () => {
     expect(peopleOptions(res)).toEqual([]);
   });
 
+  it("groups the completed loans of one contact under a single person", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      loanDate: "2026-01-01",
+      personName: "Ігор",
+      returnedAt: "2026-01-20T10:00:00.000Z",
+      title: "Before the rename",
+    });
+    await renameContact(accessToken, await contactIdFor("Ігор"), "ігор");
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      loanDate: "2026-01-01",
+      personName: "ігор",
+      returnedAt: "2026-02-20T10:00:00.000Z",
+      title: "After the rename",
+    });
+
+    const res = await historyPeople(accessToken);
+
+    expect(peopleOptions(res)).toEqual([
+      { contactId: await contactIdFor("ігор"), personName: "ігор", totalCount: 2 },
+    ]);
+  });
+
   it("filters the people by a search fragment regardless of case", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await completeLoan(accessToken, {
@@ -1526,7 +1613,9 @@ describe("GET /api/loans/history/people", () => {
 
     const res = await historyPeople(accessToken, "?search=MELNYK");
 
-    expect(peopleOptions(res)).toEqual([{ personName: "Olha Melnyk", totalCount: 1 }]);
+    expect(peopleOptions(res)).toEqual([
+      { contactId: await contactIdFor("Olha Melnyk"), personName: "Olha Melnyk", totalCount: 1 },
+    ]);
   });
 });
 

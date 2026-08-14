@@ -10,6 +10,7 @@ import { LoanStatusSchema, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import { toLikePattern } from "../../../core/database/like-pattern.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -20,10 +21,15 @@ const LOAN_TYPE_BORROWED = LoanTypeSchema.enum.borrowed_from_someone;
 
 const LOAN_TYPE_LENT = LoanTypeSchema.enum.lent_to_someone;
 
-const LIKE_METACHARACTER_PATTERN = /[\\%_]/g;
+const loanContactSelect = {
+  select: { contact: true, id: true, name: true },
+} satisfies Prisma.LoanContactDefaultArgs;
 
 const historyBookInclude = {
-  include: { book: { include: { coverMedia: true, publisher: true } } },
+  include: {
+    book: { include: { coverMedia: true, publisher: true } },
+    loanContact: loanContactSelect,
+  },
 } satisfies Prisma.BookLoanDefaultArgs;
 
 const RETURNED_CALENDAR_DATE = Prisma.sql`(loan.returned_at AT TIME ZONE 'UTC')::date`;
@@ -35,6 +41,7 @@ const DURATION_DAYS = Prisma.sql`(${RETURNED_CALENDAR_DATE} - loan.loan_date)`;
 const HISTORY_SOURCE = Prisma.sql`
   FROM book_loans loan
   JOIN books book ON book.id = loan.book_id
+  JOIN loan_contacts contact ON contact.id = loan.loan_contact_id
 `;
 
 const HISTORY_RESULT_CONDITION: Record<LoanHistoryResult, Prisma.Sql> = {
@@ -73,13 +80,15 @@ const LoanHistoryPageRowSchema = z.object({
 
 const LoanHistoryPersonCountsRowSchema = z.object({
   borrowedCount: z.number(),
+  contactId: z.uuid(),
   lentCount: z.number(),
-  personName: z.string(),
+  name: z.string(),
   totalCount: z.number(),
 });
 
 const LoanHistoryPersonOptionRowSchema = z.object({
-  personName: z.string(),
+  contactId: z.uuid(),
+  name: z.string(),
   totalCount: z.number(),
 });
 
@@ -110,7 +119,7 @@ export type LoanHistoryPersonCountsRow = z.infer<typeof LoanHistoryPersonCountsR
 export type LoanHistoryPersonOptionRow = z.infer<typeof LoanHistoryPersonOptionRowSchema>;
 
 export type LoanHistoryScope = {
-  person: string | undefined;
+  contactId: string | undefined;
   returnedFrom: string | undefined;
   returnedTo: string | undefined;
   type: LoanType | undefined;
@@ -178,7 +187,7 @@ export class LoanHistoryRepository {
           loan.id AS id,
           loan.returned_at AS returned_at,
           loan.loan_date AS loan_date,
-          loan.person_name AS person_name,
+          contact.name AS person_name,
           book.title AS title,
           ${DURATION_DAYS} AS duration_days
         ${HISTORY_SOURCE}
@@ -244,17 +253,18 @@ export class LoanHistoryRepository {
   }: LoanHistoryPeopleInput): Promise<LoanHistoryPersonOptionRow[]> {
     const conditions = buildBaseHistoryConditions(userId);
     if (search !== undefined) {
-      conditions.push(Prisma.sql`loan.person_name ILIKE ${toLikePattern(search)}`);
+      conditions.push(Prisma.sql`contact.name ILIKE ${toLikePattern(search)}`);
     }
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
-        loan.person_name AS "personName",
+        contact.id AS "contactId",
+        contact.name AS "name",
         (count(*))::int AS "totalCount"
       ${HISTORY_SOURCE}
       WHERE ${Prisma.join(conditions, " AND ")}
-      GROUP BY loan.person_name
-      ORDER BY loan.person_name ASC
+      GROUP BY contact.id
+      ORDER BY contact.name ASC
       LIMIT ${limit}
     `);
     return z.array(LoanHistoryPersonOptionRowSchema).parse(rows);
@@ -266,14 +276,15 @@ export class LoanHistoryRepository {
   }: TopHistoryPeopleInput): Promise<LoanHistoryPersonCountsRow[]> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
-        loan.person_name AS "personName",
+        contact.id AS "contactId",
+        contact.name AS "name",
         (count(*))::int AS "totalCount",
         (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}))::int AS "borrowedCount",
         (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_LENT}))::int AS "lentCount"
       ${HISTORY_SOURCE}
       WHERE ${buildHistoryScopeWhere(scope)}
-      GROUP BY loan.person_name
-      ORDER BY "totalCount" DESC, loan.person_name ASC
+      GROUP BY contact.id
+      ORDER BY "totalCount" DESC, contact.name ASC
       LIMIT ${take}
     `);
     return z.array(LoanHistoryPersonCountsRowSchema).parse(rows);
@@ -301,7 +312,7 @@ function buildHistoryListWhere({ result, search, ...scope }: LoanHistoryListFilt
 }
 
 function buildHistoryScopeConditions({
-  person,
+  contactId,
   returnedFrom,
   returnedTo,
   type,
@@ -311,8 +322,8 @@ function buildHistoryScopeConditions({
   if (type !== undefined) {
     conditions.push(Prisma.sql`loan.type = ${type}`);
   }
-  if (person !== undefined) {
-    conditions.push(Prisma.sql`loan.person_name = ${person}`);
+  if (contactId !== undefined) {
+    conditions.push(Prisma.sql`loan.loan_contact_id = ${contactId}::uuid`);
   }
   if (returnedFrom !== undefined) {
     conditions.push(Prisma.sql`${RETURNED_CALENDAR_DATE} >= ${returnedFrom}::date`);
@@ -332,6 +343,7 @@ function buildHistorySearchCondition(search: string): Prisma.Sql {
   return Prisma.sql`(
     book.title ILIKE ${pattern}
     OR book.original_title ILIKE ${pattern}
+    OR contact.name ILIKE ${pattern}
     OR loan.person_name ILIKE ${pattern}
     OR loan.contact ILIKE ${pattern}
     OR loan.note ILIKE ${pattern}
@@ -362,8 +374,4 @@ function orderLoansByIds({
     const row = byId.get(id);
     return row === undefined || !isCompletedLoan(row) ? [] : [row];
   });
-}
-
-function toLikePattern(search: string): string {
-  return `%${search.replace(LIKE_METACHARACTER_PATTERN, "\\$&")}%`;
 }

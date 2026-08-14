@@ -34,6 +34,13 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
 }));
 
+const CONTACT_IDS = {
+  iryna: "33333333-3333-4333-8333-333333333333",
+  olena: "11111111-1111-4111-8111-111111111111",
+  olya: "44444444-4444-4444-8444-444444444444",
+  petro: "22222222-2222-4222-8222-222222222222",
+} as const;
+
 const copy = messages.loans;
 const actions = messages.loans.actions;
 const stats = messages.loans.stats;
@@ -751,9 +758,9 @@ describe("LoansView", () => {
       lent: {
         ...EMPTY_DIRECTION_SUMMARY,
         topPeople: [
-          { bookCount: 4, covers: [], personName: "Олена" },
-          { bookCount: 2, covers: [], personName: "Петро" },
-          { bookCount: 1, covers: [], personName: "Ірина" },
+          { bookCount: 4, contactId: CONTACT_IDS.olena, covers: [], personName: "Олена" },
+          { bookCount: 2, contactId: CONTACT_IDS.petro, covers: [], personName: "Петро" },
+          { bookCount: 1, contactId: CONTACT_IDS.iryna, covers: [], personName: "Ірина" },
         ],
         totalCount: 7,
       },
@@ -777,7 +784,9 @@ describe("LoansView", () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")], {
       lent: {
         ...EMPTY_DIRECTION_SUMMARY,
-        topPeople: [{ bookCount: 3, covers: [], personName: "Олена" }],
+        topPeople: [
+          { bookCount: 3, contactId: CONTACT_IDS.olena, covers: [], personName: "Олена" },
+        ],
         totalCount: 3,
       },
     });
@@ -789,7 +798,9 @@ describe("LoansView", () => {
 
     await userEvent.click(row);
     await waitFor(() => {
-      expect(requestedUrls.some((url) => url.includes("person="))).toBe(true);
+      expect(requestedUrls.some((url) => url.includes(`contactId=${CONTACT_IDS.olena}`))).toBe(
+        true,
+      );
     });
     await waitFor(() => {
       expect(row).toHaveAttribute("aria-pressed", "true");
@@ -800,7 +811,31 @@ describe("LoansView", () => {
     await waitFor(() => {
       expect(row).toHaveAttribute("aria-pressed", "false");
     });
-    expect(requestedUrls.every((url) => !url.includes("person="))).toBe(true);
+    expect(requestedUrls.every((url) => !url.includes("contactId="))).toBe(true);
+  });
+
+  it("drops a legacy person filter from the URL instead of asking the API for it", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        topPeople: [
+          { bookCount: 3, contactId: CONTACT_IDS.olena, covers: [], personName: "Олена" },
+        ],
+        totalCount: 3,
+      },
+    });
+
+    renderLoans("lent_to_someone", `?person=${encodeURIComponent("Олена")}&contactId=olena`);
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(listUrl()).not.toContain("person=");
+    expect(listUrl()).not.toContain("contactId=");
+
+    const block = await findSidebarBlock(people.title);
+    expect(within(block).getByRole("button", { name: /Олена/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("hides the people block when nobody is holding a book", async () => {
@@ -920,6 +955,7 @@ function extendedBookView() {
     loanInfo: {
       contact: null,
       expectedReturnDate: isoDaysFromToday(12),
+      loanContactId: CONTACT_IDS.olya,
       loanDate: isoDaysFromToday(-3),
       loanType: "lent_to_someone",
       loanUiStatus: "on_time",
@@ -1006,6 +1042,7 @@ function loanItem(
     createdAt: "2026-01-05T10:00:00.000Z",
     expectedReturnDate: "2026-02-01",
     id: `loan-${title}`,
+    loanContactId: CONTACT_IDS.olya,
     loanDate: "2026-01-05",
     loanUiStatus: "on_time",
     note: null,

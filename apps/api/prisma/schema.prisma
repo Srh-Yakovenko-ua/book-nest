@@ -49,6 +49,7 @@ model User {
   mediaAssets               MediaAsset[]
   bookOrders                BookOrder[]
   bookLoans                 BookLoan[]
+  loanContacts              LoanContact[]
   bookStoreLinks            BookStoreLink[]
   deliveryServices          DeliveryService[]
   changelogRead             ChangelogRead?
@@ -425,28 +426,47 @@ model Shipment {
 }
 
 model BookLoan {
-  id                 String    @id @default(uuid()) @db.Uuid
-  userId             String    @map("user_id") @db.Uuid
-  bookId             String    @map("book_id") @db.Uuid
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             String       @map("user_id") @db.Uuid
+  bookId             String       @map("book_id") @db.Uuid
+  loanContactId      String       @map("loan_contact_id") @db.Uuid
   type               String
-  personName         String    @map("person_name")
-  contact            String?   @map("contact")
-  loanDate           DateTime? @map("loan_date") @db.Date
-  expectedReturnDate DateTime? @map("expected_return_date") @db.Date
+  personName         String       @map("person_name")
+  contact            String?      @map("contact")
+  loanDate           DateTime?    @map("loan_date") @db.Date
+  expectedReturnDate DateTime?    @map("expected_return_date") @db.Date
   note               String?
-  remindToReturn     Boolean   @default(false) @map("remind_to_return")
-  remindBeforeDays   Int?      @map("remind_before_days")
-  status             String    @default("active")
-  returnedAt         DateTime? @map("returned_at") @db.Timestamptz
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book               Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  remindToReturn     Boolean      @default(false) @map("remind_to_return")
+  remindBeforeDays   Int?         @map("remind_before_days")
+  status             String       @default("active")
+  returnedAt         DateTime?    @map("returned_at") @db.Timestamptz
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book               Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  loanContact        LoanContact  @relation(fields: [loanContactId], references: [id], onDelete: Restrict)
 
   @@index([bookId])
   @@index([userId, status, returnedAt])
   @@index([status, remindToReturn, returnedAt, expectedReturnDate])
+  @@index([loanContactId])
   @@map("book_loans")
+}
+
+model LoanContact {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String     @map("user_id") @db.Uuid
+  name           String
+  normalizedName String     @map("normalized_name")
+  contact        String?
+  archivedAt     DateTime?  @map("archived_at") @db.Timestamptz
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loans          BookLoan[]
+
+  @@unique([userId, normalizedName])
+  @@map("loan_contacts")
 }
 
 model BookStoreLink {

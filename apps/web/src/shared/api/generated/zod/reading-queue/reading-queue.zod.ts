@@ -354,6 +354,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -844,6 +845,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -1544,6 +1546,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -2024,6 +2027,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -2515,6 +2519,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),

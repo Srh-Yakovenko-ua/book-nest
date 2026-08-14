@@ -1,0 +1,548 @@
+import type { LoanContactView } from "@app/shared";
+import type { INestApplication } from "@nestjs/common";
+
+import { LOAN_CONTACT_ERROR_CODES, LoanContactsViewSchema } from "@app/shared";
+import { formatInTimeZone } from "date-fns-tz";
+import request, { type Response } from "supertest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import type { AuthTestContext } from "../../../test/auth-test-context.js";
+
+import { PrismaService } from "../../../core/database/prisma.service.js";
+import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { truncateAllTables } from "../../../test/truncate.js";
+import { AuthModule } from "../../auth/auth.module.js";
+import { BooksModule } from "../../books/books.module.js";
+import { ListsModule } from "../../lists/lists.module.js";
+import { LoansModule } from "../loans.module.js";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+const MISSING_CONTACT_ID = "00000000-0000-4000-8000-000000000000";
+
+const STRANGER = { email: "stranger@example.com", nickname: "stranger" } as const;
+
+const UKRAINIAN_ALPHABET_ORDER = [
+  "Ганна",
+  "Ґудзик",
+  "Дарина",
+  "Еней",
+  "Євген",
+  "Жанна",
+  "Ірина",
+  "Їжак",
+] as const;
+
+const today = (): string => formatInTimeZone(new Date(), "UTC", "yyyy-MM-dd");
+
+let context: AuthTestContext;
+let app: INestApplication;
+let prisma: PrismaService;
+
+beforeAll(async () => {
+  context = await createAuthTestContext([AuthModule, BooksModule, ListsModule, LoansModule]);
+  app = context.app;
+  prisma = app.get(PrismaService);
+});
+
+beforeEach(() => {
+  context.reset();
+});
+
+afterEach(async () => {
+  await truncateAllTables(app);
+});
+
+afterAll(async () => {
+  await context.close();
+});
+
+async function archiveContact(contactId: string): Promise<void> {
+  await prisma.loanContact.update({
+    data: { archivedAt: new Date() },
+    where: { id: contactId },
+  });
+}
+
+function contactItems(res: Response): LoanContactView[] {
+  return LoanContactsViewSchema.parse(res.body).items;
+}
+
+function contactNames(res: Response): string[] {
+  return contactItems(res).map((item) => item.name);
+}
+
+function createBook(accessToken: string, title: string): request.Test {
+  return request(app.getHttpServer())
+    .post("/api/books")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ authors: [{ name: "Frank Herbert" }], ownershipStatus: "owned", title });
+}
+
+function createContact(accessToken: string, body: Record<string, unknown>): request.Test {
+  return request(app.getHttpServer())
+    .post("/api/loans/contacts")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
+async function createNamedContact(accessToken: string, name: string): Promise<string> {
+  const res = await createContact(accessToken, { name });
+  expect(res.status).toBe(201);
+  const contactId: string = res.body.id;
+  return contactId;
+}
+
+async function deleteBook(accessToken: string, bookId: string): Promise<void> {
+  const res = await request(app.getHttpServer())
+    .delete(`/api/books/${bookId}`)
+    .set("Authorization", `Bearer ${accessToken}`);
+  expect(res.status).toBe(200);
+}
+
+async function lendBookTo(
+  accessToken: string,
+  { loanContactId, title }: { loanContactId: string; title: string },
+): Promise<string> {
+  const created = await createBook(accessToken, title);
+  expect(created.status).toBe(201);
+  const bookId: string = created.body.id;
+
+  const started = await request(app.getHttpServer())
+    .post(`/api/books/${bookId}/loan`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ direction: "lent", loanContactId, loanDate: today() });
+  expect(started.status).toBe(200);
+  return bookId;
+}
+
+function listContacts(accessToken: string, queryString = ""): request.Test {
+  return request(app.getHttpServer())
+    .get(`/api/loans/contacts${queryString}`)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
+async function returnBook(accessToken: string, bookId: string): Promise<void> {
+  const res = await request(app.getHttpServer())
+    .post(`/api/books/${bookId}/loan/return`)
+    .set("Authorization", `Bearer ${accessToken}`);
+  expect(res.status).toBe(200);
+}
+
+function updateContact(
+  accessToken: string,
+  contactId: string,
+  body: Record<string, unknown>,
+): request.Test {
+  return request(app.getHttpServer())
+    .patch(`/api/loans/contacts/${contactId}`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
+describe("loan contacts authorization", () => {
+  it("returns 401 for the contact list without an Authorization header", async () => {
+    const res = await request(app.getHttpServer()).get("/api/loans/contacts");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for a contact creation without an Authorization header", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/loans/contacts")
+      .send({ name: "Ігор" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for a contact rename without an Authorization header", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/loans/contacts/${MISSING_CONTACT_ID}`)
+      .send({ name: "Ігор" });
+
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("GET /api/loans/contacts", () => {
+  it("returns an empty list when the user has no contacts", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listContacts(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(contactItems(res)).toEqual([]);
+  });
+
+  it("leaves the contacts of another user out", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await createNamedContact(owner.accessToken, "Ігор");
+    const stranger = await context.registerVerifyAndLogin(STRANGER);
+
+    const res = await listContacts(stranger.accessToken);
+
+    expect(contactNames(res)).toEqual([]);
+  });
+
+  it("orders the contacts so the Ukrainian letters land where a Ukrainian reader expects", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const name of [...UKRAINIAN_ALPHABET_ORDER].reverse()) {
+      await createNamedContact(accessToken, name);
+    }
+
+    const res = await listContacts(accessToken);
+
+    expect(contactNames(res)).toEqual([...UKRAINIAN_ALPHABET_ORDER]);
+  });
+
+  it("matches a search fragment regardless of case", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Olha Melnyk");
+    await createNamedContact(accessToken, "Ivan Petrenko");
+
+    const res = await listContacts(accessToken, "?search=MELNYK");
+
+    expect(contactNames(res)).toEqual(["Olha Melnyk"]);
+  });
+
+  it("matches a search fragment that starts inside a word", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Olha Melnyk");
+    await createNamedContact(accessToken, "Ivan Petrenko");
+
+    const res = await listContacts(accessToken, "?search=eln");
+
+    expect(contactNames(res)).toEqual(["Olha Melnyk"]);
+  });
+
+  it("treats a percent sign in the search term as a literal character", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor 100%");
+    await createNamedContact(accessToken, "Ivan Petrenko");
+
+    const res = await listContacts(accessToken, `?search=${encodeURIComponent("%")}`);
+
+    expect(contactNames(res)).toEqual(["Ihor 100%"]);
+  });
+
+  it("caps the list at the requested limit", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const name of ["Charlie", "Bravo", "Alpha"]) {
+      await createNamedContact(accessToken, name);
+    }
+
+    const res = await listContacts(accessToken, "?limit=2");
+
+    expect(contactNames(res)).toEqual(["Alpha", "Bravo"]);
+  });
+
+  it("returns 400 when the limit exceeds the maximum", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listContacts(accessToken, "?limit=201");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("leaves archived contacts out by default", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+    await archiveContact(await createNamedContact(accessToken, "Ivan"));
+
+    const res = await listContacts(accessToken);
+
+    expect(contactNames(res)).toEqual(["Ihor"]);
+  });
+
+  it("includes archived contacts when asked for them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+    await archiveContact(await createNamedContact(accessToken, "Ivan"));
+
+    const res = await listContacts(accessToken, "?includeArchived=true");
+
+    expect(contactNames(res)).toEqual(["Ihor", "Ivan"]);
+  });
+
+  it("reports the moment an archived contact was archived", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await archiveContact(await createNamedContact(accessToken, "Ivan"));
+
+    const res = await listContacts(accessToken, "?includeArchived=true");
+
+    expect(contactItems(res)).toEqual([
+      expect.objectContaining({ archivedAt: expect.any(String), name: "Ivan" }),
+    ]);
+  });
+});
+
+describe("GET /api/loans/contacts loan count", () => {
+  it("counts the active and the returned loans of a contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ihor");
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Still out" });
+    const returnedBookId = await lendBookTo(accessToken, {
+      loanContactId: contactId,
+      title: "Came back",
+    });
+    await returnBook(accessToken, returnedBookId);
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]?.loanCount).toBe(2);
+  });
+
+  it("leaves the loans of a trashed book out of the loan count", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ihor");
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Kept" });
+    const trashedBookId = await lendBookTo(accessToken, {
+      loanContactId: contactId,
+      title: "Trashed",
+    });
+    await deleteBook(accessToken, trashedBookId);
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]?.loanCount).toBe(1);
+  });
+
+  it("reports a zero loan count for a contact nobody has borrowed from yet", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]?.loanCount).toBe(0);
+  });
+});
+
+describe("POST /api/loans/contacts", () => {
+  it("creates a contact and returns it with its details", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createContact(accessToken, {
+      contact: "ihor@example.com",
+      name: "Ігор",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      archivedAt: null,
+      contact: "ihor@example.com",
+      loanCount: 0,
+      name: "Ігор",
+    });
+    expect(res.body.id).toMatch(UUID);
+  });
+
+  it("collapses the whitespace around the stored name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createContact(accessToken, { name: "  Ігор   Петренко  " });
+
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe("Ігор Петренко");
+  });
+
+  it("stores an empty contact detail as no contact detail", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createContact(accessToken, { contact: "", name: "Ігор" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.contact).toBeNull();
+  });
+
+  it("returns 409 with the duplicate code when the name is already taken", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ігор");
+
+    const res = await createContact(accessToken, { name: "Ігор" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_CONTACT_ERROR_CODES.duplicateName);
+  });
+
+  it("treats a name that only differs by surrounding whitespace as taken", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ігор");
+
+    const res = await createContact(accessToken, { name: "  Ігор  " });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_CONTACT_ERROR_CODES.duplicateName);
+  });
+
+  it("treats a name that only differs by case as taken", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ігор");
+
+    const res = await createContact(accessToken, { name: "ІГОР" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_CONTACT_ERROR_CODES.duplicateName);
+  });
+
+  it("returns 409 with the archived code when the name belongs to an archived contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await archiveContact(await createNamedContact(accessToken, "Ігор"));
+
+    const res = await createContact(accessToken, { name: "Ігор" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_CONTACT_ERROR_CODES.archivedName);
+  });
+
+  it("lets two users keep a contact of the same name", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await createNamedContact(owner.accessToken, "Ігор");
+    const stranger = await context.registerVerifyAndLogin(STRANGER);
+
+    const res = await createContact(stranger.accessToken, { name: "Ігор" });
+
+    expect(res.status).toBe(201);
+  });
+
+  it("returns 400 with the name field when the name is empty", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createContact(accessToken, { name: "   " });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "name" })]),
+    );
+  });
+
+  it("returns 400 when the name exceeds 100 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createContact(accessToken, { name: "a".repeat(101) });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for a field the contact does not own", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createContact(accessToken, { archivedAt: null, name: "Ігор" });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("PATCH /api/loans/contacts/:contactId", () => {
+  it("renames a contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ігор");
+
+    const res = await updateContact(accessToken, contactId, { name: "Ігор Петренко" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: contactId, name: "Ігор Петренко" });
+  });
+
+  it("frees the previous name for a new contact after a rename", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ігор");
+    await updateContact(accessToken, contactId, { name: "Тарас" });
+
+    const res = await createContact(accessToken, { name: "Ігор" });
+
+    expect(res.status).toBe(201);
+  });
+
+  it("blocks a rename onto a name that only differs by case from a live contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ігор");
+    const contactId = await createNamedContact(accessToken, "Тарас");
+
+    const res = await updateContact(accessToken, contactId, { name: "ІГОР" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_CONTACT_ERROR_CODES.duplicateName);
+  });
+
+  it("returns the archived code when the rename target belongs to an archived contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await archiveContact(await createNamedContact(accessToken, "Ігор"));
+    const contactId = await createNamedContact(accessToken, "Тарас");
+
+    const res = await updateContact(accessToken, contactId, { name: "Ігор" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_CONTACT_ERROR_CODES.archivedName);
+  });
+
+  it("updates the contact detail without touching the name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ігор");
+
+    const res = await updateContact(accessToken, contactId, { contact: "ihor@example.com" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ contact: "ihor@example.com", name: "Ігор" });
+  });
+
+  it("clears the contact detail when it is set to null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const res = await createContact(accessToken, { contact: "ihor@example.com", name: "Ігор" });
+    const contactId: string = res.body.id;
+
+    const cleared = await updateContact(accessToken, contactId, { contact: null });
+
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.contact).toBeNull();
+  });
+
+  it("returns 400 for a patch that changes nothing", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ігор");
+
+    const res = await updateContact(accessToken, contactId, {});
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for a malformed contact id", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await updateContact(accessToken, "not-a-uuid", { name: "Ігор" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 for a contact id that does not exist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await updateContact(accessToken, MISSING_CONTACT_ID, { name: "Ігор" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("answers a contact of another user exactly like a missing one", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const ownerContactId = await createNamedContact(owner.accessToken, "Ігор");
+    const stranger = await context.registerVerifyAndLogin(STRANGER);
+
+    const foreign = await updateContact(stranger.accessToken, ownerContactId, { name: "Тарас" });
+    const missing = await updateContact(stranger.accessToken, MISSING_CONTACT_ID, {
+      name: "Тарас",
+    });
+
+    expect(foreign.status).toBe(missing.status);
+    expect(foreign.body.message).toBe(missing.body.message);
+  });
+
+  it("leaves the contact of another user untouched", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const ownerContactId = await createNamedContact(owner.accessToken, "Ігор");
+    const stranger = await context.registerVerifyAndLogin(STRANGER);
+
+    await updateContact(stranger.accessToken, ownerContactId, { name: "Тарас" });
+
+    const res = await listContacts(owner.accessToken);
+    expect(contactNames(res)).toEqual(["Ігор"]);
+  });
+});

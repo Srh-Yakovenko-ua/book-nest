@@ -130,6 +130,7 @@ export const LoansControllerSummaryResponse = zod.object({
         createdAt: zod.string(),
         expectedReturnDate: zod.string().nullable(),
         id: zod.string(),
+        loanContactId: zod.string(),
         loanDate: zod.string().nullable(),
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
@@ -176,6 +177,7 @@ export const LoansControllerSummaryResponse = zod.object({
           .int()
           .min(loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMin)
           .max(loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMax),
+        contactId: zod.string(),
         covers: zod.array(
           zod.object({
             contentType: zod.string(),
@@ -243,6 +245,7 @@ export const LoansControllerSummaryResponse = zod.object({
         createdAt: zod.string(),
         expectedReturnDate: zod.string().nullable(),
         id: zod.string(),
+        loanContactId: zod.string(),
         loanDate: zod.string().nullable(),
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
@@ -307,6 +310,7 @@ export const LoansControllerSummaryResponse = zod.object({
         createdAt: zod.string(),
         expectedReturnDate: zod.string().nullable(),
         id: zod.string(),
+        loanContactId: zod.string(),
         loanDate: zod.string().nullable(),
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
@@ -353,6 +357,7 @@ export const LoansControllerSummaryResponse = zod.object({
           .int()
           .min(loansControllerSummaryResponseLentTopPeopleItemBookCountMin)
           .max(loansControllerSummaryResponseLentTopPeopleItemBookCountMax),
+        contactId: zod.string(),
         covers: zod.array(
           zod.object({
             contentType: zod.string(),
@@ -420,6 +425,7 @@ export const LoansControllerSummaryResponse = zod.object({
         createdAt: zod.string(),
         expectedReturnDate: zod.string().nullable(),
         id: zod.string(),
+        loanContactId: zod.string(),
         loanDate: zod.string().nullable(),
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
@@ -440,6 +446,9 @@ export const LoansControllerSummaryResponse = zod.object({
 /**
  * @summary List the current user's active loans
  */
+export const loansControllerListQueryContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const loansControllerListQueryFilterDefault = `all`;
 export const loansControllerListQueryPageNumberDefault = 1;
 export const loansControllerListQueryPageNumberMax = 21474836;
@@ -447,13 +456,12 @@ export const loansControllerListQueryPageNumberMax = 21474836;
 export const loansControllerListQueryPageSizeDefault = 10;
 export const loansControllerListQueryPageSizeMax = 100;
 
-export const loansControllerListQueryPersonMax = 100;
-
 export const loansControllerListQuerySearchMax = 100;
 
 export const loansControllerListQuerySortDefault = `overdue_first`;
 
 export const LoansControllerListQueryParams = zod.object({
+  contactId: zod.uuid().regex(loansControllerListQueryContactIdRegExp).optional(),
   filter: zod
     .enum(["all", "return_soon", "overdue", "no_return_date", "has_reminder", "without_reminder"])
     .default(loansControllerListQueryFilterDefault),
@@ -467,7 +475,6 @@ export const LoansControllerListQueryParams = zod.object({
     .min(1)
     .max(loansControllerListQueryPageSizeMax)
     .default(loansControllerListQueryPageSizeDefault),
-  person: zod.string().max(loansControllerListQueryPersonMax).optional(),
   search: zod.string().max(loansControllerListQuerySearchMax).optional(),
   sort: zod
     .enum(["overdue_first", "return_date", "loan_date", "title", "author", "person"])
@@ -534,6 +541,7 @@ export const LoansControllerListResponse = zod.object({
       createdAt: zod.string(),
       expectedReturnDate: zod.string().nullable(),
       id: zod.string(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
@@ -566,13 +574,14 @@ export const LoansControllerListResponse = zod.object({
 /**
  * @summary List the current user's completed loans
  */
+export const loanHistoryControllerListQueryContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const loanHistoryControllerListQueryPageNumberDefault = 1;
 export const loanHistoryControllerListQueryPageNumberMax = 21474836;
 
 export const loanHistoryControllerListQueryPageSizeDefault = 10;
 export const loanHistoryControllerListQueryPageSizeMax = 100;
-
-export const loanHistoryControllerListQueryPersonMax = 100;
 
 export const loanHistoryControllerListQueryResultDefault = `all`;
 export const loanHistoryControllerListQueryReturnedFromRegExp = new RegExp(
@@ -586,6 +595,7 @@ export const loanHistoryControllerListQuerySearchMax = 100;
 export const loanHistoryControllerListQuerySortDefault = `returned_desc`;
 
 export const LoanHistoryControllerListQueryParams = zod.object({
+  contactId: zod.uuid().regex(loanHistoryControllerListQueryContactIdRegExp).optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -596,7 +606,6 @@ export const LoanHistoryControllerListQueryParams = zod.object({
     .min(1)
     .max(loanHistoryControllerListQueryPageSizeMax)
     .default(loanHistoryControllerListQueryPageSizeDefault),
-  person: zod.string().max(loanHistoryControllerListQueryPersonMax).optional(),
   result: zod
     .enum(["all", "on_time", "late", "no_due_date"])
     .default(loanHistoryControllerListQueryResultDefault),
@@ -687,6 +696,7 @@ export const LoanHistoryControllerListResponse = zod.object({
       expectedReturnDate: zod.string().nullable(),
       historyResult: zod.enum(["on_time", "late", "no_due_date"]),
       id: zod.string(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       personName: zod.string(),
       returnedAt: zod.string(),
@@ -715,8 +725,9 @@ export const LoanHistoryControllerListResponse = zod.object({
 /**
  * @summary Get analytics for the current user's completed loans
  */
-export const loanHistoryControllerOverviewQueryPersonMax = 100;
-
+export const loanHistoryControllerOverviewQueryContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const loanHistoryControllerOverviewQueryReturnedFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -725,7 +736,7 @@ export const loanHistoryControllerOverviewQueryReturnedToRegExp = new RegExp(
 );
 
 export const LoanHistoryControllerOverviewQueryParams = zod.object({
-  person: zod.string().max(loanHistoryControllerOverviewQueryPersonMax).optional(),
+  contactId: zod.uuid().regex(loanHistoryControllerOverviewQueryContactIdRegExp).optional(),
   returnedFrom: zod.iso
     .date()
     .regex(loanHistoryControllerOverviewQueryReturnedFromRegExp)
@@ -880,6 +891,7 @@ export const LoanHistoryControllerOverviewResponse = zod.object({
         .int()
         .min(loanHistoryControllerOverviewResponseTopPeopleItemBorrowedCountMin)
         .max(loanHistoryControllerOverviewResponseTopPeopleItemBorrowedCountMax),
+      contactId: zod.string(),
       lentCount: zod
         .int()
         .min(loanHistoryControllerOverviewResponseTopPeopleItemLentCountMin)
@@ -916,6 +928,7 @@ export const loanHistoryControllerPeopleResponseItemsItemTotalCountMax = 9007199
 export const LoanHistoryControllerPeopleResponse = zod.object({
   items: zod.array(
     zod.object({
+      contactId: zod.string(),
       personName: zod.string(),
       totalCount: zod
         .int()
@@ -989,6 +1002,7 @@ export const LoanHistoryControllerDetailResponse = zod.object({
   expectedReturnDate: zod.string().nullable(),
   historyResult: zod.enum(["on_time", "late", "no_due_date"]),
   id: zod.string(),
+  loanContactId: zod.string(),
   loanDate: zod.string().nullable(),
   personName: zod.string(),
   returnedAt: zod.string(),
@@ -1073,6 +1087,7 @@ export const LoanHistoryControllerCorrectResponse = zod.object({
   expectedReturnDate: zod.string().nullable(),
   historyResult: zod.enum(["on_time", "late", "no_due_date"]),
   id: zod.string(),
+  loanContactId: zod.string(),
   loanDate: zod.string().nullable(),
   personName: zod.string(),
   returnedAt: zod.string(),
@@ -1081,5 +1096,95 @@ export const LoanHistoryControllerCorrectResponse = zod.object({
   contact: zod.string().nullable(),
   createdAt: zod.string(),
   note: zod.string().nullable(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary List the loan contacts of the current user
+ */
+export const loanContactsControllerListQueryLimitDefault = 50;
+export const loanContactsControllerListQueryLimitMax = 200;
+
+export const loanContactsControllerListQuerySearchMax = 100;
+
+export const LoanContactsControllerListQueryParams = zod.object({
+  includeArchived: zod.string().optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(loanContactsControllerListQueryLimitMax)
+    .default(loanContactsControllerListQueryLimitDefault),
+  search: zod.string().max(loanContactsControllerListQuerySearchMax).optional(),
+});
+
+export const loanContactsControllerListResponseItemsItemLoanCountMin = 0;
+export const loanContactsControllerListResponseItemsItemLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerListResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      archivedAt: zod.string().nullable(),
+      contact: zod.string().nullable(),
+      createdAt: zod.string(),
+      id: zod.string(),
+      loanCount: zod
+        .int()
+        .min(loanContactsControllerListResponseItemsItemLoanCountMin)
+        .max(loanContactsControllerListResponseItemsItemLoanCountMax),
+      name: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a loan contact for the current user
+ */
+export const LoanContactsControllerCreateBody = zod.object({
+  contact: zod.string().nullish(),
+  name: zod.string(),
+});
+
+export const loanContactsControllerCreateResponseLoanCountMin = 0;
+export const loanContactsControllerCreateResponseLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerCreateResponse = zod.object({
+  archivedAt: zod.string().nullable(),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  id: zod.string(),
+  loanCount: zod
+    .int()
+    .min(loanContactsControllerCreateResponseLoanCountMin)
+    .max(loanContactsControllerCreateResponseLoanCountMax),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Rename a loan contact or change how to reach it
+ */
+export const LoanContactsControllerUpdateParams = zod.object({
+  contactId: zod.string(),
+});
+
+export const LoanContactsControllerUpdateBody = zod.object({
+  contact: zod.string().nullish(),
+  name: zod.string().optional(),
+});
+
+export const loanContactsControllerUpdateResponseLoanCountMin = 0;
+export const loanContactsControllerUpdateResponseLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerUpdateResponse = zod.object({
+  archivedAt: zod.string().nullable(),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  id: zod.string(),
+  loanCount: zod
+    .int()
+    .min(loanContactsControllerUpdateResponseLoanCountMin)
+    .max(loanContactsControllerUpdateResponseLoanCountMax),
+  name: zod.string(),
   updatedAt: zod.string(),
 });

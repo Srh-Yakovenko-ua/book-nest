@@ -1,0 +1,228 @@
+"use client";
+
+import type { LoanContactView } from "@app/shared";
+
+import { LOAN_CONTACT_ERROR_CODES, normalizeName } from "@app/shared";
+import { Command as CommandPrimitive } from "cmdk";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+
+import { UiIcon } from "@/components/icons";
+import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { getErrorMessage } from "@/lib/api-errors";
+import { ApiError } from "@/lib/http-client";
+import { cn } from "@/lib/utils";
+
+import type { LoanContactSelection } from "../model/loan-contact-selection";
+
+import { useCreateLoanContact } from "../api/use-create-loan-contact";
+import { useLoanContacts } from "../api/use-loan-contacts";
+
+type LoanContactOptionProps = {
+  contact: LoanContactView;
+  onSelect: () => void;
+};
+
+type LoanContactPickerProps = {
+  describedBy?: string;
+  id: string;
+  invalid: boolean;
+  label: string;
+  onChange: (selection: LoanContactSelection | null) => void;
+  placeholder: string;
+  value: LoanContactSelection | null;
+};
+
+const SEARCH_DEBOUNCE_MS = 250;
+
+export function LoanContactPicker({
+  describedBy,
+  id,
+  invalid,
+  label,
+  onChange,
+  placeholder,
+  value,
+}: LoanContactPickerProps) {
+  const t = useTranslations("loans.contactPicker");
+  const selectedName = value?.name ?? "";
+  const [query, setQuery] = useState(selectedName);
+  const [trackedName, setTrackedName] = useState(selectedName);
+  const [open, setOpen] = useState(false);
+  const [createError, setCreateError] = useState<null | string>(null);
+  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  const { data: contacts = [], isFetching } = useLoanContacts(debouncedQuery);
+  const createContact = useCreateLoanContact();
+
+  if (selectedName !== trackedName) {
+    setTrackedName(selectedName);
+    if (selectedName.length > 0 || query === trackedName) setQuery(selectedName);
+  }
+
+  const trimmedQuery = query.trim();
+  const normalizedQuery = normalizeName(trimmedQuery);
+  const searchSettled = !isFetching && debouncedQuery.trim() === trimmedQuery;
+  const matchesExistingContact = contacts.some(
+    (contact) => normalizeName(contact.name) === normalizedQuery,
+  );
+  const showCreateOption = trimmedQuery.length > 0 && searchSettled && !matchesExistingContact;
+  const showClear = value !== null || query.length > 0;
+
+  function pickContact(contact: LoanContactView) {
+    setCreateError(null);
+    onChange({ contactId: contact.id, kind: "picked", name: contact.name });
+    setQuery(contact.name);
+    setTrackedName(contact.name);
+    setOpen(false);
+  }
+
+  async function createAndPick() {
+    setCreateError(null);
+    try {
+      pickContact(await createContact.mutateAsync({ name: trimmedQuery }));
+    } catch (error) {
+      setCreateError(toCreateErrorMessage(error));
+    }
+  }
+
+  function toCreateErrorMessage(error: unknown): string {
+    if (error instanceof ApiError && error.code === LOAN_CONTACT_ERROR_CODES.archivedName) {
+      return t("errors.archivedName");
+    }
+    if (error instanceof ApiError && error.code === LOAN_CONTACT_ERROR_CODES.duplicateName) {
+      return t("errors.duplicateName");
+    }
+    return getErrorMessage(error, t("errors.createFailed"));
+  }
+
+  function handleClear() {
+    setCreateError(null);
+    onChange(null);
+    setQuery("");
+    setTrackedName("");
+    setOpen(false);
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <CommandPrimitive label={label} shouldFilter={false}>
+        <Popover onOpenChange={setOpen} open={open}>
+          <PopoverAnchor asChild>
+            <div className="relative flex items-center">
+              <UiIcon
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute left-3",
+                  invalid ? "text-destructive" : "text-muted-foreground",
+                )}
+                name="user"
+                size={18}
+              />
+              <CommandPrimitive.Input
+                aria-describedby={describedBy}
+                aria-invalid={invalid}
+                aria-required="true"
+                autoComplete="off"
+                className={cn(
+                  "h-10 w-full rounded-md border border-input bg-field pl-10 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
+                  showClear ? "pr-10" : "pr-3",
+                  invalid &&
+                    "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
+                )}
+                id={id}
+                onClick={() => setOpen(true)}
+                onFocus={() => setOpen(true)}
+                onValueChange={(next) => {
+                  setQuery(next);
+                  setOpen(true);
+                  setCreateError(null);
+                  if (value !== null) onChange(null);
+                }}
+                placeholder={placeholder}
+                value={query}
+              />
+              {showClear ? (
+                <button
+                  aria-label={t("clear")}
+                  className="absolute right-2 grid size-6 cursor-pointer place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  onClick={handleClear}
+                  type="button"
+                >
+                  <UiIcon name="x" size={16} />
+                </button>
+              ) : null}
+            </div>
+          </PopoverAnchor>
+          <PopoverContent
+            align="start"
+            className="w-(--radix-popover-trigger-width) max-w-(--radix-popover-trigger-width) p-1"
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            sideOffset={6}
+          >
+            <CommandList>
+              {isFetching && contacts.length === 0 ? (
+                <CommandEmpty>{t("searching")}</CommandEmpty>
+              ) : null}
+              {!isFetching && contacts.length === 0 && !showCreateOption ? (
+                <CommandEmpty>{t("empty")}</CommandEmpty>
+              ) : null}
+              {contacts.length > 0 ? (
+                <CommandGroup heading={t("contactsHeading")}>
+                  {contacts.map((contact) => (
+                    <LoanContactOption
+                      contact={contact}
+                      key={contact.id}
+                      onSelect={() => pickContact(contact)}
+                    />
+                  ))}
+                </CommandGroup>
+              ) : null}
+              {showCreateOption ? (
+                <CommandGroup heading={t("createHeading")}>
+                  <CommandItem
+                    className="cursor-pointer"
+                    disabled={createContact.isPending}
+                    onSelect={() => void createAndPick()}
+                    value={`create-${trimmedQuery}`}
+                  >
+                    <UiIcon
+                      className={cn("text-primary", createContact.isPending && "animate-spin")}
+                      name={createContact.isPending ? "refresh" : "plus"}
+                      size={16}
+                    />
+                    <span className="min-w-0 truncate">
+                      {createContact.isPending
+                        ? t("creating")
+                        : t("createAction", { name: trimmedQuery })}
+                    </span>
+                  </CommandItem>
+                </CommandGroup>
+              ) : null}
+            </CommandList>
+          </PopoverContent>
+        </Popover>
+      </CommandPrimitive>
+      {createError === null ? null : (
+        <p className="text-xs text-destructive" role="alert">
+          {createError}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function LoanContactOption({ contact, onSelect }: LoanContactOptionProps) {
+  const t = useTranslations("loans.contactPicker");
+
+  return (
+    <CommandItem className="cursor-pointer" onSelect={onSelect} value={contact.id}>
+      <UiIcon className="shrink-0 text-muted-foreground" name="user" size={16} />
+      <span className="min-w-0 truncate">{contact.name}</span>
+      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+        {t("loanCount", { count: contact.loanCount })}
+      </span>
+    </CommandItem>
+  );
+}
