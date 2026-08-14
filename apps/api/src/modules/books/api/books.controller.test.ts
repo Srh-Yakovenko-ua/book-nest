@@ -1439,11 +1439,14 @@ describe("POST /api/books delivery field parity", () => {
       trackingNumber: "TTN-123",
       trackingUrl: "https://track.example.com",
     });
-    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { bookId: res.body.id } });
-    expect(row.deliveryService).toBe("Nova Poshta");
-    expect(row.trackingNumber).toBe("TTN-123");
-    expect(row.trackingUrl).toBe("https://track.example.com");
-    expect(row.currency).toBe("UAH");
+    const row = await prisma.bookOrderItem.findFirstOrThrow({
+      include: { order: true, shipment: true },
+      where: { bookId: res.body.id },
+    });
+    expect(row.shipment?.deliveryServiceName).toBe("Nova Poshta");
+    expect(row.shipment?.trackingNumber).toBe("TTN-123");
+    expect(row.shipment?.trackingUrl).toBe("https://track.example.com");
+    expect(row.order.currency).toBe("UAH");
     expect(row.price?.toString()).toBe("349.5");
   });
 

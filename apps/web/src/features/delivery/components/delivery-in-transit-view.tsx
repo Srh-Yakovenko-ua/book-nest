@@ -14,8 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import type { DeliveryCardModel } from "../model/delivery-card-model";
 
-import { DeliverySubnav } from "./delivery-subnav";
-
 export type DeliveryContent =
   | { items: DeliveryCardModel[]; kind: "ready" }
   | { kind: "empty" }
@@ -60,8 +58,6 @@ export function DeliveryInTransitView({
 
   return (
     <div className="flex flex-col gap-6">
-      <DeliverySubnav />
-
       <header className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-1">

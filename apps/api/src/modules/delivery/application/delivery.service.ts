@@ -1,7 +1,7 @@
 import type {
+  BookPreview,
   BulkReceiveDeliveriesResultView,
   Currency,
-  DeliveryBookPreview,
   DeliveryHistoryQuery,
   DeliveryHistorySummaryView,
   DeliveryInTransitQuery,
@@ -15,7 +15,7 @@ import type {
 
 import {
   CurrencySchema,
-  isActiveDeliveryStatus,
+  isActiveShipmentStatus,
   normalizeName,
   normalizeSearch,
   OwnershipStatusSchema,
@@ -210,7 +210,7 @@ export class DeliveryService {
     });
   }
 
-  private toBookPreview(book: DeliveryWithBook["book"]): DeliveryBookPreview {
+  private toBookPreview(book: DeliveryWithBook["book"]): BookPreview {
     return {
       cover: this.mediaService.buildViewOrNull(book.coverMedia),
       firstAuthorName: book.firstAuthorName,
@@ -242,7 +242,7 @@ export class DeliveryService {
       book: this.toBookPreview(delivery.book),
       delivery: deliveryView,
       id: delivery.id,
-      uiStatus: isActiveDeliveryStatus(deliveryView.status)
+      uiStatus: isActiveShipmentStatus(deliveryView.status)
         ? getDeliveryUiStatus({ expectedDeliveryDate: delivery.expectedDeliveryDate, today })
         : null,
     };

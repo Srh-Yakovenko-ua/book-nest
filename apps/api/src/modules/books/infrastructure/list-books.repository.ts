@@ -36,11 +36,9 @@ const PositionRankRowSchema = z.object({
   rank: z.number(),
 });
 
-const listItemWithBook = {
-  include: { book: { include: withRelations } },
-} satisfies Prisma.BookListItemDefaultArgs;
-
-export type BookListItemWithBook = Prisma.BookListItemGetPayload<typeof listItemWithBook>;
+export type BookListItemWithBook = Prisma.BookListItemGetPayload<
+  ReturnType<typeof listItemWithBook>
+>;
 
 type CountListBooksInput = {
   filter: LibraryFilter;
@@ -48,6 +46,12 @@ type CountListBooksInput = {
 };
 
 type QuickFilterOverlay = Partial<Pick<LibraryFilter, QuickFilterAxis>>;
+
+function listItemWithBook(userId: string) {
+  return {
+    include: { book: { include: withRelations(userId) } },
+  } satisfies Prisma.BookListItemDefaultArgs;
+}
 
 const QUICK_COUNT_OVERLAYS = {
   all: {},
@@ -110,7 +114,7 @@ export class ListBooksRepository {
       skip,
       take,
       where: buildListItemWhere({ filter, listId }),
-      ...listItemWithBook,
+      ...listItemWithBook(filter.userId),
     });
   }
 
@@ -173,7 +177,7 @@ export class ListBooksRepository {
 
     const items = await this.prisma.bookListItem.findMany({
       where: { bookId: { in: pageIds }, listId },
-      ...listItemWithBook,
+      ...listItemWithBook(filter.userId),
     });
     const byBookId = new Map(items.map((item) => [item.bookId, item]));
     return pageIds.flatMap((bookId) => {

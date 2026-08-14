@@ -4,22 +4,12 @@ import type { ReactNode } from "react";
 
 import { Tabs as TabsPrimitive } from "radix-ui";
 
-import type { UiIconName } from "@/components/icons";
-
-import { UiIcon } from "@/components/icons";
-import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 export type PageTabsItem = {
   badge?: ReactNode;
   label: string;
   value: string;
-};
-
-export type PageTabsNavItem = {
-  href: string;
-  icon?: UiIconName;
-  label: string;
 };
 
 export const pageTabsDividerClass = "border-b border-border";
@@ -80,38 +70,6 @@ export function PageTabs({
       </div>
       {children}
     </TabsPrimitive.Root>
-  );
-}
-
-export function PageTabsNav({
-  ariaLabel,
-  items,
-}: {
-  ariaLabel: string;
-  items: readonly PageTabsNavItem[];
-}) {
-  const pathname = usePathname();
-
-  return (
-    <nav aria-label={ariaLabel} className={pageTabsDividerClass}>
-      <div className={pageTabsListClass}>
-        {items.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              aria-current={active ? "page" : undefined}
-              className={pageTabsTriggerClass}
-              data-state={active ? "active" : "inactive"}
-              href={item.href}
-              key={item.href}
-            >
-              {item.icon === undefined ? null : <UiIcon name={item.icon} size={16} />}
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
   );
 }
 

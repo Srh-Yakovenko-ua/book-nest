@@ -3,6 +3,7 @@ import type { BookFacetScope } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -102,12 +103,7 @@ export class BookFacetsRepository {
   }
 }
 
-function escapeLikePattern(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
-}
-
 function nameMatches(column: string, search: string | undefined): Prisma.Sql {
   if (search === undefined) return Prisma.empty;
-  const pattern = `%${escapeLikePattern(search)}%`;
-  return Prisma.sql`AND ${Prisma.raw(column)} ILIKE ${pattern} ESCAPE '\\'`;
+  return Prisma.sql`AND ${ilikeContains({ column: Prisma.raw(column), search })}`;
 }

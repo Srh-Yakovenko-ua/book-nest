@@ -176,7 +176,7 @@
           },
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/api/prisma/migrations/.*/migration.sql' && { echo 'Refusing to edit an applied migration. Migrations are the source of truth — create a NEW migration via pnpm --filter @app/api db:migrate instead.' >&2; exit 2; } || true"
+            "command": "f=$(jq -r '.tool_input.file_path'); case \"$f\" in *apps/api/prisma/migrations/*/migration.sql) git -C \"$(dirname \"$f\")\" ls-files --error-unmatch \"$f\" >/dev/null 2>&1 && { echo 'Refusing to edit a committed migration. Migrations are the source of truth — create a NEW migration via pnpm --filter @app/api db:migrate instead. A freshly generated, still-untracked migration.sql stays editable so you can review it and strip spurious DROP INDEX lines before applying it.' >&2; exit 2; } ;; esac; true"
           },
           {
             "type": "command",

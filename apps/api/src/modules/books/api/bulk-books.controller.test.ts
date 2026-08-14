@@ -389,15 +389,33 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
       title: "A",
       userId,
     });
-    await prisma.bookDelivery.create({
-      data: { bookId: book.id, status: "ordered", storeName: "Yakaboo", userId },
+    const order = await prisma.bookOrder.create({ data: { storeName: "Yakaboo", userId } });
+    const shipment = await prisma.shipment.create({
+      data: { orderId: order.id, status: "ordered" },
+    });
+    const sibling = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "in_transit",
+      title: "B",
+      userId,
+    });
+    await prisma.bookOrderItem.createMany({
+      data: [
+        { bookId: book.id, orderId: order.id, shipmentId: shipment.id },
+        { bookId: sibling.id, orderId: order.id, shipmentId: shipment.id },
+      ],
     });
 
     await patch(accessToken, "ownership-status", { bookIds: [book.id], ownershipStatus: "owned" });
 
-    const deliveries = await prisma.bookDelivery.findMany({ where: { bookId: book.id } });
-    expect(deliveries).toHaveLength(1);
-    expect(deliveries[0]?.status).toBe("cancelled");
+    const cancelled = await prisma.bookOrderItem.findFirstOrThrow({ where: { bookId: book.id } });
+    expect(cancelled.cancelledAt).not.toBeNull();
+    const untouched = await prisma.bookOrderItem.findFirstOrThrow({
+      where: { bookId: sibling.id },
+    });
+    expect(untouched.cancelledAt).toBeNull();
+    const stillActive = await prisma.shipment.findUniqueOrThrow({ where: { id: shipment.id } });
+    expect(stillActive.status).toBe("ordered");
   });
 
   it("keeps the purchase block when ownership moves from want_to_buy to owned", async () => {

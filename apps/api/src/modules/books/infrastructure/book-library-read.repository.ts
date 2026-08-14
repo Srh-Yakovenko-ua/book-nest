@@ -278,7 +278,7 @@ export class BookLibraryReadRepository {
 
   listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
-      include: withRelations,
+      include: withRelations(filter.userId),
       orderBy: LIBRARY_ORDER_BY[sort],
       skip,
       take,
@@ -296,7 +296,7 @@ export class BookLibraryReadRepository {
     userId: string;
   }): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
-      include: withRelations,
+      include: withRelations(userId),
       orderBy: { createdAt: "desc" },
       take,
       where: buildLibraryWhere({ ownershipStatuses, userId }),

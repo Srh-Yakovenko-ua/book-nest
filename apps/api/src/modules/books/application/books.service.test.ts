@@ -18,6 +18,7 @@ import type {
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { fakeOf } from "../../../test/fake.js";
+import { SingleBookOrderService } from "../../delivery/index.js";
 import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -41,6 +42,7 @@ type Repository = {
   create: ReturnType<typeof vi.fn>;
   favoritesSummary: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
+  findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
   listForLibrary: ReturnType<typeof vi.fn>;
   recentPurchaseStores: ReturnType<typeof vi.fn>;
   updateOwned: ReturnType<typeof vi.fn>;
@@ -48,6 +50,7 @@ type Repository = {
 
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
   return {
+    _count: { orderItems: 0 },
     ageCategory: "not_specified",
     authors: [
       {
@@ -61,7 +64,6 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     coverMediaId: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     dedication: null,
-    deliveries: [],
     description: null,
     favoriteAddedAt: null,
     firstAuthorName: "Frank Herbert",
@@ -75,6 +77,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     language: "ukrainian",
     lists: [],
     loans: [],
+    orderItems: [],
     originalTitle: null,
     ownershipStatus: "none",
     pagesCount: null,
@@ -125,6 +128,7 @@ function buildService(
   };
   repository: Repository;
   service: BooksService;
+  singleBookOrder: { applyBlock: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
 } {
   const repository = {
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
@@ -141,6 +145,7 @@ function buildService(
       },
     ),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
+    findOwnedByIdOrThrow: vi.fn().mockResolvedValue(overrides.findOwnedById ?? bookRow()),
     listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
     updateOwned: vi.fn().mockResolvedValue(overrides.updateOwned ?? bookRow()),
@@ -165,6 +170,10 @@ function buildService(
     fakeOf<MediaService>(mediaService),
   );
   const coverCleanup = { deleteIfOrphaned: vi.fn().mockResolvedValue(undefined) };
+  const singleBookOrder = {
+    applyBlock: vi.fn().mockResolvedValue(undefined),
+    create: vi.fn().mockResolvedValue(undefined),
+  };
   const transactionRunner = {
     run: <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(TX),
   };
@@ -174,11 +183,12 @@ function buildService(
     fakeOf<BookRelationsResolver>(relationsResolver),
     viewAssembler,
     fakeOf<BookCoverCleanup>(coverCleanup),
+    fakeOf<SingleBookOrderService>(singleBookOrder),
     fakeOf<TransactionRunner>(transactionRunner),
     fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
   );
 
-  return { coverCleanup, relationsResolver, repository, service };
+  return { coverCleanup, relationsResolver, repository, service, singleBookOrder };
 }
 
 function loanRow(
@@ -456,7 +466,7 @@ describe("BooksService.create", () => {
   });
 
   it("builds purchase info for a want_to_buy book and ignores delivery and loan blocks", async () => {
-    const { repository, service } = buildService();
+    const { repository, service, singleBookOrder } = buildService();
 
     await service.create(
       USER_ID,
@@ -467,10 +477,10 @@ describe("BooksService.create", () => {
       }),
     );
 
+    expect(singleBookOrder.create).not.toHaveBeenCalled();
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({
-        deliveryInfo: null,
         loanInfo: null,
         purchaseInfo: {
           currency: "UAH",
@@ -486,7 +496,7 @@ describe("BooksService.create", () => {
   });
 
   it("defaults the delivery status to ordered for an in_transit book without one", async () => {
-    const { repository, service } = buildService();
+    const { repository, service, singleBookOrder } = buildService();
 
     await service.create(
       USER_ID,
@@ -498,8 +508,14 @@ describe("BooksService.create", () => {
 
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
-      expect.objectContaining({
-        deliveryInfo: {
+      expect.objectContaining({ purchaseInfo: null }),
+      expect.any(Date),
+      TX,
+    );
+    expect(singleBookOrder.create).toHaveBeenCalledWith(
+      {
+        bookId: BOOK_ID,
+        draft: {
           currency: null,
           deliveryService: null,
           expectedDeliveryDate: null,
@@ -512,9 +528,8 @@ describe("BooksService.create", () => {
           trackingNumber: null,
           trackingUrl: null,
         },
-        purchaseInfo: null,
-      }),
-      expect.any(Date),
+        userId: USER_ID,
+      },
       TX,
     );
   });
@@ -533,7 +548,6 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({
-        deliveryInfo: null,
         loanInfo: {
           contact: null,
           expectedReturnDate: null,

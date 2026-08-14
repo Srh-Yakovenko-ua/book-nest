@@ -1,4 +1,9 @@
-import { DeliveryServiceSchema, normalizeName, type Nullable } from "@app/shared";
+import {
+  DeliveryServiceSchema,
+  normalizeName,
+  type Nullable,
+  TRACKING_URL_TEMPLATE_PLACEHOLDER,
+} from "@app/shared";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
@@ -8,23 +13,95 @@ import { createSeedClient } from "./seed-client.js";
 
 const logger = createLogger("seed.delivery-services");
 
-const CURATED_DELIVERY_SERVICES: { countryCode: Nullable<string>; name: string }[] = [
-  { countryCode: "UA", name: "Нова Пошта" },
-  { countryCode: "UA", name: "Укрпошта" },
-  { countryCode: "UA", name: "Meest" },
-  { countryCode: "UA", name: "Нова Пошта Глобал / Nova Global" },
-  { countryCode: "UA", name: "NP Shopping" },
-  { countryCode: "UA", name: "Meest Shopping" },
-  { countryCode: "US", name: "AmazonGlobal" },
-  { countryCode: null, name: "Temu / Marketplace delivery" },
-  { countryCode: "CN", name: "AliExpress Standard Shipping" },
-  { countryCode: "DE", name: "DHL" },
-  { countryCode: "US", name: "UPS" },
-  { countryCode: "US", name: "FedEx" },
-  { countryCode: null, name: "Самовивіз" },
-  { countryCode: null, name: "Кур'єр магазину" },
-  { countryCode: null, name: "Міжнародна доставка" },
-  { countryCode: null, name: "Форвардинг / посередник" },
+type CuratedDeliveryService = {
+  countryCode: Nullable<string>;
+  name: string;
+  providerKey: string;
+  trackingUrlTemplate: Nullable<string>;
+};
+
+const CURATED_DELIVERY_SERVICES: CuratedDeliveryService[] = [
+  {
+    countryCode: "UA",
+    name: "Нова Пошта",
+    providerKey: "nova_poshta",
+    trackingUrlTemplate: `https://novaposhta.ua/tracking/index/cargo_number/${TRACKING_URL_TEMPLATE_PLACEHOLDER}/no_redirect/1`,
+  },
+  {
+    countryCode: "UA",
+    name: "Укрпошта",
+    providerKey: "ukrposhta",
+    trackingUrlTemplate: `https://a.ukrposhta.ua/vidslidkuvati-forma-poshuku_UA.html?barcode=${TRACKING_URL_TEMPLATE_PLACEHOLDER}`,
+  },
+  { countryCode: "UA", name: "Meest", providerKey: "meest", trackingUrlTemplate: null },
+  {
+    countryCode: "UA",
+    name: "Нова Пошта Глобал / Nova Global",
+    providerKey: "nova_global",
+    trackingUrlTemplate: null,
+  },
+  { countryCode: "UA", name: "NP Shopping", providerKey: "np_shopping", trackingUrlTemplate: null },
+  {
+    countryCode: "UA",
+    name: "Meest Shopping",
+    providerKey: "meest_shopping",
+    trackingUrlTemplate: null,
+  },
+  {
+    countryCode: "US",
+    name: "AmazonGlobal",
+    providerKey: "amazon_global",
+    trackingUrlTemplate: null,
+  },
+  {
+    countryCode: null,
+    name: "Temu / Marketplace delivery",
+    providerKey: "temu",
+    trackingUrlTemplate: null,
+  },
+  {
+    countryCode: "CN",
+    name: "AliExpress Standard Shipping",
+    providerKey: "aliexpress",
+    trackingUrlTemplate: null,
+  },
+  {
+    countryCode: "DE",
+    name: "DHL",
+    providerKey: "dhl",
+    trackingUrlTemplate: `https://www.dhl.com/global-en/home/tracking/tracking-express.html?submit=1&tracking-id=${TRACKING_URL_TEMPLATE_PLACEHOLDER}`,
+  },
+  {
+    countryCode: "US",
+    name: "UPS",
+    providerKey: "ups",
+    trackingUrlTemplate: `https://www.ups.com/track?tracknum=${TRACKING_URL_TEMPLATE_PLACEHOLDER}`,
+  },
+  {
+    countryCode: "US",
+    name: "FedEx",
+    providerKey: "fedex",
+    trackingUrlTemplate: `https://www.fedex.com/fedextrack/?trknbr=${TRACKING_URL_TEMPLATE_PLACEHOLDER}`,
+  },
+  { countryCode: null, name: "Самовивіз", providerKey: "self_pickup", trackingUrlTemplate: null },
+  {
+    countryCode: null,
+    name: "Кур'єр магазину",
+    providerKey: "store_courier",
+    trackingUrlTemplate: null,
+  },
+  {
+    countryCode: null,
+    name: "Міжнародна доставка",
+    providerKey: "international",
+    trackingUrlTemplate: null,
+  },
+  {
+    countryCode: null,
+    name: "Форвардинг / посередник",
+    providerKey: "forwarder",
+    trackingUrlTemplate: null,
+  },
 ];
 
 const DATASET_URL = new URL("./data/delivery-services.dataset.json", import.meta.url);
@@ -105,7 +182,9 @@ async function seedCurated(prisma: PrismaClientInstance): Promise<void> {
           isDefault: true,
           name: entry.name,
           normalizedName,
+          providerKey: entry.providerKey,
           sortOrder: index,
+          trackingUrlTemplate: entry.trackingUrlTemplate,
           userId: null,
         },
       });
@@ -116,7 +195,9 @@ async function seedCurated(prisma: PrismaClientInstance): Promise<void> {
           countryCode: entry.countryCode,
           isDefault: true,
           name: entry.name,
+          providerKey: entry.providerKey,
           sortOrder: index,
+          trackingUrlTemplate: entry.trackingUrlTemplate,
         },
         where: { id: existing.id },
       });

@@ -63,6 +63,7 @@ export class DeliveryServicesRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<DeliveryServiceModel>> {
     return client.deliveryService.findFirst({
+      orderBy: { userId: { nulls: "first", sort: "asc" } },
       where: { normalizedName, ...visibleToUser(userId) },
     });
   }
@@ -88,11 +89,12 @@ export class DeliveryServicesRepository {
     userId: string;
   }): Promise<string[]> {
     const rows = await this.prisma.$queryRaw`
-      SELECT lower(bd.delivery_service) AS "name"
-      FROM book_deliveries bd
-      WHERE bd.user_id = ${userId}::uuid AND bd.delivery_service IS NOT NULL
-      GROUP BY lower(bd.delivery_service)
-      ORDER BY max(bd.created_at) DESC
+      SELECT lower(shipment.delivery_service_name) AS "name"
+      FROM shipments shipment
+      JOIN book_orders book_order ON book_order.id = shipment.order_id
+      WHERE book_order.user_id = ${userId}::uuid AND shipment.delivery_service_name IS NOT NULL
+      GROUP BY lower(shipment.delivery_service_name)
+      ORDER BY max(shipment.created_at) DESC
       LIMIT ${limit}
     `;
     return z

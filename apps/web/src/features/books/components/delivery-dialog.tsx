@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-  ActiveDeliveryStatus,
+  ActiveShipmentStatus,
   BookView,
   CreateDeliveryInput,
   Currency,
@@ -9,7 +9,7 @@ import type {
   UpdateDeliveryInput,
 } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES, isActiveDeliveryStatus } from "@app/shared";
+import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -101,7 +101,7 @@ type DeliveryValues = {
   orderDate: string;
   orderNumber: string;
   price: string;
-  status: ActiveDeliveryStatus;
+  status: ActiveShipmentStatus;
   storeName: string;
   trackingNumber: string;
   trackingUrl: string;
@@ -185,7 +185,7 @@ function buildSchema(messages: DeliveryMessages) {
           (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
           messages.priceMax,
         ),
-      status: z.enum(DELIVERY_ACTIVE_STATUSES),
+      status: z.enum(SHIPMENT_ACTIVE_STATUSES),
       storeName: z
         .string()
         .refine((value) => value.trim().length > 0, messages.storeNameRequired)
@@ -384,7 +384,7 @@ function DeliveryForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DELIVERY_ACTIVE_STATUSES.map((status) => (
+                  {SHIPMENT_ACTIVE_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
                       {tStatus(status)}
                     </SelectItem>
@@ -580,7 +580,7 @@ function toDefaults(delivery: DeliveryView | undefined): DeliveryValues {
     orderNumber: delivery?.orderNumber ?? "",
     price: delivery?.price != null ? String(delivery.price) : "",
     status:
-      delivery !== undefined && isActiveDeliveryStatus(delivery.status)
+      delivery !== undefined && isActiveShipmentStatus(delivery.status)
         ? delivery.status
         : "ordered",
     storeName: delivery?.storeName ?? "",

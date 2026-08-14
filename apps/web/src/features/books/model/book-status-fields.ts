@@ -1,4 +1,4 @@
-import type { BookFormat, DeliveryStatus, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookFormat, OwnershipStatus, ReadingStatus, ShipmentStatus } from "@app/shared";
 
 type StatusPayload = {
   deliveryInfo?: unknown;
@@ -38,13 +38,13 @@ export const CREATE_DELIVERY_STATUS_OPTIONS = [
   "ordered",
   "in_transit",
   "ready_for_pickup",
-] as const satisfies readonly DeliveryStatus[];
+] as const satisfies readonly ShipmentStatus[];
 
 export const EDIT_DELIVERY_STATUS_OPTIONS = [
   "ordered",
   "in_transit",
   "ready_for_pickup",
-] as const satisfies readonly DeliveryStatus[];
+] as const satisfies readonly ShipmentStatus[];
 
 type ReadingProgressField =
   | "abandonedAt"

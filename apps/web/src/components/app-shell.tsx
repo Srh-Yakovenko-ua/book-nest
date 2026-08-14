@@ -1,5 +1,6 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import {
@@ -49,7 +50,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
@@ -60,13 +60,7 @@ import { NotificationBell } from "@/features/notifications";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
-type NavGroup = {
-  icon: React.ElementType;
-  items: readonly NavLink[];
-  key: NavKey;
-};
-
-type NavItem = NavGroup | NavLink;
+type NavItem = NavLink | NavSection;
 
 type NavKey =
   | "allBooks"
@@ -78,9 +72,6 @@ type NavKey =
   | "home"
   | "lists"
   | "loans"
-  | "loansBorrowed"
-  | "loansHistory"
-  | "loansLent"
   | "myLibrary"
   | "notes"
   | "publishers"
@@ -92,35 +83,104 @@ type NavKey =
 type NavLink = {
   icon: React.ElementType;
   key: NavKey;
+  kind: "link";
   to: string;
 };
 
-const NAV_ITEMS: readonly NavItem[] = [
-  { icon: Home, key: "home", to: "/" },
-  { icon: LibraryBig, key: "allBooks", to: "/books" },
-  { icon: Library, key: "myLibrary", to: "/my-library" },
-  { icon: Heart, key: "favorites", to: "/favorites" },
-  { icon: Quote, key: "quotes", to: "/quotes" },
-  { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
-  { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
+type NavMessageKey =
+  | "delivery.subnav.history"
+  | "delivery.subnav.inTransit"
+  | "delivery.subnav.label"
+  | "delivery.subnav.statistics"
+  | "nav.loans"
+  | "nav.loansBorrowed"
+  | "nav.loansHistory"
+  | "nav.loansLent";
+
+type NavSection = {
+  children: readonly [NavSectionChild, ...NavSectionChild[]];
+  icon: React.ElementType;
+  key: NavKey;
+  kind: "section";
+  listLabelKey: NavMessageKey;
+  pathPrefix: string;
+};
+
+type NavSectionChild = {
+  icon: Nullable<React.ElementType>;
+  labelKey: NavMessageKey;
+  to: string;
+};
+
+type NavSectionToggle = {
+  isOpen: boolean;
+  pathname: string;
+};
+
+const NAV_ITEMS = [
+  { icon: Home, key: "home", kind: "link", to: "/" },
+  { icon: LibraryBig, key: "allBooks", kind: "link", to: "/books" },
+  { icon: Library, key: "myLibrary", kind: "link", to: "/my-library" },
+  { icon: Heart, key: "favorites", kind: "link", to: "/favorites" },
+  { icon: Quote, key: "quotes", kind: "link", to: "/quotes" },
+  { icon: ListOrdered, key: "readingQueue", kind: "link", to: "/reading-queue" },
+  { icon: ShoppingBag, key: "buyList", kind: "link", to: "/books-to-buy" },
   {
-    icon: HandHelping,
-    items: [
-      { icon: CircleArrowDown, key: "loansBorrowed", to: "/loans/borrowed" },
-      { icon: ArrowUpRight, key: "loansLent", to: "/loans/lent" },
-      { icon: History, key: "loansHistory", to: "/loans/history" },
+    children: [
+      { icon: CircleArrowDown, labelKey: "nav.loansBorrowed", to: "/loans/borrowed" },
+      { icon: ArrowUpRight, labelKey: "nav.loansLent", to: "/loans/lent" },
+      { icon: History, labelKey: "nav.loansHistory", to: "/loans/history" },
     ],
+    icon: HandHelping,
     key: "loans",
+    kind: "section",
+    listLabelKey: "nav.loans",
+    pathPrefix: "/loans",
   },
-  { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
-  { icon: Feather, key: "dedications", to: "/dedications" },
-  { icon: BookCopy, key: "series", to: "/series" },
-  { icon: Landmark, key: "publishers", to: "/publishers" },
-  { icon: Tags, key: "genresTags", to: "/genres-tags" },
-  { icon: ListChecks, key: "lists", to: "/lists" },
-  { icon: NotebookPen, key: "notes", to: "/notes" },
-  { icon: Settings, key: "settings", to: "/settings" },
-];
+  {
+    children: [
+      { icon: null, labelKey: "delivery.subnav.inTransit", to: "/delivery/in-transit" },
+      { icon: null, labelKey: "delivery.subnav.history", to: "/delivery/history" },
+      { icon: null, labelKey: "delivery.subnav.statistics", to: "/delivery/statistics" },
+    ],
+    icon: Truck,
+    key: "delivery",
+    kind: "section",
+    listLabelKey: "delivery.subnav.label",
+    pathPrefix: "/delivery",
+  },
+  { icon: Feather, key: "dedications", kind: "link", to: "/dedications" },
+  { icon: BookCopy, key: "series", kind: "link", to: "/series" },
+  { icon: Landmark, key: "publishers", kind: "link", to: "/publishers" },
+  { icon: Tags, key: "genresTags", kind: "link", to: "/genres-tags" },
+  { icon: ListChecks, key: "lists", kind: "link", to: "/lists" },
+  { icon: NotebookPen, key: "notes", kind: "link", to: "/notes" },
+  { icon: Settings, key: "settings", kind: "link", to: "/settings" },
+] satisfies readonly NavItem[];
+
+const NAV_STYLES = {
+  activeIcon: "text-sidebar-active-foreground",
+  activeItem:
+    "bg-primary/10 text-sidebar-active-foreground hover:bg-primary/15 hover:text-sidebar-active-foreground",
+  chevron:
+    "ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180",
+  icon: "size-[18px] shrink-0 transition-colors duration-150",
+  idleIcon: "text-sidebar-foreground/70",
+  idleItem: "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+  indicator: "absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-primary",
+  item: "relative cursor-pointer gap-3 transition-all duration-150",
+  label: "font-mono text-[12px] font-medium tracking-[0.14em] uppercase",
+  subActiveChild: "bg-primary/10 text-sidebar-active-foreground hover:bg-primary/15",
+  subChild:
+    "flex h-7 min-w-0 cursor-pointer items-center gap-2.5 rounded-md px-2 transition-colors duration-150 outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+  subIcon: "size-4 shrink-0",
+  subIdleChild: "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+  subIndicator:
+    "absolute top-1/2 -left-[11px] h-5 w-[2px] -translate-y-1/2 rounded-full bg-primary",
+  subLabel: "truncate font-mono text-[11px] font-medium tracking-[0.12em] uppercase",
+} as const;
+
+const ACTIVE_INDICATOR_TRANSITION = { damping: 34, stiffness: 420, type: "spring" } as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -134,6 +194,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function AppSidebar() {
+  const tNav = useTranslations("nav");
   const tShell = useTranslations("appShell");
   const pathname = usePathname();
   const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
@@ -169,13 +230,22 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {NAV_ITEMS.map((item) =>
-                "items" in item ? (
-                  <NavGroupItem group={item} key={item.key} />
-                ) : (
-                  <NavLinkItem key={item.key} link={item} />
-                ),
-              )}
+              {NAV_ITEMS.map((item) => {
+                if (item.kind === "section") {
+                  return <NavSectionMenuItem item={item} key={item.key} pathname={pathname} />;
+                }
+
+                return (
+                  <SidebarMenuItem key={item.key}>
+                    <NavMenuLink
+                      href={item.to}
+                      icon={item.icon}
+                      isActive={pathname === item.to}
+                      label={tNav(item.key)}
+                    />
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -251,74 +321,111 @@ function ContentArea({ children }: { children: ReactNode }) {
   );
 }
 
-function NavGroupItem({ group }: { group: NavGroup }) {
+function NavMenuLink({
+  href,
+  icon: Icon,
+  isActive,
+  label,
+}: {
+  href: string;
+  icon: React.ElementType;
+  isActive: boolean;
+  label: string;
+}) {
+  return (
+    <SidebarMenuButton
+      asChild
+      className={cn(NAV_STYLES.item, isActive ? NAV_STYLES.activeItem : NAV_STYLES.idleItem)}
+      isActive={isActive}
+      tooltip={label}
+    >
+      <Link href={href}>
+        <Icon
+          className={cn(NAV_STYLES.icon, isActive ? NAV_STYLES.activeIcon : NAV_STYLES.idleIcon)}
+        />
+        <span className={NAV_STYLES.label}>{label}</span>
+        {isActive && (
+          <motion.div
+            className={NAV_STYLES.indicator}
+            layoutId="sidebar-active-indicator"
+            transition={ACTIVE_INDICATOR_TRANSITION}
+          />
+        )}
+      </Link>
+    </SidebarMenuButton>
+  );
+}
+
+function NavSectionMenuItem({ item, pathname }: { item: NavSection; pathname: string }) {
+  const t = useTranslations();
   const tNav = useTranslations("nav");
-  const pathname = usePathname();
   const { isMobile, state } = useSidebar();
-  const hasActiveChild = group.items.some((item) => item.to === pathname);
-  const [open, setOpen] = useState(hasActiveChild);
-  const [wasOnChildPage, setWasOnChildPage] = useState(hasActiveChild);
+  const [toggle, setToggle] = useState<Nullable<NavSectionToggle>>(null);
 
-  if (hasActiveChild !== wasOnChildPage) {
-    setWasOnChildPage(hasActiveChild);
-    if (hasActiveChild) setOpen(true);
+  const label = tNav(item.key);
+  const isSectionActive = pathname.startsWith(item.pathPrefix);
+
+  if (state === "collapsed" && !isMobile) {
+    return (
+      <SidebarMenuItem>
+        <NavMenuLink
+          href={item.children[0].to}
+          icon={item.icon}
+          isActive={isSectionActive}
+          label={label}
+        />
+      </SidebarMenuItem>
+    );
   }
 
-  if (!isMobile && state === "collapsed") {
-    return group.items.map((item) => <NavLinkItem key={item.key} link={item} />);
-  }
-
-  const GroupIcon = group.icon;
+  const isOpen = toggle?.pathname === pathname ? toggle.isOpen : isSectionActive;
+  const Icon = item.icon;
 
   return (
-    <Collapsible asChild onOpenChange={setOpen} open={open}>
+    <Collapsible
+      asChild
+      onOpenChange={(open) => setToggle({ isOpen: open, pathname })}
+      open={isOpen}
+    >
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton
-            className={cn(
-              "cursor-pointer gap-3 transition-all duration-150",
-              hasActiveChild
-                ? "text-sidebar-active-foreground hover:bg-sidebar-accent hover:text-sidebar-active-foreground"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-            )}
-            tooltip={tNav(group.key)}
-          >
-            <GroupIcon
+          <SidebarMenuButton className={cn("group", NAV_STYLES.item, NAV_STYLES.idleItem)}>
+            <Icon
               className={cn(
-                "size-[18px] shrink-0 transition-colors duration-150",
-                hasActiveChild ? "text-sidebar-active-foreground" : "text-sidebar-foreground/70",
+                NAV_STYLES.icon,
+                isSectionActive ? NAV_STYLES.activeIcon : NAV_STYLES.idleIcon,
               )}
             />
-            <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
-              {tNav(group.key)}
-            </span>
-            <ChevronDown
-              className={cn(
-                "ml-auto size-4 shrink-0 transition-transform duration-200",
-                open && "rotate-180",
-              )}
-            />
+            <span className={NAV_STYLES.label}>{label}</span>
+            <ChevronDown className={NAV_STYLES.chevron} />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <SidebarMenuSub className="mt-1 gap-1">
-            {group.items.map(({ icon: ItemIcon, key, to }) => {
-              const isActive = pathname === to;
+          <SidebarMenuSub aria-label={t(item.listLabelKey)} className="mt-1">
+            {item.children.map(({ icon: ChildIcon, labelKey, to }) => {
+              const isChildActive = pathname === to;
+
               return (
-                <SidebarMenuSubItem key={key}>
-                  <SidebarMenuSubButton
-                    asChild
-                    className="h-8 cursor-pointer gap-2.5"
-                    isActive={isActive}
+                <SidebarMenuSubItem key={to}>
+                  <Link
+                    aria-current={isChildActive ? "page" : undefined}
+                    className={cn(
+                      NAV_STYLES.subChild,
+                      isChildActive ? NAV_STYLES.subActiveChild : NAV_STYLES.subIdleChild,
+                    )}
+                    href={to}
                   >
-                    <Link href={to}>
-                      <ItemIcon className="size-4 shrink-0" />
-                      <span className="font-mono text-[11px] font-medium tracking-[0.12em] uppercase">
-                        {tNav(key)}
-                      </span>
-                    </Link>
-                  </SidebarMenuSubButton>
+                    {ChildIcon !== null && <ChildIcon className={NAV_STYLES.subIcon} />}
+                    <span className={NAV_STYLES.subLabel}>{t(labelKey)}</span>
+                  </Link>
+                  {isChildActive && (
+                    <motion.div
+                      className={NAV_STYLES.subIndicator}
+                      layoutId="sidebar-active-sub-indicator"
+                      transition={ACTIVE_INDICATOR_TRANSITION}
+                    />
+                  )}
                 </SidebarMenuSubItem>
               );
             })}
@@ -326,46 +433,5 @@ function NavGroupItem({ group }: { group: NavGroup }) {
         </CollapsibleContent>
       </SidebarMenuItem>
     </Collapsible>
-  );
-}
-
-function NavLinkItem({ link: { icon: LinkIcon, key, to } }: { link: NavLink }) {
-  const tNav = useTranslations("nav");
-  const pathname = usePathname();
-  const isActive = pathname === to;
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        asChild
-        className={cn(
-          "relative cursor-pointer gap-3 transition-all duration-150",
-          isActive
-            ? "bg-primary/10 text-sidebar-active-foreground hover:bg-primary/15 hover:text-sidebar-active-foreground"
-            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-        )}
-        isActive={isActive}
-        tooltip={tNav(key)}
-      >
-        <Link href={to}>
-          <LinkIcon
-            className={cn(
-              "size-[18px] shrink-0 transition-colors duration-150",
-              isActive ? "text-sidebar-active-foreground" : "text-sidebar-foreground/70",
-            )}
-          />
-          <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
-            {tNav(key)}
-          </span>
-          {isActive && (
-            <motion.div
-              className="absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
-              layoutId="sidebar-active-indicator"
-              transition={{ damping: 34, stiffness: 420, type: "spring" }}
-            />
-          )}
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
   );
 }

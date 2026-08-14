@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { CurrencySchema } from "./book-enums.js";
+
 export type ApiError = {
   code?: string;
   message: string;
@@ -102,6 +104,14 @@ export function normalizeSearch(value: string | undefined): string | undefined {
   const collapsed = collapseSpaces(value);
   return collapsed.length === 0 ? undefined : collapsed;
 }
+
+export const CurrencyTotalSchema = z.object({ currency: CurrencySchema, total: z.number() });
+
+export type CurrencyTotal = z.infer<typeof CurrencyTotalSchema>;
+
+export const CurrencyAverageSchema = z.object({ average: z.number(), currency: CurrencySchema });
+
+export type CurrencyAverage = z.infer<typeof CurrencyAverageSchema>;
 
 export const createPaginatedSchema = <ItemSchema extends z.ZodType>(item: ItemSchema) =>
   z.object({

@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView, Currency, DeliveryStatus, DeliveryView } from "@app/shared";
+import type { BookView, Currency, DeliveryView, ShipmentStatus } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -208,7 +208,7 @@ function DeliveryDetails({ delivery }: { delivery: DeliveryView }) {
   );
 }
 
-function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
+function DeliveryStatusBadge({ status }: { status: ShipmentStatus }) {
   const tStatus = useTranslations("books.deliveryStatus.labels");
   const base = deliveryStatuses.find((entry) => entry.value === status);
   if (base === undefined) return null;

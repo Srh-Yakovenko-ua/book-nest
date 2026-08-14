@@ -1,9 +1,9 @@
 import type {
   Currency,
   DeliveryListItemView,
-  DeliveryStatus,
   DeliveryUiStatus,
   Nullable,
+  ShipmentStatus,
 } from "@app/shared";
 
 import type { UiIconName } from "@/components/icons";
@@ -104,7 +104,7 @@ function formatPrice(
 }
 
 function resolveDeliveryBadge(
-  input: { status: DeliveryStatus; uiStatus: Nullable<DeliveryUiStatus> },
+  input: { status: ShipmentStatus; uiStatus: Nullable<DeliveryUiStatus> },
   label: (key: DeliveryBadgeKey) => string,
 ): StatusEntry {
   if (input.uiStatus !== null) {
@@ -122,7 +122,7 @@ function resolveDeliveryBadge(
   return { ...base, label: label(key) };
 }
 
-function storedBadgeKey(status: DeliveryStatus): DeliveryBadgeKey {
+function storedBadgeKey(status: ShipmentStatus): DeliveryBadgeKey {
   if (status === "in_transit") return "in_transit";
   if (status === "ready_for_pickup") return "ready_for_pickup";
   return "ordered";

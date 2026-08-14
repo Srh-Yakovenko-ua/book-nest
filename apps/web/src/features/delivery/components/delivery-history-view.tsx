@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { DeliveryHistoryCardModel } from "../model/history-card-model";
 
 import { DELIVERY_HISTORY_PANEL_ID } from "../model/history-params";
-import { DeliverySubnav } from "./delivery-subnav";
 
 export type HistoryContent =
   | { items: DeliveryHistoryCardModel[]; kind: "ready" }
@@ -58,8 +57,6 @@ export function DeliveryHistoryView({
 
   return (
     <div className="flex flex-col gap-6">
-      <DeliverySubnav />
-
       <header className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">

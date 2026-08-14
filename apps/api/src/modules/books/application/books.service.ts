@@ -8,6 +8,7 @@ import {
   TransactionRunner,
 } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { SingleBookOrderService } from "../../delivery/index.js";
 import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import {
   buildDeliveryInfoData,
@@ -49,6 +50,7 @@ export class BooksService {
     private readonly relationsResolver: BookRelationsResolver,
     private readonly viewAssembler: BookViewAssembler,
     private readonly coverCleanup: BookCoverCleanup,
+    private readonly singleBookOrderService: SingleBookOrderService,
     private readonly transactionRunner: TransactionRunner,
     private readonly readingGoalSyncService: ReadingGoalSyncService,
   ) {}
@@ -62,7 +64,7 @@ export class BooksService {
       now,
     });
 
-    const deliveryInfo =
+    const deliveryDraft =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
         ? buildDeliveryInfoData(input.deliveryInfo)
         : null;
@@ -96,14 +98,13 @@ export class BooksService {
         );
         placement = { partNumber: resolved.partNumber, seriesId: resolved.seriesId };
 
-        return this.booksRepository.create(
+        const created = await this.booksRepository.create(
           userId,
           {
             ageCategory: input.ageCategory,
             authorIds: resolved.authorIds,
             coverMediaId: input.coverMediaId ?? null,
             dedication: normalizeDedication(input.dedication ?? null),
-            deliveryInfo,
             description: input.description ?? null,
             favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
             firstAuthorName: resolved.firstAuthorName,
@@ -138,6 +139,15 @@ export class BooksService {
           now,
           client,
         );
+        if (deliveryDraft === null) {
+          return created;
+        }
+
+        await this.singleBookOrderService.create(
+          { bookId: created.id, draft: deliveryDraft, userId },
+          client,
+        );
+        return this.booksRepository.findOwnedByIdOrThrow(userId, created.id, client);
       }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
@@ -182,6 +192,12 @@ export class BooksService {
 
     await this.relationsResolver.assertUpdatableRelations({ input, userId });
 
+    const deliveryBlock = resolveDeliveryBlock({
+      deliveryInfo: input.deliveryInfo,
+      now,
+      ownershipStatus,
+    });
+
     let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
@@ -199,16 +215,16 @@ export class BooksService {
         applyDedicationFields({ current, fields, input });
         applyWishlistFields({ current, fields, input, now });
 
+        await this.singleBookOrderService.applyBlock(
+          { bookId, change: deliveryBlock, userId },
+          client,
+        );
+
         const updated = await this.booksRepository.updateOwned(
           userId,
           bookId,
           {
             authorIds: resolved.authorIds,
-            deliveryInfo: resolveDeliveryBlock({
-              deliveryInfo: input.deliveryInfo,
-              now,
-              ownershipStatus,
-            }),
             fields,
             listIds: resolved.listIds,
             loanInfo: resolveLoanBlock({ loanInfo: input.loanInfo, now, ownershipStatus }),

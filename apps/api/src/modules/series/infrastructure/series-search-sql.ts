@@ -1,5 +1,6 @@
 import type { SeriesAttentionFilter, SeriesCompleteness, SeriesSearchQuery } from "@app/shared";
 
+import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 const FINISHED_READING_STATUS = "finished";
@@ -105,15 +106,16 @@ function buildAuthorFilter(authorIds: string[]): Prisma.Sql {
 }
 
 function buildSearchFilter(search: string): Prisma.Sql {
-  const pattern = `%${escapeLikePattern(search)}%`;
+  const seriesNameMatches = ilikeContains({ column: Prisma.sql`facts.name`, search });
+  const authorNameMatches = ilikeContains({ column: Prisma.sql`author.name`, search });
 
   return Prisma.sql`(
-    facts.name ILIKE ${pattern}
+    ${seriesNameMatches}
     OR EXISTS (
       SELECT 1
       FROM series_authors series_author
       JOIN authors author ON author.id = series_author.author_id
-      WHERE series_author.series_id = facts.id AND author.name ILIKE ${pattern}
+      WHERE series_author.series_id = facts.id AND ${authorNameMatches}
     )
     OR EXISTS (
       SELECT 1
@@ -122,7 +124,7 @@ function buildSearchFilter(search: string): Prisma.Sql {
       JOIN authors author ON author.id = book_author.author_id
       WHERE book.series_id = facts.id
         AND book.deleted_at IS NULL
-        AND author.name ILIKE ${pattern}
+        AND ${authorNameMatches}
     )
   )`;
 }
@@ -187,10 +189,6 @@ function buildSeriesFilters(query: SeriesSearchQuery): Prisma.Sql {
   }
 
   return Prisma.join(conditions, " AND ");
-}
-
-function escapeLikePattern(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 }
 
 function joinWithOr(conditions: Prisma.Sql[]): Prisma.Sql {

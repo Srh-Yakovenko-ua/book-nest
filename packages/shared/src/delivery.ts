@@ -1,39 +1,25 @@
 import { z } from "zod";
 
-import {
-  CurrencySchema,
-  DeliveryStatusSchema,
-  OwnershipStatusSchema,
-  ReadingStatusSchema,
-} from "./book-enums.js";
+import { CurrencySchema, DeliveryUiStatusSchema, ShipmentStatusSchema } from "./book-enums.js";
+import { BookPreviewSchema } from "./book-preview.js";
 import { BulkBookIdsSchema } from "./books.js";
-import { createPaginatedSchema, paginationQueryFields } from "./common.js";
+import {
+  createPaginatedSchema,
+  CurrencyAverageSchema,
+  CurrencyTotalSchema,
+  paginationQueryFields,
+} from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { DeliveryViewSchema } from "./delivery-view.js";
-import { notInFutureDate } from "./internal.js";
-import { MediaViewSchema } from "./media.js";
+import {
+  isoDay,
+  notInFutureDate,
+  QueryBooleanSchema,
+  QueryBooleanWithDefaultSchema,
+} from "./internal.js";
 
 const DELIVERY_SEARCH_MAX = 100;
 const DELIVERY_STORE_MAX = 200;
-
-const QueryBooleanSchema = z.enum(["true", "false"]).transform((value) => value === "true");
-
-const QueryBooleanWithDefaultSchema = z
-  .enum(["true", "false"])
-  .default("false")
-  .transform((value) => value === "true");
-
-export const CurrencyTotalSchema = z.object({ currency: CurrencySchema, total: z.number() });
-
-export type CurrencyTotal = z.infer<typeof CurrencyTotalSchema>;
-
-export const CurrencyAverageSchema = z.object({ average: z.number(), currency: CurrencySchema });
-
-export type CurrencyAverage = z.infer<typeof CurrencyAverageSchema>;
-
-export const DeliveryUiStatusSchema = z.enum(["delayed", "arriving_soon", "no_delivery_date"]);
-
-export type DeliveryUiStatus = z.infer<typeof DeliveryUiStatusSchema>;
 
 export const DeliveryInTransitFilterSchema = z.enum([
   "all",
@@ -78,26 +64,8 @@ export const DeliveryInTransitQuerySchema = z.object({
 
 export type DeliveryInTransitQuery = z.infer<typeof DeliveryInTransitQuerySchema>;
 
-export const DeliveryBookPreviewSchema = z.object({
-  cover: MediaViewSchema.nullable(),
-  firstAuthorName: z.string(),
-  genres: z.array(z.string()),
-  id: z.string(),
-  originalTitle: z.string().nullable(),
-  ownershipStatus: OwnershipStatusSchema,
-  publisher: z.object({ id: z.string(), name: z.string() }).nullable(),
-  readingStatus: ReadingStatusSchema,
-  series: z
-    .object({ id: z.string(), name: z.string(), partNumber: z.number().nullable() })
-    .nullable(),
-  tags: z.array(z.string()),
-  title: z.string(),
-});
-
-export type DeliveryBookPreview = z.infer<typeof DeliveryBookPreviewSchema>;
-
 export const DeliveryListItemViewSchema = z.object({
-  book: DeliveryBookPreviewSchema,
+  book: BookPreviewSchema,
   delivery: DeliveryViewSchema,
   id: z.string(),
   uiStatus: DeliveryUiStatusSchema.nullable(),
@@ -135,7 +103,7 @@ export type DeliveryHistorySort = z.infer<typeof DeliveryHistorySortSchema>;
 
 export const DeliveryHistoryQuerySchema = z.object({
   currency: CurrencySchema.optional(),
-  from: z.iso.date().optional(),
+  from: isoDay().optional(),
   hasTrackingNumber: QueryBooleanSchema.optional(),
   hasTrackingUrl: QueryBooleanSchema.optional(),
   ...paginationQueryFields({ pageSizeDefault: 10 }),
@@ -146,7 +114,7 @@ export const DeliveryHistoryQuerySchema = z.object({
   sort: DeliveryHistorySortSchema.default("newest_orders"),
   store: z.string().trim().max(DELIVERY_STORE_MAX).optional(),
   tab: DeliveryHistoryTabSchema.default("all"),
-  to: z.iso.date().optional(),
+  to: isoDay().optional(),
 });
 
 export type DeliveryHistoryQuery = z.infer<typeof DeliveryHistoryQuerySchema>;
@@ -169,11 +137,11 @@ export type DeliveryHistorySummaryView = z.infer<typeof DeliveryHistorySummaryVi
 
 export const DeliveryStatisticsQuerySchema = z.object({
   currency: CurrencySchema.optional(),
-  from: z.iso.date().optional(),
+  from: isoDay().optional(),
   includeCancelled: QueryBooleanWithDefaultSchema,
-  status: DeliveryStatusSchema.optional(),
+  status: ShipmentStatusSchema.optional(),
   store: z.string().trim().max(DELIVERY_STORE_MAX).optional(),
-  to: z.iso.date().optional(),
+  to: isoDay().optional(),
 });
 
 export type DeliveryStatisticsQuery = z.infer<typeof DeliveryStatisticsQuerySchema>;
@@ -207,7 +175,7 @@ export const DeliveryTopOrderSchema = z.object({
   currency: CurrencySchema.nullable(),
   orderDate: z.string().nullable(),
   price: z.number(),
-  status: DeliveryStatusSchema,
+  status: ShipmentStatusSchema,
   storeName: z.string().nullable(),
 });
 

@@ -1,6 +1,6 @@
 import type {
+  ActiveShipmentStatus,
   DeliveryInfoInput,
-  DeliveryStatus,
   LoanInfoInput,
   OwnershipStatus,
   PurchaseInfoInput,
@@ -11,13 +11,16 @@ import type {
 
 import { LoanTypeSchema, ownershipStatusKeepsPurchase, ownershipStatusUsesLoan } from "@app/shared";
 
-import type { CreateDeliveryData, UpdateDeliveryData } from "../../delivery/index.js";
+import type {
+  NewSingleBookOrder,
+  SingleBookOrderBlockChange,
+  SingleBookOrderPatch,
+} from "../../delivery/index.js";
 import type {
   BlockUpsert,
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
-  DeliveryBlockChange,
   LoanBlockChange,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
@@ -41,9 +44,9 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 
 const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
-const DEFAULT_DELIVERY_STATUS: DeliveryStatus = "ordered";
+const DEFAULT_DELIVERY_STATUS: ActiveShipmentStatus = "ordered";
 
-export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
+export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): NewSingleBookOrder {
   return {
     currency: deliveryInfo.currency ?? null,
     deliveryService: deliveryInfo.deliveryService ?? null,
@@ -59,7 +62,9 @@ export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): Create
   };
 }
 
-export function buildDeliveryInfoUpdateData(deliveryInfo: DefinedDeliveryInfo): UpdateDeliveryData {
+export function buildDeliveryInfoUpdateData(
+  deliveryInfo: DefinedDeliveryInfo,
+): SingleBookOrderPatch {
   return {
     currency: deliveryInfo.currency,
     deliveryService: deliveryInfo.deliveryService,
@@ -165,7 +170,7 @@ export function resolveDeliveryBlock({
   deliveryInfo: UpdateBookInput["deliveryInfo"];
   now: Date;
   ownershipStatus: OwnershipStatus;
-}): DeliveryBlockChange {
+}): SingleBookOrderBlockChange {
   if (!ownershipStatusUsesDelivery(ownershipStatus)) {
     return { cancelledAt: now, kind: "cancel" };
   }
