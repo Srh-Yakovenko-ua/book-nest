@@ -911,7 +911,7 @@
         "кожен перевіряє, що створено рівно один BookOrder (не 3 і не 5)",
         "перевірено, що всі книги стали in_transit у тій самій відповіді"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T52",
@@ -927,7 +927,7 @@
         "повторний receive і receive скасованої посилки дають 409",
         "PATCH зі спробою повернути received у in_transit відхиляється валідацією (400/422), а не проходить"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T53",
@@ -942,7 +942,8 @@
         "ownership Book 2 — want_to_buy при keepAsWantToBuy=true і none при false",
         "подальший receive посилки не робить Book 2 owned (§18)"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Сюди ж лягла перевірка T71 наскрізь: посилка закривається, коли отримано її останню активну позицію, лишається відкритою поки одна книга ще в дорозі, і не стає received, якщо всі позиції скасовані."
     },
     {
       "id": "T54",
@@ -958,7 +959,7 @@
         "є тест, що closest_delivery і delayed_first дають РІЗНИЙ порядок на одному наборі даних (це головна перевірка §12)",
         "є тест attentionCount, де одна сутність підпадає під дві категорії і рахується один раз"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T55",
@@ -976,7 +977,8 @@
         "є тест статистики по магазину із середньою сумою замовлення і середньою ціною книги",
         "є тест місячної статистики, де два замовлення одного місяця з 5 книгами дають ordersCount=2"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Доменна половина вже була закрита в зрізі 4 файлом domain/order-statistics.test.ts (ordersCount/booksCount/shipmentsCount, byStore з середніми, monthly). Шлях domain/delivery-statistics.test.ts у плані застарілий — це тест старої моделі. Додана серверна половина в api/delivery-read.controller.test.ts."
     },
     {
       "id": "T56",
@@ -990,7 +992,8 @@
         "є тест, де помилка в середині потоку залишає і замовлення, і книги в початковому стані (rollback)",
         "є тест, що після успішного receive у БД немає книги зі статусом in_transit серед позицій цієї посилки (§3: «Не допускай ситуації, коли shipment уже received, а книги залишилися IN_TRANSIT»)"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Обидва кейси живуть в api/shipments.controller.test.ts, а не в application/shipment.service.test.ts: rollback можна довести лише на живій БД із справжнім TransactionRunner, а той файл мокає репозиторії. Помилка вкидається через vi.spyOn на OrderBooksRepository.applyOwnership вже після запису посилки й позицій."
     },
     {
       "id": "T57",
@@ -1005,7 +1008,8 @@
         "перевірено, що жодне поле зі списку §14 не втрачене",
         "тест виконується проти реальної схеми (createTestApp), а не мокає SQL"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Тест читає справжній migration.sql і виконує його в одній транзакції поверх засіяних legacy-рядків. Знахідка: порожній orderNumber ('   ') не є ідентичністю для групування, але значення переїжджає в book_orders.order_number як є — max() бере рядок замість NULL. Косметика, міграцію не чіпав (вона вже застосована)."
     },
     {
       "id": "T58",
@@ -1034,7 +1038,8 @@
         "тести серій і книг перевіряють нову форму блоку доставки в BookView і в картці книги серії",
         "запущено /blast-radius перед комітом контрактної зміни (CLAUDE.md §9)"
       ],
-      "status": "todo"
+      "status": "partial",
+      "note": "Половина про нову форму блоку доставки закрита ще в зрізах 5-7: books.controller.test.ts читає bookOrderItem з order/shipment, series.controller.book-card-fields.test.ts сіє bookOrder/shipment/bookOrderItem. Критерій «жоден тест не створює рядок bookDelivery» не можна закрити тут: єдиний, хто його ще створює — delivery.controller.test.ts, тест ЖИВОГО легасі-контролера. Він іде разом з T59/T18. Виняток за задумом: infrastructure/legacy-migration.test.ts сіє bookDelivery навмисне, це його предмет."
     },
     {
       "id": "T59",
@@ -1228,7 +1233,7 @@
         "форма тесту повторює scratchpad/sec-idor-proof.mts: два користувачі, чужі id на кожному вході, перевірка що рядки жертви не змінилися",
         "тест іде у CI-шард, бо локально Postgres може бути відсутній"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T68",
@@ -1288,7 +1293,12 @@
       "title": "Статус посилки після масового отримання",
       "specRef": "§7",
       "layer": "application",
-      "files": ["apps/api/src/modules/delivery/application/book-order-item.service.ts"],
+      "files": [
+        "apps/api/src/modules/delivery/application/book-order-item.service.ts",
+        "apps/api/src/modules/delivery/infrastructure/book-order-items.repository.ts",
+        "apps/api/src/modules/delivery/infrastructure/shipments.repository.ts",
+        "apps/api/src/modules/delivery/infrastructure/shipments.repository.test.ts"
+      ],
       "dependsOn": ["T45"],
       "mandatory": true,
       "doneWhen": [
@@ -1296,7 +1306,8 @@
         "поки що посилка з усіма отриманими позиціями лишається ordered і далі рахується в activeShipmentsCount та у фільтрах за статусом",
         "GET /api/delivery/orders/:orderId лишився без власного throttle — вирішити разом"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Рішення maintainer: посилка автоматично стає received, коли отримано її останню активну позицію. Реалізовано в BookOrderItemService.bulkReceive через ShipmentsRepository.receiveWithoutPendingItems (предикат: жодної незавершеної позиції І хоча б одна отримана, тож повністю скасована посилка не стає received). Покриває і масове отримання, і per-book receive із картки книги, бо обидва йдуть через bulkReceive. GET /api/delivery/orders/:orderId лишили без власного throttle — глобального достатньо для легкого читання. Мутаційна перевірка: зняття виклику робить червоним «closes the parcel once its last book on the way is received»; зняття гілки some:{receivedAt:{not:null}} робить червоним «refuses to close a parcel whose books were all cancelled». Друга гілка недосяжна через сервіс (посилка потрапляє в список лише тому, що її позицію щойно отримали), тому її доводить прямий тест репозиторію shipments.repository.test.ts."
     },
     {
       "id": "T72",
@@ -1324,7 +1335,8 @@
         "старі ключі delivery:<deliveryId>:<stage> не мігровані, тому перше підмітання після cutover повторить щонайбільше одне нагадування на книгу в дорозі на кожну стадію",
         "якщо повтор неприйнятний — бекфіл їде разом із міграцією T18, бо потребує читання book_deliveries до дропу"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Рішення maintainer: повторне нагадування прийнятне, бекфіл не робимо. Перше підмітання після cutover повторить щонайбільше одне нагадування на книгу в дорозі на кожну стадію."
     }
   ],
   "openDecisions": [
@@ -1540,7 +1552,9 @@
       "codebaseLeans": "Чотири read-маршрути отримали префікс books/ у зрізі 6, щоб не зіткнутися з живим легасі-контролером. Одиниця цих списків — книжковий рядок (BookOrderItemRowView), тож books/history чесніше описує вміст, ніж /history. §17 забороняє тимчасові аліаси без реальної потреби, а шлях, який уже вирішено перейменувати, саме таким і є.",
       "recommendation": "Варіант 1. Клієнт і openapi.json генеруються заново на T50, тож churn коштує однаково, зате зникає другий перейменувальний прохід і різнобій із orders/statistics.",
       "blocks": ["T50", "T61"],
-      "status": "open"
+      "status": "answered",
+      "answer": "Варіант 1. Префікс books/ лишається постійним, легасі-шляхи просто видаляються на cutover.",
+      "answeredBy": "maintainer"
     }
   ],
   "verifiedAssertions": [
@@ -1816,6 +1830,14 @@
       "verdict": "changes-applied",
       "commit": "1b095032",
       "notes": "9 findings fixed; 148 checks re-run against a real Postgres via pglite; deferred to T63-T67"
+    },
+    {
+      "name": "slice-8-tests",
+      "tasks": ["T51", "T52", "T53", "T54", "T55", "T56", "T57", "T67", "T71", "T73"],
+      "reviewedBy": "inline (code-reviewer агент двічі впав у 600s watchdog)",
+      "verdict": "one finding, fixed",
+      "commit": null,
+      "notes": "Перший прогін pnpm test на цій гілці: api 267 файлів / 4348 тестів зелені, web 133 файли зелені, нуль assertion-фейлів. Exit 1 — pre-existing ioredis teardown у http-error.filter.test.ts. Ревʼю зроблено вручну: мутаційна перевірка двох гілок T71, звірка очікуваних порядків сортування з in-transit-sql.ts, перевірка розбивача SQL (8 справжніх стейтментів, єдиний $$ живе в коментарі й зрізається), перевірка що конструктор BookOrderItemService має один ручний call-site. Знахідка: гілка some:{receivedAt} була непокрита — закрито новим shipments.repository.test.ts."
     }
   ]
 }
