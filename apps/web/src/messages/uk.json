@@ -3856,7 +3856,6 @@
         "listHeading": "Список завершених позик"
       }
     },
-    "resultsCount": "Знайдено {count, plural, one {# позичену книгу} few {# позичені книги} many {# позичених книг} other {# позичених книг}}",
     "summary": {
       "error": {
         "title": "Не вдалося завантажити зведення",
@@ -3875,26 +3874,38 @@
         "tomorrow": "Найближче — завтра",
         "inDays": "Найближче — через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
         "empty": "Немає повернень у найближчі {days} днів",
-        "mobile": { "compact": "Скоро", "detailed": "Найближчі повернення" }
+        "mobile": {
+          "compact": "Скоро",
+          "detailed": "Найближчі повернення"
+        }
       },
       "overdue": {
         "label": "Прострочено",
         "longest": "Найдовше — на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
         "empty": "Усі строки дотримано",
-        "mobile": { "compact": "Прострочено", "detailed": "Прострочено" }
+        "mobile": {
+          "compact": "Прострочено",
+          "detailed": "Прострочено"
+        }
       },
       "borrowed": {
         "total": {
           "label": "Усього позичено",
           "people": "Від {count, plural, one {# різної людини} few {# різних людей} many {# різних людей} other {# різних людей}}",
           "empty": "Немає активних позик",
-          "mobile": { "compact": "Позичено", "detailed": "Усього позичено" }
+          "mobile": {
+            "compact": "Позичено",
+            "detailed": "Усього позичено"
+          }
         },
         "longHeld": {
           "label": "Давно у вас",
           "longest": "Найдовше — {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
           "empty": "Немає книг, позичених {days} днів і більше",
-          "mobile": { "compact": "Давно", "detailed": "Давно у вас" }
+          "mobile": {
+            "compact": "Давно",
+            "detailed": "Давно у вас"
+          }
         }
       },
       "lent": {
@@ -3902,13 +3913,19 @@
           "label": "Усього передано",
           "people": "У {count, plural, one {# різної людини} few {# різних людей} many {# різних людей} other {# різних людей}}",
           "empty": "Немає активних позик",
-          "mobile": { "compact": "Передано", "detailed": "Усього передано" }
+          "mobile": {
+            "compact": "Передано",
+            "detailed": "Усього передано"
+          }
         },
         "noReturnDate": {
           "label": "Без дати повернення",
           "people": "У {count, plural, one {# різної людини} few {# різних людей} many {# різних людей} other {# різних людей}}",
           "empty": "Для всіх вказано строк повернення",
-          "mobile": { "compact": "Без дати", "detailed": "Без дати повернення" }
+          "mobile": {
+            "compact": "Без дати",
+            "detailed": "Без дати повернення"
+          }
         }
       }
     },
@@ -3923,36 +3940,30 @@
       }
     },
     "toolbar": {
-      "searchLabel": "Пошук позичених книг",
-      "searchPlaceholder": "Пошук по позичених книгах...",
+      "searchLabel": {
+        "borrowed": "Пошук позичених книг",
+        "lent": "Пошук переданих книг"
+      },
+      "searchPlaceholder": "Назва книги, автор або людина",
       "searchClear": "Очистити пошук",
-      "filterLabel": "Фільтр",
       "sortLabel": "Сортування"
-    },
-    "filters": {
-      "all": "Усі",
-      "return_soon": "Повернути скоро",
-      "overdue": "Прострочені",
-      "no_return_date": "Без дати повернення",
-      "has_reminder": "З нагадуванням",
-      "without_reminder": "Без нагадування"
     },
     "sort": {
       "borrowed": {
-        "overdue_first": "За терміновістю",
-        "return_date": "За датою повернення",
-        "loan_date": "За датою позики",
-        "title": "За назвою",
-        "author": "За автором",
-        "person": "За власником"
+        "overdue_first": "За терміновістю: спочатку прострочені",
+        "return_date": "За датою повернення: спочатку найближчі",
+        "loan_date": "За датою позики: спочатку нові",
+        "title": "За назвою: А–Я",
+        "author": "За автором: А–Я",
+        "person": "За власником: А–Я"
       },
       "lent": {
-        "overdue_first": "За терміновістю",
-        "return_date": "За датою повернення",
-        "loan_date": "За датою передачі",
-        "title": "За назвою",
-        "author": "За автором",
-        "person": "За отримувачем"
+        "overdue_first": "За терміновістю: спочатку прострочені",
+        "return_date": "За датою повернення: спочатку найближчі",
+        "loan_date": "За датою передачі: спочатку нові",
+        "title": "За назвою: А–Я",
+        "author": "За автором: А–Я",
+        "person": "За отримувачем: А–Я"
       },
       "mobile": {
         "title": "Сортування",
@@ -4129,29 +4140,41 @@
         "total": {
           "label": "Усього завершено",
           "microfact": "{lent} передано · {borrowed} позичено",
-          "mobile": { "compact": "Завершено", "detailed": "Усього завершено" }
+          "mobile": {
+            "compact": "Завершено",
+            "detailed": "Усього завершено"
+          }
         },
         "onTime": {
           "label": "Повернуто вчасно",
           "microfact": "{percent}% усіх завершених",
-          "mobile": { "compact": "Вчасно", "detailed": "Повернуто вчасно" }
+          "mobile": {
+            "compact": "Вчасно",
+            "detailed": "Повернуто вчасно"
+          }
         },
         "late": {
           "label": "Із запізненням",
           "microfact": "У середньому — на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
           "allOnTime": "Усі позики зі строком повернуто вчасно",
-          "mobile": { "compact": "Запізнення", "detailed": "Із запізненням" }
+          "mobile": {
+            "compact": "Запізнення",
+            "detailed": "Із запізненням"
+          }
         },
         "duration": {
           "label": "Середня тривалість",
           "microfact": "Від позики / передачі до повернення",
           "empty": "Ще немає позик із відомою тривалістю",
-          "mobile": { "compact": "Тривалість", "detailed": "Середня тривалість" }
+          "mobile": {
+            "compact": "Тривалість",
+            "detailed": "Середня тривалість"
+          }
         }
       },
       "toolbar": {
         "searchLabel": "Пошук в історії позик",
-        "searchPlaceholder": "Пошук за книгою або людиною…",
+        "searchPlaceholder": "Назва книги, автор або людина",
         "searchClear": "Очистити пошук",
         "directionLabel": "Напрямок",
         "resultLabel": "Результат",
@@ -4344,7 +4367,16 @@
         "error": "Не вдалося зберегти нотатку",
         "tooLong": "Нотатка не може бути довшою за {max} символів"
       }
-    }
+    },
+    "quickFilters": {
+      "label": "Швидкі фільтри",
+      "all": "Усі",
+      "overdue": "Прострочені",
+      "return_soon": "Повернути скоро",
+      "no_return_date": "Без дати",
+      "without_reminder": "Без нагадування"
+    },
+    "shownCount": "Показано {shown} із {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}"
   },
   "changelog": {
     "category": {

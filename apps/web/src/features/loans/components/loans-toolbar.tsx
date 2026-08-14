@@ -2,10 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import type {
-  LoansControllerListFilter,
-  LoansControllerListSort,
-} from "@/shared/api/generated/model";
+import type { LoansControllerListSort } from "@/shared/api/generated/model";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import {
@@ -18,13 +15,11 @@ import {
 
 import type { LoanDirection } from "../model/loan-pages";
 
-import { LOANS_FILTER_VALUES, LOANS_SORT_DEFAULT, LOANS_SORT_VALUES } from "../model/loans-query";
+import { LOANS_SORT_DEFAULT, LOANS_SORT_VALUES } from "../model/loans-query";
 import { LoansSortSheet } from "./loans-sort-sheet";
 
 type LoansToolbarProps = {
   direction: LoanDirection;
-  filter: LoansControllerListFilter;
-  onFilterChange: (value: LoansControllerListFilter) => void;
   onSearchChange: (value: string) => void;
   onSearchClear: () => void;
   onSortChange: (value: LoansControllerListSort) => void;
@@ -34,8 +29,6 @@ type LoansToolbarProps = {
 
 export function LoansToolbar({
   direction,
-  filter,
-  onFilterChange,
   onSearchChange,
   onSearchClear,
   onSortChange,
@@ -44,7 +37,6 @@ export function LoansToolbar({
 }: LoansToolbarProps) {
   const t = useTranslations("loans.toolbar");
   const tCommon = useTranslations("common");
-  const tFilters = useTranslations("loans.filters");
   const tSort = useTranslations(`loans.sort.${direction}`);
 
   return (
@@ -52,7 +44,7 @@ export function LoansToolbar({
       <div className="lg:flex-1">
         <DebouncedSearchInput
           clearLabel={t("searchClear")}
-          label={t("searchLabel")}
+          label={t(`searchLabel.${direction}`)}
           onClear={onSearchClear}
           onSearch={onSearchChange}
           placeholder={t("searchPlaceholder")}
@@ -61,15 +53,6 @@ export function LoansToolbar({
       </div>
 
       <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-2.5">
-        <div className="min-w-0 flex-1 sm:w-56 sm:flex-none">
-          <ToolbarSelect
-            label={t("filterLabel")}
-            onChange={onFilterChange}
-            options={LOANS_FILTER_VALUES.map((value) => ({ label: tFilters(value), value }))}
-            value={filter}
-          />
-        </div>
-
         <LoansSortSheet
           className="sm:hidden"
           direction={direction}
@@ -78,7 +61,7 @@ export function LoansToolbar({
           value={sort}
         />
 
-        <div className="hidden sm:block sm:w-56">
+        <div className="hidden sm:block sm:w-80">
           <ToolbarSelect
             clearable={sort !== LOANS_SORT_DEFAULT}
             clearLabel={tCommon("clear")}
@@ -112,7 +95,7 @@ function ToolbarSelect<TValue extends string>({
   value: TValue;
 }) {
   return (
-    <div className="w-full sm:w-56">
+    <div className="w-full">
       <Select onValueChange={(next) => onChange(next as TValue)} value={value}>
         <SelectTrigger
           aria-label={label}
