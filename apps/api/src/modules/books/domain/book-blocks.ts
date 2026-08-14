@@ -2,6 +2,7 @@ import type {
   ActiveShipmentStatus,
   DeliveryInfoInput,
   LoanInfoInput,
+  Nullable,
   OwnershipStatus,
   PurchaseInfoInput,
   ReadingProgressInput,
@@ -16,6 +17,7 @@ import type {
   SingleBookOrderBlockChange,
   SingleBookOrderPatch,
 } from "../../delivery/index.js";
+import type { ResolvedLoanContact } from "../../loans/index.js";
 import type {
   BlockUpsert,
   CreateLoanInfoData,
@@ -29,8 +31,12 @@ import type {
 
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
 
+export type ResolvedLoanInfo = {
+  loanContact: ResolvedLoanContact;
+  loanInfo: NonNullable<LoanInfoInput>;
+};
+
 type DefinedDeliveryInfo = NonNullable<DeliveryInfoInput>;
-type DefinedLoanInfo = NonNullable<LoanInfoInput>;
 type DefinedPurchaseInfo = NonNullable<PurchaseInfoInput>;
 type DefinedReadingProgress = NonNullable<ReadingProgressInput>;
 
@@ -80,24 +86,30 @@ export function buildDeliveryInfoUpdateData(
   };
 }
 
-export function buildLoanInfoData(loanInfo: DefinedLoanInfo): CreateLoanInfoData {
+export function buildLoanInfoData({ loanContact, loanInfo }: ResolvedLoanInfo): CreateLoanInfoData {
   return {
-    contact: null,
+    contact: loanContact.contact,
     expectedReturnDate: toCreateDate(loanInfo.expectedReturnDate),
+    loanContactId: loanContact.loanContactId,
     loanDate: toCreateDate(loanInfo.loanDate),
     note: loanInfo.note ?? null,
-    personName: loanInfo.personName ?? "",
+    personName: loanContact.personName,
     remindBeforeDays: null,
     remindToReturn: false,
   };
 }
 
-export function buildLoanInfoUpdateData(loanInfo: DefinedLoanInfo): UpdateLoanInfoData {
+export function buildLoanInfoUpdateData({
+  loanContact,
+  loanInfo,
+}: ResolvedLoanInfo): UpdateLoanInfoData {
   return {
+    contact: loanContact.contact,
     expectedReturnDate: toUpdateDate(loanInfo.expectedReturnDate),
+    loanContactId: loanContact.loanContactId,
     loanDate: toUpdateDate(loanInfo.loanDate),
     note: loanInfo.note,
-    personName: loanInfo.personName,
+    personName: loanContact.refreshesPersonName ? loanContact.personName : undefined,
   };
 }
 
@@ -185,26 +197,26 @@ export function resolveDeliveryBlock({
 }
 
 export function resolveLoanBlock({
-  loanInfo,
   now,
   ownershipStatus,
+  resolvedLoanInfo,
 }: {
-  loanInfo: UpdateBookInput["loanInfo"];
   now: Date;
   ownershipStatus: OwnershipStatus;
+  resolvedLoanInfo: Nullable<ResolvedLoanInfo>;
 }): LoanBlockChange {
   if (!ownershipStatusUsesLoan(ownershipStatus)) {
     return { kind: "return", returnedAt: now };
   }
   const type = LoanTypeSchema.parse(ownershipStatus);
-  if (loanInfo === undefined) {
+  if (resolvedLoanInfo === null) {
     return { kind: "syncType", type };
   }
   return {
-    create: buildLoanInfoData(loanInfo),
+    create: buildLoanInfoData(resolvedLoanInfo),
     kind: "upsertActive",
     type,
-    update: buildLoanInfoUpdateData(loanInfo),
+    update: buildLoanInfoUpdateData(resolvedLoanInfo),
   };
 }
 

@@ -16,6 +16,7 @@ export type ListOverviewViewDtoCurrentlyReadingBookLoanInfo = {
   contact: string | null;
   /** @nullable */
   expectedReturnDate: string | null;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   loanType: ListOverviewViewDtoCurrentlyReadingBookLoanInfoLoanType;

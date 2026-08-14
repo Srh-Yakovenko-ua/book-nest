@@ -790,6 +790,7 @@ export const ListDetailsControllerDetailResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -1378,6 +1379,7 @@ export const ListDetailsControllerOverviewResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),

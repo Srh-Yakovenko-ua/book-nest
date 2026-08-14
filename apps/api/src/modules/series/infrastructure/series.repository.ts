@@ -78,7 +78,12 @@ function seriesDetailsArgs(userId: string) {
         include: {
           authors: { include: { author: true }, orderBy: { position: "asc" } },
           coverMedia: true,
-          loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
+          loans: {
+            include: { loanContact: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            where: { status: "active" },
+          },
           orderItems: {
             include: { order: true, shipment: { include: { deliveryService: true } } },
             orderBy: [{ createdAt: "desc" }, { id: "desc" }],

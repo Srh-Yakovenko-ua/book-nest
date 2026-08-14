@@ -31,6 +31,7 @@ const UKRAINIAN_COLLATION_INVARIANT = {
     "delivery_services.name",
     "book_loans.person_name",
     "book_orders.store_name",
+    "loan_contacts.name",
     "shipments.delivery_service_name",
     "book_purchase_info.store_name",
     "book_store_links.store_name",

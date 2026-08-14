@@ -27,6 +27,7 @@ export type PaginatedLoanHistoryDtoItemsItem = {
   expectedReturnDate: string | null;
   historyResult: PaginatedLoanHistoryDtoItemsItemHistoryResult;
   id: string;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   personName: string;

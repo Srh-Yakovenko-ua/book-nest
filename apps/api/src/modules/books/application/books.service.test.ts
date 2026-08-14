@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { LoanContactResolver, ResolveLoanContactInput } from "../../loans/index.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
   BooksRepository,
@@ -36,6 +37,8 @@ const TAG_ID = "55555555-5555-4555-8555-555555555555";
 const SERIES_ID = "66666666-6666-4666-8666-666666666666";
 const LIST_ID = "77777777-7777-4777-8777-777777777777";
 const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
+const LOAN_CONTACT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const OTHER_LOAN_CONTACT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab";
 
 type Repository = {
   countForLibrary: ReturnType<typeof vi.fn>;
@@ -177,6 +180,19 @@ function buildService(
   const transactionRunner = {
     run: <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(TX),
   };
+  const loanContactResolver = {
+    resolve: ({ attached, contact, loanContactId, personName }: ResolveLoanContactInput) => {
+      const targetId = loanContactId ?? attached?.loanContactId ?? LOAN_CONTACT_ID;
+      const keptAttachment =
+        attached !== null && attached.loanContactId === targetId ? attached : null;
+      return Promise.resolve({
+        contact: contact === undefined ? (keptAttachment?.contact ?? null) : contact,
+        loanContactId: targetId,
+        personName: personName ?? attached?.personName ?? "",
+        refreshesPersonName: keptAttachment === null,
+      });
+    },
+  };
 
   const service = new BooksService(
     fakeOf<BooksRepository>(repository),
@@ -186,6 +202,7 @@ function buildService(
     fakeOf<SingleBookOrderService>(singleBookOrder),
     fakeOf<TransactionRunner>(transactionRunner),
     fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
+    fakeOf<LoanContactResolver>(loanContactResolver),
   );
 
   return { coverCleanup, relationsResolver, repository, service, singleBookOrder };
@@ -200,6 +217,17 @@ function loanRow(
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     expectedReturnDate: null,
     id: "88888888-8888-4888-8888-888888888881",
+    loanContact: {
+      archivedAt: null,
+      contact: null,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      id: LOAN_CONTACT_ID,
+      name: "Olha",
+      normalizedName: "olha",
+      updatedAt: new Date("2026-02-01T10:00:00.000Z"),
+      userId: USER_ID,
+    },
+    loanContactId: LOAN_CONTACT_ID,
     loanDate: null,
     note: null,
     personName: "Olha",
@@ -551,6 +579,7 @@ describe("BooksService.create", () => {
         loanInfo: {
           contact: null,
           expectedReturnDate: null,
+          loanContactId: LOAN_CONTACT_ID,
           loanDate: new Date("2026-02-01T00:00:00.000Z"),
           note: null,
           personName: "Olha",
@@ -970,16 +999,19 @@ describe("BooksService.update", () => {
       create: {
         contact: null,
         expectedReturnDate: null,
+        loanContactId: LOAN_CONTACT_ID,
         loanDate: null,
         note: "return next week",
-        personName: "",
+        personName: "Olha",
         remindBeforeDays: null,
         remindToReturn: false,
       },
       kind: "upsertActive",
       type: "borrowed_from_someone",
       update: {
+        contact: null,
         expectedReturnDate: undefined,
+        loanContactId: LOAN_CONTACT_ID,
         loanDate: undefined,
         note: "return next week",
         personName: undefined,
@@ -998,7 +1030,25 @@ describe("BooksService.update", () => {
     await service.update(USER_ID, BOOK_ID, { loanInfo: { note: null } });
 
     const data = updateDataFromFirstCall(repository);
-    expect(data.loanInfo).toMatchObject({ update: { note: null, personName: undefined } });
+    expect(data.loanInfo).toMatchObject({ update: { note: null } });
+  });
+
+  it("refreshes the person name snapshot and drops the contact override when the loan moves to another contact", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        loans: [loanRow({ contact: "olha@example.com", personName: "Olha" })],
+        ownershipStatus: "borrowed_from_someone",
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, {
+      loanInfo: { loanContactId: OTHER_LOAN_CONTACT_ID, personName: "Taras" },
+    });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.loanInfo).toMatchObject({
+      update: { contact: null, loanContactId: OTHER_LOAN_CONTACT_ID, personName: "Taras" },
+    });
   });
 
   it("emits a partial reading-progress update that preserves untouched sub-fields", async () => {

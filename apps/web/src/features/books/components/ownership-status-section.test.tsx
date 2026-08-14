@@ -1,7 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
 
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent } from "@/test-utils";
@@ -17,10 +20,50 @@ import { OwnershipStatusSection } from "./ownership-status-section";
 const NOTE_LABEL = messages.books.ownershipStatus.fields.note;
 const STORE_URL = "https://www.yakaboo.ua/ostannie-bazhannja.html";
 
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  fetchMock.mockImplementation(() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ items: [] }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      }),
+    ),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
+});
+
+function borrowedBook() {
+  return makeBookView({
+    loanInfo: {
+      contact: null,
+      expectedReturnDate: null,
+      loanContactId: "66666666-6666-4666-8666-666666666666",
+      loanDate: "2026-06-01",
+      loanType: "borrowed_from_someone",
+      loanUiStatus: "on_time",
+      note: "Повернути після відпустки",
+      personName: "Ольга",
+      remindBeforeDays: null,
+      remindToReturn: false,
+    },
+    ownershipStatus: "borrowed_from_someone",
+  });
+}
+
 function Harness({
+  initialLoanContact,
   initialValues,
   onSubmit,
 }: {
+  initialLoanContact: LoanContactSelection | null;
   initialValues: CreateBookFormValues;
   onSubmit: (values: CreateBookFormOutput) => void;
 }) {
@@ -28,13 +71,16 @@ function Harness({
     defaultValues: initialValues,
     resolver: zodResolver(CreateBookFormSchema),
   });
+  const [loanContact, setLoanContact] = useState(initialLoanContact);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <OwnershipStatusSection
         control={form.control}
         errors={form.formState.errors}
+        loanContact={loanContact}
         mode="edit"
+        onLoanContactChange={setLoanContact}
         register={form.register}
         setValue={form.setValue}
       />
@@ -43,9 +89,18 @@ function Harness({
   );
 }
 
-function renderSection(initialValues: CreateBookFormValues) {
+function renderSection(
+  initialValues: CreateBookFormValues,
+  initialLoanContact: LoanContactSelection | null = null,
+) {
   const onSubmit = vi.fn<(values: CreateBookFormOutput) => void>();
-  renderWithProviders(<Harness initialValues={initialValues} onSubmit={onSubmit} />);
+  renderWithProviders(
+    <Harness
+      initialLoanContact={initialLoanContact}
+      initialValues={initialValues}
+      onSubmit={onSubmit}
+    />,
+  );
   return { onSubmit };
 }
 
@@ -73,26 +128,17 @@ describe("OwnershipStatusSection purchase note removal", () => {
   });
 
   it("keeps the note field of a borrowed book", () => {
-    renderSection(
-      bookViewToFormState(
-        makeBookView({
-          loanInfo: {
-            contact: null,
-            expectedReturnDate: null,
-            loanDate: "2026-06-01",
-            loanType: "borrowed_from_someone",
-            loanUiStatus: "on_time",
-            note: "Повернути після відпустки",
-            personName: "Ольга",
-            remindBeforeDays: null,
-            remindToReturn: false,
-          },
-          ownershipStatus: "borrowed_from_someone",
-        }),
-      ).values,
-    );
+    const borrowed = bookViewToFormState(borrowedBook());
+    renderSection(borrowed.values, borrowed.loanContactSelection);
 
     expect(screen.getByLabelText(NOTE_LABEL)).toHaveValue("Повернути після відпустки");
+  });
+
+  it("shows the person of a saved loan even when the contact search returns nothing", () => {
+    const borrowed = bookViewToFormState(borrowedBook());
+    renderSection(borrowed.values, borrowed.loanContactSelection);
+
+    expect(screen.getByLabelText(messages.books.loanInfo.fields.personName)).toHaveValue("Ольга");
   });
 
   it("omits the purchase note from the submitted payload of a book that still stores one", async () => {

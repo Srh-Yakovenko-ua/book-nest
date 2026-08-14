@@ -23,6 +23,8 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
@@ -163,6 +165,9 @@ export function BookForm(props: BookFormProps) {
   const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(
     restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? initialSeries?.selection ?? null,
   );
+  const [loanContactSelection, setLoanContactSelection] = useState<LoanContactSelection | null>(
+    restoredDraft?.loanContactSelection ?? initial?.loanContactSelection ?? null,
+  );
   const [coverState, setCoverState] = useState<CoverState>(
     initialCover === null ? { kind: "empty" } : { kind: "existing", media: initialCover },
   );
@@ -245,6 +250,7 @@ export function BookForm(props: BookFormProps) {
           draftKey,
           JSON.stringify({
             authorSelections,
+            loanContactSelection,
             locale,
             publisherSelection,
             seriesSelection,
@@ -262,6 +268,7 @@ export function BookForm(props: BookFormProps) {
     authorSelections,
     draftKey,
     getValues,
+    loanContactSelection,
     locale,
     publisherSelection,
     seriesSelection,
@@ -332,6 +339,15 @@ export function BookForm(props: BookFormProps) {
     }
 
     setSeriesGenresSuggestion({ genres: seriesGenres, seriesName: selection.name });
+  }
+
+  function handleLoanContactChange(selection: LoanContactSelection | null) {
+    setLoanContactSelection(selection);
+    setValue(
+      "loanInfo.loanContactId",
+      selection?.kind === "picked" ? selection.contactId : undefined,
+      { shouldDirty: true, shouldValidate: true },
+    );
   }
 
   function handleAuthorsChange(next: AuthorSelection[]) {
@@ -426,6 +442,7 @@ export function BookForm(props: BookFormProps) {
         setValue("purchaseInfo", {}, { shouldValidate: true });
         setValue("deliveryInfo", {}, { shouldValidate: true });
         setValue("loanInfo", {}, { shouldValidate: true });
+        setLoanContactSelection(null);
         apply();
       },
       description: t("editConfirm.ownershipStatus.description"),
@@ -801,7 +818,9 @@ export function BookForm(props: BookFormProps) {
         <OwnershipStatusSection
           control={control}
           errors={errors}
+          loanContact={loanContactSelection}
           mode={mode}
+          onLoanContactChange={handleLoanContactChange}
           onRequestChange={mode === "edit" ? requestOwnershipStatusChange : undefined}
           register={register}
           setValue={setValue}

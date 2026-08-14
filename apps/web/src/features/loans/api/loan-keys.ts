@@ -7,10 +7,15 @@ import type { LoansListParams } from "../model/loans-query";
 
 const LOAN_ROOTS = {
   active: "/api/loans",
+  contacts: "/api/loans/contacts",
   history: "/api/loans/history",
 } as const;
 
 export const loanKeys = {
+  contacts: {
+    all: [LOAN_ROOTS.contacts] as const,
+    search: (search: string) => [LOAN_ROOTS.contacts, "search", search] as const,
+  },
   history: {
     detail: (loanId: string) => [LOAN_ROOTS.history, "detail", loanId] as const,
     list: (params: LoanHistoryListParams) => [LOAN_ROOTS.history, "list", params] as const,

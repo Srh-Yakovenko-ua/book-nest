@@ -42,9 +42,9 @@ export type LoansAttention = {
 };
 
 export type LoansPeople = {
-  activePerson: string;
+  activeContactId: string;
   items: LoanPersonSummary[];
-  onPersonSelect: (personName: string) => void;
+  onPersonSelect: (contactId: string) => void;
 };
 
 type LoanAttentionFilter = keyof typeof LOAN_ATTENTION_LOOK;
@@ -264,7 +264,7 @@ function LoansAttentionBlock({
 }
 
 function LoansPeopleBlock({
-  activePerson,
+  activeContactId,
   isLoading,
   items,
   onPersonSelect,
@@ -285,14 +285,14 @@ function LoansPeopleBlock({
     <SidebarBlock title={t("title")}>
       <ul className="-mx-1.5 flex flex-col gap-0.5">
         {items.map((person) => (
-          <li key={person.personName}>
+          <li key={person.contactId}>
             <button
-              aria-pressed={person.personName === activePerson}
+              aria-pressed={person.contactId === activeContactId}
               className={cn(
                 "group/person flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
-                person.personName === activePerson && "bg-secondary",
+                person.contactId === activeContactId && "bg-secondary",
               )}
-              onClick={() => onPersonSelect(person.personName)}
+              onClick={() => onPersonSelect(person.contactId)}
               type="button"
             >
               <PersonCovers covers={person.covers} />
@@ -372,7 +372,7 @@ function RowSkeleton({ rows }: { rows: number }) {
 
 function SidebarBlock({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+    <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card">
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>

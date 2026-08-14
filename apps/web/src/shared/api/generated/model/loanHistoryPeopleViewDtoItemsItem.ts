@@ -7,6 +7,7 @@
  */
 
 export type LoanHistoryPeopleViewDtoItemsItem = {
+  contactId: string;
   personName: string;
   /**
    * @minimum 0

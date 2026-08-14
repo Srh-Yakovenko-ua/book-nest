@@ -76,7 +76,11 @@ export function LoanHistoryToolbar({ query }: { query: UseLoanHistoryQueryResult
           value={query.result}
         />
 
-        <PersonSelect label={t("personLabel")} onChange={query.setPerson} value={query.person} />
+        <PersonSelect
+          label={t("personLabel")}
+          onChange={query.setContactId}
+          value={query.contactId}
+        />
 
         <div className="min-w-0 sm:w-52">
           <LoanHistoryPeriodFilter
@@ -180,7 +184,7 @@ function PersonSelect({
             <p className="px-2 py-1.5 text-sm text-muted-foreground">{t("empty")}</p>
           ) : null}
           {items.map((person) => (
-            <SelectItem key={person.personName} value={person.personName}>
+            <SelectItem key={person.contactId} value={person.contactId}>
               <span className="truncate">{person.personName}</span>
               <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
                 {t("count", { count: person.totalCount })}

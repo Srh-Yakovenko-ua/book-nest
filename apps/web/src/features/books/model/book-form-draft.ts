@@ -2,6 +2,8 @@ import type { BookAuthorReference } from "@app/shared";
 
 import { z } from "zod";
 
+import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+
 import type {
   AuthorSelection,
   CreateBookFormValues,
@@ -11,6 +13,7 @@ import type {
 
 type BookFormDraft = {
   authorSelections: AuthorSelection[];
+  loanContactSelection: LoanContactSelection | null;
   locale: string;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
@@ -26,6 +29,11 @@ const publisherSelectionSchema = z.union([
   z.object({ id: z.string(), kind: z.literal("catalog"), name: z.string() }),
   z.object({ kind: z.literal("custom"), name: z.string() }),
 ]) satisfies z.ZodType<PublisherSelection>;
+
+const loanContactSelectionSchema = z.union([
+  z.object({ contactId: z.string(), kind: z.literal("picked"), name: z.string() }),
+  z.object({ kind: z.literal("saved"), name: z.string() }),
+]) satisfies z.ZodType<LoanContactSelection>;
 
 const authorReferenceSchema = z.union([
   z.object({ id: z.string() }),
@@ -61,6 +69,7 @@ const seriesSelectionSchema = z.union([
 
 const draftSchema = z.object({
   authorSelections: z.array(authorSelectionSchema),
+  loanContactSelection: loanContactSelectionSchema.nullable().default(null),
   locale: z.string(),
   publisherSelection: publisherSelectionSchema.nullable(),
   seriesSelection: seriesSelectionSchema.nullable(),
@@ -89,6 +98,7 @@ function parseBookFormDraft(raw: string): BookFormDraft | null {
 
   return {
     authorSelections: parsed.data.authorSelections,
+    loanContactSelection: parsed.data.loanContactSelection,
     locale: parsed.data.locale,
     publisherSelection: parsed.data.publisherSelection,
     seriesSelection: parsed.data.seriesSelection,

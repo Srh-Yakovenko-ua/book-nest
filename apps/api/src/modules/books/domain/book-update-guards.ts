@@ -1,5 +1,7 @@
 import type { OwnershipStatus, ReadingStatus, UpdateBookInput } from "@app/shared";
 
+import { hasLoanPersonIdentity, LOAN_PERSON_REQUIRED_MESSAGE } from "@app/shared";
+
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
@@ -34,7 +36,7 @@ export function assertCurrentPageWithinPages({
   }
 }
 
-export function assertLoanPersonNamePresent({
+export function assertLoanPersonPresent({
   current,
   input,
   ownershipStatus,
@@ -46,14 +48,11 @@ export function assertLoanPersonNamePresent({
   if (!ownershipStatusUsesLoan(ownershipStatus)) {
     return;
   }
-
-  const payloadPersonName = input.loanInfo?.personName ?? "";
-  const existingPersonName = current.loans[0]?.personName ?? "";
-  if (payloadPersonName.length > 0 || existingPersonName.length > 0) {
+  if (hasLoanPersonIdentity(input.loanInfo ?? {}) || current.loans[0] !== undefined) {
     return;
   }
 
-  throw new BadRequestError("Enter the person's name", {
-    fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
+  throw new BadRequestError(LOAN_PERSON_REQUIRED_MESSAGE, {
+    fields: [{ field: "loanInfo.personName", message: LOAN_PERSON_REQUIRED_MESSAGE }],
   });
 }

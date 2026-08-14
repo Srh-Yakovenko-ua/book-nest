@@ -6,6 +6,7 @@ import { AuthorsModule } from "../authors/index.js";
 import { DeliveryModule } from "../delivery/index.js";
 import { GenresModule } from "../genres/index.js";
 import { ListsModule } from "../lists/index.js";
+import { LoansModule } from "../loans/index.js";
 import { MediaModule } from "../media/index.js";
 import { PublishersModule } from "../publishers/index.js";
 import { ReadingGoalsModule } from "../reading-goals/index.js";
@@ -78,6 +79,7 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     TagsModule,
     SeriesModule,
     ListsModule,
+    LoansModule,
     GenresModule,
     MediaModule,
     DeliveryModule,

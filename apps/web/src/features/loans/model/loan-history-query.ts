@@ -11,6 +11,8 @@ import {
   LoanHistoryControllerListType,
 } from "@/shared/api/generated/model";
 
+import { parseAsContactId } from "./contact-id-param";
+
 export const LOAN_HISTORY_PAGE_SIZE = 10;
 
 export const LOAN_HISTORY_RESULT_DEFAULT = LoanHistoryControllerListResult.all;
@@ -21,8 +23,8 @@ export const LOAN_HISTORY_SORT_VALUES = Object.values(LoanHistoryControllerListS
 export const LOAN_HISTORY_TYPE_VALUES = Object.values(LoanHistoryControllerListType);
 
 export const loanHistoryQueryParsers = {
+  contactId: parseAsContactId,
   from: parseAsString.withDefault(""),
-  person: parseAsString.withDefault(""),
   q: parseAsString.withDefault(""),
   result: parseAsStringLiteral(LOAN_HISTORY_RESULT_VALUES).withDefault(LOAN_HISTORY_RESULT_DEFAULT),
   sort: parseAsStringLiteral(LOAN_HISTORY_SORT_VALUES).withDefault(LOAN_HISTORY_SORT_DEFAULT),
@@ -43,7 +45,7 @@ export function hasActiveLoanHistoryFilters(state: LoanHistoryQueryState): boole
   return (
     state.result !== LOAN_HISTORY_RESULT_DEFAULT ||
     state.type !== null ||
-    state.person.trim() !== "" ||
+    state.contactId !== "" ||
     state.from !== "" ||
     state.to !== ""
   );
@@ -68,10 +70,8 @@ export function toLoanHistoryListParams(state: LoanHistoryQueryState): LoanHisto
 export function toLoanHistoryOverviewParams(
   state: LoanHistoryQueryState,
 ): LoanHistoryControllerOverviewParams {
-  const person = state.person.trim();
-
   return {
-    ...(person === "" ? {} : { person }),
+    ...(state.contactId === "" ? {} : { contactId: state.contactId }),
     ...(state.from === "" ? {} : { returnedFrom: state.from }),
     ...(state.to === "" ? {} : { returnedTo: state.to }),
     ...(state.type === null ? {} : { type: state.type }),
@@ -79,8 +79,8 @@ export function toLoanHistoryOverviewParams(
 }
 
 export const LOAN_HISTORY_FILTERS_RESET = {
+  contactId: null,
   from: null,
-  person: null,
   q: null,
   result: null,
   to: null,
