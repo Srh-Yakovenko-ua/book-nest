@@ -35,6 +35,10 @@ export type OrderItemBookRef = {
   id: string;
 };
 
+export type OrderItemShipmentRef = OrderItemBookRef & {
+  shipmentId: Nullable<string>;
+};
+
 type CancelBooksInput = CancelInput & {
   bookIds: string[];
 };
@@ -179,14 +183,14 @@ export class BookOrderItemsRepository {
   async receiveForBooks(
     { bookIds, receivedAt, userId }: ReceiveBooksInput,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<OrderItemBookRef[]> {
+  ): Promise<OrderItemShipmentRef[]> {
     if (bookIds.length === 0) {
       return [];
     }
 
     const received = await client.bookOrderItem.updateManyAndReturn({
       data: { receivedAt },
-      select: { bookId: true, id: true },
+      select: { bookId: true, id: true, shipmentId: true },
       where: { ...activeItemWhere(userId), bookId: { in: bookIds } },
     });
     return sortById(received);
@@ -244,7 +248,7 @@ function activeItemWhere(userId: string): Prisma.BookOrderItemWhereInput {
   };
 }
 
-function sortById(rows: OrderItemBookRef[]): OrderItemBookRef[] {
+function sortById<TRow extends { id: string }>(rows: TRow[]): TRow[] {
   return [...rows].sort((left, right) => (left.id < right.id ? -1 : 1));
 }
 

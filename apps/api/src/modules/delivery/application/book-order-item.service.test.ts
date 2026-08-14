@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookOrderItemsRepository } from "../infrastructure/book-order-items.repository.js";
 import type { OrderBooksRepository } from "../infrastructure/order-books.repository.js";
+import type { ShipmentsRepository } from "../infrastructure/shipments.repository.js";
 import type { BookOrderViewLoader } from "./book-order-view.loader.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
@@ -17,12 +18,14 @@ const ITEM_ID = "item-1";
 const BOOK_A = "book-a";
 const BOOK_B = "book-b";
 const BOOK_C = "book-c";
+const SHIPMENT_ID = "shipment-1";
 
 const TX = { marker: "tx" } as unknown as Prisma.TransactionClient;
 
 function buildService(overrides: {
   books?: Partial<OrderBooksRepository>;
   items?: Partial<BookOrderItemsRepository>;
+  shipments?: Partial<ShipmentsRepository>;
 }) {
   const items = {
     cancelActiveForBooks: vi.fn().mockResolvedValue([]),
@@ -36,6 +39,10 @@ function buildService(overrides: {
     listOwned: vi.fn().mockResolvedValue([]),
     ...overrides.books,
   } as unknown as OrderBooksRepository;
+  const shipments = {
+    receiveWithoutPendingItems: vi.fn().mockResolvedValue(0),
+    ...overrides.shipments,
+  } as unknown as ShipmentsRepository;
   const viewLoader = {
     loadOrThrow: vi.fn().mockResolvedValue({ id: ORDER_ID }),
   } as unknown as BookOrderViewLoader;
@@ -46,7 +53,8 @@ function buildService(overrides: {
   return {
     books,
     items,
-    service: new BookOrderItemService(items, books, viewLoader, transactionRunner),
+    service: new BookOrderItemService(items, books, shipments, viewLoader, transactionRunner),
+    shipments,
     transactionRunner,
     viewLoader,
   };
@@ -65,7 +73,7 @@ function makeItemRow({
     id: ITEM_ID,
     orderId: ORDER_ID,
     receivedAt,
-    shipmentId: "shipment-1",
+    shipmentId: SHIPMENT_ID,
   };
 }
 
@@ -162,7 +170,9 @@ describe("BookOrderItemService.bulkReceive", () => {
         ]),
       },
       items: {
-        receiveForBooks: vi.fn().mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID }]),
+        receiveForBooks: vi
+          .fn()
+          .mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID, shipmentId: SHIPMENT_ID }]),
       },
     });
 
@@ -185,7 +195,11 @@ describe("BookOrderItemService.bulkReceive", () => {
       books: {
         listOwned: vi.fn().mockResolvedValue([{ id: BOOK_A, ownershipStatus: "in_transit" }]),
       },
-      items: { receiveForBooks: vi.fn().mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID }]) },
+      items: {
+        receiveForBooks: vi
+          .fn()
+          .mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID, shipmentId: SHIPMENT_ID }]),
+      },
     });
 
     await service.bulkReceive({
@@ -205,7 +219,11 @@ describe("BookOrderItemService.bulkReceive", () => {
         applyOwnership: vi.fn().mockResolvedValue(1),
         listOwned: vi.fn().mockResolvedValue([{ id: BOOK_A, ownershipStatus: "in_transit" }]),
       },
-      items: { receiveForBooks: vi.fn().mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID }]) },
+      items: {
+        receiveForBooks: vi
+          .fn()
+          .mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID, shipmentId: SHIPMENT_ID }]),
+      },
     });
 
     await service.bulkReceive({ input: { bookIds: [BOOK_A] }, userId: USER });
@@ -213,6 +231,57 @@ describe("BookOrderItemService.bulkReceive", () => {
     expect(transactionRunner.run).toHaveBeenCalledTimes(1);
     expect(books.applyOwnership).toHaveBeenCalledWith(
       expect.objectContaining({ bookIds: [BOOK_A], ownershipStatus: "owned", userId: USER }),
+      TX,
+    );
+  });
+
+  it("closes the parcels the received books came from, each one once", async () => {
+    const { service, shipments } = buildService({
+      books: {
+        listOwned: vi.fn().mockResolvedValue([
+          { id: BOOK_A, ownershipStatus: "in_transit" },
+          { id: BOOK_B, ownershipStatus: "in_transit" },
+        ]),
+      },
+      items: {
+        receiveForBooks: vi.fn().mockResolvedValue([
+          { bookId: BOOK_A, id: ITEM_ID, shipmentId: SHIPMENT_ID },
+          { bookId: BOOK_B, id: "item-2", shipmentId: SHIPMENT_ID },
+        ]),
+      },
+    });
+
+    await service.bulkReceive({
+      input: { bookIds: [BOOK_A, BOOK_B], receivedAt: "2026-08-09" },
+      userId: USER,
+    });
+
+    expect(shipments.receiveWithoutPendingItems).toHaveBeenCalledWith(
+      {
+        receivedAt: new Date("2026-08-09T00:00:00.000Z"),
+        shipmentIds: [SHIPMENT_ID],
+        userId: USER,
+      },
+      TX,
+    );
+  });
+
+  it("has no parcel to close when the received book was never loaded into one", async () => {
+    const { service, shipments } = buildService({
+      books: {
+        listOwned: vi.fn().mockResolvedValue([{ id: BOOK_A, ownershipStatus: "in_transit" }]),
+      },
+      items: {
+        receiveForBooks: vi
+          .fn()
+          .mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID, shipmentId: null }]),
+      },
+    });
+
+    await service.bulkReceive({ input: { bookIds: [BOOK_A] }, userId: USER });
+
+    expect(shipments.receiveWithoutPendingItems).toHaveBeenCalledWith(
+      expect.objectContaining({ shipmentIds: [] }),
       TX,
     );
   });

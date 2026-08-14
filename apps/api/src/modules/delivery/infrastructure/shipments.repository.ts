@@ -8,6 +8,7 @@ import type { NewShipmentData } from "./book-orders.repository.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 const shipmentRelations = {
@@ -15,6 +16,12 @@ const shipmentRelations = {
 } satisfies Prisma.ShipmentDefaultArgs;
 
 const LockedShipmentRowsSchema = z.array(z.object({ id: z.uuid() }));
+
+const pendingItemWhere = {
+  book: SOFT_DELETE_SCOPE.active,
+  cancelledAt: null,
+  receivedAt: null,
+} satisfies Prisma.BookOrderItemWhereInput;
 
 export type ShipmentPatch = {
   deliveryServiceId?: Nullable<string>;
@@ -43,6 +50,12 @@ type CreateShipmentInput = {
 
 type OwnedShipmentRef = {
   shipmentId: string;
+  userId: string;
+};
+
+type ReceiveSettledShipmentsInput = {
+  receivedAt: Date;
+  shipmentIds: string[];
   userId: string;
 };
 
@@ -121,6 +134,26 @@ export class ShipmentsRepository {
       shipmentId,
       userId,
     });
+  }
+
+  async receiveWithoutPendingItems(
+    { receivedAt, shipmentIds, userId }: ReceiveSettledShipmentsInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    if (shipmentIds.length === 0) {
+      return 0;
+    }
+
+    const received = await client.shipment.updateMany({
+      data: { receivedAt, status: ShipmentStatusSchema.enum.received },
+      where: {
+        id: { in: shipmentIds },
+        items: { none: pendingItemWhere, some: { receivedAt: { not: null } } },
+        order: { userId },
+        status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
+      },
+    });
+    return received.count;
   }
 
   updateActive(

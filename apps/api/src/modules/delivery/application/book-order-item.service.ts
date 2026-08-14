@@ -7,6 +7,8 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import type { OrderItemShipmentRef } from "../infrastructure/book-order-items.repository.js";
+
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import {
@@ -17,6 +19,7 @@ import {
 import { resolveShipmentReceivedAt } from "../domain/shipment-transition.js";
 import { BookOrderItemsRepository } from "../infrastructure/book-order-items.repository.js";
 import { OrderBooksRepository } from "../infrastructure/order-books.repository.js";
+import { ShipmentsRepository } from "../infrastructure/shipments.repository.js";
 import { BookOrderViewLoader } from "./book-order-view.loader.js";
 import { DELIVERY_WRITE_MESSAGES, orderItemCancelError } from "./delivery-write-errors.js";
 
@@ -25,6 +28,7 @@ export class BookOrderItemService {
   constructor(
     private readonly bookOrderItemsRepository: BookOrderItemsRepository,
     private readonly orderBooksRepository: OrderBooksRepository,
+    private readonly shipmentsRepository: ShipmentsRepository,
     private readonly viewLoader: BookOrderViewLoader,
     private readonly transactionRunner: TransactionRunner,
   ) {}
@@ -47,12 +51,9 @@ export class BookOrderItemService {
         ),
       );
 
+      const itemReceivedAt = resolveShipmentReceivedAt({ now, receivedAt });
       const received = await this.bookOrderItemsRepository.receiveForBooks(
-        {
-          bookIds: [...ownedBookIds],
-          receivedAt: resolveShipmentReceivedAt({ now, receivedAt }),
-          userId,
-        },
+        { bookIds: [...ownedBookIds], receivedAt: itemReceivedAt, userId },
         tx,
       );
       const receivedBookIds = new Set(received.map((item) => item.bookId));
@@ -63,6 +64,10 @@ export class BookOrderItemService {
           ownershipStatus: RECEIVED_BOOK_OWNERSHIP.ownershipStatus,
           userId,
         },
+        tx,
+      );
+      await this.shipmentsRepository.receiveWithoutPendingItems(
+        { receivedAt: itemReceivedAt, shipmentIds: touchedShipmentIds(received), userId },
         tx,
       );
 
@@ -150,4 +155,10 @@ function toBulkReceiveResult({
   }
 
   return { receivedBookIds: received, skipped };
+}
+
+function touchedShipmentIds(received: readonly OrderItemShipmentRef[]): string[] {
+  return [
+    ...new Set(received.flatMap((item) => (item.shipmentId === null ? [] : [item.shipmentId]))),
+  ];
 }
