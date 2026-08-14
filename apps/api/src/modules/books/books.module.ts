@@ -1,5 +1,5 @@
 import { BullModule } from "@nestjs/bullmq";
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
 import { AuthorsModule } from "../authors/index.js";
@@ -79,7 +79,7 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     TagsModule,
     SeriesModule,
     ListsModule,
-    LoansModule,
+    forwardRef(() => LoansModule),
     GenresModule,
     MediaModule,
     DeliveryModule,
