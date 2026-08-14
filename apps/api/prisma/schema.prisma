@@ -47,7 +47,6 @@ model User {
   bookLists                 BookList[]
   customGenres              Genre[]
   mediaAssets               MediaAsset[]
-  bookDeliveries            BookDelivery[]
   bookOrders                BookOrder[]
   bookLoans                 BookLoan[]
   bookStoreLinks            BookStoreLink[]
@@ -258,7 +257,6 @@ model Book {
   readingProgress               BookReadingProgress?
   readingEvents                 BookReadingProgressEvent[]
   purchaseInfo                  BookPurchaseInfo?
-  deliveries                    BookDelivery[]
   orderItems                    BookOrderItem[]
   loans                         BookLoan[]
   storeLinks                    BookStoreLink[]
@@ -355,35 +353,6 @@ model BookPurchaseInfo {
   book          Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@map("book_purchase_info")
-}
-
-model BookDelivery {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @map("user_id") @db.Uuid
-  bookId               String    @map("book_id") @db.Uuid
-  storeName            String?   @map("store_name")
-  orderDate            DateTime? @map("order_date") @db.Date
-  expectedDeliveryDate DateTime? @map("expected_delivery_date") @db.Date
-  orderNumber          String?   @map("order_number")
-  trackingUrl          String?   @map("tracking_url")
-  trackingNumber       String?   @map("tracking_number")
-  deliveryService      String?   @map("delivery_service")
-  price                Decimal?  @db.Decimal(10, 2)
-  currency             String?
-  note                 String?
-  status               String    @default("ordered")
-  cancelReason         String?   @map("cancel_reason")
-  receivedAt           DateTime? @map("received_at") @db.Timestamptz
-  cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz
-  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
-
-  @@index([bookId])
-  @@index([userId, status])
-  @@index([status, expectedDeliveryDate])
-  @@map("book_deliveries")
 }
 
 model BookOrder {

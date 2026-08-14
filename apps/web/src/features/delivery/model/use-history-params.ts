@@ -3,8 +3,8 @@
 import { useQueryStates } from "nuqs";
 
 import type {
-  DeliveryControllerHistoryListSort,
-  DeliveryControllerHistoryListTab,
+  DeliveryReadControllerHistoryListSort,
+  DeliveryReadControllerHistoryListTab,
 } from "@/shared/api/generated/model";
 
 import type { DeliveryHistoryListParams, DeliveryHistoryQueryState } from "./history-params";
@@ -42,11 +42,11 @@ export type UseHistoryParamsResult = {
   listParams: DeliveryHistoryListParams;
   setFilters: (patch: HistoryFilterPatch) => void;
   setSearch: (value: string) => void;
-  setSort: (value: DeliveryControllerHistoryListSort) => void;
-  setTab: (value: DeliveryControllerHistoryListTab) => void;
-  sort: DeliveryControllerHistoryListSort;
+  setSort: (value: DeliveryReadControllerHistoryListSort) => void;
+  setTab: (value: DeliveryReadControllerHistoryListTab) => void;
+  sort: DeliveryReadControllerHistoryListSort;
   state: DeliveryHistoryQueryState;
-  tab: DeliveryControllerHistoryListTab;
+  tab: DeliveryReadControllerHistoryListTab;
 };
 
 export function useHistoryParams(): UseHistoryParamsResult {

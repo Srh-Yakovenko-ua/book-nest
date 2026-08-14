@@ -2660,7 +2660,7 @@
         "received": "Received orders",
         "cancelled": "Cancelled orders",
         "average": "Average price",
-        "pricedOrders": "Orders with price",
+        "orders": "Orders",
         "mobile": {
           "title": "Detailed stats",
           "compact": {
@@ -2669,7 +2669,7 @@
             "received": "Received",
             "cancelled": "Cancelled",
             "average": "Average",
-            "pricedOrders": "Priced"
+            "orders": "Orders"
           },
           "detailed": {
             "total": "Total amount",
@@ -2677,7 +2677,7 @@
             "received": "Received orders",
             "cancelled": "Cancelled orders",
             "average": "Average price",
-            "pricedOrders": "Orders with price"
+            "orders": "Orders"
           }
         }
       },
@@ -2718,9 +2718,19 @@
         "empty": "No stores to show.",
         "orders": "{count, plural, one {# order} other {# orders}}"
       },
+      "orderStatus": {
+        "active": "Active",
+        "partially_shipped": "Partially shipped",
+        "shipped": "Shipped",
+        "partially_received": "Partially received",
+        "received": "Received",
+        "cancelled": "Cancelled"
+      },
       "topOrders": {
         "title": "Most expensive orders",
-        "empty": "No orders with a price."
+        "empty": "No orders with a price.",
+        "untitledOrder": "Order without a number",
+        "books": "{count, plural, one {# book} other {# books}}"
       },
       "states": {
         "error": {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { DeliveryStatisticsView } from "@app/shared";
+import type { BookOrderStatisticsView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
@@ -12,7 +12,7 @@ import {
   buildMonthlySpendingSeries,
 } from "../model/statistics-view-model";
 
-export function DeliveryMonthlyChart({ view }: { view: DeliveryStatisticsView }) {
+export function DeliveryMonthlyChart({ view }: { view: BookOrderStatisticsView }) {
   const t = useTranslations("delivery.statistics.monthly");
   const locale = useLocale();
 

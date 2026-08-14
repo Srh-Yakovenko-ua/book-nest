@@ -2660,7 +2660,7 @@
         "received": "Отримані замовлення",
         "cancelled": "Скасовані замовлення",
         "average": "Середня ціна",
-        "pricedOrders": "Замовлень з ціною",
+        "orders": "Замовлень",
         "mobile": {
           "title": "Детальна статистика",
           "compact": {
@@ -2669,7 +2669,7 @@
             "received": "Отримані",
             "cancelled": "Скасовані",
             "average": "Середня",
-            "pricedOrders": "З ціною"
+            "orders": "Замовлень"
           },
           "detailed": {
             "total": "Загальна сума",
@@ -2677,7 +2677,7 @@
             "received": "Отримані замовлення",
             "cancelled": "Скасовані замовлення",
             "average": "Середня ціна",
-            "pricedOrders": "Замовлень з ціною"
+            "orders": "Замовлень"
           }
         }
       },
@@ -2718,9 +2718,19 @@
         "empty": "Немає магазинів для показу.",
         "orders": "{count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}"
       },
+      "orderStatus": {
+        "active": "Активне",
+        "partially_shipped": "Частково відправлене",
+        "shipped": "Відправлене",
+        "partially_received": "Частково отримане",
+        "received": "Отримане",
+        "cancelled": "Скасоване"
+      },
       "topOrders": {
         "title": "Найдорожчі замовлення",
-        "empty": "Немає замовлень з ціною."
+        "empty": "Немає замовлень з ціною.",
+        "untitledOrder": "Замовлення без номера",
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
       },
       "states": {
         "error": {

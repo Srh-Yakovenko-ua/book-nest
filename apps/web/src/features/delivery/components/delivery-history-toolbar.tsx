@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 
 import type {
-  DeliveryControllerHistoryListSort,
-  DeliveryControllerHistoryListTab,
+  DeliveryReadControllerHistoryListSort,
+  DeliveryReadControllerHistoryListTab,
 } from "@/shared/api/generated/model";
 
 import { PageTabs } from "@/components/page-tabs";
@@ -37,11 +37,11 @@ type DeliveryHistoryToolbarProps = {
   onClearSearch: () => void;
   onResetFilters: () => void;
   onSearch: (value: string) => void;
-  onSortChange: (value: DeliveryControllerHistoryListSort) => void;
-  onTabChange: (value: DeliveryControllerHistoryListTab) => void;
-  sort: DeliveryControllerHistoryListSort;
+  onSortChange: (value: DeliveryReadControllerHistoryListSort) => void;
+  onTabChange: (value: DeliveryReadControllerHistoryListTab) => void;
+  sort: DeliveryReadControllerHistoryListSort;
   state: DeliveryHistoryQueryState;
-  tab: DeliveryControllerHistoryListTab;
+  tab: DeliveryReadControllerHistoryListTab;
 };
 
 export function DeliveryHistoryToolbar({
@@ -84,7 +84,7 @@ export function DeliveryHistoryToolbar({
         <div className="flex gap-3">
           <div className="w-full sm:w-56">
             <Select
-              onValueChange={(next) => onSortChange(next as DeliveryControllerHistoryListSort)}
+              onValueChange={(next) => onSortChange(next as DeliveryReadControllerHistoryListSort)}
               value={sort}
             >
               <SelectTrigger

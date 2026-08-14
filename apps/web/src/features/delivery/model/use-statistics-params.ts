@@ -2,7 +2,7 @@
 
 import { useQueryStates } from "nuqs";
 
-import type { DeliveryControllerStatisticsParams } from "@/shared/api/generated/model";
+import type { BookOrdersControllerStatisticsParams } from "@/shared/api/generated/model";
 
 import type { DeliveryStatisticsQueryState } from "./statistics-params";
 
@@ -21,7 +21,7 @@ export type UseStatisticsParamsResult = {
   clearFilters: () => void;
   filterCount: number;
   hasActiveFilters: boolean;
-  queryParams: DeliveryControllerStatisticsParams;
+  queryParams: BookOrdersControllerStatisticsParams;
   setFilters: (patch: StatisticsFilterPatch) => void;
   setIncludeCancelled: (value: boolean) => void;
   state: DeliveryStatisticsQueryState;

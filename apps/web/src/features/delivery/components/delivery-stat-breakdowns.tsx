@@ -1,12 +1,11 @@
 "use client";
 
-import type { DeliveryStatisticsView } from "@app/shared";
+import type { BookOrderStatisticsView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Link } from "@/i18n/navigation";
 import { formatDate } from "@/lib/format";
 
 import { formatCurrencyTotals, formatMoney } from "../model/money-format";
@@ -16,7 +15,7 @@ import {
   buildTopOrders,
 } from "../model/statistics-view-model";
 
-export function DeliveryStatusBreakdown({ view }: { view: DeliveryStatisticsView }) {
+export function DeliveryStatusBreakdown({ view }: { view: BookOrderStatisticsView }) {
   const t = useTranslations("delivery.statistics.status");
   const locale = useLocale();
   const entries = buildStatusBreakdown(view, (key) => t(key));
@@ -44,7 +43,7 @@ export function DeliveryStatusBreakdown({ view }: { view: DeliveryStatisticsView
   );
 }
 
-export function DeliveryStoreBreakdown({ view }: { view: DeliveryStatisticsView }) {
+export function DeliveryStoreBreakdown({ view }: { view: BookOrderStatisticsView }) {
   const t = useTranslations("delivery.statistics.stores");
   const locale = useLocale();
   const rows = buildStoreRows(view);
@@ -85,9 +84,9 @@ export function DeliveryStoreBreakdown({ view }: { view: DeliveryStatisticsView 
   );
 }
 
-export function DeliveryTopOrders({ view }: { view: DeliveryStatisticsView }) {
+export function DeliveryTopOrders({ view }: { view: BookOrderStatisticsView }) {
   const t = useTranslations("delivery.statistics.topOrders");
-  const tStatus = useTranslations("delivery.badge");
+  const tStatus = useTranslations("delivery.statistics.orderStatus");
   const locale = useLocale();
   const rows = buildTopOrders(view, (status) => tStatus(status));
 
@@ -99,30 +98,29 @@ export function DeliveryTopOrders({ view }: { view: DeliveryStatisticsView }) {
       ) : (
         <ol className="flex flex-col divide-y divide-border">
           {rows.map((row, index) => (
-            <li className="flex items-center gap-3 py-3 first:pt-0 last:pb-0" key={row.bookId}>
+            <li className="flex items-center gap-3 py-3 first:pt-0 last:pb-0" key={row.id}>
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground tabular-nums">
                 {index + 1}
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <Link
-                  className="truncate text-sm font-medium text-ink transition-colors hover:text-primary"
-                  href={`/books/${row.bookId}`}
-                >
-                  {row.bookTitle}
-                </Link>
+                <span className="truncate text-sm font-medium text-ink">
+                  {row.orderNumber ?? t("untitledOrder")}
+                </span>
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  {row.storeName === null ? null : (
-                    <span className="inline-flex items-center gap-1">
-                      <UiIcon name="store" size={12} />
-                      {row.storeName}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-1">
+                    <UiIcon name="store" size={12} />
+                    {row.storeName}
+                  </span>
                   {row.orderDate === null ? null : (
                     <span className="inline-flex items-center gap-1">
                       <UiIcon name="calendar" size={12} />
                       {formatDate(row.orderDate, locale)}
                     </span>
                   )}
+                  <span className="inline-flex items-center gap-1">
+                    <UiIcon name="book" size={12} />
+                    {t("books", { count: row.booksCount })}
+                  </span>
                 </span>
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">

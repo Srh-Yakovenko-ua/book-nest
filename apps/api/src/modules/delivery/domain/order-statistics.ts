@@ -61,6 +61,7 @@ export type OrderStatisticsShipmentRecord = {
 type AmountAccumulator = Map<Currency, { count: number; sum: number }>;
 
 type ClassifiedOrder = {
+  amount: Nullable<number>;
   countedItems: OrderStatisticsItemRecord[];
   currency: Currency;
   derivedStatus: BookOrderDerivedStatus;
@@ -142,11 +143,10 @@ function addOrderAmount({
   accumulator: AmountAccumulator;
   order: ClassifiedOrder;
 }): void {
-  const { totalAmount } = order.record;
-  if (totalAmount === null) {
+  if (order.amount === null) {
     return;
   }
-  addAmount({ accumulator, amount: totalAmount, currency: order.currency });
+  addAmount({ accumulator, amount: order.amount, currency: order.currency });
 }
 
 function amountsForDerivedStatus({
@@ -308,10 +308,9 @@ function buildTopBookOrders({
   includedOrders: ClassifiedOrder[];
   topLimit: number;
 }): BookOrderStatisticsTopOrder[] {
-  const pricedOrders = includedOrders.flatMap((order) => {
-    const { totalAmount } = order.record;
-    return totalAmount === null ? [] : [{ order, totalAmount }];
-  });
+  const pricedOrders = includedOrders.flatMap((order) =>
+    order.amount === null ? [] : [{ order, totalAmount: order.amount }],
+  );
 
   return pricedOrders
     .sort(compareTopBookOrders)
@@ -349,11 +348,13 @@ function classifyOrder({
     items: record.items,
     shipments: record.shipments,
   });
+  const countedItems = includeCancelled
+    ? record.items
+    : record.items.filter((item) => item.cancelledAt === null);
 
   return {
-    countedItems: includeCancelled
-      ? record.items
-      : record.items.filter((item) => item.cancelledAt === null),
+    amount: resolveOrderAmount({ countedItems, totalAmount: record.totalAmount }),
+    countedItems,
     currency: effectiveCurrency(record.currency),
     derivedStatus,
     isIncluded: includeCancelled || derivedStatus !== DERIVED_STATUS.cancelled,
@@ -405,6 +406,21 @@ function isActiveItem(item: OrderStatisticsItemRecord): boolean {
 
 function isReceivedItem(item: OrderStatisticsItemRecord): boolean {
   return item.receivedAt !== null;
+}
+
+function resolveOrderAmount({
+  countedItems,
+  totalAmount,
+}: {
+  countedItems: OrderStatisticsItemRecord[];
+  totalAmount: Nullable<number>;
+}): Nullable<number> {
+  if (totalAmount !== null) {
+    return totalAmount;
+  }
+
+  const prices = countedItems.flatMap((item) => (item.price === null ? [] : [item.price]));
+  return prices.length === 0 ? null : prices.reduce((sum, price) => sum + price, 0);
 }
 
 function totalsFromAmounts(accumulator: AmountAccumulator): CurrencyTotal[] {

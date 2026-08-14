@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 
 import type {
-  DeliveryControllerInTransitListFilter,
-  DeliveryControllerInTransitListSort,
+  DeliveryReadControllerInTransitListFilter,
+  DeliveryReadControllerInTransitListSort,
 } from "@/shared/api/generated/model";
 
 import { ChipGroup } from "@/components/ui/chip-group";
@@ -25,15 +25,15 @@ import { DeliverySearchInput } from "./delivery-search-input";
 
 type DeliveryToolbarProps = {
   counterLabel: string;
-  filter: DeliveryControllerInTransitListFilter;
+  filter: DeliveryReadControllerInTransitListFilter;
   isPending: boolean;
   loadingLabel: string;
   onClearSearch: () => void;
-  onFilterChange: (value: DeliveryControllerInTransitListFilter) => void;
+  onFilterChange: (value: DeliveryReadControllerInTransitListFilter) => void;
   onSearch: (value: string) => void;
-  onSortChange: (value: DeliveryControllerInTransitListSort) => void;
+  onSortChange: (value: DeliveryReadControllerInTransitListSort) => void;
   searchValue: string;
-  sort: DeliveryControllerInTransitListSort;
+  sort: DeliveryReadControllerInTransitListSort;
 };
 
 export function DeliveryToolbar({
@@ -64,7 +64,7 @@ export function DeliveryToolbar({
         </div>
         <div className="w-full sm:w-56">
           <Select
-            onValueChange={(next) => onSortChange(next as DeliveryControllerInTransitListSort)}
+            onValueChange={(next) => onSortChange(next as DeliveryReadControllerInTransitListSort)}
             value={sort}
           >
             <SelectTrigger
