@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
-import type { DeliveryControllerHistoryListTab } from "@/shared/api/generated/model";
+import type { DeliveryReadControllerHistoryListTab } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
 import { pageTabsTriggerId } from "@/components/page-tabs";
@@ -34,7 +34,7 @@ type DeliveryHistoryViewProps = {
   renderCard: (model: DeliveryHistoryCardModel) => ReactNode;
   showToolbar: boolean;
   summary: ReactNode;
-  tab: DeliveryControllerHistoryListTab;
+  tab: DeliveryReadControllerHistoryListTab;
   toolbar: ReactNode;
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { DeliveryStatisticsView } from "@app/shared";
+import type { BookOrderStatisticsView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
@@ -39,7 +39,7 @@ export function DeliveryStatistics() {
 
   const summary = view?.summary;
   const mobileLabels = (
-    key: "active" | "average" | "cancelled" | "pricedOrders" | "received" | "total",
+    key: "active" | "average" | "cancelled" | "orders" | "received" | "total",
   ) => ({
     compact: tSummary(`mobile.compact.${key}`),
     detailed: tSummary(`mobile.detailed.${key}`),
@@ -51,42 +51,42 @@ export function DeliveryStatistics() {
       iconTone: "primary",
       label: tSummary("total"),
       mobileLabels: mobileLabels("total"),
-      value: summary ? formatCurrencyTotals(summary.totalByCurrency, locale) : "—",
+      value: summary ? formatCurrencyTotals(summary.totalsByCurrency, locale) : "—",
     },
     {
       icon: "truck",
       iconTone: "info",
       label: tSummary("active"),
       mobileLabels: mobileLabels("active"),
-      value: summary ? formatCurrencyTotals(summary.activeByCurrency, locale) : "—",
+      value: summary ? formatCurrencyTotals(summary.activeTotalsByCurrency, locale) : "—",
     },
     {
       icon: "check-circle",
       iconTone: "success",
       label: tSummary("received"),
       mobileLabels: mobileLabels("received"),
-      value: summary ? formatCurrencyTotals(summary.receivedByCurrency, locale) : "—",
+      value: summary ? formatCurrencyTotals(summary.receivedTotalsByCurrency, locale) : "—",
     },
     {
       icon: "x-circle",
       iconTone: "ink",
       label: tSummary("cancelled"),
       mobileLabels: mobileLabels("cancelled"),
-      value: summary ? formatCurrencyTotals(summary.cancelledByCurrency, locale) : "—",
+      value: summary ? formatCurrencyTotals(summary.cancelledTotalsByCurrency, locale) : "—",
     },
     {
       icon: "chart",
       iconTone: "genre",
       label: tSummary("average"),
       mobileLabels: mobileLabels("average"),
-      value: summary ? formatCurrencyAverages(summary.averageByCurrency, locale) : "—",
+      value: summary ? formatCurrencyAverages(summary.averageBookPriceByCurrency, locale) : "—",
     },
     {
       icon: "package",
       iconTone: "tag",
-      label: tSummary("pricedOrders"),
-      mobileLabels: mobileLabels("pricedOrders"),
-      value: (summary?.pricedOrdersCount ?? 0).toLocaleString(locale),
+      label: tSummary("orders"),
+      mobileLabels: mobileLabels("orders"),
+      value: (summary?.ordersCount ?? 0).toLocaleString(locale),
     },
   ];
 
@@ -147,7 +147,7 @@ function resolveContent({
 }: {
   hasActiveFilters: boolean;
   isError: boolean;
-  view: DeliveryStatisticsView | undefined;
+  view: BookOrderStatisticsView | undefined;
 }): StatisticsContent {
   if (isError) return { kind: "error" };
   if (view === undefined) return { kind: "loading" };

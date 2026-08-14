@@ -3,8 +3,8 @@
 import { useQueryStates } from "nuqs";
 
 import type {
-  DeliveryControllerInTransitListFilter,
-  DeliveryControllerInTransitListSort,
+  DeliveryReadControllerInTransitListFilter,
+  DeliveryReadControllerInTransitListSort,
 } from "@/shared/api/generated/model";
 
 import type { DeliveryListParams, DeliveryQueryState } from "./in-transit-params";
@@ -20,14 +20,14 @@ export type UseInTransitParamsResult = {
   clearAll: () => void;
   clearFilters: () => void;
   clearSearch: () => void;
-  filter: DeliveryControllerInTransitListFilter;
+  filter: DeliveryReadControllerInTransitListFilter;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   listParams: DeliveryListParams;
-  setFilter: (value: DeliveryControllerInTransitListFilter) => void;
+  setFilter: (value: DeliveryReadControllerInTransitListFilter) => void;
   setSearch: (value: string) => void;
-  setSort: (value: DeliveryControllerInTransitListSort) => void;
-  sort: DeliveryControllerInTransitListSort;
+  setSort: (value: DeliveryReadControllerInTransitListSort) => void;
+  sort: DeliveryReadControllerInTransitListSort;
   state: DeliveryQueryState;
 };
 

@@ -1,14 +1,14 @@
-import type { DeliveryHistorySummaryView } from "@app/shared";
+import type { BookOrderHistorySummaryView } from "@app/shared";
 
-import { DeliveryHistorySummaryViewSchema } from "@app/shared";
+import { BookOrderHistorySummaryViewSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
 
-import { deliveryControllerHistorySummary } from "@/shared/api/generated/endpoints/delivery/delivery";
+import { deliveryReadControllerHistorySummary } from "@/shared/api/generated/endpoints/delivery-read/delivery-read";
 
 export function useHistorySummary() {
   return useQuery({
-    queryFn: async (): Promise<DeliveryHistorySummaryView> =>
-      DeliveryHistorySummaryViewSchema.parse(await deliveryControllerHistorySummary()),
-    queryKey: ["/api/delivery/history", "summary"],
+    queryFn: async (): Promise<BookOrderHistorySummaryView> =>
+      BookOrderHistorySummaryViewSchema.parse(await deliveryReadControllerHistorySummary()),
+    queryKey: ["/api/delivery/books/history", "summary"],
   });
 }

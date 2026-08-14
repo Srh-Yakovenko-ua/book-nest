@@ -6,32 +6,32 @@ import {
   parseAsStringLiteral,
 } from "nuqs/server";
 
-import type { DeliveryControllerHistoryListParams } from "@/shared/api/generated/model";
+import type { DeliveryReadControllerHistoryListParams } from "@/shared/api/generated/model";
 
 import {
-  DeliveryControllerHistoryListCurrency,
-  DeliveryControllerHistoryListSort,
-  DeliveryControllerHistoryListTab,
+  DeliveryReadControllerHistoryListCurrency,
+  DeliveryReadControllerHistoryListSort,
+  DeliveryReadControllerHistoryListTab,
 } from "@/shared/api/generated/model";
 
 export const DELIVERY_HISTORY_PAGE_SIZE = 24;
 export const DELIVERY_HISTORY_PANEL_ID = "delivery-history-results";
-export const DELIVERY_HISTORY_TAB_DEFAULT = DeliveryControllerHistoryListTab.all;
-export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryControllerHistoryListSort.newest_orders;
+export const DELIVERY_HISTORY_TAB_DEFAULT = DeliveryReadControllerHistoryListTab.all;
+export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryReadControllerHistoryListSort.newest_orders;
 
 export const DELIVERY_HISTORY_TABS = [
-  DeliveryControllerHistoryListTab.all,
-  DeliveryControllerHistoryListTab.active,
-  DeliveryControllerHistoryListTab.received,
-  DeliveryControllerHistoryListTab.cancelled,
-] as const satisfies readonly DeliveryControllerHistoryListTab[];
+  DeliveryReadControllerHistoryListTab.all,
+  DeliveryReadControllerHistoryListTab.active,
+  DeliveryReadControllerHistoryListTab.received,
+  DeliveryReadControllerHistoryListTab.cancelled,
+] as const satisfies readonly DeliveryReadControllerHistoryListTab[];
 
-export const DELIVERY_HISTORY_SORT_ORDER = Object.values(DeliveryControllerHistoryListSort);
-export const DELIVERY_CURRENCY_OPTIONS = Object.values(DeliveryControllerHistoryListCurrency);
+export const DELIVERY_HISTORY_SORT_ORDER = Object.values(DeliveryReadControllerHistoryListSort);
+export const DELIVERY_CURRENCY_OPTIONS = Object.values(DeliveryReadControllerHistoryListCurrency);
 
-const tabValues = Object.values(DeliveryControllerHistoryListTab);
-const sortValues = Object.values(DeliveryControllerHistoryListSort);
-const currencyValues = Object.values(DeliveryControllerHistoryListCurrency);
+const tabValues = Object.values(DeliveryReadControllerHistoryListTab);
+const sortValues = Object.values(DeliveryReadControllerHistoryListSort);
+const currencyValues = Object.values(DeliveryReadControllerHistoryListCurrency);
 
 export const deliveryHistoryParsers = {
   currency: parseAsStringLiteral(currencyValues),
@@ -48,7 +48,7 @@ export const deliveryHistoryParsers = {
   to: parseAsString.withDefault(""),
 };
 
-export type DeliveryHistoryListParams = Omit<DeliveryControllerHistoryListParams, "pageNumber">;
+export type DeliveryHistoryListParams = Omit<DeliveryReadControllerHistoryListParams, "pageNumber">;
 
 export type DeliveryHistoryQueryState = inferParserType<typeof deliveryHistoryParsers>;
 

@@ -5,7 +5,7 @@ import type { Currency, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import type { DeliveryControllerStatisticsStatus } from "@/shared/api/generated/model";
+import type { BookOrdersControllerStatisticsStatus } from "@/shared/api/generated/model";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ type DeliveryStatisticsFiltersProps = {
 type FilterDraft = {
   currency: Nullable<Currency>;
   from: string;
-  status: Nullable<DeliveryControllerStatisticsStatus>;
+  status: Nullable<BookOrdersControllerStatisticsStatus>;
   store: string;
   to: string;
 };
@@ -122,7 +122,7 @@ export function DeliveryStatisticsFilters({
               onValueChange={(value) =>
                 patch({
                   status:
-                    value === ANY_VALUE ? null : (value as DeliveryControllerStatisticsStatus),
+                    value === ANY_VALUE ? null : (value as BookOrdersControllerStatisticsStatus),
                 })
               }
               value={draft.status ?? ANY_VALUE}

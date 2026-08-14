@@ -1,9 +1,9 @@
 import type {
+  BookOrderItemRowShipmentView,
+  BookOrderItemRowView,
   Currency,
-  DeliveryListItemView,
   DeliveryUiStatus,
   Nullable,
-  ShipmentStatus,
 } from "@app/shared";
 
 import type { UiIconName } from "@/components/icons";
@@ -56,40 +56,38 @@ const UI_BADGE_META: Record<DeliveryUiStatus, { icon: UiIconName; tone: StatusTo
 };
 
 export function toDeliveryCardModel(
-  item: DeliveryListItemView,
+  item: BookOrderItemRowView,
   options: { labels: DeliveryCardLabels; locale: string },
 ): DeliveryCardModel {
-  const { book, delivery, uiStatus } = item;
-  const trackingHref =
-    delivery.trackingUrl !== null && isHttpsUrl(delivery.trackingUrl) ? delivery.trackingUrl : null;
+  const { book, order, shipment, uiStatus } = item;
+  const trackingUrl = shipment?.trackingUrl ?? null;
+  const trackingHref = trackingUrl !== null && isHttpsUrl(trackingUrl) ? trackingUrl : null;
+  const expectedDeliveryDate = shipment?.expectedDeliveryDate ?? null;
 
   return {
     authorName: book.firstAuthorName,
-    badge: resolveDeliveryBadge({ status: delivery.status, uiStatus }, options.labels.badge),
+    badge: resolveDeliveryBadge({ shipment, uiStatus }, options.labels.badge),
     bookHref: `/books/${book.id}`,
     bookId: book.id,
     coverSrc: book.cover?.urls.thumb,
-    deliveryId: delivery.id,
-    deliveryService: delivery.deliveryService,
+    deliveryId: item.id,
+    deliveryService: shipment?.deliveryService?.name ?? null,
     expectedDateText:
-      delivery.expectedDeliveryDate === null
-        ? null
-        : formatDate(delivery.expectedDeliveryDate, options.locale),
+      expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),
     id: item.id,
-    orderDateText:
-      delivery.orderDate === null ? null : formatDate(delivery.orderDate, options.locale),
-    orderNumber: delivery.orderNumber,
-    priceText: formatPrice(delivery.price, delivery.currency, options.locale),
+    orderDateText: order.orderDate === null ? null : formatDate(order.orderDate, options.locale),
+    orderNumber: order.orderNumber,
+    priceText: formatPrice(item.price, order.currency, options.locale),
     seriesText:
       book.series === null
         ? null
         : book.series.partNumber === null
           ? book.series.name
           : options.labels.seriesPart({ name: book.series.name, part: book.series.partNumber }),
-    storeName: delivery.storeName,
+    storeName: order.storeName,
     title: book.title,
     trackingHref,
-    trackingNumber: delivery.trackingNumber,
+    trackingNumber: shipment?.trackingNumber ?? null,
   };
 }
 
@@ -104,7 +102,10 @@ function formatPrice(
 }
 
 function resolveDeliveryBadge(
-  input: { status: ShipmentStatus; uiStatus: Nullable<DeliveryUiStatus> },
+  input: {
+    shipment: Nullable<BookOrderItemRowShipmentView>;
+    uiStatus: Nullable<DeliveryUiStatus>;
+  },
   label: (key: DeliveryBadgeKey) => string,
 ): StatusEntry {
   if (input.uiStatus !== null) {
@@ -117,13 +118,14 @@ function resolveDeliveryBadge(
     };
   }
 
-  const key = storedBadgeKey(input.status);
+  const key = shipmentBadgeKey(input.shipment);
   const base = deliveryStatuses.find((entry) => entry.value === key) ?? deliveryStatuses[0];
   return { ...base, label: label(key) };
 }
 
-function storedBadgeKey(status: ShipmentStatus): DeliveryBadgeKey {
-  if (status === "in_transit") return "in_transit";
-  if (status === "ready_for_pickup") return "ready_for_pickup";
+function shipmentBadgeKey(shipment: Nullable<BookOrderItemRowShipmentView>): DeliveryBadgeKey {
+  if (shipment === null) return "ordered";
+  if (shipment.status === "in_transit") return "in_transit";
+  if (shipment.status === "ready_for_pickup") return "ready_for_pickup";
   return "ordered";
 }

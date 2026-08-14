@@ -1,4 +1,4 @@
-import type { DeliveryStatisticsView } from "@app/shared";
+import type { BookOrderStatisticsView } from "@app/shared";
 
 import type { StatusEntry } from "@/lib/book-status";
 
@@ -45,13 +45,11 @@ export function makeHistoryCardModel(
     },
     bookId: "1",
     cancelledDateText: null,
-    cancelReason: null,
     deliveryId: "d1",
     deliveryService: "Нова Пошта",
     expectedDateText: "12 лип. 2026",
     id: "1",
     isActive: false,
-    note: null,
     orderDateText: "5 лип. 2026",
     orderNumber: "ORD-10241",
     priceText: "480 UAH",
@@ -96,10 +94,8 @@ export const historyCardModels: DeliveryHistoryCardModel[] = [
     },
     bookId: "3",
     cancelledDateText: "10 лип. 2026",
-    cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
     expectedDateText: null,
     id: "3",
-    note: "Спробувати замовити в іншому магазині.",
     priceText: null,
     receivedDateText: null,
     storeName: "Читайлик",
@@ -120,19 +116,28 @@ export const historyCardModels: DeliveryHistoryCardModel[] = [
   }),
 ];
 
-export const statisticsViewFixture: DeliveryStatisticsView = {
+export const statisticsViewFixture: BookOrderStatisticsView = {
   byStore: [
     {
+      averageBookPriceByCurrency: [{ average: 310, currency: "UAH" }],
+      averageOrderAmountByCurrency: [{ average: 465, currency: "UAH" }],
+      booksCount: 6,
       ordersCount: 4,
       store: "Yakaboo",
       totalsByCurrency: [{ currency: "UAH", total: 1860 }],
     },
     {
+      averageBookPriceByCurrency: [{ average: 35, currency: "EUR" }],
+      averageOrderAmountByCurrency: [{ average: 35, currency: "EUR" }],
+      booksCount: 2,
       ordersCount: 2,
       store: "Book Depository",
       totalsByCurrency: [{ currency: "EUR", total: 70 }],
     },
     {
+      averageBookPriceByCurrency: [{ average: 24, currency: "USD" }],
+      averageOrderAmountByCurrency: [{ average: 24, currency: "USD" }],
+      booksCount: 1,
       ordersCount: 1,
       store: "Amazon",
       totalsByCurrency: [{ currency: "USD", total: 24 }],
@@ -140,6 +145,7 @@ export const statisticsViewFixture: DeliveryStatisticsView = {
   ],
   monthly: [
     {
+      booksCount: 4,
       month: "2026-05",
       ordersCount: 3,
       totalsByCurrency: [
@@ -148,6 +154,7 @@ export const statisticsViewFixture: DeliveryStatisticsView = {
       ],
     },
     {
+      booksCount: 5,
       month: "2026-06",
       ordersCount: 4,
       totalsByCurrency: [
@@ -156,30 +163,29 @@ export const statisticsViewFixture: DeliveryStatisticsView = {
       ],
     },
   ],
-  statusBreakdown: {
-    active: { count: 2, totalsByCurrency: [{ currency: "UAH", total: 900 }] },
-    cancelled: { count: 1, totalsByCurrency: [{ currency: "UAH", total: 260 }] },
-    received: {
-      count: 4,
-      totalsByCurrency: [
-        { currency: "UAH", total: 960 },
-        { currency: "EUR", total: 70 },
-      ],
-    },
-  },
   summary: {
-    activeByCurrency: [{ currency: "UAH", total: 900 }],
-    averageByCurrency: [
+    activeBooksCount: 2,
+    activeShipmentsCount: 2,
+    activeTotalsByCurrency: [{ currency: "UAH", total: 900 }],
+    averageBookPriceByCurrency: [
       { average: 310, currency: "UAH" },
       { average: 35, currency: "EUR" },
     ],
-    cancelledByCurrency: [{ currency: "UAH", total: 260 }],
-    pricedOrdersCount: 6,
-    receivedByCurrency: [
+    averageOrderAmountByCurrency: [
+      { average: 465, currency: "UAH" },
+      { average: 35, currency: "EUR" },
+    ],
+    booksCount: 9,
+    cancelledOrdersCount: 1,
+    cancelledTotalsByCurrency: [{ currency: "UAH", total: 260 }],
+    ordersCount: 7,
+    receivedBooksCount: 4,
+    receivedTotalsByCurrency: [
       { currency: "UAH", total: 960 },
       { currency: "EUR", total: 70 },
     ],
-    totalByCurrency: [
+    shipmentsCount: 8,
+    totalsByCurrency: [
       { currency: "UAH", total: 1860 },
       { currency: "EUR", total: 70 },
       { currency: "USD", total: 24 },
@@ -187,22 +193,24 @@ export const statisticsViewFixture: DeliveryStatisticsView = {
   },
   topOrders: [
     {
-      bookId: "1",
-      bookTitle: "Таємна історія",
+      booksCount: 2,
       currency: "UAH",
+      derivedStatus: "received",
+      id: "order-1",
       orderDate: "2026-06-05",
-      price: 480,
-      status: "received",
+      orderNumber: "ORD-10241",
       storeName: "Yakaboo",
+      totalAmount: 480,
     },
     {
-      bookId: "2",
-      bookTitle: "Нічний цирк",
+      booksCount: 1,
       currency: "EUR",
+      derivedStatus: "shipped",
+      id: "order-2",
       orderDate: "2026-06-12",
-      price: 35,
-      status: "in_transit",
+      orderNumber: null,
       storeName: "Book Depository",
+      totalAmount: 35,
     },
   ],
 };

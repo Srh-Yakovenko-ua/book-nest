@@ -51,17 +51,14 @@ export const Cancelled: Story = {
     model: makeHistoryCardModel({
       badge: { icon: "x-circle", label: "Скасовано", tone: "neutral", value: "cancelled" },
       cancelledDateText: "10 лип. 2026",
-      cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
       isActive: false,
       priceText: null,
       receivedDateText: null,
     }),
   },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Причина скасування")).toBeVisible());
-    await expect(
-      canvas.getByText("Магазин скасував замовлення — книги немає в наявності."),
-    ).toBeVisible();
+    await waitFor(() => expect(canvas.getByText("Дата скасування")).toBeVisible());
+    await expect(canvas.getByText("10 лип. 2026")).toBeVisible();
   },
 };
 

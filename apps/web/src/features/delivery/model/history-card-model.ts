@@ -1,6 +1,4 @@
-import type { DeliveryListItemView, DeliveryUiStatus, Nullable, ShipmentStatus } from "@app/shared";
-
-import { isActiveShipmentStatus } from "@app/shared";
+import type { BookOrderItemRowView, DeliveryUiStatus, Nullable } from "@app/shared";
 
 import type { UiIconName } from "@/components/icons";
 import type { StatusEntry, StatusTone } from "@/lib/book-status";
@@ -37,13 +35,11 @@ export type DeliveryHistoryCardModel = {
   book: Nullable<DeliveryHistoryBook>;
   bookId: string;
   cancelledDateText: Nullable<string>;
-  cancelReason: Nullable<string>;
   deliveryId: string;
   deliveryService: Nullable<string>;
   expectedDateText: Nullable<string>;
   id: string;
   isActive: boolean;
-  note: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
   priceText: Nullable<string>;
@@ -65,15 +61,16 @@ const UI_BADGE_META: Record<DeliveryUiStatus, { icon: UiIconName; tone: StatusTo
 };
 
 export function toHistoryCardModel(
-  item: DeliveryListItemView,
+  item: BookOrderItemRowView,
   options: { labels: DeliveryHistoryLabels; locale: string },
 ): DeliveryHistoryCardModel {
-  const { book, delivery, uiStatus } = item;
-  const trackingHref =
-    delivery.trackingUrl !== null && isHttpsUrl(delivery.trackingUrl) ? delivery.trackingUrl : null;
+  const { book, order, shipment } = item;
+  const trackingUrl = shipment?.trackingUrl ?? null;
+  const trackingHref = trackingUrl !== null && isHttpsUrl(trackingUrl) ? trackingUrl : null;
+  const expectedDeliveryDate = shipment?.expectedDeliveryDate ?? null;
 
   return {
-    badge: resolveHistoryBadge({ status: delivery.status, uiStatus }, options.labels.badge),
+    badge: resolveHistoryBadge(item, options.labels.badge),
     book: {
       authorName: book.firstAuthorName,
       coverSrc: book.cover?.urls.thumb,
@@ -88,51 +85,51 @@ export function toHistoryCardModel(
     },
     bookId: book.id,
     cancelledDateText:
-      delivery.cancelledAt === null ? null : formatDate(delivery.cancelledAt, options.locale),
-    cancelReason: delivery.cancelReason,
-    deliveryId: delivery.id,
-    deliveryService: delivery.deliveryService,
+      item.cancelledAt === null ? null : formatDate(item.cancelledAt, options.locale),
+    deliveryId: item.id,
+    deliveryService: shipment?.deliveryService?.name ?? null,
     expectedDateText:
-      delivery.expectedDeliveryDate === null
-        ? null
-        : formatDate(delivery.expectedDeliveryDate, options.locale),
+      expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),
     id: item.id,
-    isActive: isActiveShipmentStatus(delivery.status),
-    note: delivery.note,
-    orderDateText:
-      delivery.orderDate === null ? null : formatDate(delivery.orderDate, options.locale),
-    orderNumber: delivery.orderNumber,
+    isActive: item.cancelledAt === null && item.receivedAt === null,
+    orderDateText: order.orderDate === null ? null : formatDate(order.orderDate, options.locale),
+    orderNumber: order.orderNumber,
     priceText:
-      delivery.price === null
+      item.price === null
         ? null
         : formatMoney({
-            amount: delivery.price,
-            currency: delivery.currency,
+            amount: item.price,
+            currency: order.currency,
             locale: options.locale,
           }),
-    receivedDateText:
-      delivery.receivedAt === null ? null : formatDate(delivery.receivedAt, options.locale),
-    storeName: delivery.storeName,
+    receivedDateText: item.receivedAt === null ? null : formatDate(item.receivedAt, options.locale),
+    storeName: order.storeName,
     trackingHref,
-    trackingNumber: delivery.trackingNumber,
+    trackingNumber: shipment?.trackingNumber ?? null,
   };
 }
 
+function historyBadgeKey(item: BookOrderItemRowView): DeliveryHistoryBadgeKey {
+  if (item.cancelledAt !== null) return "cancelled";
+  if (item.receivedAt !== null) return "received";
+  if (item.uiStatus !== null) return item.uiStatus;
+  if (item.shipment === null) return "ordered";
+  if (item.shipment.status === "in_transit") return "in_transit";
+  if (item.shipment.status === "ready_for_pickup") return "ready_for_pickup";
+  return "ordered";
+}
+
 function resolveHistoryBadge(
-  input: { status: ShipmentStatus; uiStatus: Nullable<DeliveryUiStatus> },
+  item: BookOrderItemRowView,
   label: (key: DeliveryHistoryBadgeKey) => string,
 ): StatusEntry {
-  if (input.uiStatus !== null) {
-    const meta = UI_BADGE_META[input.uiStatus];
-    return {
-      icon: meta.icon,
-      label: label(input.uiStatus),
-      tone: meta.tone,
-      value: input.uiStatus,
-    };
+  const key = historyBadgeKey(item);
+
+  if (key === "arriving_soon" || key === "delayed" || key === "no_delivery_date") {
+    const meta = UI_BADGE_META[key];
+    return { icon: meta.icon, label: label(key), tone: meta.tone, value: key };
   }
 
-  const base =
-    deliveryStatuses.find((entry) => entry.value === input.status) ?? deliveryStatuses[0];
-  return { ...base, label: label(input.status) };
+  const base = deliveryStatuses.find((entry) => entry.value === key) ?? deliveryStatuses[0];
+  return { ...base, label: label(key) };
 }

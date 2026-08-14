@@ -1,6 +1,6 @@
 "use client";
 
-import type { DeliveryStatisticsView } from "@app/shared";
+import type { BookOrderStatisticsView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
@@ -32,7 +32,7 @@ export type StatisticsContent =
   | { kind: "filtered-empty" }
   | { kind: "loading" }
   | { kind: "no-price" }
-  | { kind: "ready"; view: DeliveryStatisticsView };
+  | { kind: "ready"; view: BookOrderStatisticsView };
 
 type DeliveryStatisticsViewProps = {
   content: StatisticsContent;

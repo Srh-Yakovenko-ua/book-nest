@@ -131,8 +131,8 @@ export function DeliveryInTransit() {
 
   const summaryData = summaryQuery.data;
   const totalText =
-    summaryData && summaryData.totalByCurrency.length > 0
-      ? summaryData.totalByCurrency
+    summaryData && summaryData.activeBooksTotalByCurrency.length > 0
+      ? summaryData.activeBooksTotalByCurrency
           .map((entry) => `${new Intl.NumberFormat(locale).format(entry.total)} ${entry.currency}`)
           .join(" · ")
       : "—";
@@ -148,14 +148,14 @@ export function DeliveryInTransit() {
       iconTone: "primary",
       label: tSummary("active"),
       mobileLabels: mobileLabels("active"),
-      value: (summaryData?.activeCount ?? 0).toLocaleString(locale),
+      value: (summaryData?.activeBooksCount ?? 0).toLocaleString(locale),
     },
     {
       icon: "clock",
       iconTone: "info",
       label: tSummary("expectedThisWeek"),
       mobileLabels: mobileLabels("expectedThisWeek"),
-      value: (summaryData?.expectedThisWeek ?? 0).toLocaleString(locale),
+      value: (summaryData?.expectedThisWeekCount ?? 0).toLocaleString(locale),
     },
     {
       icon: "alert-triangle",
@@ -176,7 +176,7 @@ export function DeliveryInTransit() {
       iconTone: "ink",
       label: tSummary("stores"),
       mobileLabels: mobileLabels("stores"),
-      value: (summaryData?.uniqueStores ?? 0).toLocaleString(locale),
+      value: (summaryData?.uniqueStoresCount ?? 0).toLocaleString(locale),
     },
   ];
 

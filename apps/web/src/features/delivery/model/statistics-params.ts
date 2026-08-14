@@ -5,18 +5,18 @@ import {
   parseAsStringLiteral,
 } from "nuqs/server";
 
-import type { DeliveryControllerStatisticsParams } from "@/shared/api/generated/model";
+import type { BookOrdersControllerStatisticsParams } from "@/shared/api/generated/model";
 
 import {
-  DeliveryControllerStatisticsCurrency,
-  DeliveryControllerStatisticsStatus,
+  BookOrdersControllerStatisticsCurrency,
+  BookOrdersControllerStatisticsStatus,
 } from "@/shared/api/generated/model";
 
-export const DELIVERY_STATISTICS_CURRENCIES = Object.values(DeliveryControllerStatisticsCurrency);
-export const DELIVERY_STATISTICS_STATUSES = Object.values(DeliveryControllerStatisticsStatus);
+export const DELIVERY_STATISTICS_CURRENCIES = Object.values(BookOrdersControllerStatisticsCurrency);
+export const DELIVERY_STATISTICS_STATUSES = Object.values(BookOrdersControllerStatisticsStatus);
 
-const currencyValues = Object.values(DeliveryControllerStatisticsCurrency);
-const statusValues = Object.values(DeliveryControllerStatisticsStatus);
+const currencyValues = Object.values(BookOrdersControllerStatisticsCurrency);
+const statusValues = Object.values(BookOrdersControllerStatisticsStatus);
 
 export const deliveryStatisticsParsers = {
   currency: parseAsStringLiteral(currencyValues),
@@ -46,7 +46,7 @@ export function statisticsFilterCount(state: DeliveryStatisticsQueryState): numb
 
 export function toDeliveryStatisticsParams(
   state: DeliveryStatisticsQueryState,
-): DeliveryControllerStatisticsParams {
+): BookOrdersControllerStatisticsParams {
   const store = state.store.trim();
 
   return {
