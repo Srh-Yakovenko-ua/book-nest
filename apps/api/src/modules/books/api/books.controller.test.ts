@@ -882,6 +882,7 @@ describe("POST /api/books", () => {
     expect(res.body.loanInfo).toEqual({
       contact: null,
       expectedReturnDate: null,
+      loanContactId: expect.any(String),
       loanDate: "2026-02-01",
       loanType: "borrowed_from_someone",
       loanUiStatus: "no_return_date",
