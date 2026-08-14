@@ -353,7 +353,7 @@ describe("computeBookOrderStatistics with cancelled orders", () => {
 });
 
 describe("computeBookOrderStatistics top orders", () => {
-  it("ranks priced orders by amount and leaves an order without a total out", () => {
+  it("ranks priced orders by amount and leaves an order with no money at all out", () => {
     const { topOrders } = statisticsOf({
       records: [
         makeOrder({ id: "order-small", items: [makeItem()], totalAmount: 120 }),
@@ -363,5 +363,79 @@ describe("computeBookOrderStatistics top orders", () => {
     });
 
     expect(topOrders.map((order) => order.id)).toEqual(["order-large", "order-small"]);
+  });
+});
+
+describe("computeBookOrderStatistics falls back to book prices when an order has no total", () => {
+  const BOOK_PRICED_ORDER = makeOrder({
+    id: "order-book-priced",
+    items: [makeItem({ bookId: "book-a", price: 320 }), makeItem({ bookId: "book-b", price: 180 })],
+  });
+
+  it("sums the book prices into the totals the order itself never carried", () => {
+    const { summary } = statisticsOf({ records: [BOOK_PRICED_ORDER] });
+
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 500 }]);
+  });
+
+  it("carries that sum into the store and month breakdowns", () => {
+    const { byStore, monthly } = statisticsOf({ records: [BOOK_PRICED_ORDER] });
+
+    expect({
+      month: monthly.map((bucket) => bucket.totalsByCurrency),
+      store: byStore.map((bucket) => bucket.totalsByCurrency),
+    }).toEqual({
+      month: [[{ currency: "UAH", total: 500 }]],
+      store: [[{ currency: "UAH", total: 500 }]],
+    });
+  });
+
+  it("ranks the order among the top orders by that sum", () => {
+    const { topOrders } = statisticsOf({
+      records: [
+        BOOK_PRICED_ORDER,
+        makeOrder({ id: "order-larger", items: [makeItem()], totalAmount: 900 }),
+      ],
+    });
+
+    expect(topOrders.map((order) => ({ id: order.id, totalAmount: order.totalAmount }))).toEqual([
+      { id: "order-larger", totalAmount: 900 },
+      { id: "order-book-priced", totalAmount: 500 },
+    ]);
+  });
+
+  it("prefers the order total over the book prices, so the two are never added together", () => {
+    const { summary } = statisticsOf({
+      records: [
+        makeOrder({
+          id: "order-both",
+          items: [makeItem({ bookId: "book-a", price: 320 })],
+          totalAmount: 400,
+        }),
+      ],
+    });
+
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 400 }]);
+  });
+
+  it("leaves a cancelled book out of the fallback sum unless the caller asks for it", () => {
+    const records = [
+      makeOrder({
+        id: "order-part-cancelled",
+        items: [
+          makeItem({ bookId: "book-a", price: 320 }),
+          makeItem({ bookId: "book-b", cancelledAt: CANCELLED_AT, price: 180 }),
+        ],
+        shipments: [makeShipment({ id: "s-1" })],
+      }),
+    ];
+
+    expect({
+      excluded: statisticsOf({ records }).summary.totalsByCurrency,
+      included: statisticsOf({ includeCancelled: true, records }).summary.totalsByCurrency,
+    }).toEqual({
+      excluded: [{ currency: "UAH", total: 320 }],
+      included: [{ currency: "UAH", total: 500 }],
+    });
   });
 });

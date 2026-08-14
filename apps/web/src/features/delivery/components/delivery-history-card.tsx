@@ -213,6 +213,26 @@ function HistoryDetails({ model }: { model: DeliveryHistoryCardModel }) {
           </div>
         )}
       </dl>
+
+      {model.cancelReason === null ? null : (
+        <div className="flex flex-col gap-1 rounded-md border border-error/20 bg-error-soft/50 p-3">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-error">
+            <UiIcon name="x-circle" size={13} />
+            {tHistory("cancelReason")}
+          </span>
+          <p className="text-sm break-words text-foreground/90">{model.cancelReason}</p>
+        </div>
+      )}
+
+      {model.note === null ? null : (
+        <div className="flex flex-col gap-1 rounded-md border border-border bg-secondary/40 p-3">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <UiIcon name="note" size={13} />
+            {tHistory("note")}
+          </span>
+          <p className="text-sm break-words text-foreground/90">{model.note}</p>
+        </div>
+      )}
     </div>
   );
 }

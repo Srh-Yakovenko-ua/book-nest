@@ -38,6 +38,7 @@ export function toBookOrderItemRowView({
   return {
     book,
     cancelledAt: toNullableIsoDateTime(row.cancelledAt),
+    cancelReason: row.cancelReason,
     id: row.id,
     order: toRowOrderView(row.order),
     price: row.price === null ? null : row.price.toNumber(),
@@ -85,6 +86,7 @@ function toRowShipmentView(
         : { id: shipment.deliveryServiceId ?? shipment.deliveryService?.id ?? null, name },
     expectedDeliveryDate: toNullableIsoDate(shipment.expectedDeliveryDate),
     id: shipment.id,
+    note: shipment.note,
     pickupUntil: toNullableIsoDate(shipment.pickupUntil),
     status: ShipmentStatusSchema.parse(shipment.status),
     trackingNumber: shipment.trackingNumber,

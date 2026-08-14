@@ -454,6 +454,7 @@ export const BookOrderItemRowShipmentViewSchema = z.object({
   deliveryService: ShipmentDeliveryServiceViewSchema.nullable(),
   expectedDeliveryDate: z.string().nullable(),
   id: z.string(),
+  note: z.string().nullable(),
   pickupUntil: z.string().nullable(),
   status: ShipmentStatusSchema,
   trackingNumber: z.string().nullable(),
@@ -465,6 +466,7 @@ export type BookOrderItemRowShipmentView = z.infer<typeof BookOrderItemRowShipme
 export const BookOrderItemRowViewSchema = z.object({
   book: BookPreviewSchema,
   cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
   id: z.string(),
   order: BookOrderItemRowOrderViewSchema,
   price: z.number().nullable(),

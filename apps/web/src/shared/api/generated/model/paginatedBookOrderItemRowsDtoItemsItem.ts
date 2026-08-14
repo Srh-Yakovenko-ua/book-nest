@@ -14,6 +14,8 @@ export type PaginatedBookOrderItemRowsDtoItemsItem = {
   book: PaginatedBookOrderItemRowsDtoItemsItemBook;
   /** @nullable */
   cancelledAt: string | null;
+  /** @nullable */
+  cancelReason: string | null;
   id: string;
   order: PaginatedBookOrderItemRowsDtoItemsItemOrder;
   /** @nullable */

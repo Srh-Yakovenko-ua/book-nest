@@ -251,6 +251,7 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
         title: zod.string(),
       }),
       cancelledAt: zod.string().nullable(),
+      cancelReason: zod.string().nullable(),
       id: zod.string(),
       order: zod.object({
         currency: zod
@@ -273,6 +274,7 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
             .nullable(),
           expectedDeliveryDate: zod.string().nullable(),
           id: zod.string(),
+          note: zod.string().nullable(),
           pickupUntil: zod.string().nullable(),
           status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
           trackingNumber: zod.string().nullable(),
@@ -510,6 +512,7 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
         title: zod.string(),
       }),
       cancelledAt: zod.string().nullable(),
+      cancelReason: zod.string().nullable(),
       id: zod.string(),
       order: zod.object({
         currency: zod
@@ -532,6 +535,7 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
             .nullable(),
           expectedDeliveryDate: zod.string().nullable(),
           id: zod.string(),
+          note: zod.string().nullable(),
           pickupUntil: zod.string().nullable(),
           status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
           trackingNumber: zod.string().nullable(),

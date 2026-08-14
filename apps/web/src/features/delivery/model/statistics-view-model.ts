@@ -164,9 +164,7 @@ export function hasAnyOrders(view: BookOrderStatisticsView): boolean {
 }
 
 export function hasPricedData(view: BookOrderStatisticsView): boolean {
-  return (
-    view.summary.totalsByCurrency.length > 0 || view.summary.averageBookPriceByCurrency.length > 0
-  );
+  return view.summary.totalsByCurrency.length > 0;
 }
 
 export function monthlyCurrencies(view: BookOrderStatisticsView): Currency[] {

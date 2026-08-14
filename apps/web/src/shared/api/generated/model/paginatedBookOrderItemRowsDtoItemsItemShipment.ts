@@ -18,6 +18,8 @@ export type PaginatedBookOrderItemRowsDtoItemsItemShipment = {
   expectedDeliveryDate: string | null;
   id: string;
   /** @nullable */
+  note: string | null;
+  /** @nullable */
   pickupUntil: string | null;
   status: PaginatedBookOrderItemRowsDtoItemsItemShipmentStatus;
   /** @nullable */
