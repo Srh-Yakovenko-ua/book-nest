@@ -562,3 +562,524 @@ export const LoansControllerListResponse = zod.object({
     .min(loansControllerListResponseTotalCountMin)
     .max(loansControllerListResponseTotalCountMax),
 });
+
+/**
+ * @summary List the current user's completed loans
+ */
+export const loanHistoryControllerListQueryPageNumberDefault = 1;
+export const loanHistoryControllerListQueryPageNumberMax = 21474836;
+
+export const loanHistoryControllerListQueryPageSizeDefault = 10;
+export const loanHistoryControllerListQueryPageSizeMax = 100;
+
+export const loanHistoryControllerListQueryPersonMax = 100;
+
+export const loanHistoryControllerListQueryResultDefault = `all`;
+export const loanHistoryControllerListQueryReturnedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerListQueryReturnedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerListQuerySearchMax = 100;
+
+export const loanHistoryControllerListQuerySortDefault = `returned_desc`;
+
+export const LoanHistoryControllerListQueryParams = zod.object({
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(loanHistoryControllerListQueryPageNumberMax)
+    .default(loanHistoryControllerListQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(loanHistoryControllerListQueryPageSizeMax)
+    .default(loanHistoryControllerListQueryPageSizeDefault),
+  person: zod.string().max(loanHistoryControllerListQueryPersonMax).optional(),
+  result: zod
+    .enum(["all", "on_time", "late", "no_due_date"])
+    .default(loanHistoryControllerListQueryResultDefault),
+  returnedFrom: zod.iso.date().regex(loanHistoryControllerListQueryReturnedFromRegExp).optional(),
+  returnedTo: zod.iso.date().regex(loanHistoryControllerListQueryReturnedToRegExp).optional(),
+  search: zod.string().max(loanHistoryControllerListQuerySearchMax).optional(),
+  sort: zod
+    .enum([
+      "returned_desc",
+      "returned_asc",
+      "loan_date_desc",
+      "duration_desc",
+      "title_asc",
+      "person_asc",
+    ])
+    .default(loanHistoryControllerListQuerySortDefault),
+  type: zod.enum(["borrowed_from_someone", "lent_to_someone"]).optional(),
+});
+
+export const loanHistoryControllerListResponseItemsItemDelayDaysMin = -9007199254740991;
+export const loanHistoryControllerListResponseItemsItemDelayDaysMax = 9007199254740991;
+
+export const loanHistoryControllerListResponseItemsItemDurationDaysMin = -9007199254740991;
+export const loanHistoryControllerListResponseItemsItemDurationDaysMax = 9007199254740991;
+
+export const loanHistoryControllerListResponsePageMin = -9007199254740991;
+export const loanHistoryControllerListResponsePageMax = 9007199254740991;
+
+export const loanHistoryControllerListResponsePagesCountMin = -9007199254740991;
+export const loanHistoryControllerListResponsePagesCountMax = 9007199254740991;
+
+export const loanHistoryControllerListResponsePageSizeMin = -9007199254740991;
+export const loanHistoryControllerListResponsePageSizeMax = 9007199254740991;
+
+export const loanHistoryControllerListResponseTotalCountMin = -9007199254740991;
+export const loanHistoryControllerListResponseTotalCountMax = 9007199254740991;
+
+export const LoanHistoryControllerListResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        firstAuthorName: zod.string(),
+        id: zod.string(),
+        originalTitle: zod.string().nullable(),
+        ownershipStatus: zod.enum([
+          "none",
+          "want_to_buy",
+          "in_transit",
+          "owned",
+          "borrowed_from_someone",
+          "lent_to_someone",
+        ]),
+        publisher: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
+      delayDays: zod
+        .int()
+        .min(loanHistoryControllerListResponseItemsItemDelayDaysMin)
+        .max(loanHistoryControllerListResponseItemsItemDelayDaysMax)
+        .nullable(),
+      durationDays: zod
+        .int()
+        .min(loanHistoryControllerListResponseItemsItemDurationDaysMin)
+        .max(loanHistoryControllerListResponseItemsItemDurationDaysMax)
+        .nullable(),
+      expectedReturnDate: zod.string().nullable(),
+      historyResult: zod.enum(["on_time", "late", "no_due_date"]),
+      id: zod.string(),
+      loanDate: zod.string().nullable(),
+      personName: zod.string(),
+      returnedAt: zod.string(),
+      returnedDate: zod.string(),
+      type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(loanHistoryControllerListResponsePageMin)
+    .max(loanHistoryControllerListResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(loanHistoryControllerListResponsePagesCountMin)
+    .max(loanHistoryControllerListResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(loanHistoryControllerListResponsePageSizeMin)
+    .max(loanHistoryControllerListResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(loanHistoryControllerListResponseTotalCountMin)
+    .max(loanHistoryControllerListResponseTotalCountMax),
+});
+
+/**
+ * @summary Get analytics for the current user's completed loans
+ */
+export const loanHistoryControllerOverviewQueryPersonMax = 100;
+
+export const loanHistoryControllerOverviewQueryReturnedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerOverviewQueryReturnedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const LoanHistoryControllerOverviewQueryParams = zod.object({
+  person: zod.string().max(loanHistoryControllerOverviewQueryPersonMax).optional(),
+  returnedFrom: zod.iso
+    .date()
+    .regex(loanHistoryControllerOverviewQueryReturnedFromRegExp)
+    .optional(),
+  returnedTo: zod.iso.date().regex(loanHistoryControllerOverviewQueryReturnedToRegExp).optional(),
+  type: zod.enum(["borrowed_from_someone", "lent_to_someone"]).optional(),
+});
+
+export const loanHistoryControllerOverviewResponseDurationAverageDaysMin = -9007199254740991;
+export const loanHistoryControllerOverviewResponseDurationAverageDaysMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseDurationLongestDaysMin = -9007199254740991;
+export const loanHistoryControllerOverviewResponseDurationLongestDaysMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseDurationShortestDaysMin = -9007199254740991;
+export const loanHistoryControllerOverviewResponseDurationShortestDaysMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseReliabilityLateCountMin = 0;
+export const loanHistoryControllerOverviewResponseReliabilityLateCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseReliabilityNoDueDateCountMin = 0;
+export const loanHistoryControllerOverviewResponseReliabilityNoDueDateCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseReliabilityOnTimeCountMin = 0;
+export const loanHistoryControllerOverviewResponseReliabilityOnTimeCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseReliabilityOnTimePercentMin = 0;
+export const loanHistoryControllerOverviewResponseReliabilityOnTimePercentMax = 100;
+
+export const loanHistoryControllerOverviewResponseSummaryAverageDelayDaysMin = -9007199254740991;
+export const loanHistoryControllerOverviewResponseSummaryAverageDelayDaysMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryAverageDurationDaysMin = -9007199254740991;
+export const loanHistoryControllerOverviewResponseSummaryAverageDurationDaysMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryBorrowedCountMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryBorrowedCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryLateCountMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryLateCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryLatePercentMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryLatePercentMax = 100;
+
+export const loanHistoryControllerOverviewResponseSummaryLentCountMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryLentCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryNoDueDateCountMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryNoDueDateCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryOnTimeCountMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryOnTimeCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseSummaryOnTimePercentMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryOnTimePercentMax = 100;
+
+export const loanHistoryControllerOverviewResponseSummaryTotalCompletedMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryTotalCompletedMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseTopPeopleItemBorrowedCountMin = 0;
+export const loanHistoryControllerOverviewResponseTopPeopleItemBorrowedCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseTopPeopleItemLentCountMin = 0;
+export const loanHistoryControllerOverviewResponseTopPeopleItemLentCountMax = 9007199254740991;
+
+export const loanHistoryControllerOverviewResponseTopPeopleItemTotalCountMin = 0;
+export const loanHistoryControllerOverviewResponseTopPeopleItemTotalCountMax = 9007199254740991;
+
+export const LoanHistoryControllerOverviewResponse = zod.object({
+  duration: zod.object({
+    averageDays: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseDurationAverageDaysMin)
+      .max(loanHistoryControllerOverviewResponseDurationAverageDaysMax)
+      .nullable(),
+    longestDays: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseDurationLongestDaysMin)
+      .max(loanHistoryControllerOverviewResponseDurationLongestDaysMax)
+      .nullable(),
+    shortestDays: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseDurationShortestDaysMin)
+      .max(loanHistoryControllerOverviewResponseDurationShortestDaysMax)
+      .nullable(),
+  }),
+  reliability: zod.object({
+    lateCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseReliabilityLateCountMin)
+      .max(loanHistoryControllerOverviewResponseReliabilityLateCountMax),
+    noDueDateCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseReliabilityNoDueDateCountMin)
+      .max(loanHistoryControllerOverviewResponseReliabilityNoDueDateCountMax),
+    onTimeCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseReliabilityOnTimeCountMin)
+      .max(loanHistoryControllerOverviewResponseReliabilityOnTimeCountMax),
+    onTimePercent: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseReliabilityOnTimePercentMin)
+      .max(loanHistoryControllerOverviewResponseReliabilityOnTimePercentMax),
+  }),
+  summary: zod.object({
+    averageDelayDays: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryAverageDelayDaysMin)
+      .max(loanHistoryControllerOverviewResponseSummaryAverageDelayDaysMax)
+      .nullable(),
+    averageDurationDays: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryAverageDurationDaysMin)
+      .max(loanHistoryControllerOverviewResponseSummaryAverageDurationDaysMax)
+      .nullable(),
+    borrowedCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryBorrowedCountMin)
+      .max(loanHistoryControllerOverviewResponseSummaryBorrowedCountMax),
+    lateCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryLateCountMin)
+      .max(loanHistoryControllerOverviewResponseSummaryLateCountMax),
+    latePercent: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryLatePercentMin)
+      .max(loanHistoryControllerOverviewResponseSummaryLatePercentMax),
+    lentCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryLentCountMin)
+      .max(loanHistoryControllerOverviewResponseSummaryLentCountMax),
+    noDueDateCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryNoDueDateCountMin)
+      .max(loanHistoryControllerOverviewResponseSummaryNoDueDateCountMax),
+    onTimeCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryOnTimeCountMin)
+      .max(loanHistoryControllerOverviewResponseSummaryOnTimeCountMax),
+    onTimePercent: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryOnTimePercentMin)
+      .max(loanHistoryControllerOverviewResponseSummaryOnTimePercentMax),
+    totalCompleted: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryTotalCompletedMin)
+      .max(loanHistoryControllerOverviewResponseSummaryTotalCompletedMax),
+  }),
+  topPeople: zod.array(
+    zod.object({
+      borrowedCount: zod
+        .int()
+        .min(loanHistoryControllerOverviewResponseTopPeopleItemBorrowedCountMin)
+        .max(loanHistoryControllerOverviewResponseTopPeopleItemBorrowedCountMax),
+      lentCount: zod
+        .int()
+        .min(loanHistoryControllerOverviewResponseTopPeopleItemLentCountMin)
+        .max(loanHistoryControllerOverviewResponseTopPeopleItemLentCountMax),
+      personName: zod.string(),
+      totalCount: zod
+        .int()
+        .min(loanHistoryControllerOverviewResponseTopPeopleItemTotalCountMin)
+        .max(loanHistoryControllerOverviewResponseTopPeopleItemTotalCountMax),
+    }),
+  ),
+});
+
+/**
+ * @summary List the people available for the loan history person filter
+ */
+export const loanHistoryControllerPeopleQueryLimitDefault = 50;
+export const loanHistoryControllerPeopleQueryLimitMax = 200;
+
+export const loanHistoryControllerPeopleQuerySearchMax = 100;
+
+export const LoanHistoryControllerPeopleQueryParams = zod.object({
+  limit: zod
+    .int()
+    .min(1)
+    .max(loanHistoryControllerPeopleQueryLimitMax)
+    .default(loanHistoryControllerPeopleQueryLimitDefault),
+  search: zod.string().max(loanHistoryControllerPeopleQuerySearchMax).optional(),
+});
+
+export const loanHistoryControllerPeopleResponseItemsItemTotalCountMin = 0;
+export const loanHistoryControllerPeopleResponseItemsItemTotalCountMax = 9007199254740991;
+
+export const LoanHistoryControllerPeopleResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      personName: zod.string(),
+      totalCount: zod
+        .int()
+        .min(loanHistoryControllerPeopleResponseItemsItemTotalCountMin)
+        .max(loanHistoryControllerPeopleResponseItemsItemTotalCountMax),
+    }),
+  ),
+});
+
+/**
+ * @summary Get one completed loan of the current user
+ */
+export const LoanHistoryControllerDetailParams = zod.object({
+  loanId: zod.string(),
+});
+
+export const loanHistoryControllerDetailResponseDelayDaysMin = -9007199254740991;
+export const loanHistoryControllerDetailResponseDelayDaysMax = 9007199254740991;
+
+export const loanHistoryControllerDetailResponseDurationDaysMin = -9007199254740991;
+export const loanHistoryControllerDetailResponseDurationDaysMax = 9007199254740991;
+
+export const LoanHistoryControllerDetailResponse = zod.object({
+  book: zod.object({
+    cover: zod
+      .object({
+        contentType: zod.string(),
+        createdAt: zod.string(),
+        height: zod.number(),
+        id: zod.string(),
+        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+        name: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        urls: zod.object({
+          card: zod.string(),
+          full: zod.string(),
+          thumb: zod.string(),
+        }),
+        width: zod.number(),
+      })
+      .nullable(),
+    firstAuthorName: zod.string(),
+    id: zod.string(),
+    originalTitle: zod.string().nullable(),
+    ownershipStatus: zod.enum([
+      "none",
+      "want_to_buy",
+      "in_transit",
+      "owned",
+      "borrowed_from_someone",
+      "lent_to_someone",
+    ]),
+    publisher: zod
+      .object({
+        id: zod.string(),
+        name: zod.string(),
+      })
+      .nullable(),
+    title: zod.string(),
+  }),
+  delayDays: zod
+    .int()
+    .min(loanHistoryControllerDetailResponseDelayDaysMin)
+    .max(loanHistoryControllerDetailResponseDelayDaysMax)
+    .nullable(),
+  durationDays: zod
+    .int()
+    .min(loanHistoryControllerDetailResponseDurationDaysMin)
+    .max(loanHistoryControllerDetailResponseDurationDaysMax)
+    .nullable(),
+  expectedReturnDate: zod.string().nullable(),
+  historyResult: zod.enum(["on_time", "late", "no_due_date"]),
+  id: zod.string(),
+  loanDate: zod.string().nullable(),
+  personName: zod.string(),
+  returnedAt: zod.string(),
+  returnedDate: zod.string(),
+  type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  note: zod.string().nullable(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Correct the returned date or the note of a completed loan
+ */
+export const LoanHistoryControllerCorrectParams = zod.object({
+  loanId: zod.string(),
+});
+
+export const loanHistoryControllerCorrectBodyReturnedDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const LoanHistoryControllerCorrectBody = zod.object({
+  note: zod.string().nullish(),
+  returnedDate: zod.iso.date().regex(loanHistoryControllerCorrectBodyReturnedDateRegExp).optional(),
+});
+
+export const loanHistoryControllerCorrectResponseDelayDaysMin = -9007199254740991;
+export const loanHistoryControllerCorrectResponseDelayDaysMax = 9007199254740991;
+
+export const loanHistoryControllerCorrectResponseDurationDaysMin = -9007199254740991;
+export const loanHistoryControllerCorrectResponseDurationDaysMax = 9007199254740991;
+
+export const LoanHistoryControllerCorrectResponse = zod.object({
+  book: zod.object({
+    cover: zod
+      .object({
+        contentType: zod.string(),
+        createdAt: zod.string(),
+        height: zod.number(),
+        id: zod.string(),
+        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+        name: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        urls: zod.object({
+          card: zod.string(),
+          full: zod.string(),
+          thumb: zod.string(),
+        }),
+        width: zod.number(),
+      })
+      .nullable(),
+    firstAuthorName: zod.string(),
+    id: zod.string(),
+    originalTitle: zod.string().nullable(),
+    ownershipStatus: zod.enum([
+      "none",
+      "want_to_buy",
+      "in_transit",
+      "owned",
+      "borrowed_from_someone",
+      "lent_to_someone",
+    ]),
+    publisher: zod
+      .object({
+        id: zod.string(),
+        name: zod.string(),
+      })
+      .nullable(),
+    title: zod.string(),
+  }),
+  delayDays: zod
+    .int()
+    .min(loanHistoryControllerCorrectResponseDelayDaysMin)
+    .max(loanHistoryControllerCorrectResponseDelayDaysMax)
+    .nullable(),
+  durationDays: zod
+    .int()
+    .min(loanHistoryControllerCorrectResponseDurationDaysMin)
+    .max(loanHistoryControllerCorrectResponseDurationDaysMax)
+    .nullable(),
+  expectedReturnDate: zod.string().nullable(),
+  historyResult: zod.enum(["on_time", "late", "no_due_date"]),
+  id: zod.string(),
+  loanDate: zod.string().nullable(),
+  personName: zod.string(),
+  returnedAt: zod.string(),
+  returnedDate: zod.string(),
+  type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  note: zod.string().nullable(),
+  updatedAt: zod.string(),
+});

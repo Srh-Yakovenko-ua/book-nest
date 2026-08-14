@@ -21,6 +21,7 @@
     "loans": "Borrowed books",
     "loansBorrowed": "To return",
     "loansLent": "Lent out",
+    "loansHistory": "Loan history",
     "lists": "Lists",
     "notes": "Notes",
     "delivery": "Deliveries",
@@ -3837,6 +3838,12 @@
         "title": "Lent out",
         "subtitle": "Books you lent to other readers — keep track so they come back to you",
         "listHeading": "List of books you lent out"
+      },
+      "history": {
+        "metaTitle": "Loan history",
+        "title": "Loan history",
+        "subtitle": "Completed loans live here — both the books borrowed from other readers and the ones lent out.",
+        "listHeading": "List of completed loans"
       }
     },
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
@@ -4101,7 +4108,233 @@
       }
     },
     "loadMore": "Show more",
-    "loadMoreError": "Couldn't load more loans"
+    "loadMoreError": "Couldn't load more loans",
+    "history": {
+      "resultsCount": "Found {count, plural, one {# completed loan} other {# completed loans}}",
+      "loadMore": "Show more",
+      "loadMoreError": "Couldn't load more history records",
+      "cards": {
+        "unitLoans": "{count, plural, one {loan} other {loans}}",
+        "unitDays": "{count, plural, one {day} other {days}}",
+        "total": {
+          "label": "Completed in total",
+          "microfact": "{lent} lent out · {borrowed} borrowed",
+          "mobile": { "compact": "Completed", "detailed": "Completed in total" }
+        },
+        "onTime": {
+          "label": "Returned on time",
+          "microfact": "{percent}% of everything completed",
+          "mobile": { "compact": "On time", "detailed": "Returned on time" }
+        },
+        "late": {
+          "label": "Returned late",
+          "microfact": "On average — {count, plural, one {# day} other {# days}} late",
+          "allOnTime": "Every loan with a deadline came back on time",
+          "mobile": { "compact": "Late", "detailed": "Returned late" }
+        },
+        "duration": {
+          "label": "Average duration",
+          "microfact": "From the loan or handover to the return",
+          "empty": "No loan with a known duration yet",
+          "mobile": { "compact": "Duration", "detailed": "Average duration" }
+        }
+      },
+      "toolbar": {
+        "searchLabel": "Search the loan history",
+        "searchPlaceholder": "Search by book or person…",
+        "searchClear": "Clear search",
+        "directionLabel": "Direction",
+        "resultLabel": "Result",
+        "personLabel": "Person",
+        "periodLabel": "Period",
+        "sortLabel": "Sort"
+      },
+      "direction": {
+        "all": "All directions",
+        "borrowed_from_someone": "Borrowed from others",
+        "lent_to_someone": "Lent out"
+      },
+      "results": {
+        "all": "All results",
+        "on_time": "Returned on time",
+        "late": "Returned late",
+        "no_due_date": "No deadline set"
+      },
+      "person": {
+        "all": "All people",
+        "count": "{count, plural, one {# loan} other {# loans}}",
+        "empty": "No people in the history yet",
+        "loading": "Loading people…"
+      },
+      "period": {
+        "all": "All time",
+        "thisYear": "This year",
+        "lastYear": "Last year",
+        "custom": "Custom range",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "reset": "Reset the period",
+        "range": "{from} — {to}",
+        "invalidRange": "The “from” date cannot be later than the “to” date"
+      },
+      "sort": {
+        "returned_desc": "Recently returned",
+        "returned_asc": "Returned earliest",
+        "loan_date_desc": "By loan or handover date",
+        "duration_desc": "By duration",
+        "title_asc": "By title",
+        "person_asc": "By person",
+        "mobile": {
+          "title": "Sorting",
+          "description": "Choose the order of the history records.",
+          "close": "Close",
+          "groups": {
+            "returned": "Return",
+            "loan": "Loan",
+            "duration": "Duration",
+            "book": "Book",
+            "person": "Person"
+          },
+          "trigger": {
+            "returned_desc": "Recent",
+            "returned_asc": "Earliest",
+            "loan_date_desc": "Loan date",
+            "duration_desc": "Duration",
+            "title_asc": "Title",
+            "person_asc": "Person"
+          }
+        }
+      },
+      "timeline": {
+        "loanDateBorrowed": "Loan date",
+        "loanDateLent": "Handover date",
+        "expected": "Planned return",
+        "expectedNone": "No deadline set",
+        "returned": "Returned",
+        "unknownDate": "Date unknown"
+      },
+      "result": {
+        "on_time": "Returned on time",
+        "late": "Late by {count, plural, one {# day} other {# days}}",
+        "no_due_date": "Returned · no deadline set"
+      },
+      "duration": {
+        "days": "{count, plural, one {# day} other {# days}}",
+        "total": "{count, plural, one {# day} other {# days}} in total",
+        "unknown": "Duration unknown"
+      },
+      "row": {
+        "personBorrowed": "Borrowed from:",
+        "personLent": "Lent to:",
+        "openDetails": "Show the loan details"
+      },
+      "actions": {
+        "menu": "History record actions",
+        "details": "Details",
+        "openBook": "Go to the book",
+        "correctDate": "Fix the return date",
+        "editNote": "Edit the note"
+      },
+      "states": {
+        "loading": "Loading your loan history...",
+        "empty": {
+          "title": "The loan history is still empty",
+          "description": "Completed loans show up here once a book is marked as returned."
+        },
+        "noResults": {
+          "title": "Nothing matches these conditions",
+          "description": "Try changing the query, the period, or clearing the filters.",
+          "clear": "Clear filters"
+        },
+        "error": {
+          "title": "Could not load the loan history",
+          "description": "Try refreshing the page or repeating the request.",
+          "retry": "Try again"
+        }
+      },
+      "sidebar": {
+        "label": "History analytics",
+        "people": {
+          "title": "People you deal with most",
+          "count": "{count, plural, one {# loan} other {# loans}}",
+          "breakdown": "{lent} lent out · {borrowed} borrowed",
+          "empty": "No completed loans yet",
+          "filter": "Filter by person: {name}"
+        },
+        "duration": {
+          "title": "Loan duration",
+          "average": "Average",
+          "longest": "Longest",
+          "shortest": "Shortest",
+          "days": "{count, plural, one {# day} other {# days}}",
+          "empty": "No duration data"
+        },
+        "reliability": {
+          "title": "Return reliability",
+          "onTimePercent": "{percent}% returned on time",
+          "onTime": "On time",
+          "late": "Late",
+          "noDueDate": "No deadline",
+          "empty": "No completed loans yet"
+        }
+      },
+      "overviewPanel": {
+        "trigger": "History analytics",
+        "title": "History analytics",
+        "subtitle": "People, duration and return reliability",
+        "close": "Close the analytics"
+      },
+      "detail": {
+        "title": "Completed loan details",
+        "close": "Close",
+        "loading": "Loading the loan details...",
+        "error": "Could not load the loan details",
+        "retry": "Try again",
+        "sections": {
+          "book": "Book",
+          "loan": "Loan",
+          "timeline": "Timeline",
+          "outcome": "Outcome",
+          "note": "Note"
+        },
+        "fields": {
+          "direction": "Direction",
+          "person": "Person",
+          "contact": "Contact",
+          "duration": "Duration",
+          "result": "Result",
+          "delay": "Delay"
+        },
+        "delayDays": "{count, plural, one {# day} other {# days}}",
+        "contactEmpty": "No contact saved",
+        "noteEmpty": "No note yet"
+      },
+      "correctDate": {
+        "title": "Fix the return date",
+        "description": "Only the actual return date changes — the rest of the record stays as it is.",
+        "label": "Actual return date",
+        "save": "Save",
+        "cancel": "Cancel",
+        "success": "Return date updated",
+        "error": "Couldn't update the return date",
+        "required": "Pick a return date",
+        "inFuture": "The return date cannot be in the future",
+        "beforeLoanDate": "The return date cannot be earlier than the loan date"
+      },
+      "editNote": {
+        "title": "Edit the note",
+        "description": "Only you can see this note.",
+        "label": "Note",
+        "placeholder": "For example: came back with a bookmark",
+        "save": "Save",
+        "cancel": "Cancel",
+        "clear": "Clear the note",
+        "success": "Note saved",
+        "error": "Couldn't save the note",
+        "tooLong": "The note cannot be longer than {max} characters"
+      }
+    }
   },
   "changelog": {
     "category": {

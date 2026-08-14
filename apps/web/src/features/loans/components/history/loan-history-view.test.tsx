@@ -1,0 +1,958 @@
+import "@testing-library/jest-dom/vitest";
+
+import type { LoanHistoryDetailView, LoanHistoryOverviewView, Nullable } from "@app/shared";
+import type { ReactNode } from "react";
+
+import { defaultUserProfileSettings } from "@app/shared";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { toast } from "sonner";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+
+import { LoanHistoryView } from "./loan-history-view";
+
+type HistoryFixture = LoanHistoryDetailView;
+
+type MockOptions = {
+  overview?: LoanHistoryOverviewView;
+  people?: { personName: string; totalCount: number }[];
+};
+
+type RecordedRequest = {
+  body?: string;
+  method: string;
+  url: string;
+};
+
+const TODAY = new Date(2026, 7, 14, 9, 0, 0);
+
+const copy = messages.loans.history;
+
+const requests: RecordedRequest[] = [];
+
+const server = {
+  correctionError: null as Nullable<{ body: unknown; status: number }>,
+  listPending: false,
+  listStatus: null as Nullable<number>,
+};
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
+const OVERVIEW: LoanHistoryOverviewView = {
+  duration: { averageDays: 18, longestDays: 73, shortestDays: 2 },
+  reliability: { lateCount: 9, noDueDateCount: 2, onTimeCount: 26, onTimePercent: 84 },
+  summary: {
+    averageDelayDays: 6,
+    averageDurationDays: 18,
+    borrowedCount: 16,
+    lateCount: 9,
+    latePercent: 24,
+    lentCount: 21,
+    noDueDateCount: 2,
+    onTimeCount: 26,
+    onTimePercent: 70,
+    totalCompleted: 37,
+  },
+  topPeople: [
+    { borrowedCount: 3, lentCount: 5, personName: "Олена", totalCount: 8 },
+    { borrowedCount: 2, lentCount: 0, personName: "Ігор", totalCount: 2 },
+  ],
+};
+
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+});
+
+afterAll(() => {
+  vi.useRealTimers();
+});
+
+beforeEach(() => {
+  vi.setSystemTime(TODAY);
+  server.correctionError = null;
+  server.listPending = false;
+  server.listStatus = null;
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(toast.success).mockClear();
+  requests.length = 0;
+});
+
+describe("LoanHistoryView states", () => {
+  it("renders only the empty state when the reader has no completed loans", async () => {
+    mockHistory([]);
+
+    renderHistory();
+
+    expect(await screen.findByText(copy.states.empty.title)).toBeInTheDocument();
+    expect(screen.queryByText(copy.cards.total.label)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: copy.toolbar.directionLabel }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("keeps the cards, the toolbar and the clear action when the filters match nothing", async () => {
+    mockHistory([]);
+
+    renderHistory("?q=нічого");
+
+    expect(await screen.findByText(copy.states.noResults.title)).toBeInTheDocument();
+    expect(screen.getByText(copy.cards.total.label)).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: copy.toolbar.directionLabel })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: copy.states.noResults.clear })).toBeInTheDocument();
+    expect(lastListUrl()).toContain(`search=${encodeURIComponent("нічого")}`);
+  });
+
+  it("drops every filter from the request when the reader clears them", async () => {
+    mockHistory([]);
+
+    renderHistory("?q=нічого&result=late&type=lent_to_someone");
+
+    await screen.findByText(copy.states.noResults.title);
+    await userEvent.click(screen.getByRole("button", { name: copy.states.noResults.clear }));
+
+    await waitFor(() => {
+      expect(lastListUrl()).not.toContain("search=");
+    });
+    expect(lastListUrl()).toContain("result=all");
+    expect(lastListUrl()).not.toContain("type=");
+  });
+
+  it("announces that the history is loading while the first page is in flight", async () => {
+    server.listPending = true;
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    expect(await screen.findByText(copy.states.loading)).toBeInTheDocument();
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("offers a retry that loads the history after a failed request", async () => {
+    server.listStatus = 500;
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    expect(await screen.findByText(copy.states.error.title)).toBeInTheDocument();
+
+    server.listStatus = null;
+    await userEvent.click(screen.getByRole("button", { name: copy.states.error.retry }));
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(screen.queryByText(copy.states.error.title)).not.toBeInTheDocument();
+  });
+
+  it("hides the toolbar and the sidebar while the history cannot be loaded", async () => {
+    server.listStatus = 500;
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await screen.findByText(copy.states.error.title);
+    expect(
+      screen.queryByRole("combobox", { name: copy.toolbar.directionLabel }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView summary cards", () => {
+  it("counts the completed loans the backend reported, not the loaded page", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const total = await findStatCard(copy.cards.total.label);
+    expect(within(total).getByText("37")).toBeInTheDocument();
+    expect(within(total).getByText("21 передано · 16 позичено")).toBeInTheDocument();
+  });
+
+  it("takes the on-time percent from the summary, not from the reliability block", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const onTime = await findStatCard(copy.cards.onTime.label);
+    expect(within(onTime).getByText("26")).toBeInTheDocument();
+    expect(within(onTime).getByText("70% усіх завершених")).toBeInTheDocument();
+    expect(within(onTime).queryByText("84% усіх завершених")).not.toBeInTheDocument();
+  });
+
+  it("names the average delay on the late card", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const late = await findStatCard(copy.cards.late.label);
+    expect(within(late).getByText("9")).toBeInTheDocument();
+    expect(within(late).getByText("У середньому — на 6 днів")).toBeInTheDocument();
+  });
+
+  it("reassures the reader on the late card when nothing came back late", async () => {
+    mockHistory([historyItem()], {
+      overview: {
+        ...OVERVIEW,
+        summary: { ...OVERVIEW.summary, averageDelayDays: null, lateCount: 0, latePercent: 0 },
+      },
+    });
+
+    renderHistory();
+
+    const late = await findStatCard(copy.cards.late.label);
+    expect(within(late).getByText(copy.cards.late.allOnTime)).toBeInTheDocument();
+  });
+
+  it("shows the average duration the backend computed", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const duration = await findStatCard(copy.cards.duration.label);
+    expect(within(duration).getByText("18")).toBeInTheDocument();
+    expect(within(duration).getByText(copy.cards.duration.microfact)).toBeInTheDocument();
+  });
+
+  it("says the duration is still unknown when the backend has no average", async () => {
+    mockHistory([historyItem()], {
+      overview: {
+        ...OVERVIEW,
+        duration: { averageDays: null, longestDays: null, shortestDays: null },
+        summary: { ...OVERVIEW.summary, averageDurationDays: null },
+      },
+    });
+
+    renderHistory();
+
+    const duration = await findStatCard(copy.cards.duration.label);
+    expect(within(duration).getByText(copy.cards.duration.empty)).toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView toolbar", () => {
+  it("asks for one direction when the reader picks it", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickOption(copy.toolbar.directionLabel, copy.direction.borrowed_from_someone);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("type=borrowed_from_someone");
+    });
+  });
+
+  it("asks for one result when the reader picks it", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickOption(copy.toolbar.resultLabel, copy.results.late);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("result=late");
+    });
+  });
+
+  it("asks for one person when the reader picks one from the filter", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickOption(copy.toolbar.personLabel, /Олена/);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain(`person=${encodeURIComponent("Олена")}`);
+    });
+  });
+
+  it("asks for another order when the reader changes the sort", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickOption(copy.toolbar.sortLabel, copy.sort.duration_desc);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("sort=duration_desc");
+    });
+  });
+
+  it("sends the typed query once the reader stops typing", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await userEvent.type(screen.getByRole("textbox", { name: copy.toolbar.searchLabel }), "Дюна");
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain(`search=${encodeURIComponent("Дюна")}`);
+    });
+  });
+
+  it("falls back to the newest-returned order when the URL asks for an unknown sort", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?sort=oldest_first&result=whatever");
+
+    await findRow("Дюна");
+    expect(lastListUrl()).toContain("sort=returned_desc");
+    expect(lastListUrl()).toContain("result=all");
+    expect(lastListUrl()).not.toContain("oldest_first");
+  });
+
+  it("falls back to every result when the URL asks for an unknown one", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?result=very_late");
+
+    await findRow("Дюна");
+    expect(lastListUrl()).toContain("result=all");
+    expect(requests.every((entry) => !entry.url.includes("very_late"))).toBe(true);
+  });
+
+  it("ignores an unknown direction in the URL instead of forwarding it", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?type=given_away");
+
+    await findRow("Дюна");
+    expect(lastListUrl()).not.toContain("type=");
+  });
+});
+
+describe("LoanHistoryView period presets", () => {
+  it("turns this year into a date-only returned range", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickPeriod(copy.period.thisYear);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("returnedFrom=2026-01-01");
+    });
+    expect(lastListUrl()).toContain("returnedTo=2026-12-31");
+  });
+
+  it("turns last year into a date-only returned range", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickPeriod(copy.period.lastYear);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("returnedFrom=2025-01-01");
+    });
+    expect(lastListUrl()).toContain("returnedTo=2025-12-31");
+  });
+
+  it("drops both bounds when the reader goes back to all time", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?from=2025-01-01&to=2025-12-31");
+
+    await findRow("Дюна");
+    expect(lastListUrl()).toContain("returnedFrom=2025-01-01");
+
+    await pickPeriod(copy.period.all);
+
+    await waitFor(() => {
+      expect(lastListUrl()).not.toContain("returnedFrom");
+    });
+    expect(lastListUrl()).not.toContain("returnedTo");
+  });
+});
+
+describe("LoanHistoryView row", () => {
+  it("walks a lent loan through its three dates", async () => {
+    mockHistory([
+      historyItem({
+        expectedReturnDate: "2026-07-10",
+        loanDate: "2026-06-12",
+        returnedDate: "2026-07-04",
+      }),
+    ]);
+
+    renderHistory();
+
+    const [loanDate, expected, returned] = within(await findRow("Дюна")).getAllByRole("listitem");
+    expect(loanDate).toHaveTextContent(copy.timeline.loanDateLent);
+    expect(loanDate).toHaveTextContent("12.06.2026");
+    expect(expected).toHaveTextContent(copy.timeline.expected);
+    expect(expected).toHaveTextContent("10.07.2026");
+    expect(returned).toHaveTextContent(copy.timeline.returned);
+    expect(returned).toHaveTextContent("04.07.2026");
+  });
+
+  it("calls the first date a loan date when the book was borrowed", async () => {
+    mockHistory([historyItem({ type: "borrowed_from_someone" })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText(copy.timeline.loanDateBorrowed)).toBeInTheDocument();
+    expect(within(row).queryByText(copy.timeline.loanDateLent)).not.toBeInTheDocument();
+    expect(within(row).getByText(copy.direction.borrowed_from_someone)).toBeInTheDocument();
+    expect(within(row).getByText(copy.row.personBorrowed)).toBeInTheDocument();
+  });
+
+  it("marks a returned-on-time loan with its duration", async () => {
+    mockHistory([historyItem({ durationDays: 22, historyResult: "on_time" })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText(copy.result.on_time)).toBeInTheDocument();
+    expect(within(row).getByText("22 дні")).toBeInTheDocument();
+  });
+
+  it("counts the delay of a late loan", async () => {
+    mockHistory([
+      historyItem({
+        delayDays: 5,
+        durationDays: 30,
+        expectedReturnDate: "2026-05-28",
+        historyResult: "late",
+        returnedDate: "2026-06-02",
+      }),
+    ]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText("Із запізненням на 5 днів")).toBeInTheDocument();
+    expect(within(row).getByText("30 днів усього")).toBeInTheDocument();
+  });
+
+  it("says a loan had no due date instead of leaving the plan blank", async () => {
+    mockHistory([historyItem({ expectedReturnDate: null, historyResult: "no_due_date" })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText(copy.timeline.expectedNone)).toBeInTheDocument();
+    expect(within(row).getByText(copy.result.no_due_date)).toBeInTheDocument();
+  });
+
+  it("keeps the active-loan actions off a completed loan", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
+
+    expect(await screen.findByRole("menuitem", { name: copy.actions.details })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: messages.loans.actions.markReturned }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Продовжити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Нагадування/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView detail sheet", () => {
+  it("opens the details when the reader clicks the row", async () => {
+    mockHistory([historyItem({ contact: "olena@example.com", note: "Повернулася із закладкою" })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    await userEvent.click(within(row).getByRole("button", { name: copy.row.openDetails }));
+
+    const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
+    expect(within(sheet).getByText("olena@example.com")).toBeInTheDocument();
+    expect(within(sheet).getByText("Повернулася із закладкою")).toBeInTheDocument();
+    expect(lastDetailUrl()).toBe("/api/loans/history/loan-dune");
+  });
+
+  it("leaves the details closed when the reader follows the book title", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    const title = within(row).getByRole("link", { name: "Дюна" });
+
+    await userEvent.click(title);
+
+    expect(title).toHaveAttribute("href", "/books/book-dune");
+    expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+  });
+
+  it("leaves the details closed when the reader follows the cover", async () => {
+    mockHistory([historyItem({ book: { ...historyItem().book, cover: bookCover() } })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    const links = within(row).getAllByRole("link", { name: "Дюна" });
+    expect(links).toHaveLength(2);
+
+    const cover = links[0] ?? row;
+    await userEvent.click(cover);
+
+    expect(cover).toHaveAttribute("href", "/books/book-dune");
+    expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+  });
+
+  it("leaves the details closed when the reader opens the row menu", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
+
+    await screen.findByRole("menuitem", { name: copy.actions.details });
+    expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+  });
+
+  it("says the note is missing rather than showing an empty section", async () => {
+    mockHistory([historyItem({ note: null })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    await userEvent.click(within(row).getByRole("button", { name: copy.row.openDetails }));
+
+    const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
+    expect(within(sheet).getByText(copy.detail.noteEmpty)).toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView analytics sidebar", () => {
+  it("breaks down the people the reader lends to most", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.people.title);
+    const rows = within(block).getAllByRole("button");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("Олена");
+    expect(rows[0]).toHaveTextContent("8 позик");
+    expect(rows[0]).toHaveTextContent("5 передано · 3 позичено");
+  });
+
+  it("filters the list by the person the reader clicks", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.people.title);
+    const person = within(block).getByRole("button", { name: personFilterLabel("Олена") });
+
+    await userEvent.click(person);
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain(`person=${encodeURIComponent("Олена")}`);
+    });
+    expect(person).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("reports the durations the backend measured", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.duration.title);
+    expect(within(block).getByText("18 днів")).toBeInTheDocument();
+    expect(within(block).getByText("73 дні")).toBeInTheDocument();
+    expect(within(block).getByText("2 дні")).toBeInTheDocument();
+  });
+
+  it("takes the reliability percent from the reliability block, not from the summary", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.reliability.title);
+    expect(within(block).getByText("84% повернуто вчасно")).toBeInTheDocument();
+    expect(within(block).queryByText("70% повернуто вчасно")).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView pagination", () => {
+  it("counts every match, not only the loans already on screen", async () => {
+    mockHistory(historyItems(12));
+
+    renderHistory();
+
+    await findRow("Книга 1");
+    expect(screen.getByText("Знайдено 12 завершених позик")).toBeInTheDocument();
+    expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
+  });
+
+  it("appends the next page when the reader asks for more", async () => {
+    mockHistory(historyItems(12));
+
+    renderHistory();
+
+    await findRow("Книга 1");
+    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+
+    expect(await screen.findByText("Книга 11")).toBeInTheDocument();
+    expect(screen.getByText("Книга 1")).toBeInTheDocument();
+    expect(requests.some((entry) => entry.url.includes("pageNumber=2"))).toBe(true);
+  });
+
+  it("keeps the show-more button away when every loan already fits", async () => {
+    mockHistory(historyItems(3));
+
+    renderHistory();
+
+    await findRow("Книга 1");
+    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
+  });
+
+  it("returns to the first page when a filter changes", async () => {
+    mockHistory(historyItems(12));
+
+    renderHistory();
+
+    await findRow("Книга 1");
+    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    await screen.findByText("Книга 11");
+
+    await pickOption(copy.toolbar.resultLabel, copy.results.on_time);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
+    });
+    expect(lastListUrl()).toContain("pageNumber=1");
+    expect(lastListUrl()).toContain("result=on_time");
+  });
+});
+
+describe("LoanHistoryView correction", () => {
+  it("sends only the corrected return date", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await correctReturnedDate();
+
+    await waitFor(() => {
+      expect(lastCorrection()).toEqual({
+        payload: { returnedDate: "2026-07-01" },
+        url: "/api/loans/history/loan-dune",
+      });
+    });
+  });
+
+  it("confirms the correction and closes the dialog", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await correctReturnedDate();
+
+    await waitFor(() => {
+      expect(vi.mocked(toast.success)).toHaveBeenCalledWith(copy.correctDate.success);
+    });
+    expect(screen.queryByRole("dialog", { name: copy.correctDate.title })).not.toBeInTheDocument();
+  });
+
+  it("sends only the edited note", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await openCorrectionDialog(copy.actions.editNote);
+    const dialog = await screen.findByRole("dialog", { name: copy.editNote.title });
+
+    await userEvent.type(
+      within(dialog).getByLabelText(copy.editNote.label),
+      "Повернули із листівкою",
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: copy.editNote.save }));
+
+    await waitFor(() => {
+      expect(lastCorrection().payload).toEqual({ note: "Повернули із листівкою" });
+    });
+  });
+
+  it("shows a rejected date under the field instead of a toast", async () => {
+    server.correctionError = {
+      body: {
+        errorsMessages: [
+          { field: "returnedDate", message: "Returned date cannot precede the loan date" },
+        ],
+      },
+      status: 400,
+    };
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await openCorrectionDialog(copy.actions.correctDate);
+    const dialog = await screen.findByRole("dialog", { name: copy.correctDate.title });
+    await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.save }));
+
+    const fieldError = await within(dialog).findByRole("alert");
+    expect(fieldError).toHaveAttribute("id", "loan-history-returned-date-error");
+    expect(within(dialog).getByRole("button", { name: copy.correctDate.label })).toHaveAttribute(
+      "aria-describedby",
+      "loan-history-returned-date-error",
+    );
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it("repeats the reason the backend gave for refusing the note", async () => {
+    server.correctionError = { body: { message: "Note is too long for storage" }, status: 422 };
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await openCorrectionDialog(copy.actions.editNote);
+    const dialog = await screen.findByRole("dialog", { name: copy.editNote.title });
+
+    await userEvent.type(within(dialog).getByLabelText(copy.editNote.label), "Нотатка");
+    await userEvent.click(within(dialog).getByRole("button", { name: copy.editNote.save }));
+
+    expect(await within(dialog).findByText("Note is too long for storage")).toBeInTheDocument();
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+});
+
+function bookCover(): NonNullable<HistoryFixture["book"]["cover"]> {
+  return {
+    contentType: "image/webp",
+    createdAt: "2026-06-01T08:00:00.000Z",
+    height: 900,
+    id: "media-dune",
+    kind: "book_cover",
+    name: null,
+    sizeBytes: 12_000,
+    urls: {
+      card: "https://cdn.example.com/dune-card.webp",
+      full: "https://cdn.example.com/dune-full.webp",
+      thumb: "https://cdn.example.com/dune-thumb.webp",
+    },
+    width: 600,
+  };
+}
+
+async function correctReturnedDate(): Promise<void> {
+  await openCorrectionDialog(copy.actions.correctDate);
+  const dialog = await screen.findByRole("dialog", { name: copy.correctDate.title });
+
+  await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.label }));
+  const calendar = await screen.findByRole("grid");
+  await userEvent.click(within(calendar).getByRole("button", { name: /^\D+, 1-е липня 2026/ }));
+  await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.save }));
+}
+
+async function findRow(title: string): Promise<HTMLElement> {
+  const heading = await screen.findByText(title);
+  const row = heading.closest<HTMLElement>("article");
+  if (row === null) throw new Error(`History row not found: ${title}`);
+  return row;
+}
+
+function findSidebarBlock(title: string): Promise<HTMLElement> {
+  return waitFor(() => {
+    const sidebar = screen.getByRole("complementary", { name: copy.sidebar.label });
+    const block = within(sidebar).getByText(title).closest<HTMLElement>("section");
+    if (block === null) throw new Error(`Sidebar block not found: ${title}`);
+    if (block.querySelector('[data-slot="skeleton"]') !== null) {
+      throw new Error(`Sidebar block is still loading: ${title}`);
+    }
+    return block;
+  });
+}
+
+function findStatCard(label: string): Promise<HTMLElement> {
+  return waitFor(() => {
+    const card = screen
+      .getAllByText(label)
+      .map((node) => node.closest<HTMLElement>('[data-slot="stat-card"]'))
+      .find((node) => node !== null);
+    if (card === undefined) throw new Error(`Stat card not found: ${label}`);
+    return card;
+  });
+}
+
+function historyItem(overrides: Partial<HistoryFixture> = {}): HistoryFixture {
+  return {
+    book: {
+      cover: null,
+      firstAuthorName: "Френк Герберт",
+      id: "book-dune",
+      originalTitle: null,
+      ownershipStatus: "owned",
+      publisher: null,
+      title: "Дюна",
+    },
+    contact: null,
+    createdAt: "2026-06-12T08:00:00.000Z",
+    delayDays: null,
+    durationDays: 22,
+    expectedReturnDate: "2026-07-10",
+    historyResult: "on_time",
+    id: "loan-dune",
+    loanDate: "2026-06-12",
+    note: null,
+    personName: "Олена",
+    returnedAt: "2026-07-04T10:00:00.000Z",
+    returnedDate: "2026-07-04",
+    type: "lent_to_someone",
+    updatedAt: "2026-07-04T10:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function historyItems(count: number): HistoryFixture[] {
+  return Array.from({ length: count }, (_, index) =>
+    historyItem({
+      book: { ...historyItem().book, id: `book-${index + 1}`, title: `Книга ${index + 1}` },
+      id: `loan-${index + 1}`,
+    }),
+  );
+}
+
+function isDetailRequest(url: string): boolean {
+  if (!url.startsWith("/api/loans/history/")) return false;
+  return !url.includes("/overview") && !url.includes("/people");
+}
+
+function isListRequest(url: string): boolean {
+  return url.split("?")[0] === "/api/loans/history";
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status,
+  });
+}
+
+function lastCorrection(): { payload: unknown; url: string } {
+  const found = requests.filter((entry) => entry.method === "PATCH").at(-1);
+  if (found?.body === undefined) throw new Error("the correction was never sent");
+  return { payload: JSON.parse(found.body), url: found.url };
+}
+
+function lastDetailUrl(): string {
+  const found = requests
+    .filter((entry) => entry.method === "GET" && isDetailRequest(entry.url))
+    .at(-1);
+  if (found === undefined) throw new Error("the loan detail was never requested");
+  return found.url;
+}
+
+function lastListUrl(): string {
+  const found = requests.filter((entry) => isListRequest(entry.url)).at(-1);
+  if (found === undefined) throw new Error("the history list was never requested");
+  return found.url;
+}
+
+function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
+  const pageSize = 10;
+
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      requests.push({ body: typeof init?.body === "string" ? init.body : undefined, method, url });
+
+      if (url.includes("/api/profile/settings")) {
+        return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+      }
+
+      if (url.includes("/api/loans/history/overview")) {
+        return Promise.resolve(jsonResponse(options.overview ?? OVERVIEW));
+      }
+
+      if (url.includes("/api/loans/history/people")) {
+        return Promise.resolve(
+          jsonResponse({ items: options.people ?? [{ personName: "Олена", totalCount: 8 }] }),
+        );
+      }
+
+      if (isListRequest(url)) {
+        if (server.listPending) return new Promise<Response>(() => undefined);
+        if (server.listStatus !== null) {
+          return Promise.resolve(jsonResponse({ message: "boom" }, server.listStatus));
+        }
+
+        const pageNumber = Number(
+          new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1,
+        );
+
+        return Promise.resolve(
+          jsonResponse({
+            items: items.slice((pageNumber - 1) * pageSize, pageNumber * pageSize),
+            page: pageNumber,
+            pagesCount: Math.max(1, Math.ceil(items.length / pageSize)),
+            pageSize,
+            totalCount: items.length,
+          }),
+        );
+      }
+
+      if (method === "PATCH" && server.correctionError !== null) {
+        return Promise.resolve(
+          jsonResponse(server.correctionError.body, server.correctionError.status),
+        );
+      }
+
+      const loan = items.find((item) => url.endsWith(item.id));
+      if (loan === undefined) return Promise.resolve(jsonResponse({ message: "not found" }, 404));
+      return Promise.resolve(jsonResponse(loan));
+    }),
+  );
+}
+
+async function openCorrectionDialog(action: string) {
+  const row = await findRow("Дюна");
+  await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
+  await userEvent.click(await screen.findByRole("menuitem", { name: action }));
+}
+
+function personFilterLabel(name: string): string {
+  return copy.sidebar.people.filter.replace("{name}", name);
+}
+
+async function pickOption(selectLabel: string, optionName: RegExp | string) {
+  await userEvent.click(screen.getByRole("combobox", { name: selectLabel }));
+  await userEvent.click(await screen.findByRole("option", { name: optionName }));
+}
+
+async function pickPeriod(presetLabel: string) {
+  await userEvent.click(screen.getByRole("button", { name: copy.toolbar.periodLabel }));
+  await userEvent.click(await screen.findByRole("radio", { name: presetLabel }));
+}
+
+function renderHistory(searchParams = "") {
+  return renderWithProviders(
+    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+      <LoanHistoryView />
+    </NuqsTestingAdapter>,
+  );
+}
