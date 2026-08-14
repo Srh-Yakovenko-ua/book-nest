@@ -14,19 +14,19 @@ import { useReceiveDelivery } from "@/features/books/api/use-delivery";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/http-client";
 
-import type { DeliveryCardModel } from "../model/delivery-card-model";
+import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/order-card-model";
 import type { DeliveryContent } from "./delivery-in-transit-view";
 
 import { useDeliverySync } from "../api/delivery-cache";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
-import { toDeliveryCardModel } from "../model/delivery-card-model";
+import { toDeliveryOrderCards } from "../model/order-card-model";
 import { useInTransitParams } from "../model/use-in-transit-params";
 import { DeliveryBulkBar } from "./delivery-bulk-bar";
 import { DeliveryCancelDialog } from "./delivery-cancel-dialog";
-import { DeliveryCard } from "./delivery-card";
 import { DeliveryEditDialog } from "./delivery-edit-dialog";
 import { DeliveryInTransitView } from "./delivery-in-transit-view";
+import { DeliveryOrderCard } from "./delivery-order-card";
 import { DeliveryOverviewPanel } from "./delivery-overview-panel";
 import { DeliveryReceiveDialog } from "./delivery-receive-dialog";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
@@ -55,19 +55,20 @@ export function DeliveryInTransit() {
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
-  const items: DeliveryCardModel[] = pages
-    .flatMap((page) => page.items)
-    .map((item) =>
-      toDeliveryCardModel(item, {
-        labels: {
-          badge: (key) => tBadge(key),
-          seriesPart: ({ name, part }) => tCard("seriesPart", { name, part }),
-        },
-        locale,
-      }),
-    );
+  const orders = toDeliveryOrderCards(
+    pages.flatMap((page) => page.items),
+    {
+      labels: {
+        badge: (key) => tBadge(key),
+        seriesPart: ({ name, part }) => tCard("seriesPart", { name, part }),
+      },
+      locale,
+    },
+  );
 
-  const visibleBookIds = items.map((model) => model.bookId);
+  const visibleBookIds = orders.flatMap((order) =>
+    order.shipments.flatMap((group) => group.books.map((book) => book.bookId)),
+  );
   const selectedVisible = visibleBookIds.filter((id) => selectedIds.has(id));
   const allVisibleSelected =
     visibleBookIds.length > 0 && selectedVisible.length === visibleBookIds.length;
@@ -92,10 +93,10 @@ export function DeliveryInTransit() {
     });
   }
 
-  function onReceive(model: DeliveryCardModel) {
-    setReceivePendingBookId(model.bookId);
+  function onReceiveBook(book: DeliveryOrderBookModel) {
+    setReceivePendingBookId(book.bookId);
     receiveDelivery.mutate(
-      { deliveryId: model.deliveryId, id: model.bookId },
+      { deliveryId: book.id, id: book.bookId },
       {
         onError: (error) => {
           toast.error(error instanceof ApiError ? error.message : tToast("error"));
@@ -107,7 +108,7 @@ export function DeliveryInTransit() {
           setReceivePendingBookId(null);
           setSelectedIds((prev) => {
             const next = new Set(prev);
-            next.delete(model.bookId);
+            next.delete(book.bookId);
             return next;
           });
         },
@@ -119,15 +120,15 @@ export function DeliveryInTransit() {
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
-      : items.length === 0
+      : orders.length === 0
         ? params.hasActiveFilters || params.hasActiveSearch
           ? { kind: "filtered-empty" }
           : { kind: "empty" }
-        : { items, kind: "ready" };
+        : { items: orders, kind: "ready" };
 
   const showToolbar =
     !listQuery.isError &&
-    (listQuery.isPending || items.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
+    (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
   const totalText =
@@ -180,16 +181,17 @@ export function DeliveryInTransit() {
     },
   ];
 
-  const renderCard = (model: DeliveryCardModel) => (
-    <DeliveryCard
+  const renderCard = (model: DeliveryOrderCardModel) => (
+    <DeliveryOrderCard
       key={model.id}
       model={model}
-      onCancel={() => setCancelBookId(model.bookId)}
-      onEdit={() => setEditBookId(model.bookId)}
-      onReceive={() => onReceive(model)}
-      onToggleSelect={() => toggleSelect(model.bookId)}
-      receivePending={receivePendingBookId === model.bookId}
-      selected={selectedIds.has(model.bookId)}
+      onCancelBook={setCancelBookId}
+      onEditBook={setEditBookId}
+      onReceiveBook={onReceiveBook}
+      onReceiveShipment={setReceiveTarget}
+      onToggleSelectBook={toggleSelect}
+      receivePendingBookId={receivePendingBookId}
+      selectedBookIds={selectedIds}
     />
   );
 
@@ -207,7 +209,7 @@ export function DeliveryInTransit() {
         }
         content={content}
         headerActions={
-          items.length > 0 ? (
+          visibleBookIds.length > 0 ? (
             <Button onClick={() => setReceiveTarget(visibleBookIds)} variant="secondary">
               <UiIcon name="check-circle" size={16} />
               {t("actions.receiveAll")}
@@ -224,7 +226,7 @@ export function DeliveryInTransit() {
         }}
         renderCard={renderCard}
         selectAll={
-          items.length > 0
+          visibleBookIds.length > 0
             ? {
                 checked: selectAllChecked,
                 count: selectedVisible.length,
