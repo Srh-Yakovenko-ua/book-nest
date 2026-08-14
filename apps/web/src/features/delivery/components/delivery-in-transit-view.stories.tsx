@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
-import { DeliveryCard } from "./delivery-card";
 import { DeliveryInTransitView } from "./delivery-in-transit-view";
+import { DeliveryOrderCard } from "./delivery-order-card";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
-import { deliveryCardModels } from "./delivery.fixtures";
+import { deliveryOrderCardModels } from "./delivery.fixtures";
 
 const summaryNode = (
   <DeliverySummaryCards
@@ -29,15 +29,16 @@ const meta = {
     onRetry: () => {},
     pagination: { hasNextPage: false, isFetchingNextPage: false },
     renderCard: (model) => (
-      <DeliveryCard
+      <DeliveryOrderCard
         key={model.id}
         model={model}
-        onCancel={() => {}}
-        onEdit={() => {}}
-        onReceive={() => {}}
-        onToggleSelect={() => {}}
-        receivePending={false}
-        selected={false}
+        onCancelBook={() => {}}
+        onEditBook={() => {}}
+        onReceiveBook={() => {}}
+        onReceiveShipment={() => {}}
+        onToggleSelectBook={() => {}}
+        receivePendingBookId={null}
+        selectedBookIds={new Set()}
       />
     ),
     showToolbar: false,
@@ -88,7 +89,7 @@ export const FilteredEmpty: Story = {
 
 export const Ready: Story = {
   args: {
-    content: { items: deliveryCardModels, kind: "ready" },
+    content: { items: deliveryOrderCardModels, kind: "ready" },
     selectAll: { checked: false, count: 0, onToggle: () => {} },
     showToolbar: true,
     toolbar: <div />,
@@ -96,6 +97,7 @@ export const Ready: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Таємна історія")).toBeVisible());
     await expect(canvas.getByText("Американські боги")).toBeVisible();
+    await expect(canvas.getByText("Ще не відправлено")).toBeVisible();
     await expect(canvas.getByText(/Вибрати всі видимі/)).toBeVisible();
   },
 };

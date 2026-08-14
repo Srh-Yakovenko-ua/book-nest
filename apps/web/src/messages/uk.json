@@ -2510,7 +2510,13 @@
       "edit": "Редагувати доставку",
       "cancel": "Скасувати замовлення",
       "actionsAria": "Дії для «{title}»",
-      "selectAria": "Вибрати «{title}»"
+      "selectAria": "Вибрати «{title}»",
+      "booksInTransit": "{count, plural, one {# книга в дорозі} few {# книги в дорозі} many {# книг у дорозі} other {# книг у дорозі}}",
+      "orderTotal": "Сума",
+      "notShipped": "Ще не відправлено",
+      "pickupUntil": "Зберігається до",
+      "note": "Нотатка",
+      "receiveShipment": "{count, plural, one {Позначити книгу отриманою} few {Позначити # книги отриманими} many {Позначити # книг отриманими} other {Позначити # книг отриманими}}"
     },
     "bulk": {
       "regionLabel": "Масові дії",
