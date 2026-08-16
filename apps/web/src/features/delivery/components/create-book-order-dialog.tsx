@@ -3,7 +3,11 @@
 import type { BookView, Currency, OwnershipStatus } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { CreateBookOrderInputSchema, resolveOrderFinancials } from "@app/shared";
+import {
+  CreateBookOrderInputSchema,
+  ORDER_FINANCIAL_MESSAGES,
+  validateOrderFinancials,
+} from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -170,7 +174,7 @@ function CreateBookOrderForm({
   const [financialMode, setFinancialMode] = useState<FinancialMode>("total");
   const [shipping, setShipping] = useState<"no" | "yes">("no");
   const [shipmentToRemoveId, setShipmentToRemoveId] = useState<null | string>(null);
-  const [validationError, setValidationError] = useState<null | string>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const assignedIds = new Set(shipments.flatMap((shipment) => shipment.bookIds));
   const unassignedBooks = books.filter(({ book }) => !assignedIds.has(book.id));
   const primaryShipment = shipments[0];
@@ -181,12 +185,19 @@ function CreateBookOrderForm({
   const isDistributionMode =
     shipping === "yes" &&
     (shipments.length > 1 || (shipments.length === 1 && unassignedBooks.length > 0));
-  const financials = resolveOrderFinancials({
+  const financialCheck = validateOrderFinancials({
     deliveryPrice: optionalMoney(order.deliveryPrice),
     discount: optionalMoney(order.discount),
     itemPrices: books.map(({ price }) => optionalMoney(price)),
     totalAmount: optionalMoney(order.totalAmount),
   });
+  const financials = financialCheck.summary;
+  const financialError =
+    financialCheck.error === null
+      ? null
+      : financialCheck.error === ORDER_FINANCIAL_MESSAGES.negativeTotal
+        ? t("validation.negativeTotal")
+        : t("validation.invalid");
   const currency = order.currency === "" ? "UAH" : order.currency;
   const manualDeliveryPrice = optionalMoney(order.deliveryPrice);
   const manualDiscount = optionalMoney(order.discount);
@@ -194,6 +205,19 @@ function CreateBookOrderForm({
   const hasManualSummary =
     manualTotalAmount !== null || manualDeliveryPrice !== null || manualDiscount !== null;
   const remainingItemPricesCount = financials.itemsCount - financials.pricedItemsCount;
+  const itemPricesIncomplete = financialMode === "items" && !hasCompleteItemPrices(books);
+  const parsedDraft = CreateBookOrderInputSchema.safeParse(
+    toCreateBookOrderInput({
+      books: books.map(({ book, price }) => ({ bookId: book.id, price })),
+      order,
+      shipments,
+    }),
+  );
+  const submitError = !submitAttempted
+    ? null
+    : itemPricesIncomplete
+      ? t("validation.itemPricesRequired")
+      : (financialError ?? (parsedDraft.success ? null : t("validation.invalid")));
 
   function updateOrder<K extends keyof OrderDraft>(key: K, value: OrderDraft[K]) {
     setOrder((current) => ({ ...current, [key]: value }));
@@ -334,23 +358,9 @@ function CreateBookOrderForm({
   }
 
   function submit() {
-    if (financialMode === "items" && !hasCompleteItemPrices(books)) {
-      setValidationError(t("validation.itemPricesRequired"));
-      return;
-    }
-    const parsed = CreateBookOrderInputSchema.safeParse(
-      toCreateBookOrderInput({
-        books: books.map(({ book, price }) => ({ bookId: book.id, price })),
-        order,
-        shipments,
-      }),
-    );
-    if (!parsed.success) {
-      setValidationError(t("validation.invalid"));
-      return;
-    }
-    setValidationError(null);
-    mutation.mutate(parsed.data, {
+    setSubmitAttempted(true);
+    if (itemPricesIncomplete || !parsedDraft.success) return;
+    mutation.mutate(parsedDraft.data, {
       onError: (error) => toast.error(error instanceof ApiError ? error.message : t("toast.error")),
       onSuccess: () => {
         toast.success(t("toast.success"));
@@ -476,7 +486,7 @@ function CreateBookOrderForm({
               ]}
               value={financialMode}
             />
-            {financialMode === "items" ? (
+            {financialMode !== "items" ? null : financialError === null ? (
               <div
                 className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
                 role="status"
@@ -502,7 +512,15 @@ function CreateBookOrderForm({
                   </span>
                 </span>
               </div>
-            ) : null}
+            ) : (
+              <div
+                className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                role="alert"
+              >
+                <UiIcon aria-hidden className="mt-px shrink-0" name="alert-triangle" size={14} />
+                <span className="min-w-0">{financialError}</span>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-12 sm:gap-x-3">
               {financialMode === "total" ? (
                 <div className="flex flex-col gap-2 sm:col-span-9">
@@ -738,11 +756,11 @@ function CreateBookOrderForm({
         </Field>
       </div>
 
-      {validationError ? (
+      {submitError === null ? null : (
         <p className="text-sm text-destructive" role="alert">
-          {validationError}
+          {submitError}
         </p>
-      ) : null}
+      )}
       <DialogFooter>
         <Button disabled={mutation.isPending} onClick={onDone} variant="outline">
           {t("cancel")}

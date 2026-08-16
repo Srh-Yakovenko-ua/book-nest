@@ -2560,7 +2560,8 @@
       },
       "validation": {
         "invalid": "Check the required fields, selected books, and shipment assignments.",
-        "itemPricesRequired": "In Per book mode, enter a price for every selected book."
+        "itemPricesRequired": "In Per book mode, enter a price for every selected book.",
+        "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative."
       },
       "submit": "Create order",
       "toast": {
