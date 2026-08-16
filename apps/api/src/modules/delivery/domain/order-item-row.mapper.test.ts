@@ -48,9 +48,11 @@ function makeRow(overrides: Partial<BookOrderItemRowSource> = {}): BookOrderItem
       deliveryPrice: null,
       discount: null,
       id: ORDER_ID,
+      items: [{ cancelledAt: null, receivedAt: null, shipmentId: SHIPMENT_ID }],
       note: null,
       orderDate: ORDER_DATE,
       orderNumber: null,
+      shipments: [{ id: SHIPMENT_ID, status: "ordered" }],
       storeName: "Yakaboo",
       totalAmount: null,
       updatedAt: UPDATED_AT,
@@ -89,6 +91,24 @@ function makeShipment(overrides: Partial<ShipmentSource> = {}): ShipmentSource {
 }
 
 describe("toBookOrderItemRowView carries the reasons a reader wrote down", () => {
+  it("uses the order domain status derived from every item and shipment", () => {
+    const view = toBookOrderItemRowView({
+      book: BOOK,
+      row: makeRow({
+        order: {
+          ...makeRow().order,
+          items: [
+            { cancelledAt: null, receivedAt: CANCELLED_AT, shipmentId: SHIPMENT_ID },
+            { cancelledAt: null, receivedAt: null, shipmentId: SHIPMENT_ID },
+          ],
+        },
+      }),
+      today: TODAY,
+    });
+
+    expect(view.order.derivedStatus).toBe("partially_received");
+  });
+
   it("passes the item's own cancel reason through", () => {
     const view = toBookOrderItemRowView({
       book: BOOK,

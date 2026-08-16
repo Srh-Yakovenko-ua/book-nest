@@ -62,6 +62,7 @@ export class BookLibraryReadService {
       bookType: query.bookType,
       formats: query.format,
       genreKeys: query.genre,
+      hasActiveOrder: query.hasActiveOrder,
       hasCover: query.hasCover,
       hasDedication: query.hasDedication,
       hasRating: query.hasRating,

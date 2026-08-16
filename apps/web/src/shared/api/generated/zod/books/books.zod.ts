@@ -807,6 +807,7 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.string().min(1).max(booksControllerListQueryGenreItemMax))
     .max(booksControllerListQueryGenreMax)
     .optional(),
+  hasActiveOrder: zod.string().optional(),
   hasCover: zod.string().optional(),
   hasDedication: zod.string().optional(),
   hasRating: zod.string().optional(),

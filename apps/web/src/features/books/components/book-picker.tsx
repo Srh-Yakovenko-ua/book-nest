@@ -15,8 +15,6 @@ export const BOOK_PICKER_SCROLL_AREA =
   "rounded-lg border border-border [&>[data-slot=scroll-area-viewport]>div]:block!";
 
 type BookPickerResultsProps = {
-  disabledIds?: ReadonlySet<string>;
-  disabledLabel?: string;
   emptyLabel: string;
   isPending: boolean;
   loadingLabel: string;
@@ -34,8 +32,6 @@ type BookPickerSelectedProps = {
 };
 
 export function BookPickerResults({
-  disabledIds,
-  disabledLabel,
   emptyLabel,
   isPending,
   loadingLabel,
@@ -50,31 +46,15 @@ export function BookPickerResults({
   return (
     <ul className="flex flex-col gap-1 p-2">
       {results.map((book) => {
-        const isDisabled = disabledIds?.has(book.id) ?? false;
         const readingBase = readingStatuses.find((entry) => entry.value === book.readingStatus);
         return (
           <li key={book.id}>
-            <label
-              className={cn(
-                "flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors",
-                isDisabled
-                  ? "cursor-not-allowed opacity-60"
-                  : "cursor-pointer hover:border-accent-border hover:bg-secondary/50",
-              )}
-            >
-              <Checkbox
-                checked={selectedIds.has(book.id)}
-                disabled={isDisabled}
-                onCheckedChange={() => onToggle(book)}
-              />
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:border-accent-border hover:bg-secondary/50">
+              <Checkbox checked={selectedIds.has(book.id)} onCheckedChange={() => onToggle(book)} />
               <BookThumb book={book} />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <BookPickerCaption book={book} />
-                {isDisabled && disabledLabel !== undefined ? (
-                  <span className="self-start text-xs font-medium text-muted-foreground max-sm:text-[0.6875rem]">
-                    {disabledLabel}
-                  </span>
-                ) : readingBase === undefined ? null : (
+                {readingBase === undefined ? null : (
                   <StatusBadge
                     className="self-start max-sm:h-5 max-sm:gap-1 max-sm:px-2 max-sm:text-[0.6875rem] max-sm:[&>svg]:size-3"
                     entry={{ ...readingBase, label: readingLabel(book.readingStatus) }}

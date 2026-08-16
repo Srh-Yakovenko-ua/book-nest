@@ -22,7 +22,6 @@ const PAGE_SIZE = 24;
 
 export type BookMultiSelectPickerLabels = {
   clear: string;
-  disabled: string;
   empty: string;
   emptySelected: string;
   library: string;
@@ -35,15 +34,11 @@ export type BookMultiSelectPickerLabels = {
 
 export function BookMultiSelectPicker({
   baseParams,
-  isDisabled,
-  isVisible,
   labels,
   onSelectedChange,
   selected,
 }: {
   baseParams?: Partial<LibraryListParams>;
-  isDisabled?: (book: BookView) => boolean;
-  isVisible?: (book: BookView) => boolean;
   labels: BookMultiSelectPickerLabels;
   onSelectedChange: (books: BookView[]) => void;
   selected: BookView[];
@@ -54,18 +49,10 @@ export function BookMultiSelectPicker({
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
   const query = useLibraryBooks(libraryParams(baseParams, debouncedSearch));
   const selectedIds = new Set(selected.map((book) => book.id));
-  const results = (query.data?.pages ?? [])
-    .flatMap((page) => page.items)
-    .filter((book) => isVisible?.(book) ?? true);
-  const disabledIds = new Set(
-    results.filter((book) => isDisabled?.(book) === true).map(({ id }) => id),
-  );
-  const selectableResults = results.filter(
-    (book) => !selectedIds.has(book.id) && !disabledIds.has(book.id),
-  );
+  const results = (query.data?.pages ?? []).flatMap((page) => page.items);
+  const selectableResults = results.filter((book) => !selectedIds.has(book.id));
 
   function toggle(book: BookView) {
-    if (disabledIds.has(book.id)) return;
     onSelectedChange(
       selectedIds.has(book.id)
         ? selected.filter((entry) => entry.id !== book.id)
@@ -102,13 +89,11 @@ export function BookMultiSelectPicker({
             variant="ghost"
           >
             <UiIcon name="check-check" size={16} />
-            {labels.selectLoaded(results.length)}
+            {labels.selectLoaded(selectableResults.length)}
           </Button>
         )}
         <ScrollArea className={cn("h-72", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerResults
-            disabledIds={disabledIds}
-            disabledLabel={labels.disabled}
             emptyLabel={labels.empty}
             isPending={query.isPending}
             loadingLabel={tCommon("loading")}

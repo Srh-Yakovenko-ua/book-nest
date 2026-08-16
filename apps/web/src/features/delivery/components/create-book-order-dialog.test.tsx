@@ -21,34 +21,6 @@ const inTransitWithoutActiveOrder = makeBookView({
   ownershipStatus: "in_transit",
   title: "У дорозі без активного замовлення",
 });
-const inTransitWithActiveOrder = makeBookView({
-  delivery: {
-    active: {
-      cancelledAt: null,
-      cancelReason: null,
-      createdAt: "2026-08-01T10:00:00.000Z",
-      currency: "UAH",
-      deliveryService: null,
-      expectedDeliveryDate: null,
-      id: "active-order-item",
-      note: null,
-      orderDate: "2026-08-01",
-      orderNumber: null,
-      price: null,
-      receivedAt: null,
-      status: "ordered",
-      storeName: "Yakaboo",
-      trackingNumber: null,
-      trackingUrl: null,
-      updatedAt: "2026-08-01T10:00:00.000Z",
-    },
-    latest: null,
-    totalCount: 1,
-  },
-  id: "in-transit-with-active-order",
-  ownershipStatus: "in_transit",
-  title: "У дорозі з активним замовленням",
-});
 const fetchMock = vi.fn();
 
 beforeEach(() => {
@@ -75,12 +47,12 @@ afterEach(() => {
 });
 
 describe("CreateBookOrderDialog book picker view", () => {
-  it("shows an in-transit book only when it has no active order item", async () => {
+  it("offers every book the library returns, without hiding rows after the fact", async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const body = String(input).includes("purchase-stores")
         ? []
         : {
-            items: [inTransitWithoutActiveOrder, inTransitWithActiveOrder],
+            items: [inTransitWithoutActiveOrder, availableBook],
             page: 1,
             pagesCount: 1,
             pageSize: 24,
@@ -96,18 +68,16 @@ describe("CreateBookOrderDialog book picker view", () => {
     await screen.findByText("У дорозі без активного замовлення");
 
     const checkboxes = screen.getAllByRole("checkbox");
-    const availableCheckbox = checkboxes.at(0);
-    if (availableCheckbox === undefined) throw new Error("Available checkbox was not rendered");
-    expect(availableCheckbox).toBeEnabled();
-    expect(checkboxes).toHaveLength(1);
-    expect(screen.queryByText("У дорозі з активним замовленням")).not.toBeInTheDocument();
-    expect(screen.queryByText("Вже в іншому активному замовленні")).not.toBeInTheDocument();
+    expect(checkboxes).toHaveLength(2);
+    const firstCheckbox = checkboxes.at(0);
+    if (firstCheckbox === undefined) throw new Error("Book checkbox was not rendered");
+    expect(firstCheckbox).toBeEnabled();
 
-    await userEvent.click(availableCheckbox);
+    await userEvent.click(firstCheckbox);
     expect(screen.getByText("Вибрано книг: 1")).toBeVisible();
   });
 
-  it("requests only ownership statuses eligible for a new order", async () => {
+  it("asks the library to drop books that already sit in an active order", async () => {
     renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
@@ -119,6 +89,7 @@ describe("CreateBookOrderDialog book picker view", () => {
     if (booksRequest === undefined) throw new Error("Books request was not sent");
 
     const params = new URL(booksRequest, "http://localhost").searchParams;
+    expect(params.get("hasActiveOrder")).toBe("false");
     expect(params.getAll("owner")).toEqual(["none", "want_to_buy", "in_transit"]);
   });
 

@@ -6,12 +6,14 @@
  * OpenAPI spec version: 1.0
  */
 import type { PaginatedBookOrderItemRowsDtoItemsItemOrderCurrency } from "./paginatedBookOrderItemRowsDtoItemsItemOrderCurrency";
+import type { PaginatedBookOrderItemRowsDtoItemsItemOrderDerivedStatus } from "./paginatedBookOrderItemRowsDtoItemsItemOrderDerivedStatus";
 
 export type PaginatedBookOrderItemRowsDtoItemsItemOrder = {
   /** @nullable */
   currency: PaginatedBookOrderItemRowsDtoItemsItemOrderCurrency;
   /** @nullable */
   deliveryPrice: number | null;
+  derivedStatus: PaginatedBookOrderItemRowsDtoItemsItemOrderDerivedStatus;
   /** @nullable */
   discount: number | null;
   id: string;

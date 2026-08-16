@@ -14,11 +14,14 @@ import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
+import { toOrderStatusBadge } from "./statistics-view-model";
+
 export type DeliveryBadgeKey =
   "arriving_soon" | "delayed" | "in_transit" | "no_delivery_date" | "ordered" | "ready_for_pickup";
 
 export type DeliveryCardLabels = {
   badge: (key: DeliveryBadgeKey) => string;
+  orderStatus: (key: BookOrderItemRowOrderView["derivedStatus"]) => string;
   seriesPart: (input: { name: string; part: number }) => string;
 };
 
@@ -34,6 +37,7 @@ export type DeliveryOrderBookModel = {
 };
 
 export type DeliveryOrderCardModel = {
+  badge: StatusEntry;
   booksCount: number;
   id: string;
   orderDateText: Nullable<string>;
@@ -80,6 +84,7 @@ export function toDeliveryOrderCards(
   options: CardOptions,
 ): DeliveryOrderCardModel[] {
   return groupByOrder(items).map((group) => ({
+    badge: toOrderStatusBadge(group.order.derivedStatus, options.labels.orderStatus),
     booksCount: group.items.length,
     id: group.order.id,
     orderDateText:

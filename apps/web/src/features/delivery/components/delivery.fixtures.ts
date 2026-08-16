@@ -58,6 +58,7 @@ export function makeDeliveryOrderCardModel(
   overrides: Partial<DeliveryOrderCardModel> = {},
 ): DeliveryOrderCardModel {
   return {
+    badge: badges.inTransit,
     booksCount: 1,
     id: "order-1",
     orderDateText: "5 лип. 2026",

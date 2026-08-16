@@ -258,6 +258,14 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
           .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
           .nullable(),
         deliveryPrice: zod.number().nullable(),
+        derivedStatus: zod.enum([
+          "active",
+          "partially_shipped",
+          "shipped",
+          "partially_received",
+          "received",
+          "cancelled",
+        ]),
         discount: zod.number().nullable(),
         id: zod.string(),
         orderDate: zod.string().nullable(),
@@ -522,6 +530,14 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
           .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
           .nullable(),
         deliveryPrice: zod.number().nullable(),
+        derivedStatus: zod.enum([
+          "active",
+          "partially_shipped",
+          "shipped",
+          "partially_received",
+          "received",
+          "cancelled",
+        ]),
         discount: zod.number().nullable(),
         id: zod.string(),
         orderDate: zod.string().nullable(),

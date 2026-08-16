@@ -15,6 +15,7 @@ const locale = "en-US";
 
 const labels: DeliveryCardLabels = {
   badge: (key) => key,
+  orderStatus: (key) => key,
   seriesPart: ({ name, part }) => `${name} #${part}`,
 };
 
@@ -53,6 +54,7 @@ function makeOrder(overrides: Partial<BookOrderItemRowOrderView> = {}): BookOrde
   return {
     currency: "UAH",
     deliveryPrice: null,
+    derivedStatus: "active",
     discount: null,
     id: "order-1",
     orderDate: "2026-07-05",

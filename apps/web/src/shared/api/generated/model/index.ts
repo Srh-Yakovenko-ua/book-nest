@@ -917,6 +917,7 @@ export * from "./paginatedBookOrderItemRowsDtoItemsItemBookReadingStatus";
 export * from "./paginatedBookOrderItemRowsDtoItemsItemBookSeries";
 export * from "./paginatedBookOrderItemRowsDtoItemsItemOrder";
 export * from "./paginatedBookOrderItemRowsDtoItemsItemOrderCurrency";
+export * from "./paginatedBookOrderItemRowsDtoItemsItemOrderDerivedStatus";
 export * from "./paginatedBookOrderItemRowsDtoItemsItemShipment";
 export * from "./paginatedBookOrderItemRowsDtoItemsItemShipmentDeliveryService";
 export * from "./paginatedBookOrderItemRowsDtoItemsItemShipmentStatus";

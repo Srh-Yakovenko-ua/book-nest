@@ -10,11 +10,11 @@ const meta = {
     model: deliveryOrderCards.singleBook,
     onCancelBook: () => {},
     onEditBook: () => {},
-    onReceiveBook: () => {},
+    onManage: () => {},
     onReceiveShipment: () => {},
     onToggleSelectBook: () => {},
-    receivePendingBookId: null,
     selectedBookIds: new Set<string>(),
+    selectionMode: false,
   },
   component: DeliveryOrderCard,
   decorators: [
@@ -36,7 +36,7 @@ export const SingleBookSingleShipment: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Yakaboo")).toBeVisible());
     await expect(canvas.getByText("ORD-10241 · 5 лип. 2026")).toBeVisible();
-    await expect(canvas.getByText("1 книга в дорозі")).toBeVisible();
+    await expect(canvas.getByText("1 книга · 480 UAH")).toBeVisible();
     await expect(canvas.getByText("Таємна історія")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Позначити посилку отриманою" })).toBeVisible();
   },
@@ -46,7 +46,7 @@ export const MultipleBooksSingleShipment: Story = {
   args: { model: deliveryOrderCards.multipleBooks },
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Читайлик")).toBeVisible());
-    await expect(canvas.getByText("3 книги в дорозі")).toBeVisible();
+    await expect(canvas.getByText("3 книги · 1 250 UAH")).toBeVisible();
     await expect(canvas.getAllByRole("listitem")).toHaveLength(3);
     await expect(
       canvas.getAllByRole("button", { name: "Позначити посилку отриманою" }),
@@ -60,7 +60,6 @@ export const MultipleShipments: Story = {
     await waitFor(() => expect(canvas.getByText("Book Depository")).toBeVisible());
     await expect(canvas.getByText("Готова до отримання")).toBeVisible();
     await expect(canvas.getByText("Затримується")).toBeVisible();
-    await expect(canvas.getByText("Відділення №12, тільки до 18:00")).toBeVisible();
     await expect(
       canvas.getAllByRole("button", { name: "Позначити посилку отриманою" }),
     ).toHaveLength(2);
@@ -81,6 +80,7 @@ export const WithSelectedBook: Story = {
   args: {
     model: deliveryOrderCards.multipleBooks,
     selectedBookIds: new Set(["book-2"]),
+    selectionMode: true,
   },
   play: async ({ canvas }) => {
     const checkbox = canvas.getByRole("checkbox", { name: "Вибрати «Імʼя вітру»" });

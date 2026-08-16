@@ -4,20 +4,16 @@ import type { Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { useReceiveDelivery } from "@/features/books/api/use-delivery";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
 
-import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/order-card-model";
+import type { DeliveryOrderCardModel } from "../model/order-card-model";
 import type { DeliveryContent } from "./delivery-in-transit-view";
 
-import { useDeliverySync } from "../api/delivery-cache";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { toDeliveryOrderCards } from "../model/order-card-model";
@@ -32,28 +28,30 @@ import { DeliveryOverviewPanel } from "./delivery-overview-panel";
 import { DeliveryReceiveDialog } from "./delivery-receive-dialog";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
 import { DeliveryToolbar } from "./delivery-toolbar";
+import {
+  type OrderShipmentAction,
+  OrderShipmentActionDialog,
+} from "./order-shipment-action-dialog";
 
 export function DeliveryInTransit() {
   const t = useTranslations("delivery");
   const tSummary = useTranslations("delivery.summary");
   const tCard = useTranslations("delivery.card");
   const tBadge = useTranslations("delivery.badge");
-  const tToast = useTranslations("delivery.toast");
   const locale = useLocale();
   const router = useRouter();
 
   const params = useInTransitParams();
   const listQuery = useInTransitList(params.listParams);
   const summaryQuery = useInTransitSummary();
-  const receiveDelivery = useReceiveDelivery();
-  const sync = useDeliverySync();
 
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
   const [editBookId, setEditBookId] = useState<Nullable<string>>(null);
   const [cancelBookId, setCancelBookId] = useState<Nullable<string>>(null);
   const [receiveTarget, setReceiveTarget] = useState<Nullable<string[]>>(null);
-  const [receivePendingBookId, setReceivePendingBookId] = useState<Nullable<string>>(null);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
+  const [manageAction, setManageAction] = useState<Nullable<OrderShipmentAction>>(null);
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -62,6 +60,7 @@ export function DeliveryInTransit() {
     {
       labels: {
         badge: (key) => tBadge(key),
+        orderStatus: (key) => t(`orderStatus.${key}`),
         seriesPart: ({ name, part }) => tCard("seriesPart", { name, part }),
       },
       locale,
@@ -93,29 +92,6 @@ export function DeliveryInTransit() {
       else visibleBookIds.forEach((id) => next.add(id));
       return next;
     });
-  }
-
-  function onReceiveBook(book: DeliveryOrderBookModel) {
-    setReceivePendingBookId(book.bookId);
-    receiveDelivery.mutate(
-      { deliveryId: book.id, id: book.bookId },
-      {
-        onError: (error) => {
-          toast.error(error instanceof ApiError ? error.message : tToast("error"));
-          setReceivePendingBookId(null);
-        },
-        onSuccess: () => {
-          toast.success(tToast("received"));
-          sync();
-          setReceivePendingBookId(null);
-          setSelectedIds((prev) => {
-            const next = new Set(prev);
-            next.delete(book.bookId);
-            return next;
-          });
-        },
-      },
-    );
   }
 
   const content: DeliveryContent = listQuery.isError
@@ -189,11 +165,11 @@ export function DeliveryInTransit() {
       model={model}
       onCancelBook={setCancelBookId}
       onEditBook={setEditBookId}
-      onReceiveBook={onReceiveBook}
+      onManage={setManageAction}
       onReceiveShipment={setReceiveTarget}
       onToggleSelectBook={toggleSelect}
-      receivePendingBookId={receivePendingBookId}
       selectedBookIds={selectedIds}
+      selectionMode={selectionMode}
     />
   );
 
@@ -217,6 +193,18 @@ export function DeliveryInTransit() {
               {t("actions.addOrder")}
             </Button>
             {visibleBookIds.length > 0 ? (
+              <Button
+                onClick={() => {
+                  setSelectionMode((value) => !value);
+                  setSelectedIds(new Set());
+                }}
+                variant="secondary"
+              >
+                <UiIcon name="check" size={16} />
+                {selectionMode ? t("actions.doneSelecting") : t("actions.select")}
+              </Button>
+            ) : null}
+            {visibleBookIds.length > 0 ? (
               <Button onClick={() => setReceiveTarget(visibleBookIds)} variant="secondary">
                 <UiIcon name="check-circle" size={16} />
                 {t("actions.receiveAll")}
@@ -234,7 +222,7 @@ export function DeliveryInTransit() {
         }}
         renderCard={renderCard}
         selectAll={
-          visibleBookIds.length > 0
+          selectionMode && visibleBookIds.length > 0
             ? {
                 checked: selectAllChecked,
                 count: selectedVisible.length,
@@ -283,6 +271,15 @@ export function DeliveryInTransit() {
       )}
 
       <CreateBookOrderDialog onOpenChange={setCreateOrderOpen} open={createOrderOpen} />
+
+      {manageAction === null ? null : (
+        <OrderShipmentActionDialog
+          action={manageAction}
+          onOpenChange={(open) => {
+            if (!open) setManageAction(null);
+          }}
+        />
+      )}
 
       {cancelBookId === null ? null : (
         <DeliveryCancelDialog

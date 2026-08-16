@@ -127,11 +127,9 @@ function BookPickerView({
         <DialogDescription>{t("description")}</DialogDescription>
       </DialogHeader>
       <BookMultiSelectPicker
-        baseParams={{ owner: [...ORDER_PICKER_OWNERSHIP_STATUSES] }}
-        isVisible={(book) => book.delivery.active === null}
+        baseParams={{ hasActiveOrder: "false", owner: [...ORDER_PICKER_OWNERSHIP_STATUSES] }}
         labels={{
           clear: t("clear"),
-          disabled: t("activeOrder"),
           empty: t("empty"),
           emptySelected: t("emptySelected"),
           library: t("library"),

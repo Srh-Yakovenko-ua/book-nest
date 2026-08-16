@@ -1,0 +1,342 @@
+{
+  "spec": "docs/specs/order-shipment-books/spec.md",
+  "generatedAt": "2026-08-16T15:51:21Z",
+  "scope": {
+    "included": [
+      "Redesign the Books in transit order cards as Order → Shipment → Books",
+      "Responsive two-column desktop order grid and one-column tablet/mobile layout",
+      "Progressive disclosure of books and opt-in selection mode",
+      "Reuse existing frontend cards, badges, menus, buttons, spacing, typography, models, actions, tests, and stories",
+      "Ukrainian and English locale parity",
+      "Minimal shared/API list-contract extension exposing the backend's existing BookOrder.derivedStatus result",
+      "Generated frontend client refresh and contract blast-radius verification",
+      "Desktop, tablet, and mobile visual verification plus typecheck and lint"
+    ],
+    "excluded": [
+      "New backend domain rules, mutations, Prisma changes, and database changes; only the agreed read-contract extension is included",
+      "Add-book, item-price-update, and atomic cancel-order operations, which are not genuinely supported by the current backend contract",
+      "Frontend emulation of unsupported mutations through chained item/shipment requests",
+      "Equal-height order cards, explicitly not required",
+      "New UI primitives or design-system patterns unless an existing primitive cannot satisfy the requirement"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "title": "Extend the delivery row contract with the existing derived order status",
+      "specRef": "Resolved D1; Order header: order status badge",
+      "layer": "contract",
+      "files": [
+        "packages/shared/src/orders.ts",
+        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts",
+        "apps/api/src/modules/delivery/domain/order-item-row.mapper.ts",
+        "apps/api/src/modules/delivery/domain/order-item-row.mapper.test.ts",
+        "apps/api/src/modules/delivery/api/delivery-read.controller.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderItemRowOrderViewSchema includes derivedStatus using the existing BookOrderDerivedStatusSchema",
+        "The delivery read query loads only the additional order relations required to call the existing computeBookOrderDerivedStatus logic; no new status algorithm is introduced",
+        "toBookOrderItemRowView returns the same authoritative derived order status used by BookOrderView",
+        "Mapper and controller tests cover at least active, partially_shipped, shipped, and partially_received order states in row responses",
+        "No mutation, Prisma schema, migration, or unrelated response field changes"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T0A",
+      "title": "Regenerate the frontend API client for the derived-status contract extension",
+      "specRef": "Resolved D1; repository generated-code safeguard",
+      "layer": "generated-contract",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/"],
+      "dependsOn": ["T0"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm gen:api completes successfully",
+        "Generated BookOrderItemRow order models expose derivedStatus",
+        "Generated files are changed only through the documented generator and contain no hand edits",
+        "The generated diff contains no unrelated endpoint or model drift"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T0B",
+      "title": "Run contract blast-radius verification for the delivery row response change",
+      "specRef": "Resolved D1; CLAUDE.md quality gates for contract-shaped changes",
+      "layer": "contract-test",
+      "files": [".claude/skills/blast-radius/SKILL.md"],
+      "dependsOn": ["T0A"],
+      "mandatory": true,
+      "doneWhen": [
+        "The blast-radius skill inventory covers all consumers of BookOrderItemRowOrderViewSchema, BookOrderItemRowViewSchema, and PaginatedBookOrderItemRowsSchema",
+        "Affected API controller tests, frontend delivery query/model tests, fixtures, and generated-client consumers are identified and run",
+        "Every fixture constructing a row order includes a valid derivedStatus",
+        "No unresolved consumer failure remains"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T1",
+      "title": "Expose the existing order and shipment presentation data needed by the redesigned card",
+      "specRef": "Order header; Shipment block",
+      "layer": "frontend-model",
+      "files": [
+        "apps/web/src/features/delivery/model/order-card-model.ts",
+        "apps/web/src/features/delivery/model/order-card-model.test.ts"
+      ],
+      "dependsOn": ["T0B"],
+      "mandatory": true,
+      "doneWhen": [
+        "DeliveryOrderCardModel maps order.derivedStatus from the extended row contract to the existing StatusBadge presentation without deriving order status on the frontend",
+        "Each shipment model carries enough identity/order context to label one shipment as Shipment and multiple shipments as Shipment 1, Shipment 2, etc.",
+        "Each book row retains its order-item id, book id, shipment association, cover, title, author, optional series, and optional price",
+        "Model tests cover a single shipment, multiple shipments, and unassigned books"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T2",
+      "title": "Build the stronger order header and order-only action menu",
+      "specRef": "Order header",
+      "layer": "frontend-component",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "The header shows store, order number and date, N books · total aligned on the right, and an order status badge",
+        "The order overflow menu contains only genuinely supported order-level flows; Edit order and Add shipment are wired to their existing backend operations",
+        "Add book and Cancel order are not rendered because the current contract has no genuine add-item or atomic cancel-order operation",
+        "No shipment-level or book-level action appears in the order menu"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T3",
+      "title": "Render compact shipment blocks with shipment-only actions",
+      "specRef": "Shipment block",
+      "layer": "frontend-component",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "Every real shipment is a distinct compact block labeled Shipment for a single shipment or Shipment N for multiple shipments",
+        "Each shipment block shows its status badge and conditionally shows delivery service, tracking number, expected date, and Open tracking",
+        "Each real shipment has a Mark shipment as received CTA wired to the existing receive flow",
+        "The shipment overflow menu contains Edit shipment and Cancel shipment and no book actions; any other transition appears only when already supported and valid for the current status",
+        "Mark shipment as received remains the dedicated CTA and is not duplicated in the overflow menu",
+        "The unassigned-books group remains understandable without being falsely presented as a real numbered shipment"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T4",
+      "title": "Replace bordered book cards with one compact divided list per shipment",
+      "specRef": "Books",
+      "layer": "frontend-component",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "Books render as compact rows in one container with dividers between rows and no individual bordered card per book",
+        "Every row shows cover, title, author, optional series, optional price, and an item overflow menu",
+        "The book menu renders only genuinely supported book-level flows: Go to book, Move to another shipment when a valid target exists, and Cancel this book",
+        "Change price is not rendered because the current contract has no item-price update operation",
+        "No receive action or shipment-level action remains in the book menu, and unsupported behavior is not emulated with mutation chains"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T5",
+      "title": "Add per-order book disclosure and explicit selection mode",
+      "specRef": "Large orders",
+      "layer": "frontend-state",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit-view.tsx"
+      ],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "An order with more than three books initially renders exactly its first three books across the Order → Shipment grouping",
+        "The collapsed control says Show N more books with N equal to the hidden count, and the expanded control says Collapse",
+        "Expanding preserves shipment grouping and reveals all hidden books; collapsing restores the first-three state",
+        "No book checkbox or select-all checkbox is rendered before the user activates Select",
+        "Select activates checkbox selection without discarding the existing bulk receive behavior, and the user can exit selection mode"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T6",
+      "title": "Use a responsive two-column desktop grid for orders and matching loading skeletons",
+      "specRef": "Order list grid",
+      "layer": "frontend-layout",
+      "files": ["apps/web/src/features/delivery/components/delivery-in-transit-view.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Ready-state order cards use one column on mobile/tablet and two columns at the repository's desktop breakpoint",
+        "The loading skeleton uses the same responsive grid and card spacing",
+        "Grid items are not stretched to an artificially equal content height"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T7",
+      "title": "Add synchronized localized labels for the redesigned hierarchy and actions",
+      "specRef": "All user-facing labels; Reuse-first",
+      "layer": "frontend-i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Ukrainian and English delivery.card catalogs contain structurally identical keys for order, shipment, book, disclosure, and selection labels",
+        "Labels match the specification's action ownership and do not reuse the current ambiguous Edit delivery or Cancel order wording for book-only actions",
+        "node .claude/scripts/check-i18n-parity.mjs passes"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T8",
+      "title": "Cover the redesigned card behavior with component tests and stories",
+      "specRef": "Verification; every interaction requirement",
+      "layer": "frontend-test",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.test.tsx",
+        "apps/web/src/features/delivery/components/delivery-order-card.stories.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit-view.stories.tsx",
+        "apps/web/src/features/delivery/components/delivery.fixtures.ts"
+      ],
+      "dependsOn": ["T2", "T3", "T4", "T5", "T6", "T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "Tests assert strict separation of order, shipment, and book menu actions",
+        "Tests assert the first-three default, correct remaining count, expansion, collapse, and selection-mode checkbox visibility",
+        "Tests assert single- and multi-shipment labels, compact divided rows, conditional move action, and shipment receive targeting",
+        "Stories cover single shipment, multiple shipments, unassigned books, more than three books collapsed/expanded, and selection mode",
+        "pnpm exec vitest run apps/web/src/features/delivery/model/order-card-model.test.ts apps/web/src/features/delivery/components/delivery-order-card.test.tsx passes"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T9",
+      "title": "Verify responsive rendering and repository quality gates",
+      "specRef": "Verification",
+      "layer": "verification",
+      "files": [],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "The Books in transit page is visually inspected at representative desktop, tablet, and mobile viewport widths with screenshot evidence",
+        "Desktop evidence shows two order cards per row; tablet and mobile evidence show one",
+        "No browser console error is present during the three viewport checks",
+        "pnpm typecheck passes",
+        "pnpm lint passes",
+        "pnpm format:check passes"
+      ],
+      "status": "todo"
+    }
+  ],
+  "openDecisions": [],
+  "resolvedDecisions": [
+    {
+      "id": "D1",
+      "answer": "Minimally extend the delivery list response with the existing backend BookOrder.derivedStatus computation. Do not derive order status on the frontend. If reusing the authoritative backend logic proves disproportionate during implementation, omit the order badge and record that assumption instead of introducing a second status algorithm.",
+      "specRef": "Order header: order status badge"
+    },
+    {
+      "id": "D2",
+      "answer": "Render only genuinely supported flows. Do not add Add book, Change price, or atomic Cancel order actions, and do not emulate unsupported behavior with chained mutations.",
+      "specRef": "Order menu and book menu action lists"
+    },
+    {
+      "id": "D3",
+      "answer": "The shipment overflow menu contains Edit shipment and Cancel shipment. Mark shipment as received stays a separate CTA. Other shipment transitions may appear only when already supported and appropriate for the current status.",
+      "specRef": "Shipment block: shipment-level menu"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "The current frontend already groups in-transit rows as Order → Shipment → Books.",
+      "specRef": "Scope hierarchy",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/model/order-card-model.ts:78, apps/web/src/features/delivery/model/order-card-model.ts:112, apps/web/src/features/delivery/model/order-card-model.ts:185"
+    },
+    {
+      "claim": "The current header already shows store, order number/date, book count, and total.",
+      "specRef": "Order header",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:72, apps/web/src/features/delivery/components/delivery-order-card.tsx:84, apps/web/src/features/delivery/components/delivery-order-card.tsx:93"
+    },
+    {
+      "claim": "An order status badge can be rendered from the current in-transit row model.",
+      "specRef": "Order header: order status badge",
+      "verdict": "FALSE",
+      "evidence": "packages/shared/src/orders.ts:462 (BookOrderItemRowOrderViewSchema omits derivedStatus), while packages/shared/src/orders.ts:110 exposes it only on the full BookOrderViewSchema"
+    },
+    {
+      "claim": "Shipment status, service, tracking number/link, expected date, and receive behavior already exist in the card flow.",
+      "specRef": "Shipment block",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/model/order-card-model.ts:185, apps/web/src/features/delivery/components/delivery-order-card.tsx:252, apps/web/src/features/delivery/components/delivery-order-card.tsx:268, apps/web/src/features/delivery/components/delivery-order-card.tsx:328"
+    },
+    {
+      "claim": "Books already show cover, title, author, optional series, price, and a menu.",
+      "specRef": "Books",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:151, apps/web/src/features/delivery/components/delivery-order-card.tsx:171, apps/web/src/features/delivery/components/delivery-order-card.tsx:178, apps/web/src/features/delivery/components/delivery-order-card.tsx:179, apps/web/src/features/delivery/components/delivery-order-card.tsx:187, apps/web/src/features/delivery/components/delivery-order-card.tsx:193"
+    },
+    {
+      "claim": "Books currently use separate bordered cards and always-visible checkboxes.",
+      "specRef": "Books; Large orders",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:137, apps/web/src/features/delivery/components/delivery-order-card.tsx:143"
+    },
+    {
+      "claim": "The current book menu contains only the requested book-level actions.",
+      "specRef": "Books: book menu",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:205 includes receive and apps/web/src/features/delivery/components/delivery-order-card.tsx:209 uses the broader Edit delivery action; move-to-shipment is absent"
+    },
+    {
+      "claim": "Large orders currently show only the first three books and can expand/collapse.",
+      "specRef": "Large orders",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:312 maps every group.books entry with no limit or disclosure state"
+    },
+    {
+      "claim": "The in-transit order list currently uses a two-column desktop responsive grid.",
+      "specRef": "Order list grid",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-in-transit-view.tsx:168 uses flex flex-col; the loading state also uses flex flex-col at apps/web/src/features/delivery/components/delivery-in-transit-view.tsx:188"
+    },
+    {
+      "claim": "Existing API/domain operations cover the requested menu actions without backend/API changes.",
+      "specRef": "Reuse-first: existing Order/Shipment actions; no backend/API/domain changes",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/modules/delivery/api/book-orders.controller.ts:105 supports order-field editing and apps/api/src/modules/delivery/api/shipments.controller.ts:56 supports adding a shipment, but apps/api/src/modules/delivery/api/book-order-items.controller.ts:35 exposes only item cancellation and bulk receive; there is no explicit add-item, item-price update, or atomic cancel-order endpoint"
+    },
+    {
+      "claim": "The specification defines the contents of the shipment-level overflow menu.",
+      "specRef": "Shipment block",
+      "verdict": "FALSE",
+      "evidence": "docs/specs/order-shipment-books/spec.md:22 says only shipment-level actions but does not enumerate them; existing shipment operations are visible at apps/api/src/modules/delivery/api/shipments.controller.ts:56, apps/api/src/modules/delivery/api/shipments.controller.ts:93, apps/api/src/modules/delivery/api/shipments.controller.ts:111, apps/api/src/modules/delivery/api/shipments.controller.ts:133, and apps/api/src/modules/delivery/api/shipments.controller.ts:176"
+    },
+    {
+      "claim": "Current component tests assert the old always-visible selection and book-menu receive/edit behavior.",
+      "specRef": "Verification",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.test.tsx:101, apps/web/src/features/delivery/components/delivery-order-card.test.tsx:117, apps/web/src/features/delivery/components/delivery-order-card.test.tsx:155"
+    }
+  ]
+}

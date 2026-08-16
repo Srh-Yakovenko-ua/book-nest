@@ -17,11 +17,17 @@ import type {
 
 import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { getShipmentUiStatus } from "./delivery-ui-status.js";
+import { computeBookOrderDerivedStatus } from "./order-derived-status.js";
 import { resolveTrackingUrl } from "./tracking-url.js";
 
 export type BookOrderItemRowSource = BookOrderItemModel & {
-  order: BookOrderModel;
+  order: RowOrderSource;
   shipment: Nullable<ShipmentModel & { deliveryService: Nullable<DeliveryServiceModel> }>;
+};
+
+type RowOrderSource = BookOrderModel & {
+  items: Pick<BookOrderItemModel, "cancelledAt" | "receivedAt" | "shipmentId">[];
+  shipments: Pick<ShipmentModel, "id" | "status">[];
 };
 
 export function toBookOrderItemRowView({
@@ -64,10 +70,17 @@ function isSettledItem(row: BookOrderItemRowSource): boolean {
   return row.cancelledAt !== null || row.receivedAt !== null;
 }
 
-function toRowOrderView(order: BookOrderModel): BookOrderItemRowOrderView {
+function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
   return {
     currency: order.currency === null ? null : CurrencySchema.parse(order.currency),
     deliveryPrice: order.deliveryPrice === null ? null : order.deliveryPrice.toNumber(),
+    derivedStatus: computeBookOrderDerivedStatus({
+      items: order.items,
+      shipments: order.shipments.map((shipment) => ({
+        id: shipment.id,
+        status: ShipmentStatusSchema.parse(shipment.status),
+      })),
+    }),
     discount: order.discount === null ? null : order.discount.toNumber(),
     id: order.id,
     orderDate: toNullableIsoDate(order.orderDate),
