@@ -16,6 +16,8 @@ import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { toOrderStatusBadge } from "./statistics-view-model";
 
+const MONEY_PRECISION = 2;
+
 export type DeliveryBadgeKey =
   "arriving_soon" | "delayed" | "in_transit" | "no_delivery_date" | "ordered" | "ready_for_pickup";
 
@@ -92,7 +94,11 @@ export function toDeliveryOrderCards(
     orderNumber: group.order.orderNumber,
     shipments: dispatchedFirst(group).map((shipment) => toShipmentGroupModel(shipment, options)),
     storeName: group.order.storeName,
-    totalText: formatPrice(group.order.totalAmount, group.order.currency, options.locale),
+    totalText: formatPrice(
+      group.order.totalAmount ?? sumItemPrices(group.items),
+      group.order.currency,
+      options.locale,
+    ),
   }));
 }
 
@@ -165,6 +171,12 @@ function shipmentBadgeKey(shipment: Nullable<BookOrderItemRowShipmentView>): Del
   if (shipment.status === "in_transit") return "in_transit";
   if (shipment.status === "ready_for_pickup") return "ready_for_pickup";
   return "ordered";
+}
+
+function sumItemPrices(items: BookOrderItemRowView[]): Nullable<number> {
+  const prices = items.flatMap((item) => (item.price === null ? [] : [item.price]));
+  if (prices.length === 0) return null;
+  return Number(prices.reduce((total, price) => total + price, 0).toFixed(MONEY_PRECISION));
 }
 
 function toBookModel(item: BookOrderItemRowView, options: CardOptions): DeliveryOrderBookModel {

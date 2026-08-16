@@ -256,6 +256,30 @@ describe("toDeliveryOrderCards", () => {
     ]);
   });
 
+  it("falls back to the item prices when the order carries no total of its own", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: 349.5 }),
+        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: 120.25 }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).totalText).toBe("469.75 UAH");
+  });
+
+  it("sums the priced items alone when the rest carry no price", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: 300 }),
+        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).totalText).toBe("300 UAH");
+  });
+
   it("uses a manual total for an incomplete item breakdown", () => {
     const cards = toDeliveryOrderCards(
       [
