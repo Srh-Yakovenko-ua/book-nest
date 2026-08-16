@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ApiError } from "@/lib/http-client";
+import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 
 import { useBulkReceive } from "../api/use-bulk-receive";
 
@@ -31,6 +31,7 @@ export function DeliveryReceiveDialog({
 }: DeliveryReceiveDialogProps) {
   const t = useTranslations("delivery.receiveDialog");
   const tToast = useTranslations("delivery.toast");
+  const deliveryErrorText = useDeliveryErrorText();
   const tActions = useTranslations("books.actions");
   const bulkReceive = useBulkReceive();
 
@@ -38,7 +39,7 @@ export function DeliveryReceiveDialog({
 
   function onConfirm() {
     bulkReceive.mutate(bookIds, {
-      onError: (error) => toast.error(error instanceof ApiError ? error.message : tToast("error")),
+      onError: (error) => toast.error(deliveryErrorText(error)),
       onSuccess: (result) => {
         const received = result.receivedBookIds.length;
         const skipped = result.skipped.length;

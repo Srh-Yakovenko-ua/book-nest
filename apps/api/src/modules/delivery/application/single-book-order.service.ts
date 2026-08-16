@@ -1,6 +1,11 @@
 import type { ActiveShipmentStatus, Currency, Nullable } from "@app/shared";
 
-import { resolveOrderFinancials, ShipmentStatusSchema, validateOrderFinancials } from "@app/shared";
+import {
+  DELIVERY_ERROR_CODES,
+  resolveOrderFinancials,
+  ShipmentStatusSchema,
+  validateOrderFinancials,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -169,7 +174,9 @@ export class SingleBookOrderService {
         throw new NotFoundError(DELIVERY_WRITE_MESSAGES.itemNotFound);
       }
       if (item.cancelledAt !== null || item.receivedAt !== null) {
-        throw new ConflictError(DELIVERY_WRITE_MESSAGES.itemNoLongerActive);
+        throw new ConflictError(DELIVERY_WRITE_MESSAGES.itemNoLongerActive, {
+          code: DELIVERY_ERROR_CODES.itemNoLongerActive,
+        });
       }
 
       await this.patchItemContext({ client: tx, item, patch, userId });
@@ -275,7 +282,9 @@ export class SingleBookOrderService {
         client,
       );
       if (priced === 0) {
-        throw new ConflictError(DELIVERY_WRITE_MESSAGES.itemNoLongerActive);
+        throw new ConflictError(DELIVERY_WRITE_MESSAGES.itemNoLongerActive, {
+          code: DELIVERY_ERROR_CODES.itemNoLongerActive,
+        });
       }
     }
 

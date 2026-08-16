@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ApiError } from "@/lib/http-client";
+import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 
 import type { DeliveryOrderCardModel, DeliveryShipmentGroupModel } from "../model/order-card-model";
 
@@ -57,6 +57,7 @@ function AddShipmentDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("delivery.manage");
+  const deliveryErrorText = useDeliveryErrorText();
   const mutation = useCreateShipment(action.order.id);
   const itemIds = action.order.shipments
     .filter(({ id }) => id === null)
@@ -66,7 +67,7 @@ function AddShipmentDialog({
     event.preventDefault();
     mutation.mutate(
       { itemIds, status: "ordered", trackingNumber: trackingNumber || undefined },
-      callbacks(t("shipmentAdded"), t("error"), onOpenChange),
+      callbacks(t("shipmentAdded"), deliveryErrorText, onOpenChange),
     );
   }
   return (
@@ -83,9 +84,13 @@ function AddShipmentDialog({
   );
 }
 
-function callbacks(success: string, errorText: string, onOpenChange: (open: boolean) => void) {
+function callbacks(
+  success: string,
+  toErrorText: (error: unknown) => string,
+  onOpenChange: (open: boolean) => void,
+) {
   return {
-    onError: (error: Error) => toast.error(error instanceof ApiError ? error.message : errorText),
+    onError: (error: Error) => toast.error(toErrorText(error)),
     onSuccess: () => {
       toast.success(success);
       onOpenChange(false);
@@ -101,6 +106,7 @@ function CancelShipmentDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("delivery.manage");
+  const deliveryErrorText = useDeliveryErrorText();
   const mutation = useCancelShipment(action.shipment.id ?? "");
   return (
     <Frame
@@ -117,7 +123,7 @@ function CancelShipmentDialog({
           onClick={() =>
             mutation.mutate(
               { keepAsWantToBuy: true },
-              callbacks(t("shipmentCancelled"), t("error"), onOpenChange),
+              callbacks(t("shipmentCancelled"), deliveryErrorText, onOpenChange),
             )
           }
           variant="destructive"
@@ -137,6 +143,7 @@ function EditOrderDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("delivery.manage");
+  const deliveryErrorText = useDeliveryErrorText();
   const mutation = useUpdateOrder(action.order.id);
   const [storeName, setStoreName] = useState(action.order.storeName);
   const [orderNumber, setOrderNumber] = useState(action.order.orderNumber ?? "");
@@ -144,7 +151,7 @@ function EditOrderDialog({
     event.preventDefault();
     mutation.mutate(
       { orderNumber: orderNumber || null, storeName },
-      callbacks(t("orderUpdated"), t("error"), onOpenChange),
+      callbacks(t("orderUpdated"), deliveryErrorText, onOpenChange),
     );
   }
   return (
@@ -170,6 +177,7 @@ function EditShipmentDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("delivery.manage");
+  const deliveryErrorText = useDeliveryErrorText();
   const shipmentId = action.shipment.id ?? "";
   const mutation = useUpdateShipment(shipmentId);
   const [trackingNumber, setTrackingNumber] = useState(action.shipment.trackingNumber ?? "");
@@ -177,7 +185,7 @@ function EditShipmentDialog({
     event.preventDefault();
     mutation.mutate(
       { trackingNumber: trackingNumber || null },
-      callbacks(t("shipmentUpdated"), t("error"), onOpenChange),
+      callbacks(t("shipmentUpdated"), deliveryErrorText, onOpenChange),
     );
   }
   return (

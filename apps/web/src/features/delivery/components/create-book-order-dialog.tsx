@@ -52,11 +52,11 @@ import { BookMultiSelectPicker } from "@/features/books/components/book-multi-se
 import { BookThumb } from "@/features/books/components/book-picker";
 import { DeliveryServiceAutocomplete } from "@/features/books/components/delivery-service-autocomplete";
 import { StoreAutocomplete } from "@/features/books/components/store-autocomplete";
+import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
-import { ApiError } from "@/lib/http-client";
 
 import { useCreateBookOrder } from "../api/use-create-book-order";
 import {
@@ -165,6 +165,7 @@ function CreateBookOrderForm({
   view: CreateOrderView;
 }) {
   const t = useTranslations("delivery.createOrder");
+  const deliveryErrorText = useDeliveryErrorText();
   const locale = useLocale();
   const mutation = useCreateBookOrder();
   const [order, setOrder] = useState<OrderDraft>(EMPTY_ORDER);
@@ -361,7 +362,7 @@ function CreateBookOrderForm({
     setSubmitAttempted(true);
     if (itemPricesIncomplete || !parsedDraft.success) return;
     mutation.mutate(parsedDraft.data, {
-      onError: (error) => toast.error(error instanceof ApiError ? error.message : t("toast.error")),
+      onError: (error) => toast.error(deliveryErrorText(error)),
       onSuccess: () => {
         toast.success(t("toast.success"));
         onDone();

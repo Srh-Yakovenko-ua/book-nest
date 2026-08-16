@@ -12,7 +12,7 @@ import type {
   UpdateShipmentInput,
 } from "@app/shared";
 
-import { ShipmentStatusSchema } from "@app/shared";
+import { DELIVERY_ERROR_CODES, ShipmentStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -422,7 +422,9 @@ export class ShipmentService {
       client,
     );
     if (moved !== itemIds.length) {
-      throw new BadRequestError(DELIVERY_WRITE_MESSAGES.itemsNotMovable);
+      throw new BadRequestError(DELIVERY_WRITE_MESSAGES.itemsNotMovable, {
+        code: DELIVERY_ERROR_CODES.itemsNotMovable,
+      });
     }
   }
 

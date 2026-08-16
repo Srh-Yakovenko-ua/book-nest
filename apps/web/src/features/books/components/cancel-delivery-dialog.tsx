@@ -17,9 +17,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
 
 import { useCancelDelivery } from "../api/use-delivery";
+import { useDeliveryErrorText } from "../hooks/use-delivery-error-text";
 
 const CANCEL_REASON_MAX = 500;
 
@@ -57,7 +57,7 @@ function CancelForm({
   onDone: () => void;
 }) {
   const t = useTranslations("books.details.delivery.cancelDialog");
-  const tErrors = useTranslations("books.details.delivery.errors");
+  const deliveryErrorText = useDeliveryErrorText();
   const tActions = useTranslations("books.actions");
   const cancelDelivery = useCancelDelivery();
   const [keepAsWantToBuy, setKeepAsWantToBuy] = useState(true);
@@ -77,8 +77,7 @@ function CancelForm({
         },
       },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+        onError: (error) => setServerError(deliveryErrorText(error)),
         onSuccess: onDone,
       },
     );

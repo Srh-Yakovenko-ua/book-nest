@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { useReceiveDelivery } from "@/features/books/api/use-delivery";
+import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
 
 import type { DeliveryHistoryCardModel } from "../model/history-card-model";
 import type { HistoryContent } from "./delivery-history-view";
@@ -35,6 +35,7 @@ export function DeliveryHistory() {
   const tCard = useTranslations("delivery.card");
   const tBadge = useTranslations("delivery.badge");
   const tToast = useTranslations("delivery.toast");
+  const deliveryErrorText = useDeliveryErrorText();
   const locale = useLocale();
   const router = useRouter();
 
@@ -68,7 +69,7 @@ export function DeliveryHistory() {
       { deliveryId: model.deliveryId, id: model.bookId },
       {
         onError: (error) => {
-          toast.error(error instanceof ApiError ? error.message : tToast("error"));
+          toast.error(deliveryErrorText(error));
           setReceivePendingBookId(null);
         },
         onSuccess: () => {

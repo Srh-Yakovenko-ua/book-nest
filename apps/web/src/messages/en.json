@@ -1935,7 +1935,17 @@
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again.",
           "trackingUrl": "Enter a valid https link.",
-          "trackingUrlMax": "No more than {max} characters."
+          "trackingUrlMax": "No more than {max} characters.",
+          "bookAlreadyOrdered": "This book already has an active delivery.",
+          "bookNotOrderable": "A delivery can only be started for a book you do not own yet.",
+          "itemAlreadyCancelled": "This book was already cancelled.",
+          "itemAlreadyReceived": "This book has already arrived.",
+          "itemNoLongerActive": "This delivery is no longer active. Refresh the page.",
+          "itemsNotMovable": "Only active books of this order can be moved.",
+          "notFound": "This record is gone. Refresh the page.",
+          "sharedOrder": "This order also covers other books. Edit it from the order menu.",
+          "sharedShipment": "This shipment also covers other books. Edit it from the shipment menu.",
+          "shipmentNotActive": "This shipment is no longer active. Refresh the page."
         }
       },
       "timeline": {
@@ -2511,7 +2521,10 @@
         "title": "Delivery",
         "description": "Shipping details can be added now or later.",
         "shippedQuestion": "Has the order been shipped?",
-        "shippedOptions": { "no": "Not yet", "yes": "Yes, it has been shipped" },
+        "shippedOptions": {
+          "no": "Not yet",
+          "yes": "Yes, it has been shipped"
+        },
         "splitQuestion": "Was the order split into multiple shipments?",
         "splitHint": "If the store ships books in separate parcels, distribute the books between them.",
         "split": "Split delivery",
@@ -2933,6 +2946,14 @@
           "reset": "Reset filters"
         }
       }
+    },
+    "priceDialog": {
+      "title": "Book price",
+      "description": "Update what “{title}” cost in this order.",
+      "price": "Price",
+      "hint": "Leave the field empty to drop the price.",
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "favorites": {

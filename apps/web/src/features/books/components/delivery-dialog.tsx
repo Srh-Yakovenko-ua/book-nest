@@ -40,10 +40,10 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
-import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useCreateDelivery, useUpdateDelivery } from "../api/use-delivery";
+import { useDeliveryErrorText } from "../hooks/use-delivery-error-text";
 import { ISO_DATE_PATTERN, todayIso } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
@@ -238,6 +238,7 @@ function DeliveryForm({
 }) {
   const t = useTranslations("books.details.delivery");
   const tErrors = useTranslations("books.details.delivery.errors");
+  const deliveryErrorText = useDeliveryErrorText();
   const tStatus = useTranslations("books.deliveryStatus.labels");
   const tActions = useTranslations("books.actions");
   const createDelivery = useCreateDelivery();
@@ -278,8 +279,7 @@ function DeliveryForm({
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
-    const onError = (error: Error) =>
-      setServerError(error instanceof ApiError ? error.message : tErrors("generic"));
+    const onError = (error: Error) => setServerError(deliveryErrorText(error));
 
     if (delivery !== undefined) {
       updateDelivery.mutate(
