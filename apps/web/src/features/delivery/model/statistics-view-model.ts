@@ -140,14 +140,9 @@ export function buildTopOrders(
   label: (status: BookOrderDerivedStatus) => string,
 ): TopOrderRow[] {
   return view.topOrders.map((order) => {
-    const meta = ORDER_STATUS_BADGE[order.derivedStatus];
+    const badge = toOrderStatusBadge(order.derivedStatus, label);
     return {
-      badge: {
-        icon: meta.icon,
-        label: label(order.derivedStatus),
-        tone: meta.tone,
-        value: order.derivedStatus,
-      },
+      badge,
       booksCount: order.booksCount,
       id: order.id,
       orderDate: order.orderDate,
@@ -173,6 +168,14 @@ export function monthlyCurrencies(view: BookOrderStatisticsView): Currency[] {
     for (const entry of month.totalsByCurrency) present.add(entry.currency);
   }
   return CURRENCY_ORDER.filter((currency) => present.has(currency));
+}
+
+export function toOrderStatusBadge(
+  status: BookOrderDerivedStatus,
+  label: (status: BookOrderDerivedStatus) => string,
+): StatusEntry {
+  const meta = ORDER_STATUS_BADGE[status];
+  return { icon: meta.icon, label: label(status), tone: meta.tone, value: status };
 }
 
 function formatMonthLong(monthKey: string, locale: string): string {

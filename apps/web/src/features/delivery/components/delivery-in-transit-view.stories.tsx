@@ -34,11 +34,11 @@ const meta = {
         model={model}
         onCancelBook={() => {}}
         onEditBook={() => {}}
-        onReceiveBook={() => {}}
+        onManage={() => {}}
         onReceiveShipment={() => {}}
         onToggleSelectBook={() => {}}
-        receivePendingBookId={null}
         selectedBookIds={new Set()}
+        selectionMode={false}
       />
     ),
     showToolbar: false,

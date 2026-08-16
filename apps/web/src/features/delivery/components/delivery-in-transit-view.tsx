@@ -165,7 +165,9 @@ function DeliveryContentArea({
         </label>
       ) : null}
 
-      <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+        {content.items.map((model) => renderCard(model))}
+      </div>
 
       {pagination.hasNextPage ? (
         <div className="flex justify-center pt-2">
@@ -185,7 +187,7 @@ function DeliveryContentArea({
 
 function DeliverySkeletonList() {
   return (
-    <div aria-busy className="flex flex-col gap-4">
+    <div aria-busy className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <div
           className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card"

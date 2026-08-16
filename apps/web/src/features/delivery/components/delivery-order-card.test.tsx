@@ -37,11 +37,11 @@ function renderCard(
       model={model}
       onCancelBook={vi.fn()}
       onEditBook={vi.fn()}
-      onReceiveBook={vi.fn()}
+      onManage={vi.fn()}
       onReceiveShipment={vi.fn()}
       onToggleSelectBook={vi.fn()}
-      receivePendingBookId={null}
       selectedBookIds={new Set<string>()}
+      selectionMode={false}
       {...overrides}
     />,
   );
@@ -64,6 +64,74 @@ describe("DeliveryOrderCard", () => {
     expect(screen.getByRole("link", { name: "Страх мудреця" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Солодка Даруся" })).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("shows three books until the order is expanded", async () => {
+    const books = Array.from({ length: 5 }, (_, index) =>
+      makeDeliveryOrderBookModel({
+        bookId: `book-${index}`,
+        id: `item-${index}`,
+        title: `Книга ${index + 1}`,
+      }),
+    );
+    renderCard(
+      makeDeliveryOrderCardModel({
+        booksCount: books.length,
+        shipments: [makeDeliveryShipmentGroupModel({ books })],
+      }),
+    );
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 2 книги" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getByRole("button", { name: "Згорнути" })).toBeInTheDocument();
+  });
+
+  it("hides selection checkboxes outside selection mode", () => {
+    renderCard(deliveryOrderCards.multipleBooks);
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("keeps later shipment metadata visible while its books are collapsed", () => {
+    const firstBooks = Array.from({ length: 3 }, (_, index) =>
+      makeDeliveryOrderBookModel({ bookId: `first-${index}`, id: `first-item-${index}` }),
+    );
+    renderCard(
+      makeDeliveryOrderCardModel({
+        booksCount: 4,
+        shipments: [
+          makeDeliveryShipmentGroupModel({ books: firstBooks, serviceName: "Нова Пошта" }),
+          makeDeliveryShipmentGroupModel({
+            books: [makeDeliveryOrderBookModel({ bookId: "later", id: "later-item" })],
+            id: "shipment-later",
+            serviceName: "Укрпошта",
+          }),
+        ],
+      }),
+    );
+
+    expect(screen.getByText("Укрпошта")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("exposes working order and shipment actions through their own menus", async () => {
+    const onManage = vi.fn();
+    renderCard(deliveryOrderCards.multiShipment, { onManage });
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії із замовленням" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Редагувати замовлення" }));
+    expect(onManage).toHaveBeenCalledWith({
+      kind: "edit-order",
+      order: deliveryOrderCards.multiShipment,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії: Посилка 1" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Редагувати посилку" }));
+    expect(onManage).toHaveBeenCalledWith({
+      kind: "edit-shipment",
+      shipment: deliveryOrderCards.multiShipment.shipments[0],
+    });
   });
 
   it("gives each shipment its own book list", () => {
@@ -98,22 +166,6 @@ describe("DeliveryOrderCard", () => {
     expect(onReceiveShipment).toHaveBeenCalledWith(["book-5", "book-6"]);
   });
 
-  it("marks a single book received from its row menu", async () => {
-    const book = makeDeliveryOrderBookModel({ bookId: "book-42", title: "Амадока" });
-    const onReceiveBook = vi.fn();
-    renderCard(
-      makeDeliveryOrderCardModel({
-        shipments: [makeDeliveryShipmentGroupModel({ books: [book] })],
-      }),
-      { onReceiveBook },
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: "Дії для «Амадока»" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Позначити як отриману" }));
-
-    expect(onReceiveBook).toHaveBeenCalledWith(book);
-  });
-
   it("edits a single book from its row menu", async () => {
     const onEditBook = vi.fn();
     renderCard(
@@ -128,7 +180,7 @@ describe("DeliveryOrderCard", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Дії для «Амадока»" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Редагувати доставку" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Змінити ціну" }));
 
     expect(onEditBook).toHaveBeenCalledWith("book-42");
   });
@@ -147,14 +199,14 @@ describe("DeliveryOrderCard", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Дії для «Амадока»" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Скасувати замовлення" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Скасувати цю книгу" }));
 
     expect(onCancelBook).toHaveBeenCalledWith("book-42");
   });
 
   it("toggles the selection of the book whose checkbox was clicked", async () => {
     const onToggleSelectBook = vi.fn();
-    renderCard(deliveryOrderCards.multiShipment, { onToggleSelectBook });
+    renderCard(deliveryOrderCards.multiShipment, { onToggleSelectBook, selectionMode: true });
 
     await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати «Пісня Ахілла»" }));
 
@@ -163,7 +215,10 @@ describe("DeliveryOrderCard", () => {
   });
 
   it("shows a selected book as checked and leaves the others unchecked", () => {
-    renderCard(deliveryOrderCards.multiShipment, { selectedBookIds: new Set(["book-5"]) });
+    renderCard(deliveryOrderCards.multiShipment, {
+      selectedBookIds: new Set(["book-5"]),
+      selectionMode: true,
+    });
 
     expect(screen.getByRole("checkbox", { name: "Вибрати «Американські боги»" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Вибрати «Пісня Ахілла»" })).not.toBeChecked();

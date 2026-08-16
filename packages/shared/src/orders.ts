@@ -462,6 +462,7 @@ export type BookOrderHistorySummaryView = z.infer<typeof BookOrderHistorySummary
 export const BookOrderItemRowOrderViewSchema = z.object({
   currency: CurrencySchema.nullable(),
   deliveryPrice: z.number().nullable(),
+  derivedStatus: BookOrderDerivedStatusSchema,
   discount: z.number().nullable(),
   id: z.string(),
   orderDate: z.string().nullable(),

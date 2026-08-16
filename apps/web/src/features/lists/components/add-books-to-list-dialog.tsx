@@ -66,7 +66,6 @@ function AddBooksForm({ listId, onDone }: { listId: string; onDone: () => void }
         baseParams={{ notInList: listId }}
         labels={{
           clear: t("clear"),
-          disabled: "",
           empty: t("empty"),
           emptySelected: t("emptySelected"),
           library: t("library"),

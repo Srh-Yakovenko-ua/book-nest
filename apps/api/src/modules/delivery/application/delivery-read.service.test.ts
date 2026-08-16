@@ -102,7 +102,11 @@ function itemRow({
     cancelReason: null,
     createdAt: new Date("2026-08-01T00:00:00.000Z"),
     id: "item-1",
-    order: orderRow,
+    order: {
+      ...orderRow,
+      items: [{ cancelledAt, receivedAt, shipmentId: "shipment-1" }],
+      shipments: [{ id: "shipment-1", status }],
+    },
     orderId: orderRow.id,
     price: new Prisma.Decimal("120.50"),
     receivedAt,
@@ -158,6 +162,7 @@ describe("DeliveryReadService.inTransitList", () => {
         order: {
           currency: "UAH",
           deliveryPrice: null,
+          derivedStatus: "shipped",
           discount: null,
           id: "order-1",
           orderDate: "2026-08-01",

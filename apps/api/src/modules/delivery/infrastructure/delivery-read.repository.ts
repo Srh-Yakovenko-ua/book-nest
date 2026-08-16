@@ -41,7 +41,14 @@ const inTransitRowRelations = {
         tags: { include: { tag: true } },
       },
     },
-    order: true,
+    order: {
+      include: {
+        items: {
+          select: { cancelledAt: true, receivedAt: true, shipmentId: true },
+        },
+        shipments: { select: { id: true, status: true } },
+      },
+    },
     shipment: { include: { deliveryService: true } },
   },
 } satisfies Prisma.BookOrderItemDefaultArgs;
