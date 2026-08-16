@@ -1886,8 +1886,7 @@
         },
         "editDialog": {
           "title": "Edit delivery",
-          "description": "Update the order details.",
-          "status": "Delivery status"
+          "description": "Update the order details."
         },
         "form": {
           "storeName": "Store",
@@ -2694,7 +2693,7 @@
       "addShipment": "Add shipment",
       "addShipmentDescription": "Unassigned books will be added to the new shipment.",
       "editShipment": "Edit shipment",
-      "editShipmentDescription": "Update the shipment tracking number.",
+      "editShipmentDescription": "Update the dispatch details of this shipment.",
       "cancelShipment": "Cancel shipment",
       "cancelShipmentDescription": "Every active book in this shipment will also be cancelled.",
       "store": "Store",
@@ -2707,7 +2706,12 @@
       "shipmentAdded": "Shipment added",
       "shipmentUpdated": "Shipment updated",
       "shipmentCancelled": "Shipment cancelled",
-      "error": "Could not complete the action"
+      "error": "Could not complete the action",
+      "deliveryService": "Delivery service",
+      "deliveryServicePlaceholder": "Service name",
+      "expectedDate": "Expected delivery date",
+      "status": "Delivery status",
+      "trackingUrl": "Tracking link"
     },
     "bulk": {
       "regionLabel": "Bulk actions",

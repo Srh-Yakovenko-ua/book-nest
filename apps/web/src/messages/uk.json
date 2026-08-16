@@ -1886,8 +1886,7 @@
         },
         "editDialog": {
           "title": "Редагувати доставку",
-          "description": "Оновіть деталі замовлення.",
-          "status": "Статус доставки"
+          "description": "Оновіть деталі замовлення."
         },
         "form": {
           "storeName": "Магазин",
@@ -2694,7 +2693,7 @@
       "addShipment": "Додати посилку",
       "addShipmentDescription": "Нерозподілені книги буде додано до нової посилки.",
       "editShipment": "Редагувати посилку",
-      "editShipmentDescription": "Оновіть номер відстеження посилки.",
+      "editShipmentDescription": "Оновіть дані відправлення цієї посилки.",
       "cancelShipment": "Скасувати посилку",
       "cancelShipmentDescription": "Усі активні книги цієї посилки також буде скасовано.",
       "store": "Магазин",
@@ -2707,7 +2706,12 @@
       "shipmentAdded": "Посилку додано",
       "shipmentUpdated": "Посилку оновлено",
       "shipmentCancelled": "Посилку скасовано",
-      "error": "Не вдалося виконати дію"
+      "error": "Не вдалося виконати дію",
+      "deliveryService": "Служба доставки",
+      "deliveryServicePlaceholder": "Назва служби",
+      "expectedDate": "Очікувана дата доставки",
+      "status": "Статус доставки",
+      "trackingUrl": "Посилання на відстеження"
     },
     "bulk": {
       "regionLabel": "Масові дії",

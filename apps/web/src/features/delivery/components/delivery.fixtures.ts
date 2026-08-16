@@ -76,13 +76,16 @@ export function makeDeliveryShipmentGroupModel(
   return {
     badge: badges.arrivingSoon,
     books: [makeDeliveryOrderBookModel()],
+    expectedDate: "2026-07-12",
     expectedDateText: "12 лип. 2026",
     id: "shipment-1",
     note: null,
     pickupUntilText: null,
     serviceName: "Нова Пошта",
+    status: "in_transit",
     trackingHref: "https://tracking.example.com/20450012345678",
     trackingNumber: "20450012345678",
+    trackingUrl: "https://tracking.example.com/20450012345678",
     ...overrides,
   };
 }

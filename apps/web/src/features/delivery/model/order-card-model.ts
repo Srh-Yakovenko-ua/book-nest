@@ -5,6 +5,7 @@ import type {
   Currency,
   DeliveryUiStatus,
   Nullable,
+  ShipmentStatus,
 } from "@app/shared";
 
 import type { UiIconName } from "@/components/icons";
@@ -52,13 +53,16 @@ export type DeliveryOrderCardModel = {
 export type DeliveryShipmentGroupModel = {
   badge: StatusEntry;
   books: DeliveryOrderBookModel[];
+  expectedDate: Nullable<string>;
   expectedDateText: Nullable<string>;
   id: Nullable<string>;
   note: Nullable<string>;
   pickupUntilText: Nullable<string>;
   serviceName: Nullable<string>;
+  status: Nullable<ShipmentStatus>;
   trackingHref: Nullable<string>;
   trackingNumber: Nullable<string>;
+  trackingUrl: Nullable<string>;
 };
 
 type CardOptions = { labels: DeliveryCardLabels; locale: string };
@@ -214,13 +218,16 @@ function toShipmentGroupModel(
       options.labels.badge,
     ),
     books: group.items.map((item) => toBookModel(item, options)),
+    expectedDate: expectedDeliveryDate,
     expectedDateText:
       expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),
     id: group.id,
     note: shipment?.note ?? null,
     pickupUntilText: pickupUntil === null ? null : formatDate(pickupUntil, options.locale),
     serviceName: shipment?.deliveryService?.name ?? null,
+    status: shipment?.status ?? null,
     trackingHref: trackingUrl !== null && isHttpsUrl(trackingUrl) ? trackingUrl : null,
     trackingNumber: shipment?.trackingNumber ?? null,
+    trackingUrl,
   };
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  ActiveShipmentStatus,
   BookView,
   CreateDeliveryInput,
   Currency,
@@ -9,7 +8,6 @@ import type {
   UpdateDeliveryInput,
 } from "@app/shared";
 
-import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -101,7 +99,6 @@ type DeliveryValues = {
   orderDate: string;
   orderNumber: string;
   price: string;
-  status: ActiveShipmentStatus;
   storeName: string;
   trackingNumber: string;
   trackingUrl: string;
@@ -185,7 +182,6 @@ function buildSchema(messages: DeliveryMessages) {
           (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
           messages.priceMax,
         ),
-      status: z.enum(SHIPMENT_ACTIVE_STATUSES),
       storeName: z
         .string()
         .refine((value) => value.trim().length > 0, messages.storeNameRequired)
@@ -220,7 +216,6 @@ function buildUpdatePayload(values: DeliveryValues): UpdateDeliveryInput {
     orderDate: values.orderDate,
     orderNumber: emptyToNull(values.orderNumber.trim()),
     price: hasPrice ? price : null,
-    status: values.status,
     storeName: values.storeName.trim(),
     trackingNumber: emptyToNull(values.trackingNumber.trim()),
     trackingUrl: emptyToNull(values.trackingUrl.trim()),
@@ -239,7 +234,6 @@ function DeliveryForm({
   const t = useTranslations("books.details.delivery");
   const tErrors = useTranslations("books.details.delivery.errors");
   const deliveryErrorText = useDeliveryErrorText();
-  const tStatus = useTranslations("books.deliveryStatus.labels");
   const tActions = useTranslations("books.actions");
   const createDelivery = useCreateDelivery();
   const updateDelivery = useUpdateDelivery();
@@ -368,33 +362,6 @@ function DeliveryForm({
           <FieldError error={errors.expectedDeliveryDate} id="delivery-expected-date-error" />
         </div>
       </div>
-
-      {isEdit ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="delivery-status">{t("editDialog.status")}</Label>
-          <Controller
-            control={control}
-            name="status"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger
-                  className="h-10 w-full data-[size=default]:h-10"
-                  id="delivery-status"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SHIPMENT_ACTIVE_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {tStatus(status)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </div>
-      ) : null}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="delivery-service">{t("form.deliveryService")}</Label>
@@ -579,10 +546,6 @@ function toDefaults(delivery: DeliveryView | undefined): DeliveryValues {
     orderDate: delivery?.orderDate ?? todayIso(),
     orderNumber: delivery?.orderNumber ?? "",
     price: delivery?.price != null ? String(delivery.price) : "",
-    status:
-      delivery !== undefined && isActiveShipmentStatus(delivery.status)
-        ? delivery.status
-        : "ordered",
     storeName: delivery?.storeName ?? "",
     trackingNumber: delivery?.trackingNumber ?? "",
     trackingUrl: delivery?.trackingUrl ?? "",
