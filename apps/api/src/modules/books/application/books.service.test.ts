@@ -547,6 +547,7 @@ describe("BooksService.create", () => {
           currency: null,
           deliveryService: null,
           expectedDeliveryDate: null,
+          hasShipment: true,
           note: null,
           orderDate: null,
           orderNumber: "TTN-1",
