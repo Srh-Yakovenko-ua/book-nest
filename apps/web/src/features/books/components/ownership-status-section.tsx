@@ -3,6 +3,7 @@
 import type { OwnershipStatus } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import {
   type Control,
   Controller,
@@ -16,9 +17,11 @@ import type { LoanContactSelection } from "@/features/loans/model/loan-contact-s
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -38,7 +41,6 @@ import type { BookFormMode } from "../model/book-form-mode";
 import type { CreateBookFormValues } from "../model/create-book-form";
 
 import {
-  CREATE_DELIVERY_STATUS_OPTIONS,
   EDIT_DELIVERY_STATUS_OPTIONS,
   OWNERSHIP_STATUS_OPTIONS,
   ownershipUsesDelivery,
@@ -89,8 +91,8 @@ export function OwnershipStatusSection({
 }: OwnershipStatusSectionProps) {
   const t = useTranslations("books");
   const status = useWatch({ control, name: "ownershipStatus" }) ?? "none";
-  const deliveryStatusOptions =
-    mode === "edit" ? EDIT_DELIVERY_STATUS_OPTIONS : CREATE_DELIVERY_STATUS_OPTIONS;
+  const isShipped = useWatch({ control, name: "deliveryInfo.isShipped" }) === true;
+  const [additionalDeliveryOpen, setAdditionalDeliveryOpen] = useState(false);
   const complete = useSectionCompletion(control, OWNERSHIP_FIELDS);
   const loanContactError = errors.loanInfo?.loanContactId ?? errors.loanInfo?.personName;
 
@@ -127,10 +129,22 @@ export function OwnershipStatusSection({
       />
 
       {ownershipUsesDelivery(status) ? (
-        <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 p-4 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
-          <p className="text-sm font-medium text-foreground">{t("deliveryInfo.title")}</p>
+        <div
+          className={
+            mode === "create"
+              ? "flex flex-col gap-4 rounded-md border border-border bg-secondary/40 p-4 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1 sm:grid sm:grid-cols-12"
+              : "flex flex-col gap-4 rounded-md border border-border bg-secondary/40 p-4 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1"
+          }
+        >
+          <p className="text-sm font-medium text-foreground sm:col-span-12">
+            {mode === "create" ? t("deliveryInfo.orderDetails") : t("deliveryInfo.title")}
+          </p>
 
-          <div className="flex flex-col gap-2">
+          <div
+            className={
+              mode === "create" ? "flex flex-col gap-2 sm:col-span-7" : "flex flex-col gap-2"
+            }
+          >
             <Label htmlFor="delivery-store-name">{t("deliveryInfo.fields.storeName")}</Label>
             <Controller
               control={control}
@@ -152,29 +166,40 @@ export function OwnershipStatusSection({
             <FieldError error={errors.deliveryInfo?.storeName} id="delivery-store-name-error" />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="delivery-service">{t("deliveryInfo.fields.deliveryService")}</Label>
-            <Controller
-              control={control}
-              name="deliveryInfo.deliveryService"
-              render={({ field }) => (
-                <DeliveryServiceAutocomplete
-                  describedBy={
-                    errors.deliveryInfo?.deliveryService ? "delivery-service-error" : undefined
-                  }
-                  id="delivery-service"
-                  invalid={errors.deliveryInfo?.deliveryService !== undefined}
-                  label={t("deliveryInfo.fields.deliveryService")}
-                  onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
-                  placeholder={t("deliveryInfo.fields.deliveryServicePlaceholder")}
-                  value={typeof field.value === "string" ? field.value : ""}
-                />
-              )}
-            />
-            <FieldError error={errors.deliveryInfo?.deliveryService} id="delivery-service-error" />
-          </div>
+          {mode === "edit" ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="delivery-service">{t("deliveryInfo.fields.deliveryService")}</Label>
+              <Controller
+                control={control}
+                name="deliveryInfo.deliveryService"
+                render={({ field }) => (
+                  <DeliveryServiceAutocomplete
+                    describedBy={
+                      errors.deliveryInfo?.deliveryService ? "delivery-service-error" : undefined
+                    }
+                    id="delivery-service"
+                    invalid={errors.deliveryInfo?.deliveryService !== undefined}
+                    label={t("deliveryInfo.fields.deliveryService")}
+                    onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                    placeholder={t("deliveryInfo.fields.deliveryServicePlaceholder")}
+                    value={typeof field.value === "string" ? field.value : ""}
+                  />
+                )}
+              />
+              <FieldError
+                error={errors.deliveryInfo?.deliveryService}
+                id="delivery-service-error"
+              />
+            </div>
+          ) : null}
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div
+            className={
+              mode === "create"
+                ? "flex flex-col gap-3 sm:col-span-5 sm:flex-row"
+                : "flex flex-col gap-3 sm:flex-row"
+            }
+          >
             <div className="flex flex-1 flex-col gap-2">
               <Label htmlFor="delivery-order-number">{t("deliveryInfo.fields.orderNumber")}</Label>
               <Input
@@ -191,26 +216,34 @@ export function OwnershipStatusSection({
               />
             </div>
 
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="delivery-tracking-number">
-                {t("deliveryInfo.fields.trackingNumber")}
-              </Label>
-              <Input
-                aria-invalid={errors.deliveryInfo?.trackingNumber !== undefined}
-                autoComplete="off"
-                className="h-10"
-                id="delivery-tracking-number"
-                placeholder={t("deliveryInfo.fields.trackingNumberPlaceholder")}
-                {...register("deliveryInfo.trackingNumber", { setValueAs: emptyToUndefined })}
-              />
-              <FieldError
-                error={errors.deliveryInfo?.trackingNumber}
-                id="delivery-tracking-number-error"
-              />
-            </div>
+            {mode === "edit" ? (
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="delivery-tracking-number">
+                  {t("deliveryInfo.fields.trackingNumber")}
+                </Label>
+                <Input
+                  aria-invalid={errors.deliveryInfo?.trackingNumber !== undefined}
+                  autoComplete="off"
+                  className="h-10"
+                  id="delivery-tracking-number"
+                  placeholder={t("deliveryInfo.fields.trackingNumberPlaceholder")}
+                  {...register("deliveryInfo.trackingNumber", { setValueAs: emptyToUndefined })}
+                />
+                <FieldError
+                  error={errors.deliveryInfo?.trackingNumber}
+                  id="delivery-tracking-number-error"
+                />
+              </div>
+            ) : null}
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div
+            className={
+              mode === "create"
+                ? "flex flex-col gap-3 sm:col-span-5 sm:flex-row"
+                : "flex flex-col gap-3 sm:flex-row"
+            }
+          >
             <div className="flex flex-1 flex-col gap-2">
               <Label htmlFor="delivery-order-date">{t("deliveryInfo.fields.orderDate")}</Label>
               <Controller
@@ -219,6 +252,7 @@ export function OwnershipStatusSection({
                 render={({ field }) => (
                   <BookDateField
                     ariaLabel={t("deliveryInfo.fields.orderDate")}
+                    className={mode === "create" ? "h-10" : undefined}
                     describedBy={
                       errors.deliveryInfo?.orderDate ? "delivery-order-date-error" : undefined
                     }
@@ -233,39 +267,49 @@ export function OwnershipStatusSection({
               <FieldError error={errors.deliveryInfo?.orderDate} id="delivery-order-date-error" />
             </div>
 
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="delivery-expected-date">
-                {t("deliveryInfo.fields.expectedDeliveryDate")}
-              </Label>
-              <Controller
-                control={control}
-                name="deliveryInfo.expectedDeliveryDate"
-                render={({ field }) => (
-                  <BookDateField
-                    allowFuture
-                    ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
-                    describedBy={
-                      errors.deliveryInfo?.expectedDeliveryDate
-                        ? "delivery-expected-date-error"
-                        : undefined
-                    }
-                    id="delivery-expected-date"
-                    invalid={errors.deliveryInfo?.expectedDeliveryDate !== undefined}
-                    onChange={field.onChange}
-                    placeholder={t("ownershipStatus.fields.datePlaceholder")}
-                    value={field.value}
-                  />
-                )}
-              />
-              <FieldError
-                error={errors.deliveryInfo?.expectedDeliveryDate}
-                id="delivery-expected-date-error"
-              />
-            </div>
+            {mode === "edit" ? (
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="delivery-expected-date">
+                  {t("deliveryInfo.fields.expectedDeliveryDate")}
+                </Label>
+                <Controller
+                  control={control}
+                  name="deliveryInfo.expectedDeliveryDate"
+                  render={({ field }) => (
+                    <BookDateField
+                      allowFuture
+                      ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
+                      describedBy={
+                        errors.deliveryInfo?.expectedDeliveryDate
+                          ? "delivery-expected-date-error"
+                          : undefined
+                      }
+                      id="delivery-expected-date"
+                      invalid={errors.deliveryInfo?.expectedDeliveryDate !== undefined}
+                      onChange={field.onChange}
+                      placeholder={t("ownershipStatus.fields.datePlaceholder")}
+                      value={field.value}
+                    />
+                  )}
+                />
+                <FieldError
+                  error={errors.deliveryInfo?.expectedDeliveryDate}
+                  id="delivery-expected-date-error"
+                />
+              </div>
+            ) : null}
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="flex flex-1 flex-col gap-2">
+          <div
+            className={
+              mode === "create"
+                ? "flex flex-col gap-3 sm:col-span-7 sm:grid sm:grid-cols-2"
+                : "flex flex-col gap-3 sm:flex-row"
+            }
+          >
+            <div
+              className={mode === "create" ? "flex flex-col gap-2" : "flex flex-1 flex-col gap-2"}
+            >
               <Label htmlFor="delivery-price">{t("deliveryInfo.fields.price")}</Label>
               <Input
                 aria-invalid={errors.deliveryInfo?.price !== undefined}
@@ -295,7 +339,7 @@ export function OwnershipStatusSection({
                 control={control}
                 name="deliveryInfo.currency"
                 render={({ field }) => (
-                  <div className="w-full sm:w-28">
+                  <div className={mode === "create" ? "w-full" : "w-full sm:w-28"}>
                     <Select
                       onValueChange={field.onChange}
                       value={typeof field.value === "string" ? field.value : undefined}
@@ -322,61 +366,251 @@ export function OwnershipStatusSection({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="delivery-tracking-url">{t("deliveryInfo.fields.trackingUrl")}</Label>
-            <Input
-              aria-describedby={
-                errors.deliveryInfo?.trackingUrl ? "delivery-tracking-url-error" : undefined
-              }
-              aria-invalid={errors.deliveryInfo?.trackingUrl !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="delivery-tracking-url"
-              inputMode="url"
-              placeholder={t("deliveryInfo.fields.trackingUrlPlaceholder")}
-              {...register("deliveryInfo.trackingUrl", { setValueAs: emptyToUndefined })}
-            />
-            <FieldError error={errors.deliveryInfo?.trackingUrl} id="delivery-tracking-url-error" />
-          </div>
+          {mode === "create" ? (
+            <div className="flex flex-col gap-4 border-t border-border pt-4 sm:col-span-12">
+              <p className="text-sm font-medium text-foreground">{t("deliveryInfo.delivery")}</p>
+              <div className="flex flex-col gap-2">
+                <Label>{t("deliveryInfo.shippedQuestion")}</Label>
+                <Controller
+                  control={control}
+                  name="deliveryInfo.isShipped"
+                  render={({ field }) => (
+                    <Segmented
+                      block
+                      label={t("deliveryInfo.shippedQuestion")}
+                      onValueChange={(value) => {
+                        const shipped = value === "yes";
+                        field.onChange(shipped);
+                        setValue(
+                          "deliveryInfo.deliveryStatus",
+                          shipped ? "in_transit" : "ordered",
+                          {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          },
+                        );
+                        if (!shipped) {
+                          setAdditionalDeliveryOpen(false);
+                          setValue("deliveryInfo.deliveryService", undefined);
+                          setValue("deliveryInfo.expectedDeliveryDate", undefined);
+                          setValue("deliveryInfo.note", undefined);
+                          setValue("deliveryInfo.trackingNumber", undefined);
+                          setValue("deliveryInfo.trackingUrl", undefined);
+                        }
+                      }}
+                      options={(["no", "yes"] as const).map((value) => ({
+                        label: t(`deliveryInfo.shippedOptions.${value}`),
+                        value,
+                      }))}
+                      value={field.value === true ? "yes" : "no"}
+                    />
+                  )}
+                />
+              </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="delivery-status">{t("deliveryInfo.fields.deliveryStatus")}</Label>
-            <Controller
-              control={control}
-              name="deliveryInfo.deliveryStatus"
-              render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  value={typeof field.value === "string" ? field.value : undefined}
-                >
-                  <SelectTrigger
-                    className="h-10 w-full data-[size=default]:h-10"
-                    id="delivery-status"
-                    isClearable={typeof field.value === "string"}
-                    onClear={() => field.onChange(undefined)}
+              {isShipped ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="delivery-service">
+                      {t("deliveryInfo.fields.deliveryService")}
+                    </Label>
+                    <Controller
+                      control={control}
+                      name="deliveryInfo.deliveryService"
+                      render={({ field }) => (
+                        <DeliveryServiceAutocomplete
+                          describedBy={
+                            errors.deliveryInfo?.deliveryService
+                              ? "delivery-service-error"
+                              : undefined
+                          }
+                          id="delivery-service"
+                          invalid={errors.deliveryInfo?.deliveryService !== undefined}
+                          label={t("deliveryInfo.fields.deliveryService")}
+                          onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                          placeholder={t("deliveryInfo.fields.deliveryServicePlaceholder")}
+                          value={typeof field.value === "string" ? field.value : ""}
+                        />
+                      )}
+                    />
+                    <FieldError
+                      error={errors.deliveryInfo?.deliveryService}
+                      id="delivery-service-error"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="flex flex-1 flex-col gap-2">
+                      <Label htmlFor="delivery-tracking-number">
+                        {t("deliveryInfo.fields.trackingNumber")}
+                      </Label>
+                      <Input
+                        aria-invalid={errors.deliveryInfo?.trackingNumber !== undefined}
+                        autoComplete="off"
+                        className="h-10"
+                        id="delivery-tracking-number"
+                        placeholder={t("deliveryInfo.fields.trackingNumberPlaceholder")}
+                        {...register("deliveryInfo.trackingNumber", {
+                          setValueAs: emptyToUndefined,
+                        })}
+                      />
+                      <FieldError
+                        error={errors.deliveryInfo?.trackingNumber}
+                        id="delivery-tracking-number-error"
+                      />
+                    </div>
+                    <div className="flex flex-1 flex-col gap-2">
+                      <Label htmlFor="delivery-expected-date">
+                        {t("deliveryInfo.fields.expectedDeliveryDate")}
+                      </Label>
+                      <Controller
+                        control={control}
+                        name="deliveryInfo.expectedDeliveryDate"
+                        render={({ field }) => (
+                          <BookDateField
+                            allowFuture
+                            ariaLabel={t("deliveryInfo.fields.expectedDeliveryDate")}
+                            className="h-10"
+                            describedBy={
+                              errors.deliveryInfo?.expectedDeliveryDate
+                                ? "delivery-expected-date-error"
+                                : undefined
+                            }
+                            id="delivery-expected-date"
+                            invalid={errors.deliveryInfo?.expectedDeliveryDate !== undefined}
+                            onChange={field.onChange}
+                            placeholder={t("ownershipStatus.fields.datePlaceholder")}
+                            value={field.value}
+                          />
+                        )}
+                      />
+                      <FieldError
+                        error={errors.deliveryInfo?.expectedDeliveryDate}
+                        id="delivery-expected-date-error"
+                      />
+                    </div>
+                  </div>
+
+                  <Collapsible
+                    className="flex flex-col gap-3"
+                    onOpenChange={setAdditionalDeliveryOpen}
+                    open={additionalDeliveryOpen}
                   >
-                    <SelectValue placeholder={t("deliveryInfo.fields.deliveryStatusPlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {deliveryStatusOptions.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {t(`deliveryStatus.labels.${value}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
+                    <CollapsibleTrigger className="group flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium text-ink outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
+                      {t("deliveryInfo.additional")}
+                      <UiIcon
+                        className="transition-transform group-data-[state=open]:rotate-180"
+                        name="chevron-down"
+                        size={16}
+                      />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="delivery-tracking-url">
+                          {t("deliveryInfo.fields.trackingUrl")}
+                        </Label>
+                        <Input
+                          aria-describedby={
+                            errors.deliveryInfo?.trackingUrl
+                              ? "delivery-tracking-url-error"
+                              : undefined
+                          }
+                          aria-invalid={errors.deliveryInfo?.trackingUrl !== undefined}
+                          autoComplete="off"
+                          className="h-10"
+                          id="delivery-tracking-url"
+                          inputMode="url"
+                          placeholder={t("deliveryInfo.fields.trackingUrlPlaceholder")}
+                          {...register("deliveryInfo.trackingUrl", {
+                            setValueAs: emptyToUndefined,
+                          })}
+                        />
+                        <FieldError
+                          error={errors.deliveryInfo?.trackingUrl}
+                          id="delivery-tracking-url-error"
+                        />
+                      </div>
+                      <OwnershipNoteField
+                        error={errors.deliveryInfo?.note}
+                        id="delivery-note"
+                        label={t("ownershipStatus.fields.note")}
+                        name="deliveryInfo.note"
+                        placeholder={t("ownershipStatus.fields.notePlaceholder")}
+                        register={register}
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
-          <OwnershipNoteField
-            error={errors.deliveryInfo?.note}
-            id="delivery-note"
-            label={t("ownershipStatus.fields.note")}
-            name="deliveryInfo.note"
-            placeholder={t("ownershipStatus.fields.notePlaceholder")}
-            register={register}
-          />
+          {mode === "edit" ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="delivery-tracking-url">{t("deliveryInfo.fields.trackingUrl")}</Label>
+              <Input
+                aria-describedby={
+                  errors.deliveryInfo?.trackingUrl ? "delivery-tracking-url-error" : undefined
+                }
+                aria-invalid={errors.deliveryInfo?.trackingUrl !== undefined}
+                autoComplete="off"
+                className="h-10"
+                id="delivery-tracking-url"
+                inputMode="url"
+                placeholder={t("deliveryInfo.fields.trackingUrlPlaceholder")}
+                {...register("deliveryInfo.trackingUrl", { setValueAs: emptyToUndefined })}
+              />
+              <FieldError
+                error={errors.deliveryInfo?.trackingUrl}
+                id="delivery-tracking-url-error"
+              />
+            </div>
+          ) : null}
+
+          {mode === "edit" ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="delivery-status">{t("deliveryInfo.fields.deliveryStatus")}</Label>
+              <Controller
+                control={control}
+                name="deliveryInfo.deliveryStatus"
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    value={typeof field.value === "string" ? field.value : undefined}
+                  >
+                    <SelectTrigger
+                      className="h-10 w-full data-[size=default]:h-10"
+                      id="delivery-status"
+                      isClearable={typeof field.value === "string"}
+                      onClear={() => field.onChange(undefined)}
+                    >
+                      <SelectValue
+                        placeholder={t("deliveryInfo.fields.deliveryStatusPlaceholder")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EDIT_DELIVERY_STATUS_OPTIONS.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(`deliveryStatus.labels.${value}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          ) : null}
+
+          {mode === "edit" ? (
+            <OwnershipNoteField
+              error={errors.deliveryInfo?.note}
+              id="delivery-note"
+              label={t("ownershipStatus.fields.note")}
+              name="deliveryInfo.note"
+              placeholder={t("ownershipStatus.fields.notePlaceholder")}
+              register={register}
+            />
+          ) : null}
 
           {mode === "edit" ? (
             <Button

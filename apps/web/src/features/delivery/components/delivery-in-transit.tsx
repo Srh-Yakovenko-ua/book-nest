@@ -22,6 +22,7 @@ import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { toDeliveryOrderCards } from "../model/order-card-model";
 import { useInTransitParams } from "../model/use-in-transit-params";
+import { CreateBookOrderDialog } from "./create-book-order-dialog";
 import { DeliveryBulkBar } from "./delivery-bulk-bar";
 import { DeliveryCancelDialog } from "./delivery-cancel-dialog";
 import { DeliveryEditDialog } from "./delivery-edit-dialog";
@@ -52,6 +53,7 @@ export function DeliveryInTransit() {
   const [cancelBookId, setCancelBookId] = useState<Nullable<string>>(null);
   const [receiveTarget, setReceiveTarget] = useState<Nullable<string[]>>(null);
   const [receivePendingBookId, setReceivePendingBookId] = useState<Nullable<string>>(null);
+  const [createOrderOpen, setCreateOrderOpen] = useState(false);
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -209,12 +211,18 @@ export function DeliveryInTransit() {
         }
         content={content}
         headerActions={
-          visibleBookIds.length > 0 ? (
-            <Button onClick={() => setReceiveTarget(visibleBookIds)} variant="secondary">
-              <UiIcon name="check-circle" size={16} />
-              {t("actions.receiveAll")}
+          <>
+            <Button onClick={() => setCreateOrderOpen(true)}>
+              <UiIcon name="plus" size={16} />
+              {t("actions.addOrder")}
             </Button>
-          ) : null
+            {visibleBookIds.length > 0 ? (
+              <Button onClick={() => setReceiveTarget(visibleBookIds)} variant="secondary">
+                <UiIcon name="check-circle" size={16} />
+                {t("actions.receiveAll")}
+              </Button>
+            ) : null}
+          </>
         }
         onGoToBooksToBuy={() => router.push("/books-to-buy")}
         onLoadMore={() => void listQuery.fetchNextPage()}
@@ -273,6 +281,8 @@ export function DeliveryInTransit() {
           open
         />
       )}
+
+      <CreateBookOrderDialog onOpenChange={setCreateOrderOpen} open={createOrderOpen} />
 
       {cancelBookId === null ? null : (
         <DeliveryCancelDialog

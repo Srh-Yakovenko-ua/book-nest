@@ -36,14 +36,16 @@ function activeItemConflict(): PrismaNamespace.PrismaClientKnownRequestError {
 
 function buildItem({
   orderDate = null,
-  orderItems = [{ bookId: BOOK_A, shipmentId: SHIPMENT_A }],
+  orderItems = [{ bookId: BOOK_A, price: null, shipmentId: SHIPMENT_A }],
   shipmentExpectedDeliveryDate = null,
   shipments = [{ expectedDeliveryDate: null, id: SHIPMENT_A }],
+  totalAmount = null,
 }: {
   orderDate?: Date | null;
-  orderItems?: { bookId: string; shipmentId: null | string }[];
+  orderItems?: { bookId: string; price?: null | number; shipmentId: null | string }[];
   shipmentExpectedDeliveryDate?: Date | null;
   shipments?: { expectedDeliveryDate: Date | null; id: string }[];
+  totalAmount?: null | number;
 } = {}): BookOrderItemWithContext {
   return {
     bookId: BOOK_A,
@@ -57,13 +59,20 @@ function buildItem({
       deliveryPrice: null,
       discount: null,
       id: ORDER_ID,
-      items: orderItems,
+      items: orderItems.map((sibling, index) => ({
+        ...sibling,
+        id: index === 0 ? ITEM_A : `item-${index}`,
+        price:
+          sibling.price === null || sibling.price === undefined
+            ? null
+            : new PrismaNamespace.Decimal(sibling.price),
+      })),
       note: null,
       orderDate,
       orderNumber: null,
       shipments,
       storeName: "Yakaboo",
-      totalAmount: null,
+      totalAmount: totalAmount === null ? null : new PrismaNamespace.Decimal(totalAmount),
       updatedAt: TOUCHED_AT,
       userId: USER,
     },
@@ -139,6 +148,7 @@ function draft(overrides: Partial<NewSingleBookOrder> = {}): NewSingleBookOrder 
     currency: null,
     deliveryService: null,
     expectedDeliveryDate: null,
+    hasShipment: true,
     note: null,
     orderDate: null,
     orderNumber: null,
@@ -157,8 +167,8 @@ function update(patch: SingleBookOrderPatch): SingleBookOrderPatch {
 
 describe("SingleBookOrderService.updateActiveItem on an order shared with other books", () => {
   const sharedOrderItems = [
-    { bookId: BOOK_A, shipmentId: SHIPMENT_A },
-    { bookId: BOOK_B, shipmentId: SHIPMENT_A },
+    { bookId: BOOK_A, price: null, shipmentId: SHIPMENT_A },
+    { bookId: BOOK_B, price: null, shipmentId: SHIPMENT_A },
   ];
 
   it("refuses an order-level field and writes nothing", async () => {
@@ -208,8 +218,61 @@ describe("SingleBookOrderService.updateActiveItem on an order shared with other 
       { itemId: ITEM_A, price: 249, userId: USER },
       TX,
     );
-    expect(orders.updateOwned).not.toHaveBeenCalled();
+    expect(orders.updateOwned).toHaveBeenCalledWith(
+      { data: { totalAmount: null }, orderId: ORDER_ID, userId: USER },
+      TX,
+    );
     expect(shipments.updateActive).not.toHaveBeenCalled();
+  });
+
+  it("recalculates the order total when an item price changes", async () => {
+    const { orders, service } = buildService({
+      items: {
+        findOwnedById: vi.fn().mockResolvedValue(
+          buildItem({
+            orderItems: [
+              { bookId: BOOK_A, price: 100, shipmentId: SHIPMENT_A },
+              { bookId: BOOK_B, price: 200, shipmentId: SHIPMENT_A },
+            ],
+            totalAmount: 300,
+          }),
+        ),
+      },
+    });
+
+    await service.updateActiveItem({ itemId: ITEM_A, patch: update({ price: 150 }), userId: USER });
+
+    expect(orders.updateOwned).toHaveBeenCalledWith(
+      { data: { totalAmount: 350 }, orderId: ORDER_ID, userId: USER },
+      TX,
+    );
+  });
+
+  it("clears a calculated total when an item price becomes unknown", async () => {
+    const { orders, service } = buildService({
+      items: {
+        findOwnedById: vi.fn().mockResolvedValue(
+          buildItem({
+            orderItems: [
+              { bookId: BOOK_A, price: 100, shipmentId: SHIPMENT_A },
+              { bookId: BOOK_B, price: 200, shipmentId: SHIPMENT_A },
+            ],
+            totalAmount: 300,
+          }),
+        ),
+      },
+    });
+
+    await service.updateActiveItem({
+      itemId: ITEM_A,
+      patch: update({ price: null }),
+      userId: USER,
+    });
+
+    expect(orders.updateOwned).toHaveBeenCalledWith(
+      { data: { totalAmount: null }, orderId: ORDER_ID, userId: USER },
+      TX,
+    );
   });
 
   it("allows a shipment-level field when only this book rides that shipment", async () => {
@@ -294,6 +357,17 @@ describe("SingleBookOrderService.updateActiveItem order date invariant", () => {
 });
 
 describe("SingleBookOrderService.create", () => {
+  it("creates an order item without a shipment when shipping has not started", async () => {
+    const { orders, service } = buildService();
+
+    await service.create(
+      { bookId: BOOK_A, draft: draft({ hasShipment: false }), userId: USER },
+      TX,
+    );
+
+    expect(orders.create).toHaveBeenCalledWith(expect.objectContaining({ shipments: [] }), TX);
+  });
+
   it("stores an absent store name as the empty sentinel the column requires", async () => {
     const { orders, service } = buildService();
 

@@ -257,10 +257,13 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
         currency: zod
           .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
           .nullable(),
+        deliveryPrice: zod.number().nullable(),
+        discount: zod.number().nullable(),
         id: zod.string(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
         storeName: zod.string(),
+        totalAmount: zod.number().nullable(),
       }),
       price: zod.number().nullable(),
       receivedAt: zod.string().nullable(),
@@ -518,10 +521,13 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
         currency: zod
           .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
           .nullable(),
+        deliveryPrice: zod.number().nullable(),
+        discount: zod.number().nullable(),
         id: zod.string(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
         storeName: zod.string(),
+        totalAmount: zod.number().nullable(),
       }),
       price: zod.number().nullable(),
       receivedAt: zod.string().nullable(),

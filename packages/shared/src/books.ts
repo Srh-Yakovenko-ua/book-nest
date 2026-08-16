@@ -287,6 +287,7 @@ export const DeliveryInfoInputSchema = z
     deliveryService: DeliveryServiceSchema.nullable().optional(),
     deliveryStatus: ActiveShipmentStatusSchema.optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
+    isShipped: z.boolean().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),

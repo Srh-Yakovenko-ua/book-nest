@@ -52,10 +52,13 @@ function makeBook(overrides: Partial<BookPreview> = {}): BookPreview {
 function makeOrder(overrides: Partial<BookOrderItemRowOrderView> = {}): BookOrderItemRowOrderView {
   return {
     currency: "UAH",
+    deliveryPrice: null,
+    discount: null,
     id: "order-1",
     orderDate: "2026-07-05",
     orderNumber: "ORD-10241",
     storeName: "Yakaboo",
+    totalAmount: 480,
     ...overrides,
   };
 }
@@ -126,10 +129,10 @@ describe("toDeliveryOrderCards", () => {
     expect(bookIdsByGroup(cards)).toEqual([[["book-1", "book-2", "book-3"]]]);
   });
 
-  it("sums the prices of every row of the order into totalText", () => {
+  it("uses the normalized order total instead of recalculating item prices", () => {
     const cards = toDeliveryOrderCards(
       [
-        makeRow({ id: "item-1", price: 480 }),
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: 1250 }), price: 480 }),
         makeRow({ id: "item-2", price: 610 }),
         makeRow({ id: "item-3", price: 160 }),
       ],
@@ -236,9 +239,12 @@ describe("toDeliveryOrderCards", () => {
     ]);
   });
 
-  it("reports no total when no row of the order carries a price", () => {
+  it("reports no total when the normalized order total is unknown", () => {
     const cards = toDeliveryOrderCards(
-      [makeRow({ id: "item-1", price: null }), makeRow({ id: "item-2", price: null })],
+      [
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: null }),
+        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: null }),
+      ],
       { labels, locale },
     );
 
@@ -248,10 +254,10 @@ describe("toDeliveryOrderCards", () => {
     ]);
   });
 
-  it("skips rows without a price instead of poisoning the sum", () => {
+  it("uses a manual total for an incomplete item breakdown", () => {
     const cards = toDeliveryOrderCards(
       [
-        makeRow({ id: "item-1", price: 480 }),
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: 600 }), price: 480 }),
         makeRow({ id: "item-2", price: null }),
         makeRow({ id: "item-3", price: 120 }),
       ],

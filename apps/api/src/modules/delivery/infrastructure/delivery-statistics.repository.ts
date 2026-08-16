@@ -21,6 +21,8 @@ const SHIPMENT_WITH_LIVE_BOOKS = {
 const orderStatisticsSelect = {
   select: {
     currency: true,
+    deliveryPrice: true,
+    discount: true,
     id: true,
     items: {
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -140,6 +142,8 @@ function shipmentStatusWhere(status: ShipmentStatus): Prisma.BookOrderWhereInput
 function toOrderStatisticsRecord(row: OrderStatisticsRow): OrderStatisticsRecord {
   return {
     currency: row.currency === null ? null : CurrencySchema.parse(row.currency),
+    deliveryPrice: row.deliveryPrice === null ? null : row.deliveryPrice.toNumber(),
+    discount: row.discount === null ? null : row.discount.toNumber(),
     id: row.id,
     items: row.items.map((item) => ({
       bookId: item.bookId,

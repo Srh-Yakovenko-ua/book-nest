@@ -57,6 +57,7 @@ export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): NewSin
     currency: deliveryInfo.currency ?? null,
     deliveryService: deliveryInfo.deliveryService ?? null,
     expectedDeliveryDate: toCreateDate(deliveryInfo.expectedDeliveryDate),
+    hasShipment: deliveryInfo.isShipped ?? true,
     note: deliveryInfo.note ?? null,
     orderDate: toCreateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber ?? null,
