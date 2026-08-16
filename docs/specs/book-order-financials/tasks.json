@@ -1,0 +1,120 @@
+{
+  "spec": "docs/specs/book-order-financials/spec.md",
+  "generatedAt": "2026-08-14T18:48:20Z",
+  "scope": {
+    "included": [
+      "shared financial resolver and validation",
+      "transactional create and update normalization",
+      "delivery read model, cards, history, and statistics",
+      "New Order financial UX",
+      "focused backend and frontend tests"
+    ],
+    "excluded": ["Edit/Manage Order frontend UX remains outside the current delivery phase"]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Create one shared order financial resolver",
+      "specRef": "Sections 1, 2, 3, 5",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-financials.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "resolver returns subtotal, counts, completeness, delivery, discount, effective total, and source",
+        "money formula uses minor-unit arithmetic"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Reject contradictory create payloads",
+      "specRef": "Sections 2 and 4",
+      "layer": "contract",
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": ["complete breakdown mismatch and negative calculated total fail validation"],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Normalize totals transactionally on backend writes",
+      "specRef": "Sections 2, 3, 4",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/delivery/application/book-order.service.ts",
+        "apps/api/src/modules/delivery/application/single-book-order.service.ts"
+      ],
+      "dependsOn": ["T1", "T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "create derives complete totals",
+        "item price, delivery, and discount updates recalculate in the write transaction",
+        "removing a price clears a previously calculated total"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Use normalized order total in read consumers",
+      "specRef": "Sections 8 and 9",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/delivery/domain/order-statistics.ts",
+        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts",
+        "apps/web/src/features/delivery/model/order-card-model.ts"
+      ],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "cards, history totals, and statistics no longer use independent item-price fallback formulas"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Implement progressive New Order financial UX",
+      "specRef": "Sections 6 and 7",
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/delivery/components/create-book-order-dialog.tsx",
+        "apps/web/src/features/delivery/model/create-book-order-draft.ts"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "complete prices show live read-only total and breakdown",
+        "incomplete prices show manual total and priced-items hint",
+        "discount participates in the preview"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Regenerate and verify contracts",
+      "specRef": "Sections 4, 8, 11",
+      "layer": "test",
+      "files": ["apps/web/src/shared/api/generated"],
+      "dependsOn": ["T2", "T4"],
+      "mandatory": true,
+      "doneWhen": ["generated API is current and focused backend/frontend tests pass"],
+      "status": "done"
+    }
+  ],
+  "openDecisions": [],
+  "verifiedAssertions": [
+    {
+      "claim": "Order cards and statistics previously resolved totals differently",
+      "specRef": "Section 8",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/model/order-card-model.ts and apps/api/src/modules/delivery/domain/order-statistics.ts"
+    },
+    {
+      "claim": "PostgreSQL money columns already use Decimal(10,2)",
+      "specRef": "Section 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma"
+    }
+  ]
+}

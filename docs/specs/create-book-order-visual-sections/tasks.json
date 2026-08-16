@@ -1,0 +1,78 @@
+{
+  "spec": "docs/specs/create-book-order-visual-sections/spec.md",
+  "generatedAt": "2026-08-16",
+  "scope": {
+    "included": [
+      "Three lightweight section headers",
+      "Localized section descriptions",
+      "Responsive spacing and dividers",
+      "Focused dialog tests and static quality gates"
+    ],
+    "excluded": [
+      "Backend or API changes",
+      "Form state or validation changes",
+      "Financial, picker, shipment or submit behavior changes",
+      "Card containers inside the dialog"
+    ]
+  },
+  "openDecisions": [],
+  "verifiedAssertions": [
+    {
+      "claim": "The dialog already has three local FormSection boundaries",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/create-book-order-dialog.tsx"
+    },
+    {
+      "claim": "The create-book form uses an icon, title and muted description header",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/form-section.tsx"
+    },
+    {
+      "claim": "The dialog uses one stable responsive width for form and picker views",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/create-book-order-dialog.tsx"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Apply lightweight visual section headers",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/create-book-order-dialog.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Order, Books and Delivery render icon, title and description headers",
+        "sections use spacing and dividers without card containers",
+        "all existing form content and behavior remain unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Localize section descriptions",
+      "layer": "frontend",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Ukrainian and English descriptions are natural",
+        "locale trees remain structurally identical"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Verify visual structure",
+      "layer": "test",
+      "files": ["apps/web/src/features/delivery/components/create-book-order-dialog.test.tsx"],
+      "dependsOn": ["T1", "T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "focused tests cover the section headings and descriptions",
+        "typecheck, lint, format and i18n parity pass"
+      ],
+      "status": "done"
+    }
+  ]
+}

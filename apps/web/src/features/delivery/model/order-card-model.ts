@@ -87,7 +87,7 @@ export function toDeliveryOrderCards(
     orderNumber: group.order.orderNumber,
     shipments: dispatchedFirst(group).map((shipment) => toShipmentGroupModel(shipment, options)),
     storeName: group.order.storeName,
-    totalText: formatPrice(sumPrices(group.items), group.order.currency, options.locale),
+    totalText: formatPrice(group.order.totalAmount, group.order.currency, options.locale),
   }));
 }
 
@@ -160,17 +160,6 @@ function shipmentBadgeKey(shipment: Nullable<BookOrderItemRowShipmentView>): Del
   if (shipment.status === "in_transit") return "in_transit";
   if (shipment.status === "ready_for_pickup") return "ready_for_pickup";
   return "ordered";
-}
-
-function sumPrices(items: BookOrderItemRowView[]): Nullable<number> {
-  let total: Nullable<number> = null;
-
-  for (const item of items) {
-    if (item.price === null) continue;
-    total = (total ?? 0) + item.price;
-  }
-
-  return total;
 }
 
 function toBookModel(item: BookOrderItemRowView, options: CardOptions): DeliveryOrderBookModel {

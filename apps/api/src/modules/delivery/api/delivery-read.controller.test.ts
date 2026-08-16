@@ -313,6 +313,7 @@ describe("GET /api/delivery/orders/statistics", () => {
       app,
       input: {
         currency: "UAH",
+        deliveryPrice: 60,
         items: yakabooBooks.map((bookId) => ({ bookId, price: 100 })),
         orderDate: isoDay(-6),
         storeName: "Yakaboo",
@@ -324,6 +325,7 @@ describe("GET /api/delivery/orders/statistics", () => {
       app,
       input: {
         currency: "UAH",
+        deliveryPrice: 40,
         items: [{ bookId: depotBookId, price: 500 }],
         orderDate: isoDay(-5),
         storeName: "Book Depot",

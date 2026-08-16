@@ -164,6 +164,7 @@ export const BooksControllerCreateBody = zod.object({
         .date()
         .regex(booksControllerCreateBodyDeliveryInfoExpectedDeliveryDateRegExp)
         .nullish(),
+      isShipped: zod.boolean().optional(),
       note: zod.string().nullish(),
       orderDate: zod.iso
         .date()
@@ -3646,6 +3647,7 @@ export const BooksControllerUpdateBody = zod.object({
         .date()
         .regex(booksControllerUpdateBodyDeliveryInfoExpectedDeliveryDateRegExp)
         .nullish(),
+      isShipped: zod.boolean().optional(),
       note: zod.string().nullish(),
       orderDate: zod.iso
         .date()

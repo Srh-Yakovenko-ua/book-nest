@@ -63,7 +63,7 @@ export function BookPickerResults({
               )}
             >
               <Checkbox
-                checked={isDisabled || selectedIds.has(book.id)}
+                checked={selectedIds.has(book.id)}
                 disabled={isDisabled}
                 onCheckedChange={() => onToggle(book)}
               />

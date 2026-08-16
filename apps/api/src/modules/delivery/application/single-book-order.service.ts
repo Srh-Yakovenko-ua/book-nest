@@ -1,6 +1,6 @@
 import type { ActiveShipmentStatus, Currency, Nullable } from "@app/shared";
 
-import { ShipmentStatusSchema } from "@app/shared";
+import { resolveOrderFinancials, ShipmentStatusSchema, validateOrderFinancials } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -10,7 +10,7 @@ import type { ShipmentPatch } from "../infrastructure/shipments.repository.js";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { NO_STORE_NAME } from "../domain/book-delivery.mapper.js";
 import { evaluateShipmentEdit } from "../domain/shipment-transition.js";
 import { BookOrderItemsRepository } from "../infrastructure/book-order-items.repository.js";
@@ -30,6 +30,7 @@ export type NewSingleBookOrder = {
   currency: Nullable<Currency>;
   deliveryService: Nullable<string>;
   expectedDeliveryDate: Nullable<Date>;
+  hasShipment: boolean;
   note: Nullable<string>;
   orderDate: Nullable<Date>;
   orderNumber: Nullable<string>;
@@ -119,10 +120,10 @@ export class SingleBookOrderService {
     },
     client: Prisma.TransactionClient,
   ): Promise<void> {
-    const service = await this.deliveryServiceResolver.resolve(
-      { name: draft.deliveryService, userId },
-      client,
-    );
+    const service = draft.hasShipment
+      ? await this.deliveryServiceResolver.resolve({ name: draft.deliveryService, userId }, client)
+      : { deliveryServiceId: null, deliveryServiceName: null };
+    const financials = validatedFinancials({ itemPrices: [draft.price], totalAmount: null });
 
     try {
       const order = await this.bookOrdersRepository.create(
@@ -136,9 +137,11 @@ export class SingleBookOrderService {
             orderDate: draft.orderDate,
             orderNumber: draft.orderNumber,
             storeName: draft.storeName ?? NO_STORE_NAME,
-            totalAmount: null,
+            totalAmount: financials.effectiveTotalAmount,
           },
-          shipments: [{ bookIds: [bookId], data: toNewShipmentData({ draft, service }) }],
+          shipments: draft.hasShipment
+            ? [{ bookIds: [bookId], data: toNewShipmentData({ draft, service }) }]
+            : [],
           userId,
         },
         client,
@@ -219,8 +222,41 @@ export class SingleBookOrderService {
     });
 
     const orderPatch = toOrderPatch(patch);
+    const hasExplicitOrderPatch = Object.keys(orderPatch).length > 0;
+    const nextPrice = patch.price;
+    if (nextPrice !== undefined) {
+      const currentFinancials = resolveOrderFinancials({
+        deliveryPrice:
+          item.order.deliveryPrice === null ? null : item.order.deliveryPrice.toNumber(),
+        discount: item.order.discount === null ? null : item.order.discount.toNumber(),
+        itemPrices: item.order.items.map((sibling) =>
+          sibling.price === null ? null : sibling.price.toNumber(),
+        ),
+        totalAmount: item.order.totalAmount === null ? null : item.order.totalAmount.toNumber(),
+      });
+      const nextFinancials = validatedFinancials({
+        deliveryPrice:
+          item.order.deliveryPrice === null ? null : item.order.deliveryPrice.toNumber(),
+        discount: item.order.discount === null ? null : item.order.discount.toNumber(),
+        itemPrices: item.order.items.map((sibling) =>
+          sibling.id === item.id
+            ? nextPrice
+            : sibling.price === null
+              ? null
+              : sibling.price.toNumber(),
+        ),
+        totalAmount:
+          currentFinancials.totalSource === "calculated"
+            ? null
+            : item.order.totalAmount === null
+              ? null
+              : item.order.totalAmount.toNumber(),
+      });
+      orderPatch.totalAmount =
+        nextFinancials.totalSource === "calculated" ? nextFinancials.effectiveTotalAmount : null;
+    }
     if (Object.keys(orderPatch).length > 0) {
-      if (countBooksInOrder(item) > 1) {
+      if (hasExplicitOrderPatch && countBooksInOrder(item) > 1) {
         throw sharedOrderError();
       }
 
@@ -233,9 +269,9 @@ export class SingleBookOrderService {
       }
     }
 
-    if (patch.price !== undefined) {
+    if (nextPrice !== undefined) {
       const priced = await this.bookOrderItemsRepository.updateActivePrice(
-        { itemId: item.id, price: patch.price, userId },
+        { itemId: item.id, price: nextPrice, userId },
         client,
       );
       if (priced === 0) {
@@ -379,4 +415,12 @@ function toOrderPatch(patch: SingleBookOrderPatch): BookOrderPatch {
     ...(patch.orderNumber === undefined ? {} : { orderNumber: patch.orderNumber }),
     ...(patch.storeName === undefined ? {} : { storeName: patch.storeName ?? NO_STORE_NAME }),
   };
+}
+
+function validatedFinancials(input: Parameters<typeof validateOrderFinancials>[0]) {
+  const validation = validateOrderFinancials(input);
+  if (validation.error !== null) {
+    throw new BadRequestError(validation.error);
+  }
+  return validation.summary;
 }

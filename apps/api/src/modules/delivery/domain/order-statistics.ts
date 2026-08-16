@@ -18,6 +18,7 @@ import {
   CurrencySchema,
   DEFAULT_CURRENCY,
   isActiveShipmentStatus,
+  resolveOrderFinancials,
 } from "@app/shared";
 
 import { assertNever } from "../../../core/assert-never.js";
@@ -42,6 +43,8 @@ export type OrderStatisticsItemRecord = {
 
 export type OrderStatisticsRecord = {
   currency: Nullable<Currency>;
+  deliveryPrice: Nullable<number>;
+  discount: Nullable<number>;
   id: string;
   items: OrderStatisticsItemRecord[];
   orderDate: Nullable<Date>;
@@ -352,8 +355,15 @@ function classifyOrder({
     ? record.items
     : record.items.filter((item) => item.cancelledAt === null);
 
+  const financials = resolveOrderFinancials({
+    deliveryPrice: record.deliveryPrice,
+    discount: record.discount,
+    itemPrices: record.items.map((item) => item.price),
+    totalAmount: record.totalAmount,
+  });
+
   return {
-    amount: resolveOrderAmount({ countedItems, totalAmount: record.totalAmount }),
+    amount: financials.effectiveTotalAmount,
     countedItems,
     currency: effectiveCurrency(record.currency),
     derivedStatus,
@@ -406,21 +416,6 @@ function isActiveItem(item: OrderStatisticsItemRecord): boolean {
 
 function isReceivedItem(item: OrderStatisticsItemRecord): boolean {
   return item.receivedAt !== null;
-}
-
-function resolveOrderAmount({
-  countedItems,
-  totalAmount,
-}: {
-  countedItems: OrderStatisticsItemRecord[];
-  totalAmount: Nullable<number>;
-}): Nullable<number> {
-  if (totalAmount !== null) {
-    return totalAmount;
-  }
-
-  const prices = countedItems.flatMap((item) => (item.price === null ? [] : [item.price]));
-  return prices.length === 0 ? null : prices.reduce((sum, price) => sum + price, 0);
 }
 
 function totalsFromAmounts(accumulator: AmountAccumulator): CurrencyTotal[] {

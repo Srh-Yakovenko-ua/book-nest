@@ -1,0 +1,151 @@
+{
+  "spec": "docs/specs/create-book-order-ux/spec.md",
+  "generatedAt": "2026-08-14T15:20:00Z",
+  "scope": {
+    "included": [
+      "Create BookOrder dialog",
+      "Book selection and prices",
+      "Optional shipments",
+      "Submission and cache sync",
+      "i18n and focused tests"
+    ],
+    "excluded": [
+      "Edit/manage existing orders",
+      "Post-create item movement",
+      "Drag-and-drop",
+      "Page redesign",
+      "New statistics/sidebar",
+      "Unrelated integrations"
+    ]
+  },
+  "openDecisions": [],
+  "verifiedAssertions": [
+    {
+      "claim": "The backend accepts one create request containing order fields, items and optional shipments",
+      "specRef": "Sections 2-7 and 9",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:112 and apps/api/src/modules/delivery/api/book-orders.controller.ts:48"
+    },
+    {
+      "claim": "A shipment is optional and books may remain unassigned",
+      "specRef": "Sections 4 and 6",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:143"
+    },
+    {
+      "claim": "The grouped in-transit UI already represents shipments and null shipment groups",
+      "specRef": "Section 9",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/model/order-card-model.ts:112"
+    },
+    {
+      "claim": "A reusable multi-book picker exists",
+      "specRef": "Sections 0 and 3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/book-picker.tsx:36"
+    },
+    {
+      "claim": "Delivery service autocomplete and form primitives exist",
+      "specRef": "Sections 0, 5 and 8",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/delivery-service-autocomplete.tsx:29"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add create-order mutation and cache synchronization",
+      "specRef": "Section 9",
+      "layer": "api",
+      "files": ["apps/web/src/features/delivery/api/use-create-book-order.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "POST /api/delivery/orders uses the generated endpoint and parses BookOrderViewSchema",
+        "success invalidates existing Delivery/Books/Series query prefixes"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Add reusable order book selection flow",
+      "specRef": "Section 3",
+      "layer": "application",
+      "files": ["apps/web/src/features/delivery/components/order-book-picker-dialog.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "existing BookPickerResults and library query are reused",
+        "1..N unique books can be added and removed",
+        "cover/title/authors are shown through the existing picker pattern"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Implement sectioned create-order dialog",
+      "specRef": "Sections 1-8",
+      "layer": "application",
+      "files": ["apps/web/src/features/delivery/components/create-book-order-dialog.tsx"],
+      "dependsOn": ["T1", "T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "all backend create-order fields are representable",
+        "each item has an optional price",
+        "0..N shipments can be added",
+        "shipment books are mutually exclusive and unassigned books are identified",
+        "payload is validated by CreateBookOrderInputSchema"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Wire the primary action into In transit",
+      "specRef": "Sections 1 and 9",
+      "layer": "application",
+      "files": ["apps/web/src/features/delivery/components/delivery-in-transit.tsx"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "Add order is always available in the page header",
+        "success closes the dialog and the grouped list refetches without reload",
+        "legacy single-book flow is unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Add Ukrainian and English copy",
+      "specRef": "Sections 1-8",
+      "layer": "application",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "both locale trees remain structurally identical",
+        "Awaiting shipment is presented as a valid state",
+        "all labels, actions and validation/error messages are localized"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Add focused behavior tests",
+      "specRef": "Section 12",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/model/create-book-order-draft.test.ts",
+        "apps/web/src/features/delivery/api/use-create-book-order.test.tsx"
+      ],
+      "dependsOn": ["T1", "T3", "T4", "T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "zero, one, two and partial shipment payloads are covered",
+        "duplicate shipment assignment is prevented",
+        "validation, success and invalidation are covered",
+        "mobile dialog layout has no desktop-only dependency"
+      ],
+      "status": "done"
+    }
+  ]
+}

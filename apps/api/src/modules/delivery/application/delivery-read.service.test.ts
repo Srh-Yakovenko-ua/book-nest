@@ -30,10 +30,13 @@ const bookRow = {
 
 const orderRow = {
   currency: "UAH",
+  deliveryPrice: null,
+  discount: null,
   id: "order-1",
   orderDate: new Date("2026-08-01T00:00:00.000Z"),
   orderNumber: "A-1",
   storeName: "Bookstore",
+  totalAmount: new Prisma.Decimal("120.50"),
 };
 
 function buildService(overrides: {
@@ -154,10 +157,13 @@ describe("DeliveryReadService.inTransitList", () => {
         id: "item-1",
         order: {
           currency: "UAH",
+          deliveryPrice: null,
+          discount: null,
           id: "order-1",
           orderDate: "2026-08-01",
           orderNumber: "A-1",
           storeName: "Bookstore",
+          totalAmount: 120.5,
         },
         price: 120.5,
       }),

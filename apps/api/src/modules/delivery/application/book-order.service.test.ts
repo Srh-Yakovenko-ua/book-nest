@@ -103,6 +103,49 @@ function createInput(overrides: Partial<CreateBookOrderInput> = {}): CreateBookO
 }
 
 describe("BookOrderService.create", () => {
+  it("normalizes a complete financial breakdown before persistence", async () => {
+    const { orders, service } = buildService({});
+
+    await service.create({
+      input: createInput({
+        deliveryPrice: 100,
+        discount: 200,
+        items: [
+          { bookId: BOOK_A, price: 500 },
+          { bookId: BOOK_B, price: 600 },
+        ],
+      }),
+      userId: USER,
+    });
+
+    expect(orders.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        order: expect.objectContaining({ totalAmount: 1000 }),
+      }),
+      TX,
+    );
+  });
+
+  it("rejects a conflicting client total before persistence", async () => {
+    const { orders, service } = buildService({});
+
+    await expect(
+      service.create({
+        input: createInput({
+          deliveryPrice: 100,
+          discount: 200,
+          items: [
+            { bookId: BOOK_A, price: 500 },
+            { bookId: BOOK_B, price: 600 },
+          ],
+          totalAmount: 200,
+        }),
+        userId: USER,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.create).not.toHaveBeenCalled();
+  });
+
   it("refuses an order that names a book the reader does not own", async () => {
     const { orders, service } = buildService({
       books: { listOwned: vi.fn().mockResolvedValue([{ id: BOOK_A, ownershipStatus: "none" }]) },
@@ -250,6 +293,48 @@ describe("BookOrderService.create", () => {
 });
 
 describe("BookOrderService.update", () => {
+  it("recalculates total when delivery or discount changes", async () => {
+    const { orders, service } = buildService({
+      orders: {
+        findOwnedById: vi.fn().mockResolvedValue({
+          ...emptyOrderRow,
+          items: [{ price: new PrismaNamespace.Decimal(500) }],
+        }),
+      },
+    });
+
+    await service.update({
+      input: { deliveryPrice: 100, discount: 50 },
+      orderId: ORDER_ID,
+      userId: USER,
+    });
+
+    expect(orders.updateOwned).toHaveBeenCalledWith(
+      {
+        data: { deliveryPrice: 100, discount: 50, totalAmount: 550 },
+        orderId: ORDER_ID,
+        userId: USER,
+      },
+      TX,
+    );
+  });
+
+  it("rejects a discount that would make the recalculated total negative", async () => {
+    const { orders, service } = buildService({
+      orders: {
+        findOwnedById: vi.fn().mockResolvedValue({
+          ...emptyOrderRow,
+          items: [{ price: new PrismaNamespace.Decimal(500) }],
+        }),
+      },
+    });
+
+    await expect(
+      service.update({ input: { discount: 501 }, orderId: ORDER_ID, userId: USER }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.updateOwned).not.toHaveBeenCalled();
+  });
+
   it("refuses an order date later than a parcel that is already expected", async () => {
     const { orders, service } = buildService({
       orders: {

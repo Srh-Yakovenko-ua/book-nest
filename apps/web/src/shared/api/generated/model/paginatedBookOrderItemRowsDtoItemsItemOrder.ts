@@ -10,10 +10,16 @@ import type { PaginatedBookOrderItemRowsDtoItemsItemOrderCurrency } from "./pagi
 export type PaginatedBookOrderItemRowsDtoItemsItemOrder = {
   /** @nullable */
   currency: PaginatedBookOrderItemRowsDtoItemsItemOrderCurrency;
+  /** @nullable */
+  deliveryPrice: number | null;
+  /** @nullable */
+  discount: number | null;
   id: string;
   /** @nullable */
   orderDate: string | null;
   /** @nullable */
   orderNumber: string | null;
   storeName: string;
+  /** @nullable */
+  totalAmount: number | null;
 };

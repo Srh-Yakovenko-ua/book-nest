@@ -5,7 +5,12 @@ import type {
   UpdateBookOrderInput,
 } from "@app/shared";
 
-import { OwnershipStatusSchema, ShipmentStatusSchema } from "@app/shared";
+import {
+  OwnershipStatusSchema,
+  resolveOrderFinancials,
+  ShipmentStatusSchema,
+  validateOrderFinancials,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -17,7 +22,7 @@ import type {
 import type { ShipmentDeliveryServiceSnapshot } from "./shipment-delivery-service.resolver.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
 import { evaluateBookOrderEntry } from "../domain/order-item-transition.js";
 import { toBookOrderView } from "../domain/order.mapper.js";
@@ -56,6 +61,12 @@ export class BookOrderService {
   }): Promise<BookOrderView> {
     const now = new Date();
     const bookIds = input.items.map((item) => item.bookId);
+    const financials = validatedFinancials({
+      deliveryPrice: input.deliveryPrice,
+      discount: input.discount,
+      itemPrices: input.items.map((item) => item.price ?? null),
+      totalAmount: input.totalAmount,
+    });
     assertShipmentsExpectedAfter({ orderDate: input.orderDate, shipments: input.shipments ?? [] });
 
     try {
@@ -68,7 +79,7 @@ export class BookOrderService {
               bookId: item.bookId,
               price: item.price ?? null,
             })),
-            order: toNewOrderData(input),
+            order: toNewOrderData({ input, totalAmount: financials.effectiveTotalAmount }),
             shipments: await this.buildShipments({ client: tx, input, userId }),
             userId,
           },
@@ -110,6 +121,40 @@ export class BookOrderService {
       }
 
       const patch = toOrderPatch(input);
+      const currentTotalAmount = order.totalAmount === null ? null : order.totalAmount.toNumber();
+      const itemPrices = order.items.map((item) =>
+        item.price === null ? null : item.price.toNumber(),
+      );
+      const currentFinancials = resolveOrderFinancials({
+        deliveryPrice: order.deliveryPrice === null ? null : order.deliveryPrice.toNumber(),
+        discount: order.discount === null ? null : order.discount.toNumber(),
+        itemPrices,
+        totalAmount: currentTotalAmount,
+      });
+      const financials = validatedFinancials({
+        deliveryPrice:
+          input.deliveryPrice === undefined
+            ? order.deliveryPrice === null
+              ? null
+              : order.deliveryPrice.toNumber()
+            : input.deliveryPrice,
+        discount:
+          input.discount === undefined
+            ? order.discount === null
+              ? null
+              : order.discount.toNumber()
+            : input.discount,
+        itemPrices,
+        totalAmount:
+          input.totalAmount === undefined && currentFinancials.totalSource === "calculated"
+            ? null
+            : input.totalAmount === undefined
+              ? currentTotalAmount
+              : input.totalAmount,
+      });
+      if (financials.totalSource === "calculated") {
+        patch.totalAmount = financials.effectiveTotalAmount;
+      }
       assertShipmentsExpectedAfter({
         orderDate: patch.orderDate ?? order.orderDate,
         shipments: order.shipments,
@@ -194,7 +239,13 @@ export class BookOrderService {
   }
 }
 
-function toNewOrderData(input: CreateBookOrderInput): NewBookOrderData {
+function toNewOrderData({
+  input,
+  totalAmount,
+}: {
+  input: CreateBookOrderInput;
+  totalAmount: null | number;
+}): NewBookOrderData {
   return {
     currency: input.currency ?? null,
     deliveryPrice: input.deliveryPrice ?? null,
@@ -203,7 +254,7 @@ function toNewOrderData(input: CreateBookOrderInput): NewBookOrderData {
     orderDate: toCreateDate(input.orderDate),
     orderNumber: input.orderNumber ?? null,
     storeName: input.storeName,
-    totalAmount: input.totalAmount ?? null,
+    totalAmount,
   };
 }
 
@@ -236,4 +287,12 @@ function toOrderPatch(input: UpdateBookOrderInput): BookOrderPatch {
     ...(input.storeName === undefined ? {} : { storeName: input.storeName }),
     ...(input.totalAmount === undefined ? {} : { totalAmount: input.totalAmount }),
   };
+}
+
+function validatedFinancials(input: Parameters<typeof validateOrderFinancials>[0]) {
+  const validation = validateOrderFinancials(input);
+  if (validation.error !== null) {
+    throw new BadRequestError(validation.error);
+  }
+  return validation.summary;
 }

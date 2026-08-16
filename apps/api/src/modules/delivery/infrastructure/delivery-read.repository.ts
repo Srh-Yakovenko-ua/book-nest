@@ -163,9 +163,9 @@ export class DeliveryReadRepository {
     userId: string;
   }): Promise<OrderHistorySummaryData> {
     const ownedItems = Prisma.sql`book_order.user_id = ${userId}::uuid AND ${LIVE_HISTORY_ITEM_SQL}`;
-    const pricedItems = includeCancelled
-      ? Prisma.sql`item.price IS NOT NULL`
-      : Prisma.sql`item.price IS NOT NULL AND item.cancelled_at IS NULL`;
+    const includedItem = includeCancelled
+      ? Prisma.sql`TRUE`
+      : Prisma.sql`item.cancelled_at IS NULL`;
 
     const [countRows, currencyRows] = await Promise.all([
       this.prisma.$queryRaw(Prisma.sql`
@@ -182,9 +182,18 @@ export class DeliveryReadRepository {
         WHERE ${ownedItems}
       `),
       this.prisma.$queryRaw(Prisma.sql`
-        SELECT book_order.currency AS "currency", (sum(item.price))::float8 AS "total"
-        ${HISTORY_ITEM_SOURCE}
-        WHERE ${ownedItems} AND ${pricedItems}
+        SELECT book_order.currency AS "currency", (sum(book_order.total_amount))::float8 AS "total"
+        FROM book_orders book_order
+        WHERE book_order.user_id = ${userId}::uuid
+          AND book_order.total_amount IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM book_order_items item
+            JOIN books book ON book.id = item.book_id
+            WHERE item.order_id = book_order.id
+              AND ${LIVE_HISTORY_ITEM_SQL}
+              AND ${includedItem}
+          )
         GROUP BY book_order.currency
       `),
     ]);

@@ -27,6 +27,8 @@ function makeItem(overrides: Partial<OrderStatisticsItemRecord> = {}): OrderStat
 function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatisticsRecord {
   return {
     currency: "UAH",
+    deliveryPrice: null,
+    discount: null,
     id: "order-1",
     items: [],
     orderDate: MARCH_ORDER_DATE,
@@ -404,7 +406,7 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
     ]);
   });
 
-  it("prefers the order total over the book prices, so the two are never added together", () => {
+  it("normalizes a conflicting stored total from the complete item breakdown", () => {
     const { summary } = statisticsOf({
       records: [
         makeOrder({
@@ -415,10 +417,10 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
       ],
     });
 
-    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 400 }]);
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 320 }]);
   });
 
-  it("leaves a cancelled book out of the fallback sum unless the caller asks for it", () => {
+  it("keeps one financial total regardless of the cancelled-items filter", () => {
     const records = [
       makeOrder({
         id: "order-part-cancelled",
@@ -434,7 +436,7 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
       excluded: statisticsOf({ records }).summary.totalsByCurrency,
       included: statisticsOf({ includeCancelled: true, records }).summary.totalsByCurrency,
     }).toEqual({
-      excluded: [{ currency: "UAH", total: 320 }],
+      excluded: [{ currency: "UAH", total: 500 }],
       included: [{ currency: "UAH", total: 500 }],
     });
   });

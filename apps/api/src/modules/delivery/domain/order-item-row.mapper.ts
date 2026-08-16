@@ -67,10 +67,13 @@ function isSettledItem(row: BookOrderItemRowSource): boolean {
 function toRowOrderView(order: BookOrderModel): BookOrderItemRowOrderView {
   return {
     currency: order.currency === null ? null : CurrencySchema.parse(order.currency),
+    deliveryPrice: order.deliveryPrice === null ? null : order.deliveryPrice.toNumber(),
+    discount: order.discount === null ? null : order.discount.toNumber(),
     id: order.id,
     orderDate: toNullableIsoDate(order.orderDate),
     orderNumber: order.orderNumber,
     storeName: order.storeName,
+    totalAmount: order.totalAmount === null ? null : order.totalAmount.toNumber(),
   };
 }
 

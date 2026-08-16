@@ -30,6 +30,7 @@ import {
   QueryBooleanWithDefaultSchema,
   TrackingNumberSchema,
 } from "./internal.js";
+import { ORDER_FINANCIAL_MESSAGES, validateOrderFinancials } from "./order-financials.js";
 
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
@@ -206,6 +207,24 @@ export const CreateBookOrderInputSchema = BookOrderDraftSchema.refine(hasUniqueO
   .refine(expectsDeliveryNotBeforeOrderDate, {
     error: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
     path: ["shipments"],
+  })
+  .superRefine((draft, context) => {
+    const validation = validateOrderFinancials({
+      deliveryPrice: draft.deliveryPrice,
+      discount: draft.discount,
+      itemPrices: draft.items.map((item) => item.price ?? null),
+      totalAmount: draft.totalAmount,
+    });
+    if (validation.error !== null) {
+      context.addIssue({
+        code: "custom",
+        message: validation.error,
+        path:
+          validation.error === ORDER_FINANCIAL_MESSAGES.negativeTotal
+            ? ["discount"]
+            : ["totalAmount"],
+      });
+    }
   });
 
 export type CreateBookOrderInput = z.infer<typeof CreateBookOrderInputSchema>;
@@ -442,10 +461,13 @@ export type BookOrderHistorySummaryView = z.infer<typeof BookOrderHistorySummary
 
 export const BookOrderItemRowOrderViewSchema = z.object({
   currency: CurrencySchema.nullable(),
+  deliveryPrice: z.number().nullable(),
+  discount: z.number().nullable(),
   id: z.string(),
   orderDate: z.string().nullable(),
   orderNumber: z.string().nullable(),
   storeName: z.string(),
+  totalAmount: z.number().nullable(),
 });
 
 export type BookOrderItemRowOrderView = z.infer<typeof BookOrderItemRowOrderViewSchema>;
