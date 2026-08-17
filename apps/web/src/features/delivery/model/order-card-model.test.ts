@@ -16,7 +16,7 @@ const locale = "en-US";
 const labels: DeliveryCardLabels = {
   badge: (key) => key,
   orderStatus: (key) => key,
-  seriesPart: ({ name, part }) => `${name} #${part}`,
+  seriesPosition: (position, total) => `${position} of ${total}`,
 };
 
 function bookIdsByGroup(cards: DeliveryOrderCardModel[]): string[][][] {
@@ -114,6 +114,64 @@ describe("toDeliveryOrderCards", () => {
     expect(firstCard(cards).shipments).toMatchObject([
       { books: [{ bookHref: "/books/book-1", title: "The Secret History" }], id: "shipment-1" },
     ]);
+  });
+
+  it("maps a complete series preview to a localized series row", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({
+          book: makeBook({
+            series: {
+              id: "series-1",
+              name: "The Kingkiller Chronicle",
+              partNumber: 1,
+              totalBooks: 3,
+            },
+          }),
+        }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).shipments[0]?.books[0]?.series).toEqual({
+      href: "/series/series-1",
+      name: "The Kingkiller Chronicle",
+      positionLabel: "1 of 3",
+    });
+  });
+
+  it.each([
+    { expectedPositionLabel: null, partNumber: null, totalBooks: 3 },
+    { expectedPositionLabel: "1", partNumber: 1, totalBooks: null },
+  ])(
+    "maps an incomplete series contract to position label $expectedPositionLabel",
+    ({ expectedPositionLabel, partNumber, totalBooks }) => {
+      const cards = toDeliveryOrderCards(
+        [
+          makeRow({
+            book: makeBook({
+              series: { id: "series-1", name: "The Kingkiller Chronicle", partNumber, totalBooks },
+            }),
+          }),
+        ],
+        { labels, locale },
+      );
+
+      expect(firstCard(cards).shipments[0]?.books[0]?.series).toEqual({
+        href: "/series/series-1",
+        name: "The Kingkiller Chronicle",
+        positionLabel: expectedPositionLabel,
+      });
+    },
+  );
+
+  it("keeps the delivery series row absent when the preview has no series", () => {
+    const cards = toDeliveryOrderCards([makeRow({ book: makeBook({ series: null }) })], {
+      labels,
+      locale,
+    });
+
+    expect(firstCard(cards).shipments[0]?.books[0]?.series).toBeNull();
   });
 
   it("keeps every book of one shipment inside a single group", () => {
@@ -254,6 +312,30 @@ describe("toDeliveryOrderCards", () => {
     expect(firstCard(cards).shipments).toMatchObject([
       { books: [{ priceText: null }, { priceText: null }] },
     ]);
+  });
+
+  it("falls back to the item prices when the order carries no total of its own", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: 349.5 }),
+        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: 120.25 }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).totalText).toBe("469.75 UAH");
+  });
+
+  it("sums the priced items alone when the rest carry no price", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: 300 }),
+        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).totalText).toBe("300 UAH");
   });
 
   it("uses a manual total for an incomplete item breakdown", () => {

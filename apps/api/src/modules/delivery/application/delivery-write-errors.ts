@@ -1,6 +1,10 @@
 import type { Nullable } from "@app/shared";
 
-import { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "@app/shared";
+import {
+  DELIVERY_ERROR_CODES,
+  EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
+  isExpectedNotBeforeOrder,
+} from "@app/shared";
 
 import type { HttpError } from "../../../core/exceptions/errors.js";
 import type {
@@ -51,7 +55,9 @@ export function assertExpectedDeliveryNotBeforeOrder({
     orderDate: toIsoDay(orderDate),
   });
   if (!matchesRule) {
-    throw new BadRequestError(DELIVERY_WRITE_MESSAGES.expectedBeforeOrderDate);
+    throw new BadRequestError(DELIVERY_WRITE_MESSAGES.expectedBeforeOrderDate, {
+      code: DELIVERY_ERROR_CODES.expectedBeforeOrderDate,
+    });
   }
 }
 
@@ -73,9 +79,13 @@ export function assertShipmentsExpectedAfter({
 export function orderEntryError(reason: OrderEntryRejection): HttpError {
   switch (reason) {
     case ORDER_ENTRY_REJECTIONS.bookAlreadyOrdered:
-      return new ConflictError(DELIVERY_WRITE_MESSAGES.bookAlreadyOrdered);
+      return new ConflictError(DELIVERY_WRITE_MESSAGES.bookAlreadyOrdered, {
+        code: DELIVERY_ERROR_CODES.bookAlreadyOrdered,
+      });
     case ORDER_ENTRY_REJECTIONS.ownershipNotOrderable:
-      return new ConflictError(DELIVERY_WRITE_MESSAGES.bookNotOrderable);
+      return new ConflictError(DELIVERY_WRITE_MESSAGES.bookNotOrderable, {
+        code: DELIVERY_ERROR_CODES.bookNotOrderable,
+      });
     default:
       return assertNever(reason);
   }
@@ -84,9 +94,13 @@ export function orderEntryError(reason: OrderEntryRejection): HttpError {
 export function orderItemCancelError(reason: OrderItemCancelRejection): HttpError {
   switch (reason) {
     case ORDER_ITEM_CANCEL_REJECTIONS.alreadyCancelled:
-      return new ConflictError(DELIVERY_WRITE_MESSAGES.itemAlreadyCancelled);
+      return new ConflictError(DELIVERY_WRITE_MESSAGES.itemAlreadyCancelled, {
+        code: DELIVERY_ERROR_CODES.itemAlreadyCancelled,
+      });
     case ORDER_ITEM_CANCEL_REJECTIONS.alreadyReceived:
-      return new ConflictError(DELIVERY_WRITE_MESSAGES.itemAlreadyReceived);
+      return new ConflictError(DELIVERY_WRITE_MESSAGES.itemAlreadyReceived, {
+        code: DELIVERY_ERROR_CODES.itemAlreadyReceived,
+      });
     default:
       return assertNever(reason);
   }
@@ -97,15 +111,21 @@ export function orderNotFoundError(): NotFoundError {
 }
 
 export function sharedOrderError(): ConflictError {
-  return new ConflictError(DELIVERY_WRITE_MESSAGES.sharedOrderNotEditableHere);
+  return new ConflictError(DELIVERY_WRITE_MESSAGES.sharedOrderNotEditableHere, {
+    code: DELIVERY_ERROR_CODES.sharedOrder,
+  });
 }
 
 export function sharedShipmentError(): ConflictError {
-  return new ConflictError(DELIVERY_WRITE_MESSAGES.sharedShipmentNotEditableHere);
+  return new ConflictError(DELIVERY_WRITE_MESSAGES.sharedShipmentNotEditableHere, {
+    code: DELIVERY_ERROR_CODES.sharedShipment,
+  });
 }
 
 export function shipmentNotActiveError(): ConflictError {
-  return new ConflictError(DELIVERY_WRITE_MESSAGES.shipmentNotActive);
+  return new ConflictError(DELIVERY_WRITE_MESSAGES.shipmentNotActive, {
+    code: DELIVERY_ERROR_CODES.shipmentNotActive,
+  });
 }
 
 export function toActiveOrderItemConflict(error: unknown): unknown {

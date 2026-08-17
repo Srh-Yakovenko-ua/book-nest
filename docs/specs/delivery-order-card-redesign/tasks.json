@@ -1,0 +1,261 @@
+{
+  "spec": "docs/specs/delivery-order-card-redesign/spec.md",
+  "generatedAt": "2026-08-17T09:36:13Z",
+  "scope": {
+    "included": [
+      "Frontend presentation of order cards rendered on Deliveries → In transit",
+      "Responsive order header, shipment sections, book grids, and their existing action menus",
+      "Focused component tests and existing Storybook fixtures needed to verify the redesigned states"
+    ],
+    "excluded": [
+      "Backend logic, endpoints, API contracts, generated API clients, and persistence",
+      "Changes to DeliveryOrderCardModel, DeliveryShipmentGroupModel, DeliveryOrderBookModel, or source data",
+      "Delivery pages other than the In transit order cards",
+      "The existing shipment receive behavior and its uncommitted implementation, except preserving it while restyling",
+      "Global design-system primitives: the existing Button, DropdownMenu, StatusBadge, semantic tokens, typography, radii, and shadows are sufficient"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Recompose the order header around total-first hierarchy",
+      "specRef": "Order header",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/delivery-order-card.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "The left side renders store name, one metadata line containing the available order number and formatted order date separated by a middle dot, and the order StatusBadge below",
+        "The right side renders model.totalText (or the existing em-dash fallback) as its own primary typographic value and renders the localized model.booksCount on a separate subordinate line",
+        "The total uses a larger and/or heavier typographic treatment than the book count and both remain right-aligned with tabular numerals",
+        "The order actions trigger remains visible in the header for every card and retains its existing accessible label and callbacks",
+        "The header has no bottom border or divider while the outer article retains the existing rounded semantic card surface, light border, and shadow"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Flatten shipment groups into compact semantic sections",
+      "specRef": "Shipment section",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/delivery-order-card.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Each shipment section renders its existing localized Shipment or Shipment N heading beside its existing StatusBadge, with the shipment actions area aligned to the right",
+        "Each shipment header and its books share one very light semantic cream/beige surface, one thin border, and one small radius without a strong shadow",
+        "The existing book grid renders below the shipment header inside that same container with at most one thin divider and no separate header or book-list frame",
+        "Available serviceName, trackingNumber, and expectedDateText values render in one compact read-only metadata row in that order, separated by visible middle dots rather than label/value field blocks",
+        "The metadata is plain text and is not rendered through inputs, field-like bordered containers, or the existing Info label/value layout",
+        "The existing external tracking link renders below the metadata row only when trackingHref is available and preserves target=_blank, rel=noopener noreferrer, icon, localized label, and new-tab screen-reader text",
+        "The existing ready-for-pickup compact receive action and active-shipment receive/edit/cancel callbacks remain behaviorally unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Render shipment books as a responsive two-column editorial grid",
+      "specRef": "Books",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/delivery-order-card.tsx"],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "Each shipment book list is one column below the desktop breakpoint and exactly two equal grid columns at the desktop breakpoint",
+        "A one-book shipment occupies one grid cell and does not span both desktop columns",
+        "Each book item has no rounded card surface or individual card border and is separated from neighboring items only by light semantic dividers",
+        "Each cover uses the existing Link, Next Image or fallback icon, semantic accent surface, radius, and shadow, with rendered dimensions within 44–48 px wide and 62–68 px high",
+        "Each book item renders title in heading typography, author, optional seriesText, and priceText aligned on the right when present",
+        "Selection mode preserves each book checkbox, selected-state styling, accessible label, and onToggleSelectBook callback",
+        "The current expand/collapse behavior still renders a localized Show N more books action when booksCount exceeds the chosen initial visible limit and reveals all books without hiding metadata for later shipments"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Reduce book-menu noise without removing keyboard or mobile access",
+      "specRef": "Menus",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/delivery-order-card.tsx"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "Every book retains the existing accessible menu trigger and open-book, change-price, and cancel-book actions",
+        "At the desktop breakpoint, a closed book-menu trigger is visually hidden at rest and becomes visible when its book row is hovered, when focus is within the row, and while the dropdown is open",
+        "Below the desktop breakpoint, the book-menu trigger remains visibly available without hover",
+        "Keyboard users can focus and operate the book-menu trigger even when it is visually hidden at desktop rest",
+        "Order, shipment, and book dropdown contents retain content-sized single-line option labels from the existing nowrap fix"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Lock the redesigned card states with focused verification",
+      "specRef": "All requirements; Visual direction",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.test.tsx",
+        "apps/web/src/features/delivery/components/delivery-order-card.stories.tsx",
+        "apps/web/src/features/delivery/components/delivery.fixtures.ts"
+      ],
+      "dependsOn": ["T1", "T2", "T3", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "Focused component tests assert separate total and localized book-count values, compact shipment metadata order, preserved tracking semantics, book visibility expansion, shipment grouping, and all existing action callbacks",
+        "Tests cover a single-book order, a multi-book shipment, multiple shipments, and an unassigned shipment group without weakening existing receive-action assertions",
+        "Storybook data continues to expose single-book, multi-book, multi-shipment, missing-metadata, and selection states needed for responsive visual inspection",
+        "A desktop visual check confirms a two-column book grid, non-spanning single book, hover/focus book actions, always-visible order action, the resolved shipment-action treatment, and no nested heavy shipment card",
+        "A mobile visual check confirms a one-column book list, visible book actions, readable header hierarchy, compact wrapping metadata, and no horizontal overflow",
+        "pnpm --filter @app/web test -- delivery-order-card.test.tsx passes",
+        "pnpm --filter @app/web typecheck passes",
+        "pnpm --filter @app/web lint passes for the touched files",
+        "pnpm exec prettier --check on every touched file passes"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": "T6",
+      "title": "Match the My Library series-row presentation",
+      "specRef": "Follow-up: series row",
+      "layer": "frontend",
+      "files": [
+        "apps/web/src/features/delivery/model/order-card-model.ts",
+        "apps/web/src/features/delivery/components/delivery-order-card.tsx"
+      ],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "A delivery book that belongs to a series renders the existing layers icon, series name, and localized position label in the same visual order as the My Library BookCard",
+        "The position label includes both the book part number and the series total, for example 1 з 6",
+        "No series row renders for a book without series data"
+      ],
+      "status": "done"
+    }
+  ],
+  "openDecisions": [],
+  "resolvedDecisions": [
+    {
+      "id": "D1",
+      "question": "How should the requirement that the shipment menu is always visible apply to received, cancelled, and unassigned shipment groups, for which the current UI intentionally exposes no shipment actions?",
+      "options": [
+        "Always show an enabled menu and define which non-mutating or newly available actions it contains for those states",
+        "Always show the trigger but disable it when the shipment has no valid actions, preserving current business permissions",
+        "Keep hiding the trigger when no valid actions exist, treating always visible as applying only to actionable active shipments"
+      ],
+      "recommendation": "Always render the trigger in the same aligned slot but disable it for received, cancelled, and unassigned groups. This meets the visual consistency goal without inventing actions or changing the current active-state permissions.",
+      "answer": "Always show the trigger and disable it when the shipment has no valid actions.",
+      "specRef": "Menus; Non-goals",
+      "blocks": ["T2"]
+    },
+    {
+      "id": "D2",
+      "question": "Should the initial visible-book limit stay at the current three books or become four so the desktop two-column grid starts with complete rows?",
+      "options": [
+        "Keep the existing three-book limit and preserve the exact current expansion threshold",
+        "Use four books initially so desktop starts with two complete rows while preserving the Show N more books action"
+      ],
+      "recommendation": "Use four. It is a presentation-only change that matches the new two-column composition and keeps the required expansion action and all data unchanged.",
+      "answer": "Use an initial visible-book limit of four.",
+      "specRef": "Books: two columns; Show N more books",
+      "blocks": ["T3", "T5"]
+    },
+    {
+      "id": "D3",
+      "question": "Should the delivery preview contract and backend mapper expose series totalBooks so the exact position label such as 1 з 6 can be rendered?",
+      "options": [
+        "Expand the contract and backend mapper to include series totalBooks",
+        "Keep the no-API constraint and omit the total"
+      ],
+      "recommendation": "Expand the contract because deriving the total from visible order books would be incorrect.",
+      "answer": "Expand the delivery preview contract and backend mapper with totalBooks.",
+      "specRef": "Follow-up: series row",
+      "blocks": ["T6"]
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "The In transit page already renders DeliveryOrderCard from the delivery feature and supplies the existing order, shipment, book, selection, and receive callbacks.",
+      "specRef": "Scope; Reuse existing components",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-in-transit.tsx:162"
+    },
+    {
+      "claim": "The current card model already contains all display data required by the redesign, so no API or data-structure change is required.",
+      "specRef": "Scope; Non-goals",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/model/order-card-model.ts:31"
+    },
+    {
+      "claim": "Store name, order number/date metadata, and order status already render on the left side of the header.",
+      "specRef": "Order header",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:78"
+    },
+    {
+      "claim": "Book count and total currently render as one combined string, not as a total-first hierarchy.",
+      "specRef": "Order header",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:92"
+    },
+    {
+      "claim": "The current header has the divider that the redesign asks to remove.",
+      "specRef": "Order header",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:77"
+    },
+    {
+      "claim": "Shipment details currently use a heavy rounded bordered nested section and label/value metadata blocks.",
+      "specRef": "Shipment section",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:243"
+    },
+    {
+      "claim": "The existing shipment heading, status chip, tracking link, and active shipment actions can be reused.",
+      "specRef": "Shipment section; Reuse existing components",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:269"
+    },
+    {
+      "claim": "Books currently render in a single vertical list with light dividers, a 40 px 3:4 cover, and no per-book rounded border.",
+      "specRef": "Books",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:171"
+    },
+    {
+      "claim": "The current book row already renders title, author, optional series/volume text, and price.",
+      "specRef": "Books",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:200"
+    },
+    {
+      "claim": "The Show N more books behavior already exists with an initial limit of three and expands across shipment groups without hiding later shipment metadata.",
+      "specRef": "Books",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:40; apps/web/src/features/delivery/components/delivery-order-card.tsx:68; apps/web/src/features/delivery/components/delivery-order-card.test.tsx:69; apps/web/src/features/delivery/components/delivery-order-card.test.tsx:96"
+    },
+    {
+      "claim": "The order menu is already always visible, but shipment menus are currently hidden for inactive and unassigned groups.",
+      "specRef": "Menus",
+      "verdict": "STALE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:96; apps/web/src/features/delivery/components/delivery-order-card.tsx:310; apps/web/src/features/delivery/components/delivery-order-card.test.tsx:205; apps/web/src/features/delivery/components/delivery-order-card.test.tsx:220"
+    },
+    {
+      "claim": "Book menus are currently visible at all viewport sizes rather than hover/focus-revealed on desktop.",
+      "specRef": "Menus",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:215"
+    },
+    {
+      "claim": "All three dropdown types already use content-sized, non-wrapping menu contents due to the current uncommitted nowrap change.",
+      "specRef": "Menus; preserve user changes",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:102; apps/web/src/features/delivery/components/delivery-order-card.tsx:221; apps/web/src/features/delivery/components/delivery-order-card.tsx:328"
+    },
+    {
+      "claim": "The existing shared semantic tokens and StatusBadge already provide cream/card surfaces, terracotta primary accents, soft info chips, heading serif typography, rounded corners, borders, and shadows.",
+      "specRef": "Visual direction",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/styles/globals.css:11; apps/web/src/styles/globals.css:95; apps/web/src/components/ui/status-badge.tsx:8"
+    }
+  ]
+}

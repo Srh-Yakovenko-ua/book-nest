@@ -1,4 +1,9 @@
-import type { BookOrderHistoryQuery, BookOrderStatisticsQuery, InTransitQuery } from "@app/shared";
+import type {
+  BookOrderHistoryQuery,
+  BookOrderStatisticsQuery,
+  InTransitQuery,
+  Nullable,
+} from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -27,6 +32,14 @@ const bookRow = {
   tags: [{ tag: { name: "own" } }],
   title: "Alpha",
 };
+
+function bookRowInSeries(totalBooks: Nullable<number>) {
+  return {
+    ...bookRow,
+    partNumber: 1,
+    series: { id: "series-1", name: "Hitchhiker's Guide", totalBooks },
+  };
+}
 
 const orderRow = {
   currency: "UAH",
@@ -85,19 +98,21 @@ function inTransitQuery(overrides: Partial<InTransitQuery> = {}): InTransitQuery
 }
 
 function itemRow({
+  book = bookRow,
   cancelledAt = null,
   expectedDeliveryDate = null,
   receivedAt = null,
   status = "in_transit",
 }: {
+  book?: ReturnType<typeof bookRowInSeries> | typeof bookRow;
   cancelledAt?: Date | null;
   expectedDeliveryDate?: Date | null;
   receivedAt?: Date | null;
   status?: string;
 }) {
   return {
-    book: bookRow,
-    bookId: bookRow.id,
+    book,
+    bookId: book.id,
     cancelledAt,
     cancelReason: null,
     createdAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -181,6 +196,24 @@ describe("DeliveryReadService.inTransitList", () => {
         trackingUrl: "https://np.test/TRK-1",
       }),
     );
+  });
+
+  it("maps the known and unknown series totals into the book preview", async () => {
+    const knownTotalRow = itemRow({ book: bookRowInSeries(6) });
+    const unknownTotalRow = itemRow({ book: bookRowInSeries(null) });
+    const { service } = buildService({
+      reads: {
+        countInTransit: vi.fn().mockResolvedValue(2),
+        listInTransit: vi.fn().mockResolvedValue([knownTotalRow, unknownTotalRow]),
+      },
+    });
+
+    const page = await service.inTransitList({ query: inTransitQuery(), userId: USER });
+
+    expect(page.items.map((item) => item.book.series)).toEqual([
+      { id: "series-1", name: "Hitchhiker's Guide", partNumber: 1, totalBooks: 6 },
+      { id: "series-1", name: "Hitchhiker's Guide", partNumber: 1, totalBooks: null },
+    ]);
   });
 
   it("reads the list and its total through the very same filter", async () => {

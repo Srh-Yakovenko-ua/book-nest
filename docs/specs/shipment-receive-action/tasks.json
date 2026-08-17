@@ -1,0 +1,207 @@
+{
+  "spec": "docs/specs/shipment-receive-action/spec.md",
+  "generatedAt": "2026-08-17T09:08:48Z",
+  "scope": {
+    "included": [
+      "Frontend receive-action placement and wiring on the Книги в дорозі order card",
+      "Reuse of the generated shipment receive endpoint and existing delivery cache invalidation",
+      "Localized labels, focused component/API-flow tests, Storybook desktop/mobile verification, and static gates"
+    ],
+    "excluded": [
+      "Backend, shared contract, generated API, database, and domain changes because the shipment receive endpoint already implements the required atomic flow",
+      "New order-level or book-level shipment receive actions",
+      "New shipment status-transition behavior beyond actions already exposed by this card",
+      "Adding an item-level partial receive menu action because no such action currently exists in the book row menu"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Expose the existing shipment receive mutation through the delivery API layer",
+      "specRef": "Requirements 2, 6, 8, 9",
+      "layer": "frontend-api",
+      "files": ["apps/web/src/features/delivery/api/use-order-shipment-actions.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "A delivery feature hook calls generated shipmentsControllerMarkReceived with a concrete shipment id and no hand-written fetch",
+        "The response is parsed with the existing BookOrderViewSchema boundary",
+        "A successful receive reuses useDeliverySync so delivery, books, and series queries are invalidated"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T2",
+      "title": "Route shipment receipt through the existing confirmation flow",
+      "specRef": "Requirements 2, 7, 8",
+      "layer": "frontend-component",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-in-transit.tsx",
+        "apps/web/src/features/delivery/components/delivery-receive-dialog.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "The receive target distinguishes a whole shipment by shipment id from the existing bulk selection of book ids",
+        "Confirming a shipment target invokes the shipment receive mutation, while selection-mode bulk receive continues to invoke useBulkReceive",
+        "The existing confirmation dialog, pending state, error handling, toast feedback, close behavior, and cache synchronization pattern are reused",
+        "Successful shipment receipt clears stale selection state without introducing frontend status-transition logic"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T3",
+      "title": "Place receive actions only at the shipment level",
+      "specRef": "Requirements 1-6 and Verification 1-4",
+      "layer": "frontend-component",
+      "files": ["apps/web/src/features/delivery/components/delivery-order-card.tsx"],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "The persistent p-3 footer and w-full Позначити N книг отриманими button are absent from every shipment section",
+        "Every concrete active shipment menu contains Позначити посилку отриманою and invokes receive with that shipment id",
+        "A compact non-full-width Позначити отриманою button is visible in the shipment header or summary only when group.status is ready_for_pickup",
+        "ordered and in_transit shipments expose receive only in the shipment menu, and received, cancelled, null/unassigned shipment groups expose no receive action",
+        "Order and book menus contain no shipment receive action",
+        "Edit and cancel remain shipment-level and are not shown for a terminal shipment status"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T4",
+      "title": "Synchronize Ukrainian and English shipment receive labels",
+      "specRef": "Requirements 2, 4 and Verification labels",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "The Ukrainian shipment menu label is exactly Позначити посилку отриманою",
+        "The Ukrainian compact ready-for-pickup CTA is exactly Позначити отриманою",
+        "English contains structurally matching keys with equivalent shipment and compact CTA meanings",
+        "node .claude/scripts/check-i18n-parity.mjs passes"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T5",
+      "title": "Cover shipment receive placement and status eligibility with focused tests",
+      "specRef": "Verification 1-4 and relevant focused tests",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-order-card.test.tsx",
+        "apps/web/src/features/delivery/components/delivery.fixtures.ts",
+        "apps/web/src/features/delivery/components/delivery-order-card.stories.tsx",
+        "apps/web/src/features/delivery/components/delivery-in-transit-view.stories.tsx"
+      ],
+      "dependsOn": ["T2", "T3", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "Component tests prove the former full-width count CTA is absent and shipment receive is available from the correct shipment menu",
+        "Component tests prove the compact CTA is present only for status ready_for_pickup and triggers the same shipment target as the menu action",
+        "Component tests prove receive is menu-only for ordered and in_transit and absent for terminal and unassigned shipment groups",
+        "Tests prove neither the order menu nor a book menu contains the shipment receive label",
+        "Fixtures encode ready_for_pickup in group.status rather than only in badge.value",
+        "Focused Vitest files covering the touched card and receive orchestration pass"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T6",
+      "title": "Verify responsive presentation and repository gates",
+      "specRef": "Verification 5-6",
+      "layer": "verification",
+      "files": [],
+      "dependsOn": ["T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "The updated shipment header, compact CTA, and dropdown are visually verified in Storybook or the running page at desktop and mobile widths without overflow or a full-width receive footer",
+        "pnpm typecheck passes",
+        "pnpm lint passes",
+        "pnpm format:check passes"
+      ],
+      "status": "todo"
+    }
+  ],
+  "openDecisions": [],
+  "verifiedAssertions": [
+    {
+      "claim": "A persistent full-width receive CTA currently appears at the bottom of each shipment block.",
+      "specRef": "Requirement 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:354"
+    },
+    {
+      "claim": "The existing card receive callback currently receives book ids instead of a shipment id.",
+      "specRef": "Requirement 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:357"
+    },
+    {
+      "claim": "The Shipment menu currently contains only edit and cancel and has no receive action.",
+      "specRef": "Requirement 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:317"
+    },
+    {
+      "claim": "Shipment receive is not mixed into the current Order or Book menus.",
+      "specRef": "Requirement 3",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:95; apps/web/src/features/delivery/components/delivery-order-card.tsx:214"
+    },
+    {
+      "claim": "The frontend card model preserves the backend shipment status needed to detect ready_for_pickup without deriving it from dates or badge text.",
+      "specRef": "Requirements 4-6",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/model/order-card-model.ts:62; apps/web/src/features/delivery/model/order-card-model.ts:228"
+    },
+    {
+      "claim": "A generated shipment receive client already exists.",
+      "specRef": "Requirements 2, 8, 9",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/shared/api/generated/endpoints/shipments/shipments.ts:1147"
+    },
+    {
+      "claim": "The backend already accepts shipment receive and returns the updated order view.",
+      "specRef": "Requirements 2 and 9",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/api/src/modules/delivery/api/shipments.controller.ts:145; apps/api/src/modules/delivery/api/shipments.controller.ts:155"
+    },
+    {
+      "claim": "The backend shipment receive flow atomically receives the shipment items and applies owned-book state.",
+      "specRef": "Requirements 2 and 9",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/api/src/modules/delivery/application/shipment.service.ts:227; apps/api/src/modules/delivery/application/shipment.service.ts:245; apps/api/src/modules/delivery/application/shipment.service.ts:249"
+    },
+    {
+      "claim": "Shipment receive is allowed only for active ordered, in_transit, and ready_for_pickup statuses and rejected for terminal received/cancelled statuses.",
+      "specRef": "Requirement 6",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/book-enums.ts:75; packages/shared/src/book-enums.ts:85; apps/api/src/modules/delivery/domain/order-item-transition.ts:169"
+    },
+    {
+      "claim": "The existing receive confirmation dialog currently uses the bulk book-item receive mutation.",
+      "specRef": "Requirements 7-8",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-receive-dialog.tsx:36; apps/web/src/features/delivery/components/delivery-receive-dialog.tsx:41"
+    },
+    {
+      "claim": "The existing bulk receive mutation already reuses delivery-wide cache invalidation.",
+      "specRef": "Requirement 8",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/api/use-bulk-receive.ts:10; apps/web/src/features/delivery/api/use-bulk-receive.ts:18; apps/web/src/features/delivery/api/delivery-cache.ts:13"
+    },
+    {
+      "claim": "No item-level partial receive action currently exists in the Book row menu.",
+      "specRef": "Requirement 7",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.tsx:220"
+    },
+    {
+      "claim": "Existing tests currently assert the old per-shipment count button behavior and must be replaced.",
+      "specRef": "Verification focused tests",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-order-card.test.tsx:150; apps/web/src/features/delivery/components/delivery-order-card.test.tsx:160"
+    }
+  ]
+}

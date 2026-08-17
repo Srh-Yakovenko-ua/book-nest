@@ -174,7 +174,12 @@ export class DeliveryReadService {
       series:
         book.series === null
           ? null
-          : { id: book.series.id, name: book.series.name, partNumber: book.partNumber },
+          : {
+              id: book.series.id,
+              name: book.series.name,
+              partNumber: book.partNumber,
+              totalBooks: book.series.totalBooks,
+            },
       tags: book.tags.map((bookTag) => bookTag.tag.name),
       title: book.title,
     };

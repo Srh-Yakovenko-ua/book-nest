@@ -21,13 +21,13 @@ import { useInTransitParams } from "../model/use-in-transit-params";
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
 import { DeliveryBulkBar } from "./delivery-bulk-bar";
 import { DeliveryCancelDialog } from "./delivery-cancel-dialog";
-import { DeliveryEditDialog } from "./delivery-edit-dialog";
 import { DeliveryInTransitView } from "./delivery-in-transit-view";
 import { DeliveryOrderCard } from "./delivery-order-card";
 import { DeliveryOverviewPanel } from "./delivery-overview-panel";
-import { DeliveryReceiveDialog } from "./delivery-receive-dialog";
+import { DeliveryReceiveDialog, type DeliveryReceiveTarget } from "./delivery-receive-dialog";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
 import { DeliveryToolbar } from "./delivery-toolbar";
+import { OrderItemPriceDialog } from "./order-item-price-dialog";
 import {
   type OrderShipmentAction,
   OrderShipmentActionDialog,
@@ -36,8 +36,8 @@ import {
 export function DeliveryInTransit() {
   const t = useTranslations("delivery");
   const tSummary = useTranslations("delivery.summary");
-  const tCard = useTranslations("delivery.card");
   const tBadge = useTranslations("delivery.badge");
+  const tLibraryCard = useTranslations("books.library.card");
   const locale = useLocale();
   const router = useRouter();
 
@@ -49,7 +49,7 @@ export function DeliveryInTransit() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [editBookId, setEditBookId] = useState<Nullable<string>>(null);
   const [cancelBookId, setCancelBookId] = useState<Nullable<string>>(null);
-  const [receiveTarget, setReceiveTarget] = useState<Nullable<string[]>>(null);
+  const [receiveTarget, setReceiveTarget] = useState<Nullable<DeliveryReceiveTarget>>(null);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
   const [manageAction, setManageAction] = useState<Nullable<OrderShipmentAction>>(null);
 
@@ -61,7 +61,7 @@ export function DeliveryInTransit() {
       labels: {
         badge: (key) => tBadge(key),
         orderStatus: (key) => t(`orderStatus.${key}`),
-        seriesPart: ({ name, part }) => tCard("seriesPart", { name, part }),
+        seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
       },
       locale,
     },
@@ -166,7 +166,9 @@ export function DeliveryInTransit() {
       onCancelBook={setCancelBookId}
       onEditBook={setEditBookId}
       onManage={setManageAction}
-      onReceiveShipment={setReceiveTarget}
+      onReceiveShipment={(shipmentId, bookCount) =>
+        setReceiveTarget({ bookCount, kind: "shipment", shipmentId })
+      }
       onToggleSelectBook={toggleSelect}
       selectedBookIds={selectedIds}
       selectionMode={selectionMode}
@@ -181,7 +183,7 @@ export function DeliveryInTransit() {
             <DeliveryBulkBar
               count={selectedVisible.length}
               onClear={() => setSelectedIds(new Set())}
-              onReceive={() => setReceiveTarget(selectedVisible)}
+              onReceive={() => setReceiveTarget({ bookIds: selectedVisible, kind: "books" })}
             />
           ) : null
         }
@@ -205,7 +207,10 @@ export function DeliveryInTransit() {
               </Button>
             ) : null}
             {visibleBookIds.length > 0 ? (
-              <Button onClick={() => setReceiveTarget(visibleBookIds)} variant="secondary">
+              <Button
+                onClick={() => setReceiveTarget({ bookIds: visibleBookIds, kind: "books" })}
+                variant="secondary"
+              >
                 <UiIcon name="check-circle" size={16} />
                 {t("actions.receiveAll")}
               </Button>
@@ -261,7 +266,7 @@ export function DeliveryInTransit() {
       />
 
       {editBookId === null ? null : (
-        <DeliveryEditDialog
+        <OrderItemPriceDialog
           bookId={editBookId}
           onOpenChange={(open) => {
             if (!open) setEditBookId(null);
@@ -293,12 +298,12 @@ export function DeliveryInTransit() {
 
       {receiveTarget === null ? null : (
         <DeliveryReceiveDialog
-          bookIds={receiveTarget}
           onOpenChange={(open) => {
             if (!open) setReceiveTarget(null);
           }}
           onReceived={() => setSelectedIds(new Set())}
           open
+          target={receiveTarget}
         />
       )}
     </>

@@ -193,6 +193,48 @@ describe("CreateBookOrderDialog book picker view", () => {
     expect(screen.getAllByText("1 100 UAH")).toHaveLength(2);
   });
 
+  it("names the negative total instead of calling the summary automatic", async () => {
+    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await screen.findByText("Доступна книга");
+    await userEvent.click(screen.getByRole("button", { name: "Вибрати всі показані (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Застосувати вибір" }));
+    await userEvent.click(screen.getByRole("radio", { name: "По книгах" }));
+    await userEvent.type(screen.getByLabelText("Ціна книги «Доступна книга»"), "100");
+    await userEvent.type(screen.getByLabelText("Ціна книги «Друга доступна книга»"), "100");
+    await userEvent.type(screen.getByLabelText("Знижка"), "500");
+
+    expect(
+      screen.getByText("Знижка більша за вартість книг і доставки — підсумок виходить від’ємним."),
+    ).toBeVisible();
+    expect(screen.queryByText("Підсумок розраховано автоматично.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the submit error true to the draft instead of freezing it", async () => {
+    renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Додати книгу" }));
+    await screen.findByText("Доступна книга");
+    await userEvent.click(screen.getByRole("button", { name: "Вибрати всі показані (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Застосувати вибір" }));
+    await userEvent.click(screen.getByRole("radio", { name: "По книгах" }));
+    await userEvent.type(screen.getByLabelText("Ціна книги «Доступна книга»"), "100");
+    await userEvent.type(screen.getByLabelText("Ціна книги «Друга доступна книга»"), "100");
+    await userEvent.type(screen.getByLabelText("Знижка"), "500");
+    await userEvent.click(screen.getByRole("button", { name: "Створити замовлення" }));
+
+    const message = "Знижка більша за вартість книг і доставки — підсумок виходить від’ємним.";
+    expect(screen.getAllByText(message)).toHaveLength(2);
+
+    await userEvent.clear(screen.getByLabelText("Знижка"));
+
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).not.toContain(
+      "/api/delivery/orders",
+    );
+  });
+
   it("keeps shipment fields behind the shipped choice", async () => {
     renderWithProviders(<CreateBookOrderDialog onOpenChange={vi.fn()} open />);
 

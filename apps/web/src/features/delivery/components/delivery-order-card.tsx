@@ -1,5 +1,6 @@
 "use client";
 
+import { isActiveShipmentStatus } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
@@ -30,13 +31,13 @@ type DeliveryOrderCardProps = {
   onCancelBook: (bookId: string) => void;
   onEditBook: (bookId: string) => void;
   onManage: (action: OrderShipmentAction) => void;
-  onReceiveShipment: (bookIds: string[]) => void;
+  onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
   selectedBookIds: ReadonlySet<string>;
   selectionMode: boolean;
 };
 
-const INITIAL_BOOK_COUNT = 3;
+const INITIAL_BOOK_COUNT = 4;
 
 type ShipmentSectionProps = {
   books: DeliveryOrderBookModel[];
@@ -45,7 +46,7 @@ type ShipmentSectionProps = {
   onCancelBook: (bookId: string) => void;
   onEditBook: (bookId: string) => void;
   onManage: (action: OrderShipmentAction) => void;
-  onReceiveShipment: (bookIds: string[]) => void;
+  onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
   selectedBookIds: ReadonlySet<string>;
   selectionMode: boolean;
@@ -67,13 +68,14 @@ export function DeliveryOrderCard({
   const visibleLimit = expanded ? model.booksCount : INITIAL_BOOK_COUNT;
   const visibleBooks = takeVisibleBooks(model.shipments, visibleLimit);
   const hiddenCount = Math.max(0, model.booksCount - INITIAL_BOOK_COUNT);
+  const booksCountText = t("booksCount", { count: model.booksCount });
   const metaText = [model.orderNumber, model.orderDateText]
     .filter((part) => part !== null)
     .join(" · ");
 
   return (
     <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card">
-      <header className="flex items-start justify-between gap-3 border-b border-border pb-4">
+      <header className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-accent text-icon">
             <UiIcon name="store" size={17} />
@@ -89,16 +91,19 @@ export function DeliveryOrderCard({
           </div>
         </div>
         <div className="flex shrink-0 items-start gap-1">
-          <p className="pt-2 text-right text-sm font-medium text-ink tabular-nums">
-            {t("booksAndTotal", { count: model.booksCount, total: model.totalText ?? "—" })}
-          </p>
+          <div className="pt-0.5 text-right tabular-nums">
+            <p className="font-heading text-lg leading-tight font-semibold text-ink">
+              {model.totalText ?? "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{booksCountText}</p>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button aria-label={t("orderActionsAria")} size="icon" variant="ghost">
                 <UiIcon name="more" size={18} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
               <DropdownMenuItem onSelect={() => onManage({ kind: "edit-order", order: model })}>
                 <UiIcon name="edit" size={16} />
                 {t("editOrder")}
@@ -166,9 +171,13 @@ function BookRow({
   selectionMode: boolean;
 }) {
   const t = useTranslations("delivery.card");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   return (
     <div
-      className={cn("flex items-center gap-3 p-3 transition-colors", selected && "bg-primary/5")}
+      className={cn(
+        "group flex min-h-20 items-center gap-3 py-3 transition-colors",
+        selected && "bg-primary/5",
+      )}
     >
       {selectionMode ? (
         <Checkbox
@@ -178,7 +187,7 @@ function BookRow({
         />
       ) : null}
       <Link
-        className="relative aspect-[3/4] w-10 shrink-0 overflow-hidden rounded bg-accent shadow-soft"
+        className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-accent shadow-soft"
         href={book.bookHref}
       >
         {book.coverSrc === undefined ? (
@@ -190,7 +199,7 @@ function BookRow({
             alt={book.title}
             className="object-cover"
             fill
-            sizes="40px"
+            sizes="48px"
             src={book.coverSrc}
             unoptimized
           />
@@ -204,20 +213,39 @@ function BookRow({
           {book.title}
         </Link>
         <p className="truncate text-xs text-muted-foreground">{book.authorName}</p>
-        {book.seriesText === null ? null : (
-          <p className="truncate text-xs text-muted-foreground">{book.seriesText}</p>
+        {book.series === null ? null : (
+          <Link
+            className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground no-underline transition-colors hover:text-primary"
+            href={book.series.href}
+          >
+            <UiIcon className="shrink-0 text-icon" name="layers" size={15} />
+            <span className="min-w-0 truncate">
+              {book.series.name}
+              {book.series.positionLabel === null ? null : (
+                <span className="text-muted-foreground"> · {book.series.positionLabel}</span>
+              )}
+            </span>
+          </Link>
         )}
       </div>
       {book.priceText === null ? null : (
         <p className="shrink-0 text-sm font-semibold text-ink tabular-nums">{book.priceText}</p>
       )}
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={setIsMenuOpen} open={isMenuOpen}>
         <DropdownMenuTrigger asChild>
-          <Button aria-label={t("actionsAria", { title: book.title })} size="icon" variant="ghost">
+          <Button
+            aria-label={t("actionsAria", { title: book.title })}
+            className={cn(
+              "shrink-0 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100 lg:focus-visible:opacity-100",
+              isMenuOpen && "lg:opacity-100",
+            )}
+            size="icon"
+            variant="ghost"
+          >
             <UiIcon name="more" size={18} />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
           <DropdownMenuItem asChild>
             <Link href={book.bookHref}>
               <UiIcon name="book" size={16} />
@@ -239,17 +267,6 @@ function BookRow({
   );
 }
 
-function Info({ label, mono = false, value }: { label: string; mono?: boolean; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className={cn("truncate text-sm text-foreground/90", mono && "font-mono text-xs")}>
-        {value}
-      </dd>
-    </div>
-  );
-}
-
 function ShipmentSection({
   books,
   group,
@@ -267,29 +284,40 @@ function ShipmentSection({
   const tCommon = useTranslations("common");
   const shipmentTitle =
     shipmentCount === 1 ? t("shipment") : t("shipmentNumber", { number: index + 1 });
+  const shipmentId = group.id;
+  const isActiveShipment = group.status !== null && isActiveShipmentStatus(group.status);
+  const showCompactReceive = isActiveShipment && group.status === "ready_for_pickup";
+  const metadata = [
+    { label: t("service"), value: group.serviceName },
+    { label: t("trackingNumber"), value: group.trackingNumber },
+    { label: t("expectedDate"), value: group.expectedDateText },
+  ].filter(({ value }) => value !== null);
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-secondary/30">
-      <div className="flex items-start justify-between gap-3 p-3.5">
+    <section className="overflow-hidden rounded-md border border-border bg-secondary/30">
+      <div className="flex items-start justify-between gap-3 p-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
+            <UiIcon className="shrink-0 text-icon" name="package" size={16} />
             <h4 className="font-heading text-sm font-semibold text-ink">{shipmentTitle}</h4>
             <StatusBadge entry={group.badge} />
             {group.id === null ? (
               <span className="text-xs text-muted-foreground">{t("notShipped")}</span>
             ) : null}
           </div>
-          <dl className="flex flex-wrap gap-x-5 gap-y-2">
-            {group.serviceName === null ? null : (
-              <Info label={t("service")} value={group.serviceName} />
-            )}
-            {group.trackingNumber === null ? null : (
-              <Info label={t("trackingNumber")} mono value={group.trackingNumber} />
-            )}
-            {group.expectedDateText === null ? null : (
-              <Info label={t("expectedDate")} value={group.expectedDateText} />
-            )}
-          </dl>
+          {metadata.length === 0 ? null : (
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+              {metadata.map(({ label, value }, metadataIndex) => (
+                <span className="contents" key={label}>
+                  {metadataIndex === 0 ? null : <span aria-hidden>·</span>}
+                  <span>
+                    <span className="sr-only">{label}: </span>
+                    {value}
+                  </span>
+                </span>
+              ))}
+            </p>
+          )}
           {group.trackingHref === null ? null : (
             <a
               className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-2"
@@ -303,41 +331,73 @@ function ShipmentSection({
             </a>
           )}
         </div>
-        {group.id === null ? null : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
-                size="icon"
-                variant="ghost"
-              >
-                <UiIcon name="more" size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onSelect={() => onManage({ kind: "edit-shipment", shipment: group })}
-              >
-                <UiIcon name="edit" size={16} />
-                {t("editShipment")}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onSelect={() => onManage({ kind: "cancel-shipment", shipment: group })}
-                variant="destructive"
-              >
-                <UiIcon name="x-circle" size={16} />
-                {t("cancelShipment")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <div className="flex shrink-0 items-center gap-1">
+          {shipmentId === null || !isActiveShipment ? (
+            <Button
+              aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
+              disabled
+              size="icon"
+              variant="ghost"
+            >
+              <UiIcon name="more" size={18} />
+            </Button>
+          ) : (
+            <>
+              {showCompactReceive ? (
+                <Button onClick={() => onReceiveShipment(shipmentId, group.books.length)} size="sm">
+                  <UiIcon name="check-circle" size={16} />
+                  {t("receiveShipmentCompact")}
+                </Button>
+              ) : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <UiIcon name="more" size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
+                  <DropdownMenuItem
+                    onSelect={() => onReceiveShipment(shipmentId, group.books.length)}
+                  >
+                    <UiIcon name="check-circle" size={16} />
+                    {t("receiveShipmentMenu")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => onManage({ kind: "edit-shipment", shipment: group })}
+                  >
+                    <UiIcon name="edit" size={16} />
+                    {t("editShipment")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => onManage({ kind: "cancel-shipment", shipment: group })}
+                    variant="destructive"
+                  >
+                    <UiIcon name="x-circle" size={16} />
+                    {t("cancelShipment")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+        </div>
       </div>
 
       {books.length === 0 ? null : (
-        <ul className="divide-y divide-border border-y border-border bg-card">
-          {books.map((book) => (
-            <li key={book.id}>
+        <ul className="grid grid-cols-1 gap-x-5 border-t border-border px-3 lg:grid-cols-2">
+          {books.map((book, bookIndex) => (
+            <li
+              className={cn(
+                bookIndex > 0 && "border-t border-border",
+                bookIndex === 1 && "lg:border-t-0",
+              )}
+              key={book.id}
+            >
               <BookRow
                 book={book}
                 onCancel={() => onCancelBook(book.bookId)}
@@ -350,16 +410,6 @@ function ShipmentSection({
           ))}
         </ul>
       )}
-
-      <div className="p-3">
-        <Button
-          className="w-full"
-          onClick={() => onReceiveShipment(group.books.map((book) => book.bookId))}
-        >
-          <UiIcon name="check-circle" size={16} />
-          {t("receiveShipment", { count: group.books.length })}
-        </Button>
-      </div>
     </section>
   );
 }

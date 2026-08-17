@@ -12,6 +12,7 @@ import { bookOrdersControllerUpdate } from "@/shared/api/generated/endpoints/boo
 import {
   shipmentsControllerCancelShipment,
   shipmentsControllerCreateShipment,
+  shipmentsControllerMarkReceived,
   shipmentsControllerUpdateShipment,
 } from "@/shared/api/generated/endpoints/shipments/shipments";
 
@@ -20,8 +21,8 @@ import { useDeliverySync } from "./delivery-cache";
 export function useCancelShipment(shipmentId: string) {
   const sync = useDeliverySync();
   return useMutation({
-    mutationFn: (payload: CancelShipmentInput) =>
-      BookOrderViewSchema.parseAsync(shipmentsControllerCancelShipment(shipmentId, payload)),
+    mutationFn: async (payload: CancelShipmentInput) =>
+      BookOrderViewSchema.parseAsync(await shipmentsControllerCancelShipment(shipmentId, payload)),
     onSuccess: sync,
   });
 }
@@ -29,8 +30,17 @@ export function useCancelShipment(shipmentId: string) {
 export function useCreateShipment(orderId: string) {
   const sync = useDeliverySync();
   return useMutation({
-    mutationFn: (payload: CreateShipmentInput) =>
-      BookOrderViewSchema.parseAsync(shipmentsControllerCreateShipment(orderId, payload)),
+    mutationFn: async (payload: CreateShipmentInput) =>
+      BookOrderViewSchema.parseAsync(await shipmentsControllerCreateShipment(orderId, payload)),
+    onSuccess: sync,
+  });
+}
+
+export function useReceiveShipment() {
+  const sync = useDeliverySync();
+  return useMutation({
+    mutationFn: async (shipmentId: string) =>
+      BookOrderViewSchema.parseAsync(await shipmentsControllerMarkReceived(shipmentId)),
     onSuccess: sync,
   });
 }
@@ -38,8 +48,8 @@ export function useCreateShipment(orderId: string) {
 export function useUpdateOrder(orderId: string) {
   const sync = useDeliverySync();
   return useMutation({
-    mutationFn: (payload: UpdateBookOrderInput) =>
-      BookOrderViewSchema.parseAsync(bookOrdersControllerUpdate(orderId, payload)),
+    mutationFn: async (payload: UpdateBookOrderInput) =>
+      BookOrderViewSchema.parseAsync(await bookOrdersControllerUpdate(orderId, payload)),
     onSuccess: sync,
   });
 }
@@ -47,8 +57,8 @@ export function useUpdateOrder(orderId: string) {
 export function useUpdateShipment(shipmentId: string) {
   const sync = useDeliverySync();
   return useMutation({
-    mutationFn: (payload: UpdateShipmentInput) =>
-      BookOrderViewSchema.parseAsync(shipmentsControllerUpdateShipment(shipmentId, payload)),
+    mutationFn: async (payload: UpdateShipmentInput) =>
+      BookOrderViewSchema.parseAsync(await shipmentsControllerUpdateShipment(shipmentId, payload)),
     onSuccess: sync,
   });
 }

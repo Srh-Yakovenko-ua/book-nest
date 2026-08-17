@@ -1886,8 +1886,7 @@
         },
         "editDialog": {
           "title": "Edit delivery",
-          "description": "Update the order details.",
-          "status": "Delivery status"
+          "description": "Update the order details."
         },
         "form": {
           "storeName": "Store",
@@ -1935,7 +1934,17 @@
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again.",
           "trackingUrl": "Enter a valid https link.",
-          "trackingUrlMax": "No more than {max} characters."
+          "trackingUrlMax": "No more than {max} characters.",
+          "bookAlreadyOrdered": "This book already has an active delivery.",
+          "bookNotOrderable": "A delivery can only be started for a book you do not own yet.",
+          "itemAlreadyCancelled": "This book was already cancelled.",
+          "itemAlreadyReceived": "This book has already arrived.",
+          "itemNoLongerActive": "This delivery is no longer active. Refresh the page.",
+          "itemsNotMovable": "Only active books of this order can be moved.",
+          "notFound": "This record is gone. Refresh the page.",
+          "sharedOrder": "This order also covers other books. Edit it from the order menu.",
+          "sharedShipment": "This shipment also covers other books. Edit it from the shipment menu.",
+          "shipmentNotActive": "This shipment is no longer active. Refresh the page."
         }
       },
       "timeline": {
@@ -2511,7 +2520,10 @@
         "title": "Delivery",
         "description": "Shipping details can be added now or later.",
         "shippedQuestion": "Has the order been shipped?",
-        "shippedOptions": { "no": "Not yet", "yes": "Yes, it has been shipped" },
+        "shippedOptions": {
+          "no": "Not yet",
+          "yes": "Yes, it has been shipped"
+        },
         "splitQuestion": "Was the order split into multiple shipments?",
         "splitHint": "If the store ships books in separate parcels, distribute the books between them.",
         "split": "Split delivery",
@@ -2560,7 +2572,8 @@
       },
       "validation": {
         "invalid": "Check the required fields, selected books, and shipment assignments.",
-        "itemPricesRequired": "In Per book mode, enter a price for every selected book."
+        "itemPricesRequired": "In Per book mode, enter a price for every selected book.",
+        "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative."
       },
       "submit": "Create order",
       "toast": {
@@ -2653,7 +2666,7 @@
       "cancelBook": "Cancel this book",
       "shipment": "Shipment",
       "shipmentNumber": "Shipment {number}",
-      "booksAndTotal": "{count, plural, one {# book} other {# books}} · {total}",
+      "booksCount": "{count, plural, one {# book} other {# books}}",
       "showMoreBooks": "Show {count, plural, one {# more book} other {# more books}}",
       "collapseBooks": "Collapse",
       "orderActionsAria": "Order actions",
@@ -2662,6 +2675,8 @@
       "addShipment": "Add shipment",
       "editShipment": "Edit shipment",
       "cancelShipment": "Cancel shipment",
+      "receiveShipmentMenu": "Mark shipment as received",
+      "receiveShipmentCompact": "Mark as received",
       "receive": "Mark as received",
       "edit": "Edit delivery",
       "cancel": "Cancel order",
@@ -2671,8 +2686,7 @@
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
       "pickupUntil": "Held until",
-      "note": "Note",
-      "receiveShipment": "{count, plural, one {Mark book as received} other {Mark # books as received}}"
+      "note": "Note"
     },
     "manage": {
       "editOrder": "Edit order",
@@ -2680,7 +2694,7 @@
       "addShipment": "Add shipment",
       "addShipmentDescription": "Unassigned books will be added to the new shipment.",
       "editShipment": "Edit shipment",
-      "editShipmentDescription": "Update the shipment tracking number.",
+      "editShipmentDescription": "Update the dispatch details of this shipment.",
       "cancelShipment": "Cancel shipment",
       "cancelShipmentDescription": "Every active book in this shipment will also be cancelled.",
       "store": "Store",
@@ -2693,7 +2707,12 @@
       "shipmentAdded": "Shipment added",
       "shipmentUpdated": "Shipment updated",
       "shipmentCancelled": "Shipment cancelled",
-      "error": "Could not complete the action"
+      "error": "Could not complete the action",
+      "deliveryService": "Delivery service",
+      "deliveryServicePlaceholder": "Service name",
+      "expectedDate": "Expected delivery date",
+      "status": "Delivery status",
+      "trackingUrl": "Tracking link"
     },
     "bulk": {
       "regionLabel": "Bulk actions",
@@ -2932,6 +2951,14 @@
           "reset": "Reset filters"
         }
       }
+    },
+    "priceDialog": {
+      "title": "Book price",
+      "description": "Update what “{title}” cost in this order.",
+      "price": "Price",
+      "hint": "Leave the field empty to drop the price.",
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "favorites": {

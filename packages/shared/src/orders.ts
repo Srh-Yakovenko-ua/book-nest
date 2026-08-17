@@ -42,6 +42,19 @@ export const BOOK_ORDER_LIMITS = {
   storeMax: 200,
 } as const;
 
+export const DELIVERY_ERROR_CODES = {
+  bookAlreadyOrdered: "DELIVERY_BOOK_ALREADY_ORDERED",
+  bookNotOrderable: "DELIVERY_BOOK_NOT_ORDERABLE",
+  expectedBeforeOrderDate: "DELIVERY_EXPECTED_BEFORE_ORDER_DATE",
+  itemAlreadyCancelled: "DELIVERY_ITEM_ALREADY_CANCELLED",
+  itemAlreadyReceived: "DELIVERY_ITEM_ALREADY_RECEIVED",
+  itemNoLongerActive: "DELIVERY_ITEM_NO_LONGER_ACTIVE",
+  itemsNotMovable: "DELIVERY_ITEMS_NOT_MOVABLE",
+  sharedOrder: "DELIVERY_SHARED_ORDER",
+  sharedShipment: "DELIVERY_SHARED_SHIPMENT",
+  shipmentNotActive: "DELIVERY_SHIPMENT_NOT_ACTIVE",
+} as const;
+
 const BOOK_ORDER_MESSAGES = {
   duplicateMovedItem: "The same order item cannot be moved twice in one request",
   duplicateOrderItem: "The same book cannot be ordered twice in one order",

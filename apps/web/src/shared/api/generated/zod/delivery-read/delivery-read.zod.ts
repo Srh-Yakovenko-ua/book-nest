@@ -180,6 +180,10 @@ export const DeliveryReadControllerInTransitListQueryParams = zod.object({
   store: zod.string().max(deliveryReadControllerInTransitListQueryStoreMax).optional(),
 });
 
+export const deliveryReadControllerInTransitListResponseItemsItemBookSeriesTotalBooksMin =
+  -9007199254740991;
+export const deliveryReadControllerInTransitListResponseItemsItemBookSeriesTotalBooksMax = 9007199254740991;
+
 export const deliveryReadControllerInTransitListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerInTransitListResponsePageMax = 9007199254740991;
 
@@ -245,6 +249,11 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
             id: zod.string(),
             name: zod.string(),
             partNumber: zod.number().nullable(),
+            totalBooks: zod
+              .int()
+              .min(deliveryReadControllerInTransitListResponseItemsItemBookSeriesTotalBooksMin)
+              .max(deliveryReadControllerInTransitListResponseItemsItemBookSeriesTotalBooksMax)
+              .nullable(),
           })
           .nullable(),
         tags: zod.array(zod.string()),
@@ -452,6 +461,10 @@ export const DeliveryReadControllerHistoryListQueryParams = zod.object({
   to: zod.iso.date().regex(deliveryReadControllerHistoryListQueryToRegExp).optional(),
 });
 
+export const deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMin =
+  -9007199254740991;
+export const deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMax = 9007199254740991;
+
 export const deliveryReadControllerHistoryListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerHistoryListResponsePageMax = 9007199254740991;
 
@@ -517,6 +530,11 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
             id: zod.string(),
             name: zod.string(),
             partNumber: zod.number().nullable(),
+            totalBooks: zod
+              .int()
+              .min(deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMin)
+              .max(deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMax)
+              .nullable(),
           })
           .nullable(),
         tags: zod.array(zod.string()),
