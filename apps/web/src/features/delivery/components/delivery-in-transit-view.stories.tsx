@@ -75,7 +75,7 @@ export const Empty: Story = {
   args: { content: { kind: "empty" } },
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Відстежуй книжкові замовлення")).toBeVisible());
-    await expect(canvas.getByRole("button", { name: "Перейти до книг до покупки" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Перейти до списку бажань" })).toBeVisible();
   },
 };
 
