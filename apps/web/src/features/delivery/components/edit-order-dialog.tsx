@@ -33,6 +33,7 @@ import { DeliveryLoadingDialog } from "./delivery-loading-dialog";
 import { Field, Footer, Frame, Labeled, mutationCallbacks } from "./order-dialog-parts";
 
 const CURRENCIES = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
+const MONEY_STEP = "1";
 const NOTE_MAX_LENGTH = 300;
 
 export function EditOrderDialog({
@@ -282,7 +283,7 @@ function MoneyField({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={blockNegativeNumberKeys}
         onPaste={blockNegativeNumberPaste}
-        step="0.01"
+        step={MONEY_STEP}
         type="number"
         value={value}
       />

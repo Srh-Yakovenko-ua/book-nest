@@ -205,6 +205,15 @@ describe("OrderShipmentActionDialog edit-order", () => {
     expect(patchBody()).toMatchObject({ totalAmount: 300 });
   });
 
+  it("steps the money fields by a whole unit", async () => {
+    loadedOrder = { ...updatedOrder, deliveryPrice: 65.5, discount: 230.04 };
+    renderEditOrder();
+
+    expect(await screen.findByLabelText("Знижка")).toHaveAttribute("step", "1");
+    expect(screen.getByLabelText("Вартість доставки")).toHaveAttribute("step", "1");
+    expect(screen.getByLabelText("Фінальна сума")).toHaveAttribute("step", "1");
+  });
+
   it("refuses to save a discount that drives the total below zero", async () => {
     loadedOrder = {
       ...updatedOrder,
