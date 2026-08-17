@@ -153,6 +153,7 @@ function EditShipmentDialog({
       ? action.shipment.status
       : "ordered",
   );
+  const [pickupUntil, setPickupUntil] = useState(action.shipment.pickupUntil ?? "");
   const [trackingNumber, setTrackingNumber] = useState(action.shipment.trackingNumber ?? "");
   const [trackingUrl, setTrackingUrl] = useState(action.shipment.trackingUrl ?? "");
   const [note, setNote] = useState(action.shipment.note ?? "");
@@ -164,6 +165,7 @@ function EditShipmentDialog({
         deliveryService: deliveryService.trim() || null,
         expectedDeliveryDate: expectedDeliveryDate || null,
         note: note.trim() || null,
+        pickupUntil: pickupUntil || null,
         status,
         trackingNumber: trackingNumber.trim() || null,
         trackingUrl: trackingUrl.trim() || null,
@@ -196,6 +198,15 @@ function EditShipmentDialog({
             id="edit-shipment-expected-date"
             onChange={(next) => setExpectedDeliveryDate(next ?? "")}
             value={expectedDeliveryDate}
+          />
+        </Labeled>
+        <Labeled htmlFor="edit-shipment-pickup-until" label={t("pickupUntil")}>
+          <BookDateField
+            allowFuture
+            ariaLabel={t("pickupUntil")}
+            id="edit-shipment-pickup-until"
+            onChange={(next) => setPickupUntil(next ?? "")}
+            value={pickupUntil}
           />
         </Labeled>
         <Labeled htmlFor="edit-shipment-status" label={t("status")}>

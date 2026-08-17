@@ -64,6 +64,7 @@ export type DeliveryShipmentGroupModel = {
   expectedDateText: Nullable<string>;
   id: Nullable<string>;
   note: Nullable<string>;
+  pickupUntil: Nullable<string>;
   pickupUntilText: Nullable<string>;
   serviceName: Nullable<string>;
   status: Nullable<ShipmentStatus>;
@@ -238,6 +239,7 @@ function toShipmentGroupModel(
       expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),
     id: group.id,
     note: shipment?.note ?? null,
+    pickupUntil,
     pickupUntilText: pickupUntil === null ? null : formatDate(pickupUntil, options.locale),
     serviceName: shipment?.deliveryService?.name ?? null,
     status: shipment?.status ?? null,

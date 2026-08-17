@@ -58,6 +58,7 @@ function renderCard(
     <DeliveryOrderCard
       model={model}
       onCancelBook={vi.fn()}
+      onChangeShipmentStatus={vi.fn()}
       onEditBook={vi.fn()}
       onManage={vi.fn()}
       onReceiveShipment={vi.fn()}
@@ -67,6 +68,14 @@ function renderCard(
       {...overrides}
     />,
   );
+}
+
+function shipmentSectionAt(index: number): HTMLElement {
+  const section = screen.getAllByRole("heading", { level: 4 })[index]?.closest("section");
+  if (section === null || section === undefined) {
+    throw new Error(`no shipment section at index ${index}`);
+  }
+  return section;
 }
 
 describe("DeliveryOrderCard", () => {
@@ -233,6 +242,95 @@ describe("DeliveryOrderCard", () => {
 
     expect(onReceiveShipment).toHaveBeenCalledTimes(1);
     expect(onReceiveShipment).toHaveBeenCalledWith("shipment-3a", 1);
+  });
+
+  it.each([
+    ["ordered", "Позначити в дорозі", "in_transit"],
+    ["in_transit", "Позначити готовою", "ready_for_pickup"],
+  ] as const)(
+    "advances a %s shipment to its next status in one click",
+    async (status, label, next) => {
+      const onChangeShipmentStatus = vi.fn();
+      renderCard(
+        makeDeliveryOrderCardModel({
+          shipments: [makeDeliveryShipmentGroupModel({ id: `shipment-${status}`, status })],
+        }),
+        { onChangeShipmentStatus },
+      );
+
+      await userEvent.click(screen.getByRole("button", { name: label }));
+
+      expect(onChangeShipmentStatus).toHaveBeenCalledTimes(1);
+      expect(onChangeShipmentStatus).toHaveBeenCalledWith(`shipment-${status}`, next);
+    },
+  );
+
+  it("moves a shipment back to an earlier status from the status submenu", async () => {
+    const onChangeShipmentStatus = vi.fn();
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [makeDeliveryShipmentGroupModel({ id: "shipment-back", status: "in_transit" })],
+      }),
+      { onChangeShipmentStatus },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії: Посилка" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Статус посилки" }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "Замовлена" }));
+
+    expect(onChangeShipmentStatus).toHaveBeenCalledWith("shipment-back", "ordered");
+  });
+
+  it("does not resend the status a shipment already carries", async () => {
+    const onChangeShipmentStatus = vi.fn();
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [makeDeliveryShipmentGroupModel({ id: "shipment-same", status: "in_transit" })],
+      }),
+      { onChangeShipmentStatus },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії: Посилка" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Статус посилки" }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "В дорозі" }));
+
+    expect(onChangeShipmentStatus).not.toHaveBeenCalled();
+  });
+
+  it("names the shipment status next to a badge that reports the delivery date instead", () => {
+    renderCard(makeDeliveryOrderCardModel());
+
+    const section = within(shipmentSectionAt(0));
+    expect(section.getByText("Очікується скоро")).toBeInTheDocument();
+    expect(section.getByText("В дорозі")).toBeInTheDocument();
+  });
+
+  it("does not repeat the status when the badge already carries it", () => {
+    renderCard(deliveryOrderCards.multipleBooks);
+
+    expect(within(shipmentSectionAt(0)).getAllByText("В дорозі")).toHaveLength(1);
+  });
+
+  it("shows the pickup deadline of a shipment waiting at a pickup point", () => {
+    renderCard(deliveryOrderCards.multiShipment);
+
+    expect(screen.getByText("Зберігається до 18 лип. 2026")).toBeInTheDocument();
+  });
+
+  it("keeps the pickup deadline hidden while the shipment is still travelling", () => {
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [
+          makeDeliveryShipmentGroupModel({
+            pickupUntil: "2026-07-18",
+            pickupUntilText: "18 лип. 2026",
+            status: "in_transit",
+          }),
+        ],
+      }),
+    );
+
+    expect(screen.queryByText("Зберігається до 18 лип. 2026")).not.toBeInTheDocument();
   });
 
   it.each(["ordered", "in_transit"] as const)(

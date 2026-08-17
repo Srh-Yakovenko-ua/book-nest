@@ -583,6 +583,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Сортування за українською абеткою",
     version: null,
   },
+  {
+    bodyEn:
+      "A shipment now moves to its next status in one click, straight from the order card. The status is spelled out next to the badge, the shipment menu can send it back a step, and a parcel waiting at a pickup point can carry the date it is held until.",
+    bodyUk:
+      "Посилка тепер переходить до наступного статусу одним кліком просто з картки замовлення. Статус підписаний поруч зі значком, у меню посилки його можна повернути на крок назад, а посилці на відділенні можна вказати дату, до якої її зберігають.",
+    category: "feature",
+    publishedAt: "2026-08-17T00:00:00.000Z",
+    slug: "shipment-status-one-click",
+    titleEn: "One-click shipment status",
+    titleUk: "Статус посилки одним кліком",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

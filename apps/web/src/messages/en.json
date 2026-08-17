@@ -2621,6 +2621,7 @@
       "all": "All",
       "ordered": "Ordered",
       "in_transit": "In transit",
+      "ready_for_pickup": "Ready for pickup",
       "arriving_soon": "Arriving soon",
       "this_week": "This week",
       "delayed": "Delayed",
@@ -2678,6 +2679,9 @@
       "cancelShipment": "Cancel shipment",
       "receiveShipmentMenu": "Mark shipment as received",
       "receiveShipmentCompact": "Mark as received",
+      "markInTransitCompact": "Mark as in transit",
+      "markReadyForPickupCompact": "Mark as ready",
+      "statusMenu": "Shipment status",
       "receive": "Mark as received",
       "edit": "Edit delivery",
       "cancel": "Cancel order",
@@ -2686,7 +2690,7 @@
       "booksInTransit": "{count, plural, one {# book in transit} other {# books in transit}}",
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
-      "pickupUntil": "Held until",
+      "pickupUntil": "Held until {date}",
       "note": "Note"
     },
     "manage": {
@@ -2731,6 +2735,7 @@
       "deliveryService": "Delivery service",
       "deliveryServicePlaceholder": "Service name",
       "expectedDate": "Expected delivery date",
+      "pickupUntil": "Held until",
       "status": "Delivery status",
       "trackingUrl": "Tracking link"
     },
@@ -2768,6 +2773,7 @@
       "received": "Book marked as received",
       "receivedBulk": "{count, plural, one {# book marked as received} other {# books marked as received}}",
       "receivedPartial": "Received: {received}. Skipped: {skipped}",
+      "statusUpdated": "Shipment status updated",
       "error": "Could not complete the action"
     },
     "subnav": {

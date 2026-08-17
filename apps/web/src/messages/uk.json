@@ -2621,6 +2621,7 @@
       "all": "Усі",
       "ordered": "Замовлено",
       "in_transit": "В дорозі",
+      "ready_for_pickup": "Готові до отримання",
       "arriving_soon": "Очікуються скоро",
       "this_week": "Цього тижня",
       "delayed": "Затримуються",
@@ -2678,6 +2679,9 @@
       "cancelShipment": "Скасувати посилку",
       "receiveShipmentMenu": "Позначити посилку отриманою",
       "receiveShipmentCompact": "Позначити отриманою",
+      "markInTransitCompact": "Позначити в дорозі",
+      "markReadyForPickupCompact": "Позначити готовою",
+      "statusMenu": "Статус посилки",
       "receive": "Позначити як отриману",
       "edit": "Редагувати доставку",
       "cancel": "Скасувати замовлення",
@@ -2686,7 +2690,7 @@
       "booksInTransit": "{count, plural, one {# книга в дорозі} few {# книги в дорозі} many {# книг у дорозі} other {# книг у дорозі}}",
       "orderTotal": "Сума",
       "notShipped": "Ще не відправлено",
-      "pickupUntil": "Зберігається до",
+      "pickupUntil": "Зберігається до {date}",
       "note": "Нотатка"
     },
     "manage": {
@@ -2731,6 +2735,7 @@
       "deliveryService": "Служба доставки",
       "deliveryServicePlaceholder": "Назва служби",
       "expectedDate": "Очікувана дата доставки",
+      "pickupUntil": "Зберігається до",
       "status": "Статус доставки",
       "trackingUrl": "Посилання на відстеження"
     },
@@ -2768,6 +2773,7 @@
       "received": "Книгу позначено як отриману",
       "receivedBulk": "{count, plural, one {# книгу позначено як отриману} few {# книги позначено як отримані} many {# книг позначено як отримані} other {# книг позначено як отримані}}",
       "receivedPartial": "Отримано: {received}. Пропущено: {skipped}",
+      "statusUpdated": "Статус посилки оновлено",
       "error": "Не вдалося виконати дію"
     },
     "subnav": {

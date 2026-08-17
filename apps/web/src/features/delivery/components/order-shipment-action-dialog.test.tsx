@@ -309,10 +309,29 @@ describe("OrderShipmentActionDialog edit-shipment", () => {
       deliveryService: "Нова Пошта",
       expectedDeliveryDate: "2026-08-22",
       note: "Лишити у відділенні",
+      pickupUntil: null,
       status: "ordered",
       trackingNumber: "TTN-2",
       trackingUrl: "https://np.test/TTN-1",
     });
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  it("keeps the pickup deadline it was opened with and sends it back on save", async () => {
+    renderWithProviders(
+      <OrderShipmentActionDialog
+        action={{
+          kind: "edit-shipment",
+          shipment: { ...shipment, pickupUntil: "2026-08-25", status: "ready_for_pickup" },
+        }}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Зберігається до")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(patchBody()).toBeDefined());
+    expect(patchBody()).toMatchObject({ pickupUntil: "2026-08-25" });
   });
 });

@@ -1,18 +1,25 @@
 "use client";
 
-import { isActiveShipmentStatus } from "@app/shared";
+import type { ActiveShipmentStatus } from "@app/shared";
+
+import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { UiIcon, type UiIconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -30,6 +37,7 @@ import type { OrderShipmentAction } from "./order-shipment-action-dialog";
 type DeliveryOrderCardProps = {
   model: DeliveryOrderCardModel;
   onCancelBook: (bookId: string) => void;
+  onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
   onEditBook: (bookId: string) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
@@ -40,11 +48,37 @@ type DeliveryOrderCardProps = {
 
 const INITIAL_BOOK_COUNT = 4;
 
+type ShipmentNextStep =
+  | { icon: UiIconName; kind: "receive"; labelKey: "receiveShipmentCompact" }
+  | {
+      icon: UiIconName;
+      kind: "status";
+      labelKey: "markInTransitCompact" | "markReadyForPickupCompact";
+      status: ActiveShipmentStatus;
+    };
+
+const SHIPMENT_NEXT_STEP = {
+  in_transit: {
+    icon: "store",
+    kind: "status",
+    labelKey: "markReadyForPickupCompact",
+    status: "ready_for_pickup",
+  },
+  ordered: {
+    icon: "truck",
+    kind: "status",
+    labelKey: "markInTransitCompact",
+    status: "in_transit",
+  },
+  ready_for_pickup: { icon: "check-circle", kind: "receive", labelKey: "receiveShipmentCompact" },
+} as const satisfies Record<ActiveShipmentStatus, ShipmentNextStep>;
+
 type ShipmentSectionProps = {
   books: DeliveryOrderBookModel[];
   group: DeliveryShipmentGroupModel;
   index: number;
   onCancelBook: (bookId: string) => void;
+  onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
   onEditBook: (bookId: string) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
@@ -57,6 +91,7 @@ type ShipmentSectionProps = {
 export function DeliveryOrderCard({
   model,
   onCancelBook,
+  onChangeShipmentStatus,
   onEditBook,
   onManage,
   onReceiveShipment,
@@ -135,6 +170,7 @@ export function DeliveryOrderCard({
               index={index}
               key={group.id ?? "not-shipped"}
               onCancelBook={onCancelBook}
+              onChangeShipmentStatus={onChangeShipmentStatus}
               onEditBook={onEditBook}
               onManage={onManage}
               onReceiveShipment={onReceiveShipment}
@@ -279,6 +315,7 @@ function ShipmentSection({
   group,
   index,
   onCancelBook,
+  onChangeShipmentStatus,
   onEditBook,
   onManage,
   onReceiveShipment,
@@ -289,11 +326,19 @@ function ShipmentSection({
 }: ShipmentSectionProps) {
   const t = useTranslations("delivery.card");
   const tCommon = useTranslations("common");
+  const tStatus = useTranslations("books.deliveryStatus.labels");
   const shipmentTitle =
     shipmentCount === 1 ? t("shipment") : t("shipmentNumber", { number: index + 1 });
-  const shipmentId = group.id;
-  const isActiveShipment = group.status !== null && isActiveShipmentStatus(group.status);
-  const showCompactReceive = isActiveShipment && group.status === "ready_for_pickup";
+  const activeShipment =
+    group.id !== null && group.status !== null && isActiveShipmentStatus(group.status)
+      ? { id: group.id, nextStep: SHIPMENT_NEXT_STEP[group.status], status: group.status }
+      : null;
+  const statusText =
+    activeShipment === null || group.badge.value === activeShipment.status
+      ? null
+      : tStatus(activeShipment.status);
+  const pickupUntilText =
+    activeShipment?.status === "ready_for_pickup" ? group.pickupUntilText : null;
   const metadata = [
     { label: t("service"), value: group.serviceName },
     { label: t("trackingNumber"), value: group.trackingNumber },
@@ -307,6 +352,9 @@ function ShipmentSection({
             <UiIcon className="shrink-0 text-icon" name="package" size={16} />
             <h4 className="font-heading text-sm font-semibold text-ink">{shipmentTitle}</h4>
             <StatusBadge entry={group.badge} />
+            {statusText === null ? null : (
+              <span className="text-xs text-muted-foreground">{statusText}</span>
+            )}
             {group.id === null ? (
               <span className="text-xs text-muted-foreground">{t("notShipped")}</span>
             ) : null}
@@ -344,9 +392,14 @@ function ShipmentSection({
               {t("expectedDeliveryDate", { date: group.expectedDateText })}
             </p>
           )}
+          {pickupUntilText === null ? null : (
+            <p className="text-xs text-muted-foreground">
+              {t("pickupUntil", { date: pickupUntilText })}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          {shipmentId === null || !isActiveShipment ? (
+          {activeShipment === null ? (
             <Button
               aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
               disabled
@@ -357,12 +410,18 @@ function ShipmentSection({
             </Button>
           ) : (
             <>
-              {showCompactReceive ? (
-                <Button onClick={() => onReceiveShipment(shipmentId, group.books.length)} size="sm">
-                  <UiIcon name="check-circle" size={16} />
-                  {t("receiveShipmentCompact")}
-                </Button>
-              ) : null}
+              <Button
+                onClick={() =>
+                  activeShipment.nextStep.kind === "receive"
+                    ? onReceiveShipment(activeShipment.id, group.books.length)
+                    : onChangeShipmentStatus(activeShipment.id, activeShipment.nextStep.status)
+                }
+                size="sm"
+                variant={activeShipment.nextStep.kind === "receive" ? "default" : "secondary"}
+              >
+                <UiIcon name={activeShipment.nextStep.icon} size={16} />
+                {t(activeShipment.nextStep.labelKey)}
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -375,12 +434,34 @@ function ShipmentSection({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
                   <DropdownMenuItem
-                    onSelect={() => onReceiveShipment(shipmentId, group.books.length)}
+                    onSelect={() => onReceiveShipment(activeShipment.id, group.books.length)}
                   >
                     <UiIcon name="check-circle" size={16} />
                     {t("receiveShipmentMenu")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <UiIcon name="truck" size={16} />
+                      {t("statusMenu")}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={activeShipment.status}>
+                        {SHIPMENT_ACTIVE_STATUSES.map((option) => (
+                          <DropdownMenuRadioItem
+                            key={option}
+                            onSelect={() => {
+                              if (option === activeShipment.status) return;
+                              onChangeShipmentStatus(activeShipment.id, option);
+                            }}
+                            value={option}
+                          >
+                            {tStatus(option)}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                   <DropdownMenuItem
                     onSelect={() => onManage({ kind: "edit-shipment", shipment: group })}
                   >

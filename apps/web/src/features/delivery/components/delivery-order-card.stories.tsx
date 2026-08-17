@@ -9,6 +9,7 @@ const meta = {
   args: {
     model: deliveryOrderCards.singleBook,
     onCancelBook: () => {},
+    onChangeShipmentStatus: () => {},
     onEditBook: () => {},
     onManage: () => {},
     onReceiveShipment: () => {},

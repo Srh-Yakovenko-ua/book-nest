@@ -1,4 +1,5 @@
 import type {
+  ActiveShipmentStatus,
   CancelShipmentInput,
   CreateShipmentInput,
   UpdateBookOrderInput,
@@ -12,11 +13,19 @@ import { bookOrdersControllerUpdate } from "@/shared/api/generated/endpoints/boo
 import {
   shipmentsControllerCancelShipment,
   shipmentsControllerCreateShipment,
+  shipmentsControllerMarkInTransit,
+  shipmentsControllerMarkReadyForPickup,
   shipmentsControllerMarkReceived,
   shipmentsControllerUpdateShipment,
 } from "@/shared/api/generated/endpoints/shipments/shipments";
 
 import { useDeliverySync } from "./delivery-cache";
+
+const STATUS_REQUESTS: Record<ActiveShipmentStatus, (shipmentId: string) => Promise<unknown>> = {
+  in_transit: (shipmentId) => shipmentsControllerMarkInTransit(shipmentId),
+  ordered: (shipmentId) => shipmentsControllerUpdateShipment(shipmentId, { status: "ordered" }),
+  ready_for_pickup: (shipmentId) => shipmentsControllerMarkReadyForPickup(shipmentId),
+};
 
 export function useCancelShipment(shipmentId: string) {
   const sync = useDeliverySync();
@@ -41,6 +50,20 @@ export function useReceiveShipment() {
   return useMutation({
     mutationFn: async (shipmentId: string) =>
       BookOrderViewSchema.parseAsync(await shipmentsControllerMarkReceived(shipmentId)),
+    onSuccess: sync,
+  });
+}
+
+export function useSetShipmentStatus() {
+  const sync = useDeliverySync();
+  return useMutation({
+    mutationFn: async ({
+      shipmentId,
+      status,
+    }: {
+      shipmentId: string;
+      status: ActiveShipmentStatus;
+    }) => BookOrderViewSchema.parseAsync(await STATUS_REQUESTS[status](shipmentId)),
     onSuccess: sync,
   });
 }

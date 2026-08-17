@@ -1081,6 +1081,15 @@ function ShipmentSection({
             />
           </CollapsibleTrigger>
           <CollapsibleContent className="flex flex-col gap-4">
+            <DateField
+              allowFuture
+              disablePast
+              id={`shipment-pickup-until-${shipment.id}`}
+              label={t("pickupUntil")}
+              onChange={(pickupUntil) => onUpdate({ pickupUntil })}
+              optional
+              value={shipment.pickupUntil}
+            />
             <TextField
               label={t("trackingUrl")}
               onChange={(trackingUrl) => onUpdate({ trackingUrl })}
