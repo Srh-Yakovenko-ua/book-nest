@@ -30,11 +30,17 @@ import { useBookOrder } from "../api/use-book-order";
 import { useUpdateOrder } from "../api/use-order-shipment-actions";
 import { formatMoney } from "../model/money-format";
 import { DeliveryLoadingDialog } from "./delivery-loading-dialog";
-import { Field, Footer, Frame, Labeled, mutationCallbacks } from "./order-dialog-parts";
+import {
+  Field,
+  Footer,
+  Frame,
+  Labeled,
+  mutationCallbacks,
+  NOTE_MAX_LENGTH,
+} from "./order-dialog-parts";
 
 const CURRENCIES = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
 const MONEY_STEP = "1";
-const NOTE_MAX_LENGTH = 300;
 
 export function EditOrderDialog({
   onOpenChange,

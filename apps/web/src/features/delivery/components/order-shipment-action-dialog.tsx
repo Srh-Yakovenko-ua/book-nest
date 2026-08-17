@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { BookDateField } from "@/features/books/components/book-date-field";
 import { DeliveryServiceAutocomplete } from "@/features/books/components/delivery-service-autocomplete";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
@@ -28,7 +29,14 @@ import {
   useUpdateShipment,
 } from "../api/use-order-shipment-actions";
 import { EditOrderDialog } from "./edit-order-dialog";
-import { Field, Footer, Frame, Labeled, mutationCallbacks } from "./order-dialog-parts";
+import {
+  Field,
+  Footer,
+  Frame,
+  Labeled,
+  mutationCallbacks,
+  NOTE_MAX_LENGTH,
+} from "./order-dialog-parts";
 
 export type OrderShipmentAction =
   | { kind: "add-shipment"; order: DeliveryOrderCardModel }
@@ -147,6 +155,7 @@ function EditShipmentDialog({
   );
   const [trackingNumber, setTrackingNumber] = useState(action.shipment.trackingNumber ?? "");
   const [trackingUrl, setTrackingUrl] = useState(action.shipment.trackingUrl ?? "");
+  const [note, setNote] = useState(action.shipment.note ?? "");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -154,6 +163,7 @@ function EditShipmentDialog({
       {
         deliveryService: deliveryService.trim() || null,
         expectedDeliveryDate: expectedDeliveryDate || null,
+        note: note.trim() || null,
         status,
         trackingNumber: trackingNumber.trim() || null,
         trackingUrl: trackingUrl.trim() || null,
@@ -207,6 +217,14 @@ function EditShipmentDialog({
         </Labeled>
         <Field label={t("trackingNumber")} onChange={setTrackingNumber} value={trackingNumber} />
         <Field label={t("trackingUrl")} onChange={setTrackingUrl} value={trackingUrl} />
+        <Labeled htmlFor="edit-shipment-note" label={t("note")}>
+          <Textarea
+            id="edit-shipment-note"
+            maxLength={NOTE_MAX_LENGTH}
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
+          />
+        </Labeled>
         <Footer loading={mutation.isPending} t={t} />
       </form>
     </Frame>

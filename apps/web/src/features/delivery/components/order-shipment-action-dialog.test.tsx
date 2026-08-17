@@ -8,6 +8,7 @@ import { OrderShipmentActionDialog } from "./order-shipment-action-dialog";
 
 const shipment = makeDeliveryShipmentGroupModel({
   expectedDate: "2026-08-22",
+  note: "Лишити у відділенні",
   serviceName: "Нова Пошта",
   status: "ordered",
   trackingNumber: "TTN-1",
@@ -256,6 +257,38 @@ describe("OrderShipmentActionDialog edit-shipment", () => {
     expect(screen.getByLabelText("Номер ТТН")).toHaveValue("TTN-1");
     expect(screen.getByLabelText("Посилання на відстеження")).toHaveValue("https://np.test/TTN-1");
     expect(screen.getByLabelText("Статус доставки")).toBeVisible();
+    expect(screen.getByLabelText("Коментар")).toHaveValue("Лишити у відділенні");
+  });
+
+  it("saves an edited comment and clears it when emptied", async () => {
+    renderWithProviders(
+      <OrderShipmentActionDialog
+        action={{ kind: "edit-shipment", shipment }}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    await userEvent.clear(screen.getByLabelText("Коментар"));
+    await userEvent.type(screen.getByLabelText("Коментар"), "Дзвонити перед доставкою");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(patchBody()).toBeDefined());
+    expect(patchBody()).toMatchObject({ note: "Дзвонити перед доставкою" });
+  });
+
+  it("sends no comment when the field is left empty", async () => {
+    renderWithProviders(
+      <OrderShipmentActionDialog
+        action={{ kind: "edit-shipment", shipment: { ...shipment, note: null } }}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Коментар")).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(patchBody()).toBeDefined());
+    expect(patchBody()).toMatchObject({ note: null });
   });
 
   it("sends the whole shipment on save and closes once the server answers", async () => {
@@ -275,6 +308,7 @@ describe("OrderShipmentActionDialog edit-shipment", () => {
     expect(patchBody()).toEqual({
       deliveryService: "Нова Пошта",
       expectedDeliveryDate: "2026-08-22",
+      note: "Лишити у відділенні",
       status: "ordered",
       trackingNumber: "TTN-2",
       trackingUrl: "https://np.test/TTN-1",

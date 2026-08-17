@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+export const NOTE_MAX_LENGTH = 300;
+
 export type ManageTranslations = ReturnType<typeof useTranslations<"delivery.manage">>;
 
 export function Field({
