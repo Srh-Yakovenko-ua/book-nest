@@ -84,7 +84,7 @@ describe("POST /api/delivery/orders", () => {
     });
 
     expect(BookOrderViewSchema.parse(order)).toMatchObject({
-      derivedStatus: "shipped",
+      derivedStatus: "active",
       items: [{ bookId, price: 350 }],
       storeName: "Yakaboo",
     });
@@ -188,7 +188,7 @@ describe("POST /api/delivery/orders", () => {
       input: {
         items: bookIds.map((bookId) => ({ bookId })),
         orderDate: isoDay(0),
-        shipments: [{ bookIds: [bookIds[0] ?? ""] }],
+        shipments: [{ bookIds: [bookIds[0] ?? ""], status: "in_transit" }],
         storeName: "Yakaboo",
       },
     });

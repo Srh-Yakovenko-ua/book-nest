@@ -224,7 +224,7 @@ describe("toBookOrderView", () => {
       createdAt: "2026-03-01T10:00:00.000Z",
       currency: "UAH",
       deliveryPrice: 60,
-      derivedStatus: "shipped",
+      derivedStatus: "active",
       discount: 15.5,
       id: ORDER_ID,
       items: [

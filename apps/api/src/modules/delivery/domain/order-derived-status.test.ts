@@ -16,8 +16,9 @@ type DerivedStatusCase = {
 const CANCELLED_AT = new Date("2026-03-02T09:00:00.000Z");
 const RECEIVED_AT = new Date("2026-03-05T09:00:00.000Z");
 
-const LIVE_PARCEL = "shipment-live";
-const OTHER_LIVE_PARCEL = "shipment-live-2";
+const TRAVELLING_PARCEL = "shipment-travelling";
+const WAITING_PARCEL = "shipment-waiting";
+const UNSENT_PARCEL = "shipment-unsent";
 const CANCELLED_PARCEL = "shipment-cancelled";
 
 function makeItem(overrides: Partial<DerivedStatusItem> = {}): DerivedStatusItem {
@@ -28,9 +29,9 @@ function makeShipment(id: string, status: ShipmentStatus): DerivedStatusShipment
   return { id, status };
 }
 
-const LIVE_SHIPMENTS: DerivedStatusShipment[] = [
-  makeShipment(LIVE_PARCEL, "in_transit"),
-  makeShipment(OTHER_LIVE_PARCEL, "ordered"),
+const DISPATCHED_SHIPMENTS: DerivedStatusShipment[] = [
+  makeShipment(TRAVELLING_PARCEL, "in_transit"),
+  makeShipment(WAITING_PARCEL, "ready_for_pickup"),
 ];
 
 const DERIVED_STATUS_CASES: DerivedStatusCase[] = [
@@ -43,41 +44,56 @@ const DERIVED_STATUS_CASES: DerivedStatusCase[] = [
   {
     expected: "received",
     items: [
-      makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
-      makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
+      makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
+      makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
     ],
     name: "an order whose every live item is received reads as received",
-    shipments: LIVE_SHIPMENTS,
+    shipments: DISPATCHED_SHIPMENTS,
   },
   {
     expected: "received",
     items: [
       makeItem({ cancelledAt: CANCELLED_AT }),
-      makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
+      makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
     ],
     name: "a cancelled item does not hold back an order whose remaining book arrived",
-    shipments: LIVE_SHIPMENTS,
+    shipments: DISPATCHED_SHIPMENTS,
   },
   {
     expected: "partially_received",
     items: [
-      makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
-      makeItem({ shipmentId: OTHER_LIVE_PARCEL }),
+      makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
+      makeItem({ shipmentId: WAITING_PARCEL }),
     ],
     name: "an order with one book arrived and one still travelling reads as partially received",
-    shipments: LIVE_SHIPMENTS,
+    shipments: DISPATCHED_SHIPMENTS,
   },
   {
     expected: "partially_shipped",
-    items: [makeItem({ shipmentId: LIVE_PARCEL }), makeItem()],
+    items: [makeItem({ shipmentId: TRAVELLING_PARCEL }), makeItem()],
     name: "an order with one book in a parcel and one not yet assigned reads as partially shipped",
-    shipments: LIVE_SHIPMENTS,
+    shipments: DISPATCHED_SHIPMENTS,
   },
   {
     expected: "shipped",
-    items: [makeItem({ shipmentId: LIVE_PARCEL }), makeItem({ shipmentId: OTHER_LIVE_PARCEL })],
-    name: "an order with every book in a parcel and nothing arrived reads as shipped",
-    shipments: LIVE_SHIPMENTS,
+    items: [makeItem({ shipmentId: TRAVELLING_PARCEL }), makeItem({ shipmentId: WAITING_PARCEL })],
+    name: "an order whose every book rides a parcel that has left reads as shipped, and a parcel waiting at a pickup point counts as one that left",
+    shipments: DISPATCHED_SHIPMENTS,
+  },
+  {
+    expected: "active",
+    items: [makeItem({ shipmentId: UNSENT_PARCEL }), makeItem({ shipmentId: UNSENT_PARCEL })],
+    name: "an order whose books all sit in a parcel nobody has sent yet reads as active, not shipped",
+    shipments: [makeShipment(UNSENT_PARCEL, "ordered")],
+  },
+  {
+    expected: "partially_shipped",
+    items: [makeItem({ shipmentId: TRAVELLING_PARCEL }), makeItem({ shipmentId: UNSENT_PARCEL })],
+    name: "an order with one parcel on the road and one still unsent reads as partially shipped",
+    shipments: [
+      makeShipment(TRAVELLING_PARCEL, "in_transit"),
+      makeShipment(UNSENT_PARCEL, "ordered"),
+    ],
   },
   {
     expected: "active",
@@ -99,21 +115,27 @@ const DERIVED_STATUS_CASES: DerivedStatusCase[] = [
   },
   {
     expected: "partially_shipped",
-    items: [makeItem({ shipmentId: LIVE_PARCEL }), makeItem({ shipmentId: CANCELLED_PARCEL })],
+    items: [
+      makeItem({ shipmentId: TRAVELLING_PARCEL }),
+      makeItem({ shipmentId: CANCELLED_PARCEL }),
+    ],
     name: "an order split between a live parcel and a cancelled one reads as partially shipped",
     shipments: [
-      makeShipment(LIVE_PARCEL, "in_transit"),
+      makeShipment(TRAVELLING_PARCEL, "in_transit"),
       makeShipment(CANCELLED_PARCEL, "cancelled"),
     ],
   },
   {
     expected: "received",
     items: [
-      makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
+      makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
       makeItem({ receivedAt: RECEIVED_AT, shipmentId: CANCELLED_PARCEL }),
     ],
     name: "a received book keeps the order received even when its parcel was later cancelled",
-    shipments: [makeShipment(LIVE_PARCEL, "received"), makeShipment(CANCELLED_PARCEL, "cancelled")],
+    shipments: [
+      makeShipment(TRAVELLING_PARCEL, "received"),
+      makeShipment(CANCELLED_PARCEL, "cancelled"),
+    ],
   },
 ];
 
@@ -123,18 +145,18 @@ describe("computeBookOrderDerivedStatus", () => {
   });
 
   it("walks a two-book order from active to received without ever stepping back", () => {
-    const shipments = [makeShipment(LIVE_PARCEL, "in_transit")];
+    const shipments = [makeShipment(TRAVELLING_PARCEL, "in_transit")];
     const stages: DerivedStatusItem[][] = [
       [makeItem(), makeItem()],
-      [makeItem({ shipmentId: LIVE_PARCEL }), makeItem()],
-      [makeItem({ shipmentId: LIVE_PARCEL }), makeItem({ shipmentId: LIVE_PARCEL })],
+      [makeItem({ shipmentId: TRAVELLING_PARCEL }), makeItem()],
+      [makeItem({ shipmentId: TRAVELLING_PARCEL }), makeItem({ shipmentId: TRAVELLING_PARCEL })],
       [
-        makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
-        makeItem({ shipmentId: LIVE_PARCEL }),
+        makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
+        makeItem({ shipmentId: TRAVELLING_PARCEL }),
       ],
       [
-        makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
-        makeItem({ receivedAt: RECEIVED_AT, shipmentId: LIVE_PARCEL }),
+        makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
+        makeItem({ receivedAt: RECEIVED_AT, shipmentId: TRAVELLING_PARCEL }),
       ],
     ];
 
@@ -147,5 +169,23 @@ describe("computeBookOrderDerivedStatus", () => {
       "partially_received",
       "received",
     ]);
+  });
+
+  it("moves an order to shipped only once its parcel actually leaves, not when the books are packed into it", () => {
+    const items = [
+      makeItem({ shipmentId: UNSENT_PARCEL }),
+      makeItem({ shipmentId: UNSENT_PARCEL }),
+    ];
+
+    const packed = computeBookOrderDerivedStatus({
+      items,
+      shipments: [makeShipment(UNSENT_PARCEL, "ordered")],
+    });
+    const sent = computeBookOrderDerivedStatus({
+      items,
+      shipments: [makeShipment(UNSENT_PARCEL, "in_transit")],
+    });
+
+    expect([packed, sent]).toEqual(["active", "shipped"]);
   });
 });
