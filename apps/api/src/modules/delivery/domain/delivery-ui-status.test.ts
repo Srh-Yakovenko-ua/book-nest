@@ -150,17 +150,27 @@ describe("getShipmentUiStatus", () => {
     expect(getShipmentUiStatus({ shipment, today: TODAY })).toBe("delayed");
   });
 
-  it("prefers the delivery date over the pickup deadline when the parcel carries both", () => {
+  it("prefers the pickup deadline over the delivery date when the parcel carries both", () => {
     const shipment = makeShipment({
       expectedDeliveryDate: utc("2026-07-20"),
       pickupUntil: utc("2026-07-09"),
       status: "ready_for_pickup",
     });
 
-    expect(getShipmentUiStatus({ shipment, today: TODAY })).toBeNull();
+    expect(getShipmentUiStatus({ shipment, today: TODAY })).toBe("arriving_soon");
   });
 
-  it("gives ready_for_pickup no UI status of its own, because a UI status only answers when a parcel is due, and a parcel waiting at a pickup point answers that with a date like any other", () => {
+  it("stops calling a waiting parcel delayed once its pickup deadline moves the due date ahead", () => {
+    const shipment = makeShipment({
+      expectedDeliveryDate: utc("2026-07-01"),
+      pickupUntil: utc("2026-07-14"),
+      status: "ready_for_pickup",
+    });
+
+    expect(getShipmentUiStatus({ shipment, today: TODAY })).toBe("arriving_soon");
+  });
+
+  it("keeps counting from the delivery date while a waiting parcel has no pickup deadline, because a UI status only answers when a parcel is due", () => {
     const dueDate = utc("2026-07-09");
     const waiting = makeShipment({ expectedDeliveryDate: dueDate, status: "ready_for_pickup" });
     const travelling = makeShipment({ expectedDeliveryDate: dueDate, status: "in_transit" });

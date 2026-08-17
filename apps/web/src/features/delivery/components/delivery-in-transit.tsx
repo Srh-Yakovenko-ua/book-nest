@@ -1,14 +1,16 @@
 "use client";
 
-import type { Nullable } from "@app/shared";
+import type { ActiveShipmentStatus, Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import { useRouter } from "@/i18n/navigation";
 
 import type { DeliveryOrderCardModel } from "../model/order-card-model";
@@ -16,6 +18,7 @@ import type { DeliveryContent } from "./delivery-in-transit-view";
 
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
+import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
 import { toDeliveryOrderCards } from "../model/order-card-model";
 import { useInTransitParams } from "../model/use-in-transit-params";
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
@@ -37,13 +40,16 @@ export function DeliveryInTransit() {
   const t = useTranslations("delivery");
   const tSummary = useTranslations("delivery.summary");
   const tBadge = useTranslations("delivery.badge");
+  const tToast = useTranslations("delivery.toast");
   const tLibraryCard = useTranslations("books.library.card");
   const locale = useLocale();
   const router = useRouter();
+  const deliveryErrorText = useDeliveryErrorText();
 
   const params = useInTransitParams();
   const listQuery = useInTransitList(params.listParams);
   const summaryQuery = useInTransitSummary();
+  const setShipmentStatus = useSetShipmentStatus();
 
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -83,6 +89,16 @@ export function DeliveryInTransit() {
       else next.add(bookId);
       return next;
     });
+  }
+
+  function changeShipmentStatus(shipmentId: string, status: ActiveShipmentStatus) {
+    setShipmentStatus.mutate(
+      { shipmentId, status },
+      {
+        onError: (error) => toast.error(deliveryErrorText(error)),
+        onSuccess: () => toast.success(tToast("statusUpdated")),
+      },
+    );
   }
 
   function toggleSelectAll() {
@@ -164,6 +180,7 @@ export function DeliveryInTransit() {
       key={model.id}
       model={model}
       onCancelBook={setCancelBookId}
+      onChangeShipmentStatus={changeShipmentStatus}
       onEditBook={setEditBookId}
       onManage={setManageAction}
       onReceiveShipment={(shipmentId, bookCount) =>

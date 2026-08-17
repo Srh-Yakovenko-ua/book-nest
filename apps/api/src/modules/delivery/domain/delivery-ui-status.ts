@@ -42,7 +42,7 @@ export function getDeliveryUiStatus({
   expectedDeliveryDate: Nullable<Date>;
   today: Date;
 }): Nullable<DeliveryUiStatus> {
-  return uiStatusFromExpectedDate({ expectedDeliveryDate, today });
+  return uiStatusFromDueDate({ dueDate: expectedDeliveryDate, today });
 }
 
 export function getShipmentUiStatus({
@@ -62,13 +62,10 @@ export function getShipmentUiStatus({
       return null;
     case SHIPMENT_STATUS.in_transit:
     case SHIPMENT_STATUS.ordered:
-      return uiStatusFromExpectedDate({
-        expectedDeliveryDate: shipment.expectedDeliveryDate,
-        today,
-      });
+      return uiStatusFromDueDate({ dueDate: shipment.expectedDeliveryDate, today });
     case SHIPMENT_STATUS.ready_for_pickup:
-      return uiStatusFromExpectedDate({
-        expectedDeliveryDate: shipment.expectedDeliveryDate ?? shipment.pickupUntil,
+      return uiStatusFromDueDate({
+        dueDate: shipment.pickupUntil ?? shipment.expectedDeliveryDate,
         today,
       });
     default:
@@ -76,22 +73,22 @@ export function getShipmentUiStatus({
   }
 }
 
-function uiStatusFromExpectedDate({
-  expectedDeliveryDate,
+function uiStatusFromDueDate({
+  dueDate,
   today,
 }: {
-  expectedDeliveryDate: Nullable<Date>;
+  dueDate: Nullable<Date>;
   today: Date;
 }): Nullable<DeliveryUiStatus> {
-  if (expectedDeliveryDate === null) {
+  if (dueDate === null) {
     return UI_STATUS.no_delivery_date;
   }
 
-  const daysUntilDelivery = differenceInCalendarDays(expectedDeliveryDate, today);
-  if (daysUntilDelivery < 0) {
+  const daysUntilDue = differenceInCalendarDays(dueDate, today);
+  if (daysUntilDue < 0) {
     return UI_STATUS.delayed;
   }
-  if (daysUntilDelivery <= ARRIVING_SOON_DAYS) {
+  if (daysUntilDue <= ARRIVING_SOON_DAYS) {
     return UI_STATUS.arriving_soon;
   }
 

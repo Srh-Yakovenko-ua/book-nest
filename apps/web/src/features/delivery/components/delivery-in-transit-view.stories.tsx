@@ -33,6 +33,7 @@ const meta = {
         key={model.id}
         model={model}
         onCancelBook={() => {}}
+        onChangeShipmentStatus={() => {}}
         onEditBook={() => {}}
         onManage={() => {}}
         onReceiveShipment={() => {}}

@@ -28,6 +28,28 @@ function bookListAt(index: number): HTMLElement {
   return list;
 }
 
+function makeShortAndLongShipments(): DeliveryOrderCardModel {
+  const shipmentBooks = (prefix: string, count: number) =>
+    Array.from({ length: count }, (_, index) =>
+      makeDeliveryOrderBookModel({ bookId: `${prefix}-${index}`, id: `${prefix}-item-${index}` }),
+    );
+
+  return makeDeliveryOrderCardModel({
+    booksCount: 11,
+    shipments: [
+      makeDeliveryShipmentGroupModel({
+        books: shipmentBooks("first", 3),
+        serviceName: "Нова Пошта",
+      }),
+      makeDeliveryShipmentGroupModel({
+        books: shipmentBooks("later", 8),
+        id: "shipment-later",
+        serviceName: "Укрпошта",
+      }),
+    ],
+  });
+}
+
 function renderCard(
   model: DeliveryOrderCardModel,
   overrides: Partial<ComponentProps<typeof DeliveryOrderCard>> = {},
@@ -36,6 +58,7 @@ function renderCard(
     <DeliveryOrderCard
       model={model}
       onCancelBook={vi.fn()}
+      onChangeShipmentStatus={vi.fn()}
       onEditBook={vi.fn()}
       onManage={vi.fn()}
       onReceiveShipment={vi.fn()}
@@ -45,6 +68,14 @@ function renderCard(
       {...overrides}
     />,
   );
+}
+
+function shipmentSectionAt(index: number): HTMLElement {
+  const section = screen.getAllByRole("heading", { level: 4 })[index]?.closest("section");
+  if (section === null || section === undefined) {
+    throw new Error(`no shipment section at index ${index}`);
+  }
+  return section;
 }
 
 describe("DeliveryOrderCard", () => {
@@ -59,24 +90,29 @@ describe("DeliveryOrderCard", () => {
     expect(screen.getAllByText("20450099887766")).toHaveLength(1);
     expect(screen.getByText("Служба доставки:")).toHaveClass("sr-only");
     expect(screen.getByText("Номер ТТН:")).toHaveClass("sr-only");
-    expect(screen.getByText("Очікувана доставка:")).toHaveClass("sr-only");
+    expect(screen.getByText("Очікувана дата доставки: 10 лип. 2026")).toBeInTheDocument();
     const trackingLink = screen.getByRole("link", { name: /Відкрити трекінг/ });
     expect(trackingLink).toHaveAttribute("target", "_blank");
     expect(trackingLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  it("renders shipment metadata in service, tracking and expected-date order", () => {
+  it("keeps the service, the tracking number and the tracking link on one line, with the expected date below", () => {
     renderCard(deliveryOrderCards.multipleBooks);
 
     const service = screen.getByText("Нова Пошта");
     const trackingNumber = screen.getByText("20450099887766");
-    const expectedDate = screen.getByText("10 лип. 2026");
+    const trackingLink = screen.getByRole("link", { name: /Відкрити трекінг/ });
+    const expectedDate = screen.getByText("Очікувана дата доставки: 10 лип. 2026");
+    const metadataLine = trackingNumber.closest("p");
 
     expect(service.compareDocumentPosition(trackingNumber) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+    expect(metadataLine).toContainElement(service);
+    expect(metadataLine).toContainElement(trackingLink);
+    expect(metadataLine).not.toContainElement(expectedDate);
     expect(
-      trackingNumber.compareDocumentPosition(expectedDate) & Node.DOCUMENT_POSITION_FOLLOWING,
+      trackingLink.compareDocumentPosition(expectedDate) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
@@ -124,26 +160,22 @@ describe("DeliveryOrderCard", () => {
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   });
 
+  it("counts the collapsed books of every shipment, not only the first", async () => {
+    renderCard(makeShortAndLongShipments());
+
+    expect(within(bookListAt(0)).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(4);
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 4 книги" }));
+
+    expect(within(bookListAt(0)).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(8);
+  });
+
   it("keeps later shipment metadata visible while its books are collapsed", () => {
-    const firstBooks = Array.from({ length: 4 }, (_, index) =>
-      makeDeliveryOrderBookModel({ bookId: `first-${index}`, id: `first-item-${index}` }),
-    );
-    renderCard(
-      makeDeliveryOrderCardModel({
-        booksCount: 5,
-        shipments: [
-          makeDeliveryShipmentGroupModel({ books: firstBooks, serviceName: "Нова Пошта" }),
-          makeDeliveryShipmentGroupModel({
-            books: [makeDeliveryOrderBookModel({ bookId: "later", id: "later-item" })],
-            id: "shipment-later",
-            serviceName: "Укрпошта",
-          }),
-        ],
-      }),
-    );
+    renderCard(makeShortAndLongShipments());
 
     expect(screen.getByText("Укрпошта")).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(4);
   });
 
   it("exposes working order and shipment actions through their own menus", async () => {
@@ -212,6 +244,95 @@ describe("DeliveryOrderCard", () => {
     expect(onReceiveShipment).toHaveBeenCalledWith("shipment-3a", 1);
   });
 
+  it.each([
+    ["ordered", "Позначити в дорозі", "in_transit"],
+    ["in_transit", "Позначити готовою", "ready_for_pickup"],
+  ] as const)(
+    "advances a %s shipment to its next status in one click",
+    async (status, label, next) => {
+      const onChangeShipmentStatus = vi.fn();
+      renderCard(
+        makeDeliveryOrderCardModel({
+          shipments: [makeDeliveryShipmentGroupModel({ id: `shipment-${status}`, status })],
+        }),
+        { onChangeShipmentStatus },
+      );
+
+      await userEvent.click(screen.getByRole("button", { name: label }));
+
+      expect(onChangeShipmentStatus).toHaveBeenCalledTimes(1);
+      expect(onChangeShipmentStatus).toHaveBeenCalledWith(`shipment-${status}`, next);
+    },
+  );
+
+  it("moves a shipment back to an earlier status from the status submenu", async () => {
+    const onChangeShipmentStatus = vi.fn();
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [makeDeliveryShipmentGroupModel({ id: "shipment-back", status: "in_transit" })],
+      }),
+      { onChangeShipmentStatus },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії: Посилка" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Статус посилки" }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "Замовлена" }));
+
+    expect(onChangeShipmentStatus).toHaveBeenCalledWith("shipment-back", "ordered");
+  });
+
+  it("does not resend the status a shipment already carries", async () => {
+    const onChangeShipmentStatus = vi.fn();
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [makeDeliveryShipmentGroupModel({ id: "shipment-same", status: "in_transit" })],
+      }),
+      { onChangeShipmentStatus },
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії: Посилка" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Статус посилки" }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "В дорозі" }));
+
+    expect(onChangeShipmentStatus).not.toHaveBeenCalled();
+  });
+
+  it("names the shipment status next to a badge that reports the delivery date instead", () => {
+    renderCard(makeDeliveryOrderCardModel());
+
+    const section = within(shipmentSectionAt(0));
+    expect(section.getByText("Очікується скоро")).toBeInTheDocument();
+    expect(section.getByText("В дорозі")).toBeInTheDocument();
+  });
+
+  it("does not repeat the status when the badge already carries it", () => {
+    renderCard(deliveryOrderCards.multipleBooks);
+
+    expect(within(shipmentSectionAt(0)).getAllByText("В дорозі")).toHaveLength(1);
+  });
+
+  it("shows the pickup deadline of a shipment waiting at a pickup point", () => {
+    renderCard(deliveryOrderCards.multiShipment);
+
+    expect(screen.getByText("Зберігається до 18 лип. 2026")).toBeInTheDocument();
+  });
+
+  it("keeps the pickup deadline hidden while the shipment is still travelling", () => {
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [
+          makeDeliveryShipmentGroupModel({
+            pickupUntil: "2026-07-18",
+            pickupUntilText: "18 лип. 2026",
+            status: "in_transit",
+          }),
+        ],
+      }),
+    );
+
+    expect(screen.queryByText("Зберігається до 18 лип. 2026")).not.toBeInTheDocument();
+  });
+
   it.each(["ordered", "in_transit"] as const)(
     "keeps receive in the shipment menu only for %s",
     async (status) => {
@@ -269,6 +390,16 @@ describe("DeliveryOrderCard", () => {
     expect(
       screen.queryByRole("menuitem", { name: "Позначити посилку отриманою" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("leaves the book menu with only the price and cancel actions", async () => {
+    renderCard(deliveryOrderCards.singleBook);
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії для «Таємна історія»" }));
+
+    expect(await screen.findByRole("menuitem", { name: "Змінити ціну" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Скасувати цю книгу" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Перейти до книги" })).not.toBeInTheDocument();
   });
 
   it("edits a single book from its row menu", async () => {

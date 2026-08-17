@@ -5,7 +5,7 @@ import type { BookView, ReadingStatus } from "@app/shared";
 import { ArrowRight, ChevronDown, Quote } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 
 import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { useDedicationActions } from "@/features/dedications";
+import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,21 @@ const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rerea
 
 const DEDICATION_PREVIEW = 300;
 
+const DEDICATION_CLAMP_QUERY = "(min-width: 40rem)";
+
+function collapsedDedicationHeight(content: HTMLQuoteElement): number {
+  if (!window.matchMedia(DEDICATION_CLAMP_QUERY).matches) return content.scrollHeight;
+  const node = content.firstChild;
+  if (node === null || node.nodeType !== Node.TEXT_NODE) return content.scrollHeight;
+  const range = document.createRange();
+  range.setStart(node, 0);
+  range.setEnd(node, Math.min(DEDICATION_PREVIEW, node.textContent?.length ?? 0));
+  const rects = range.getClientRects();
+  const lastRect = rects.item(rects.length - 1);
+  if (lastRect === null) return content.scrollHeight;
+  return Math.ceil(lastRect.bottom - content.getBoundingClientRect().top);
+}
+
 const MOBILE_HERO_LIMITS = {
   dedicationChars: 120,
   tagsShown: 4,
@@ -44,89 +60,19 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
 
   const dedicationId = useId();
   const [dedicationExpanded, setDedicationExpanded] = useState(false);
-  const dedicationContainerRef = useRef<HTMLDivElement>(null);
-  const dedicationContentRef = useRef<HTMLQuoteElement>(null);
-  const previousDedicationExpanded = useRef<boolean | null>(null);
 
   const dedication = book.dedication?.trim() ?? "";
   const isDedicationLong = dedication.length > DEDICATION_PREVIEW;
+  const { containerRef: dedicationContainerRef, contentRef: dedicationContentRef } =
+    useAnimatedHeight<HTMLQuoteElement>({
+      collapsedHeight: isDedicationLong ? collapsedDedicationHeight : undefined,
+      contentKey: dedication,
+      expanded: dedicationExpanded,
+    });
   const isDedicationClamped = dedication.length > MOBILE_HERO_LIMITS.dedicationChars;
   const hasDedication = dedication.length > 0;
   const hasGenres = book.genres.length > 0;
   const hiddenTagsCount = book.tags.length - MOBILE_HERO_LIMITS.tagsShown;
-
-  useLayoutEffect(() => {
-    const container = dedicationContainerRef.current;
-    const content = dedicationContentRef.current;
-    if (container === null || content === null) return;
-
-    if (!isDedicationLong) {
-      container.style.maxHeight = "none";
-      previousDedicationExpanded.current = null;
-      return;
-    }
-
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let removeTransitionEnd: (() => void) | undefined;
-
-    const collapsedHeight = () => {
-      const node = content.firstChild;
-      if (node === null || node.nodeType !== Node.TEXT_NODE) return content.scrollHeight;
-      const range = document.createRange();
-      range.setStart(node, 0);
-      range.setEnd(node, Math.min(DEDICATION_PREVIEW, dedication.length));
-      const rects = range.getClientRects();
-      const lastRect = rects.item(rects.length - 1);
-      if (lastRect === null) return content.scrollHeight;
-      return Math.ceil(lastRect.bottom - content.getBoundingClientRect().top);
-    };
-
-    const settleAtRest = (collapsed: number) => {
-      container.style.maxHeight = dedicationExpanded ? "none" : `${collapsed}px`;
-    };
-
-    const animate = (collapsed: number) => {
-      removeTransitionEnd?.();
-      if (reducedMotion.matches) {
-        settleAtRest(collapsed);
-        return;
-      }
-      if (dedicationExpanded) {
-        container.style.maxHeight = `${content.scrollHeight}px`;
-        const handleEnd = (event: TransitionEvent) => {
-          if (event.propertyName !== "max-height") return;
-          container.style.maxHeight = "none";
-          container.removeEventListener("transitionend", handleEnd);
-        };
-        container.addEventListener("transitionend", handleEnd);
-        removeTransitionEnd = () => container.removeEventListener("transitionend", handleEnd);
-        return;
-      }
-      container.style.maxHeight = `${content.scrollHeight}px`;
-      void container.offsetHeight;
-      container.style.maxHeight = `${collapsed}px`;
-    };
-
-    const toggled =
-      previousDedicationExpanded.current !== null &&
-      previousDedicationExpanded.current !== dedicationExpanded;
-    previousDedicationExpanded.current = dedicationExpanded;
-    if (toggled) {
-      animate(collapsedHeight());
-    } else {
-      settleAtRest(collapsedHeight());
-    }
-
-    const observer = new ResizeObserver(() => {
-      if (!dedicationExpanded) container.style.maxHeight = `${collapsedHeight()}px`;
-    });
-    observer.observe(content);
-
-    return () => {
-      observer.disconnect();
-      removeTransitionEnd?.();
-    };
-  }, [dedicationExpanded, dedication, isDedicationLong]);
 
   const isFavorite =
     favorite.isPending && favorite.variables !== undefined
@@ -284,7 +230,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
               </div>
               <div className="relative">
                 <div
-                  className="overflow-hidden motion-safe:transition-[max-height] motion-safe:duration-300 motion-safe:ease-out max-sm:max-h-none!"
+                  className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
                   ref={dedicationContainerRef}
                 >
                   <blockquote

@@ -49,6 +49,7 @@ export type DeliveryOrderCardModel = {
   badge: StatusEntry;
   booksCount: number;
   id: string;
+  orderDate: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
   shipments: DeliveryShipmentGroupModel[];
@@ -63,6 +64,7 @@ export type DeliveryShipmentGroupModel = {
   expectedDateText: Nullable<string>;
   id: Nullable<string>;
   note: Nullable<string>;
+  pickupUntil: Nullable<string>;
   pickupUntilText: Nullable<string>;
   serviceName: Nullable<string>;
   status: Nullable<ShipmentStatus>;
@@ -99,6 +101,7 @@ export function toDeliveryOrderCards(
     badge: toOrderStatusBadge(group.order.derivedStatus, options.labels.orderStatus),
     booksCount: group.items.length,
     id: group.order.id,
+    orderDate: group.order.orderDate,
     orderDateText:
       group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),
     orderNumber: group.order.orderNumber,
@@ -236,6 +239,7 @@ function toShipmentGroupModel(
       expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),
     id: group.id,
     note: shipment?.note ?? null,
+    pickupUntil,
     pickupUntilText: pickupUntil === null ? null : formatDate(pickupUntil, options.locale),
     serviceName: shipment?.deliveryService?.name ?? null,
     status: shipment?.status ?? null,

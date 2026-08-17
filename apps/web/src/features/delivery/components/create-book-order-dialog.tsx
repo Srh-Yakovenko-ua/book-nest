@@ -68,6 +68,7 @@ import {
 } from "../model/create-book-order-draft";
 import { formatMoney } from "../model/money-format";
 const CURRENCIES = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
+const MONEY_STEP = "1";
 const ORDER_PICKER_OWNERSHIP_STATUSES = [
   "none",
   "want_to_buy",
@@ -977,7 +978,7 @@ function MoneyField({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={blockNegativeNumberKeys}
         onPaste={blockNegativeNumberPaste}
-        step="0.01"
+        step={MONEY_STEP}
         type="number"
         value={value}
       />
@@ -1080,6 +1081,15 @@ function ShipmentSection({
             />
           </CollapsibleTrigger>
           <CollapsibleContent className="flex flex-col gap-4">
+            <DateField
+              allowFuture
+              disablePast
+              id={`shipment-pickup-until-${shipment.id}`}
+              label={t("pickupUntil")}
+              onChange={(pickupUntil) => onUpdate({ pickupUntil })}
+              optional
+              value={shipment.pickupUntil}
+            />
             <TextField
               label={t("trackingUrl")}
               onChange={(trackingUrl) => onUpdate({ trackingUrl })}

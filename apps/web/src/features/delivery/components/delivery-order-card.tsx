@@ -1,21 +1,29 @@
 "use client";
 
-import { isActiveShipmentStatus } from "@app/shared";
+import type { ActiveShipmentStatus } from "@app/shared";
+
+import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { UiIcon, type UiIconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +37,7 @@ import type { OrderShipmentAction } from "./order-shipment-action-dialog";
 type DeliveryOrderCardProps = {
   model: DeliveryOrderCardModel;
   onCancelBook: (bookId: string) => void;
+  onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
   onEditBook: (bookId: string) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
@@ -39,11 +48,37 @@ type DeliveryOrderCardProps = {
 
 const INITIAL_BOOK_COUNT = 4;
 
+type ShipmentNextStep =
+  | { icon: UiIconName; kind: "receive"; labelKey: "receiveShipmentCompact" }
+  | {
+      icon: UiIconName;
+      kind: "status";
+      labelKey: "markInTransitCompact" | "markReadyForPickupCompact";
+      status: ActiveShipmentStatus;
+    };
+
+const SHIPMENT_NEXT_STEP = {
+  in_transit: {
+    icon: "store",
+    kind: "status",
+    labelKey: "markReadyForPickupCompact",
+    status: "ready_for_pickup",
+  },
+  ordered: {
+    icon: "truck",
+    kind: "status",
+    labelKey: "markInTransitCompact",
+    status: "in_transit",
+  },
+  ready_for_pickup: { icon: "check-circle", kind: "receive", labelKey: "receiveShipmentCompact" },
+} as const satisfies Record<ActiveShipmentStatus, ShipmentNextStep>;
+
 type ShipmentSectionProps = {
   books: DeliveryOrderBookModel[];
   group: DeliveryShipmentGroupModel;
   index: number;
   onCancelBook: (bookId: string) => void;
+  onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
   onEditBook: (bookId: string) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
@@ -56,6 +91,7 @@ type ShipmentSectionProps = {
 export function DeliveryOrderCard({
   model,
   onCancelBook,
+  onChangeShipmentStatus,
   onEditBook,
   onManage,
   onReceiveShipment,
@@ -66,8 +102,11 @@ export function DeliveryOrderCard({
   const t = useTranslations("delivery.card");
   const [expanded, setExpanded] = useState(false);
   const visibleLimit = expanded ? model.booksCount : INITIAL_BOOK_COUNT;
-  const visibleBooks = takeVisibleBooks(model.shipments, visibleLimit);
-  const hiddenCount = Math.max(0, model.booksCount - INITIAL_BOOK_COUNT);
+  const { containerRef, contentRef } = useAnimatedHeight<HTMLDivElement>({
+    contentKey: visibleLimit,
+    expanded,
+  });
+  const hiddenCount = countHiddenBooks(model.shipments);
   const booksCountText = t("booksCount", { count: model.booksCount });
   const metaText = [model.orderNumber, model.orderDateText]
     .filter((part) => part !== null)
@@ -75,7 +114,7 @@ export function DeliveryOrderCard({
 
   return (
     <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card">
-      <header className="flex items-start justify-between gap-3">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-accent text-icon">
             <UiIcon name="store" size={17} />
@@ -87,10 +126,10 @@ export function DeliveryOrderCard({
             {metaText === "" ? null : (
               <p className="truncate font-mono text-xs text-muted-foreground">{metaText}</p>
             )}
-            <StatusBadge entry={model.badge} />
           </div>
         </div>
-        <div className="flex shrink-0 items-start gap-1">
+        <div className="ml-auto flex shrink-0 items-start gap-2">
+          <StatusBadge className="mt-0.5" entry={model.badge} />
           <div className="pt-0.5 text-right tabular-nums">
             <p className="font-heading text-lg leading-tight font-semibold text-ink">
               {model.totalText ?? "—"}
@@ -119,16 +158,19 @@ export function DeliveryOrderCard({
         </div>
       </header>
 
-      <div className="flex flex-col gap-3">
-        {model.shipments.map((group, index) => {
-          const books = visibleBooks[index] ?? [];
-          return (
+      <div
+        className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
+        ref={containerRef}
+      >
+        <div className="flex flex-col gap-3" ref={contentRef}>
+          {model.shipments.map((group, index) => (
             <ShipmentSection
-              books={books}
+              books={group.books.slice(0, visibleLimit)}
               group={group}
               index={index}
               key={group.id ?? "not-shipped"}
               onCancelBook={onCancelBook}
+              onChangeShipmentStatus={onChangeShipmentStatus}
               onEditBook={onEditBook}
               onManage={onManage}
               onReceiveShipment={onReceiveShipment}
@@ -137,8 +179,8 @@ export function DeliveryOrderCard({
               selectionMode={selectionMode}
               shipmentCount={model.shipments.length}
             />
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {hiddenCount > 0 ? (
@@ -246,12 +288,6 @@ function BookRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
-          <DropdownMenuItem asChild>
-            <Link href={book.bookHref}>
-              <UiIcon name="book" size={16} />
-              {t("openBook")}
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onEdit}>
             <UiIcon name="edit" size={16} />
             {t("changePrice")}
@@ -267,11 +303,19 @@ function BookRow({
   );
 }
 
+function countHiddenBooks(shipments: DeliveryShipmentGroupModel[]): number {
+  return shipments.reduce(
+    (hidden, group) => hidden + Math.max(0, group.books.length - INITIAL_BOOK_COUNT),
+    0,
+  );
+}
+
 function ShipmentSection({
   books,
   group,
   index,
   onCancelBook,
+  onChangeShipmentStatus,
   onEditBook,
   onManage,
   onReceiveShipment,
@@ -282,30 +326,40 @@ function ShipmentSection({
 }: ShipmentSectionProps) {
   const t = useTranslations("delivery.card");
   const tCommon = useTranslations("common");
+  const tStatus = useTranslations("books.deliveryStatus.labels");
   const shipmentTitle =
     shipmentCount === 1 ? t("shipment") : t("shipmentNumber", { number: index + 1 });
-  const shipmentId = group.id;
-  const isActiveShipment = group.status !== null && isActiveShipmentStatus(group.status);
-  const showCompactReceive = isActiveShipment && group.status === "ready_for_pickup";
+  const activeShipment =
+    group.id !== null && group.status !== null && isActiveShipmentStatus(group.status)
+      ? { id: group.id, nextStep: SHIPMENT_NEXT_STEP[group.status], status: group.status }
+      : null;
+  const statusText =
+    activeShipment === null || group.badge.value === activeShipment.status
+      ? null
+      : tStatus(activeShipment.status);
+  const pickupUntilText =
+    activeShipment?.status === "ready_for_pickup" ? group.pickupUntilText : null;
   const metadata = [
     { label: t("service"), value: group.serviceName },
     { label: t("trackingNumber"), value: group.trackingNumber },
-    { label: t("expectedDate"), value: group.expectedDateText },
   ].filter(({ value }) => value !== null);
 
   return (
-    <section className="overflow-hidden rounded-md border border-border bg-secondary/30">
-      <div className="flex items-start justify-between gap-3 p-3">
+    <section className="overflow-hidden rounded-md border border-border bg-card">
+      <div className="flex items-start justify-between gap-3 bg-secondary/30 p-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <UiIcon className="shrink-0 text-icon" name="package" size={16} />
             <h4 className="font-heading text-sm font-semibold text-ink">{shipmentTitle}</h4>
             <StatusBadge entry={group.badge} />
+            {statusText === null ? null : (
+              <span className="text-xs text-muted-foreground">{statusText}</span>
+            )}
             {group.id === null ? (
               <span className="text-xs text-muted-foreground">{t("notShipped")}</span>
             ) : null}
           </div>
-          {metadata.length === 0 ? null : (
+          {metadata.length === 0 && group.trackingHref === null ? null : (
             <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
               {metadata.map(({ label, value }, metadataIndex) => (
                 <span className="contents" key={label}>
@@ -316,23 +370,36 @@ function ShipmentSection({
                   </span>
                 </span>
               ))}
+              {group.trackingHref === null ? null : (
+                <>
+                  {metadata.length === 0 ? null : <span aria-hidden>·</span>}
+                  <a
+                    className="inline-flex items-center gap-1.5 text-primary underline underline-offset-2"
+                    href={group.trackingHref}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <UiIcon name="external" size={14} />
+                    {t("openTracking")}
+                    <span className="sr-only">{tCommon("opensInNewTab")}</span>
+                  </a>
+                </>
+              )}
             </p>
           )}
-          {group.trackingHref === null ? null : (
-            <a
-              className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-2"
-              href={group.trackingHref}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <UiIcon name="external" size={14} />
-              {t("openTracking")}
-              <span className="sr-only">{tCommon("opensInNewTab")}</span>
-            </a>
+          {group.expectedDateText === null ? null : (
+            <p className="text-xs text-muted-foreground">
+              {t("expectedDeliveryDate", { date: group.expectedDateText })}
+            </p>
+          )}
+          {pickupUntilText === null ? null : (
+            <p className="text-xs text-muted-foreground">
+              {t("pickupUntil", { date: pickupUntilText })}
+            </p>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          {shipmentId === null || !isActiveShipment ? (
+          {activeShipment === null ? (
             <Button
               aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
               disabled
@@ -343,12 +410,18 @@ function ShipmentSection({
             </Button>
           ) : (
             <>
-              {showCompactReceive ? (
-                <Button onClick={() => onReceiveShipment(shipmentId, group.books.length)} size="sm">
-                  <UiIcon name="check-circle" size={16} />
-                  {t("receiveShipmentCompact")}
-                </Button>
-              ) : null}
+              <Button
+                onClick={() =>
+                  activeShipment.nextStep.kind === "receive"
+                    ? onReceiveShipment(activeShipment.id, group.books.length)
+                    : onChangeShipmentStatus(activeShipment.id, activeShipment.nextStep.status)
+                }
+                size="sm"
+                variant={activeShipment.nextStep.kind === "receive" ? "default" : "secondary"}
+              >
+                <UiIcon name={activeShipment.nextStep.icon} size={16} />
+                {t(activeShipment.nextStep.labelKey)}
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -361,12 +434,34 @@ function ShipmentSection({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
                   <DropdownMenuItem
-                    onSelect={() => onReceiveShipment(shipmentId, group.books.length)}
+                    onSelect={() => onReceiveShipment(activeShipment.id, group.books.length)}
                   >
                     <UiIcon name="check-circle" size={16} />
                     {t("receiveShipmentMenu")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <UiIcon name="truck" size={16} />
+                      {t("statusMenu")}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuRadioGroup value={activeShipment.status}>
+                        {SHIPMENT_ACTIVE_STATUSES.map((option) => (
+                          <DropdownMenuRadioItem
+                            key={option}
+                            onSelect={() => {
+                              if (option === activeShipment.status) return;
+                              onChangeShipmentStatus(activeShipment.id, option);
+                            }}
+                            value={option}
+                          >
+                            {tStatus(option)}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                   <DropdownMenuItem
                     onSelect={() => onManage({ kind: "edit-shipment", shipment: group })}
                   >
@@ -412,16 +507,4 @@ function ShipmentSection({
       )}
     </section>
   );
-}
-
-function takeVisibleBooks(
-  shipments: DeliveryShipmentGroupModel[],
-  limit: number,
-): DeliveryOrderBookModel[][] {
-  let remaining = limit;
-  return shipments.map((group) => {
-    const books = group.books.slice(0, Math.max(0, remaining));
-    remaining -= books.length;
-    return books;
-  });
 }

@@ -1,24 +1,14 @@
 "use client";
 
 import type { ActiveShipmentStatus } from "@app/shared";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 
 import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -26,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { BookDateField } from "@/features/books/components/book-date-field";
 import { DeliveryServiceAutocomplete } from "@/features/books/components/delivery-service-autocomplete";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
@@ -35,9 +26,17 @@ import type { DeliveryOrderCardModel, DeliveryShipmentGroupModel } from "../mode
 import {
   useCancelShipment,
   useCreateShipment,
-  useUpdateOrder,
   useUpdateShipment,
 } from "../api/use-order-shipment-actions";
+import { EditOrderDialog } from "./edit-order-dialog";
+import {
+  Field,
+  Footer,
+  Frame,
+  Labeled,
+  mutationCallbacks,
+  NOTE_MAX_LENGTH,
+} from "./order-dialog-parts";
 
 export type OrderShipmentAction =
   | { kind: "add-shipment"; order: DeliveryOrderCardModel }
@@ -53,7 +52,7 @@ export function OrderShipmentActionDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   if (action.kind === "edit-order")
-    return <EditOrderDialog action={action} onOpenChange={onOpenChange} />;
+    return <EditOrderDialog onOpenChange={onOpenChange} order={action.order} />;
   if (action.kind === "add-shipment")
     return <AddShipmentDialog action={action} onOpenChange={onOpenChange} />;
   if (action.kind === "edit-shipment")
@@ -79,7 +78,7 @@ function AddShipmentDialog({
     event.preventDefault();
     mutation.mutate(
       { itemIds, status: "ordered", trackingNumber: trackingNumber || undefined },
-      callbacks(t("shipmentAdded"), deliveryErrorText, onOpenChange),
+      mutationCallbacks(t("shipmentAdded"), deliveryErrorText, onOpenChange),
     );
   }
   return (
@@ -94,20 +93,6 @@ function AddShipmentDialog({
       </form>
     </Frame>
   );
-}
-
-function callbacks(
-  success: string,
-  toErrorText: (error: unknown) => string,
-  onOpenChange: (open: boolean) => void,
-) {
-  return {
-    onError: (error: Error) => toast.error(toErrorText(error)),
-    onSuccess: () => {
-      toast.success(success);
-      onOpenChange(false);
-    },
-  };
 }
 
 function CancelShipmentDialog({
@@ -135,7 +120,7 @@ function CancelShipmentDialog({
           onClick={() =>
             mutation.mutate(
               { keepAsWantToBuy: true },
-              callbacks(t("shipmentCancelled"), deliveryErrorText, onOpenChange),
+              mutationCallbacks(t("shipmentCancelled"), deliveryErrorText, onOpenChange),
             )
           }
           variant="destructive"
@@ -143,40 +128,6 @@ function CancelShipmentDialog({
           {t("confirmCancel")}
         </Button>
       </DialogFooter>
-    </Frame>
-  );
-}
-
-function EditOrderDialog({
-  action,
-  onOpenChange,
-}: {
-  action: Extract<OrderShipmentAction, { kind: "edit-order" }>;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const t = useTranslations("delivery.manage");
-  const deliveryErrorText = useDeliveryErrorText();
-  const mutation = useUpdateOrder(action.order.id);
-  const [storeName, setStoreName] = useState(action.order.storeName);
-  const [orderNumber, setOrderNumber] = useState(action.order.orderNumber ?? "");
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    mutation.mutate(
-      { orderNumber: orderNumber || null, storeName },
-      callbacks(t("orderUpdated"), deliveryErrorText, onOpenChange),
-    );
-  }
-  return (
-    <Frame
-      description={t("editOrderDescription")}
-      onOpenChange={onOpenChange}
-      title={t("editOrder")}
-    >
-      <form className="space-y-4" onSubmit={submit}>
-        <Field label={t("store")} onChange={setStoreName} required value={storeName} />
-        <Field label={t("orderNumber")} onChange={setOrderNumber} value={orderNumber} />
-        <Footer loading={mutation.isPending} t={t} />
-      </form>
     </Frame>
   );
 }
@@ -202,8 +153,10 @@ function EditShipmentDialog({
       ? action.shipment.status
       : "ordered",
   );
+  const [pickupUntil, setPickupUntil] = useState(action.shipment.pickupUntil ?? "");
   const [trackingNumber, setTrackingNumber] = useState(action.shipment.trackingNumber ?? "");
   const [trackingUrl, setTrackingUrl] = useState(action.shipment.trackingUrl ?? "");
+  const [note, setNote] = useState(action.shipment.note ?? "");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -211,11 +164,13 @@ function EditShipmentDialog({
       {
         deliveryService: deliveryService.trim() || null,
         expectedDeliveryDate: expectedDeliveryDate || null,
+        note: note.trim() || null,
+        pickupUntil: pickupUntil || null,
         status,
         trackingNumber: trackingNumber.trim() || null,
         trackingUrl: trackingUrl.trim() || null,
       },
-      callbacks(t("shipmentUpdated"), deliveryErrorText, onOpenChange),
+      mutationCallbacks(t("shipmentUpdated"), deliveryErrorText, onOpenChange),
     );
   }
 
@@ -245,6 +200,15 @@ function EditShipmentDialog({
             value={expectedDeliveryDate}
           />
         </Labeled>
+        <Labeled htmlFor="edit-shipment-pickup-until" label={t("pickupUntil")}>
+          <BookDateField
+            allowFuture
+            ariaLabel={t("pickupUntil")}
+            id="edit-shipment-pickup-until"
+            onChange={(next) => setPickupUntil(next ?? "")}
+            value={pickupUntil}
+          />
+        </Labeled>
         <Labeled htmlFor="edit-shipment-status" label={t("status")}>
           <Select
             onValueChange={(value) => setStatus(value as ActiveShipmentStatus)}
@@ -264,82 +228,16 @@ function EditShipmentDialog({
         </Labeled>
         <Field label={t("trackingNumber")} onChange={setTrackingNumber} value={trackingNumber} />
         <Field label={t("trackingUrl")} onChange={setTrackingUrl} value={trackingUrl} />
+        <Labeled htmlFor="edit-shipment-note" label={t("note")}>
+          <Textarea
+            id="edit-shipment-note"
+            maxLength={NOTE_MAX_LENGTH}
+            onChange={(event) => setNote(event.target.value)}
+            value={note}
+          />
+        </Labeled>
         <Footer loading={mutation.isPending} t={t} />
       </form>
     </Frame>
-  );
-}
-
-function Field({
-  label,
-  onChange,
-  value,
-  ...props
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  value: string;
-}) {
-  return (
-    <label className="grid gap-1.5 text-sm font-medium">
-      {label}
-      <Input onChange={(event) => onChange(event.target.value)} value={value} {...props} />
-    </label>
-  );
-}
-
-function Footer({
-  loading,
-  t,
-}: {
-  loading: boolean;
-  t: ReturnType<typeof useTranslations<"delivery.manage">>;
-}) {
-  return (
-    <DialogFooter>
-      <Button loading={loading} type="submit">
-        {t("save")}
-      </Button>
-    </DialogFooter>
-  );
-}
-function Frame({
-  children,
-  description,
-  onOpenChange,
-  title,
-}: {
-  children: React.ReactNode;
-  description: string;
-  onOpenChange: (open: boolean) => void;
-  title: string;
-}) {
-  return (
-    <Dialog onOpenChange={onOpenChange} open>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        {children}
-      </DialogContent>
-    </Dialog>
-  );
-}
-function Labeled({
-  children,
-  htmlFor,
-  label,
-}: {
-  children: ReactNode;
-  htmlFor: string;
-  label: string;
-}) {
-  return (
-    <div className="grid gap-1.5 text-sm font-medium">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-    </div>
   );
 }

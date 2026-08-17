@@ -15,6 +15,7 @@ export const DELIVERY_PRIMARY_FILTERS = [
   DeliveryReadControllerInTransitListFilter.all,
   DeliveryReadControllerInTransitListFilter.ordered,
   DeliveryReadControllerInTransitListFilter.in_transit,
+  DeliveryReadControllerInTransitListFilter.ready_for_pickup,
   DeliveryReadControllerInTransitListFilter.arriving_soon,
   DeliveryReadControllerInTransitListFilter.this_week,
   DeliveryReadControllerInTransitListFilter.delayed,
