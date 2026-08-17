@@ -61,6 +61,7 @@ export function makeDeliveryOrderCardModel(
     badge: badges.inTransit,
     booksCount: 1,
     id: "order-1",
+    orderDate: "2026-07-05",
     orderDateText: "5 лип. 2026",
     orderNumber: "ORD-10241",
     shipments: [makeDeliveryShipmentGroupModel()],

@@ -49,6 +49,7 @@ export type DeliveryOrderCardModel = {
   badge: StatusEntry;
   booksCount: number;
   id: string;
+  orderDate: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
   shipments: DeliveryShipmentGroupModel[];
@@ -99,6 +100,7 @@ export function toDeliveryOrderCards(
     badge: toOrderStatusBadge(group.order.derivedStatus, options.labels.orderStatus),
     booksCount: group.items.length,
     id: group.order.id,
+    orderDate: group.order.orderDate,
     orderDateText:
       group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),
     orderNumber: group.order.orderNumber,
