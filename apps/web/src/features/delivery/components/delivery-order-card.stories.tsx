@@ -36,9 +36,11 @@ export const SingleBookSingleShipment: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Yakaboo")).toBeVisible());
     await expect(canvas.getByText("ORD-10241 · 5 лип. 2026")).toBeVisible();
-    await expect(canvas.getByText("1 книга · 480 UAH")).toBeVisible();
+    await expect(canvas.getByText("545 UAH")).toBeVisible();
+    await expect(canvas.getByText("480 UAH")).toBeVisible();
+    await expect(canvas.getByText("1 книга")).toBeVisible();
     await expect(canvas.getByText("Таємна історія")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Позначити посилку отриманою" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Позначити отриманою" })).toBeNull();
   },
 };
 
@@ -46,11 +48,10 @@ export const MultipleBooksSingleShipment: Story = {
   args: { model: deliveryOrderCards.multipleBooks },
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Читайлик")).toBeVisible());
-    await expect(canvas.getByText("3 книги · 1 250 UAH")).toBeVisible();
+    await expect(canvas.getByText("1 250 UAH")).toBeVisible();
+    await expect(canvas.getByText("3 книги")).toBeVisible();
     await expect(canvas.getAllByRole("listitem")).toHaveLength(3);
-    await expect(
-      canvas.getAllByRole("button", { name: "Позначити посилку отриманою" }),
-    ).toHaveLength(1);
+    await expect(canvas.queryByRole("button", { name: "Позначити отриманою" })).toBeNull();
   },
 };
 
@@ -60,9 +61,7 @@ export const MultipleShipments: Story = {
     await waitFor(() => expect(canvas.getByText("Book Depository")).toBeVisible());
     await expect(canvas.getByText("Готова до отримання")).toBeVisible();
     await expect(canvas.getByText("Затримується")).toBeVisible();
-    await expect(
-      canvas.getAllByRole("button", { name: "Позначити посилку отриманою" }),
-    ).toHaveLength(2);
+    await expect(canvas.getByRole("button", { name: "Позначити отриманою" })).toBeVisible();
   },
 };
 

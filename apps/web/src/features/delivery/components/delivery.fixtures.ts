@@ -48,7 +48,7 @@ export function makeDeliveryOrderBookModel(
     bookId: "book-1",
     id: "item-1",
     priceText: "480 UAH",
-    seriesText: null,
+    series: null,
     title: "Таємна історія",
     ...overrides,
   };
@@ -65,7 +65,7 @@ export function makeDeliveryOrderCardModel(
     orderNumber: "ORD-10241",
     shipments: [makeDeliveryShipmentGroupModel()],
     storeName: "Yakaboo",
-    totalText: "480 UAH",
+    totalText: "545 UAH",
     ...overrides,
   };
 }
@@ -106,7 +106,11 @@ export const deliveryOrderCards = {
             bookId: "book-2",
             id: "item-2",
             priceText: "610 UAH",
-            seriesText: "Хроніка вбивці короля · том 1",
+            series: {
+              href: "/series/kingkiller-chronicle",
+              name: "Хроніка вбивці короля",
+              positionLabel: "1 з 2",
+            },
             title: "Імʼя вітру",
           }),
           makeDeliveryOrderBookModel({
@@ -115,7 +119,11 @@ export const deliveryOrderCards = {
             bookId: "book-3",
             id: "item-3",
             priceText: "640 UAH",
-            seriesText: "Хроніка вбивці короля · том 2",
+            series: {
+              href: "/series/kingkiller-chronicle",
+              name: "Хроніка вбивці короля",
+              positionLabel: "2 з 2",
+            },
             title: "Страх мудреця",
           }),
           makeDeliveryOrderBookModel({
@@ -151,7 +159,11 @@ export const deliveryOrderCards = {
             bookId: "book-4",
             id: "item-4",
             priceText: "35 EUR",
-            seriesText: "Нічний цирк · том 1",
+            series: {
+              href: "/series/night-circus",
+              name: "Нічний цирк",
+              positionLabel: "1 з 1",
+            },
             title: "Нічний цирк",
           }),
         ],
@@ -160,6 +172,7 @@ export const deliveryOrderCards = {
         note: "Відділення №12, тільки до 18:00",
         pickupUntilText: "18 лип. 2026",
         serviceName: "Укрпошта",
+        status: "ready_for_pickup",
         trackingHref: null,
         trackingNumber: "0501234567890",
       }),

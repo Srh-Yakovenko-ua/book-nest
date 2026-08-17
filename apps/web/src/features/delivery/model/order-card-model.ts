@@ -25,7 +25,7 @@ export type DeliveryBadgeKey =
 export type DeliveryCardLabels = {
   badge: (key: DeliveryBadgeKey) => string;
   orderStatus: (key: BookOrderItemRowOrderView["derivedStatus"]) => string;
-  seriesPart: (input: { name: string; part: number }) => string;
+  seriesPosition: (position: number, total: number) => string;
 };
 
 export type DeliveryOrderBookModel = {
@@ -35,8 +35,14 @@ export type DeliveryOrderBookModel = {
   coverSrc?: string;
   id: string;
   priceText: Nullable<string>;
-  seriesText: Nullable<string>;
+  series: Nullable<DeliveryOrderBookSeriesModel>;
   title: string;
+};
+
+export type DeliveryOrderBookSeriesModel = {
+  href: string;
+  name: string;
+  positionLabel: Nullable<string>;
 };
 
 export type DeliveryOrderCardModel = {
@@ -193,12 +199,19 @@ function toBookModel(item: BookOrderItemRowView, options: CardOptions): Delivery
     coverSrc: book.cover?.urls.thumb,
     id: item.id,
     priceText: formatPrice(item.price, order.currency, options.locale),
-    seriesText:
+    series:
       book.series === null
         ? null
-        : book.series.partNumber === null
-          ? book.series.name
-          : options.labels.seriesPart({ name: book.series.name, part: book.series.partNumber }),
+        : {
+            href: `/series/${book.series.id}`,
+            name: book.series.name,
+            positionLabel:
+              book.series.partNumber === null
+                ? null
+                : book.series.totalBooks === null
+                  ? String(book.series.partNumber)
+                  : options.labels.seriesPosition(book.series.partNumber, book.series.totalBooks),
+          },
     title: book.title,
   };
 }

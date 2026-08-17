@@ -2666,7 +2666,7 @@
       "cancelBook": "Cancel this book",
       "shipment": "Shipment",
       "shipmentNumber": "Shipment {number}",
-      "booksAndTotal": "{count, plural, one {# book} other {# books}} · {total}",
+      "booksCount": "{count, plural, one {# book} other {# books}}",
       "showMoreBooks": "Show {count, plural, one {# more book} other {# more books}}",
       "collapseBooks": "Collapse",
       "orderActionsAria": "Order actions",
@@ -2675,6 +2675,8 @@
       "addShipment": "Add shipment",
       "editShipment": "Edit shipment",
       "cancelShipment": "Cancel shipment",
+      "receiveShipmentMenu": "Mark shipment as received",
+      "receiveShipmentCompact": "Mark as received",
       "receive": "Mark as received",
       "edit": "Edit delivery",
       "cancel": "Cancel order",
@@ -2684,8 +2686,7 @@
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
       "pickupUntil": "Held until",
-      "note": "Note",
-      "receiveShipment": "{count, plural, one {Mark book as received} other {Mark # books as received}}"
+      "note": "Note"
     },
     "manage": {
       "editOrder": "Edit order",

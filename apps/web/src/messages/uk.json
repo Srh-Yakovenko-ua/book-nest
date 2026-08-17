@@ -2666,7 +2666,7 @@
       "cancelBook": "Скасувати цю книгу",
       "shipment": "Посилка",
       "shipmentNumber": "Посилка {number}",
-      "booksAndTotal": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {total}",
+      "booksCount": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
       "showMoreBooks": "Показати ще {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
       "collapseBooks": "Згорнути",
       "orderActionsAria": "Дії із замовленням",
@@ -2675,6 +2675,8 @@
       "addShipment": "Додати посилку",
       "editShipment": "Редагувати посилку",
       "cancelShipment": "Скасувати посилку",
+      "receiveShipmentMenu": "Позначити посилку отриманою",
+      "receiveShipmentCompact": "Позначити отриманою",
       "receive": "Позначити як отриману",
       "edit": "Редагувати доставку",
       "cancel": "Скасувати замовлення",
@@ -2684,8 +2686,7 @@
       "orderTotal": "Сума",
       "notShipped": "Ще не відправлено",
       "pickupUntil": "Зберігається до",
-      "note": "Нотатка",
-      "receiveShipment": "{count, plural, one {Позначити книгу отриманою} few {Позначити # книги отриманими} many {Позначити # книг отриманими} other {Позначити # книг отриманими}}"
+      "note": "Нотатка"
     },
     "manage": {
       "editOrder": "Редагувати замовлення",

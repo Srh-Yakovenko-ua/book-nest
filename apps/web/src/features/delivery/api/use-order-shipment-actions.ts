@@ -12,6 +12,7 @@ import { bookOrdersControllerUpdate } from "@/shared/api/generated/endpoints/boo
 import {
   shipmentsControllerCancelShipment,
   shipmentsControllerCreateShipment,
+  shipmentsControllerMarkReceived,
   shipmentsControllerUpdateShipment,
 } from "@/shared/api/generated/endpoints/shipments/shipments";
 
@@ -31,6 +32,15 @@ export function useCreateShipment(orderId: string) {
   return useMutation({
     mutationFn: async (payload: CreateShipmentInput) =>
       BookOrderViewSchema.parseAsync(await shipmentsControllerCreateShipment(orderId, payload)),
+    onSuccess: sync,
+  });
+}
+
+export function useReceiveShipment() {
+  const sync = useDeliverySync();
+  return useMutation({
+    mutationFn: async (shipmentId: string) =>
+      BookOrderViewSchema.parseAsync(await shipmentsControllerMarkReceived(shipmentId)),
     onSuccess: sync,
   });
 }

@@ -13,7 +13,12 @@ export const BookPreviewSchema = z.object({
   publisher: z.object({ id: z.string(), name: z.string() }).nullable(),
   readingStatus: ReadingStatusSchema,
   series: z
-    .object({ id: z.string(), name: z.string(), partNumber: z.number().nullable() })
+    .object({
+      id: z.string(),
+      name: z.string(),
+      partNumber: z.number().nullable(),
+      totalBooks: z.number().int().nullable(),
+    })
     .nullable(),
   tags: z.array(z.string()),
   title: z.string(),
