@@ -1,4 +1,4 @@
-import { addDays } from "date-fns";
+import { addDays, subDays } from "date-fns";
 import { describe, expect, it } from "vitest";
 
 import type { ShipmentUiStatusSource } from "./delivery-ui-status.js";
@@ -60,6 +60,20 @@ describe("deliveryDateBounds", () => {
 
     expect(soonEnd.toISOString()).toBe("2026-07-15T00:00:00.000Z");
     expect(soonEnd.toISOString()).toBe(addDays(today, 7).toISOString());
+  });
+
+  it("puts the dispatch cutoff a week behind today, so an older order counts as waiting", () => {
+    const { dispatchCutoff, today } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+
+    expect(dispatchCutoff.toISOString()).toBe("2026-07-01T00:00:00.000Z");
+    expect(dispatchCutoff.toISOString()).toBe(subDays(today, 7).toISOString());
+  });
+
+  it("puts the pickup deadline two days ahead of today, so a parcel due then already asks for attention", () => {
+    const { pickupDeadline, today } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+
+    expect(pickupDeadline.toISOString()).toBe("2026-07-10T00:00:00.000Z");
+    expect(pickupDeadline.toISOString()).toBe(addDays(today, 2).toISOString());
   });
 
   it("closes the week on the Sunday of the Monday-to-Sunday week holding today", () => {

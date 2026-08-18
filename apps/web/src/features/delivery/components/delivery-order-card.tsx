@@ -43,6 +43,7 @@ type DeliveryOrderCardProps = {
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
   preparingEdit: boolean;
+  revealedOrderId?: Nullable<string>;
   revealedShipmentId?: Nullable<string>;
   selectedBookIds: ReadonlySet<string>;
   selectionMode: boolean;
@@ -100,17 +101,23 @@ export function DeliveryOrderCard({
   onReceiveShipment,
   onToggleSelectBook,
   preparingEdit,
+  revealedOrderId = null,
   revealedShipmentId = null,
   selectedBookIds,
   selectionMode,
 }: DeliveryOrderCardProps) {
   const t = useTranslations("delivery.card");
   const [expanded, setExpanded] = useState(false);
-  const [handledRevealId, setHandledRevealId] = useState<Nullable<string>>(revealedShipmentId);
+  const revealId = revealedOrderId ?? revealedShipmentId;
+  const [handledRevealId, setHandledRevealId] = useState<Nullable<string>>(revealId);
 
-  if (revealedShipmentId !== handledRevealId) {
-    setHandledRevealId(revealedShipmentId);
-    if (revealedShipmentId !== null && carriesShipment(model, revealedShipmentId)) {
+  const revealsThisCard =
+    revealedOrderId === model.id ||
+    (revealedShipmentId !== null && carriesShipment(model, revealedShipmentId));
+
+  if (revealId !== handledRevealId) {
+    setHandledRevealId(revealId);
+    if (revealsThisCard) {
       setExpanded(true);
     }
   }
@@ -127,7 +134,14 @@ export function DeliveryOrderCard({
     .join(" · ");
 
   return (
-    <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card">
+    <article
+      className={cn(
+        "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card",
+        "motion-safe:transition-shadow motion-safe:duration-500",
+        revealedOrderId === model.id && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+      )}
+      data-order-id={model.id}
+    >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-accent text-icon">

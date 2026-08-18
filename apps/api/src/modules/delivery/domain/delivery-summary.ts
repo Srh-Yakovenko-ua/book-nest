@@ -1,31 +1,45 @@
 import type {
   Currency,
   CurrencyTotal,
+  InTransitAttention,
   InTransitSummaryView,
   NextShipmentView,
   Nullable,
 } from "@app/shared";
 
-import { CurrencySchema, DEFAULT_CURRENCY } from "@app/shared";
+import { CurrencySchema, DEFAULT_CURRENCY, InTransitAttentionReasonSchema } from "@app/shared";
 
-export const IN_TRANSIT_ATTENTION_CATEGORIES = [
-  "delayed",
-  "withoutExpectedDate",
-  "withoutTrackingNumber",
-  "withoutPrice",
-] as const;
+import { daysBetweenIsoDates, toIsoDate } from "../../../core/iso-date.js";
+
+const ATTENTION_REASON = InTransitAttentionReasonSchema.enum;
+
+export type InTransitAttentionData = {
+  awaitingDispatchOrdersCount: number;
+  delayedShipmentsCount: number;
+  earliestAwaitingOrderDate: Nullable<string>;
+  earliestDelayedDate: Nullable<string>;
+  nearestPickupUntil: Nullable<string>;
+  pickupExpiredCount: number;
+  pickupExpiringCount: number;
+  unassignedBooksCount: number;
+  unassignedOrderId: Nullable<string>;
+  unassignedOrdersCount: number;
+  withoutExpectedDateShipmentsCount: number;
+  withoutTrackingShipmentsCount: number;
+};
+
+export type InTransitAttentionInput = InTransitAttentionData & { today: Date };
 
 export type InTransitCurrencyTotal = {
   currency: Nullable<string>;
   total: number;
 };
 
-export type InTransitSummaryData = {
+export type InTransitSummaryData = InTransitAttentionData & {
   activeBooksCount: number;
   activeOrdersCount: number;
   activeShipmentsCount: number;
   arrivingSoonCount: number;
-  attentionCount: number;
   bookTotals: InTransitCurrencyTotal[];
   delayedCount: number;
   expectedThisWeekCount: number;
@@ -45,7 +59,19 @@ export type InTransitSummaryData = {
 
 export type InTransitSummaryInput = InTransitSummaryData & {
   nextShipment: Nullable<NextShipmentView>;
+  today: Date;
 };
+
+export function buildInTransitAttention(input: InTransitAttentionInput): InTransitAttention[] {
+  return [
+    ...pickupExpiringAttention(input),
+    ...delayedAttention(input),
+    ...awaitingDispatchAttention(input),
+    ...withoutTrackingAttention(input),
+    ...withoutExpectedDateAttention(input),
+    ...unassignedBooksAttention(input),
+  ];
+}
 
 export function buildInTransitSummaryView(data: InTransitSummaryInput): InTransitSummaryView {
   return {
@@ -55,7 +81,7 @@ export function buildInTransitSummaryView(data: InTransitSummaryInput): InTransi
     activeOrdersTotalByCurrency: toCurrencyTotals(data.orderTotals),
     activeShipmentsCount: data.activeShipmentsCount,
     arrivingSoonCount: data.arrivingSoonCount,
-    attentionCount: data.attentionCount,
+    attention: buildInTransitAttention(data),
     delayedCount: data.delayedCount,
     expectedThisWeekCount: data.expectedThisWeekCount,
     inTransitCount: data.inTransitCount,
@@ -91,4 +117,106 @@ export function toCurrencyTotals(totals: InTransitCurrencyTotal[]): CurrencyTota
   }
 
   return result;
+}
+
+function awaitingDispatchAttention({
+  awaitingDispatchOrdersCount,
+  earliestAwaitingOrderDate,
+  today,
+}: InTransitAttentionInput): InTransitAttention[] {
+  if (awaitingDispatchOrdersCount === 0 || earliestAwaitingOrderDate === null) {
+    return [];
+  }
+
+  return [
+    {
+      count: awaitingDispatchOrdersCount,
+      maxWaitingDays: daysBetweenIsoDates({
+        endIsoDate: toIsoDate(today),
+        startIsoDate: earliestAwaitingOrderDate,
+      }),
+      reason: ATTENTION_REASON.awaiting_dispatch,
+    },
+  ];
+}
+
+function delayedAttention({
+  delayedShipmentsCount,
+  earliestDelayedDate,
+  today,
+}: InTransitAttentionInput): InTransitAttention[] {
+  if (delayedShipmentsCount === 0 || earliestDelayedDate === null) {
+    return [];
+  }
+
+  return [
+    {
+      count: delayedShipmentsCount,
+      maxDelayDays: daysBetweenIsoDates({
+        endIsoDate: toIsoDate(today),
+        startIsoDate: earliestDelayedDate,
+      }),
+      reason: ATTENTION_REASON.delayed,
+    },
+  ];
+}
+
+function pickupExpiringAttention({
+  nearestPickupUntil,
+  pickupExpiredCount,
+  pickupExpiringCount,
+}: InTransitAttentionData): InTransitAttention[] {
+  if (pickupExpiringCount === 0) {
+    return [];
+  }
+
+  return [
+    {
+      count: pickupExpiringCount,
+      expiredCount: pickupExpiredCount,
+      nearestPickupUntil,
+      reason: ATTENTION_REASON.pickup_expiring,
+    },
+  ];
+}
+
+function unassignedBooksAttention({
+  unassignedBooksCount,
+  unassignedOrderId,
+  unassignedOrdersCount,
+}: InTransitAttentionData): InTransitAttention[] {
+  if (unassignedBooksCount === 0) {
+    return [];
+  }
+
+  return [
+    {
+      count: unassignedBooksCount,
+      ordersCount: unassignedOrdersCount,
+      reason: ATTENTION_REASON.unassigned_books,
+      revealOrderId: unassignedOrderId,
+    },
+  ];
+}
+
+function withoutExpectedDateAttention({
+  withoutExpectedDateShipmentsCount,
+}: InTransitAttentionData): InTransitAttention[] {
+  if (withoutExpectedDateShipmentsCount === 0) {
+    return [];
+  }
+
+  return [
+    { count: withoutExpectedDateShipmentsCount, reason: ATTENTION_REASON.without_expected_date },
+  ];
+}
+
+function withoutTrackingAttention({
+  withoutTrackingShipmentsCount,
+}: InTransitAttentionData): InTransitAttention[] {
+  if (withoutTrackingShipmentsCount === 0) {
+    return [];
+  }
+
+  return [{ count: withoutTrackingShipmentsCount, reason: ATTENTION_REASON.without_tracking }];
 }

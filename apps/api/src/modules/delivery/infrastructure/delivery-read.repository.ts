@@ -20,12 +20,13 @@ import { toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import {
   ACTIVE_ITEM_SQL,
-  attentionSql,
   buildInTransitConditions,
   IN_TRANSIT_ITEM_SOURCE,
   inTransitCategorySql,
   inTransitOrderSql,
+  ORDER_PLACED_ON_SQL,
   ordersWithActiveItemsSource,
+  shipmentScopedCategorySql,
   toIsoBounds,
 } from "./in-transit-sql.js";
 import {
@@ -138,10 +139,30 @@ const EMPTY_HISTORY_SUMMARY: z.infer<typeof HistorySummaryRowSchema> = {
   shipmentsCount: 0,
 };
 
+const AttentionShipmentsRowSchema = z.object({
+  delayedShipmentsCount: z.number().int(),
+  earliestDelayedDate: z.iso.date().nullable(),
+  nearestPickupUntil: z.iso.date().nullable(),
+  pickupExpiredCount: z.number().int(),
+  pickupExpiringCount: z.number().int(),
+  withoutExpectedDateShipmentsCount: z.number().int(),
+  withoutTrackingShipmentsCount: z.number().int(),
+});
+
+const AwaitingDispatchRowSchema = z.object({
+  awaitingDispatchOrdersCount: z.number().int(),
+  earliestAwaitingOrderDate: z.iso.date().nullable(),
+});
+
+const UnassignedBooksRowSchema = z.object({
+  unassignedBooksCount: z.number().int(),
+  unassignedOrderId: z.uuid().nullable(),
+  unassignedOrdersCount: z.number().int(),
+});
+
 const ItemCountsRowSchema = z.object({
   activeBooksCount: z.number().int(),
   arrivingSoonCount: z.number().int(),
-  attentionCount: z.number().int(),
   delayedCount: z.number().int(),
   expectedThisWeekCount: z.number().int(),
   inTransitCount: z.number().int(),
@@ -157,7 +178,10 @@ const ItemCountsRowSchema = z.object({
 const EMPTY_SUMMARY_ROWS: {
   activeOrders: z.infer<typeof ActiveOrdersRowSchema>;
   activeShipments: z.infer<typeof ActiveShipmentsRowSchema>;
+  attentionShipments: z.infer<typeof AttentionShipmentsRowSchema>;
+  awaitingDispatch: z.infer<typeof AwaitingDispatchRowSchema>;
   itemCounts: z.infer<typeof ItemCountsRowSchema>;
+  unassignedBooks: z.infer<typeof UnassignedBooksRowSchema>;
 } = {
   activeOrders: {
     activeOrdersCount: 0,
@@ -166,10 +190,19 @@ const EMPTY_SUMMARY_ROWS: {
     uniqueStoresCount: 0,
   },
   activeShipments: { activeShipmentsCount: 0 },
+  attentionShipments: {
+    delayedShipmentsCount: 0,
+    earliestDelayedDate: null,
+    nearestPickupUntil: null,
+    pickupExpiredCount: 0,
+    pickupExpiringCount: 0,
+    withoutExpectedDateShipmentsCount: 0,
+    withoutTrackingShipmentsCount: 0,
+  },
+  awaitingDispatch: { awaitingDispatchOrdersCount: 0, earliestAwaitingOrderDate: null },
   itemCounts: {
     activeBooksCount: 0,
     arrivingSoonCount: 0,
-    attentionCount: 0,
     delayedCount: 0,
     expectedThisWeekCount: 0,
     inTransitCount: 0,
@@ -181,6 +214,7 @@ const EMPTY_SUMMARY_ROWS: {
     withoutPriceCount: 0,
     withoutTrackingCount: 0,
   },
+  unassignedBooks: { unassignedBooksCount: 0, unassignedOrderId: null, unassignedOrdersCount: 0 },
 };
 
 @Injectable()
@@ -265,11 +299,20 @@ export class DeliveryReadRepository {
   }): Promise<InTransitSummaryData> {
     const isoBounds = toIsoBounds(bounds);
     const categories = inTransitCategorySql(isoBounds);
+    const shipmentCategories = shipmentScopedCategorySql(isoBounds);
     const ownedActiveItems = Prisma.sql`book_order.user_id = ${userId}::uuid AND ${ACTIVE_ITEM_SQL}`;
 
-    const [itemCountsRows, activeOrdersRows, activeShipmentsRows, bookTotalRows, orderTotalRows] =
-      await Promise.all([
-        this.prisma.$queryRaw(Prisma.sql`
+    const [
+      itemCountsRows,
+      activeOrdersRows,
+      activeShipmentsRows,
+      bookTotalRows,
+      orderTotalRows,
+      attentionShipmentsRows,
+      awaitingDispatchRows,
+      unassignedBooksRows,
+    ] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
           SELECT
             (count(*))::int AS "activeBooksCount",
             (count(*) FILTER (WHERE ${categories.ordered}))::int AS "orderedCount",
@@ -283,8 +326,6 @@ export class DeliveryReadRepository {
             (count(*) FILTER (WHERE ${categories.withoutTrackingNumber}))::int
               AS "withoutTrackingCount",
             (count(*) FILTER (WHERE ${categories.withoutPrice}))::int AS "withoutPriceCount",
-            (count(DISTINCT item.book_id) FILTER (WHERE ${attentionSql(categories)}))::int
-              AS "attentionCount",
             (
               min(shipment.expected_delivery_date)
                 FILTER (WHERE shipment.expected_delivery_date >= ${isoBounds.todayIso}::date)
@@ -294,7 +335,7 @@ export class DeliveryReadRepository {
           ${IN_TRANSIT_ITEM_SOURCE}
           WHERE ${ownedActiveItems}
         `),
-        this.prisma.$queryRaw(Prisma.sql`
+      this.prisma.$queryRaw(Prisma.sql`
           SELECT
             (count(*))::int AS "activeOrdersCount",
             (count(DISTINCT book_order.store_name))::int AS "uniqueStoresCount",
@@ -308,7 +349,7 @@ export class DeliveryReadRepository {
             ) > 1))::int AS "splitOrdersCount"
           ${ordersWithActiveItemsSource({ extraConditions: [], userId })}
         `),
-        this.prisma.$queryRaw(Prisma.sql`
+      this.prisma.$queryRaw(Prisma.sql`
           SELECT (count(*))::int AS "activeShipmentsCount"
           FROM shipments shipment
           JOIN book_orders book_order ON book_order.id = shipment.order_id
@@ -321,13 +362,13 @@ export class DeliveryReadRepository {
               WHERE item.shipment_id = shipment.id AND ${ACTIVE_ITEM_SQL}
             )
         `),
-        this.prisma.$queryRaw(Prisma.sql`
+      this.prisma.$queryRaw(Prisma.sql`
           SELECT book_order.currency AS "currency", (sum(item.price))::float8 AS "total"
           ${IN_TRANSIT_ITEM_SOURCE}
           WHERE ${ownedActiveItems} AND item.price IS NOT NULL
           GROUP BY book_order.currency
         `),
-        this.prisma.$queryRaw(Prisma.sql`
+      this.prisma.$queryRaw(Prisma.sql`
           SELECT book_order.currency AS "currency", (sum(book_order.total_amount))::float8 AS "total"
           ${ordersWithActiveItemsSource({
             extraConditions: [Prisma.sql`book_order.total_amount IS NOT NULL`],
@@ -335,7 +376,57 @@ export class DeliveryReadRepository {
           })}
           GROUP BY book_order.currency
         `),
-      ]);
+      this.prisma.$queryRaw(Prisma.sql`
+          SELECT
+            (count(*) FILTER (WHERE ${shipmentCategories.pickupExpiring}))::int AS "pickupExpiringCount",
+            (count(*) FILTER (
+              WHERE ${shipmentCategories.pickupExpiring}
+                AND shipment.pickup_until < ${isoBounds.todayIso}::date
+            ))::int AS "pickupExpiredCount",
+            (
+              min(shipment.pickup_until) FILTER (
+                WHERE ${shipmentCategories.pickupExpiring}
+                  AND shipment.pickup_until >= ${isoBounds.todayIso}::date
+              )
+            )::text AS "nearestPickupUntil",
+            (count(*) FILTER (WHERE ${shipmentCategories.delayed}))::int AS "delayedShipmentsCount",
+            (min(shipment.expected_delivery_date) FILTER (WHERE ${shipmentCategories.delayed}))::text
+              AS "earliestDelayedDate",
+            (count(*) FILTER (WHERE ${shipmentCategories.withoutTrackingNumber}))::int
+              AS "withoutTrackingShipmentsCount",
+            (count(*) FILTER (WHERE ${shipmentCategories.withoutExpectedDate}))::int
+              AS "withoutExpectedDateShipmentsCount"
+          FROM shipments shipment
+          JOIN book_orders book_order ON book_order.id = shipment.order_id
+          WHERE book_order.user_id = ${userId}::uuid
+            AND shipment.status = ANY(${[...SHIPMENT_ACTIVE_STATUSES]}::text[])
+            AND EXISTS (
+              SELECT 1
+              FROM book_order_items item
+              JOIN books book ON book.id = item.book_id
+              WHERE item.shipment_id = shipment.id AND ${ACTIVE_ITEM_SQL}
+            )
+        `),
+      this.prisma.$queryRaw(Prisma.sql`
+          SELECT
+            (count(*))::int AS "awaitingDispatchOrdersCount",
+            (min(${ORDER_PLACED_ON_SQL}))::text AS "earliestAwaitingOrderDate"
+          ${ordersWithActiveItemsSource({
+            extraConditions: [categories.awaitingDispatch],
+            userId,
+          })}
+        `),
+      this.prisma.$queryRaw(Prisma.sql`
+          SELECT
+            (count(*))::int AS "unassignedBooksCount",
+            (count(DISTINCT item.order_id))::int AS "unassignedOrdersCount",
+            (CASE
+              WHEN count(DISTINCT item.order_id) = 1 THEN min(item.order_id::text)
+            END) AS "unassignedOrderId"
+          ${IN_TRANSIT_ITEM_SOURCE}
+          WHERE ${ownedActiveItems} AND ${categories.unassigned}
+        `),
+    ]);
 
     const itemCounts =
       z.array(ItemCountsRowSchema).parse(itemCountsRows)[0] ?? EMPTY_SUMMARY_ROWS.itemCounts;
@@ -344,9 +435,21 @@ export class DeliveryReadRepository {
     const activeShipments =
       z.array(ActiveShipmentsRowSchema).parse(activeShipmentsRows)[0] ??
       EMPTY_SUMMARY_ROWS.activeShipments;
+    const attentionShipments =
+      z.array(AttentionShipmentsRowSchema).parse(attentionShipmentsRows)[0] ??
+      EMPTY_SUMMARY_ROWS.attentionShipments;
+    const awaitingDispatch =
+      z.array(AwaitingDispatchRowSchema).parse(awaitingDispatchRows)[0] ??
+      EMPTY_SUMMARY_ROWS.awaitingDispatch;
+    const unassignedBooks =
+      z.array(UnassignedBooksRowSchema).parse(unassignedBooksRows)[0] ??
+      EMPTY_SUMMARY_ROWS.unassignedBooks;
 
     return {
       ...itemCounts,
+      ...attentionShipments,
+      ...awaitingDispatch,
+      ...unassignedBooks,
       activeOrdersCount: activeOrders.activeOrdersCount,
       activeShipmentsCount: activeShipments.activeShipmentsCount,
       bookTotals: z.array(CurrencyTotalRowSchema).parse(bookTotalRows),

@@ -196,7 +196,7 @@ async function seedVictimOrder(): Promise<VictimOrder> {
     input: {
       currency: "UAH",
       items: bookIds.map((bookId) => ({ bookId, price: 250 })),
-      orderDate: isoDay(-7),
+      orderDate: isoDay(-30),
       shipments: [
         { bookIds: [bookIds[0] ?? ""], expectedDeliveryDate: isoDay(2), trackingNumber: "V-A" },
         { bookIds: [bookIds[1] ?? ""], expectedDeliveryDate: isoDay(6), trackingNumber: "V-B" },
@@ -265,10 +265,26 @@ describe("the order read surface under a second reader", () => {
 
     expect(inTransit.body).toMatchObject({ items: [], totalCount: 0 });
     expect(history.body).toMatchObject({ items: [], totalCount: 0 });
-    expect(inTransitSummary.body).toMatchObject({ activeBooksCount: 0, activeOrdersCount: 0 });
+    expect(inTransitSummary.body).toMatchObject({
+      activeBooksCount: 0,
+      activeOrdersCount: 0,
+      attention: [],
+    });
     expect(historySummary.body).toMatchObject({ booksCount: 0, ordersCount: 0 });
     expect(statistics.body.summary).toMatchObject({ booksCount: 0, ordersCount: 0 });
     expect(statistics.body.byStore).toEqual([]);
+  });
+
+  it("still reports the victim's own attention case to the victim", async () => {
+    const res = await getJson({
+      accessToken: victim.accessToken,
+      app,
+      path: ORDER_ROUTES.inTransitSummary,
+    });
+
+    expect(res.body.attention).toEqual([
+      expect.objectContaining({ count: 1, reason: "awaiting_dispatch" }),
+    ]);
   });
 
   it("still shows the victim their own order", async () => {

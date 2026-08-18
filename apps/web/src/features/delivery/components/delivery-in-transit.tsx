@@ -1,7 +1,8 @@
 "use client";
 
-import type { ActiveShipmentStatus, Nullable } from "@app/shared";
+import type { ActiveShipmentStatus, InTransitAttentionReason, Nullable } from "@app/shared";
 
+import { IN_TRANSIT_ATTENTION_FILTER } from "@app/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -20,8 +21,8 @@ import { bookOrderQueryOptions } from "../api/use-book-order";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
-import { useRevealShipment } from "../hooks/use-reveal-shipment";
-import { toDeliveryFilterCounts } from "../model/in-transit-params";
+import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
+import { toDeliveryAttentionReason, toDeliveryFilterCounts } from "../model/in-transit-params";
 import { buildDeliverySummaryCards } from "../model/in-transit-summary-cards";
 import { buildDeliveryNextShipmentCard } from "../model/next-shipment-card";
 import { toDeliveryOrderCards } from "../model/order-card-model";
@@ -98,12 +99,15 @@ export function DeliveryInTransit() {
   const loadedShipmentIds = loadedItems.flatMap((item) =>
     item.shipment === null ? [] : [item.shipment.id],
   );
-  const reveal = useRevealShipment({
+  const reveal = useRevealDeliveryTarget({
     fetchNextPage: () => void listQuery.fetchNextPage(),
     hasNextPage: listQuery.hasNextPage,
     isFetchingNextPage: listQuery.isFetchingNextPage,
+    isShowingPreviousList: listQuery.isPlaceholderData,
+    loadedOrderIds: orders.map((order) => order.id),
     loadedShipmentIds,
   });
+  const revealedTarget = reveal.revealed;
 
   const visibleBookIds = orders.flatMap((order) =>
     order.shipments.flatMap((group) => group.books.map((book) => book.bookId)),
@@ -157,6 +161,8 @@ export function DeliveryInTransit() {
     (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
+  const attention = summaryData?.attention ?? [];
+  const activeAttentionReason = toDeliveryAttentionReason(params.filter);
 
   const filterCounts =
     summaryData === undefined || params.hasActiveSearch
@@ -230,7 +236,16 @@ export function DeliveryInTransit() {
   function revealNextShipment() {
     if (nextShipmentCard === null) return;
     if (nextShipmentNeedsReset) params.clearAll();
-    reveal.request(nextShipmentCard.shipmentId);
+    reveal.request({ id: nextShipmentCard.shipmentId, kind: "shipment" });
+  }
+
+  function selectAttention(reason: InTransitAttentionReason) {
+    params.setFilterAndClearSearch(IN_TRANSIT_ATTENTION_FILTER[reason]);
+
+    const entry = attention.find((item) => item.reason === reason);
+    if (entry?.reason !== "unassigned_books" || entry.revealOrderId === null) return;
+
+    reveal.request({ id: entry.revealOrderId, kind: "order" });
   }
 
   const renderCard = (model: DeliveryOrderCardModel) => (
@@ -246,7 +261,8 @@ export function DeliveryInTransit() {
       }
       onToggleSelectBook={toggleSelect}
       preparingEdit={preparingOrderId === model.id}
-      revealedShipmentId={reveal.revealedShipmentId}
+      revealedOrderId={revealedTarget?.kind === "order" ? revealedTarget.id : null}
+      revealedShipmentId={revealedTarget?.kind === "shipment" ? revealedTarget.id : null}
       selectedBookIds={selectedIds}
       selectionMode={selectionMode}
     />
@@ -315,8 +331,11 @@ export function DeliveryInTransit() {
         showToolbar={showToolbar}
         sidebar={
           <DeliveryInTransitSidebar
+            activeAttentionReason={activeAttentionReason}
+            attention={attention}
             isLoading={summaryQuery.isPending}
             nextShipment={nextShipmentCard}
+            onAttentionSelect={selectAttention}
             onRevealNextShipment={revealNextShipment}
             revealResetsFilters={nextShipmentNeedsReset}
           />
@@ -327,6 +346,11 @@ export function DeliveryInTransit() {
             isLoading={summaryQuery.isPending}
             mobileAction={
               <DeliveryOverviewPanel
+                attention={{
+                  activeReason: activeAttentionReason,
+                  items: attention,
+                  onSelect: selectAttention,
+                }}
                 detailsTitle={tSummary("mobile.title")}
                 isLoading={summaryQuery.isPending}
                 summaryCards={summaryCards}

@@ -22,9 +22,44 @@ export const deliveryReadControllerInTransitSummaryResponseActiveShipmentsCountM
 export const deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMax = 9007199254740991;
 
-export const deliveryReadControllerInTransitSummaryResponseAttentionCountMin = 0;
-export const deliveryReadControllerInTransitSummaryResponseAttentionCountMax = 9007199254740991;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemOneCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemOneCountMax = 9007199254740991;
 
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemOneExpiredCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemOneExpiredCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemOneNearestPickupUntilRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemTwoCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemTwoCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemTwoMaxDelayDaysExclusiveMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemTwoMaxDelayDaysMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemThreeCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemThreeCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemThreeMaxWaitingDaysExclusiveMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemThreeMaxWaitingDaysMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemFourCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemFourCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemFiveCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemFiveCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemSixCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemSixCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemSixOrdersCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemSixOrdersCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseAttentionItemSixRevealOrderIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 export const deliveryReadControllerInTransitSummaryResponseDelayedCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseDelayedCountMax = 9007199254740991;
 
@@ -99,10 +134,92 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMin)
     .max(deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMax),
-  attentionCount: zod
-    .int()
-    .min(deliveryReadControllerInTransitSummaryResponseAttentionCountMin)
-    .max(deliveryReadControllerInTransitSummaryResponseAttentionCountMax),
+  attention: zod
+    .array(
+      zod.union([
+        zod.object({
+          count: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemOneCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemOneCountMax),
+          expiredCount: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemOneExpiredCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemOneExpiredCountMax),
+          nearestPickupUntil: zod.iso
+            .date()
+            .regex(
+              deliveryReadControllerInTransitSummaryResponseAttentionItemOneNearestPickupUntilRegExp,
+            )
+            .nullable()
+            .describe(
+              "The soonest pickup deadline that has not passed yet. Null when every expiring parcel is already past its deadline.",
+            ),
+          reason: zod.enum(["pickup_expiring"]),
+        }),
+        zod.object({
+          count: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemTwoCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemTwoCountMax),
+          maxDelayDays: zod
+            .int()
+            .gt(
+              deliveryReadControllerInTransitSummaryResponseAttentionItemTwoMaxDelayDaysExclusiveMin,
+            )
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemTwoMaxDelayDaysMax),
+          reason: zod.enum(["delayed"]),
+        }),
+        zod.object({
+          count: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemThreeCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemThreeCountMax),
+          maxWaitingDays: zod
+            .int()
+            .gt(
+              deliveryReadControllerInTransitSummaryResponseAttentionItemThreeMaxWaitingDaysExclusiveMin,
+            )
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemThreeMaxWaitingDaysMax),
+          reason: zod.enum(["awaiting_dispatch"]),
+        }),
+        zod.object({
+          count: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemFourCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemFourCountMax),
+          reason: zod.enum(["without_tracking"]),
+        }),
+        zod.object({
+          count: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemFiveCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemFiveCountMax),
+          reason: zod.enum(["without_expected_date"]),
+        }),
+        zod.object({
+          count: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemSixCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemSixCountMax),
+          ordersCount: zod
+            .int()
+            .min(deliveryReadControllerInTransitSummaryResponseAttentionItemSixOrdersCountMin)
+            .max(deliveryReadControllerInTransitSummaryResponseAttentionItemSixOrdersCountMax),
+          reason: zod.enum(["unassigned_books"]),
+          revealOrderId: zod
+            .uuid()
+            .regex(
+              deliveryReadControllerInTransitSummaryResponseAttentionItemSixRevealOrderIdRegExp,
+            )
+            .nullable()
+            .describe("The affected order when exactly one order is affected, null otherwise."),
+        }),
+      ]),
+    )
+    .describe(
+      "Cases that ask the reader to act, ordered by severity: pickup_expiring, delayed, awaiting_dispatch, without_tracking, without_expected_date, unassigned_books. A case with a zero count is left out, and each case counts in its own unit - parcels, orders or books.",
+    ),
   delayedCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseDelayedCountMin)
@@ -240,6 +357,9 @@ export const DeliveryReadControllerInTransitListQueryParams = zod.object({
       "arriving_soon",
       "this_week",
       "delayed",
+      "pickup_expiring",
+      "awaiting_dispatch",
+      "unassigned",
       "no_delivery_date",
       "has_tracking_number",
       "without_tracking_number",

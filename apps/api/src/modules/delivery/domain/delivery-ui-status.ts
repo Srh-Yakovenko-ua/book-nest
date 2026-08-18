@@ -1,7 +1,11 @@
 import type { DeliveryUiStatus, Nullable, ShipmentStatus } from "@app/shared";
 
-import { DeliveryUiStatusSchema, ShipmentStatusSchema } from "@app/shared";
-import { addDays, differenceInCalendarDays } from "date-fns";
+import {
+  DeliveryUiStatusSchema,
+  IN_TRANSIT_ATTENTION_THRESHOLDS,
+  ShipmentStatusSchema,
+} from "@app/shared";
+import { addDays, differenceInCalendarDays, subDays } from "date-fns";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { startOfUtcDay } from "../../../core/iso-date.js";
@@ -13,6 +17,8 @@ const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 const UI_STATUS = DeliveryUiStatusSchema.enum;
 
 export type DeliveryDateBounds = {
+  dispatchCutoff: Date;
+  pickupDeadline: Date;
   soonEnd: Date;
   today: Date;
   weekEnd: Date;
@@ -30,7 +36,13 @@ export function deliveryDateBounds(now: Date): DeliveryDateBounds {
   const mondayOffset = (today.getUTCDay() + 6) % 7;
   const weekEnd = addDays(today, DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset);
 
-  return { soonEnd, today, weekEnd };
+  return {
+    dispatchCutoff: subDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.awaitingDispatchDays),
+    pickupDeadline: addDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.pickupExpiringDays),
+    soonEnd,
+    today,
+    weekEnd,
+  };
 }
 
 export function getDeliveryUiStatus({

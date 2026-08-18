@@ -2636,7 +2636,11 @@
       "trigger": "Огляд доставок",
       "title": "Огляд доставок",
       "subtitle": "Повна статистика розділу",
-      "close": "Закрити огляд"
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "attention": "Потребують уваги"
+      }
     },
     "search": {
       "label": "Пошук доставок",
@@ -2650,6 +2654,49 @@
       "in_transit": "В дорозі",
       "ready_for_pickup": "Готові до отримання",
       "delayed": "Затримуються"
+    },
+    "attention": {
+      "title": "Потребують уваги",
+      "viewAll": "Показати всі {count}",
+      "allClear": {
+        "title": "Усе гаразд",
+        "text": "Немає доставок, які потребують вашої уваги."
+      },
+      "pickup_expiring": {
+        "expiring": "Закінчується термін зберігання",
+        "expired": "Термін зберігання минув",
+        "today": "Забрати сьогодні",
+        "tomorrow": "Забрати до завтра",
+        "onDate": "Забрати до {date}",
+        "detail": "{count, plural, one {# посилка} few {# посилки} many {# посилок} other {# посилок}}",
+        "alsoExpired": "{count, plural, one {# посилка} few {# посилки} many {# посилок} other {# посилок}} · {expired} вже прострочено"
+      },
+      "delayed": {
+        "label": "{count, plural, one {# посилка затримується} few {# посилки затримуються} many {# посилок затримуються} other {# посилок затримуються}}",
+        "detail": "Найдовша затримка — {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}"
+      },
+      "awaiting_dispatch": {
+        "label": "{count, plural, one {# замовлення не відправлене} few {# замовлення не відправлені} many {# замовлень не відправлено} other {# замовлень не відправлено}} понад {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "detail": "Найдовше очікування — {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}"
+      },
+      "without_tracking": {
+        "label": "{count, plural, one {# відправлена посилка без ТТН} few {# відправлені посилки без ТТН} many {# відправлених посилок без ТТН} other {# відправлених посилок без ТТН}}"
+      },
+      "without_expected_date": {
+        "label": "{count, plural, one {# посилка без дати доставки} few {# посилки без дати доставки} many {# посилок без дати доставки} other {# посилок без дати доставки}}"
+      },
+      "unassigned_books": {
+        "label": "{count, plural, one {# книга не розподілена між посилками} few {# книги не розподілені між посилками} many {# книг не розподілено між посилками} other {# книг не розподілено між посилками}}",
+        "detail": "{count, plural, one {у # замовленні} few {у # замовленнях} many {у # замовленнях} other {у # замовленнях}}"
+      },
+      "chip": {
+        "pickup_expiring": "Спливає термін зберігання",
+        "delayed": "Затримуються",
+        "awaiting_dispatch": "Не відправлені",
+        "without_tracking": "Без ТТН",
+        "without_expected_date": "Без дати доставки",
+        "unassigned_books": "Не розподілені книги"
+      }
     },
     "sidebar": {
       "title": "Зведення доставок"
