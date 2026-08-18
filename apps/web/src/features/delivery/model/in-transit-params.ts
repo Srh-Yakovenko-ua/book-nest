@@ -18,10 +18,7 @@ export const DELIVERY_PRIMARY_FILTERS = [
   DeliveryReadControllerInTransitListFilter.ordered,
   DeliveryReadControllerInTransitListFilter.in_transit,
   DeliveryReadControllerInTransitListFilter.ready_for_pickup,
-  DeliveryReadControllerInTransitListFilter.arriving_soon,
   DeliveryReadControllerInTransitListFilter.delayed,
-  DeliveryReadControllerInTransitListFilter.without_tracking_number,
-  DeliveryReadControllerInTransitListFilter.no_delivery_date,
 ] as const satisfies readonly DeliveryReadControllerInTransitListFilter[];
 
 export type DeliveryFilterCounts = Record<DeliveryPrimaryFilter, number>;
@@ -54,13 +51,10 @@ export function hasActiveDeliverySearch(state: DeliveryQueryState): boolean {
 export function toDeliveryFilterCounts(summary: InTransitSummaryView): DeliveryFilterCounts {
   return {
     all: summary.activeBooksCount,
-    arriving_soon: summary.arrivingSoonCount,
     delayed: summary.delayedCount,
     in_transit: summary.inTransitCount,
-    no_delivery_date: summary.withoutExpectedDateCount,
     ordered: summary.orderedCount,
     ready_for_pickup: summary.readyForPickupCount,
-    without_tracking_number: summary.withoutTrackingCount,
   };
 }
 

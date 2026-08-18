@@ -2649,10 +2649,7 @@
       "ordered": "Очікують відправлення",
       "in_transit": "В дорозі",
       "ready_for_pickup": "Готові до отримання",
-      "arriving_soon": "Очікуються скоро",
-      "delayed": "Затримуються",
-      "without_tracking_number": "Без трекінгу",
-      "no_delivery_date": "Без дати доставки"
+      "delayed": "Затримуються"
     },
     "sort": {
       "label": "Сортування",
