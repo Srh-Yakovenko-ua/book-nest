@@ -180,7 +180,7 @@ export function DeliveryHistory() {
         tab={params.tab}
         toolbar={
           <DeliveryHistoryToolbar
-            counterLabel={t("counter", { count: totalCount })}
+            counterLabel={t("counter", { shown: items.length, total: totalCount })}
             filterCount={params.filterCount}
             isPending={listQuery.isPending}
             loadingLabel={t("states.loading")}

@@ -2435,7 +2435,7 @@
     "title": "Книги в дорозі",
     "subtitle": "Відстежуй замовлені книги від покупки до отримання",
     "resultsTitle": "Активні доставки",
-    "counter": "{count, plural, one {# активна доставка} few {# активні доставки} many {# активних доставок} other {# активних доставок}}",
+    "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}} у {orders, plural, one {# замовленні} few {# замовленнях} many {# замовленнях} other {# замовленнях}}",
     "loadMore": "Показати ще",
     "actions": {
       "addOrder": "Додати замовлення",
@@ -2813,7 +2813,7 @@
       "title": "Історія замовлень",
       "subtitle": "Усі ваші замовлення доставки — активні, отримані та скасовані.",
       "resultsTitle": "Список замовлень",
-      "counter": "{count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}",
+      "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
       "loadMore": "Показати ще",
       "summary": {
         "totalOrders": "Усього замовлень",

@@ -2435,7 +2435,7 @@
     "title": "Books in transit",
     "subtitle": "Track ordered books from purchase to delivery",
     "resultsTitle": "Active deliveries",
-    "counter": "{count, plural, one {# active delivery} other {# active deliveries}}",
+    "counter": "Showing {shown} of {total, plural, one {# book} other {# books}} across {orders, plural, one {# order} other {# orders}}",
     "loadMore": "Show more",
     "actions": {
       "addOrder": "Add order",
@@ -2813,7 +2813,7 @@
       "title": "Order history",
       "subtitle": "All your delivery orders — active, received and cancelled.",
       "resultsTitle": "Order list",
-      "counter": "{count, plural, one {# order} other {# orders}}",
+      "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
       "loadMore": "Show more",
       "summary": {
         "totalOrders": "Total orders",

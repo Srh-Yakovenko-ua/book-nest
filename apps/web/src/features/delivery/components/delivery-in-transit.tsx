@@ -81,17 +81,15 @@ export function DeliveryInTransit() {
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
-  const orders = toDeliveryOrderCards(
-    pages.flatMap((page) => page.items),
-    {
-      labels: {
-        badge: (key) => tBadge(key),
-        orderStatus: (key) => t(`orderStatus.${key}`),
-        seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
-      },
-      locale,
+  const loadedItems = pages.flatMap((page) => page.items);
+  const orders = toDeliveryOrderCards(loadedItems, {
+    labels: {
+      badge: (key) => tBadge(key),
+      orderStatus: (key) => t(`orderStatus.${key}`),
+      seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
     },
-  );
+    locale,
+  });
 
   const visibleBookIds = orders.flatMap((order) =>
     order.shipments.flatMap((group) => group.books.map((book) => book.bookId)),
@@ -291,7 +289,11 @@ export function DeliveryInTransit() {
         }
         toolbar={
           <DeliveryToolbar
-            counterLabel={t("counter", { count: totalCount })}
+            counterLabel={t("counter", {
+              orders: orders.length,
+              shown: loadedItems.length,
+              total: totalCount,
+            })}
             filter={params.filter}
             filterCounts={filterCounts}
             isPending={listQuery.isPending}
