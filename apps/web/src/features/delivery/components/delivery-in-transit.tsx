@@ -2,6 +2,7 @@
 
 import type { ActiveShipmentStatus, Nullable } from "@app/shared";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,9 +14,10 @@ import { Button } from "@/components/ui/button";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import { useRouter } from "@/i18n/navigation";
 
-import type { DeliveryOrderCardModel } from "../model/order-card-model";
+import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/order-card-model";
 import type { DeliveryContent } from "./delivery-in-transit-view";
 
+import { bookOrderQueryOptions } from "../api/use-book-order";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
@@ -53,11 +55,28 @@ export function DeliveryInTransit() {
 
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
-  const [editBookId, setEditBookId] = useState<Nullable<string>>(null);
+  const [editBook, setEditBook] = useState<Nullable<DeliveryOrderBookModel>>(null);
   const [cancelBookId, setCancelBookId] = useState<Nullable<string>>(null);
   const [receiveTarget, setReceiveTarget] = useState<Nullable<DeliveryReceiveTarget>>(null);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
   const [manageAction, setManageAction] = useState<Nullable<OrderShipmentAction>>(null);
+  const [preparingOrderId, setPreparingOrderId] = useState<Nullable<string>>(null);
+  const queryClient = useQueryClient();
+
+  async function openManageAction(action: OrderShipmentAction) {
+    if (action.kind !== "edit-order") {
+      setManageAction(action);
+      return;
+    }
+
+    setPreparingOrderId(action.order.id);
+    try {
+      await queryClient.ensureQueryData(bookOrderQueryOptions(action.order.id));
+    } finally {
+      setPreparingOrderId(null);
+      setManageAction(action);
+    }
+  }
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -181,12 +200,13 @@ export function DeliveryInTransit() {
       model={model}
       onCancelBook={setCancelBookId}
       onChangeShipmentStatus={changeShipmentStatus}
-      onEditBook={setEditBookId}
-      onManage={setManageAction}
+      onEditBook={setEditBook}
+      onManage={(action) => void openManageAction(action)}
       onReceiveShipment={(shipmentId, bookCount) =>
         setReceiveTarget({ bookCount, kind: "shipment", shipmentId })
       }
       onToggleSelectBook={toggleSelect}
+      preparingEdit={preparingOrderId === model.id}
       selectedBookIds={selectedIds}
       selectionMode={selectionMode}
     />
@@ -282,11 +302,11 @@ export function DeliveryInTransit() {
         }
       />
 
-      {editBookId === null ? null : (
+      {editBook === null ? null : (
         <OrderItemPriceDialog
-          bookId={editBookId}
+          book={editBook}
           onOpenChange={(open) => {
-            if (!open) setEditBookId(null);
+            if (!open) setEditBook(null);
           }}
           open
         />

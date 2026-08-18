@@ -14,6 +14,7 @@ const meta = {
     onManage: () => {},
     onReceiveShipment: () => {},
     onToggleSelectBook: () => {},
+    preparingEdit: false,
     selectedBookIds: new Set<string>(),
     selectionMode: false,
   },

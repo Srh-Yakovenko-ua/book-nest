@@ -139,7 +139,7 @@ describe("CreateBookOrderDialog book picker view", () => {
     await userEvent.type(screen.getByLabelText("Знижка"), "200");
     expect(screen.getByText("Сплачено всього")).toBeVisible();
     expect(screen.getByText("1 800 UAH")).toBeVisible();
-    expect(screen.getByText("З них доставка")).toBeVisible();
+    expect(screen.getByText("Плюс доставка")).toBeVisible();
     expect(screen.getByText("Знижка застосована")).toBeVisible();
     expect(screen.getByText("200 UAH")).toBeVisible();
 

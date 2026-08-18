@@ -56,6 +56,7 @@ export function EditOrderDialog({
   if (data === undefined) {
     return (
       <DeliveryLoadingDialog
+        className="sm:max-w-lg"
         description={t("editOrderDescription")}
         errorText={tErrors("generic")}
         isError={isError}

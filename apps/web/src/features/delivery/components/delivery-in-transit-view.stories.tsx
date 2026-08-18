@@ -38,6 +38,7 @@ const meta = {
         onManage={() => {}}
         onReceiveShipment={() => {}}
         onToggleSelectBook={() => {}}
+        preparingEdit={false}
         selectedBookIds={new Set()}
         selectionMode={false}
       />

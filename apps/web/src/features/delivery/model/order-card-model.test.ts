@@ -411,4 +411,109 @@ describe("toDeliveryOrderCards", () => {
 
     expect(badges).toEqual([["in_transit"], ["ready_for_pickup"], ["ordered"], ["ordered"]]);
   });
+
+  it("warns on every book of an order whose stored total will not survive the edit", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ book: makeBook({ id: "book-1" }), id: "item-1", price: null }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(
+      firstCard(cards).shipments.flatMap((group) =>
+        group.books.map((book) => book.resetsOrderTotal),
+      ),
+    ).toEqual([true, true]);
+  });
+
+  it("keeps the warning off the last unpriced book, whose price completes the breakdown", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ book: makeBook({ id: "book-1" }), id: "item-1", price: 200 }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(
+      firstCard(cards).shipments.flatMap((group) =>
+        group.books.map((book) => book.resetsOrderTotal),
+      ),
+    ).toEqual([true, false]);
+  });
+
+  it("stays silent when the order carries no total to lose", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: null }),
+        makeRow({
+          book: makeBook({ id: "book-2" }),
+          id: "item-2",
+          order: makeOrder({ totalAmount: null }),
+          price: null,
+        }),
+      ],
+      { labels, locale },
+    );
+
+    expect(
+      firstCard(cards).shipments.flatMap((group) =>
+        group.books.map((book) => book.resetsOrderTotal),
+      ),
+    ).toEqual([false, false]);
+  });
+
+  it("subtracts the discount and adds delivery when it falls back to the known prices", () => {
+    const order = makeOrder({ deliveryPrice: 100, discount: 200, totalAmount: null });
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order, price: 500 }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).totalText).toBe("400 UAH");
+  });
+
+  it("reports how many prices the fallback total actually counts", () => {
+    const order = makeOrder({ totalAmount: null });
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order, price: 500 }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
+        makeRow({ book: makeBook({ id: "book-3" }), id: "item-3", order, price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).incompleteTotal).toEqual({ itemsCount: 3, pricedItemsCount: 1 });
+  });
+
+  it("keeps a stored total unflagged even while books stay unpriced", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", price: null }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards)).toMatchObject({ incompleteTotal: null, totalText: "480 UAH" });
+  });
+
+  it("flags nothing when every book carries a price", () => {
+    const order = makeOrder({ totalAmount: null });
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order, price: 200 }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: 300 }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards)).toMatchObject({ incompleteTotal: null, totalText: "500 UAH" });
+  });
 });
