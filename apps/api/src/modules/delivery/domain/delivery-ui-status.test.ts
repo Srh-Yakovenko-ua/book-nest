@@ -62,18 +62,22 @@ describe("deliveryDateBounds", () => {
     expect(soonEnd.toISOString()).toBe(addDays(today, 7).toISOString());
   });
 
-  it("spans the Monday-to-Sunday week that contains today", () => {
-    const { weekEnd, weekStart } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+  it("closes the week on the Sunday of the Monday-to-Sunday week holding today", () => {
+    const { weekEnd } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
 
-    expect(weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
-    expect(weekEnd.toISOString()).toBe(addDays(weekStart, 6).toISOString());
   });
 
-  it("keeps today within the week when the instant falls on a Sunday", () => {
-    const { today, weekEnd, weekStart } = deliveryDateBounds(new Date("2026-07-12T23:59:59.000Z"));
+  it("still reaches the coming Sunday when the instant falls on the Monday", () => {
+    const { today, weekEnd } = deliveryDateBounds(new Date("2026-07-06T09:00:00.000Z"));
 
-    expect(weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+    expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
+    expect(today.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+  });
+
+  it("collapses the week onto today when the instant falls on the Sunday", () => {
+    const { today, weekEnd } = deliveryDateBounds(new Date("2026-07-12T23:59:59.000Z"));
+
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
     expect(today.toISOString()).toBe("2026-07-12T00:00:00.000Z");
   });

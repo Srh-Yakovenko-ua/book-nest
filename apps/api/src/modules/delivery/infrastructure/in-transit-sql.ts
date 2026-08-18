@@ -16,6 +16,11 @@ import { IN_TRANSIT_ATTENTION_CATEGORIES } from "../domain/delivery-summary.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 
+const AWAITING_ARRIVAL_SHIPMENT_STATUSES = [
+  SHIPMENT_STATUS.ordered,
+  SHIPMENT_STATUS.in_transit,
+] as const;
+
 export const ACTIVE_ITEM_SQL = Prisma.sql`
   book.deleted_at IS NULL
   AND item.cancelled_at IS NULL
@@ -59,7 +64,6 @@ export type IsoDateBounds = {
   soonEndIso: string;
   todayIso: string;
   weekEndIso: string;
-  weekStartIso: string;
 };
 
 type ExpectedDateSort = keyof typeof IN_TRANSIT_EXPECTED_DATE_ORDER;
@@ -163,7 +167,6 @@ export function inTransitCategorySql({
   soonEndIso,
   todayIso,
   weekEndIso,
-  weekStartIso,
 }: IsoDateBounds): InTransitCategorySql {
   return {
     arrivingSoon: Prisma.sql`shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${soonEndIso}::date`,
@@ -174,10 +177,13 @@ export function inTransitCategorySql({
     inTransit: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.in_transit}`,
     ordered: Prisma.sql`COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered}) = ${SHIPMENT_STATUS.ordered}`,
     readyForPickup: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}`,
-    thisWeek: Prisma.sql`shipment.expected_delivery_date BETWEEN ${weekStartIso}::date AND ${weekEndIso}::date`,
+    thisWeek: Prisma.sql`(
+      shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${weekEndIso}::date
+      AND shipment.status = ANY(${[...AWAITING_ARRIVAL_SHIPMENT_STATUSES]}::text[])
+    )`,
     withoutExpectedDate: Prisma.sql`shipment.expected_delivery_date IS NULL`,
     withoutPrice: Prisma.sql`item.price IS NULL`,
-    withoutTrackingNumber: Prisma.sql`shipment.tracking_number IS NULL`,
+    withoutTrackingNumber: Prisma.sql`shipment.id IS NOT NULL AND shipment.tracking_number IS NULL`,
     withoutTrackingUrl: Prisma.sql`shipment.tracking_url IS NULL`,
   };
 }
@@ -219,17 +225,11 @@ export function ordersWithActiveItemsSource({
   `;
 }
 
-export function toIsoBounds({
-  soonEnd,
-  today,
-  weekEnd,
-  weekStart,
-}: DeliveryDateBounds): IsoDateBounds {
+export function toIsoBounds({ soonEnd, today, weekEnd }: DeliveryDateBounds): IsoDateBounds {
   return {
     soonEndIso: toIsoDate(soonEnd),
     todayIso: toIsoDate(today),
     weekEndIso: toIsoDate(weekEnd),
-    weekStartIso: toIsoDate(weekStart),
   };
 }
 

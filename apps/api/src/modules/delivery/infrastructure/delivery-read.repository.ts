@@ -1,6 +1,6 @@
 import type { BookOrderHistorySort, InTransitSort } from "@app/shared";
 
-import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
+import { SHIPMENT_ACTIVE_STATUSES, ShipmentStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -79,8 +79,12 @@ const CurrencyTotalRowSchema = z.object({
   total: z.number(),
 });
 
+const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+
 const ActiveOrdersRowSchema = z.object({
   activeOrdersCount: z.number().int(),
+  ordersWithKnownTotalCount: z.number().int(),
+  splitOrdersCount: z.number().int(),
   uniqueStoresCount: z.number().int(),
 });
 
@@ -106,11 +110,13 @@ const EMPTY_HISTORY_SUMMARY: z.infer<typeof HistorySummaryRowSchema> = {
 
 const ItemCountsRowSchema = z.object({
   activeBooksCount: z.number().int(),
+  arrivingSoonCount: z.number().int(),
   attentionCount: z.number().int(),
   delayedCount: z.number().int(),
   expectedThisWeekCount: z.number().int(),
   inTransitCount: z.number().int(),
   nextExpectedDelivery: z.iso.date().nullable(),
+  nextExpectedThisWeek: z.iso.date().nullable(),
   orderedCount: z.number().int(),
   readyForPickupCount: z.number().int(),
   withoutExpectedDateCount: z.number().int(),
@@ -123,15 +129,22 @@ const EMPTY_SUMMARY_ROWS: {
   activeShipments: z.infer<typeof ActiveShipmentsRowSchema>;
   itemCounts: z.infer<typeof ItemCountsRowSchema>;
 } = {
-  activeOrders: { activeOrdersCount: 0, uniqueStoresCount: 0 },
+  activeOrders: {
+    activeOrdersCount: 0,
+    ordersWithKnownTotalCount: 0,
+    splitOrdersCount: 0,
+    uniqueStoresCount: 0,
+  },
   activeShipments: { activeShipmentsCount: 0 },
   itemCounts: {
     activeBooksCount: 0,
+    arrivingSoonCount: 0,
     attentionCount: 0,
     delayedCount: 0,
     expectedThisWeekCount: 0,
     inTransitCount: 0,
     nextExpectedDelivery: null,
+    nextExpectedThisWeek: null,
     orderedCount: 0,
     readyForPickupCount: 0,
     withoutExpectedDateCount: 0,
@@ -233,6 +246,7 @@ export class DeliveryReadRepository {
             (count(*) FILTER (WHERE ${categories.inTransit}))::int AS "inTransitCount",
             (count(*) FILTER (WHERE ${categories.readyForPickup}))::int AS "readyForPickupCount",
             (count(*) FILTER (WHERE ${categories.delayed}))::int AS "delayedCount",
+            (count(*) FILTER (WHERE ${categories.arrivingSoon}))::int AS "arrivingSoonCount",
             (count(*) FILTER (WHERE ${categories.thisWeek}))::int AS "expectedThisWeekCount",
             (count(*) FILTER (WHERE ${categories.withoutExpectedDate}))::int
               AS "withoutExpectedDateCount",
@@ -244,14 +258,24 @@ export class DeliveryReadRepository {
             (
               min(shipment.expected_delivery_date)
                 FILTER (WHERE shipment.expected_delivery_date >= ${isoBounds.todayIso}::date)
-            )::text AS "nextExpectedDelivery"
+            )::text AS "nextExpectedDelivery",
+            (min(shipment.expected_delivery_date) FILTER (WHERE ${categories.thisWeek}))::text
+              AS "nextExpectedThisWeek"
           ${IN_TRANSIT_ITEM_SOURCE}
           WHERE ${ownedActiveItems}
         `),
         this.prisma.$queryRaw(Prisma.sql`
           SELECT
             (count(*))::int AS "activeOrdersCount",
-            (count(DISTINCT book_order.store_name))::int AS "uniqueStoresCount"
+            (count(DISTINCT book_order.store_name))::int AS "uniqueStoresCount",
+            (count(*) FILTER (WHERE book_order.total_amount IS NOT NULL))::int
+              AS "ordersWithKnownTotalCount",
+            (count(*) FILTER (WHERE (
+              SELECT count(*)
+              FROM shipments shipment
+              WHERE shipment.order_id = book_order.id
+                AND shipment.status <> ${SHIPMENT_STATUS.cancelled}
+            ) > 1))::int AS "splitOrdersCount"
           ${ordersWithActiveItemsSource({ extraConditions: [], userId })}
         `),
         this.prisma.$queryRaw(Prisma.sql`
@@ -296,7 +320,9 @@ export class DeliveryReadRepository {
       activeOrdersCount: activeOrders.activeOrdersCount,
       activeShipmentsCount: activeShipments.activeShipmentsCount,
       bookTotals: z.array(CurrencyTotalRowSchema).parse(bookTotalRows),
+      ordersWithKnownTotalCount: activeOrders.ordersWithKnownTotalCount,
       orderTotals: z.array(CurrencyTotalRowSchema).parse(orderTotalRows),
+      splitOrdersCount: activeOrders.splitOrdersCount,
       uniqueStoresCount: activeOrders.uniqueStoresCount,
     };
   }

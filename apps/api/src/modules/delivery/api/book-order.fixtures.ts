@@ -1,7 +1,7 @@
 import type { BookOrderView, CreateBookOrderInput } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
-import { addDays, format, startOfMonth, subMonths } from "date-fns";
+import { addDays, endOfWeek, format, startOfMonth, subMonths } from "date-fns";
 import request from "supertest";
 
 type AuthedApp = {
@@ -10,6 +10,7 @@ type AuthedApp = {
 };
 
 const ISO_DATE_FORMAT = "yyyy-MM-dd";
+const MONDAY = 1;
 const MONTH_FORMAT = "yyyy-MM";
 
 export const ORDER_ROUTES = {
@@ -82,6 +83,10 @@ export function isoDay(offset: number): string {
 
 export function isoDayOfPreviousMonth(dayOffset: number): string {
   return format(addDays(subMonths(startOfMonth(new Date()), 1), dayOffset), ISO_DATE_FORMAT);
+}
+
+export function isoSundayOfThisWeek(): string {
+  return format(endOfWeek(new Date(), { weekStartsOn: MONDAY }), ISO_DATE_FORMAT);
 }
 
 export function itemOf({

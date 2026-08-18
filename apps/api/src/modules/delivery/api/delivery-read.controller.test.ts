@@ -23,6 +23,7 @@ import {
   getJson,
   isoDay,
   isoDayOfPreviousMonth,
+  isoSundayOfThisWeek,
   ORDER_ROUTES,
   postJson,
   previousMonthKey,
@@ -31,9 +32,17 @@ import {
 
 const LIST_BOOKS = {
   noDate: "No Date",
+  notDispatched: "Not Dispatched",
   overdue: "Overdue",
   today: "Today",
   upcoming: "Upcoming",
+} as const;
+
+const WEEK_BOOKS = {
+  arrived: "Arrived",
+  dueToday: "Due Today",
+  slippedBy: "Slipped By",
+  waitingAtPickup: "Waiting At Pickup",
 } as const;
 
 let context: AuthTestContext;
@@ -128,6 +137,99 @@ async function seedListFixture(): Promise<BookOrderView> {
   });
 }
 
+async function seedWeekWindowFixture(): Promise<void> {
+  const bookIds = await createBooks({
+    accessToken: reader.accessToken,
+    app,
+    titles: [
+      WEEK_BOOKS.arrived,
+      WEEK_BOOKS.dueToday,
+      WEEK_BOOKS.waitingAtPickup,
+      WEEK_BOOKS.slippedBy,
+    ],
+  });
+  const [arrived, dueToday, waitingAtPickup, slippedBy] = bookIds;
+
+  const splitOrder = await createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: {
+      currency: "UAH",
+      items: [
+        { bookId: arrived ?? "", price: 100 },
+        { bookId: dueToday ?? "", price: 150 },
+      ],
+      orderDate: isoDay(-20),
+      shipments: [
+        {
+          bookIds: [arrived ?? ""],
+          expectedDeliveryDate: isoDay(-2),
+          trackingNumber: "NP-ARRIVED",
+        },
+        {
+          bookIds: [dueToday ?? ""],
+          expectedDeliveryDate: isoDay(0),
+          trackingNumber: "NP-DUE-TODAY",
+        },
+      ],
+      storeName: "Yakaboo",
+    },
+  });
+  await postJson({
+    accessToken: reader.accessToken,
+    app,
+    path: ORDER_ROUTES.receiveShipment(shipmentOf({ bookId: arrived ?? "", view: splitOrder }).id),
+  });
+  await postJson({
+    accessToken: reader.accessToken,
+    app,
+    path: ORDER_ROUTES.markInTransit(shipmentOf({ bookId: dueToday ?? "", view: splitOrder }).id),
+  });
+
+  const pricelessOrder = await createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: {
+      currency: "UAH",
+      items: [{ bookId: waitingAtPickup ?? "" }],
+      orderDate: isoDay(-10),
+      shipments: [
+        {
+          bookIds: [waitingAtPickup ?? ""],
+          expectedDeliveryDate: isoSundayOfThisWeek(),
+          trackingNumber: "NP-WAITING",
+        },
+      ],
+      storeName: "Knygarnia",
+    },
+  });
+  await postJson({
+    accessToken: reader.accessToken,
+    app,
+    path: ORDER_ROUTES.markReadyForPickup(
+      shipmentOf({ bookId: waitingAtPickup ?? "", view: pricelessOrder }).id,
+    ),
+  });
+
+  await createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: {
+      currency: "UAH",
+      items: [{ bookId: slippedBy ?? "", price: 90 }],
+      orderDate: isoDay(-30),
+      shipments: [
+        {
+          bookIds: [slippedBy ?? ""],
+          expectedDeliveryDate: isoDay(-1),
+          trackingNumber: "NP-SLIPPED",
+        },
+      ],
+      storeName: "Bookva",
+    },
+  });
+}
+
 async function statistics(): Promise<BookOrderStatisticsView> {
   const res = await getJson({
     accessToken: reader.accessToken,
@@ -175,6 +277,27 @@ describe("GET /api/delivery/books/in-transit filters", () => {
     await expect(inTransitTitles({ filter: "without_tracking_number" })).resolves.toEqual([
       LIST_BOOKS.noDate,
     ]);
+  });
+
+  it("leaves out a book that has not been dispatched at all", async () => {
+    await seedListFixture();
+    const notDispatched = await createBook({
+      accessToken: reader.accessToken,
+      app,
+      title: LIST_BOOKS.notDispatched,
+    });
+    await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: { items: [{ bookId: notDispatched }], storeName: "Yakaboo" },
+    });
+
+    await expect(inTransitTitles({ filter: "without_tracking_number" })).resolves.toEqual([
+      LIST_BOOKS.noDate,
+    ]);
+    await expect(inTransitTitles({ filter: "ordered" })).resolves.toContain(
+      LIST_BOOKS.notDispatched,
+    );
   });
 
   it("returns only the book with no price", async () => {
@@ -232,6 +355,7 @@ describe("GET /api/delivery/books/in-transit/summary", () => {
       activeBooksCount: 4,
       activeOrdersCount: 1,
       activeShipmentsCount: 4,
+      arrivingSoonCount: 2,
       attentionCount: 2,
       delayedCount: 1,
       withoutExpectedDateCount: 1,
@@ -263,6 +387,34 @@ describe("GET /api/delivery/books/in-transit/summary", () => {
       readyForPickupCount: 1,
       uniqueStoresCount: 1,
     });
+  });
+
+  it("expects this week only the parcels still travelling towards a day that has not passed", async () => {
+    await seedWeekWindowFixture();
+
+    const summary = await inTransitSummary();
+
+    expect(summary).toMatchObject({
+      expectedThisWeekCount: 1,
+      nextExpectedThisWeek: isoDay(0),
+    });
+  });
+
+  it("keeps calling an order split once one of its two parcels has already arrived", async () => {
+    await seedWeekWindowFixture();
+
+    const summary = await inTransitSummary();
+
+    expect(summary).toMatchObject({ activeOrdersCount: 3, splitOrdersCount: 1 });
+  });
+
+  it("leaves the order that carries no money at all out of the priced-order tally", async () => {
+    await seedWeekWindowFixture();
+
+    const summary = await inTransitSummary();
+
+    expect(summary.ordersWithKnownTotalCount).toBe(2);
+    expect(summary.ordersWithKnownTotalCount).toBeLessThan(summary.activeOrdersCount);
   });
 });
 

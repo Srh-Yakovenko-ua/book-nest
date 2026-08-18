@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import type { DeliveryFilterCounts } from "../model/in-transit-params";
+
 import {
   DELIVERY_PRIMARY_FILTERS,
   DELIVERY_SORT_DEFAULT,
@@ -26,6 +28,7 @@ import { DeliverySearchInput } from "./delivery-search-input";
 type DeliveryToolbarProps = {
   counterLabel: string;
   filter: DeliveryReadControllerInTransitListFilter;
+  filterCounts?: DeliveryFilterCounts;
   isPending: boolean;
   loadingLabel: string;
   onClearSearch: () => void;
@@ -39,6 +42,7 @@ type DeliveryToolbarProps = {
 export function DeliveryToolbar({
   counterLabel,
   filter,
+  filterCounts,
   isPending,
   loadingLabel,
   onClearSearch,
@@ -52,6 +56,7 @@ export function DeliveryToolbar({
   const tSort = useTranslations("delivery.sort");
 
   const filterOptions = DELIVERY_PRIMARY_FILTERS.map((value) => ({
+    count: filterCounts?.[value],
     label: tFilters(value),
     value,
   }));

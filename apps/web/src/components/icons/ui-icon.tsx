@@ -92,6 +92,7 @@ export type UiIconName =
   | "settings"
   | "share"
   | "shield"
+  | "shopping-bag"
   | "sliders"
   | "sparkles"
   | "sprig"
