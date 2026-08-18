@@ -7,13 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
-
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import { useRouter } from "@/i18n/navigation";
 
+import type { DeliverySummaryLabels } from "../model/in-transit-summary-cards";
 import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/order-card-model";
 import type { DeliveryContent } from "./delivery-in-transit-view";
 
@@ -21,6 +20,8 @@ import { bookOrderQueryOptions } from "../api/use-book-order";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
+import { toDeliveryFilterCounts } from "../model/in-transit-params";
+import { buildDeliverySummaryCards } from "../model/in-transit-summary-cards";
 import { toDeliveryOrderCards } from "../model/order-card-model";
 import { useInTransitParams } from "../model/use-in-transit-params";
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
@@ -144,55 +145,57 @@ export function DeliveryInTransit() {
     (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
-  const totalText =
-    summaryData && summaryData.activeBooksTotalByCurrency.length > 0
-      ? summaryData.activeBooksTotalByCurrency
-          .map((entry) => `${new Intl.NumberFormat(locale).format(entry.total)} ${entry.currency}`)
-          .join(" · ")
-      : "—";
 
-  const mobileLabels = (key: "active" | "delayed" | "expectedThisWeek" | "stores" | "total") => ({
-    compact: tSummary(`mobile.compact.${key}`),
-    detailed: tSummary(`mobile.detailed.${key}`),
-  });
+  const filterCounts =
+    summaryData === undefined || params.hasActiveSearch
+      ? undefined
+      : toDeliveryFilterCounts(summaryData);
 
-  const summaryCards: LibrarySummaryCard[] = [
-    {
-      icon: "truck",
-      iconTone: "primary",
+  const summaryLabels: DeliverySummaryLabels = {
+    active: {
+      empty: tSummary("microfact.active.empty"),
+      inTransit: (count) => tSummary("microfact.active.inTransit", { count }),
       label: tSummary("active"),
-      mobileLabels: mobileLabels("active"),
-      value: (summaryData?.activeBooksCount ?? 0).toLocaleString(locale),
+      ordered: (count) => tSummary("microfact.active.ordered", { count }),
+      readyForPickup: (count) => tSummary("microfact.active.readyForPickup", { count }),
     },
-    {
-      icon: "clock",
-      iconTone: "info",
+    activeOrders: {
+      empty: tSummary("microfact.activeOrders.empty"),
+      label: tSummary("activeOrders"),
+      noShipments: tSummary("microfact.activeOrders.noShipments"),
+      shipments: (count) => tSummary("microfact.activeOrders.shipments", { count }),
+      split: (count) => tSummary("microfact.activeOrders.split", { count }),
+    },
+    expectedThisWeek: {
+      empty: tSummary("microfact.expectedThisWeek.empty"),
       label: tSummary("expectedThisWeek"),
-      mobileLabels: mobileLabels("expectedThisWeek"),
-      value: (summaryData?.expectedThisWeekCount ?? 0).toLocaleString(locale),
+      onDate: (date) => tSummary("microfact.expectedThisWeek.onDate", { date }),
+      today: tSummary("microfact.expectedThisWeek.today"),
+      tomorrow: tSummary("microfact.expectedThisWeek.tomorrow"),
     },
-    {
-      icon: "alert-triangle",
-      iconTone: "favorite",
-      label: tSummary("delayed"),
-      mobileLabels: mobileLabels("delayed"),
-      value: (summaryData?.delayedCount ?? 0).toLocaleString(locale),
+    mobile: (key) => ({
+      compact: tSummary(`mobile.compact.${key}`),
+      detailed: tSummary(`mobile.detailed.${key}`),
+    }),
+    ordersTotal: {
+      coverageAll: (count) => tSummary("microfact.ordersTotal.coverageAll", { count }),
+      coverageNone: (count) => tSummary("microfact.ordersTotal.coverageNone", { count }),
+      coveragePartial: (known, total) =>
+        tSummary("microfact.ordersTotal.coveragePartial", { known, total }),
+      empty: tSummary("microfact.ordersTotal.empty"),
+      label: tSummary("ordersTotal"),
     },
-    {
-      icon: "wallet",
-      iconTone: "success",
-      label: tSummary("total"),
-      mobileLabels: mobileLabels("total"),
-      value: totalText,
+    units: {
+      books: (count) => tSummary("units.books", { count }),
+      orders: (count) => tSummary("units.orders", { count }),
     },
-    {
-      icon: "store",
-      iconTone: "ink",
-      label: tSummary("stores"),
-      mobileLabels: mobileLabels("stores"),
-      value: (summaryData?.uniqueStoresCount ?? 0).toLocaleString(locale),
-    },
-  ];
+  };
+
+  const summaryCards = buildDeliverySummaryCards({
+    labels: summaryLabels,
+    locale,
+    summary: summaryData ?? null,
+  });
 
   const renderCard = (model: DeliveryOrderCardModel) => (
     <DeliveryOrderCard
@@ -290,6 +293,7 @@ export function DeliveryInTransit() {
           <DeliveryToolbar
             counterLabel={t("counter", { count: totalCount })}
             filter={params.filter}
+            filterCounts={filterCounts}
             isPending={listQuery.isPending}
             loadingLabel={t("states.loading")}
             onClearSearch={params.clearSearch}

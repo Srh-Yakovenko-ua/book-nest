@@ -10,15 +10,19 @@ function makeSummaryData(overrides: Partial<InTransitSummaryData> = {}): InTrans
     activeBooksCount: 0,
     activeOrdersCount: 0,
     activeShipmentsCount: 0,
+    arrivingSoonCount: 0,
     attentionCount: 0,
     bookTotals: [],
     delayedCount: 0,
     expectedThisWeekCount: 0,
     inTransitCount: 0,
     nextExpectedDelivery: null,
+    nextExpectedThisWeek: null,
     orderedCount: 0,
+    ordersWithKnownTotalCount: 0,
     orderTotals: [],
     readyForPickupCount: 0,
+    splitOrdersCount: 0,
     uniqueStoresCount: 0,
     withoutExpectedDateCount: 0,
     withoutPriceCount: 0,
@@ -134,6 +138,27 @@ describe("buildInTransitSummaryView", () => {
     });
   });
 
+  it("carries the week arrival, the priced-order tally and the split-order tally onto the view", () => {
+    const view = buildInTransitSummaryView(
+      makeSummaryData({
+        activeOrdersCount: 3,
+        nextExpectedThisWeek: "2026-03-18",
+        ordersWithKnownTotalCount: 2,
+        splitOrdersCount: 1,
+      }),
+    );
+
+    expect({
+      nextExpectedThisWeek: view.nextExpectedThisWeek,
+      ordersWithKnownTotalCount: view.ordersWithKnownTotalCount,
+      splitOrdersCount: view.splitOrdersCount,
+    }).toEqual({
+      nextExpectedThisWeek: "2026-03-18",
+      ordersWithKnownTotalCount: 2,
+      splitOrdersCount: 1,
+    });
+  });
+
   it("produces a summary that satisfies the shared in-transit summary contract", () => {
     const view = buildInTransitSummaryView(
       makeSummaryData({
@@ -143,7 +168,10 @@ describe("buildInTransitSummaryView", () => {
         attentionCount: 2,
         bookTotals: [{ currency: "UAH", total: 350 }],
         nextExpectedDelivery: "2026-03-20",
+        nextExpectedThisWeek: "2026-03-18",
+        ordersWithKnownTotalCount: 1,
         orderTotals: [{ currency: null, total: 400 }],
+        splitOrdersCount: 1,
       }),
     );
 

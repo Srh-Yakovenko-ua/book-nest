@@ -18,15 +18,19 @@ export type InTransitSummaryData = {
   activeBooksCount: number;
   activeOrdersCount: number;
   activeShipmentsCount: number;
+  arrivingSoonCount: number;
   attentionCount: number;
   bookTotals: InTransitCurrencyTotal[];
   delayedCount: number;
   expectedThisWeekCount: number;
   inTransitCount: number;
   nextExpectedDelivery: Nullable<string>;
+  nextExpectedThisWeek: Nullable<string>;
   orderedCount: number;
+  ordersWithKnownTotalCount: number;
   orderTotals: InTransitCurrencyTotal[];
   readyForPickupCount: number;
+  splitOrdersCount: number;
   uniqueStoresCount: number;
   withoutExpectedDateCount: number;
   withoutPriceCount: number;
@@ -40,13 +44,17 @@ export function buildInTransitSummaryView(data: InTransitSummaryData): InTransit
     activeOrdersCount: data.activeOrdersCount,
     activeOrdersTotalByCurrency: toCurrencyTotals(data.orderTotals),
     activeShipmentsCount: data.activeShipmentsCount,
+    arrivingSoonCount: data.arrivingSoonCount,
     attentionCount: data.attentionCount,
     delayedCount: data.delayedCount,
     expectedThisWeekCount: data.expectedThisWeekCount,
     inTransitCount: data.inTransitCount,
     nextExpectedDelivery: data.nextExpectedDelivery,
+    nextExpectedThisWeek: data.nextExpectedThisWeek,
     orderedCount: data.orderedCount,
+    ordersWithKnownTotalCount: data.ordersWithKnownTotalCount,
     readyForPickupCount: data.readyForPickupCount,
+    splitOrdersCount: data.splitOrdersCount,
     uniqueStoresCount: data.uniqueStoresCount,
     withoutExpectedDateCount: data.withoutExpectedDateCount,
     withoutPriceCount: data.withoutPriceCount,

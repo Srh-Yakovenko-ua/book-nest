@@ -19,6 +19,9 @@ export const deliveryReadControllerInTransitSummaryResponseActiveOrdersCountMax 
 export const deliveryReadControllerInTransitSummaryResponseActiveShipmentsCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseActiveShipmentsCountMax = 9007199254740991;
 
+export const deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMax = 9007199254740991;
+
 export const deliveryReadControllerInTransitSummaryResponseAttentionCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseAttentionCountMax = 9007199254740991;
 
@@ -34,8 +37,14 @@ export const deliveryReadControllerInTransitSummaryResponseInTransitCountMax = 9
 export const deliveryReadControllerInTransitSummaryResponseOrderedCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseOrderedCountMax = 9007199254740991;
 
+export const deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMax = 9007199254740991;
+
 export const deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseSplitOrdersCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseSplitOrdersCountMax = 9007199254740991;
 
 export const deliveryReadControllerInTransitSummaryResponseUniqueStoresCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseUniqueStoresCountMax = 9007199254740991;
@@ -74,6 +83,10 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseActiveShipmentsCountMin)
     .max(deliveryReadControllerInTransitSummaryResponseActiveShipmentsCountMax),
+  arrivingSoonCount: zod
+    .int()
+    .min(deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMin)
+    .max(deliveryReadControllerInTransitSummaryResponseArrivingSoonCountMax),
   attentionCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseAttentionCountMin)
@@ -91,14 +104,23 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
     .min(deliveryReadControllerInTransitSummaryResponseInTransitCountMin)
     .max(deliveryReadControllerInTransitSummaryResponseInTransitCountMax),
   nextExpectedDelivery: zod.string().nullable(),
+  nextExpectedThisWeek: zod.string().nullable(),
   orderedCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseOrderedCountMin)
     .max(deliveryReadControllerInTransitSummaryResponseOrderedCountMax),
+  ordersWithKnownTotalCount: zod
+    .int()
+    .min(deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMin)
+    .max(deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMax),
   readyForPickupCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMin)
     .max(deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMax),
+  splitOrdersCount: zod
+    .int()
+    .min(deliveryReadControllerInTransitSummaryResponseSplitOrdersCountMin)
+    .max(deliveryReadControllerInTransitSummaryResponseSplitOrdersCountMax),
   uniqueStoresCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseUniqueStoresCountMin)

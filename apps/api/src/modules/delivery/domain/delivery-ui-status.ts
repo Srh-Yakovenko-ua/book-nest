@@ -16,7 +16,6 @@ export type DeliveryDateBounds = {
   soonEnd: Date;
   today: Date;
   weekEnd: Date;
-  weekStart: Date;
 };
 
 export type ShipmentUiStatusSource = {
@@ -29,10 +28,9 @@ export function deliveryDateBounds(now: Date): DeliveryDateBounds {
   const today = startOfUtcDay(now);
   const soonEnd = addDays(today, ARRIVING_SOON_DAYS);
   const mondayOffset = (today.getUTCDay() + 6) % 7;
-  const weekStart = addDays(today, -mondayOffset);
-  const weekEnd = addDays(weekStart, DAYS_FROM_MONDAY_TO_SUNDAY);
+  const weekEnd = addDays(today, DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset);
 
-  return { soonEnd, today, weekEnd, weekStart };
+  return { soonEnd, today, weekEnd };
 }
 
 export function getDeliveryUiStatus({

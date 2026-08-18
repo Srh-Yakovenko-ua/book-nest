@@ -2582,26 +2582,53 @@
       }
     },
     "summary": {
-      "active": "Усього в дорозі",
+      "active": "У дорозі",
       "expectedThisWeek": "Очікуються цього тижня",
-      "delayed": "Затримуються",
-      "total": "Загальна сума",
-      "stores": "Магазини",
+      "activeOrders": "Активні замовлення",
+      "ordersTotal": "Вартість замовлень",
+      "units": {
+        "books": "{count, plural, one {книга} few {книги} many {книг} other {книг}}",
+        "orders": "{count, plural, one {замовлення} few {замовлення} many {замовлень} other {замовлень}}"
+      },
+      "microfact": {
+        "active": {
+          "ordered": "{count, plural, one {# очікує відправлення} other {# очікують відправлення}}",
+          "inTransit": "{count, plural, one {# їде} other {# їдуть}}",
+          "readyForPickup": "{count, plural, one {# готова до отримання} other {# готові до отримання}}",
+          "empty": "Немає активних доставок"
+        },
+        "expectedThisWeek": {
+          "today": "Найближча — сьогодні",
+          "tomorrow": "Найближча — завтра",
+          "onDate": "Найближча — {date}",
+          "empty": "Цього тижня доставок не очікується"
+        },
+        "activeOrders": {
+          "shipments": "{count, plural, one {# активна посилка} few {# активні посилки} many {# активних посилок} other {# активних посилок}}",
+          "split": "{count, plural, one {# замовлення розділено} few {# замовлення розділено} many {# замовлень розділено} other {# замовлень розділено}}",
+          "noShipments": "Посилки ще не створені",
+          "empty": "Немає активних замовлень"
+        },
+        "ordersTotal": {
+          "coverageAll": "{count, plural, one {Сума вказана для єдиного замовлення} other {Сума вказана для всіх # замовлень}}",
+          "coveragePartial": "Сума вказана для {known} із {total} замовлень",
+          "coverageNone": "{count, plural, one {Сума не вказана для # замовлення} other {Сума не вказана для # замовлень}}",
+          "empty": "Немає активних замовлень"
+        }
+      },
       "mobile": {
         "title": "Детальна статистика",
         "compact": {
           "active": "В дорозі",
           "expectedThisWeek": "Тиждень",
-          "delayed": "Затримка",
-          "total": "Сума",
-          "stores": "Магазини"
+          "activeOrders": "Замовлень",
+          "ordersTotal": "Сума"
         },
         "detailed": {
-          "active": "Усього в дорозі",
+          "active": "У дорозі",
           "expectedThisWeek": "Очікуються цього тижня",
-          "delayed": "Затримуються",
-          "total": "Загальна сума",
-          "stores": "Магазини"
+          "activeOrders": "Активні замовлення",
+          "ordersTotal": "Вартість замовлень"
         }
       }
     },
@@ -2619,12 +2646,12 @@
     "filters": {
       "label": "Фільтри доставок",
       "all": "Усі",
-      "ordered": "Замовлено",
+      "ordered": "Очікують відправлення",
       "in_transit": "В дорозі",
       "ready_for_pickup": "Готові до отримання",
       "arriving_soon": "Очікуються скоро",
-      "this_week": "Цього тижня",
       "delayed": "Затримуються",
+      "without_tracking_number": "Без трекінгу",
       "no_delivery_date": "Без дати доставки"
     },
     "sort": {

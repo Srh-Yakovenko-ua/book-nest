@@ -2584,24 +2584,51 @@
     "summary": {
       "active": "In transit",
       "expectedThisWeek": "Expected this week",
-      "delayed": "Delayed",
-      "total": "Total amount",
-      "stores": "Stores",
+      "activeOrders": "Active orders",
+      "ordersTotal": "Order value",
+      "units": {
+        "books": "{count, plural, one {book} other {books}}",
+        "orders": "{count, plural, one {order} other {orders}}"
+      },
+      "microfact": {
+        "active": {
+          "ordered": "{count, plural, other {# awaiting dispatch}}",
+          "inTransit": "{count, plural, other {# on the way}}",
+          "readyForPickup": "{count, plural, other {# ready for pickup}}",
+          "empty": "No active deliveries"
+        },
+        "expectedThisWeek": {
+          "today": "Nearest — today",
+          "tomorrow": "Nearest — tomorrow",
+          "onDate": "Nearest — {date}",
+          "empty": "No deliveries expected this week"
+        },
+        "activeOrders": {
+          "shipments": "{count, plural, one {# active parcel} other {# active parcels}}",
+          "split": "{count, plural, one {# order split} other {# orders split}}",
+          "noShipments": "No parcels created yet",
+          "empty": "No active orders"
+        },
+        "ordersTotal": {
+          "coverageAll": "{count, plural, one {Amount known for the only order} other {Amount known for all # orders}}",
+          "coveragePartial": "Amount known for {known} of {total} orders",
+          "coverageNone": "{count, plural, one {No amount for # order} other {No amount for # orders}}",
+          "empty": "No active orders"
+        }
+      },
       "mobile": {
         "title": "Detailed stats",
         "compact": {
           "active": "In transit",
           "expectedThisWeek": "This week",
-          "delayed": "Delayed",
-          "total": "Amount",
-          "stores": "Stores"
+          "activeOrders": "Orders",
+          "ordersTotal": "Amount"
         },
         "detailed": {
           "active": "In transit",
           "expectedThisWeek": "Expected this week",
-          "delayed": "Delayed",
-          "total": "Total amount",
-          "stores": "Stores"
+          "activeOrders": "Active orders",
+          "ordersTotal": "Order value"
         }
       }
     },
@@ -2619,12 +2646,12 @@
     "filters": {
       "label": "Delivery filters",
       "all": "All",
-      "ordered": "Ordered",
+      "ordered": "Awaiting dispatch",
       "in_transit": "In transit",
       "ready_for_pickup": "Ready for pickup",
       "arriving_soon": "Arriving soon",
-      "this_week": "This week",
       "delayed": "Delayed",
+      "without_tracking_number": "No tracking",
       "no_delivery_date": "No delivery date"
     },
     "sort": {

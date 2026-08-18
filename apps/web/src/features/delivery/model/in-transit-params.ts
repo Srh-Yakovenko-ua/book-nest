@@ -1,3 +1,5 @@
+import type { InTransitSummaryView } from "@app/shared";
+
 import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 import type { DeliveryReadControllerInTransitListParams } from "@/shared/api/generated/model";
@@ -17,10 +19,14 @@ export const DELIVERY_PRIMARY_FILTERS = [
   DeliveryReadControllerInTransitListFilter.in_transit,
   DeliveryReadControllerInTransitListFilter.ready_for_pickup,
   DeliveryReadControllerInTransitListFilter.arriving_soon,
-  DeliveryReadControllerInTransitListFilter.this_week,
   DeliveryReadControllerInTransitListFilter.delayed,
+  DeliveryReadControllerInTransitListFilter.without_tracking_number,
   DeliveryReadControllerInTransitListFilter.no_delivery_date,
 ] as const satisfies readonly DeliveryReadControllerInTransitListFilter[];
+
+export type DeliveryFilterCounts = Record<DeliveryPrimaryFilter, number>;
+
+export type DeliveryPrimaryFilter = (typeof DELIVERY_PRIMARY_FILTERS)[number];
 
 export const DELIVERY_SORT_ORDER = Object.values(DeliveryReadControllerInTransitListSort);
 
@@ -43,6 +49,19 @@ export function hasActiveDeliveryFilters(state: DeliveryQueryState): boolean {
 
 export function hasActiveDeliverySearch(state: DeliveryQueryState): boolean {
   return state.q.trim() !== "";
+}
+
+export function toDeliveryFilterCounts(summary: InTransitSummaryView): DeliveryFilterCounts {
+  return {
+    all: summary.activeBooksCount,
+    arriving_soon: summary.arrivingSoonCount,
+    delayed: summary.delayedCount,
+    in_transit: summary.inTransitCount,
+    no_delivery_date: summary.withoutExpectedDateCount,
+    ordered: summary.orderedCount,
+    ready_for_pickup: summary.readyForPickupCount,
+    without_tracking_number: summary.withoutTrackingCount,
+  };
 }
 
 export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListParams {

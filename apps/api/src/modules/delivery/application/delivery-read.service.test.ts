@@ -363,15 +363,19 @@ describe("DeliveryReadService.inTransitSummary", () => {
           activeBooksCount: 5,
           activeOrdersCount: 2,
           activeShipmentsCount: 3,
+          arrivingSoonCount: 2,
           attentionCount: 4,
           bookTotals: [{ currency: "UAH", total: 100 }],
           delayedCount: 1,
           expectedThisWeekCount: 2,
           inTransitCount: 3,
           nextExpectedDelivery: "2026-08-20",
+          nextExpectedThisWeek: "2026-08-18",
           orderedCount: 1,
+          ordersWithKnownTotalCount: 1,
           orderTotals: [],
           readyForPickupCount: 1,
+          splitOrdersCount: 1,
           uniqueStoresCount: 2,
           withoutExpectedDateCount: 0,
           withoutPriceCount: 1,
@@ -387,6 +391,15 @@ describe("DeliveryReadService.inTransitSummary", () => {
     expect(summary.activeOrdersCount).toBe(2);
     expect(summary.activeShipmentsCount).toBe(3);
     expect(summary.activeBooksTotalByCurrency).toEqual([{ currency: "UAH", total: 100 }]);
+    expect({
+      nextExpectedThisWeek: summary.nextExpectedThisWeek,
+      ordersWithKnownTotalCount: summary.ordersWithKnownTotalCount,
+      splitOrdersCount: summary.splitOrdersCount,
+    }).toEqual({
+      nextExpectedThisWeek: "2026-08-18",
+      ordersWithKnownTotalCount: 1,
+      splitOrdersCount: 1,
+    });
   });
 });
 

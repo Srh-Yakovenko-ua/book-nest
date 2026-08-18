@@ -30,6 +30,11 @@ export interface InTransitSummaryViewDto {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  arrivingSoonCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   attentionCount: number;
   /**
    * @minimum 0
@@ -48,6 +53,8 @@ export interface InTransitSummaryViewDto {
   inTransitCount: number;
   /** @nullable */
   nextExpectedDelivery: string | null;
+  /** @nullable */
+  nextExpectedThisWeek: string | null;
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -57,7 +64,17 @@ export interface InTransitSummaryViewDto {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  ordersWithKnownTotalCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   readyForPickupCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  splitOrdersCount: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991
