@@ -8,6 +8,8 @@ import type {
   ShipmentStatus,
 } from "@app/shared";
 
+import { resolveOrderFinancials } from "@app/shared";
+
 import type { UiIconName } from "@/components/icons";
 import type { StatusEntry, StatusTone } from "@/lib/book-status";
 
@@ -16,8 +18,6 @@ import { formatDate } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { toOrderStatusBadge } from "./statistics-view-model";
-
-const MONEY_PRECISION = 2;
 
 export type DeliveryBadgeKey =
   "arriving_soon" | "delayed" | "in_transit" | "no_delivery_date" | "ordered" | "ready_for_pickup";
@@ -33,8 +33,11 @@ export type DeliveryOrderBookModel = {
   bookHref: string;
   bookId: string;
   coverSrc?: string;
+  currency: Nullable<Currency>;
   id: string;
+  price: Nullable<number>;
   priceText: Nullable<string>;
+  resetsOrderTotal: boolean;
   series: Nullable<DeliveryOrderBookSeriesModel>;
   title: string;
 };
@@ -49,6 +52,7 @@ export type DeliveryOrderCardModel = {
   badge: StatusEntry;
   booksCount: number;
   id: string;
+  incompleteTotal: Nullable<IncompleteOrderTotal>;
   orderDate: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
@@ -73,12 +77,20 @@ export type DeliveryShipmentGroupModel = {
   trackingUrl: Nullable<string>;
 };
 
+export type IncompleteOrderTotal = { itemsCount: number; pricedItemsCount: number };
+
 type CardOptions = { labels: DeliveryCardLabels; locale: string };
 
 type OrderGroup = {
   items: BookOrderItemRowView[];
   order: BookOrderItemRowOrderView;
   shipments: Map<Nullable<string>, ShipmentGroup>;
+};
+
+type OrderTotalContext = {
+  hasStoredTotal: boolean;
+  itemsCount: number;
+  pricedItemsCount: number;
 };
 
 type ShipmentGroup = {
@@ -97,22 +109,25 @@ export function toDeliveryOrderCards(
   items: BookOrderItemRowView[],
   options: CardOptions,
 ): DeliveryOrderCardModel[] {
-  return groupByOrder(items).map((group) => ({
-    badge: toOrderStatusBadge(group.order.derivedStatus, options.labels.orderStatus),
-    booksCount: group.items.length,
-    id: group.order.id,
-    orderDate: group.order.orderDate,
-    orderDateText:
-      group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),
-    orderNumber: group.order.orderNumber,
-    shipments: dispatchedFirst(group).map((shipment) => toShipmentGroupModel(shipment, options)),
-    storeName: group.order.storeName,
-    totalText: formatPrice(
-      group.order.totalAmount ?? sumItemPrices(group.items),
-      group.order.currency,
-      options.locale,
-    ),
-  }));
+  return groupByOrder(items).map((group) => {
+    const orderTotal = toOrderTotalContext(group);
+
+    return {
+      badge: toOrderStatusBadge(group.order.derivedStatus, options.labels.orderStatus),
+      booksCount: group.items.length,
+      id: group.order.id,
+      incompleteTotal: toIncompleteOrderTotal(orderTotal),
+      orderDate: group.order.orderDate,
+      orderDateText:
+        group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),
+      orderNumber: group.order.orderNumber,
+      shipments: dispatchedFirst(group).map((shipment) =>
+        toShipmentGroupModel(shipment, options, orderTotal),
+      ),
+      storeName: group.order.storeName,
+      totalText: formatPrice(toOrderAmount(group), group.order.currency, options.locale),
+    };
+  });
 }
 
 function dispatchedFirst(group: OrderGroup): ShipmentGroup[] {
@@ -157,6 +172,12 @@ function groupByOrder(items: BookOrderItemRowView[]): OrderGroup[] {
   return Array.from(orders.values());
 }
 
+function resetsOrderTotal(item: BookOrderItemRowView, orderTotal: OrderTotalContext): boolean {
+  if (!orderTotal.hasStoredTotal) return false;
+  const unpricedItemCount = orderTotal.itemsCount - orderTotal.pricedItemsCount;
+  return unpricedItemCount - (item.price === null ? 1 : 0) > 0;
+}
+
 function resolveDeliveryBadge(
   input: {
     shipment: Nullable<BookOrderItemRowShipmentView>;
@@ -186,13 +207,11 @@ function shipmentBadgeKey(shipment: Nullable<BookOrderItemRowShipmentView>): Del
   return "ordered";
 }
 
-function sumItemPrices(items: BookOrderItemRowView[]): Nullable<number> {
-  const prices = items.flatMap((item) => (item.price === null ? [] : [item.price]));
-  if (prices.length === 0) return null;
-  return Number(prices.reduce((total, price) => total + price, 0).toFixed(MONEY_PRECISION));
-}
-
-function toBookModel(item: BookOrderItemRowView, options: CardOptions): DeliveryOrderBookModel {
+function toBookModel(
+  item: BookOrderItemRowView,
+  options: CardOptions,
+  orderTotal: OrderTotalContext,
+): DeliveryOrderBookModel {
   const { book, order } = item;
 
   return {
@@ -200,8 +219,11 @@ function toBookModel(item: BookOrderItemRowView, options: CardOptions): Delivery
     bookHref: `/books/${book.id}`,
     bookId: book.id,
     coverSrc: book.cover?.urls.thumb,
+    currency: order.currency,
     id: item.id,
+    price: item.price,
     priceText: formatPrice(item.price, order.currency, options.locale),
+    resetsOrderTotal: resetsOrderTotal(item, orderTotal),
     series:
       book.series === null
         ? null
@@ -219,9 +241,36 @@ function toBookModel(item: BookOrderItemRowView, options: CardOptions): Delivery
   };
 }
 
+function toIncompleteOrderTotal(orderTotal: OrderTotalContext): Nullable<IncompleteOrderTotal> {
+  if (orderTotal.hasStoredTotal) return null;
+  if (orderTotal.pricedItemsCount === 0) return null;
+  if (orderTotal.pricedItemsCount === orderTotal.itemsCount) return null;
+  return { itemsCount: orderTotal.itemsCount, pricedItemsCount: orderTotal.pricedItemsCount };
+}
+
+function toOrderAmount(group: OrderGroup): Nullable<number> {
+  if (group.order.totalAmount !== null) return group.order.totalAmount;
+
+  return resolveOrderFinancials({
+    deliveryPrice: group.order.deliveryPrice,
+    discount: group.order.discount,
+    itemPrices: group.items.flatMap((item) => (item.price === null ? [] : [item.price])),
+    totalAmount: null,
+  }).effectiveTotalAmount;
+}
+
+function toOrderTotalContext(group: OrderGroup): OrderTotalContext {
+  return {
+    hasStoredTotal: group.order.totalAmount !== null,
+    itemsCount: group.items.length,
+    pricedItemsCount: group.items.filter((item) => item.price !== null).length,
+  };
+}
+
 function toShipmentGroupModel(
   group: ShipmentGroup,
   options: CardOptions,
+  orderTotal: OrderTotalContext,
 ): DeliveryShipmentGroupModel {
   const { shipment } = group.first;
   const trackingUrl = shipment?.trackingUrl ?? null;
@@ -233,7 +282,7 @@ function toShipmentGroupModel(
       { shipment, uiStatus: shipment === null ? null : group.first.uiStatus },
       options.labels.badge,
     ),
-    books: group.items.map((item) => toBookModel(item, options)),
+    books: group.items.map((item) => toBookModel(item, options, orderTotal)),
     expectedDate: expectedDeliveryDate,
     expectedDateText:
       expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),

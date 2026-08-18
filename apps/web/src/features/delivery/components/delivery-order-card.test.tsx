@@ -63,6 +63,7 @@ function renderCard(
       onManage={vi.fn()}
       onReceiveShipment={vi.fn()}
       onToggleSelectBook={vi.fn()}
+      preparingEdit={false}
       selectedBookIds={new Set<string>()}
       selectionMode={false}
       {...overrides}
@@ -246,7 +247,7 @@ describe("DeliveryOrderCard", () => {
 
   it.each([
     ["ordered", "Позначити в дорозі", "in_transit"],
-    ["in_transit", "Позначити готовою", "ready_for_pickup"],
+    ["in_transit", "Позначити прибуття", "ready_for_pickup"],
   ] as const)(
     "advances a %s shipment to its next status in one click",
     async (status, label, next) => {
@@ -408,7 +409,9 @@ describe("DeliveryOrderCard", () => {
       makeDeliveryOrderCardModel({
         shipments: [
           makeDeliveryShipmentGroupModel({
-            books: [makeDeliveryOrderBookModel({ bookId: "book-42", title: "Амадока" })],
+            books: [
+              makeDeliveryOrderBookModel({ bookId: "book-42", id: "item-42", title: "Амадока" }),
+            ],
           }),
         ],
       }),
@@ -418,7 +421,9 @@ describe("DeliveryOrderCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Дії для «Амадока»" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Змінити ціну" }));
 
-    expect(onEditBook).toHaveBeenCalledWith("book-42");
+    expect(onEditBook).toHaveBeenCalledWith(
+      expect.objectContaining({ bookId: "book-42", id: "item-42", title: "Амадока" }),
+    );
   });
 
   it("cancels a single book from its row menu", async () => {
@@ -466,5 +471,14 @@ describe("DeliveryOrderCard", () => {
     expect(screen.getByText("Ще не відправлено")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Музей покинутих секретів" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Амадока" })).toBeInTheDocument();
+  });
+
+  it("marks the order menu busy while its edit dialog loads", () => {
+    renderCard(makeDeliveryOrderCardModel(), { preparingEdit: true });
+
+    const trigger = screen.getByRole("button", { name: "Дії із замовленням" });
+
+    expect(trigger).toHaveAttribute("aria-busy", "true");
+    expect(trigger).toBeDisabled();
   });
 });

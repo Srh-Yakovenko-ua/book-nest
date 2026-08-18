@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useBook } from "@/features/books/api/use-book";
 import { useUpdateDelivery } from "@/features/books/api/use-delivery";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import {
@@ -24,35 +24,19 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
-import { DeliveryLoadingDialog } from "./delivery-loading-dialog";
+import type { DeliveryOrderBookModel } from "../model/order-card-model";
 
 const PRICE_MAX = 99999999.99;
 const PRICE_INPUT_ID = "order-item-price";
 
 type OrderItemPriceDialogProps = {
-  bookId: string;
+  book: DeliveryOrderBookModel;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
-export function OrderItemPriceDialog({ bookId, onOpenChange, open }: OrderItemPriceDialogProps) {
+export function OrderItemPriceDialog({ book, onOpenChange, open }: OrderItemPriceDialogProps) {
   const t = useTranslations("delivery.priceDialog");
-  const tErrors = useTranslations("books.details.delivery.errors");
-  const { data: book, isError } = useBook(bookId);
-  const active = book?.delivery.active ?? null;
-
-  if (book === undefined || active === null) {
-    return (
-      <DeliveryLoadingDialog
-        description={t("description")}
-        errorText={tErrors("generic")}
-        isError={isError || (book !== undefined && active === null)}
-        onOpenChange={onOpenChange}
-        open={open}
-        title={t("title")}
-      />
-    );
-  }
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -62,11 +46,12 @@ export function OrderItemPriceDialog({ bookId, onOpenChange, open }: OrderItemPr
           <DialogDescription>{t("description", { title: book.title })}</DialogDescription>
         </DialogHeader>
         <PriceForm
-          bookId={bookId}
-          currency={active.currency}
-          deliveryId={active.id}
+          bookId={book.bookId}
+          currency={book.currency}
+          deliveryId={book.id}
           onDone={() => onOpenChange(false)}
-          price={active.price}
+          price={book.price}
+          resetsOrderTotal={book.resetsOrderTotal}
         />
       </DialogContent>
     </Dialog>
@@ -79,12 +64,14 @@ function PriceForm({
   deliveryId,
   onDone,
   price,
+  resetsOrderTotal,
 }: {
   bookId: string;
   currency: null | string;
   deliveryId: string;
   onDone: () => void;
   price: null | number;
+  resetsOrderTotal: boolean;
 }) {
   const t = useTranslations("delivery.priceDialog");
   const tErrors = useTranslations("books.details.delivery.errors");
@@ -135,6 +122,12 @@ function PriceForm({
           )}
         </div>
         <p className="text-xs text-muted-foreground">{t("hint")}</p>
+        {resetsOrderTotal ? (
+          <p className="flex items-start gap-1.5 rounded-md border border-warning/40 bg-warning-soft p-2.5 text-xs text-warning">
+            <UiIcon className="mt-px" name="alert-triangle" size={14} />
+            {t("totalResetWarning")}
+          </p>
+        ) : null}
         {error === null ? null : (
           <p className="text-xs text-destructive" role="alert">
             {error}

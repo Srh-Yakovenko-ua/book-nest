@@ -2482,7 +2482,7 @@
         "breakdownOptional": "Breakdown (optional)",
         "summary": "Summary",
         "paidTotal": "Total paid",
-        "deliverySummary": "Including delivery",
+        "deliverySummary": "Plus delivery",
         "discountSummary": "Discount applied",
         "itemPricesProgressTitle": "Prices are specified for {pricedItemsCount} of {itemsCount} books.",
         "itemPricesEmptyDescription": "Enter every book price to see the automatic total.",
@@ -2680,7 +2680,7 @@
       "receiveShipmentMenu": "Mark shipment as received",
       "receiveShipmentCompact": "Mark as received",
       "markInTransitCompact": "Mark as in transit",
-      "markReadyForPickupCompact": "Mark as ready",
+      "markReadyForPickupCompact": "Mark as arrived",
       "statusMenu": "Shipment status",
       "receive": "Mark as received",
       "edit": "Edit delivery",
@@ -2690,6 +2690,8 @@
       "booksInTransit": "{count, plural, one {# book in transit} other {# books in transit}}",
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
+      "incompleteTotalCaption": "prices for {priced} of {total}",
+      "incompleteTotalWarning": "The total is incomplete: it counts prices for {priced} of {total} books. Add the remaining prices, or enter the order total.",
       "pickupUntil": "Held until {date}",
       "note": "Note"
     },
@@ -2717,10 +2719,10 @@
       "itemsSubtotal": "Books",
       "summary": "Summary",
       "paidTotal": "Paid in total",
-      "deliverySummary": "Delivery included",
+      "deliverySummary": "Plus delivery",
       "discountSummary": "Discount applied",
       "calculatedTotalHint": "Every book has a price, so the total is calculated automatically: book prices + delivery − discount. A book price is changed from its own menu.",
-      "manualTotalHint": "Not every book in this order has a price, so set the final total by hand. A book price is changed from its own menu.",
+      "manualTotalHint": "Not every book in this order has a price, so set the final total by hand: book prices + delivery − discount. A book price is changed from its own menu.",
       "negativeTotal": "The discount is larger than the books and delivery, so the total goes negative.",
       "negativeAmount": "Amounts cannot be negative.",
       "trackingNumber": "Tracking number",
@@ -2748,7 +2750,7 @@
     },
     "receiveDialog": {
       "title": "Mark as received?",
-      "description": "{count, plural, one {# book will be marked as received and moved into your library.} other {# books will be marked as received and moved into your library.}}",
+      "description": "{count, plural, one {# book will be marked as received and moved into your library.} other {# books will be marked as received and moved into your library.}} This action cannot be undone.",
       "confirm": "Mark as received"
     },
     "states": {
@@ -2983,6 +2985,7 @@
       "description": "Update what “{title}” cost in this order.",
       "price": "Price",
       "hint": "Leave the field empty to drop the price.",
+      "totalResetWarning": "The order total will be cleared, because not every book has a price. You can enter it again in Edit order.",
       "cancel": "Cancel",
       "save": "Save"
     }

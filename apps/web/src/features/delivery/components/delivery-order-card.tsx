@@ -38,10 +38,11 @@ type DeliveryOrderCardProps = {
   model: DeliveryOrderCardModel;
   onCancelBook: (bookId: string) => void;
   onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
-  onEditBook: (bookId: string) => void;
+  onEditBook: (book: DeliveryOrderBookModel) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
+  preparingEdit: boolean;
   selectedBookIds: ReadonlySet<string>;
   selectionMode: boolean;
 };
@@ -79,7 +80,7 @@ type ShipmentSectionProps = {
   index: number;
   onCancelBook: (bookId: string) => void;
   onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
-  onEditBook: (bookId: string) => void;
+  onEditBook: (book: DeliveryOrderBookModel) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
@@ -96,6 +97,7 @@ export function DeliveryOrderCard({
   onManage,
   onReceiveShipment,
   onToggleSelectBook,
+  preparingEdit,
   selectedBookIds,
   selectionMode,
 }: DeliveryOrderCardProps) {
@@ -135,11 +137,24 @@ export function DeliveryOrderCard({
               {model.totalText ?? "—"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{booksCountText}</p>
+            {model.incompleteTotal === null ? null : (
+              <p className="mt-0.5 text-xs text-warning">
+                {t("incompleteTotalCaption", {
+                  priced: model.incompleteTotal.pricedItemsCount,
+                  total: model.incompleteTotal.itemsCount,
+                })}
+              </p>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button aria-label={t("orderActionsAria")} size="icon" variant="ghost">
-                <UiIcon name="more" size={18} />
+              <Button
+                aria-label={t("orderActionsAria")}
+                loading={preparingEdit}
+                size="icon"
+                variant="ghost"
+              >
+                {preparingEdit ? null : <UiIcon name="more" size={18} />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-max whitespace-nowrap">
@@ -157,6 +172,16 @@ export function DeliveryOrderCard({
           </DropdownMenu>
         </div>
       </header>
+
+      {model.incompleteTotal === null ? null : (
+        <p className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
+          <UiIcon className="mt-0.5" name="alert-triangle" size={16} />
+          {t("incompleteTotalWarning", {
+            priced: model.incompleteTotal.pricedItemsCount,
+            total: model.incompleteTotal.itemsCount,
+          })}
+        </p>
+      )}
 
       <div
         className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
@@ -496,7 +521,7 @@ function ShipmentSection({
               <BookRow
                 book={book}
                 onCancel={() => onCancelBook(book.bookId)}
-                onEdit={() => onEditBook(book.bookId)}
+                onEdit={() => onEditBook(book)}
                 onToggleSelect={() => onToggleSelectBook(book.bookId)}
                 selected={selectedBookIds.has(book.bookId)}
                 selectionMode={selectionMode}
