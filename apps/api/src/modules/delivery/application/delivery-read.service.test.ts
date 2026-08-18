@@ -5,7 +5,7 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MediaService } from "../../media/index.js";
 import type { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
@@ -357,6 +357,15 @@ describe("DeliveryReadService.historySummary", () => {
 });
 
 describe("DeliveryReadService.inTransitSummary", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-18T09:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("hands the repository the bounds and maps the counts onto the view", async () => {
     const { reads, service } = buildService({
       reads: {
@@ -365,22 +374,33 @@ describe("DeliveryReadService.inTransitSummary", () => {
           activeOrdersCount: 2,
           activeShipmentsCount: 3,
           arrivingSoonCount: 2,
-          attentionCount: 4,
+          awaitingDispatchOrdersCount: 0,
           bookTotals: [{ currency: "UAH", total: 100 }],
           delayedCount: 1,
+          delayedShipmentsCount: 1,
+          earliestAwaitingOrderDate: null,
+          earliestDelayedDate: "2026-08-10",
           expectedThisWeekCount: 2,
           inTransitCount: 3,
+          nearestPickupUntil: null,
           nextExpectedDelivery: "2026-08-20",
           nextExpectedThisWeek: "2026-08-18",
           orderedCount: 1,
           ordersWithKnownTotalCount: 1,
           orderTotals: [],
+          pickupExpiredCount: 0,
+          pickupExpiringCount: 0,
           readyForPickupCount: 1,
           splitOrdersCount: 1,
+          unassignedBooksCount: 0,
+          unassignedOrderId: null,
+          unassignedOrdersCount: 0,
           uniqueStoresCount: 2,
           withoutExpectedDateCount: 0,
+          withoutExpectedDateShipmentsCount: 0,
           withoutPriceCount: 1,
           withoutTrackingCount: 1,
+          withoutTrackingShipmentsCount: 1,
         }),
       },
     });
@@ -388,6 +408,10 @@ describe("DeliveryReadService.inTransitSummary", () => {
     const summary = await service.inTransitSummary({ userId: USER });
 
     expect(vi.mocked(reads.inTransitSummary).mock.calls[0]?.[0].userId).toBe(USER);
+    expect(summary.attention).toEqual([
+      { count: 1, maxDelayDays: 8, reason: "delayed" },
+      { count: 1, reason: "without_tracking" },
+    ]);
     expect(summary.activeBooksCount).toBe(5);
     expect(summary.activeOrdersCount).toBe(2);
     expect(summary.activeShipmentsCount).toBe(3);

@@ -348,6 +348,11 @@ export const BulkReceiveOrderItemsResultViewSchema = z.object({
 
 export type BulkReceiveOrderItemsResultView = z.infer<typeof BulkReceiveOrderItemsResultViewSchema>;
 
+export const IN_TRANSIT_ATTENTION_THRESHOLDS = {
+  awaitingDispatchDays: 7,
+  pickupExpiringDays: 2,
+} as const;
+
 export const InTransitFilterSchema = z.enum([
   "all",
   "ordered",
@@ -356,6 +361,9 @@ export const InTransitFilterSchema = z.enum([
   "arriving_soon",
   "this_week",
   "delayed",
+  "pickup_expiring",
+  "awaiting_dispatch",
+  "unassigned",
   "no_delivery_date",
   "has_tracking_number",
   "without_tracking_number",
@@ -366,6 +374,68 @@ export const InTransitFilterSchema = z.enum([
 ]);
 
 export type InTransitFilter = z.infer<typeof InTransitFilterSchema>;
+
+export const InTransitAttentionReasonSchema = z.enum([
+  "pickup_expiring",
+  "delayed",
+  "awaiting_dispatch",
+  "without_tracking",
+  "without_expected_date",
+  "unassigned_books",
+]);
+
+export type InTransitAttentionReason = z.infer<typeof InTransitAttentionReasonSchema>;
+
+export const InTransitAttentionSchema = z.discriminatedUnion("reason", [
+  z.object({
+    count: CountSchema,
+    expiredCount: CountSchema,
+    nearestPickupUntil: isoDay()
+      .nullable()
+      .describe(
+        "The soonest pickup deadline that has not passed yet. Null when every expiring parcel is already past its deadline.",
+      ),
+    reason: z.literal("pickup_expiring"),
+  }),
+  z.object({
+    count: CountSchema,
+    maxDelayDays: z.number().int().positive(),
+    reason: z.literal("delayed"),
+  }),
+  z.object({
+    count: CountSchema,
+    maxWaitingDays: z.number().int().positive(),
+    reason: z.literal("awaiting_dispatch"),
+  }),
+  z.object({
+    count: CountSchema,
+    reason: z.literal("without_tracking"),
+  }),
+  z.object({
+    count: CountSchema,
+    reason: z.literal("without_expected_date"),
+  }),
+  z.object({
+    count: CountSchema,
+    ordersCount: CountSchema,
+    reason: z.literal("unassigned_books"),
+    revealOrderId: z
+      .uuid()
+      .nullable()
+      .describe("The affected order when exactly one order is affected, null otherwise."),
+  }),
+]);
+
+export type InTransitAttention = z.infer<typeof InTransitAttentionSchema>;
+
+export const IN_TRANSIT_ATTENTION_FILTER = {
+  awaiting_dispatch: "awaiting_dispatch",
+  delayed: "delayed",
+  pickup_expiring: "pickup_expiring",
+  unassigned_books: "unassigned",
+  without_expected_date: "no_delivery_date",
+  without_tracking: "without_tracking_number",
+} as const satisfies Record<InTransitAttentionReason, InTransitFilter>;
 
 export const InTransitSortSchema = z.enum([
   "closest_delivery",
@@ -564,7 +634,11 @@ export const InTransitSummaryViewSchema = z.object({
   activeOrdersTotalByCurrency: z.array(CurrencyTotalSchema),
   activeShipmentsCount: CountSchema,
   arrivingSoonCount: CountSchema,
-  attentionCount: CountSchema,
+  attention: z
+    .array(InTransitAttentionSchema)
+    .describe(
+      "Cases that ask the reader to act, ordered by severity: pickup_expiring, delayed, awaiting_dispatch, without_tracking, without_expected_date, unassigned_books. A case with a zero count is left out, and each case counts in its own unit - parcels, orders or books.",
+    ),
   delayedCount: CountSchema,
   expectedThisWeekCount: CountSchema,
   inTransitCount: CountSchema,

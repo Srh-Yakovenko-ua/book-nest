@@ -135,9 +135,9 @@ function AttentionRow<TId extends string>({
           size={16}
         />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-xs text-ink">{item.label}</span>
+          <span className="line-clamp-2 text-xs text-ink">{item.label}</span>
           {item.detail === undefined ? null : (
-            <span className="truncate text-xs text-muted-foreground tabular-nums">
+            <span className="line-clamp-2 text-xs text-muted-foreground tabular-nums">
               {item.detail}
             </span>
           )}

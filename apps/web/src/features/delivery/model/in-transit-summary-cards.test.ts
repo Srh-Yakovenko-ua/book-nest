@@ -65,7 +65,7 @@ function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSu
     activeOrdersTotalByCurrency: [],
     activeShipmentsCount: 0,
     arrivingSoonCount: 0,
-    attentionCount: 0,
+    attention: [],
     delayedCount: 0,
     expectedThisWeekCount: 0,
     inTransitCount: 0,

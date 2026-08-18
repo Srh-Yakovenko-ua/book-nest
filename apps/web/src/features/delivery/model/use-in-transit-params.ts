@@ -25,6 +25,7 @@ export type UseInTransitParamsResult = {
   hasActiveSearch: boolean;
   listParams: DeliveryListParams;
   setFilter: (value: DeliveryReadControllerInTransitListFilter) => void;
+  setFilterAndClearSearch: (value: DeliveryReadControllerInTransitListFilter) => void;
   setSearch: (value: string) => void;
   setSort: (value: DeliveryReadControllerInTransitListSort) => void;
   sort: DeliveryReadControllerInTransitListSort;
@@ -43,6 +44,7 @@ export function useInTransitParams(): UseInTransitParamsResult {
     hasActiveSearch: hasActiveDeliverySearch(state),
     listParams: toDeliveryListParams(state),
     setFilter: (value) => void setState({ filter: value }),
+    setFilterAndClearSearch: (value) => void setState({ filter: value, q: null }),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),
     sort: state.sort,

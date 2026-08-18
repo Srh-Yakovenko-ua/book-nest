@@ -2636,7 +2636,11 @@
       "trigger": "Delivery overview",
       "title": "Delivery overview",
       "subtitle": "Full stats for this section",
-      "close": "Close overview"
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "attention": "Needs attention"
+      }
     },
     "search": {
       "label": "Search deliveries",
@@ -2650,6 +2654,49 @@
       "in_transit": "In transit",
       "ready_for_pickup": "Ready for pickup",
       "delayed": "Delayed"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "viewAll": "Show all {count}",
+      "allClear": {
+        "title": "All clear",
+        "text": "No delivery needs your attention."
+      },
+      "pickup_expiring": {
+        "expiring": "Pickup window is closing",
+        "expired": "Pickup window has closed",
+        "today": "Pick up today",
+        "tomorrow": "Pick up by tomorrow",
+        "onDate": "Pick up by {date}",
+        "detail": "{count, plural, one {# parcel} other {# parcels}}",
+        "alsoExpired": "{count, plural, one {# parcel} other {# parcels}} · {expired} already overdue"
+      },
+      "delayed": {
+        "label": "{count, plural, one {# parcel is delayed} other {# parcels are delayed}}",
+        "detail": "Longest delay — {days, plural, one {# day} other {# days}}"
+      },
+      "awaiting_dispatch": {
+        "label": "{count, plural, one {# order has not shipped} other {# orders have not shipped}} for over {days, plural, one {# day} other {# days}}",
+        "detail": "Longest wait — {days, plural, one {# day} other {# days}}"
+      },
+      "without_tracking": {
+        "label": "{count, plural, one {# shipped parcel without a tracking number} other {# shipped parcels without a tracking number}}"
+      },
+      "without_expected_date": {
+        "label": "{count, plural, one {# parcel without a delivery date} other {# parcels without a delivery date}}"
+      },
+      "unassigned_books": {
+        "label": "{count, plural, one {# book is not assigned to a parcel} other {# books are not assigned to a parcel}}",
+        "detail": "{count, plural, one {in # order} other {in # orders}}"
+      },
+      "chip": {
+        "pickup_expiring": "Pickup expiring",
+        "delayed": "Delayed",
+        "awaiting_dispatch": "Not shipped",
+        "without_tracking": "No tracking number",
+        "without_expected_date": "No delivery date",
+        "unassigned_books": "Unassigned books"
+      }
     },
     "sidebar": {
       "title": "Delivery overview"

@@ -650,6 +650,7 @@ export * from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItem";
 export * from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItemCurrency";
 export * from "./inTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem";
 export * from "./inTransitSummaryViewDtoActiveOrdersTotalByCurrencyItemCurrency";
+export * from "./inTransitSummaryViewDtoAttentionItem";
 export * from "./inTransitSummaryViewDtoNextShipment";
 export * from "./inTransitSummaryViewDtoNextShipmentBookPreviewsItem";
 export * from "./inTransitSummaryViewDtoNextShipmentBookPreviewsItemCover";

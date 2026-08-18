@@ -38,6 +38,13 @@ const LIST_BOOKS = {
   upcoming: "Upcoming",
 } as const;
 
+const ATTENTION_BOOKS = {
+  loose: "Loose",
+  onItsOwn: "On Its Own",
+  packed: "Packed",
+  waiting: "Waiting",
+} as const;
+
 const WEEK_BOOKS = {
   arrived: "Arrived",
   dueToday: "Due Today",
@@ -96,6 +103,37 @@ async function inTransitTitles({
     throw new Error(`in-transit read failed with ${res.status}: ${JSON.stringify(res.body)}`);
   }
   return res.body.items.map((row: BookOrderItemRowView) => row.book.title);
+}
+
+async function seedAttentionFixture(): Promise<BookOrderView> {
+  const bookIds = await createBooks({
+    accessToken: reader.accessToken,
+    app,
+    titles: [ATTENTION_BOOKS.waiting, ATTENTION_BOOKS.packed, ATTENTION_BOOKS.loose],
+  });
+  const [waiting, packed, loose] = bookIds;
+
+  await createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: {
+      items: [{ bookId: waiting ?? "" }],
+      orderDate: isoDay(-3),
+      shipments: [{ bookIds: [waiting ?? ""], pickupUntil: isoDay(1), status: "ready_for_pickup" }],
+      storeName: "Yakaboo",
+    },
+  });
+
+  return createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: {
+      items: [{ bookId: packed ?? "" }, { bookId: loose ?? "" }],
+      orderDate: isoDay(-3),
+      shipments: [{ bookIds: [packed ?? ""], expectedDeliveryDate: isoDay(3) }],
+      storeName: "Bookva",
+    },
+  });
 }
 
 async function seedListFixture(): Promise<BookOrderView> {
@@ -271,12 +309,36 @@ describe("GET /api/delivery/books/in-transit filters", () => {
     ]);
   });
 
-  it("returns only the book with no tracking number", async () => {
-    await seedListFixture();
+  it("returns only the book whose travelling parcel carries no tracking number", async () => {
+    const order = await seedListFixture();
+    const bookId = order.items.find((item) => item.price === null)?.bookId ?? "";
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      path: ORDER_ROUTES.markInTransit(shipmentOf({ bookId, view: order }).id),
+    });
 
     await expect(inTransitTitles({ filter: "without_tracking_number" })).resolves.toEqual([
       LIST_BOOKS.noDate,
     ]);
+  });
+
+  it("says nothing is untracked while every parcel is still waiting to be dispatched", async () => {
+    await seedListFixture();
+
+    await expect(inTransitTitles({ filter: "without_tracking_number" })).resolves.toEqual([]);
+  });
+
+  it("stops calling a parcel late once it is waiting at a pickup point", async () => {
+    const order = await seedListFixture();
+    const bookId = order.items.find((item) => item.price === 100)?.bookId ?? "";
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      path: ORDER_ROUTES.markReadyForPickup(shipmentOf({ bookId, view: order }).id),
+    });
+
+    await expect(inTransitTitles({ filter: "delayed" })).resolves.toEqual([]);
   });
 
   it("leaves out a book that has not been dispatched at all", async () => {
@@ -292,12 +354,91 @@ describe("GET /api/delivery/books/in-transit filters", () => {
       input: { items: [{ bookId: notDispatched }], storeName: "Yakaboo" },
     });
 
-    await expect(inTransitTitles({ filter: "without_tracking_number" })).resolves.toEqual([
+    await expect(inTransitTitles({ filter: "no_delivery_date" })).resolves.toEqual([
       LIST_BOOKS.noDate,
     ]);
+    await expect(inTransitTitles({ filter: "without_tracking_number" })).resolves.toEqual([]);
     await expect(inTransitTitles({ filter: "ordered" })).resolves.toContain(
       LIST_BOOKS.notDispatched,
     );
+  });
+
+  it("returns the parcel whose pickup deadline is about to pass", async () => {
+    await seedAttentionFixture();
+
+    await expect(inTransitTitles({ filter: "pickup_expiring" })).resolves.toEqual([
+      ATTENTION_BOOKS.waiting,
+    ]);
+  });
+
+  it("leaves out a parcel whose pickup deadline is still comfortably ahead", async () => {
+    const bookId = await createBook({
+      accessToken: reader.accessToken,
+      app,
+      title: ATTENTION_BOOKS.waiting,
+    });
+    await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        items: [{ bookId }],
+        orderDate: isoDay(-3),
+        shipments: [{ bookIds: [bookId], pickupUntil: isoDay(5), status: "ready_for_pickup" }],
+        storeName: "Yakaboo",
+      },
+    });
+
+    await expect(inTransitTitles({ filter: "pickup_expiring" })).resolves.toEqual([]);
+  });
+
+  it("returns every book of an order that has been waiting a week to be dispatched", async () => {
+    await seedListFixture();
+    const freshBookId = await createBook({
+      accessToken: reader.accessToken,
+      app,
+      title: LIST_BOOKS.notDispatched,
+    });
+    await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: { items: [{ bookId: freshBookId }], orderDate: isoDay(-1), storeName: "Yakaboo" },
+    });
+
+    const titles = await inTransitTitles({ filter: "awaiting_dispatch" });
+
+    expect([...titles].sort()).toEqual(
+      [LIST_BOOKS.noDate, LIST_BOOKS.overdue, LIST_BOOKS.today, LIST_BOOKS.upcoming].sort(),
+    );
+  });
+
+  it("stops calling a whole order undispatched once one of its parcels sets off", async () => {
+    const order = await seedListFixture();
+    const bookId = order.items.find((item) => item.price === 300)?.bookId ?? "";
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      path: ORDER_ROUTES.markInTransit(shipmentOf({ bookId, view: order }).id),
+    });
+
+    await expect(inTransitTitles({ filter: "awaiting_dispatch" })).resolves.toEqual([]);
+  });
+
+  it("returns the book left out of a parcel while the rest of its order travels", async () => {
+    await seedAttentionFixture();
+    const onItsOwn = await createBook({
+      accessToken: reader.accessToken,
+      app,
+      title: ATTENTION_BOOKS.onItsOwn,
+    });
+    await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: { items: [{ bookId: onItsOwn }], orderDate: isoDay(-3), storeName: "Knygarnia" },
+    });
+
+    await expect(inTransitTitles({ filter: "unassigned" })).resolves.toEqual([
+      ATTENTION_BOOKS.loose,
+    ]);
   });
 
   it("returns only the book with no price", async () => {
@@ -346,7 +487,7 @@ describe("GET /api/delivery/books/in-transit sorting", () => {
 });
 
 describe("GET /api/delivery/books/in-transit/summary", () => {
-  it("counts a book that needs attention on several grounds only once", async () => {
+  it("keeps the book counters while reporting each attention case in its own unit", async () => {
     await seedListFixture();
 
     const summary = await inTransitSummary();
@@ -356,12 +497,104 @@ describe("GET /api/delivery/books/in-transit/summary", () => {
       activeOrdersCount: 1,
       activeShipmentsCount: 4,
       arrivingSoonCount: 2,
-      attentionCount: 2,
       delayedCount: 1,
       withoutExpectedDateCount: 1,
       withoutPriceCount: 1,
-      withoutTrackingCount: 1,
+      withoutTrackingCount: 0,
     });
+    expect(summary.attention).toEqual([
+      { count: 1, maxDelayDays: 10, reason: "delayed" },
+      { count: 1, maxWaitingDays: 30, reason: "awaiting_dispatch" },
+      { count: 1, reason: "without_expected_date" },
+    ]);
+  });
+
+  it("points at the single order holding the loose book and at the nearest pickup deadline", async () => {
+    const looseOrder = await seedAttentionFixture();
+
+    const summary = await inTransitSummary();
+
+    expect(summary.attention).toEqual([
+      { count: 1, expiredCount: 0, nearestPickupUntil: isoDay(1), reason: "pickup_expiring" },
+      { count: 1, ordersCount: 1, reason: "unassigned_books", revealOrderId: looseOrder.id },
+    ]);
+  });
+
+  it("never calls an order undispatched while one of its parcels is already travelling", async () => {
+    const bookIds = await createBooks({
+      accessToken: reader.accessToken,
+      app,
+      titles: [ATTENTION_BOOKS.packed, ATTENTION_BOOKS.loose],
+    });
+    const [packed, loose] = bookIds;
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        items: [{ bookId: packed ?? "" }, { bookId: loose ?? "" }],
+        orderDate: isoDay(-30),
+        shipments: [
+          {
+            bookIds: [packed ?? ""],
+            expectedDeliveryDate: isoDay(2),
+            status: "in_transit",
+            trackingNumber: "T-1",
+          },
+        ],
+        storeName: "Bookva",
+      },
+    });
+
+    const summary = await inTransitSummary();
+
+    expect(summary.attention).toEqual([
+      { count: 1, ordersCount: 1, reason: "unassigned_books", revealOrderId: order.id },
+    ]);
+    await expect(inTransitTitles({ filter: "awaiting_dispatch" })).resolves.toEqual([]);
+  });
+
+  it("reports a pickup deadline that has already passed and offers no next deadline", async () => {
+    const bookId = await createBook({
+      accessToken: reader.accessToken,
+      app,
+      title: ATTENTION_BOOKS.waiting,
+    });
+    await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        items: [{ bookId }],
+        orderDate: isoDay(-3),
+        shipments: [{ bookIds: [bookId], pickupUntil: isoDay(-1), status: "ready_for_pickup" }],
+        storeName: "Yakaboo",
+      },
+    });
+
+    const summary = await inTransitSummary();
+
+    expect(summary.attention).toEqual([
+      { count: 1, expiredCount: 1, nearestPickupUntil: null, reason: "pickup_expiring" },
+    ]);
+  });
+
+  it("says nothing needs attention while every parcel is fresh, dated and tracked", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Calm" });
+    await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        items: [{ bookId, price: 100 }],
+        orderDate: isoDay(-1),
+        shipments: [
+          { bookIds: [bookId], expectedDeliveryDate: isoDay(3), trackingNumber: "NP-CALM" },
+        ],
+        storeName: "Yakaboo",
+      },
+    });
+
+    const summary = await inTransitSummary();
+
+    expect(summary.attention).toEqual([]);
   });
 
   it("reports the pickup and transit counts of the parcels behind the books", async () => {

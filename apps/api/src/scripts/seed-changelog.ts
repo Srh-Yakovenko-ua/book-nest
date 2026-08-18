@@ -595,6 +595,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Статус посилки одним кліком",
     version: null,
   },
+  {
+    bodyEn:
+      "The Books in transit page now has a side block that lists only the deliveries needing something from you: parcels whose pickup window has closed or is about to, parcels running late, orders the store has not shipped for over a week, dispatched parcels with no tracking number, parcels with no delivery date, and books not yet assigned to a parcel. Each row says how many, and clicking it shows exactly those deliveries in the list. When nothing needs you, the block says so.",
+    bodyUk:
+      "На сторінці «Книги в дорозі» збоку з’явився блок, який показує лише ті доставки, з якими треба щось зробити: посилки з простроченим або близьким кінцем зберігання, ті, що затримуються, замовлення, які магазин не відправив понад тиждень, відправлені посилки без ТТН, посилки без дати доставки та книги, не розподілені між посилками. Кожен рядок каже, скільки їх, а клік по ньому показує в списку саме ці доставки. Якщо все гаразд, блок так і каже.",
+    category: "feature",
+    publishedAt: "2026-08-18T00:00:00.000Z",
+    slug: "delivery-attention-cases",
+    titleEn: "Needs attention",
+    titleUk: "Потребують уваги",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

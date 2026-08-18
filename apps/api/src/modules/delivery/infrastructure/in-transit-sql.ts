@@ -12,7 +12,6 @@ import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { IN_TRANSIT_ATTENTION_CATEGORIES } from "../domain/delivery-summary.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 
@@ -20,6 +19,38 @@ const AWAITING_ARRIVAL_SHIPMENT_STATUSES = [
   SHIPMENT_STATUS.ordered,
   SHIPMENT_STATUS.in_transit,
 ] as const;
+
+const AWAITING_ARRIVAL_SQL = Prisma.sql`shipment.status = ANY(${[
+  ...AWAITING_ARRIVAL_SHIPMENT_STATUSES,
+]}::text[])`;
+
+export const ORDER_PLACED_ON_SQL = Prisma.sql`
+  COALESCE(book_order.order_date, (book_order.created_at AT TIME ZONE 'UTC')::date)
+`;
+
+const DISPATCHED_SHIPMENT_STATUSES = [
+  SHIPMENT_STATUS.in_transit,
+  SHIPMENT_STATUS.ready_for_pickup,
+  SHIPMENT_STATUS.received,
+] as const;
+
+const ORDER_HAS_UNCANCELLED_SHIPMENT_SQL = Prisma.sql`
+  EXISTS (
+    SELECT 1
+    FROM shipments uncancelled_shipment
+    WHERE uncancelled_shipment.order_id = book_order.id
+      AND uncancelled_shipment.status <> ${SHIPMENT_STATUS.cancelled}
+  )
+`;
+
+const ORDER_HAS_DISPATCHED_SHIPMENT_SQL = Prisma.sql`
+  EXISTS (
+    SELECT 1
+    FROM shipments dispatched_shipment
+    WHERE dispatched_shipment.order_id = book_order.id
+      AND dispatched_shipment.status = ANY(${[...DISPATCHED_SHIPMENT_STATUSES]}::text[])
+  )
+`;
 
 export const ACTIVE_ITEM_SQL = Prisma.sql`
   book.deleted_at IS NULL
@@ -34,21 +65,7 @@ export const IN_TRANSIT_ITEM_SOURCE = Prisma.sql`
   LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
-export type InTransitCategorySql = {
-  arrivingSoon: Prisma.Sql;
-  delayed: Prisma.Sql;
-  hasPrice: Prisma.Sql;
-  hasTrackingNumber: Prisma.Sql;
-  hasTrackingUrl: Prisma.Sql;
-  inTransit: Prisma.Sql;
-  ordered: Prisma.Sql;
-  readyForPickup: Prisma.Sql;
-  thisWeek: Prisma.Sql;
-  withoutExpectedDate: Prisma.Sql;
-  withoutPrice: Prisma.Sql;
-  withoutTrackingNumber: Prisma.Sql;
-  withoutTrackingUrl: Prisma.Sql;
-};
+export type InTransitCategorySql = OrderScopedCategorySql & ShipmentScopedCategorySql;
 
 export type InTransitFilterInput = {
   bounds: DeliveryDateBounds;
@@ -61,12 +78,36 @@ export type InTransitFilterInput = {
 };
 
 export type IsoDateBounds = {
+  dispatchCutoffIso: string;
+  pickupDeadlineIso: string;
   soonEndIso: string;
   todayIso: string;
   weekEndIso: string;
 };
 
+export type ShipmentScopedCategorySql = {
+  arrivingSoon: Prisma.Sql;
+  delayed: Prisma.Sql;
+  hasTrackingNumber: Prisma.Sql;
+  hasTrackingUrl: Prisma.Sql;
+  inTransit: Prisma.Sql;
+  ordered: Prisma.Sql;
+  pickupExpiring: Prisma.Sql;
+  readyForPickup: Prisma.Sql;
+  thisWeek: Prisma.Sql;
+  withoutExpectedDate: Prisma.Sql;
+  withoutTrackingNumber: Prisma.Sql;
+  withoutTrackingUrl: Prisma.Sql;
+};
+
 type ExpectedDateSort = keyof typeof IN_TRANSIT_EXPECTED_DATE_ORDER;
+
+type OrderScopedCategorySql = {
+  awaitingDispatch: Prisma.Sql;
+  hasPrice: Prisma.Sql;
+  unassigned: Prisma.Sql;
+  withoutPrice: Prisma.Sql;
+};
 
 const IN_TRANSIT_ORDER_SQL: Record<Exclude<InTransitSort, ExpectedDateSort>, Prisma.Sql> = {
   author: Prisma.sql`book.first_author_name ASC`,
@@ -104,13 +145,6 @@ const IN_TRANSIT_SEARCH_COLUMNS: Prisma.Sql[] = [
   Prisma.sql`shipment.delivery_service_name`,
   Prisma.sql`shipment.note`,
 ];
-
-export function attentionSql(categories: InTransitCategorySql): Prisma.Sql {
-  const predicates = IN_TRANSIT_ATTENTION_CATEGORIES.map(
-    (category) => Prisma.sql`(${categories[category]})`,
-  );
-  return Prisma.sql`(${Prisma.join(predicates, " OR ")})`;
-}
 
 export function buildInTransitConditions({
   bounds,
@@ -163,29 +197,8 @@ export function currencySql(currency: Currency): Prisma.Sql {
   )`;
 }
 
-export function inTransitCategorySql({
-  soonEndIso,
-  todayIso,
-  weekEndIso,
-}: IsoDateBounds): InTransitCategorySql {
-  return {
-    arrivingSoon: Prisma.sql`shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${soonEndIso}::date`,
-    delayed: Prisma.sql`shipment.expected_delivery_date < ${todayIso}::date`,
-    hasPrice: Prisma.sql`item.price IS NOT NULL`,
-    hasTrackingNumber: Prisma.sql`shipment.tracking_number IS NOT NULL`,
-    hasTrackingUrl: Prisma.sql`shipment.tracking_url IS NOT NULL`,
-    inTransit: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.in_transit}`,
-    ordered: Prisma.sql`COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered}) = ${SHIPMENT_STATUS.ordered}`,
-    readyForPickup: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}`,
-    thisWeek: Prisma.sql`(
-      shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${weekEndIso}::date
-      AND shipment.status = ANY(${[...AWAITING_ARRIVAL_SHIPMENT_STATUSES]}::text[])
-    )`,
-    withoutExpectedDate: Prisma.sql`shipment.expected_delivery_date IS NULL`,
-    withoutPrice: Prisma.sql`item.price IS NULL`,
-    withoutTrackingNumber: Prisma.sql`shipment.id IS NOT NULL AND shipment.tracking_number IS NULL`,
-    withoutTrackingUrl: Prisma.sql`shipment.tracking_url IS NULL`,
-  };
+export function inTransitCategorySql(bounds: IsoDateBounds): InTransitCategorySql {
+  return { ...orderScopedCategorySql(bounds), ...shipmentScopedCategorySql(bounds) };
 }
 
 export function inTransitOrderSql({
@@ -225,8 +238,54 @@ export function ordersWithActiveItemsSource({
   `;
 }
 
-export function toIsoBounds({ soonEnd, today, weekEnd }: DeliveryDateBounds): IsoDateBounds {
+export function shipmentScopedCategorySql({
+  pickupDeadlineIso,
+  soonEndIso,
+  todayIso,
+  weekEndIso,
+}: IsoDateBounds): ShipmentScopedCategorySql {
   return {
+    arrivingSoon: Prisma.sql`shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${soonEndIso}::date`,
+    delayed: Prisma.sql`(
+      ${AWAITING_ARRIVAL_SQL}
+      AND shipment.expected_delivery_date < ${todayIso}::date
+    )`,
+    hasTrackingNumber: Prisma.sql`shipment.tracking_number IS NOT NULL`,
+    hasTrackingUrl: Prisma.sql`shipment.tracking_url IS NOT NULL`,
+    inTransit: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.in_transit}`,
+    ordered: Prisma.sql`COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered}) = ${SHIPMENT_STATUS.ordered}`,
+    pickupExpiring: Prisma.sql`(
+      shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}
+      AND shipment.pickup_until IS NOT NULL
+      AND shipment.pickup_until <= ${pickupDeadlineIso}::date
+    )`,
+    readyForPickup: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}`,
+    thisWeek: Prisma.sql`(
+      shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${weekEndIso}::date
+      AND ${AWAITING_ARRIVAL_SQL}
+    )`,
+    withoutExpectedDate: Prisma.sql`(
+      ${AWAITING_ARRIVAL_SQL}
+      AND shipment.expected_delivery_date IS NULL
+    )`,
+    withoutTrackingNumber: Prisma.sql`(
+      shipment.status = ${SHIPMENT_STATUS.in_transit}
+      AND shipment.tracking_number IS NULL
+    )`,
+    withoutTrackingUrl: Prisma.sql`shipment.tracking_url IS NULL`,
+  };
+}
+
+export function toIsoBounds({
+  dispatchCutoff,
+  pickupDeadline,
+  soonEnd,
+  today,
+  weekEnd,
+}: DeliveryDateBounds): IsoDateBounds {
+  return {
+    dispatchCutoffIso: toIsoDate(dispatchCutoff),
+    pickupDeadlineIso: toIsoDate(pickupDeadline),
     soonEndIso: toIsoDate(soonEnd),
     todayIso: toIsoDate(today),
     weekEndIso: toIsoDate(weekEnd),
@@ -245,6 +304,8 @@ function inTransitFilterSql({
       return null;
     case "arriving_soon":
       return categories.arrivingSoon;
+    case "awaiting_dispatch":
+      return categories.awaitingDispatch;
     case "delayed":
       return categories.delayed;
     case "has_price":
@@ -259,10 +320,14 @@ function inTransitFilterSql({
       return categories.withoutExpectedDate;
     case "ordered":
       return categories.ordered;
+    case "pickup_expiring":
+      return categories.pickupExpiring;
     case "ready_for_pickup":
       return categories.readyForPickup;
     case "this_week":
       return categories.thisWeek;
+    case "unassigned":
+      return categories.unassigned;
     case "without_price":
       return categories.withoutPrice;
     case "without_tracking_number":
@@ -276,6 +341,18 @@ function inTransitFilterSql({
 
 function isExpectedDateSort(sort: InTransitSort): sort is ExpectedDateSort {
   return Object.hasOwn(IN_TRANSIT_EXPECTED_DATE_ORDER, sort);
+}
+
+function orderScopedCategorySql({ dispatchCutoffIso }: IsoDateBounds): OrderScopedCategorySql {
+  return {
+    awaitingDispatch: Prisma.sql`(
+      ${ORDER_PLACED_ON_SQL} <= ${dispatchCutoffIso}::date
+      AND NOT ${ORDER_HAS_DISPATCHED_SHIPMENT_SQL}
+    )`,
+    hasPrice: Prisma.sql`item.price IS NOT NULL`,
+    unassigned: Prisma.sql`(item.shipment_id IS NULL AND ${ORDER_HAS_UNCANCELLED_SHIPMENT_SQL})`,
+    withoutPrice: Prisma.sql`item.price IS NULL`,
+  };
 }
 
 function plainInTransitOrderSql(sort: Exclude<InTransitSort, ExpectedDateSort>): Prisma.Sql {

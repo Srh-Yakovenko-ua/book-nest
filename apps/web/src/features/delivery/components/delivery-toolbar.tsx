@@ -22,6 +22,8 @@ import {
   DELIVERY_PRIMARY_FILTERS,
   DELIVERY_SORT_DEFAULT,
   DELIVERY_SORT_ORDER,
+  isDeliveryPrimaryFilter,
+  toDeliveryAttentionReason,
 } from "../model/in-transit-params";
 import { DeliverySearchInput } from "./delivery-search-input";
 
@@ -52,14 +54,22 @@ export function DeliveryToolbar({
   searchValue,
   sort,
 }: DeliveryToolbarProps) {
+  const tAttention = useTranslations("delivery.attention.chip");
   const tFilters = useTranslations("delivery.filters");
   const tSort = useTranslations("delivery.sort");
 
-  const filterOptions = DELIVERY_PRIMARY_FILTERS.map((value) => ({
-    count: filterCounts?.[value],
-    label: tFilters(value),
-    value,
-  }));
+  const attentionReason = isDeliveryPrimaryFilter(filter)
+    ? null
+    : toDeliveryAttentionReason(filter);
+
+  const filterOptions = [
+    ...(attentionReason === null ? [] : [{ label: tAttention(attentionReason), value: filter }]),
+    ...DELIVERY_PRIMARY_FILTERS.map((value) => ({
+      count: filterCounts?.[value],
+      label: tFilters(value),
+      value,
+    })),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -97,8 +107,8 @@ export function DeliveryToolbar({
           label={tFilters("label")}
           mode="single"
           onValueChange={(next) => {
-            const match = DELIVERY_PRIMARY_FILTERS.find((value) => value === next);
-            if (match !== undefined) onFilterChange(match);
+            const match = filterOptions.find((option) => option.value === next);
+            if (match !== undefined) onFilterChange(match.value);
           }}
           options={filterOptions}
           size="sm"

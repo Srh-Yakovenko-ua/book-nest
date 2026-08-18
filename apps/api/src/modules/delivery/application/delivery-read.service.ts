@@ -155,6 +155,7 @@ export class DeliveryReadService {
     return buildInTransitSummaryView({
       ...data,
       nextShipment: nextShipment === null ? null : this.toNextShipmentView(nextShipment),
+      today: bounds.today,
     });
   }
 

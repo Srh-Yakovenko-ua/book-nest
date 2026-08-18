@@ -7,6 +7,7 @@
  */
 import type { InTransitSummaryViewDtoActiveBooksTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItem";
 import type { InTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem";
+import type { InTransitSummaryViewDtoAttentionItem } from "./inTransitSummaryViewDtoAttentionItem";
 import type { InTransitSummaryViewDtoNextShipment } from "./inTransitSummaryViewDtoNextShipment";
 
 export interface InTransitSummaryViewDto {
@@ -32,11 +33,8 @@ export interface InTransitSummaryViewDto {
    * @maximum 9007199254740991
    */
   arrivingSoonCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  attentionCount: number;
+  /** Cases that ask the reader to act, ordered by severity: pickup_expiring, delayed, awaiting_dispatch, without_tracking, without_expected_date, unassigned_books. A case with a zero count is left out, and each case counts in its own unit - parcels, orders or books. */
+  attention: InTransitSummaryViewDtoAttentionItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991

@@ -1,5 +1,6 @@
-import type { InTransitSummaryView } from "@app/shared";
+import type { InTransitAttentionReason, InTransitSummaryView, Nullable } from "@app/shared";
 
+import { IN_TRANSIT_ATTENTION_FILTER, InTransitAttentionReasonSchema } from "@app/shared";
 import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 import type { DeliveryReadControllerInTransitListParams } from "@/shared/api/generated/model";
@@ -46,6 +47,22 @@ export function hasActiveDeliveryFilters(state: DeliveryQueryState): boolean {
 
 export function hasActiveDeliverySearch(state: DeliveryQueryState): boolean {
   return state.q.trim() !== "";
+}
+
+export function isDeliveryPrimaryFilter(
+  filter: DeliveryReadControllerInTransitListFilter,
+): filter is DeliveryPrimaryFilter {
+  return DELIVERY_PRIMARY_FILTERS.some((value) => value === filter);
+}
+
+export function toDeliveryAttentionReason(
+  filter: DeliveryReadControllerInTransitListFilter,
+): Nullable<InTransitAttentionReason> {
+  return (
+    InTransitAttentionReasonSchema.options.find(
+      (reason) => IN_TRANSIT_ATTENTION_FILTER[reason] === filter,
+    ) ?? null
+  );
 }
 
 export function toDeliveryFilterCounts(summary: InTransitSummaryView): DeliveryFilterCounts {
