@@ -30,6 +30,7 @@ import {
   QueryBooleanWithDefaultSchema,
   TrackingNumberSchema,
 } from "./internal.js";
+import { MediaViewSchema } from "./media.js";
 import { ORDER_FINANCIAL_MESSAGES, validateOrderFinancials } from "./order-financials.js";
 
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
@@ -517,6 +518,45 @@ export const PaginatedBookOrderItemRowsSchema = createPaginatedSchema(BookOrderI
 
 export type PaginatedBookOrderItemRows = z.infer<typeof PaginatedBookOrderItemRowsSchema>;
 
+export const NEXT_SHIPMENT_LIMITS = {
+  bookPreviewsMax: 3,
+} as const;
+
+export const NextShipmentStatusSchema = ShipmentStatusSchema.extract(["ordered", "in_transit"]);
+
+export type NextShipmentStatus = z.infer<typeof NextShipmentStatusSchema>;
+
+export const NextShipmentBookViewSchema = z.object({
+  authorName: z.string(),
+  cover: MediaViewSchema.nullable(),
+  id: z.string(),
+  title: z.string(),
+});
+
+export type NextShipmentBookView = z.infer<typeof NextShipmentBookViewSchema>;
+
+export const NextShipmentViewSchema = z.object({
+  bookPreviews: z
+    .array(NextShipmentBookViewSchema)
+    .max(NEXT_SHIPMENT_LIMITS.bookPreviewsMax)
+    .describe(
+      "At most three books, enough to render one book in full or a stack of covers. booksCount carries the real size.",
+    ),
+  booksCount: CountSchema,
+  deliveryService: ShipmentDeliveryServiceViewSchema.nullable(),
+  expectedDeliveryDate: isoDay(),
+  orderId: z.string(),
+  sameDayCount: CountSchema.describe(
+    "How many OTHER qualifying shipments share this expected date. Zero when this one stands alone.",
+  ),
+  shipmentId: z.string(),
+  status: NextShipmentStatusSchema,
+  storeName: z.string(),
+  trackingNumber: z.string().nullable(),
+});
+
+export type NextShipmentView = z.infer<typeof NextShipmentViewSchema>;
+
 export const InTransitSummaryViewSchema = z.object({
   activeBooksCount: CountSchema,
   activeBooksTotalByCurrency: z.array(CurrencyTotalSchema),
@@ -530,6 +570,9 @@ export const InTransitSummaryViewSchema = z.object({
   inTransitCount: CountSchema,
   nextExpectedDelivery: z.string().nullable(),
   nextExpectedThisWeek: z.string().nullable(),
+  nextShipment: NextShipmentViewSchema.nullable().describe(
+    "The soonest shipment still awaiting arrival: status ordered or in_transit, an expected date of today or later, and at least one active book. Null when nothing qualifies.",
+  ),
   orderedCount: CountSchema,
   ordersWithKnownTotalCount: CountSchema,
   readyForPickupCount: CountSchema,

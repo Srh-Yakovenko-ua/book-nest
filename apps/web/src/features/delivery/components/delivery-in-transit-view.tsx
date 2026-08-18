@@ -33,6 +33,7 @@ type DeliveryInTransitViewProps = {
   renderCard: (model: DeliveryOrderCardModel) => ReactNode;
   selectAll?: { checked: "indeterminate" | boolean; count: number; onToggle: () => void };
   showToolbar: boolean;
+  sidebar?: ReactNode;
   summary: ReactNode;
   toolbar: ReactNode;
 };
@@ -51,6 +52,7 @@ export function DeliveryInTransitView({
   renderCard,
   selectAll,
   showToolbar,
+  sidebar,
   summary,
   toolbar,
 }: DeliveryInTransitViewProps) {
@@ -77,18 +79,21 @@ export function DeliveryInTransitView({
 
       {showToolbar ? toolbar : null}
 
-      <div className="flex min-w-0 flex-col gap-6">
-        <h2 className="sr-only">{t("resultsTitle")}</h2>
-        <DeliveryContentArea
-          content={content}
-          onGoToBooksToBuy={onGoToBooksToBuy}
-          onLoadMore={onLoadMore}
-          onResetFilters={onResetFilters}
-          onRetry={onRetry}
-          pagination={pagination}
-          renderCard={renderCard}
-          selectAll={selectAll}
-        />
+      <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <DeliveryContentArea
+            content={content}
+            onGoToBooksToBuy={onGoToBooksToBuy}
+            onLoadMore={onLoadMore}
+            onResetFilters={onResetFilters}
+            onRetry={onRetry}
+            pagination={pagination}
+            renderCard={renderCard}
+            selectAll={selectAll}
+          />
+        </div>
+        {sidebar}
       </div>
 
       {bulkBar}

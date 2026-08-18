@@ -2651,6 +2651,29 @@
       "ready_for_pickup": "Ready for pickup",
       "delayed": "Delayed"
     },
+    "sidebar": {
+      "title": "Delivery overview"
+    },
+    "nextShipment": {
+      "title": "Next delivery",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "inDays": "In {count, plural, one {# day} other {# days}}",
+      "store": "Store",
+      "service": "Delivery service",
+      "tracking": "Tracking number",
+      "booksCount": "{count, plural, one {# book} other {# books}}",
+      "sameDay": "{count, plural, one {# more delivery} other {# more deliveries}} that day",
+      "action": {
+        "open": "Open delivery",
+        "show": "Show delivery",
+        "resetHelper": "Search and active filters will be cleared"
+      },
+      "empty": {
+        "text": "The date is not known yet",
+        "helper": "None of the active deliveries carries an expected date."
+      }
+    },
     "sort": {
       "label": "Sort",
       "options": {

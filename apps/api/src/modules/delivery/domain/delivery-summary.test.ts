@@ -1,11 +1,11 @@
 import { InTransitSummaryViewSchema } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
-import type { InTransitSummaryData } from "./delivery-summary.js";
+import type { InTransitSummaryInput } from "./delivery-summary.js";
 
 import { buildInTransitSummaryView } from "./delivery-summary.js";
 
-function makeSummaryData(overrides: Partial<InTransitSummaryData> = {}): InTransitSummaryData {
+function makeSummaryData(overrides: Partial<InTransitSummaryInput> = {}): InTransitSummaryInput {
   return {
     activeBooksCount: 0,
     activeOrdersCount: 0,
@@ -18,6 +18,7 @@ function makeSummaryData(overrides: Partial<InTransitSummaryData> = {}): InTrans
     inTransitCount: 0,
     nextExpectedDelivery: null,
     nextExpectedThisWeek: null,
+    nextShipment: null,
     orderedCount: 0,
     ordersWithKnownTotalCount: 0,
     orderTotals: [],

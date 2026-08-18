@@ -34,6 +34,18 @@ export const deliveryReadControllerInTransitSummaryResponseExpectedThisWeekCount
 export const deliveryReadControllerInTransitSummaryResponseInTransitCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseInTransitCountMax = 9007199254740991;
 
+export const deliveryReadControllerInTransitSummaryResponseNextShipmentBookPreviewsMax = 3;
+
+export const deliveryReadControllerInTransitSummaryResponseNextShipmentBooksCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseNextShipmentBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitSummaryResponseNextShipmentExpectedDeliveryDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const deliveryReadControllerInTransitSummaryResponseNextShipmentSameDayCountMin = 0;
+export const deliveryReadControllerInTransitSummaryResponseNextShipmentSameDayCountMax = 9007199254740991;
+
 export const deliveryReadControllerInTransitSummaryResponseOrderedCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseOrderedCountMax = 9007199254740991;
 
@@ -105,6 +117,69 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
     .max(deliveryReadControllerInTransitSummaryResponseInTransitCountMax),
   nextExpectedDelivery: zod.string().nullable(),
   nextExpectedThisWeek: zod.string().nullable(),
+  nextShipment: zod
+    .object({
+      bookPreviews: zod
+        .array(
+          zod.object({
+            authorName: zod.string(),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            title: zod.string(),
+          }),
+        )
+        .max(deliveryReadControllerInTransitSummaryResponseNextShipmentBookPreviewsMax)
+        .describe(
+          "At most three books, enough to render one book in full or a stack of covers. booksCount carries the real size.",
+        ),
+      booksCount: zod
+        .int()
+        .min(deliveryReadControllerInTransitSummaryResponseNextShipmentBooksCountMin)
+        .max(deliveryReadControllerInTransitSummaryResponseNextShipmentBooksCountMax),
+      deliveryService: zod
+        .object({
+          id: zod.string().nullable(),
+          name: zod.string(),
+        })
+        .nullable(),
+      expectedDeliveryDate: zod.iso
+        .date()
+        .regex(
+          deliveryReadControllerInTransitSummaryResponseNextShipmentExpectedDeliveryDateRegExp,
+        ),
+      orderId: zod.string(),
+      sameDayCount: zod
+        .int()
+        .min(deliveryReadControllerInTransitSummaryResponseNextShipmentSameDayCountMin)
+        .max(deliveryReadControllerInTransitSummaryResponseNextShipmentSameDayCountMax)
+        .describe(
+          "How many OTHER qualifying shipments share this expected date. Zero when this one stands alone.",
+        ),
+      shipmentId: zod.string(),
+      status: zod.enum(["ordered", "in_transit"]),
+      storeName: zod.string(),
+      trackingNumber: zod.string().nullable(),
+    })
+    .nullable()
+    .describe(
+      "The soonest shipment still awaiting arrival: status ordered or in_transit, an expected date of today or later, and at least one active book. Null when nothing qualifies.",
+    ),
   orderedCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseOrderedCountMin)

@@ -2651,6 +2651,29 @@
       "ready_for_pickup": "Готові до отримання",
       "delayed": "Затримуються"
     },
+    "sidebar": {
+      "title": "Зведення доставок"
+    },
+    "nextShipment": {
+      "title": "Найближча доставка",
+      "today": "Сьогодні",
+      "tomorrow": "Завтра",
+      "inDays": "Через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "store": "Магазин",
+      "service": "Служба доставки",
+      "tracking": "Номер відстеження",
+      "booksCount": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "sameDay": "Ще {count, plural, one {# доставка} few {# доставки} many {# доставок} other {# доставок}} цього дня",
+      "action": {
+        "open": "Відкрити доставку",
+        "show": "Показати доставку",
+        "resetHelper": "Буде скинуто пошук і активні фільтри"
+      },
+      "empty": {
+        "text": "Дата ще невідома",
+        "helper": "Для активних доставок не вказано очікувану дату."
+      }
+    },
     "sort": {
       "label": "Сортування",
       "options": {

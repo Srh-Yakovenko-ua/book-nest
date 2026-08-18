@@ -1,6 +1,10 @@
-import type { BookOrderHistorySort, InTransitSort } from "@app/shared";
+import type { BookOrderHistorySort, InTransitSort, Nullable } from "@app/shared";
 
-import { SHIPMENT_ACTIVE_STATUSES, ShipmentStatusSchema } from "@app/shared";
+import {
+  NextShipmentStatusSchema,
+  SHIPMENT_ACTIVE_STATUSES,
+  ShipmentStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -31,6 +35,17 @@ import {
   LIVE_HISTORY_ITEM_SQL,
 } from "./order-history-sql.js";
 
+const nextShipmentRelations = {
+  include: {
+    deliveryService: true,
+    order: { select: { storeName: true } },
+  },
+} satisfies Prisma.ShipmentDefaultArgs;
+
+const nextShipmentBookRelations = {
+  include: { book: { include: { coverMedia: true } } },
+} satisfies Prisma.BookOrderItemDefaultArgs;
+
 const inTransitRowRelations = {
   include: {
     book: {
@@ -58,6 +73,19 @@ export type { HistoryFilterInput } from "./order-history-sql.js";
 
 export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRowRelations>;
 
+export type DatedNextShipmentRow = NextShipmentRow & { expectedDeliveryDate: Date };
+
+export type NextShipmentBookRow = Prisma.BookOrderItemGetPayload<typeof nextShipmentBookRelations>;
+
+export type NextShipmentData = {
+  bookPreviews: NextShipmentBookRow[];
+  booksCount: number;
+  sameDayCount: number;
+  shipment: DatedNextShipmentRow;
+};
+
+export type NextShipmentRow = Prisma.ShipmentGetPayload<typeof nextShipmentRelations>;
+
 type ListHistoryInput = HistoryFilterInput & {
   skip: number;
   sort: BookOrderHistorySort;
@@ -80,6 +108,8 @@ const CurrencyTotalRowSchema = z.object({
 });
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+
+const NEXT_SHIPMENT_STATUSES = NextShipmentStatusSchema.options;
 
 const ActiveOrdersRowSchema = z.object({
   activeOrdersCount: z.number().int(),
@@ -361,6 +391,63 @@ export class DeliveryReadRepository {
     `);
 
     return this.loadRowsInOrder({ idRows, userId: filter.userId });
+  }
+
+  async nextShipment({
+    bookPreviewsMax,
+    today,
+    userId,
+  }: {
+    bookPreviewsMax: number;
+    today: Date;
+    userId: string;
+  }): Promise<Nullable<NextShipmentData>> {
+    const activeBooks = {
+      book: SOFT_DELETE_SCOPE.active,
+      cancelledAt: null,
+      receivedAt: null,
+    } satisfies Prisma.BookOrderItemWhereInput;
+
+    const awaitingArrival = {
+      expectedDeliveryDate: { gte: today },
+      items: { some: activeBooks },
+      order: { userId },
+      status: { in: [...NEXT_SHIPMENT_STATUSES] },
+    } satisfies Prisma.ShipmentWhereInput;
+
+    const shipment = await this.prisma.shipment.findFirst({
+      orderBy: [{ expectedDeliveryDate: "asc" }, { id: "asc" }],
+      where: awaitingArrival,
+      ...nextShipmentRelations,
+    });
+
+    if (shipment === null || shipment.expectedDeliveryDate === null) {
+      return null;
+    }
+    const datedShipment: DatedNextShipmentRow = {
+      ...shipment,
+      expectedDeliveryDate: shipment.expectedDeliveryDate,
+    };
+
+    const [bookPreviews, booksCount, sameDayTotal] = await Promise.all([
+      this.prisma.bookOrderItem.findMany({
+        orderBy: [{ book: { title: "asc" } }, { id: "asc" }],
+        take: bookPreviewsMax,
+        where: { ...activeBooks, shipmentId: shipment.id },
+        ...nextShipmentBookRelations,
+      }),
+      this.prisma.bookOrderItem.count({ where: { ...activeBooks, shipmentId: shipment.id } }),
+      this.prisma.shipment.count({
+        where: { ...awaitingArrival, expectedDeliveryDate: datedShipment.expectedDeliveryDate },
+      }),
+    ]);
+
+    return {
+      bookPreviews,
+      booksCount,
+      sameDayCount: Math.max(sameDayTotal - 1, 0),
+      shipment: datedShipment,
+    };
   }
 
   private async loadRowsInOrder({

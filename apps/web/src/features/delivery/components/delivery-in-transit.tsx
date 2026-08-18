@@ -20,13 +20,16 @@ import { bookOrderQueryOptions } from "../api/use-book-order";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
+import { useRevealShipment } from "../hooks/use-reveal-shipment";
 import { toDeliveryFilterCounts } from "../model/in-transit-params";
 import { buildDeliverySummaryCards } from "../model/in-transit-summary-cards";
+import { buildDeliveryNextShipmentCard } from "../model/next-shipment-card";
 import { toDeliveryOrderCards } from "../model/order-card-model";
 import { useInTransitParams } from "../model/use-in-transit-params";
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
 import { DeliveryBulkBar } from "./delivery-bulk-bar";
 import { DeliveryCancelDialog } from "./delivery-cancel-dialog";
+import { DeliveryInTransitSidebar } from "./delivery-in-transit-sidebar";
 import { DeliveryInTransitView } from "./delivery-in-transit-view";
 import { DeliveryOrderCard } from "./delivery-order-card";
 import { DeliveryOverviewPanel } from "./delivery-overview-panel";
@@ -45,6 +48,7 @@ export function DeliveryInTransit() {
   const tBadge = useTranslations("delivery.badge");
   const tToast = useTranslations("delivery.toast");
   const tLibraryCard = useTranslations("books.library.card");
+  const tNextShipment = useTranslations("delivery.nextShipment");
   const locale = useLocale();
   const router = useRouter();
   const deliveryErrorText = useDeliveryErrorText();
@@ -89,6 +93,16 @@ export function DeliveryInTransit() {
       seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
     },
     locale,
+  });
+
+  const loadedShipmentIds = loadedItems.flatMap((item) =>
+    item.shipment === null ? [] : [item.shipment.id],
+  );
+  const reveal = useRevealShipment({
+    fetchNextPage: () => void listQuery.fetchNextPage(),
+    hasNextPage: listQuery.hasNextPage,
+    isFetchingNextPage: listQuery.isFetchingNextPage,
+    loadedShipmentIds,
   });
 
   const visibleBookIds = orders.flatMap((order) =>
@@ -195,6 +209,30 @@ export function DeliveryInTransit() {
     summary: summaryData ?? null,
   });
 
+  const nextShipmentCard = buildDeliveryNextShipmentCard({
+    labels: {
+      booksCount: (count) => tNextShipment("booksCount", { count }),
+      inDays: (count) => tNextShipment("inDays", { count }),
+      sameDay: (count) => tNextShipment("sameDay", { count }),
+      today: tNextShipment("today"),
+      tomorrow: tNextShipment("tomorrow"),
+    },
+    locale,
+    now: new Date(),
+    summary: summaryData ?? null,
+  });
+
+  const nextShipmentNeedsReset =
+    nextShipmentCard !== null &&
+    (params.hasActiveSearch || params.hasActiveFilters) &&
+    !loadedShipmentIds.includes(nextShipmentCard.shipmentId);
+
+  function revealNextShipment() {
+    if (nextShipmentCard === null) return;
+    if (nextShipmentNeedsReset) params.clearAll();
+    reveal.request(nextShipmentCard.shipmentId);
+  }
+
   const renderCard = (model: DeliveryOrderCardModel) => (
     <DeliveryOrderCard
       key={model.id}
@@ -208,6 +246,7 @@ export function DeliveryInTransit() {
       }
       onToggleSelectBook={toggleSelect}
       preparingEdit={preparingOrderId === model.id}
+      revealedShipmentId={reveal.revealedShipmentId}
       selectedBookIds={selectedIds}
       selectionMode={selectionMode}
     />
@@ -274,6 +313,14 @@ export function DeliveryInTransit() {
             : undefined
         }
         showToolbar={showToolbar}
+        sidebar={
+          <DeliveryInTransitSidebar
+            isLoading={summaryQuery.isPending}
+            nextShipment={nextShipmentCard}
+            onRevealNextShipment={revealNextShipment}
+            revealResetsFilters={nextShipmentNeedsReset}
+          />
+        }
         summary={
           <DeliverySummaryCards
             cards={summaryCards}

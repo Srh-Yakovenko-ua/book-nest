@@ -63,6 +63,7 @@ function buildService(overrides: {
     inTransitSummary: vi.fn(),
     listHistory: vi.fn().mockResolvedValue([]),
     listInTransit: vi.fn().mockResolvedValue([]),
+    nextShipment: vi.fn().mockResolvedValue(null),
     ...overrides.reads,
   } as unknown as DeliveryReadRepository;
   const statistics = {

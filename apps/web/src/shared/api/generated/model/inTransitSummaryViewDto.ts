@@ -7,6 +7,7 @@
  */
 import type { InTransitSummaryViewDtoActiveBooksTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItem";
 import type { InTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem";
+import type { InTransitSummaryViewDtoNextShipment } from "./inTransitSummaryViewDtoNextShipment";
 
 export interface InTransitSummaryViewDto {
   /**
@@ -55,6 +56,11 @@ export interface InTransitSummaryViewDto {
   nextExpectedDelivery: string | null;
   /** @nullable */
   nextExpectedThisWeek: string | null;
+  /**
+   * The soonest shipment still awaiting arrival: status ordered or in_transit, an expected date of today or later, and at least one active book. Null when nothing qualifies.
+   * @nullable
+   */
+  nextShipment: InTransitSummaryViewDtoNextShipment;
   /**
    * @minimum 0
    * @maximum 9007199254740991
