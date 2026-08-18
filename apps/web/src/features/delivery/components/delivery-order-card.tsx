@@ -1,6 +1,6 @@
 "use client";
 
-import type { ActiveShipmentStatus } from "@app/shared";
+import type { ActiveShipmentStatus, Nullable } from "@app/shared";
 
 import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { useTranslations } from "next-intl";
@@ -43,6 +43,7 @@ type DeliveryOrderCardProps = {
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
   preparingEdit: boolean;
+  revealedShipmentId?: Nullable<string>;
   selectedBookIds: ReadonlySet<string>;
   selectionMode: boolean;
 };
@@ -84,6 +85,7 @@ type ShipmentSectionProps = {
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
   onToggleSelectBook: (bookId: string) => void;
+  revealed: boolean;
   selectedBookIds: ReadonlySet<string>;
   selectionMode: boolean;
   shipmentCount: number;
@@ -98,11 +100,21 @@ export function DeliveryOrderCard({
   onReceiveShipment,
   onToggleSelectBook,
   preparingEdit,
+  revealedShipmentId = null,
   selectedBookIds,
   selectionMode,
 }: DeliveryOrderCardProps) {
   const t = useTranslations("delivery.card");
   const [expanded, setExpanded] = useState(false);
+  const [handledRevealId, setHandledRevealId] = useState<Nullable<string>>(revealedShipmentId);
+
+  if (revealedShipmentId !== handledRevealId) {
+    setHandledRevealId(revealedShipmentId);
+    if (revealedShipmentId !== null && carriesShipment(model, revealedShipmentId)) {
+      setExpanded(true);
+    }
+  }
+
   const visibleLimit = expanded ? model.booksCount : INITIAL_BOOK_COUNT;
   const { containerRef, contentRef } = useAnimatedHeight<HTMLDivElement>({
     contentKey: visibleLimit,
@@ -200,6 +212,7 @@ export function DeliveryOrderCard({
               onManage={onManage}
               onReceiveShipment={onReceiveShipment}
               onToggleSelectBook={onToggleSelectBook}
+              revealed={group.id !== null && group.id === revealedShipmentId}
               selectedBookIds={selectedBookIds}
               selectionMode={selectionMode}
               shipmentCount={model.shipments.length}
@@ -328,6 +341,10 @@ function BookRow({
   );
 }
 
+function carriesShipment(model: DeliveryOrderCardModel, shipmentId: string): boolean {
+  return model.shipments.some((group) => group.id === shipmentId);
+}
+
 function countHiddenBooks(shipments: DeliveryShipmentGroupModel[]): number {
   return shipments.reduce(
     (hidden, group) => hidden + Math.max(0, group.books.length - INITIAL_BOOK_COUNT),
@@ -345,6 +362,7 @@ function ShipmentSection({
   onManage,
   onReceiveShipment,
   onToggleSelectBook,
+  revealed,
   selectedBookIds,
   selectionMode,
   shipmentCount,
@@ -370,7 +388,14 @@ function ShipmentSection({
   ].filter(({ value }) => value !== null);
 
   return (
-    <section className="overflow-hidden rounded-md border border-border bg-card">
+    <section
+      className={cn(
+        "overflow-hidden rounded-md border border-border bg-card",
+        "motion-safe:transition-shadow motion-safe:duration-500",
+        revealed && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+      )}
+      data-shipment-id={group.id ?? undefined}
+    >
       <div className="flex items-start justify-between gap-3 bg-secondary/30 p-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">

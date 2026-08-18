@@ -2435,7 +2435,7 @@
     "title": "Книги в дорозі",
     "subtitle": "Відстежуй замовлені книги від покупки до отримання",
     "resultsTitle": "Активні доставки",
-    "counter": "{count, plural, one {# активна доставка} few {# активні доставки} many {# активних доставок} other {# активних доставок}}",
+    "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}} у {orders, plural, one {# замовленні} few {# замовленнях} many {# замовленнях} other {# замовленнях}}",
     "loadMore": "Показати ще",
     "actions": {
       "addOrder": "Додати замовлення",
@@ -2649,10 +2649,30 @@
       "ordered": "Очікують відправлення",
       "in_transit": "В дорозі",
       "ready_for_pickup": "Готові до отримання",
-      "arriving_soon": "Очікуються скоро",
-      "delayed": "Затримуються",
-      "without_tracking_number": "Без трекінгу",
-      "no_delivery_date": "Без дати доставки"
+      "delayed": "Затримуються"
+    },
+    "sidebar": {
+      "title": "Зведення доставок"
+    },
+    "nextShipment": {
+      "title": "Найближча доставка",
+      "today": "Сьогодні",
+      "tomorrow": "Завтра",
+      "inDays": "Через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "store": "Магазин",
+      "service": "Служба доставки",
+      "tracking": "Номер відстеження",
+      "booksCount": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "sameDay": "Ще {count, plural, one {# доставка} few {# доставки} many {# доставок} other {# доставок}} цього дня",
+      "action": {
+        "open": "Відкрити доставку",
+        "show": "Показати доставку",
+        "resetHelper": "Буде скинуто пошук і активні фільтри"
+      },
+      "empty": {
+        "text": "Дата ще невідома",
+        "helper": "Для активних доставок не вказано очікувану дату."
+      }
     },
     "sort": {
       "label": "Сортування",
@@ -2816,7 +2836,7 @@
       "title": "Історія замовлень",
       "subtitle": "Усі ваші замовлення доставки — активні, отримані та скасовані.",
       "resultsTitle": "Список замовлень",
-      "counter": "{count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}",
+      "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
       "loadMore": "Показати ще",
       "summary": {
         "totalOrders": "Усього замовлень",

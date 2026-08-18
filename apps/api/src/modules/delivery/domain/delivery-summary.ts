@@ -1,4 +1,10 @@
-import type { Currency, CurrencyTotal, InTransitSummaryView, Nullable } from "@app/shared";
+import type {
+  Currency,
+  CurrencyTotal,
+  InTransitSummaryView,
+  NextShipmentView,
+  Nullable,
+} from "@app/shared";
 
 import { CurrencySchema, DEFAULT_CURRENCY } from "@app/shared";
 
@@ -37,7 +43,11 @@ export type InTransitSummaryData = {
   withoutTrackingCount: number;
 };
 
-export function buildInTransitSummaryView(data: InTransitSummaryData): InTransitSummaryView {
+export type InTransitSummaryInput = InTransitSummaryData & {
+  nextShipment: Nullable<NextShipmentView>;
+};
+
+export function buildInTransitSummaryView(data: InTransitSummaryInput): InTransitSummaryView {
   return {
     activeBooksCount: data.activeBooksCount,
     activeBooksTotalByCurrency: toCurrencyTotals(data.bookTotals),
@@ -51,6 +61,7 @@ export function buildInTransitSummaryView(data: InTransitSummaryData): InTransit
     inTransitCount: data.inTransitCount,
     nextExpectedDelivery: data.nextExpectedDelivery,
     nextExpectedThisWeek: data.nextExpectedThisWeek,
+    nextShipment: data.nextShipment,
     orderedCount: data.orderedCount,
     ordersWithKnownTotalCount: data.ordersWithKnownTotalCount,
     readyForPickupCount: data.readyForPickupCount,

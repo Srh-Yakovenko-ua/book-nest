@@ -10,13 +10,10 @@ import { DeliveryToolbar } from "./delivery-toolbar";
 
 const FILTER_COUNTS = {
   all: 12,
-  arriving_soon: 4,
   delayed: 3,
   in_transit: 5,
-  no_delivery_date: 2,
   ordered: 6,
   ready_for_pickup: 1,
-  without_tracking_number: 7,
 };
 
 function chipNames(): string[] {
@@ -46,7 +43,7 @@ function renderToolbar(overrides: Partial<ComponentProps<typeof DeliveryToolbar>
 }
 
 describe("DeliveryToolbar quick filters", () => {
-  it("offers status, urgency and attention chips without the advanced ones", () => {
+  it("offers the shipment statuses plus the delayed attention chip", () => {
     renderToolbar();
 
     expect(chipNames()).toEqual([
@@ -54,10 +51,7 @@ describe("DeliveryToolbar quick filters", () => {
       "Очікують відправлення",
       "В дорозі",
       "Готові до отримання",
-      "Очікуються скоро",
       "Затримуються",
-      "Без трекінгу",
-      "Без дати доставки",
     ]);
   });
 
@@ -69,18 +63,15 @@ describe("DeliveryToolbar quick filters", () => {
       "Очікують відправлення6",
       "В дорозі5",
       "Готові до отримання1",
-      "Очікуються скоро4",
       "Затримуються3",
-      "Без трекінгу7",
-      "Без дати доставки2",
     ]);
   });
 
   it("asks for the picked filter when a chip is clicked", async () => {
     const { onFilterChange } = renderToolbar({ filterCounts: FILTER_COUNTS });
 
-    await userEvent.click(screen.getByRole("radio", { name: /Без трекінгу/ }));
+    await userEvent.click(screen.getByRole("radio", { name: /Затримуються/ }));
 
-    expect(onFilterChange).toHaveBeenCalledWith("without_tracking_number");
+    expect(onFilterChange).toHaveBeenCalledWith("delayed");
   });
 });

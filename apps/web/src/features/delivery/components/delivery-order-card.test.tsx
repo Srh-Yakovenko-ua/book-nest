@@ -481,4 +481,43 @@ describe("DeliveryOrderCard", () => {
     expect(trigger).toHaveAttribute("aria-busy", "true");
     expect(trigger).toBeDisabled();
   });
+
+  it("anchors every dispatched shipment so the sidebar can scroll to it", () => {
+    renderCard(makeShortAndLongShipments());
+
+    expect(shipmentSectionAt(1)).toHaveAttribute("data-shipment-id", "shipment-later");
+  });
+
+  it("opens its collapsed books when the revealed shipment belongs to this order", () => {
+    const model = makeShortAndLongShipments();
+    const { rerender } = renderCard(model);
+
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(4);
+
+    rerender(
+      <DeliveryOrderCard
+        model={model}
+        onCancelBook={vi.fn()}
+        onChangeShipmentStatus={vi.fn()}
+        onEditBook={vi.fn()}
+        onManage={vi.fn()}
+        onReceiveShipment={vi.fn()}
+        onToggleSelectBook={vi.fn()}
+        preparingEdit={false}
+        revealedShipmentId="shipment-later"
+        selectedBookIds={new Set<string>()}
+        selectionMode={false}
+      />,
+    );
+
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(8);
+  });
+
+  it("leaves an order alone when the revealed shipment sits somewhere else", () => {
+    const model = makeShortAndLongShipments();
+
+    renderCard(model, { revealedShipmentId: "shipment-from-another-order" });
+
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(4);
+  });
 });

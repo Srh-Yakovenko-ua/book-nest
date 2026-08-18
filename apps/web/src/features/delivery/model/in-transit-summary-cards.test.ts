@@ -71,6 +71,7 @@ function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSu
     inTransitCount: 0,
     nextExpectedDelivery: null,
     nextExpectedThisWeek: null,
+    nextShipment: null,
     orderedCount: 0,
     ordersWithKnownTotalCount: 0,
     readyForPickupCount: 0,

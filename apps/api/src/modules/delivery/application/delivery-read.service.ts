@@ -8,19 +8,31 @@ import type {
   BookPreview,
   InTransitQuery,
   InTransitSummaryView,
+  NextShipmentBookView,
+  NextShipmentView,
   Paginator,
 } from "@app/shared";
 
-import { normalizeSearch, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
+import {
+  NEXT_SHIPMENT_LIMITS,
+  normalizeSearch,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { BookOrderItemRow } from "../infrastructure/delivery-read.repository.js";
+import type {
+  BookOrderItemRow,
+  NextShipmentBookRow,
+  NextShipmentData,
+} from "../infrastructure/delivery-read.repository.js";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
+import { toNextShipmentView } from "../domain/next-shipment.mapper.js";
 import { buildOrderHistorySummaryView } from "../domain/order-history-summary.js";
 import { toBookOrderItemRowView } from "../domain/order-item-row.mapper.js";
 import {
@@ -129,12 +141,21 @@ export class DeliveryReadService {
   }
 
   async inTransitSummary({ userId }: { userId: string }): Promise<InTransitSummaryView> {
-    const data = await this.deliveryReadRepository.inTransitSummary({
-      bounds: deliveryDateBounds(new Date()),
-      userId,
-    });
+    const bounds = deliveryDateBounds(new Date());
 
-    return buildInTransitSummaryView(data);
+    const [data, nextShipment] = await Promise.all([
+      this.deliveryReadRepository.inTransitSummary({ bounds, userId }),
+      this.deliveryReadRepository.nextShipment({
+        bookPreviewsMax: NEXT_SHIPMENT_LIMITS.bookPreviewsMax,
+        today: bounds.today,
+        userId,
+      }),
+    ]);
+
+    return buildInTransitSummaryView({
+      ...data,
+      nextShipment: nextShipment === null ? null : this.toNextShipmentView(nextShipment),
+    });
   }
 
   async statistics({
@@ -183,6 +204,24 @@ export class DeliveryReadService {
       tags: book.tags.map((bookTag) => bookTag.tag.name),
       title: book.title,
     };
+  }
+
+  private toNextShipmentBookView(item: NextShipmentBookRow): NextShipmentBookView {
+    return {
+      authorName: item.book.firstAuthorName,
+      cover: this.mediaService.buildViewOrNull(item.book.coverMedia),
+      id: item.book.id,
+      title: item.book.title,
+    };
+  }
+
+  private toNextShipmentView(data: NextShipmentData): NextShipmentView {
+    return toNextShipmentView({
+      bookPreviews: data.bookPreviews.map((item) => this.toNextShipmentBookView(item)),
+      booksCount: data.booksCount,
+      sameDayCount: data.sameDayCount,
+      shipment: data.shipment,
+    });
   }
 
   private toRowView({ row, today }: { row: BookOrderItemRow; today: Date }): BookOrderItemRowView {
