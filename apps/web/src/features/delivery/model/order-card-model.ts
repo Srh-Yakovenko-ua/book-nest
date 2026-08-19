@@ -8,8 +8,6 @@ import type {
   ShipmentStatus,
 } from "@app/shared";
 
-import { resolveOrderFinancials } from "@app/shared";
-
 import type { UiIconName } from "@/components/icons";
 import type { StatusEntry, StatusTone } from "@/lib/book-status";
 
@@ -125,7 +123,11 @@ export function toDeliveryOrderCards(
         toShipmentGroupModel(shipment, options, orderTotal),
       ),
       storeName: group.order.storeName,
-      totalText: formatPrice(toOrderAmount(group), group.order.currency, options.locale),
+      totalText: formatPrice(
+        group.order.effectiveTotalAmount,
+        group.order.currency,
+        options.locale,
+      ),
     };
   });
 }
@@ -248,22 +250,11 @@ function toIncompleteOrderTotal(orderTotal: OrderTotalContext): Nullable<Incompl
   return { itemsCount: orderTotal.itemsCount, pricedItemsCount: orderTotal.pricedItemsCount };
 }
 
-function toOrderAmount(group: OrderGroup): Nullable<number> {
-  if (group.order.totalAmount !== null) return group.order.totalAmount;
-
-  return resolveOrderFinancials({
-    deliveryPrice: group.order.deliveryPrice,
-    discount: group.order.discount,
-    itemPrices: group.items.flatMap((item) => (item.price === null ? [] : [item.price])),
-    totalAmount: null,
-  }).effectiveTotalAmount;
-}
-
 function toOrderTotalContext(group: OrderGroup): OrderTotalContext {
   return {
     hasStoredTotal: group.order.totalAmount !== null,
-    itemsCount: group.items.length,
-    pricedItemsCount: group.items.filter((item) => item.price !== null).length,
+    itemsCount: group.order.itemsCount,
+    pricedItemsCount: group.order.pricedItemsCount,
   };
 }
 

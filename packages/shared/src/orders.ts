@@ -28,6 +28,7 @@ import {
   OwnershipStoreUrlSchema,
   QueryBooleanSchema,
   QueryBooleanWithDefaultSchema,
+  queryStringArray,
   TrackingNumberSchema,
 } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
@@ -36,6 +37,7 @@ import { ORDER_FINANCIAL_MESSAGES, validateOrderFinancials } from "./order-finan
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
 export const BOOK_ORDER_LIMITS = {
+  booksCountMax: 1000,
   itemsMax: 100,
   pageSizeDefault: 10,
   searchMax: 100,
@@ -528,17 +530,59 @@ export const IN_TRANSIT_EXPECTED_DATE_ORDER = {
   },
 } as const satisfies Record<ExpectedDateSort, ExpectedDateOrder>;
 
+export const InTransitDeliveryStructureSchema = z.enum([
+  "no_shipment",
+  "single_shipment",
+  "multiple_shipments",
+]);
+
+export type InTransitDeliveryStructure = z.infer<typeof InTransitDeliveryStructureSchema>;
+
+export const InTransitPricePresenceSchema = z.enum(["known", "unknown"]);
+
+export type InTransitPricePresence = z.infer<typeof InTransitPricePresenceSchema>;
+
 export const InTransitQuerySchema = z.object({
-  currency: CurrencySchema.optional(),
+  booksMax: z.coerce.number().int().min(0).max(BOOK_ORDER_LIMITS.booksCountMax).optional(),
+  booksMin: z.coerce.number().int().min(0).max(BOOK_ORDER_LIMITS.booksCountMax).optional(),
+  currency: queryStringArray(CurrencySchema),
+  expectedFrom: isoDay().optional(),
+  expectedTo: isoDay().optional(),
   filter: InTransitFilterSchema.default("all"),
+  orderedFrom: isoDay().optional(),
+  orderedTo: isoDay().optional(),
   ...paginationQueryFields({ pageSizeDefault: BOOK_ORDER_LIMITS.pageSizeDefault }),
+  priceCurrency: CurrencySchema.optional().describe(
+    "Gates the canonical order total range. The range is ignored unless exactly one currency is named here.",
+  ),
+  priceMax: z.coerce.number().nonnegative().optional(),
+  priceMin: z.coerce.number().nonnegative().optional(),
+  pricePresence: InTransitPricePresenceSchema.optional(),
   search: z.string().trim().max(BOOK_ORDER_LIMITS.searchMax).optional(),
-  service: DeliveryServiceSchema.optional(),
+  service: queryStringArray(DeliveryServiceSchema),
   sort: InTransitSortSchema.default("closest_delivery"),
-  store: z.string().trim().max(BOOK_ORDER_LIMITS.storeMax).optional(),
+  store: queryStringArray(z.string().trim().max(BOOK_ORDER_LIMITS.storeMax)),
+  structure: queryStringArray(InTransitDeliveryStructureSchema),
 });
 
 export type InTransitQuery = z.infer<typeof InTransitQuerySchema>;
+
+export const InTransitFacetEntrySchema = z.object({ count: CountSchema, name: z.string() });
+
+export type InTransitFacetEntry = z.infer<typeof InTransitFacetEntrySchema>;
+
+export const InTransitFacetsViewSchema = z.object({
+  services: z
+    .array(InTransitFacetEntrySchema)
+    .describe(
+      "Delivery services carrying an active shipment of an order that still has books on their way, with how many such orders each one carries.",
+    ),
+  stores: z
+    .array(InTransitFacetEntrySchema)
+    .describe("Stores of the orders that still have books on their way, with their order counts."),
+});
+
+export type InTransitFacetsView = z.infer<typeof InTransitFacetsViewSchema>;
 
 export const BookOrderHistoryTabSchema = z.enum(["all", "active", "received", "cancelled"]);
 
@@ -603,9 +647,17 @@ export const BookOrderItemRowOrderViewSchema = z.object({
   deliveryPrice: z.number().nullable(),
   derivedStatus: BookOrderDerivedStatusSchema,
   discount: z.number().nullable(),
+  effectiveTotalAmount: z
+    .number()
+    .nullable()
+    .describe(
+      "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.",
+    ),
   id: z.string(),
+  itemsCount: CountSchema.describe("How many books the whole order holds, page and filter aside."),
   orderDate: z.string().nullable(),
   orderNumber: z.string().nullable(),
+  pricedItemsCount: CountSchema.describe("How many of those books carry a price."),
   storeName: z.string(),
   totalAmount: z.number().nullable(),
 });

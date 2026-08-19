@@ -424,22 +424,107 @@ export const DeliveryReadControllerInTransitImpactResponse = zod.object({
 });
 
 /**
+ * @summary List the stores and delivery services behind the books on their way
+ */
+export const deliveryReadControllerInTransitFacetsResponseServicesItemCountMin = 0;
+export const deliveryReadControllerInTransitFacetsResponseServicesItemCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitFacetsResponseStoresItemCountMin = 0;
+export const deliveryReadControllerInTransitFacetsResponseStoresItemCountMax = 9007199254740991;
+
+export const DeliveryReadControllerInTransitFacetsResponse = zod.object({
+  services: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(deliveryReadControllerInTransitFacetsResponseServicesItemCountMin)
+          .max(deliveryReadControllerInTransitFacetsResponseServicesItemCountMax),
+        name: zod.string(),
+      }),
+    )
+    .describe(
+      "Delivery services carrying an active shipment of an order that still has books on their way, with how many such orders each one carries.",
+    ),
+  stores: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(deliveryReadControllerInTransitFacetsResponseStoresItemCountMin)
+          .max(deliveryReadControllerInTransitFacetsResponseStoresItemCountMax),
+        name: zod.string(),
+      }),
+    )
+    .describe("Stores of the orders that still have books on their way, with their order counts."),
+});
+
+/**
  * @summary List the books the current user has on their way
  */
+export const deliveryReadControllerInTransitListQueryBooksMaxMin = 0;
+export const deliveryReadControllerInTransitListQueryBooksMaxMax = 1000;
+
+export const deliveryReadControllerInTransitListQueryBooksMinMin = 0;
+export const deliveryReadControllerInTransitListQueryBooksMinMax = 1000;
+
+export const deliveryReadControllerInTransitListQueryCurrencyMax = 100;
+
+export const deliveryReadControllerInTransitListQueryExpectedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerInTransitListQueryExpectedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const deliveryReadControllerInTransitListQueryFilterDefault = `all`;
+export const deliveryReadControllerInTransitListQueryOrderedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerInTransitListQueryOrderedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const deliveryReadControllerInTransitListQueryPageNumberDefault = 1;
 export const deliveryReadControllerInTransitListQueryPageNumberMax = 21474836;
 
 export const deliveryReadControllerInTransitListQueryPageSizeDefault = 10;
 export const deliveryReadControllerInTransitListQueryPageSizeMax = 100;
 
+export const deliveryReadControllerInTransitListQueryPriceMaxMin = 0;
+
+export const deliveryReadControllerInTransitListQueryPriceMinMin = 0;
+
 export const deliveryReadControllerInTransitListQuerySearchMax = 100;
 
+export const deliveryReadControllerInTransitListQueryServiceMax = 100;
+
 export const deliveryReadControllerInTransitListQuerySortDefault = `closest_delivery`;
-export const deliveryReadControllerInTransitListQueryStoreMax = 200;
+export const deliveryReadControllerInTransitListQueryStoreMax = 100;
+
+export const deliveryReadControllerInTransitListQueryStructureMax = 100;
 
 export const DeliveryReadControllerInTransitListQueryParams = zod.object({
-  currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
+  booksMax: zod
+    .int()
+    .min(deliveryReadControllerInTransitListQueryBooksMaxMin)
+    .max(deliveryReadControllerInTransitListQueryBooksMaxMax)
+    .optional(),
+  booksMin: zod
+    .int()
+    .min(deliveryReadControllerInTransitListQueryBooksMinMin)
+    .max(deliveryReadControllerInTransitListQueryBooksMinMax)
+    .optional(),
+  currency: zod
+    .array(zod.enum(["UAH", "EUR", "USD"]))
+    .max(deliveryReadControllerInTransitListQueryCurrencyMax)
+    .optional(),
+  expectedFrom: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitListQueryExpectedFromRegExp)
+    .optional(),
+  expectedTo: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitListQueryExpectedToRegExp)
+    .optional(),
   filter: zod
     .enum([
       "all",
@@ -461,6 +546,14 @@ export const DeliveryReadControllerInTransitListQueryParams = zod.object({
       "without_price",
     ])
     .default(deliveryReadControllerInTransitListQueryFilterDefault),
+  orderedFrom: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitListQueryOrderedFromRegExp)
+    .optional(),
+  orderedTo: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitListQueryOrderedToRegExp)
+    .optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -471,8 +564,20 @@ export const DeliveryReadControllerInTransitListQueryParams = zod.object({
     .min(1)
     .max(deliveryReadControllerInTransitListQueryPageSizeMax)
     .default(deliveryReadControllerInTransitListQueryPageSizeDefault),
+  priceCurrency: zod
+    .enum(["UAH", "EUR", "USD"])
+    .optional()
+    .describe(
+      "Gates the canonical order total range. The range is ignored unless exactly one currency is named here.",
+    ),
+  priceMax: zod.number().min(deliveryReadControllerInTransitListQueryPriceMaxMin).optional(),
+  priceMin: zod.number().min(deliveryReadControllerInTransitListQueryPriceMinMin).optional(),
+  pricePresence: zod.enum(["known", "unknown"]).optional(),
   search: zod.string().max(deliveryReadControllerInTransitListQuerySearchMax).optional(),
-  service: zod.string().optional(),
+  service: zod
+    .array(zod.string())
+    .max(deliveryReadControllerInTransitListQueryServiceMax)
+    .optional(),
   sort: zod
     .enum([
       "closest_delivery",
@@ -486,12 +591,22 @@ export const DeliveryReadControllerInTransitListQueryParams = zod.object({
       "price",
     ])
     .default(deliveryReadControllerInTransitListQuerySortDefault),
-  store: zod.string().max(deliveryReadControllerInTransitListQueryStoreMax).optional(),
+  store: zod.array(zod.string()).max(deliveryReadControllerInTransitListQueryStoreMax).optional(),
+  structure: zod
+    .array(zod.enum(["no_shipment", "single_shipment", "multiple_shipments"]))
+    .max(deliveryReadControllerInTransitListQueryStructureMax)
+    .optional(),
 });
 
 export const deliveryReadControllerInTransitListResponseItemsItemBookSeriesTotalBooksMin =
   -9007199254740991;
 export const deliveryReadControllerInTransitListResponseItemsItemBookSeriesTotalBooksMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMin = 0;
+export const deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMin = 0;
+export const deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMax = 9007199254740991;
 
 export const deliveryReadControllerInTransitListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerInTransitListResponsePageMax = 9007199254740991;
@@ -585,9 +700,25 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
           "cancelled",
         ]),
         discount: zod.number().nullable(),
+        effectiveTotalAmount: zod
+          .number()
+          .nullable()
+          .describe(
+            "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.",
+          ),
         id: zod.string(),
+        itemsCount: zod
+          .int()
+          .min(deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMin)
+          .max(deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMax)
+          .describe("How many books the whole order holds, page and filter aside."),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
+        pricedItemsCount: zod
+          .int()
+          .min(deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMin)
+          .max(deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMax)
+          .describe("How many of those books carry a price."),
         storeName: zod.string(),
         totalAmount: zod.number().nullable(),
       }),
@@ -774,6 +905,12 @@ export const deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBo
   -9007199254740991;
 export const deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMax = 9007199254740991;
 
+export const deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMin = 0;
+export const deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMin = 0;
+export const deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMax = 9007199254740991;
+
 export const deliveryReadControllerHistoryListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerHistoryListResponsePageMax = 9007199254740991;
 
@@ -866,9 +1003,25 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
           "cancelled",
         ]),
         discount: zod.number().nullable(),
+        effectiveTotalAmount: zod
+          .number()
+          .nullable()
+          .describe(
+            "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.",
+          ),
         id: zod.string(),
+        itemsCount: zod
+          .int()
+          .min(deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMin)
+          .max(deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMax)
+          .describe("How many books the whole order holds, page and filter aside."),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
+        pricedItemsCount: zod
+          .int()
+          .min(deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMin)
+          .max(deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMax)
+          .describe("How many of those books carry a price."),
         storeName: zod.string(),
         totalAmount: zod.number().nullable(),
       }),

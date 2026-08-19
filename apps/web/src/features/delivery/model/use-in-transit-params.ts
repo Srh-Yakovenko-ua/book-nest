@@ -1,5 +1,7 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { useQueryStates } from "nuqs";
 
 import type {
@@ -7,9 +9,15 @@ import type {
   DeliveryReadControllerInTransitListSort,
 } from "@/shared/api/generated/model";
 
-import type { DeliveryListParams, DeliveryQueryState } from "./in-transit-params";
+import type {
+  DeliveryAdvancedState,
+  DeliveryListParams,
+  DeliveryQueryState,
+} from "./in-transit-params";
 
 import {
+  countActiveDeliveryDimensions,
+  DELIVERY_ADVANCED_RESET,
   deliveryQueryParsers,
   hasActiveDeliveryFilters,
   hasActiveDeliverySearch,
@@ -17,6 +25,9 @@ import {
 } from "./in-transit-params";
 
 export type UseInTransitParamsResult = {
+  advancedCount: number;
+  applyAdvanced: (draft: DeliveryAdvancedState) => void;
+  clearAdvanced: () => void;
   clearAll: () => void;
   clearFilters: () => void;
   clearSearch: () => void;
@@ -36,8 +47,11 @@ export function useInTransitParams(): UseInTransitParamsResult {
   const [state, setState] = useQueryStates(deliveryQueryParsers);
 
   return {
-    clearAll: () => void setState({ filter: null, q: null }),
-    clearFilters: () => void setState({ filter: null }),
+    advancedCount: countActiveDeliveryDimensions(state),
+    applyAdvanced: (draft) => void setState(toAdvancedPatch(draft)),
+    clearAdvanced: () => void setState(DELIVERY_ADVANCED_RESET),
+    clearAll: () => void setState({ ...DELIVERY_ADVANCED_RESET, filter: null, q: null }),
+    clearFilters: () => void setState({ ...DELIVERY_ADVANCED_RESET, filter: null }),
     clearSearch: () => void setState({ q: null }),
     filter: state.filter,
     hasActiveFilters: hasActiveDeliveryFilters(state),
@@ -49,5 +63,27 @@ export function useInTransitParams(): UseInTransitParamsResult {
     setSort: (value) => void setState({ sort: value }),
     sort: state.sort,
     state,
+  };
+}
+
+function emptyToNull(value: Nullable<string>): Nullable<string> {
+  return value === null || value.trim() === "" ? null : value;
+}
+
+function toAdvancedPatch(draft: DeliveryAdvancedState) {
+  return {
+    booksMax: draft.booksMax,
+    booksMin: draft.booksMin,
+    currency: draft.currency.length === 0 ? null : draft.currency,
+    expectedFrom: emptyToNull(draft.expectedFrom),
+    expectedTo: emptyToNull(draft.expectedTo),
+    orderedFrom: emptyToNull(draft.orderedFrom),
+    orderedTo: emptyToNull(draft.orderedTo),
+    priceMax: draft.priceMax,
+    priceMin: draft.priceMin,
+    pricePresence: draft.pricePresence,
+    service: draft.service.length === 0 ? null : draft.service,
+    store: draft.store.length === 0 ? null : draft.store,
+    structure: draft.structure.length === 0 ? null : draft.structure,
   };
 }

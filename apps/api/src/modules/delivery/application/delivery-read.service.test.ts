@@ -129,7 +129,15 @@ function itemRow({
     id: "item-1",
     order: {
       ...orderRow,
-      items: [{ cancelledAt, receivedAt, shipmentId: "shipment-1" }],
+      items: [
+        {
+          book: { deletedAt: null },
+          cancelledAt,
+          price: new Prisma.Decimal("120.50"),
+          receivedAt,
+          shipmentId: "shipment-1",
+        },
+      ],
       shipments: [{ id: "shipment-1", status }],
     },
     orderId: orderRow.id,
@@ -189,9 +197,12 @@ describe("DeliveryReadService.inTransitList", () => {
           deliveryPrice: null,
           derivedStatus: "shipped",
           discount: null,
+          effectiveTotalAmount: 120.5,
           id: "order-1",
+          itemsCount: 1,
           orderDate: "2026-08-01",
           orderNumber: "A-1",
+          pricedItemsCount: 1,
           storeName: "Bookstore",
           totalAmount: 120.5,
         },
@@ -230,19 +241,30 @@ describe("DeliveryReadService.inTransitList", () => {
     const { reads, service } = buildService({});
 
     await service.inTransitList({
-      query: inTransitQuery({ filter: "delayed", search: "  alpha  ", store: "Bookstore" }),
+      query: inTransitQuery({ filter: "delayed", search: "  alpha  ", store: ["Bookstore"] }),
       userId: USER,
     });
 
     const listArgs = vi.mocked(reads.listInTransit).mock.calls[0]?.[0];
     const countArgs = vi.mocked(reads.countInTransit).mock.calls[0]?.[0];
     expect(countArgs).toEqual({
+      booksMax: undefined,
+      booksMin: undefined,
       bounds: listArgs?.bounds,
       currency: undefined,
+      expectedFrom: undefined,
+      expectedTo: undefined,
       filter: "delayed",
+      orderedFrom: undefined,
+      orderedTo: undefined,
+      priceCurrency: undefined,
+      priceMax: undefined,
+      priceMin: undefined,
+      pricePresence: undefined,
       search: "alpha",
       service: undefined,
-      store: "Bookstore",
+      store: ["Bookstore"],
+      structure: undefined,
       userId: USER,
     });
     expect(listArgs).toEqual(

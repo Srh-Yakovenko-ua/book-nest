@@ -23,6 +23,7 @@ import type {
   DeliveryReadControllerHistoryListParams,
   DeliveryReadControllerHistorySummaryParams,
   DeliveryReadControllerInTransitListParams,
+  InTransitFacetsViewDto,
   InTransitImpactViewDto,
   InTransitSummaryViewDto,
   PaginatedBookOrderItemRowsDto,
@@ -391,6 +392,178 @@ export function useDeliveryReadControllerInTransitImpact<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type deliveryReadControllerInTransitFacetsResponse200 = {
+  data: InTransitFacetsViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerInTransitFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerInTransitFacetsResponseSuccess =
+  deliveryReadControllerInTransitFacetsResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerInTransitFacetsResponseError =
+  deliveryReadControllerInTransitFacetsResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerInTransitFacetsResponse =
+  | deliveryReadControllerInTransitFacetsResponseSuccess
+  | deliveryReadControllerInTransitFacetsResponseError;
+
+export const getDeliveryReadControllerInTransitFacetsUrl = () => {
+  return `/api/delivery/books/in-transit/facets`;
+};
+
+/**
+ * @summary List the stores and delivery services behind the books on their way
+ */
+export const deliveryReadControllerInTransitFacets = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerInTransitFacetsResponse> => {
+  return customInstance<deliveryReadControllerInTransitFacetsResponse>(
+    getDeliveryReadControllerInTransitFacetsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerInTransitFacetsQueryKey = () => {
+  return [`/api/delivery/books/in-transit/facets`] as const;
+};
+
+export const getDeliveryReadControllerInTransitFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerInTransitFacetsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+  > = ({ signal }) => deliveryReadControllerInTransitFacets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerInTransitFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+>;
+export type DeliveryReadControllerInTransitFacetsQueryError = void;
+
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the stores and delivery services behind the books on their way
+ */
+
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerInTransitFacetsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type deliveryReadControllerInTransitListResponse200 = {
   data: PaginatedBookOrderItemRowsDto;
   status: 200;
@@ -420,6 +593,15 @@ export const getDeliveryReadControllerInTransitListUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["currency", "service", "store", "structure"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }

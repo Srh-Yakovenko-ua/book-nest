@@ -2655,6 +2655,70 @@
       "ready_for_pickup": "Ready for pickup",
       "delayed": "Delayed"
     },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "title": "Advanced filters",
+      "description": "They narrow the list of orders. Quick filters work separately and stack on top.",
+      "apply": "Apply",
+      "clear": "Reset",
+      "sections": {
+        "store": "Store",
+        "orderDate": "Order date",
+        "booksCount": "Book count",
+        "service": "Delivery service",
+        "expectedDate": "Expected delivery date",
+        "structure": "Delivery structure",
+        "currency": "Currency",
+        "orderTotal": "Order total",
+        "pricePresence": "Total recorded"
+      },
+      "range": {
+        "from": "From",
+        "to": "To",
+        "min": "From",
+        "max": "To",
+        "invalid": "The start of the range is past its end"
+      },
+      "store": {
+        "placeholder": "Any store",
+        "search": "Search stores",
+        "empty": "No stores found"
+      },
+      "service": {
+        "placeholder": "Any service",
+        "search": "Search services",
+        "empty": "No services found"
+      },
+      "booksCount": {
+        "min": "At least",
+        "max": "At most",
+        "hint": "Counts the books still on their way: received and cancelled ones are left out."
+      },
+      "expectedDate": {
+        "hint": "Counts parcels that are still travelling, and only those with a date on them."
+      },
+      "structure": {
+        "no_shipment": "No parcel yet",
+        "single_shipment": "One parcel",
+        "multiple_shipments": "Several parcels"
+      },
+      "orderTotal": {
+        "min": "From",
+        "max": "To",
+        "hint": "Filters by the final total of the order.",
+        "pickCurrency": "Pick one currency to filter by total.",
+        "oneCurrency": "Pick one currency to filter by total."
+      },
+      "pricePresence": {
+        "all": "All",
+        "known": "Total recorded",
+        "unknown": "Total missing"
+      }
+    },
+    "activeFilters": {
+      "attention": "Attention: {label}",
+      "advanced": "Advanced filters: {count}"
+    },
     "attention": {
       "title": "Needs attention",
       "viewAll": "Show all {count}",
@@ -2748,15 +2812,52 @@
     "sort": {
       "label": "Sort",
       "options": {
-        "closest_delivery": "Closest delivery",
-        "newest_orders": "Newest orders",
-        "oldest_orders": "Oldest orders",
-        "delayed_first": "Delayed first",
-        "store": "By store",
-        "service": "By delivery service",
-        "title": "By book title",
-        "author": "By author",
-        "price": "By price"
+        "closest_delivery": "Delivery date: closest first",
+        "newest_orders": "Order date: newest first",
+        "oldest_orders": "Order date: oldest first",
+        "delayed_first": "Status: delayed first",
+        "store": "Store: A–Z",
+        "service": "Delivery service: A–Z",
+        "title": "Book title: A–Z",
+        "author": "Author: A–Z",
+        "price": "Price: lowest first"
+      },
+      "mobile": {
+        "title": "Sorting",
+        "description": "Choose the order of books on the way.",
+        "close": "Close",
+        "groups": {
+          "delivery_date": "Delivery date",
+          "order_date": "Order date",
+          "status": "Status",
+          "store": "Store",
+          "service": "Delivery service",
+          "title": "Book title",
+          "author": "Author",
+          "price": "Price"
+        },
+        "options": {
+          "closest_delivery": "Closest first",
+          "newest_orders": "Newest first",
+          "oldest_orders": "Oldest first",
+          "delayed_first": "Delayed first",
+          "store": "A–Z",
+          "service": "A–Z",
+          "title": "A–Z",
+          "author": "A–Z",
+          "price": "Lowest first"
+        },
+        "trigger": {
+          "closest_delivery": "Delivery ↑",
+          "newest_orders": "Ordered ↓",
+          "oldest_orders": "Ordered ↑",
+          "delayed_first": "Delayed",
+          "store": "Store A–Z",
+          "service": "Service A–Z",
+          "title": "Book A–Z",
+          "author": "Author A–Z",
+          "price": "Price ↑"
+        }
       }
     },
     "badge": {
