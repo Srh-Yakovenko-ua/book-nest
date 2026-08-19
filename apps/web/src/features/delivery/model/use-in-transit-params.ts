@@ -27,7 +27,6 @@ import {
 export type UseInTransitParamsResult = {
   advancedCount: number;
   applyAdvanced: (draft: DeliveryAdvancedState) => void;
-  clearAdvanced: () => void;
   clearAll: () => void;
   clearFilters: () => void;
   clearSearch: () => void;
@@ -49,7 +48,6 @@ export function useInTransitParams(): UseInTransitParamsResult {
   return {
     advancedCount: countActiveDeliveryDimensions(state),
     applyAdvanced: (draft) => void setState(toAdvancedPatch(draft)),
-    clearAdvanced: () => void setState(DELIVERY_ADVANCED_RESET),
     clearAll: () => void setState({ ...DELIVERY_ADVANCED_RESET, filter: null, q: null }),
     clearFilters: () => void setState({ ...DELIVERY_ADVANCED_RESET, filter: null }),
     clearSearch: () => void setState({ q: null }),

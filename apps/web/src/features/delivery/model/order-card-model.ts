@@ -1,4 +1,5 @@
 import type {
+  ActiveShipmentStatus,
   BookOrderItemRowOrderView,
   BookOrderItemRowShipmentView,
   BookOrderItemRowView,
@@ -7,6 +8,8 @@ import type {
   Nullable,
   ShipmentStatus,
 } from "@app/shared";
+
+import { isActiveShipmentStatus } from "@app/shared";
 
 import type { UiIconName } from "@/components/icons";
 import type { StatusEntry, StatusTone } from "@/lib/book-status";
@@ -60,6 +63,7 @@ export type DeliveryOrderCardModel = {
 };
 
 export type DeliveryShipmentGroupModel = {
+  activeItemsCount: number;
   badge: StatusEntry;
   books: DeliveryOrderBookModel[];
   expectedDate: Nullable<string>;
@@ -76,6 +80,13 @@ export type DeliveryShipmentGroupModel = {
 };
 
 export type IncompleteOrderTotal = { itemsCount: number; pricedItemsCount: number };
+
+export type SelectableShipment = { activeItemsCount: number; id: string };
+
+export type SelectableShipmentGroup = DeliveryShipmentGroupModel & {
+  id: string;
+  status: ActiveShipmentStatus;
+};
 
 type CardOptions = { labels: DeliveryCardLabels; locale: string };
 
@@ -102,6 +113,12 @@ const UI_BADGE_META: Record<DeliveryUiStatus, { icon: UiIconName; tone: StatusTo
   delayed: { icon: "alert-triangle", tone: "danger" },
   no_delivery_date: { icon: "circle-slash", tone: "neutral" },
 };
+
+export function isSelectableShipment(
+  group: DeliveryShipmentGroupModel,
+): group is SelectableShipmentGroup {
+  return group.id !== null && group.status !== null && isActiveShipmentStatus(group.status);
+}
 
 export function toDeliveryOrderCards(
   items: BookOrderItemRowView[],
@@ -130,6 +147,14 @@ export function toDeliveryOrderCards(
       ),
     };
   });
+}
+
+export function toSelectableShipments(orders: DeliveryOrderCardModel[]): SelectableShipment[] {
+  return orders.flatMap((order) =>
+    order.shipments
+      .filter(isSelectableShipment)
+      .map((group) => ({ activeItemsCount: group.activeItemsCount, id: group.id })),
+  );
 }
 
 function dispatchedFirst(group: OrderGroup): ShipmentGroup[] {
@@ -269,6 +294,7 @@ function toShipmentGroupModel(
   const pickupUntil = shipment?.pickupUntil ?? null;
 
   return {
+    activeItemsCount: shipment?.activeItemsCount ?? 0,
     badge: resolveDeliveryBadge(
       { shipment, uiStatus: shipment === null ? null : group.first.uiStatus },
       options.labels.badge,

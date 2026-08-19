@@ -1,5 +1,6 @@
 "use client";
 
+import { SquareCheckBig } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type {
@@ -7,6 +8,7 @@ import type {
   DeliveryReadControllerInTransitListSort,
 } from "@/shared/api/generated/model";
 
+import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import {
   Select,
@@ -15,24 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  type ActiveFilterChip,
-  LibraryActiveFilters,
-} from "@/features/books/components/library-active-filters";
+import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
 import type { DeliveryAdvancedState, DeliveryFilterCounts } from "../model/in-transit-params";
 
 import {
-  DELIVERY_FILTER_DEFAULT,
   DELIVERY_PRIMARY_FILTERS,
   DELIVERY_SORT_DEFAULT,
   DELIVERY_SORT_ORDER,
-  isDeliveryPrimaryFilter,
-  toDeliveryAttentionReason,
 } from "../model/in-transit-params";
+import { useInTransitFilterChips } from "../model/use-in-transit-filter-chips";
 import { DeliveryAdvancedFilters } from "./delivery-advanced-filters";
 import { DeliverySearchInput } from "./delivery-search-input";
 import { DeliverySortSheet } from "./delivery-sort-sheet";
+
+type DeliverySelectionToggle = { isSelecting: boolean; onToggle: () => void };
 
 type DeliveryToolbarProps = {
   advanced: DeliveryAdvancedState;
@@ -43,13 +42,13 @@ type DeliveryToolbarProps = {
   isPending: boolean;
   loadingLabel: string;
   onApplyAdvanced: (draft: DeliveryAdvancedState) => void;
-  onClearAdvanced: () => void;
   onClearAll: () => void;
   onClearSearch: () => void;
   onFilterChange: (value: DeliveryReadControllerInTransitListFilter) => void;
   onSearch: (value: string) => void;
   onSortChange: (value: DeliveryReadControllerInTransitListSort) => void;
   searchValue: string;
+  selection?: DeliverySelectionToggle;
   sort: DeliveryReadControllerInTransitListSort;
 };
 
@@ -62,50 +61,31 @@ export function DeliveryToolbar({
   isPending,
   loadingLabel,
   onApplyAdvanced,
-  onClearAdvanced,
   onClearAll,
   onClearSearch,
   onFilterChange,
   onSearch,
   onSortChange,
   searchValue,
+  selection,
   sort,
 }: DeliveryToolbarProps) {
-  const tActiveFilters = useTranslations("delivery.activeFilters");
-  const tAttention = useTranslations("delivery.attention.chip");
+  const tActions = useTranslations("delivery.actions");
   const tFilters = useTranslations("delivery.filters");
   const tSort = useTranslations("delivery.sort");
 
-  const attentionReason = isDeliveryPrimaryFilter(filter)
-    ? null
-    : toDeliveryAttentionReason(filter);
+  const activeFilterChips = useInTransitFilterChips({
+    filter,
+    onApplyAdvanced,
+    onFilterChange,
+    state: advanced,
+  });
 
   const filterOptions = DELIVERY_PRIMARY_FILTERS.map((value) => ({
     count: filterCounts?.[value],
     label: tFilters(value),
     value,
   }));
-
-  const activeFilterChips: ActiveFilterChip[] = [
-    ...(attentionReason === null
-      ? []
-      : [
-          {
-            key: "attention",
-            label: tActiveFilters("attention", { label: tAttention(attentionReason) }),
-            onRemove: () => onFilterChange(DELIVERY_FILTER_DEFAULT),
-          },
-        ]),
-    ...(advancedCount === 0
-      ? []
-      : [
-          {
-            key: "advanced",
-            label: tActiveFilters("advanced", { count: advancedCount }),
-            onRemove: onClearAdvanced,
-          },
-        ]),
-  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -126,6 +106,20 @@ export function DeliveryToolbar({
             onApply={onApplyAdvanced}
             state={advanced}
           />
+
+          {selection === undefined ? null : (
+            <Button
+              aria-pressed={selection.isSelecting}
+              className="h-10 shrink-0 max-sm:w-10 max-sm:px-0"
+              onClick={selection.onToggle}
+              variant={selection.isSelecting ? "secondary" : "outline"}
+            >
+              <SquareCheckBig />
+              <span className="max-sm:sr-only">
+                {selection.isSelecting ? tActions("doneSelecting") : tActions("select")}
+              </span>
+            </Button>
+          )}
 
           <div className="hidden sm:block sm:w-80">
             <Select

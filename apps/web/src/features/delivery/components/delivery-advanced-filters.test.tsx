@@ -36,6 +36,11 @@ async function openPanel() {
   return screen.getByRole("dialog");
 }
 
+async function pickTotalPresence(panel: HTMLElement, option: string) {
+  await userEvent.click(within(panel).getByRole("combobox", { name: "Вартість замовлення" }));
+  await userEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 function renderFilters(state: DeliveryAdvancedState = DELIVERY_ADVANCED_EMPTY) {
   const onApply = vi.fn();
 
@@ -117,9 +122,25 @@ describe("DeliveryAdvancedFilters", () => {
     );
   });
 
+  it("asks for the total range only once the reader wants a recorded total", async () => {
+    renderFilters();
+    const panel = await openPanel();
+
+    expect(
+      within(section(panel, "Вартість замовлення")).queryByLabelText("Вартість від"),
+    ).not.toBeInTheDocument();
+
+    await pickTotalPresence(panel, "Вказана");
+
+    expect(
+      within(section(panel, "Вартість замовлення")).getByLabelText("Вартість від"),
+    ).toBeInTheDocument();
+  });
+
   it("locks the total range until exactly one currency is chosen", async () => {
     renderFilters();
     const panel = await openPanel();
+    await pickTotalPresence(panel, "Вказана");
     const total = section(panel, "Вартість замовлення");
 
     expect(within(total).getByLabelText("Вартість від")).toBeDisabled();
@@ -134,6 +155,28 @@ describe("DeliveryAdvancedFilters", () => {
     await userEvent.click(within(panel).getByRole("button", { name: "EUR" }));
 
     expect(within(total).getByLabelText("Вартість від")).toBeDisabled();
+  });
+
+  it("drops the bounds when the reader asks for a missing total instead", async () => {
+    const { onApply } = renderFilters({ ...DELIVERY_ADVANCED_EMPTY, currency: ["UAH"] });
+    const panel = await openPanel();
+
+    await pickTotalPresence(panel, "Вказана");
+    await userEvent.type(
+      within(section(panel, "Вартість замовлення")).getByLabelText("Вартість від"),
+      "100",
+    );
+    await pickTotalPresence(panel, "Не вказана");
+
+    expect(
+      within(section(panel, "Вартість замовлення")).queryByLabelText("Вартість від"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(within(panel).getByRole("button", { name: "Застосувати" }));
+
+    expect(onApply).toHaveBeenCalledWith(
+      expect.objectContaining({ priceMax: null, priceMin: null, pricePresence: "unknown" }),
+    );
   });
 
   it("refuses to apply a range that reads backwards", async () => {

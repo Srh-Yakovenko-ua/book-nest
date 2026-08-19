@@ -15,12 +15,11 @@ import {
 } from "@/components/ui/dialog";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 
-import { useBulkReceive } from "../api/use-bulk-receive";
-import { useReceiveShipment } from "../api/use-order-shipment-actions";
+import { useReceiveShipment, useReceiveShipments } from "../api/use-order-shipment-actions";
 
 export type DeliveryReceiveTarget =
   | { bookCount: number; kind: "shipment"; shipmentId: string }
-  | { bookIds: string[]; kind: "books" };
+  | { bookCount: number; kind: "shipments"; shipmentIds: string[] };
 
 type DeliveryReceiveDialogProps = {
   onOpenChange: (open: boolean) => void;
@@ -39,11 +38,11 @@ export function DeliveryReceiveDialog({
   const tToast = useTranslations("delivery.toast");
   const deliveryErrorText = useDeliveryErrorText();
   const tActions = useTranslations("books.actions");
-  const bulkReceive = useBulkReceive();
   const receiveShipment = useReceiveShipment();
+  const receiveShipments = useReceiveShipments();
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
-  const count = target.kind === "books" ? target.bookIds.length : target.bookCount;
+  const count = target.bookCount;
 
   function onConfirm() {
     if (target.kind === "shipment") {
@@ -58,15 +57,15 @@ export function DeliveryReceiveDialog({
       return;
     }
 
-    bulkReceive.mutate(target.bookIds, {
+    receiveShipments.mutate(target.shipmentIds, {
       onError: (error) => toast.error(deliveryErrorText(error)),
       onSuccess: (result) => {
-        const received = result.receivedBookIds.length;
+        const received = result.receivedShipmentIds.length;
         const skipped = result.skipped.length;
         if (skipped > 0) {
-          toast.warning(tToast("receivedPartial", { received, skipped }));
+          toast.warning(tToast("receivedShipmentsPartial", { received, skipped }));
         } else {
-          toast.success(tToast("receivedBulk", { count: received }));
+          toast.success(tToast("receivedShipments", { count: received }));
         }
         onReceived?.();
         onOpenChange(false);
@@ -74,7 +73,7 @@ export function DeliveryReceiveDialog({
     });
   }
 
-  const isPending = bulkReceive.isPending || receiveShipment.isPending;
+  const isPending = receiveShipment.isPending || receiveShipments.isPending;
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>

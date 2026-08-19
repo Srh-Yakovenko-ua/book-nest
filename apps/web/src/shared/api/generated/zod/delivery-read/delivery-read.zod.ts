@@ -608,6 +608,9 @@ export const deliveryReadControllerInTransitListResponseItemsItemOrderItemsCount
 export const deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMin = 0;
 export const deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMax = 9007199254740991;
 
+export const deliveryReadControllerInTransitListResponseItemsItemShipmentActiveItemsCountMin = 0;
+export const deliveryReadControllerInTransitListResponseItemsItemShipmentActiveItemsCountMax = 9007199254740991;
+
 export const deliveryReadControllerInTransitListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerInTransitListResponsePageMax = 9007199254740991;
 
@@ -726,6 +729,13 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
       receivedAt: zod.string().nullable(),
       shipment: zod
         .object({
+          activeItemsCount: zod
+            .int()
+            .min(deliveryReadControllerInTransitListResponseItemsItemShipmentActiveItemsCountMin)
+            .max(deliveryReadControllerInTransitListResponseItemsItemShipmentActiveItemsCountMax)
+            .describe(
+              "How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.",
+            ),
           deliveryService: zod
             .object({
               id: zod.string().nullable(),
@@ -911,6 +921,9 @@ export const deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMa
 export const deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMin = 0;
 export const deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMax = 9007199254740991;
 
+export const deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMin = 0;
+export const deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMax = 9007199254740991;
+
 export const deliveryReadControllerHistoryListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerHistoryListResponsePageMax = 9007199254740991;
 
@@ -1029,6 +1042,13 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
       receivedAt: zod.string().nullable(),
       shipment: zod
         .object({
+          activeItemsCount: zod
+            .int()
+            .min(deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMin)
+            .max(deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMax)
+            .describe(
+              "How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.",
+            ),
           deliveryService: zod
             .object({
               id: zod.string().nullable(),

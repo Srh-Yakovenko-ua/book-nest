@@ -11,12 +11,15 @@ import { toBookOrderItemRowView } from "./order-item-row.mapper.js";
 const CREATED_AT = new Date("2026-03-01T10:00:00.000Z");
 const UPDATED_AT = new Date("2026-03-02T11:30:00.000Z");
 const CANCELLED_AT = new Date("2026-03-06T09:00:00.000Z");
+const RECEIVED_AT = new Date("2026-03-07T09:00:00.000Z");
+const DELETED_AT = new Date("2026-03-05T09:00:00.000Z");
 const ORDER_DATE = new Date("2026-03-04T00:00:00.000Z");
 const TODAY = new Date("2026-03-08T00:00:00.000Z");
 
 const ORDER_ID = "00000000-0000-4000-8000-00000000a001";
 const ITEM_ID = "00000000-0000-4000-8000-00000000a002";
 const SHIPMENT_ID = "00000000-0000-4000-8000-00000000a003";
+const OTHER_SHIPMENT_ID = "00000000-0000-4000-8000-00000000a004";
 const BOOK_ID = "00000000-0000-4000-8000-00000000b001";
 const USER_ID = "00000000-0000-4000-8000-00000000d001";
 
@@ -204,5 +207,38 @@ describe("the order total a row carries covers the whole order, not the page", (
         totalAmount: null,
       }),
     ).toMatchObject({ effectiveTotalAmount: 200, itemsCount: 1, pricedItemsCount: 1 });
+  });
+});
+
+describe("the parcel of a row reports how many books are still on their way", () => {
+  function shipmentView(items: BookOrderItemRowSource["order"]["items"]) {
+    return toBookOrderItemRowView({
+      book: BOOK,
+      row: makeRow({ order: { ...makeRow().order, items } }),
+      today: TODAY,
+    }).shipment;
+  }
+
+  it("counts the books of this parcel, not the books of the whole order", () => {
+    expect(
+      shipmentView([
+        makeOrderItem(),
+        makeOrderItem(),
+        makeOrderItem({ shipmentId: OTHER_SHIPMENT_ID }),
+        makeOrderItem({ shipmentId: null }),
+      ]),
+    ).toMatchObject({ activeItemsCount: 2 });
+  });
+
+  it("leaves the cancelled, the received and the trashed books of the parcel out", () => {
+    expect(
+      shipmentView([
+        makeOrderItem(),
+        makeOrderItem(),
+        makeOrderItem({ cancelledAt: CANCELLED_AT }),
+        makeOrderItem({ receivedAt: RECEIVED_AT }),
+        makeOrderItem({ book: { deletedAt: DELETED_AT } }),
+      ]),
+    ).toMatchObject({ activeItemsCount: 2 });
   });
 });

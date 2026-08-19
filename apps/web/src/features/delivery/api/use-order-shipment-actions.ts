@@ -2,11 +2,12 @@ import type {
   ActiveShipmentStatus,
   CancelShipmentInput,
   CreateShipmentInput,
+  ReceiveShipmentsResultView,
   UpdateBookOrderInput,
   UpdateShipmentInput,
 } from "@app/shared";
 
-import { BookOrderViewSchema } from "@app/shared";
+import { BookOrderViewSchema, ReceiveShipmentsResultViewSchema } from "@app/shared";
 import { useMutation } from "@tanstack/react-query";
 
 import { bookOrdersControllerUpdate } from "@/shared/api/generated/endpoints/book-orders/book-orders";
@@ -16,6 +17,7 @@ import {
   shipmentsControllerMarkInTransit,
   shipmentsControllerMarkReadyForPickup,
   shipmentsControllerMarkReceived,
+  shipmentsControllerReceiveShipments,
   shipmentsControllerUpdateShipment,
 } from "@/shared/api/generated/endpoints/shipments/shipments";
 
@@ -50,6 +52,17 @@ export function useReceiveShipment() {
   return useMutation({
     mutationFn: async (shipmentId: string) =>
       BookOrderViewSchema.parseAsync(await shipmentsControllerMarkReceived(shipmentId)),
+    onSuccess: sync,
+  });
+}
+
+export function useReceiveShipments() {
+  const sync = useDeliverySync();
+  return useMutation({
+    mutationFn: async (shipmentIds: string[]): Promise<ReceiveShipmentsResultView> =>
+      ReceiveShipmentsResultViewSchema.parse(
+        await shipmentsControllerReceiveShipments({ shipmentIds }),
+      ),
     onSuccess: sync,
   });
 }

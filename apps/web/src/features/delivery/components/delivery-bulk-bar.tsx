@@ -6,12 +6,18 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
 type DeliveryBulkBarProps = {
-  count: number;
+  bookCount: number;
   onClear: () => void;
   onReceive: () => void;
+  shipmentCount: number;
 };
 
-export function DeliveryBulkBar({ count, onClear, onReceive }: DeliveryBulkBarProps) {
+export function DeliveryBulkBar({
+  bookCount,
+  onClear,
+  onReceive,
+  shipmentCount,
+}: DeliveryBulkBarProps) {
   const t = useTranslations("delivery.bulk");
 
   return (
@@ -22,8 +28,11 @@ export function DeliveryBulkBar({ count, onClear, onReceive }: DeliveryBulkBarPr
         role="region"
       >
         <div className="flex items-center justify-between gap-2 sm:justify-start">
-          <span className="text-sm font-medium text-ink" role="status">
-            {t("selected", { count })}
+          <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm" role="status">
+            <span className="font-medium text-ink">{t("selected", { count: shipmentCount })}</span>
+            <span className="text-muted-foreground">
+              {t("selectedBooks", { count: bookCount })}
+            </span>
           </span>
           <Button
             className="text-muted-foreground hover:text-foreground sm:hidden"

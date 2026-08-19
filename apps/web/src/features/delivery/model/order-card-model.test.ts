@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import type { DeliveryCardLabels, DeliveryOrderCardModel } from "./order-card-model";
 
-import { toDeliveryOrderCards } from "./order-card-model";
+import { toDeliveryOrderCards, toSelectableShipments } from "./order-card-model";
 
 const locale = "en-US";
 
@@ -87,6 +87,7 @@ function makeShipment(
   overrides: Partial<BookOrderItemRowShipmentView> = {},
 ): BookOrderItemRowShipmentView {
   return {
+    activeItemsCount: 1,
     deliveryService: { id: "service-1", name: "Nova Poshta" },
     expectedDeliveryDate: "2026-07-12",
     id: "shipment-1",
@@ -507,5 +508,80 @@ describe("toDeliveryOrderCards", () => {
     );
 
     expect(firstCard(cards)).toMatchObject({ incompleteTotal: null, totalText: "500 UAH" });
+  });
+});
+
+describe("toSelectableShipments", () => {
+  it("carries the count of books the server still reports as travelling", () => {
+    const cards = toDeliveryOrderCards(
+      [makeRow({ shipment: makeShipment({ activeItemsCount: 4 }) })],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).shipments[0]?.activeItemsCount).toBe(4);
+    expect(toSelectableShipments(cards)).toEqual([{ activeItemsCount: 4, id: "shipment-1" }]);
+  });
+
+  it("counts a cancelled book out of the parcel it was ordered in", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", shipment: makeShipment({ activeItemsCount: 2 }) }),
+        makeRow({
+          book: makeBook({ id: "book-2" }),
+          id: "item-2",
+          shipment: makeShipment({ activeItemsCount: 2 }),
+        }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).shipments[0]?.books).toHaveLength(2);
+    expect(toSelectableShipments(cards)).toEqual([{ activeItemsCount: 2, id: "shipment-1" }]);
+  });
+
+  it("leaves the books that are not in a parcel yet unselectable", () => {
+    const cards = toDeliveryOrderCards([makeRow({ shipment: null })], { labels, locale });
+
+    expect(firstCard(cards).shipments[0]?.id).toBeNull();
+    expect(toSelectableShipments(cards)).toEqual([]);
+  });
+
+  it.each(["received", "cancelled"] as const)("leaves a %s parcel unselectable", (status) => {
+    const cards = toDeliveryOrderCards([makeRow({ shipment: makeShipment({ status }) })], {
+      labels,
+      locale,
+    });
+
+    expect(toSelectableShipments(cards)).toEqual([]);
+  });
+
+  it("offers every active parcel of every order on its own", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({
+          id: "item-1",
+          shipment: makeShipment({ activeItemsCount: 2, id: "shipment-a" }),
+        }),
+        makeRow({
+          book: makeBook({ id: "book-2" }),
+          id: "item-2",
+          shipment: makeShipment({ activeItemsCount: 1, id: "shipment-b", status: "ordered" }),
+        }),
+        makeRow({
+          book: makeBook({ id: "book-3" }),
+          id: "item-3",
+          order: makeOrder({ id: "order-2" }),
+          shipment: makeShipment({ activeItemsCount: 3, id: "shipment-c" }),
+        }),
+        makeRow({ book: makeBook({ id: "book-4" }), id: "item-4", shipment: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(toSelectableShipments(cards)).toEqual([
+      { activeItemsCount: 2, id: "shipment-a" },
+      { activeItemsCount: 1, id: "shipment-b" },
+      { activeItemsCount: 3, id: "shipment-c" },
+    ]);
   });
 });

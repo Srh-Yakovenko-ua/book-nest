@@ -1,3 +1,10 @@
+import type {
+  BookOrderItemRowShipmentView,
+  BookOrderItemRowView,
+  InTransitSummaryView,
+  PaginatedBookOrderItemRows,
+} from "@app/shared";
+
 import type { StatusEntry } from "@/lib/book-status";
 
 import type {
@@ -39,6 +46,108 @@ const badges = {
   },
 } as const satisfies Record<string, StatusEntry>;
 
+export function makeDeliveryInTransitPage(
+  items: BookOrderItemRowView[],
+  overrides: Partial<PaginatedBookOrderItemRows> = {},
+): PaginatedBookOrderItemRows {
+  return {
+    items,
+    page: 1,
+    pagesCount: 1,
+    pageSize: 20,
+    totalCount: items.length,
+    ...overrides,
+  };
+}
+
+export function makeDeliveryInTransitSummary(
+  overrides: Partial<InTransitSummaryView> = {},
+): InTransitSummaryView {
+  return {
+    activeBooksCount: 0,
+    activeBooksTotalByCurrency: [],
+    activeOrdersCount: 0,
+    activeOrdersTotalByCurrency: [],
+    activeShipmentsCount: 0,
+    arrivingSoonCount: 0,
+    attention: [],
+    delayedCount: 0,
+    expectedThisWeekCount: 0,
+    inTransitCount: 0,
+    nextExpectedDelivery: null,
+    nextExpectedThisWeek: null,
+    nextShipment: null,
+    orderedCount: 0,
+    ordersWithKnownTotalCount: 0,
+    readyForPickupCount: 0,
+    splitOrdersCount: 0,
+    uniqueStoresCount: 0,
+    withoutExpectedDateCount: 0,
+    withoutPriceCount: 0,
+    withoutTrackingCount: 0,
+    ...overrides,
+  };
+}
+
+export function makeDeliveryItemRow(
+  overrides: Partial<BookOrderItemRowView> = {},
+): BookOrderItemRowView {
+  return {
+    book: {
+      cover: null,
+      firstAuthorName: "Донна Тартт",
+      genres: [],
+      id: "book-1",
+      originalTitle: null,
+      ownershipStatus: "in_transit",
+      publisher: null,
+      readingStatus: "not_started",
+      series: null,
+      tags: [],
+      title: "Таємна історія",
+    },
+    cancelledAt: null,
+    cancelReason: null,
+    id: "item-1",
+    order: {
+      currency: "UAH",
+      deliveryPrice: null,
+      derivedStatus: "active",
+      discount: null,
+      effectiveTotalAmount: 480,
+      id: "order-1",
+      itemsCount: 1,
+      orderDate: "2026-07-05",
+      orderNumber: "ORD-10241",
+      pricedItemsCount: 1,
+      storeName: "Yakaboo",
+      totalAmount: 480,
+    },
+    price: 480,
+    receivedAt: null,
+    shipment: makeDeliveryItemRowShipment(),
+    uiStatus: null,
+    ...overrides,
+  };
+}
+
+export function makeDeliveryItemRowShipment(
+  overrides: Partial<BookOrderItemRowShipmentView> = {},
+): BookOrderItemRowShipmentView {
+  return {
+    activeItemsCount: 1,
+    deliveryService: { id: "service-1", name: "Нова Пошта" },
+    expectedDeliveryDate: "2026-07-12",
+    id: "shipment-1",
+    note: null,
+    pickupUntil: null,
+    status: "in_transit",
+    trackingNumber: "20450012345678",
+    trackingUrl: "https://tracking.example.com/20450012345678",
+    ...overrides,
+  };
+}
+
 export function makeDeliveryOrderBookModel(
   overrides: Partial<DeliveryOrderBookModel> = {},
 ): DeliveryOrderBookModel {
@@ -79,6 +188,7 @@ export function makeDeliveryShipmentGroupModel(
   overrides: Partial<DeliveryShipmentGroupModel> = {},
 ): DeliveryShipmentGroupModel {
   return {
+    activeItemsCount: 1,
     badge: badges.arrivingSoon,
     books: [makeDeliveryOrderBookModel()],
     expectedDate: "2026-07-12",
@@ -104,6 +214,7 @@ export const deliveryOrderCards = {
     orderNumber: "ORD-10298",
     shipments: [
       makeDeliveryShipmentGroupModel({
+        activeItemsCount: 3,
         badge: badges.inTransit,
         books: [
           makeDeliveryOrderBookModel({
@@ -189,6 +300,7 @@ export const deliveryOrderCards = {
         trackingNumber: "0501234567890",
       }),
       makeDeliveryShipmentGroupModel({
+        activeItemsCount: 2,
         badge: badges.delayed,
         books: [
           makeDeliveryOrderBookModel({
@@ -229,6 +341,7 @@ export const deliveryOrderCards = {
     orderNumber: null,
     shipments: [
       makeDeliveryShipmentGroupModel({
+        activeItemsCount: 0,
         badge: badges.ordered,
         books: [
           makeDeliveryOrderBookModel({
@@ -253,6 +366,7 @@ export const deliveryOrderCards = {
         expectedDateText: null,
         id: null,
         serviceName: null,
+        status: null,
         trackingHref: null,
         trackingNumber: null,
       }),

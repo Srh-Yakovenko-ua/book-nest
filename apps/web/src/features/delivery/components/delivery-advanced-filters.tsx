@@ -28,6 +28,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { BookDateField } from "@/features/books/components/book-date-field";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
@@ -63,10 +64,18 @@ export function DeliveryAdvancedFilters({
 
   const rangeFlags = deliveryRangeFlags(draft);
   const priceIsDisabled = draft.currency.length !== 1;
-  const priceHint = resolvePriceHint(draft.currency);
 
   function patch(next: Partial<DeliveryAdvancedState>) {
     setDraft((prev) => ({ ...prev, ...next }));
+  }
+
+  function pickPricePresence(next: string) {
+    const pricePresence = DELIVERY_PRICE_PRESENCE_VALUES.find((value) => value === next) ?? null;
+    if (pricePresence === "known") {
+      patch({ pricePresence });
+      return;
+    }
+    patch({ priceMax: null, priceMin: null, pricePresence });
   }
 
   return (
@@ -111,18 +120,22 @@ export function DeliveryAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.orderDate")}>
-            <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                aria-label={t("range.from")}
-                onChange={(event) => patch({ orderedFrom: event.target.value })}
-                type="date"
-                value={draft.orderedFrom ?? ""}
+            <div className="grid gap-2.5">
+              <BookDateField
+                ariaLabel={t("range.from")}
+                className="h-9 text-sm"
+                id="delivery-filter-ordered-from"
+                onChange={(value) => patch({ orderedFrom: value ?? null })}
+                placeholder={t("range.from")}
+                value={draft.orderedFrom}
               />
-              <Input
-                aria-label={t("range.to")}
-                onChange={(event) => patch({ orderedTo: event.target.value })}
-                type="date"
-                value={draft.orderedTo ?? ""}
+              <BookDateField
+                ariaLabel={t("range.to")}
+                className="h-9 text-sm"
+                id="delivery-filter-ordered-to"
+                onChange={(value) => patch({ orderedTo: value ?? null })}
+                placeholder={t("range.to")}
+                value={draft.orderedTo}
               />
             </div>
             {rangeFlags.ordered ? (
@@ -171,18 +184,24 @@ export function DeliveryAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.expectedDate")}>
-            <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                aria-label={t("range.from")}
-                onChange={(event) => patch({ expectedFrom: event.target.value })}
-                type="date"
-                value={draft.expectedFrom ?? ""}
+            <div className="grid gap-2.5">
+              <BookDateField
+                allowFuture
+                ariaLabel={t("range.from")}
+                className="h-9 text-sm"
+                id="delivery-filter-expected-from"
+                onChange={(value) => patch({ expectedFrom: value ?? null })}
+                placeholder={t("range.from")}
+                value={draft.expectedFrom}
               />
-              <Input
-                aria-label={t("range.to")}
-                onChange={(event) => patch({ expectedTo: event.target.value })}
-                type="date"
-                value={draft.expectedTo ?? ""}
+              <BookDateField
+                allowFuture
+                ariaLabel={t("range.to")}
+                className="h-9 text-sm"
+                id="delivery-filter-expected-to"
+                onChange={(value) => patch({ expectedTo: value ?? null })}
+                placeholder={t("range.to")}
+                value={draft.expectedTo}
               />
             </div>
             <p className="text-xs text-muted-foreground">{t("expectedDate.hint")}</p>
@@ -221,50 +240,9 @@ export function DeliveryAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.orderTotal")}>
-            <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                aria-label={t("orderTotal.min")}
-                disabled={priceIsDisabled}
-                inputMode="decimal"
-                min={0}
-                onChange={(event) => patch({ priceMin: parseAmountValue(event.target.value) })}
-                onKeyDown={blockNegativeNumberKeys}
-                placeholder={t("range.min")}
-                type="number"
-                value={draft.priceMin ?? ""}
-              />
-              <Input
-                aria-label={t("orderTotal.max")}
-                disabled={priceIsDisabled}
-                inputMode="decimal"
-                min={0}
-                onChange={(event) => patch({ priceMax: parseAmountValue(event.target.value) })}
-                onKeyDown={blockNegativeNumberKeys}
-                placeholder={t("range.max")}
-                type="number"
-                value={draft.priceMax ?? ""}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {priceHint === null ? t("orderTotal.hint") : t(priceHint)}
-            </p>
-            {rangeFlags.price ? (
-              <p className="text-xs text-destructive">{t("range.invalid")}</p>
-            ) : null}
-          </FilterSection>
-
-          <FilterSection title={t("sections.pricePresence")}>
-            <Select
-              onValueChange={(next) =>
-                patch({
-                  pricePresence:
-                    DELIVERY_PRICE_PRESENCE_VALUES.find((value) => value === next) ?? null,
-                })
-              }
-              value={draft.pricePresence ?? ANY_VALUE}
-            >
+            <Select onValueChange={pickPricePresence} value={draft.pricePresence ?? ANY_VALUE}>
               <SelectTrigger
-                aria-label={t("sections.pricePresence")}
+                aria-label={t("sections.orderTotal")}
                 className="w-full data-[size=default]:h-10"
               >
                 <SelectValue />
@@ -278,6 +256,41 @@ export function DeliveryAdvancedFilters({
                 ))}
               </SelectContent>
             </Select>
+
+            {draft.pricePresence === "known" ? (
+              <>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Input
+                    aria-label={t("orderTotal.min")}
+                    disabled={priceIsDisabled}
+                    inputMode="decimal"
+                    min={0}
+                    onChange={(event) => patch({ priceMin: parseAmountValue(event.target.value) })}
+                    onKeyDown={blockNegativeNumberKeys}
+                    placeholder={t("range.min")}
+                    type="number"
+                    value={draft.priceMin ?? ""}
+                  />
+                  <Input
+                    aria-label={t("orderTotal.max")}
+                    disabled={priceIsDisabled}
+                    inputMode="decimal"
+                    min={0}
+                    onChange={(event) => patch({ priceMax: parseAmountValue(event.target.value) })}
+                    onKeyDown={blockNegativeNumberKeys}
+                    placeholder={t("range.max")}
+                    type="number"
+                    value={draft.priceMax ?? ""}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {priceIsDisabled ? t("orderTotal.pickCurrency") : t("orderTotal.hint")}
+                </p>
+                {rangeFlags.price ? (
+                  <p className="text-xs text-destructive">{t("range.invalid")}</p>
+                ) : null}
+              </>
+            ) : null}
           </FilterSection>
         </div>
 
@@ -311,14 +324,6 @@ function parseIntegerValue(raw: string): Nullable<number> {
   if (raw === "") return null;
   const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? null : parsed;
-}
-
-function resolvePriceHint(
-  currency: string[],
-): Nullable<"orderTotal.oneCurrency" | "orderTotal.pickCurrency"> {
-  if (currency.length === 0) return "orderTotal.pickCurrency";
-  if (currency.length > 1) return "orderTotal.oneCurrency";
-  return null;
 }
 
 function toOptions(facet: InTransitFacetEntry[] | undefined, selected: string[]) {

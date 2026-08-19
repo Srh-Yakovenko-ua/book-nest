@@ -5,7 +5,7 @@ import type { ActiveShipmentStatus, InTransitAttentionReason, Nullable } from "@
 import { IN_TRANSIT_ATTENTION_FILTER } from "@app/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
@@ -23,10 +23,11 @@ import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
 import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
+import { useDeliverySelectionStore } from "../model/delivery-selection-store";
 import { toDeliveryAttentionReason, toDeliveryFilterCounts } from "../model/in-transit-params";
 import { buildDeliverySummaryCards } from "../model/in-transit-summary-cards";
 import { buildDeliveryNextShipmentCard } from "../model/next-shipment-card";
-import { toDeliveryOrderCards } from "../model/order-card-model";
+import { toDeliveryOrderCards, toSelectableShipments } from "../model/order-card-model";
 import { useInTransitParams } from "../model/use-in-transit-params";
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
 import { DeliveryBulkBar } from "./delivery-bulk-bar";
@@ -61,8 +62,14 @@ export function DeliveryInTransit() {
   const impactQuery = useInTransitImpact();
   const setShipmentStatus = useSetShipmentStatus();
 
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
-  const [selectionMode, setSelectionMode] = useState(false);
+  const clearSelection = useDeliverySelectionStore((state) => state.clear);
+  const enterSelection = useDeliverySelectionStore((state) => state.enterSelection);
+  const exitSelection = useDeliverySelectionStore((state) => state.exitSelection);
+  const selectAllShipments = useDeliverySelectionStore((state) => state.selectAll);
+  const selectedIds = useDeliverySelectionStore((state) => state.selectedIds);
+  const selectionMode = useDeliverySelectionStore((state) => state.selectionMode);
+  const toggleSelectShipment = useDeliverySelectionStore((state) => state.toggle);
+
   const [editBook, setEditBook] = useState<Nullable<DeliveryOrderBookModel>>(null);
   const [cancelBookId, setCancelBookId] = useState<Nullable<string>>(null);
   const [receiveTarget, setReceiveTarget] = useState<Nullable<DeliveryReceiveTarget>>(null);
@@ -111,23 +118,25 @@ export function DeliveryInTransit() {
   });
   const revealedTarget = reveal.revealed;
 
-  const visibleBookIds = orders.flatMap((order) =>
-    order.shipments.flatMap((group) => group.books.map((book) => book.bookId)),
-  );
-  const selectedVisible = visibleBookIds.filter((id) => selectedIds.has(id));
-  const allVisibleSelected =
-    visibleBookIds.length > 0 && selectedVisible.length === visibleBookIds.length;
-  const selectAllChecked: "indeterminate" | boolean =
-    selectedVisible.length === 0 ? false : allVisibleSelected ? true : "indeterminate";
+  const selectableShipments = toSelectableShipments(orders);
+  const selectableShipmentIdsKey = selectableShipments.map((shipment) => shipment.id).join("\n");
 
-  function toggleSelect(bookId: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(bookId)) next.delete(bookId);
-      else next.add(bookId);
-      return next;
-    });
-  }
+  useEffect(() => {
+    const ids = selectableShipmentIdsKey === "" ? [] : selectableShipmentIdsKey.split("\n");
+    useDeliverySelectionStore.getState().setAvailable(ids);
+  }, [selectableShipmentIdsKey]);
+
+  useEffect(() => () => useDeliverySelectionStore.getState().exitSelection(), []);
+
+  const selectedShipments = selectableShipments.filter((shipment) => selectedIds.has(shipment.id));
+  const allVisibleSelected =
+    selectableShipments.length > 0 && selectedShipments.length === selectableShipments.length;
+  const selectAllChecked: "indeterminate" | boolean =
+    selectedShipments.length === 0 ? false : allVisibleSelected ? true : "indeterminate";
+  const selectedBooksCount = selectedShipments.reduce(
+    (total, shipment) => total + shipment.activeItemsCount,
+    0,
+  );
 
   function changeShipmentStatus(shipmentId: string, status: ActiveShipmentStatus) {
     setShipmentStatus.mutate(
@@ -140,12 +149,8 @@ export function DeliveryInTransit() {
   }
 
   function toggleSelectAll() {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allVisibleSelected) visibleBookIds.forEach((id) => next.delete(id));
-      else visibleBookIds.forEach((id) => next.add(id));
-      return next;
-    });
+    if (allVisibleSelected) clearSelection();
+    else selectAllShipments(selectableShipments.map((shipment) => shipment.id));
   }
 
   const content: DeliveryContent = listQuery.isError
@@ -261,11 +266,11 @@ export function DeliveryInTransit() {
       onReceiveShipment={(shipmentId, bookCount) =>
         setReceiveTarget({ bookCount, kind: "shipment", shipmentId })
       }
-      onToggleSelectBook={toggleSelect}
+      onToggleSelectShipment={toggleSelectShipment}
       preparingEdit={preparingOrderId === model.id}
       revealedOrderId={revealedTarget?.kind === "order" ? revealedTarget.id : null}
       revealedShipmentId={revealedTarget?.kind === "shipment" ? revealedTarget.id : null}
-      selectedBookIds={selectedIds}
+      selectedShipmentIds={selectedIds}
       selectionMode={selectionMode}
     />
   );
@@ -274,43 +279,27 @@ export function DeliveryInTransit() {
     <>
       <DeliveryInTransitView
         bulkBar={
-          selectedVisible.length > 0 ? (
+          selectedShipments.length > 0 ? (
             <DeliveryBulkBar
-              count={selectedVisible.length}
-              onClear={() => setSelectedIds(new Set())}
-              onReceive={() => setReceiveTarget({ bookIds: selectedVisible, kind: "books" })}
+              bookCount={selectedBooksCount}
+              onClear={clearSelection}
+              onReceive={() =>
+                setReceiveTarget({
+                  bookCount: selectedBooksCount,
+                  kind: "shipments",
+                  shipmentIds: selectedShipments.map((shipment) => shipment.id),
+                })
+              }
+              shipmentCount={selectedShipments.length}
             />
           ) : null
         }
         content={content}
         headerActions={
-          <>
-            <Button onClick={() => setCreateOrderOpen(true)}>
-              <UiIcon name="plus" size={16} />
-              {t("actions.addOrder")}
-            </Button>
-            {visibleBookIds.length > 0 ? (
-              <Button
-                onClick={() => {
-                  setSelectionMode((value) => !value);
-                  setSelectedIds(new Set());
-                }}
-                variant="secondary"
-              >
-                <UiIcon name="check" size={16} />
-                {selectionMode ? t("actions.doneSelecting") : t("actions.select")}
-              </Button>
-            ) : null}
-            {visibleBookIds.length > 0 ? (
-              <Button
-                onClick={() => setReceiveTarget({ bookIds: visibleBookIds, kind: "books" })}
-                variant="secondary"
-              >
-                <UiIcon name="check-circle" size={16} />
-                {t("actions.receiveAll")}
-              </Button>
-            ) : null}
-          </>
+          <Button onClick={() => setCreateOrderOpen(true)}>
+            <UiIcon name="plus" size={16} />
+            {t("actions.addOrder")}
+          </Button>
         }
         onGoToBooksToBuy={() => router.push("/books-to-buy")}
         onLoadMore={() => void listQuery.fetchNextPage()}
@@ -322,10 +311,10 @@ export function DeliveryInTransit() {
         }}
         renderCard={renderCard}
         selectAll={
-          selectionMode && visibleBookIds.length > 0
+          selectionMode && selectableShipments.length > 0
             ? {
                 checked: selectAllChecked,
-                count: selectedVisible.length,
+                count: selectedShipments.length,
                 onToggle: toggleSelectAll,
               }
             : undefined
@@ -375,13 +364,20 @@ export function DeliveryInTransit() {
             isPending={listQuery.isPending}
             loadingLabel={t("states.loading")}
             onApplyAdvanced={params.applyAdvanced}
-            onClearAdvanced={params.clearAdvanced}
-            onClearAll={params.clearAll}
+            onClearAll={params.clearFilters}
             onClearSearch={params.clearSearch}
             onFilterChange={params.setFilter}
             onSearch={params.setSearch}
             onSortChange={params.setSort}
             searchValue={params.state.q}
+            selection={
+              selectableShipments.length === 0
+                ? undefined
+                : {
+                    isSelecting: selectionMode,
+                    onToggle: () => (selectionMode ? exitSelection() : enterSelection()),
+                  }
+            }
             sort={params.sort}
           />
         }
@@ -423,7 +419,7 @@ export function DeliveryInTransit() {
           onOpenChange={(open) => {
             if (!open) setReceiveTarget(null);
           }}
-          onReceived={() => setSelectedIds(new Set())}
+          onReceived={clearSelection}
           open
           target={receiveTarget}
         />

@@ -1,9 +1,10 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, ReceiveShipmentsSkipReason } from "@app/shared";
 
 import {
   DELIVERY_ERROR_CODES,
   EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
   isExpectedNotBeforeOrder,
+  ReceiveShipmentsSkipReasonSchema,
 } from "@app/shared";
 
 import type { HttpError } from "../../../core/exceptions/errors.js";
@@ -42,6 +43,8 @@ export const DELIVERY_WRITE_MESSAGES = {
   shipmentNotActive: "This shipment is no longer active",
   shipmentNotFound: "Shipment not found",
 } as const;
+
+const RECEIVE_SHIPMENT_SKIP_REASON = ReceiveShipmentsSkipReasonSchema.enum;
 
 export function assertExpectedDeliveryNotBeforeOrder({
   expectedDeliveryDate,
@@ -126,6 +129,17 @@ export function shipmentNotActiveError(): ConflictError {
   return new ConflictError(DELIVERY_WRITE_MESSAGES.shipmentNotActive, {
     code: DELIVERY_ERROR_CODES.shipmentNotActive,
   });
+}
+
+export function shipmentReceiptSkipError(reason: ReceiveShipmentsSkipReason): HttpError {
+  switch (reason) {
+    case RECEIVE_SHIPMENT_SKIP_REASON.not_active:
+      return shipmentNotActiveError();
+    case RECEIVE_SHIPMENT_SKIP_REASON.not_found:
+      return new NotFoundError(DELIVERY_WRITE_MESSAGES.shipmentNotFound);
+    default:
+      return assertNever(reason);
+  }
 }
 
 export function toActiveOrderItemConflict(error: unknown): unknown {
