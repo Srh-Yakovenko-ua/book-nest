@@ -39,7 +39,7 @@ type ImpactPresentation = {
 };
 
 const DELIVERY_IMPACT_ROW = {
-  goal_books: { href: "/goals", icon: "target" },
+  goal_books: { href: null, icon: "target" },
   queue_available: { href: "/reading-queue", icon: "bookmark" },
   series_completed: { href: null, icon: "library-big" },
   series_next_step: { href: null, icon: "book" },
