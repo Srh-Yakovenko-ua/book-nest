@@ -1,6 +1,5 @@
 import type {
   BookOrderHistoryQuery,
-  BookOrderHistorySummaryQuery,
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
   BookOrderStatisticsQuery,
@@ -97,19 +96,8 @@ export class DeliveryReadService {
     });
   }
 
-  async historySummary({
-    query,
-    userId,
-  }: {
-    query: BookOrderHistorySummaryQuery;
-    userId: string;
-  }): Promise<BookOrderHistorySummaryView> {
-    const data = await this.deliveryReadRepository.historySummary({
-      includeCancelled: query.includeCancelled,
-      userId,
-    });
-
-    return buildOrderHistorySummaryView(data);
+  async historySummary(userId: string): Promise<BookOrderHistorySummaryView> {
+    return buildOrderHistorySummaryView(await this.deliveryReadRepository.historySummary(userId));
   }
 
   async inTransitFacets({ userId }: { userId: string }): Promise<InTransitFacetsView> {
@@ -154,7 +142,6 @@ export class DeliveryReadService {
       priceCurrency: query.priceCurrency,
       priceMax: query.priceMax,
       priceMin: query.priceMin,
-      pricePresence: query.pricePresence,
       search: normalizeSearch(query.search),
       service: query.service,
       store: query.store,

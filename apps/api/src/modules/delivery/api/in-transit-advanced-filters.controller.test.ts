@@ -76,13 +76,15 @@ async function inTransitTitles(query: string): Promise<string[]> {
 
 async function orderWithBook({
   currency,
+  isFree,
   orderDate,
-  price,
+  price = 350,
   storeName,
   title,
   totalAmount,
 }: {
   currency?: "EUR" | "UAH" | "USD";
+  isFree?: boolean;
   orderDate?: string;
   price?: number;
   storeName: string;
@@ -94,9 +96,10 @@ async function orderWithBook({
     accessToken: reader.accessToken,
     app,
     input: {
-      items: [{ bookId, ...(price === undefined ? {} : { price }) }],
+      items: [{ bookId, ...(isFree === true ? {} : { price }) }],
       storeName,
       ...(currency === undefined ? {} : { currency }),
+      ...(isFree === undefined ? {} : { isFree }),
       ...(orderDate === undefined ? {} : { orderDate }),
       ...(totalAmount === undefined ? {} : { totalAmount }),
     },
@@ -149,7 +152,11 @@ async function shipOneOfTwoBooks({
   const order = await createOrder({
     accessToken: reader.accessToken,
     app,
-    input: { items: [{ bookId: shipped }, { bookId: loose }], storeName: "Yakaboo" },
+    input: {
+      items: [{ bookId: shipped }, { bookId: loose }],
+      storeName: "Yakaboo",
+      totalAmount: 500,
+    },
   });
   const item = order.items.find((candidate) => candidate.bookId === shipped);
 
@@ -199,30 +206,40 @@ describe("in-transit store, currency and price dimensions", () => {
     expect(await inTransitTitles("priceMin=500")).toEqual(["Dune", "Neuromancer", "Solaris"]);
   });
 
-  it("counts an order with no resolvable total as having no price", async () => {
-    await orderWithBook({ storeName: "Yakaboo", title: "Roadside Picnic" });
+  it("refuses an order whose total nobody can work out", async () => {
+    const bookId = await createBook({
+      accessToken: reader.accessToken,
+      app,
+      title: "Roadside Picnic",
+    });
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { currency: "UAH", items: [{ bookId }], storeName: "Yakaboo" },
+      path: ORDER_ROUTES.orders,
+    });
 
-    expect(await inTransitTitles("pricePresence=unknown")).toEqual(["Roadside Picnic"]);
-    expect(await inTransitTitles("pricePresence=known")).toEqual([
-      "Dune",
-      "Neuromancer",
-      "Solaris",
-    ]);
+    expect(res.status).toBe(400);
   });
 
-  it("leaves an order whose total is unknown out of the numeric range", async () => {
-    await orderWithBook({ storeName: "Yakaboo", title: "Roadside Picnic" });
+  it("counts a free order at the very bottom of the range", async () => {
+    await orderWithBook({ isFree: true, storeName: "Yakaboo", title: "Free Copy" });
 
-    expect(await inTransitTitles("currency=UAH&priceCurrency=UAH&priceMin=0")).toEqual([
-      "Dune",
-      "Solaris",
-    ]);
+    expect(await inTransitTitles("currency=UAH&priceCurrency=UAH&priceMin=0&priceMax=300")).toEqual(
+      ["Dune", "Free Copy"],
+    );
   });
 
-  it("treats a zero total as a recorded one", async () => {
-    await orderWithBook({ price: 0, storeName: "Yakaboo", title: "Free Copy" });
+  it("refuses a paid order that adds up to nothing", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Free Copy" });
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { currency: "UAH", items: [{ bookId, price: 0 }], storeName: "Yakaboo" },
+      path: ORDER_ROUTES.orders,
+    });
 
-    expect(await inTransitTitles("pricePresence=known")).toContain("Free Copy");
+    expect(res.status).toBe(400);
   });
 
   it("reads the total off the item breakdown, delivery and discount", async () => {
@@ -268,6 +285,7 @@ describe("in-transit order date, book count and delivery dimensions", () => {
       input: {
         items: [{ bookId: first }, { bookId: second }, { bookId: third }],
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
     const cancelled = order.items.find((item) => item.bookId === third);
@@ -290,7 +308,11 @@ describe("in-transit order date, book count and delivery dimensions", () => {
     const order = await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId: first }, { bookId: second }], storeName: "Yakaboo" },
+      input: {
+        items: [{ bookId: first }, { bookId: second }],
+        storeName: "Yakaboo",
+        totalAmount: 500,
+      },
     });
     const shippedItem = order.items.find((item) => item.bookId === first);
     await shipItems({
@@ -350,7 +372,11 @@ describe("in-transit order date, book count and delivery dimensions", () => {
     const split = await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId: first }, { bookId: second }], storeName: "Book24" },
+      input: {
+        items: [{ bookId: first }, { bookId: second }],
+        storeName: "Book24",
+        totalAmount: 500,
+      },
     });
     for (const bookId of [first, second]) {
       const item = split.items.find((candidate) => candidate.bookId === bookId);
@@ -376,7 +402,7 @@ describe("in-transit advanced filters next to the quick ones", () => {
     const order = await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId }], storeName: "Yakaboo" },
+      input: { items: [{ bookId }], storeName: "Yakaboo", totalAmount: 500 },
     });
     const item = order.items.find((candidate) => candidate.bookId === bookId);
     const shipmentId = await shipItems({ itemIds: [item?.id ?? ""], order });

@@ -7,11 +7,7 @@ import type {
   Paginator,
 } from "@app/shared";
 
-import {
-  BookOrderHistoryQuerySchema,
-  BookOrderHistorySummaryQuerySchema,
-  InTransitQuerySchema,
-} from "@app/shared";
+import { BookOrderHistoryQuerySchema, InTransitQuerySchema } from "@app/shared";
 import { Controller, Get, Query } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
@@ -23,7 +19,6 @@ import { READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { DeliveryReadService } from "../application/delivery-read.service.js";
 import { BookOrderHistoryQueryDto } from "./input-dto/book-order-history-query.input-dto.js";
-import { BookOrderHistorySummaryQueryDto } from "./input-dto/book-order-history-summary-query.input-dto.js";
 import { InTransitQueryDto } from "./input-dto/in-transit-query.input-dto.js";
 import { BookOrderHistorySummaryViewDto } from "./view-dto/book-order-history-summary.view-dto.js";
 import { InTransitFacetsViewDto } from "./view-dto/in-transit-facets.view-dto.js";
@@ -94,7 +89,6 @@ export class DeliveryReadController {
   @ApiQuery({ name: "priceCurrency", required: false })
   @ApiQuery({ name: "priceMin", required: false })
   @ApiQuery({ name: "priceMax", required: false })
-  @ApiQuery({ name: "pricePresence", required: false })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
@@ -109,19 +103,14 @@ export class DeliveryReadController {
   }
 
   @ApiOkResponse({
-    description: "Summary metrics for the current user's ordered books",
+    description: "All-time overview of the current user's finished delivery history",
     type: BookOrderHistorySummaryViewDto,
   })
-  @ApiOperation({ summary: "Get summary metrics for the current user's ordered books" })
-  @ApiQuery({ name: "includeCancelled", required: false })
+  @ApiOperation({ summary: "Get the all-time overview of the finished delivery history" })
   @Get("books/history/summary")
   @Throttle(READ_THROTTLE)
-  historySummary(
-    @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodQueryPipe(BookOrderHistorySummaryQuerySchema))
-    query: BookOrderHistorySummaryQueryDto,
-  ): Promise<BookOrderHistorySummaryView> {
-    return this.deliveryReadService.historySummary({ query, userId: user.id });
+  historySummary(@CurrentUser() user: AuthenticatedUser): Promise<BookOrderHistorySummaryView> {
+    return this.deliveryReadService.historySummary(user.id);
   }
 
   @ApiOkResponse({

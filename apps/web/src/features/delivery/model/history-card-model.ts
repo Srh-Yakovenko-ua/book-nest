@@ -33,14 +33,11 @@ export type DeliveryHistoryBook = {
 export type DeliveryHistoryCardModel = {
   badge: StatusEntry;
   book: Nullable<DeliveryHistoryBook>;
-  bookId: string;
   cancelledDateText: Nullable<string>;
   cancelReason: Nullable<string>;
-  deliveryId: string;
   deliveryService: Nullable<string>;
   expectedDateText: Nullable<string>;
   id: string;
-  isActive: boolean;
   note: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
@@ -85,16 +82,13 @@ export function toHistoryCardModel(
             : options.labels.seriesPart({ name: book.series.name, part: book.series.partNumber }),
       title: book.title,
     },
-    bookId: book.id,
     cancelledDateText:
       item.cancelledAt === null ? null : formatDate(item.cancelledAt, options.locale),
     cancelReason: item.cancelReason,
-    deliveryId: item.id,
     deliveryService: shipment?.deliveryService?.name ?? null,
     expectedDateText:
       expectedDeliveryDate === null ? null : formatDate(expectedDeliveryDate, options.locale),
     id: item.id,
-    isActive: item.cancelledAt === null && item.receivedAt === null,
     note: shipment?.note ?? null,
     orderDateText: order.orderDate === null ? null : formatDate(order.orderDate, options.locale),
     orderNumber: order.orderNumber,

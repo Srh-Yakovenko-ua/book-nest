@@ -16,20 +16,21 @@ import {
 
 export const DELIVERY_HISTORY_PAGE_SIZE = 24;
 export const DELIVERY_HISTORY_PANEL_ID = "delivery-history-results";
-export const DELIVERY_HISTORY_TAB_DEFAULT = DeliveryReadControllerHistoryListTab.all;
 export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryReadControllerHistoryListSort.newest_orders;
 
 export const DELIVERY_HISTORY_TABS = [
-  DeliveryReadControllerHistoryListTab.all,
-  DeliveryReadControllerHistoryListTab.active,
   DeliveryReadControllerHistoryListTab.received,
   DeliveryReadControllerHistoryListTab.cancelled,
 ] as const satisfies readonly DeliveryReadControllerHistoryListTab[];
 
+export type DeliveryHistoryTab = (typeof DELIVERY_HISTORY_TABS)[number];
+
+export const DELIVERY_HISTORY_TAB_DEFAULT: DeliveryHistoryTab =
+  DeliveryReadControllerHistoryListTab.received;
+
 export const DELIVERY_HISTORY_SORT_ORDER = Object.values(DeliveryReadControllerHistoryListSort);
 export const DELIVERY_CURRENCY_OPTIONS = Object.values(DeliveryReadControllerHistoryListCurrency);
 
-const tabValues = Object.values(DeliveryReadControllerHistoryListTab);
 const sortValues = Object.values(DeliveryReadControllerHistoryListSort);
 const currencyValues = Object.values(DeliveryReadControllerHistoryListCurrency);
 
@@ -44,7 +45,7 @@ export const deliveryHistoryParsers = {
   service: parseAsString.withDefault(""),
   sort: parseAsStringLiteral(sortValues).withDefault(DELIVERY_HISTORY_SORT_DEFAULT),
   store: parseAsString.withDefault(""),
-  tab: parseAsStringLiteral(tabValues).withDefault(DELIVERY_HISTORY_TAB_DEFAULT),
+  tab: parseAsStringLiteral(DELIVERY_HISTORY_TABS).withDefault(DELIVERY_HISTORY_TAB_DEFAULT),
   to: parseAsString.withDefault(""),
 };
 
@@ -53,7 +54,7 @@ export type DeliveryHistoryListParams = Omit<DeliveryReadControllerHistoryListPa
 export type DeliveryHistoryQueryState = inferParserType<typeof deliveryHistoryParsers>;
 
 export function hasActiveHistoryFilters(state: DeliveryHistoryQueryState): boolean {
-  return state.tab !== DELIVERY_HISTORY_TAB_DEFAULT || historyFilterCount(state) > 0;
+  return historyFilterCount(state) > 0;
 }
 
 export function hasActiveHistorySearch(state: DeliveryHistoryQueryState): boolean {
@@ -73,6 +74,10 @@ export function historyFilterCount(state: DeliveryHistoryQueryState): number {
     state.hasTrackingUrl !== null,
   ];
   return flags.filter(Boolean).length;
+}
+
+export function isKnownHistoryTab(value: string): boolean {
+  return DELIVERY_HISTORY_TABS.some((tab) => tab === value);
 }
 
 export function toDeliveryHistoryListParams(

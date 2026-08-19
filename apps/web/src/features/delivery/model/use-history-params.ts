@@ -1,19 +1,23 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useQueryStates } from "nuqs";
+import { useEffect } from "react";
+
+import type { DeliveryReadControllerHistoryListSort } from "@/shared/api/generated/model";
 
 import type {
-  DeliveryReadControllerHistoryListSort,
-  DeliveryReadControllerHistoryListTab,
-} from "@/shared/api/generated/model";
-
-import type { DeliveryHistoryListParams, DeliveryHistoryQueryState } from "./history-params";
+  DeliveryHistoryListParams,
+  DeliveryHistoryQueryState,
+  DeliveryHistoryTab,
+} from "./history-params";
 
 import {
   deliveryHistoryParsers,
   hasActiveHistoryFilters,
   hasActiveHistorySearch,
   historyFilterCount,
+  isKnownHistoryTab,
   toDeliveryHistoryListParams,
 } from "./history-params";
 
@@ -43,14 +47,20 @@ export type UseHistoryParamsResult = {
   setFilters: (patch: HistoryFilterPatch) => void;
   setSearch: (value: string) => void;
   setSort: (value: DeliveryReadControllerHistoryListSort) => void;
-  setTab: (value: DeliveryReadControllerHistoryListTab) => void;
+  setTab: (value: DeliveryHistoryTab) => void;
   sort: DeliveryReadControllerHistoryListSort;
   state: DeliveryHistoryQueryState;
-  tab: DeliveryReadControllerHistoryListTab;
+  tab: DeliveryHistoryTab;
 };
 
 export function useHistoryParams(): UseHistoryParamsResult {
   const [state, setState] = useQueryStates(deliveryHistoryParsers);
+  const rawTab = useSearchParams().get("tab");
+  const hasRetiredTab = rawTab !== null && !isKnownHistoryTab(rawTab);
+
+  useEffect(() => {
+    if (hasRetiredTab) void setState({ tab: null });
+  }, [hasRetiredTab, setState]);
 
   return {
     clearAll: () =>
@@ -64,7 +74,6 @@ export function useHistoryParams(): UseHistoryParamsResult {
         q: null,
         service: null,
         store: null,
-        tab: null,
         to: null,
       }),
     clearFilters: () =>

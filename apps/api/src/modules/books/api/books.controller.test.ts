@@ -837,7 +837,7 @@ describe("POST /api/books", () => {
 
     const res = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", orderNumber: "TTN-1", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });

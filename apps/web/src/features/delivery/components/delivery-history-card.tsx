@@ -9,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -19,19 +18,9 @@ import type { DeliveryHistoryCardModel } from "../model/history-card-model";
 
 type DeliveryHistoryCardProps = {
   model: DeliveryHistoryCardModel;
-  onCancel: () => void;
-  onEdit: () => void;
-  onReceive: () => void;
-  receivePending: boolean;
 };
 
-export function DeliveryHistoryCard({
-  model,
-  onCancel,
-  onEdit,
-  onReceive,
-  receivePending,
-}: DeliveryHistoryCardProps) {
+export function DeliveryHistoryCard({ model }: DeliveryHistoryCardProps) {
   const t = useTranslations("delivery.card");
   const tHistory = useTranslations("delivery.history.card");
   const tCommon = useTranslations("common");
@@ -94,40 +83,11 @@ export function DeliveryHistoryCard({
                 </a>
               </DropdownMenuItem>
             )}
-            {model.isActive ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onEdit}>
-                  <UiIcon name="edit" size={16} />
-                  {t("edit")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={onReceive}>
-                  <UiIcon name="check-circle" size={16} />
-                  {t("receive")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={onCancel} variant="destructive">
-                  <UiIcon name="x-circle" size={16} />
-                  {t("cancel")}
-                </DropdownMenuItem>
-              </>
-            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <HistoryDetails model={model} />
-
-      {model.isActive ? (
-        <Button
-          className="w-full"
-          disabled={receivePending}
-          loading={receivePending}
-          onClick={onReceive}
-        >
-          <UiIcon name="check-circle" size={16} />
-          {t("receive")}
-        </Button>
-      ) : null}
     </article>
   );
 }

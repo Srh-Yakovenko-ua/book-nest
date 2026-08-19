@@ -1,8 +1,14 @@
-import type { BookOrderView, CreateBookOrderInput } from "@app/shared";
+import type { BookOrderView } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
+import type { z } from "zod";
 
+import { CreateBookOrderInputSchema, DEFAULT_CURRENCY } from "@app/shared";
 import { addDays, endOfWeek, format, startOfMonth, subMonths } from "date-fns";
 import request from "supertest";
+
+export type CreateOrderPayload = Omit<z.input<typeof CreateBookOrderInputSchema>, "currency"> & {
+  currency?: z.input<typeof CreateBookOrderInputSchema>["currency"];
+};
 
 type AuthedApp = {
   accessToken: string;
@@ -65,8 +71,13 @@ export async function createOrder({
   accessToken,
   app,
   input,
-}: AuthedApp & { input: CreateBookOrderInput }): Promise<BookOrderView> {
-  const res = await postJson({ accessToken, app, body: input, path: ORDER_ROUTES.orders });
+}: AuthedApp & { input: CreateOrderPayload }): Promise<BookOrderView> {
+  const res = await postJson({
+    accessToken,
+    app,
+    body: { currency: DEFAULT_CURRENCY, ...input },
+    path: ORDER_ROUTES.orders,
+  });
   if (typeof res.body.id !== "string") {
     throw new Error(`order creation failed with status ${res.status}: ${JSON.stringify(res.body)}`);
   }

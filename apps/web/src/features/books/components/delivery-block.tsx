@@ -83,8 +83,9 @@ export function DeliveryBlock({ book }: DeliveryBlockProps) {
             open={editOpen}
           />
           <CancelDeliveryDialog
-            book={book}
-            delivery={active}
+            bookId={book.id}
+            bookTitle={book.title}
+            deliveryId={active.id}
             onOpenChange={setCancelOpen}
             open={cancelOpen}
           />

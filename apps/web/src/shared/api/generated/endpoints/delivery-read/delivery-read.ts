@@ -21,7 +21,6 @@ import type {
 import type {
   BookOrderHistorySummaryViewDto,
   DeliveryReadControllerHistoryListParams,
-  DeliveryReadControllerHistorySummaryParams,
   DeliveryReadControllerInTransitListParams,
   InTransitFacetsViewDto,
   InTransitImpactViewDto,
@@ -792,33 +791,18 @@ export type deliveryReadControllerHistorySummaryResponse =
   | deliveryReadControllerHistorySummaryResponseSuccess
   | deliveryReadControllerHistorySummaryResponseError;
 
-export const getDeliveryReadControllerHistorySummaryUrl = (
-  params?: DeliveryReadControllerHistorySummaryParams,
-) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/delivery/books/history/summary?${stringifiedParams}`
-    : `/api/delivery/books/history/summary`;
+export const getDeliveryReadControllerHistorySummaryUrl = () => {
+  return `/api/delivery/books/history/summary`;
 };
 
 /**
- * @summary Get summary metrics for the current user's ordered books
+ * @summary Get the all-time overview of the finished delivery history
  */
 export const deliveryReadControllerHistorySummary = async (
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<deliveryReadControllerHistorySummaryResponse> => {
   return customInstance<deliveryReadControllerHistorySummaryResponse>(
-    getDeliveryReadControllerHistorySummaryUrl(params),
+    getDeliveryReadControllerHistorySummaryUrl(),
     {
       ...options,
       method: "GET",
@@ -826,36 +810,26 @@ export const deliveryReadControllerHistorySummary = async (
   );
 };
 
-export const getDeliveryReadControllerHistorySummaryQueryKey = (
-  params?: DeliveryReadControllerHistorySummaryParams,
-) => {
-  return [`/api/delivery/books/history/summary`, ...(params ? [params] : [])] as const;
+export const getDeliveryReadControllerHistorySummaryQueryKey = () => {
+  return [`/api/delivery/books/history/summary`] as const;
 };
 
 export const getDeliveryReadControllerHistorySummaryQueryOptions = <
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
->(
-  params?: DeliveryReadControllerHistorySummaryParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getDeliveryReadControllerHistorySummaryQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerHistorySummaryQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>
-  > = ({ signal }) => deliveryReadControllerHistorySummary(params, { signal, ...requestOptions });
+  > = ({ signal }) => deliveryReadControllerHistorySummary({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
@@ -873,7 +847,6 @@ export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params: undefined | DeliveryReadControllerHistorySummaryParams,
   options: {
     query: Partial<
       UseQueryOptions<
@@ -898,7 +871,6 @@ export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -923,7 +895,6 @@ export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -937,14 +908,13 @@ export function useDeliveryReadControllerHistorySummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get summary metrics for the current user's ordered books
+ * @summary Get the all-time overview of the finished delivery history
  */
 
 export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -957,7 +927,7 @@ export function useDeliveryReadControllerHistorySummary<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getDeliveryReadControllerHistorySummaryQueryOptions(params, options);
+  const queryOptions = getDeliveryReadControllerHistorySummaryQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

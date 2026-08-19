@@ -4,20 +4,6 @@ import type { StatusEntry } from "@/lib/book-status";
 
 import type { DeliveryHistoryCardModel } from "../model/history-card-model";
 
-const orderedBadge: StatusEntry = {
-  icon: "package",
-  label: "Замовлено",
-  tone: "neutral",
-  value: "ordered",
-};
-
-const inTransitBadge: StatusEntry = {
-  icon: "truck",
-  label: "В дорозі",
-  tone: "info",
-  value: "in_transit",
-};
-
 const receivedBadge: StatusEntry = {
   icon: "check-circle",
   label: "Отримано",
@@ -43,14 +29,11 @@ export function makeHistoryCardModel(
       seriesText: null,
       title: "Таємна історія",
     },
-    bookId: "1",
     cancelledDateText: null,
     cancelReason: null,
-    deliveryId: "d1",
     deliveryService: "Нова Пошта",
     expectedDateText: "12 лип. 2026",
     id: "1",
-    isActive: false,
     note: null,
     orderDateText: "5 лип. 2026",
     orderNumber: "ORD-10241",
@@ -64,13 +47,7 @@ export function makeHistoryCardModel(
 }
 
 export const historyCardModels: DeliveryHistoryCardModel[] = [
-  makeHistoryCardModel({
-    badge: inTransitBadge,
-    bookId: "1",
-    id: "1",
-    isActive: true,
-    receivedDateText: null,
-  }),
+  makeHistoryCardModel({ id: "1" }),
   makeHistoryCardModel({
     badge: receivedBadge,
     book: {
@@ -79,7 +56,6 @@ export const historyCardModels: DeliveryHistoryCardModel[] = [
       seriesText: "Нічний цирк · том 1",
       title: "Нічний цирк",
     },
-    bookId: "2",
     id: "2",
     priceText: "35 EUR",
     storeName: "Book Depository",
@@ -94,7 +70,6 @@ export const historyCardModels: DeliveryHistoryCardModel[] = [
       seriesText: null,
       title: "Імʼя вітру",
     },
-    bookId: "3",
     cancelledDateText: "10 лип. 2026",
     cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
     expectedDateText: null,
@@ -107,11 +82,11 @@ export const historyCardModels: DeliveryHistoryCardModel[] = [
     trackingNumber: null,
   }),
   makeHistoryCardModel({
-    badge: orderedBadge,
+    badge: cancelledBadge,
     book: null,
-    bookId: "4",
+    cancelledDateText: "2 лип. 2026",
+    expectedDateText: null,
     id: "4",
-    isActive: false,
     priceText: "520 UAH",
     receivedDateText: null,
     storeName: "Yakaboo",

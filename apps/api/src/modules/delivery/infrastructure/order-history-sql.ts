@@ -5,7 +5,7 @@ import { ShipmentStatusSchema } from "@app/shared";
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { currencySql } from "./in-transit-sql.js";
+import { currencySql, ORDER_EFFECTIVE_TOTAL_SQL } from "./in-transit-sql.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 
@@ -44,7 +44,7 @@ export type HistoryFilterInput = {
 const HISTORY_ORDER_SQL: Record<BookOrderHistorySort, Prisma.Sql> = {
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
   oldest_orders: Prisma.sql`book_order.order_date ASC NULLS LAST`,
-  price: Prisma.sql`item.price DESC NULLS LAST`,
+  price: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} DESC NULLS LAST, book_order.id ASC`,
   recently_updated: Prisma.sql`GREATEST(
     item.updated_at,
     book_order.updated_at,
@@ -110,11 +110,11 @@ export function buildHistoryConditions({
   }
 
   if (priceMin !== undefined) {
-    conditions.push(Prisma.sql`item.price >= ${priceMin}`);
+    conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} >= ${priceMin}`);
   }
 
   if (priceMax !== undefined) {
-    conditions.push(Prisma.sql`item.price <= ${priceMax}`);
+    conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} <= ${priceMax}`);
   }
 
   if (hasTrackingNumber !== undefined) {

@@ -529,7 +529,7 @@ describe("BooksService.create", () => {
     await service.create(
       USER_ID,
       minimalCreateInput({
-        deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
+        deliveryInfo: { currency: "UAH", orderNumber: "TTN-1", price: 350, storeName: "Yakaboo" },
         ownershipStatus: "in_transit",
       }),
     );
@@ -544,14 +544,15 @@ describe("BooksService.create", () => {
       {
         bookId: BOOK_ID,
         draft: {
-          currency: null,
+          currency: "UAH",
           deliveryService: null,
           expectedDeliveryDate: null,
           hasShipment: true,
+          isFree: false,
           note: null,
           orderDate: null,
           orderNumber: "TTN-1",
-          price: null,
+          price: 350,
           status: "ordered",
           storeName: "Yakaboo",
           trackingNumber: null,

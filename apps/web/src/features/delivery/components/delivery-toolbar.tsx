@@ -22,6 +22,7 @@ import { LibraryActiveFilters } from "@/features/books/components/library-active
 import type { DeliveryAdvancedState, DeliveryFilterCounts } from "../model/in-transit-params";
 
 import {
+  canSortByOrderTotal,
   DELIVERY_PRIMARY_FILTERS,
   DELIVERY_SORT_DEFAULT,
   DELIVERY_SORT_ORDER,
@@ -87,6 +88,8 @@ export function DeliveryToolbar({
     value,
   }));
 
+  const sortByTotalHint = canSortByOrderTotal(advanced) ? undefined : tSort("pickOneCurrency");
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -96,6 +99,7 @@ export function DeliveryToolbar({
         <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-2.5">
           <DeliverySortSheet
             className="sm:hidden"
+            disabledSortHint={sortByTotalHint}
             label={tSort("label")}
             onChange={onSortChange}
             value={sort}
@@ -138,8 +142,17 @@ export function DeliveryToolbar({
               </SelectTrigger>
               <SelectContent>
                 {DELIVERY_SORT_ORDER.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {tSort(`options.${value}`)}
+                  <SelectItem
+                    disabled={value === "price" && sortByTotalHint !== undefined}
+                    key={value}
+                    value={value}
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      {tSort(`options.${value}`)}
+                      {value === "price" && sortByTotalHint !== undefined ? (
+                        <span className="text-xs text-muted-foreground">{sortByTotalHint}</span>
+                      ) : null}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

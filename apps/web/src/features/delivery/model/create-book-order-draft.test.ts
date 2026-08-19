@@ -12,7 +12,7 @@ const BOOK_2 = "22222222-2222-4222-8222-222222222222";
 const BOOK_3 = "33333333-3333-4333-8333-333333333333";
 
 function makeOrder() {
-  return { ...EMPTY_ORDER, storeName: "Yakaboo" };
+  return { ...EMPTY_ORDER, storeName: "Yakaboo", totalAmount: "480" };
 }
 
 describe("toCreateBookOrderInput", () => {
@@ -26,6 +26,24 @@ describe("toCreateBookOrderInput", () => {
     expect(CreateBookOrderInputSchema.safeParse(payload).success).toBe(true);
     expect(payload).toEqual({
       currency: "UAH",
+      isFree: false,
+      items: [{ bookId: BOOK_1 }],
+      storeName: "Yakaboo",
+      totalAmount: 480,
+    });
+  });
+
+  it("sends a free order with no amounts at all", () => {
+    const payload = toCreateBookOrderInput({
+      books: [{ bookId: BOOK_1, price: "320" }],
+      order: { ...makeOrder(), deliveryPrice: "70", isFree: true, totalAmount: "480" },
+      shipments: [],
+    });
+
+    expect(CreateBookOrderInputSchema.safeParse(payload).success).toBe(true);
+    expect(payload).toEqual({
+      currency: "UAH",
+      isFree: true,
       items: [{ bookId: BOOK_1 }],
       storeName: "Yakaboo",
     });

@@ -110,7 +110,8 @@ describe("CreateBookOrderDialog book picker view", () => {
     expect(screen.getByRole("button", { name: "Скасувати" })).toBeVisible();
     expect(screen.getByText(/Книги ще не прив’язані до посилки/)).toBeVisible();
     expect(screen.queryByText("(необовʼязково)")).not.toBeInTheDocument();
-    expect(screen.getByText("*")).toBeVisible();
+    expect(screen.getAllByText("*")).not.toHaveLength(0);
+    expect(screen.getByText("Отримано безкоштовно")).toBeVisible();
   });
 
   it("keeps one dialog, form data and selection across view changes", async () => {

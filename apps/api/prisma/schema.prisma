@@ -366,6 +366,7 @@ model BookOrder {
   totalAmount   Decimal?        @map("total_amount") @db.Decimal(10, 2)
   deliveryPrice Decimal?        @map("delivery_price") @db.Decimal(10, 2)
   discount      Decimal?        @db.Decimal(10, 2)
+  isFree        Boolean         @default(false) @map("is_free")
   note          String?
   createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz

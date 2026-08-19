@@ -54,6 +54,7 @@ import {
 } from "./lists.js";
 import { LoanInfoViewSchema, LoanNoteSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
+import { validateOrderInvariant } from "./order-financials.js";
 import { LOAN_REMINDER_LEAD_DAYS } from "./profile.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
@@ -283,10 +284,11 @@ export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
 
 export const DeliveryInfoInputSchema = z
   .object({
-    currency: CurrencySchema.nullable().optional(),
+    currency: CurrencySchema.optional(),
     deliveryService: DeliveryServiceSchema.nullable().optional(),
     deliveryStatus: ActiveShipmentStatusSchema.optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
+    isFree: z.boolean().optional(),
     isShipped: z.boolean().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
@@ -306,9 +308,10 @@ export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 export const CreateDeliveryInputSchema = z
   .object({
-    currency: CurrencySchema.optional(),
+    currency: CurrencySchema,
     deliveryService: DeliveryServiceSchema.optional(),
     expectedDeliveryDate: z.iso.date().optional(),
+    isFree: z.boolean().default(false),
     note: OwnershipNoteSchema.optional(),
     orderDate: notInFutureDate("Order date must not be in the future"),
     orderNumber: OwnershipOrderNumberSchema.optional(),
@@ -320,15 +323,26 @@ export const CreateDeliveryInputSchema = z
   .refine(isExpectedNotBeforeOrder, {
     error: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
     path: ["expectedDeliveryDate"],
+  })
+  .superRefine((delivery, context) => {
+    const validation = validateOrderInvariant({
+      currency: delivery.currency,
+      isFree: delivery.isFree,
+      itemPrices: [delivery.price ?? null],
+    });
+    if (validation.error !== null) {
+      context.addIssue({ code: "custom", message: validation.error, path: ["price"] });
+    }
   });
 
 export type CreateDeliveryInput = z.infer<typeof CreateDeliveryInputSchema>;
 
 export const UpdateDeliveryInputSchema = z
   .object({
-    currency: CurrencySchema.nullable().optional(),
+    currency: CurrencySchema.optional(),
     deliveryService: DeliveryServiceSchema.nullable().optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
+    isFree: z.boolean().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),

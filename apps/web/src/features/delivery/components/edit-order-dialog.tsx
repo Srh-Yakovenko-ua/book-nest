@@ -3,11 +3,13 @@
 import type { BookOrderView, Currency, Nullable } from "@app/shared";
 import type { FormEvent, ReactNode } from "react";
 
-import { ORDER_FINANCIAL_MESSAGES, validateOrderFinancials } from "@app/shared";
+import { ORDER_FINANCIAL_MESSAGES, validateOrderInvariant } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -41,6 +43,15 @@ import {
 
 const CURRENCIES = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
 const MONEY_STEP = "1";
+const COST_ERROR_KEY = {
+  [ORDER_FINANCIAL_MESSAGES.currencyRequired]: "currencyRequired",
+  [ORDER_FINANCIAL_MESSAGES.freeOrderCarriesAmounts]: "freeWithAmounts",
+  [ORDER_FINANCIAL_MESSAGES.mismatch]: "negativeAmount",
+  [ORDER_FINANCIAL_MESSAGES.negativeAmount]: "negativeAmount",
+  [ORDER_FINANCIAL_MESSAGES.negativeTotal]: "negativeTotal",
+  [ORDER_FINANCIAL_MESSAGES.paidOrderNeedsPositiveTotal]: "positiveTotal",
+  [ORDER_FINANCIAL_MESSAGES.unknownTotal]: "totalRequired",
+} as const;
 
 export function EditOrderDialog({
   onOpenChange,
@@ -89,39 +100,47 @@ function EditOrderForm({
   const [currency, setCurrency] = useState<"" | Currency>(order.currency ?? "");
   const [deliveryPrice, setDeliveryPrice] = useState(moneyText(order.deliveryPrice));
   const [discount, setDiscount] = useState(moneyText(order.discount));
+  const [isFree, setIsFree] = useState(order.isFree);
   const [totalAmount, setTotalAmount] = useState(moneyText(order.totalAmount));
 
-  const itemPrices = order.items.map((item) => item.price);
+  const itemPrices = isFree ? [] : order.items.map((item) => item.price);
   const isTotalCalculated = itemPrices.length > 0 && itemPrices.every((price) => price !== null);
-  const submittedTotalAmount = isTotalCalculated ? null : optionalMoney(totalAmount);
-  const check = validateOrderFinancials({
-    deliveryPrice: optionalMoney(deliveryPrice),
-    discount: optionalMoney(discount),
+  const submittedTotalAmount = isFree || isTotalCalculated ? null : optionalMoney(totalAmount);
+  const check = validateOrderInvariant({
+    currency: currency === "" ? null : currency,
+    deliveryPrice: isFree ? null : optionalMoney(deliveryPrice),
+    discount: isFree ? null : optionalMoney(discount),
+    isFree,
     itemPrices,
     totalAmount: submittedTotalAmount,
   });
   const financials = check.summary;
   const trimmedStoreName = storeName.trim();
-  const costError =
-    check.error === null
-      ? null
-      : check.error === ORDER_FINANCIAL_MESSAGES.negativeTotal
-        ? t("negativeTotal")
-        : t("negativeAmount");
+  const costError = check.error === null ? null : t(COST_ERROR_KEY[check.error]);
+
+  function toggleFree(next: boolean) {
+    setIsFree(next);
+    if (!next) return;
+    setDeliveryPrice("");
+    setDiscount("");
+    setTotalAmount("");
+  }
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (trimmedStoreName === "" || costError !== null) return;
+    if (currency === "") return;
     mutation.mutate(
       {
-        currency: currency === "" ? null : currency,
-        deliveryPrice: optionalMoney(deliveryPrice),
-        discount: optionalMoney(discount),
+        currency,
+        deliveryPrice: isFree ? null : optionalMoney(deliveryPrice),
+        discount: isFree ? null : optionalMoney(discount),
+        isFree,
         note: note.trim() || null,
         orderDate: orderDate || null,
         orderNumber: orderNumber.trim() || null,
         storeName: trimmedStoreName,
-        ...(isTotalCalculated ? {} : { totalAmount: submittedTotalAmount }),
+        ...(isFree || isTotalCalculated ? {} : { totalAmount: submittedTotalAmount }),
       },
       mutationCallbacks(t("orderUpdated"), deliveryErrorText, onOpenChange),
     );
@@ -166,6 +185,17 @@ function EditOrderForm({
         </Group>
 
         <Group title={t("costSection")}>
+          <Label className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 font-normal">
+            <Checkbox
+              checked={isFree}
+              className="mt-0.5"
+              onCheckedChange={(checked) => toggleFree(checked === true)}
+            />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-medium text-ink">{t("free")}</span>
+              <span className="text-xs text-muted-foreground">{t("freeHint")}</span>
+            </span>
+          </Label>
           <div className="grid gap-4 sm:grid-cols-2">
             <Labeled htmlFor="edit-order-currency" label={t("currency")}>
               <Select onValueChange={(value) => setCurrency(value as Currency)} value={currency}>
@@ -181,7 +211,7 @@ function EditOrderForm({
                 </SelectContent>
               </Select>
             </Labeled>
-            {isTotalCalculated ? null : (
+            {isFree || isTotalCalculated ? null : (
               <MoneyField
                 id="edit-order-total"
                 label={t("total")}
@@ -189,23 +219,31 @@ function EditOrderForm({
                 value={totalAmount}
               />
             )}
-            <MoneyField
-              id="edit-order-delivery-price"
-              label={t("deliveryPrice")}
-              onChange={setDeliveryPrice}
-              value={deliveryPrice}
-            />
-            <MoneyField
-              id="edit-order-discount"
-              label={t("discount")}
-              onChange={setDiscount}
-              value={discount}
-            />
+            {isFree ? null : (
+              <>
+                <MoneyField
+                  id="edit-order-delivery-price"
+                  label={t("deliveryPrice")}
+                  onChange={setDeliveryPrice}
+                  value={deliveryPrice}
+                />
+                <MoneyField
+                  id="edit-order-discount"
+                  label={t("discount")}
+                  onChange={setDiscount}
+                  value={discount}
+                />
+              </>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {isTotalCalculated ? t("calculatedTotalHint") : t("manualTotalHint")}
+            {isFree
+              ? t("freeSummary")
+              : isTotalCalculated
+                ? t("calculatedTotalHint")
+                : t("manualTotalHint")}
           </p>
-          {isTotalCalculated ? (
+          {!isFree && isTotalCalculated ? (
             <div className="grid gap-1.5 rounded-lg bg-secondary/30 px-3 py-2.5 text-sm">
               <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
                 {t("summary")}

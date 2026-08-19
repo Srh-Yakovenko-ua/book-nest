@@ -4,6 +4,7 @@ import { BookOrderViewSchema } from "@app/shared";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser, AuthTestContext } from "../../../test/auth-test-context.js";
+import type { CreateOrderPayload } from "./book-order.fixtures.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
@@ -20,6 +21,7 @@ import {
   isoDay,
   ORDER_ROUTES,
   ownershipOf,
+  patchJson,
   postJson,
   shipmentOf,
 } from "./book-order.fixtures.js";
@@ -60,6 +62,150 @@ async function countRows(userId: string): Promise<{
   ]);
   return { items, orders, shipments };
 }
+
+describe("POST /api/delivery/orders under the order invariant", () => {
+  it("refuses an order whose books carry no price and no total", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Unpriced" });
+
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { currency: "UAH", items: [{ bookId }], storeName: "Yakaboo" },
+      path: ORDER_ROUTES.orders,
+    });
+
+    expect(res.status).toBe(400);
+    await expect(countRows(reader.userId)).resolves.toMatchObject({ orders: 0 });
+  });
+
+  it("refuses an order that names no currency", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "No Currency" });
+
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { items: [{ bookId, price: 350 }], storeName: "Yakaboo" },
+      path: ORDER_ROUTES.orders,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("stores a free order at a canonical total of zero", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Review Copy" });
+
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: { currency: "UAH", isFree: true, items: [{ bookId }], storeName: "Yakaboo" },
+    });
+
+    expect(BookOrderViewSchema.parse(order)).toMatchObject({
+      isFree: true,
+      items: [{ bookId, price: null }],
+      totalAmount: 0,
+    });
+  });
+
+  it("refuses a free order that still carries an amount", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Not Free" });
+
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: {
+        currency: "UAH",
+        isFree: true,
+        items: [{ bookId, price: 350 }],
+        storeName: "Yakaboo",
+      },
+      path: ORDER_ROUTES.orders,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("keeps free books with a paid delivery on the ordinary paid path", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Free Book" });
+
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        currency: "UAH",
+        deliveryPrice: 80,
+        items: [{ bookId, price: 0 }],
+        storeName: "Yakaboo",
+      },
+    });
+
+    expect(order).toMatchObject({ isFree: false, totalAmount: 80 });
+  });
+});
+
+describe("PATCH /api/delivery/orders/:orderId under the order invariant", () => {
+  it("drops every book price when the reader marks a paid order free", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Gifted" });
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        currency: "UAH",
+        deliveryPrice: 80,
+        items: [{ bookId, price: 350 }],
+        storeName: "Yakaboo",
+      },
+    });
+
+    const res = await patchJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { isFree: true },
+      path: ORDER_ROUTES.order(order.id),
+    });
+
+    expect(res.status).toBe(200);
+    expect(BookOrderViewSchema.parse(res.body)).toMatchObject({
+      deliveryPrice: null,
+      discount: null,
+      isFree: true,
+      items: [{ bookId, price: null }],
+      totalAmount: 0,
+    });
+  });
+
+  it("refuses an update that would leave the order without a total", async () => {
+    const bookIds = await createBooks({
+      accessToken: reader.accessToken,
+      app,
+      titles: ["Priced", "Unpriced"],
+    });
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        currency: "UAH",
+        items: [{ bookId: bookIds[0] ?? "", price: 350 }, { bookId: bookIds[1] ?? "" }],
+        storeName: "Yakaboo",
+        totalAmount: 700,
+      },
+    });
+
+    const res = await patchJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { totalAmount: null },
+      path: ORDER_ROUTES.order(order.id),
+    });
+
+    expect(res.status).toBe(400);
+    await expect(
+      getJson({ accessToken: reader.accessToken, app, path: ORDER_ROUTES.order(order.id) }).then(
+        (kept) => kept.body.totalAmount,
+      ),
+    ).resolves.toBe(700);
+  });
+});
 
 describe("POST /api/delivery/orders", () => {
   it("puts one book and one parcel under a single order", async () => {
@@ -190,6 +336,7 @@ describe("POST /api/delivery/orders", () => {
         orderDate: isoDay(0),
         shipments: [{ bookIds: [bookIds[0] ?? ""], status: "in_transit" }],
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
 
@@ -200,11 +347,13 @@ describe("POST /api/delivery/orders", () => {
 
   it("refuses to order a book that is already on its way", async () => {
     const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Dune" });
-    const input = {
+    const input: CreateOrderPayload = {
+      currency: "UAH",
       items: [{ bookId }],
       orderDate: isoDay(0),
       shipments: [{ bookIds: [bookId] }],
       storeName: "Yakaboo",
+      totalAmount: 500,
     };
     await createOrder({ accessToken: reader.accessToken, app, input });
 
@@ -231,7 +380,8 @@ describe("POST /api/delivery/orders", () => {
       accessToken: reader.accessToken,
       app,
       body: {
-        items: [{ bookId: foreignBookId }],
+        currency: "UAH",
+        items: [{ bookId: foreignBookId, price: 350 }],
         orderDate: isoDay(0),
         storeName: "Yakaboo",
       },
@@ -261,6 +411,7 @@ describe("POST /api/delivery/orders", () => {
         items: [{ bookId }],
         orderDate: isoDay(0),
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
 

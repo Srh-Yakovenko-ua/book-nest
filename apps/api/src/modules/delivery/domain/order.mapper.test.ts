@@ -60,6 +60,7 @@ function makeOrder(overrides: Partial<BookOrderRow> = {}): BookOrderRow {
     deliveryPrice: null,
     discount: null,
     id: ORDER_ID,
+    isFree: false,
     items: [],
     note: null,
     orderDate: ORDER_DATE,
@@ -227,6 +228,7 @@ describe("toBookOrderView", () => {
       derivedStatus: "active",
       discount: 15.5,
       id: ORDER_ID,
+      isFree: false,
       items: [
         {
           bookId: BOOK_ID,

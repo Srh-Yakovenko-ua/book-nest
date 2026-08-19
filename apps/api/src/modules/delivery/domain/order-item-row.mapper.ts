@@ -83,7 +83,13 @@ function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
   const itemPrices = order.items
     .filter((item) => item.book.deletedAt === null)
     .map((item) => (item.price === null ? null : item.price.toNumber()));
-  const financials = resolveOrderFinancials({ deliveryPrice, discount, itemPrices, totalAmount });
+  const financials = resolveOrderFinancials({
+    deliveryPrice,
+    discount,
+    isFree: order.isFree,
+    itemPrices,
+    totalAmount,
+  });
 
   return {
     currency: order.currency === null ? null : CurrencySchema.parse(order.currency),
@@ -98,6 +104,7 @@ function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
     discount,
     effectiveTotalAmount: financials.effectiveTotalAmount,
     id: order.id,
+    isFree: order.isFree,
     itemsCount: financials.itemsCount,
     orderDate: toNullableIsoDate(order.orderDate),
     orderNumber: order.orderNumber,

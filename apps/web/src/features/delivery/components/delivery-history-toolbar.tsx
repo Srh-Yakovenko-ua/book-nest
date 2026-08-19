@@ -2,10 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import type {
-  DeliveryReadControllerHistoryListSort,
-  DeliveryReadControllerHistoryListTab,
-} from "@/shared/api/generated/model";
+import type { DeliveryReadControllerHistoryListSort } from "@/shared/api/generated/model";
 
 import { PageTabs } from "@/components/page-tabs";
 import {
@@ -16,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import type { DeliveryHistoryQueryState } from "../model/history-params";
+import type { DeliveryHistoryQueryState, DeliveryHistoryTab } from "../model/history-params";
 import type { HistoryFilterPatch } from "../model/use-history-params";
 
 import {
@@ -38,10 +35,10 @@ type DeliveryHistoryToolbarProps = {
   onResetFilters: () => void;
   onSearch: (value: string) => void;
   onSortChange: (value: DeliveryReadControllerHistoryListSort) => void;
-  onTabChange: (value: DeliveryReadControllerHistoryListTab) => void;
+  onTabChange: (value: DeliveryHistoryTab) => void;
   sort: DeliveryReadControllerHistoryListSort;
   state: DeliveryHistoryQueryState;
-  tab: DeliveryReadControllerHistoryListTab;
+  tab: DeliveryHistoryTab;
 };
 
 export function DeliveryHistoryToolbar({

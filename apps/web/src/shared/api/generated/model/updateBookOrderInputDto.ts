@@ -8,7 +8,6 @@
 import type { UpdateBookOrderInputDtoCurrency } from "./updateBookOrderInputDtoCurrency";
 
 export interface UpdateBookOrderInputDto {
-  /** @nullable */
   currency?: UpdateBookOrderInputDtoCurrency;
   /**
    * @minimum 0
@@ -22,6 +21,7 @@ export interface UpdateBookOrderInputDto {
    * @nullable
    */
   discount?: number | null;
+  isFree?: boolean;
   /** @nullable */
   note?: string | null;
   /**

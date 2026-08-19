@@ -82,7 +82,8 @@ function attacksOnVictimRows(): Attack[] {
           postJson({
             ...attack,
             body: {
-              items: [{ bookId: bookIds[0] }],
+              currency: "UAH",
+              items: [{ bookId: bookIds[0], price: 350 }],
               orderDate: isoDay(0),
               storeName: "Stolen",
             },
@@ -270,7 +271,11 @@ describe("the order read surface under a second reader", () => {
       activeOrdersCount: 0,
       attention: [],
     });
-    expect(historySummary.body).toMatchObject({ booksCount: 0, ordersCount: 0 });
+    expect(historySummary.body).toMatchObject({
+      completedOrdersCount: 0,
+      receivedBooksCount: 0,
+      receivedOrdersCount: 0,
+    });
     expect(statistics.body.summary).toMatchObject({ booksCount: 0, ordersCount: 0 });
     expect(statistics.body.byStore).toEqual([]);
   });

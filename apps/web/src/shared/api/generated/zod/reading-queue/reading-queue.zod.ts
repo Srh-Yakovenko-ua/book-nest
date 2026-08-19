@@ -269,6 +269,9 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -303,6 +306,9 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -760,6 +766,9 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -794,6 +803,9 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1461,6 +1473,9 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1495,6 +1510,9 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1942,6 +1960,9 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1976,6 +1997,9 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -2434,6 +2458,9 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -2468,6 +2495,9 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),

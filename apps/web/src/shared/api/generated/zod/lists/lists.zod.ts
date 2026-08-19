@@ -705,6 +705,9 @@ export const ListDetailsControllerDetailResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -739,6 +742,9 @@ export const ListDetailsControllerDetailResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1294,6 +1300,9 @@ export const ListDetailsControllerOverviewResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1328,6 +1337,9 @@ export const ListDetailsControllerOverviewResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),

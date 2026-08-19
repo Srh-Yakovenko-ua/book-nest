@@ -11,11 +11,37 @@ import { DeliverySummaryCards } from "./delivery-summary-cards";
 const summaryNode = (
   <DeliverySummaryCards
     cards={[
-      { icon: "package", label: "Усього замовлень", value: "12" },
-      { icon: "truck", label: "Активні", value: "3" },
-      { icon: "check-circle", label: "Отримані", value: "8" },
-      { icon: "x-circle", label: "Скасовані", value: "1" },
-      { icon: "wallet", label: "Загальна сума", value: "2 400 UAH · 70 EUR" },
+      {
+        icon: "check-circle",
+        iconTone: "success",
+        label: "Отримано",
+        microfact: "У 12 замовленнях · 14 посилках",
+        unit: "книг",
+        value: "25",
+      },
+      {
+        icon: "x-circle",
+        iconTone: "ink",
+        label: "Скасовано",
+        microfact: "У 5 замовленнях",
+        unit: "книг",
+        value: "7",
+      },
+      {
+        icon: "package-check",
+        label: "Завершені замовлення",
+        microfact: "15 без скасувань · 3 із скасуваннями",
+        unit: "замовлень",
+        value: "18",
+      },
+      {
+        icon: "library-big",
+        iconTone: "genre",
+        label: "Поповнено серій",
+        microfact: "18 книг із серій · 7 окремих",
+        unit: "серій",
+        value: "12",
+      },
     ]}
     isLoading={false}
   />
@@ -29,16 +55,7 @@ const meta = {
     onResetFilters: () => {},
     onRetry: () => {},
     pagination: { hasNextPage: false, isFetchingNextPage: false },
-    renderCard: (model) => (
-      <DeliveryHistoryCard
-        key={model.id}
-        model={model}
-        onCancel={() => {}}
-        onEdit={() => {}}
-        onReceive={() => {}}
-        receivePending={false}
-      />
-    ),
+    renderCard: (model) => <DeliveryHistoryCard key={model.id} model={model} />,
     showToolbar: false,
     summary: summaryNode,
     tab: DELIVERY_HISTORY_TAB_DEFAULT,
@@ -69,11 +86,21 @@ export const ErrorState: Story = {
   },
 };
 
-export const Empty: Story = {
+export const EmptyReceived: Story = {
   args: { content: { kind: "empty" } },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Історія замовлень порожня")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("Отриманих замовлень ще немає")).toBeVisible());
     await expect(canvas.getByRole("button", { name: "Перейти до книг у дорозі" })).toBeVisible();
+  },
+};
+
+export const EmptyCancelled: Story = {
+  args: { content: { kind: "empty" }, tab: "cancelled" },
+  play: async ({ canvas }) => {
+    await waitFor(() => expect(canvas.getByText("Скасованих замовлень немає")).toBeVisible());
+    await expect(
+      canvas.queryByRole("button", { name: "Перейти до книг у дорозі" }),
+    ).not.toBeInTheDocument();
   },
 };
 
@@ -96,5 +123,8 @@ export const Ready: Story = {
     await waitFor(() => expect(canvas.getByText("Нічний цирк")).toBeVisible());
     await expect(canvas.getByText("Книгу видалено")).toBeVisible();
     await expect(canvas.getByText("Причина скасування")).toBeVisible();
+    await expect(
+      canvas.queryByRole("button", { name: "Позначити як отриману" }),
+    ).not.toBeInTheDocument();
   },
 };

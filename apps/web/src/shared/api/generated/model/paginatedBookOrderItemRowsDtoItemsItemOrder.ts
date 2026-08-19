@@ -17,11 +17,13 @@ export type PaginatedBookOrderItemRowsDtoItemsItemOrder = {
   /** @nullable */
   discount: number | null;
   /**
-   * What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.
+   * What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null only for a legacy order left behind by the backfill.
    * @nullable
    */
   effectiveTotalAmount: number | null;
   id: string;
+  /** The order was received for free, so its canonical total is zero. */
+  isFree: boolean;
   /**
    * How many books the whole order holds, page and filter aside.
    * @minimum 0
@@ -33,7 +35,7 @@ export type PaginatedBookOrderItemRowsDtoItemsItemOrder = {
   /** @nullable */
   orderNumber: string | null;
   /**
-   * How many of those books carry a price.
+   * How many of those books carry a price of their own.
    * @minimum 0
    * @maximum 9007199254740991
    */

@@ -49,12 +49,10 @@ describe("counting the active advanced dimensions", () => {
     expect(countActiveDeliveryDimensions(advanced({ currency: ["UAH"], priceMin: 100 }))).toBe(2);
   });
 
-  it("counts the order total once whether it carries a presence, a range or both", () => {
-    expect(countActiveDeliveryDimensions(advanced({ pricePresence: "unknown" }))).toBe(1);
+  it("counts the order total once whether it carries one bound or both", () => {
+    expect(countActiveDeliveryDimensions(advanced({ currency: ["UAH"], priceMin: 100 }))).toBe(2);
     expect(
-      countActiveDeliveryDimensions(
-        advanced({ currency: ["UAH"], priceMax: 500, priceMin: 100, pricePresence: "known" }),
-      ),
+      countActiveDeliveryDimensions(advanced({ currency: ["UAH"], priceMax: 500, priceMin: 100 })),
     ).toBe(2);
   });
 
@@ -128,7 +126,6 @@ describe("turning the page state into request params", () => {
         filter: "delayed",
         orderedFrom: "2026-07-01",
         priceMin: 250,
-        pricePresence: "known",
         q: "  dune  ",
         service: ["Nova Poshta"],
         store: ["Yakaboo", "Book24"],
@@ -146,7 +143,6 @@ describe("turning the page state into request params", () => {
       orderedFrom: "2026-07-01",
       priceCurrency: "UAH",
       priceMin: 250,
-      pricePresence: "known",
       search: "dune",
       service: ["Nova Poshta"],
       store: ["Yakaboo", "Book24"],

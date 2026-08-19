@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { CancelDeliveryDialog } from "@/features/books/components/cancel-delivery-dialog";
 import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 import { useRouter } from "@/i18n/navigation";
 
@@ -31,7 +32,6 @@ import { toDeliveryOrderCards, toSelectableShipments } from "../model/order-card
 import { useInTransitParams } from "../model/use-in-transit-params";
 import { CreateBookOrderDialog } from "./create-book-order-dialog";
 import { DeliveryBulkBar } from "./delivery-bulk-bar";
-import { DeliveryCancelDialog } from "./delivery-cancel-dialog";
 import { DeliveryInTransitSidebar } from "./delivery-in-transit-sidebar";
 import { DeliveryInTransitView } from "./delivery-in-transit-view";
 import { DeliveryOrderCard } from "./delivery-order-card";
@@ -71,7 +71,7 @@ export function DeliveryInTransit() {
   const toggleSelectShipment = useDeliverySelectionStore((state) => state.toggle);
 
   const [editBook, setEditBook] = useState<Nullable<DeliveryOrderBookModel>>(null);
-  const [cancelBookId, setCancelBookId] = useState<Nullable<string>>(null);
+  const [cancelBook, setCancelBook] = useState<Nullable<DeliveryOrderBookModel>>(null);
   const [receiveTarget, setReceiveTarget] = useState<Nullable<DeliveryReceiveTarget>>(null);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
   const [manageAction, setManageAction] = useState<Nullable<OrderShipmentAction>>(null);
@@ -99,6 +99,7 @@ export function DeliveryInTransit() {
   const orders = toDeliveryOrderCards(loadedItems, {
     labels: {
       badge: (key) => tBadge(key),
+      free: t("freeOrder"),
       orderStatus: (key) => t(`orderStatus.${key}`),
       seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
     },
@@ -203,10 +204,7 @@ export function DeliveryInTransit() {
       detailed: tSummary(`mobile.detailed.${key}`),
     }),
     ordersTotal: {
-      coverageAll: (count) => tSummary("microfact.ordersTotal.coverageAll", { count }),
-      coverageNone: (count) => tSummary("microfact.ordersTotal.coverageNone", { count }),
-      coveragePartial: (known, total) =>
-        tSummary("microfact.ordersTotal.coveragePartial", { known, total }),
+      average: (amounts) => tSummary("microfact.ordersTotal.average", { amounts }),
       empty: tSummary("microfact.ordersTotal.empty"),
       label: tSummary("ordersTotal"),
     },
@@ -259,7 +257,7 @@ export function DeliveryInTransit() {
     <DeliveryOrderCard
       key={model.id}
       model={model}
-      onCancelBook={setCancelBookId}
+      onCancelBook={setCancelBook}
       onChangeShipmentStatus={changeShipmentStatus}
       onEditBook={setEditBook}
       onManage={(action) => void openManageAction(action)}
@@ -404,11 +402,13 @@ export function DeliveryInTransit() {
         />
       )}
 
-      {cancelBookId === null ? null : (
-        <DeliveryCancelDialog
-          bookId={cancelBookId}
+      {cancelBook === null ? null : (
+        <CancelDeliveryDialog
+          bookId={cancelBook.bookId}
+          bookTitle={cancelBook.title}
+          deliveryId={cancelBook.id}
           onOpenChange={(open) => {
-            if (!open) setCancelBookId(null);
+            if (!open) setCancelBook(null);
           }}
           open
         />

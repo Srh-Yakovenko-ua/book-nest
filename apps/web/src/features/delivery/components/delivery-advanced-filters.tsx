@@ -13,13 +13,6 @@ import { FilterSection } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
 import { Multiselect } from "@/components/ui/multiselect";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -38,7 +31,6 @@ import { useInTransitFacets } from "../api/use-in-transit-facets";
 import {
   DELIVERY_ADVANCED_EMPTY,
   DELIVERY_CURRENCY_VALUES,
-  DELIVERY_PRICE_PRESENCE_VALUES,
   DELIVERY_STRUCTURE_VALUES,
   deliveryRangeFlags,
   hasInvalidDeliveryRange,
@@ -49,8 +41,6 @@ type DeliveryAdvancedFiltersProps = {
   onApply: (draft: DeliveryAdvancedState) => void;
   state: DeliveryAdvancedState;
 };
-
-const ANY_VALUE = "__any__";
 
 export function DeliveryAdvancedFilters({
   activeCount,
@@ -67,15 +57,6 @@ export function DeliveryAdvancedFilters({
 
   function patch(next: Partial<DeliveryAdvancedState>) {
     setDraft((prev) => ({ ...prev, ...next }));
-  }
-
-  function pickPricePresence(next: string) {
-    const pricePresence = DELIVERY_PRICE_PRESENCE_VALUES.find((value) => value === next) ?? null;
-    if (pricePresence === "known") {
-      patch({ pricePresence });
-      return;
-    }
-    patch({ priceMax: null, priceMin: null, pricePresence });
   }
 
   return (
@@ -240,56 +221,35 @@ export function DeliveryAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.orderTotal")}>
-            <Select onValueChange={pickPricePresence} value={draft.pricePresence ?? ANY_VALUE}>
-              <SelectTrigger
-                aria-label={t("sections.orderTotal")}
-                className="w-full data-[size=default]:h-10"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ANY_VALUE}>{t("pricePresence.all")}</SelectItem>
-                {DELIVERY_PRICE_PRESENCE_VALUES.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`pricePresence.${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {draft.pricePresence === "known" ? (
-              <>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Input
-                    aria-label={t("orderTotal.min")}
-                    disabled={priceIsDisabled}
-                    inputMode="decimal"
-                    min={0}
-                    onChange={(event) => patch({ priceMin: parseAmountValue(event.target.value) })}
-                    onKeyDown={blockNegativeNumberKeys}
-                    placeholder={t("range.min")}
-                    type="number"
-                    value={draft.priceMin ?? ""}
-                  />
-                  <Input
-                    aria-label={t("orderTotal.max")}
-                    disabled={priceIsDisabled}
-                    inputMode="decimal"
-                    min={0}
-                    onChange={(event) => patch({ priceMax: parseAmountValue(event.target.value) })}
-                    onKeyDown={blockNegativeNumberKeys}
-                    placeholder={t("range.max")}
-                    type="number"
-                    value={draft.priceMax ?? ""}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {priceIsDisabled ? t("orderTotal.pickCurrency") : t("orderTotal.hint")}
-                </p>
-                {rangeFlags.price ? (
-                  <p className="text-xs text-destructive">{t("range.invalid")}</p>
-                ) : null}
-              </>
+            <div className="grid grid-cols-2 gap-2.5">
+              <Input
+                aria-label={t("orderTotal.min")}
+                disabled={priceIsDisabled}
+                inputMode="decimal"
+                min={0}
+                onChange={(event) => patch({ priceMin: parseAmountValue(event.target.value) })}
+                onKeyDown={blockNegativeNumberKeys}
+                placeholder={t("range.min")}
+                type="number"
+                value={draft.priceMin ?? ""}
+              />
+              <Input
+                aria-label={t("orderTotal.max")}
+                disabled={priceIsDisabled}
+                inputMode="decimal"
+                min={0}
+                onChange={(event) => patch({ priceMax: parseAmountValue(event.target.value) })}
+                onKeyDown={blockNegativeNumberKeys}
+                placeholder={t("range.max")}
+                type="number"
+                value={draft.priceMax ?? ""}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {priceIsDisabled ? t("orderTotal.pickCurrency") : t("orderTotal.hint")}
+            </p>
+            {rangeFlags.price ? (
+              <p className="text-xs text-destructive">{t("range.invalid")}</p>
             ) : null}
           </FilterSection>
         </div>

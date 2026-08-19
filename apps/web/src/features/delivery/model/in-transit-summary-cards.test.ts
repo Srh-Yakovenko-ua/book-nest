@@ -35,9 +35,7 @@ const labels: DeliverySummaryLabels = {
   },
   mobile: (key) => ({ compact: `compact.${key}`, detailed: `detailed.${key}` }),
   ordersTotal: {
-    coverageAll: (count) => `ordersTotal.coverageAll:${count}`,
-    coverageNone: (count) => `ordersTotal.coverageNone:${count}`,
-    coveragePartial: (known, total) => `ordersTotal.coveragePartial:${known}/${total}`,
+    average: (amounts) => `ordersTotal.average:${amounts}`,
     empty: "ordersTotal.empty",
     label: "ordersTotal.label",
   },
@@ -61,6 +59,7 @@ function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSu
   return {
     activeBooksCount: 0,
     activeBooksTotalByCurrency: [],
+    activeOrdersAverageByCurrency: [],
     activeOrdersCount: 0,
     activeOrdersTotalByCurrency: [],
     activeShipmentsCount: 0,
@@ -73,7 +72,6 @@ function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSu
     nextExpectedThisWeek: null,
     nextShipment: null,
     orderedCount: 0,
-    ordersWithKnownTotalCount: 0,
     readyForPickupCount: 0,
     splitOrdersCount: 0,
     uniqueStoresCount: 0,
@@ -243,43 +241,46 @@ describe("buildDeliverySummaryCards", () => {
   });
 
   describe("orders total card", () => {
-    it("reports full coverage", () => {
+    it("keeps every currency apart in both the total and the average", () => {
       const card = cardAt(
         makeSummary({
-          activeOrdersCount: 3,
+          activeOrdersAverageByCurrency: [
+            { average: 725, currency: "UAH" },
+            { average: 15, currency: "USD" },
+          ],
+          activeOrdersCount: 4,
           activeOrdersTotalByCurrency: [
             { currency: "UAH", total: 1450 },
             { currency: "USD", total: 30 },
           ],
-          ordersWithKnownTotalCount: 3,
         }),
         3,
       );
 
       expect(card.value).toBe("1,450 UAH · 30 USD");
       expect(card.unit).toBeUndefined();
-      expect(card.microfact).toBe("ordersTotal.coverageAll:3");
+      expect(card.microfact).toBe("ordersTotal.average:725 UAH · 15 USD");
     });
 
-    it("reports partial coverage", () => {
+    it("names the mean of one order rather than the mean of one book", () => {
       const card = cardAt(
         makeSummary({
-          activeOrdersCount: 5,
-          activeOrdersTotalByCurrency: [{ currency: "UAH", total: 980 }],
-          ordersWithKnownTotalCount: 2,
+          activeOrdersAverageByCurrency: [{ average: 2000, currency: "UAH" }],
+          activeOrdersCount: 3,
+          activeOrdersTotalByCurrency: [{ currency: "UAH", total: 6000 }],
         }),
         3,
       );
 
-      expect(card.value).toBe("980 UAH");
-      expect(card.microfact).toBe("ordersTotal.coveragePartial:2/5");
+      expect(card.value).toBe("6,000 UAH");
+      expect(card.microfact).toBe("ordersTotal.average:2,000 UAH");
     });
 
-    it("shows a dash when no order has a known total", () => {
+    it("shows a dash when no order carries a total", () => {
       const card = cardAt(makeSummary({ activeOrdersCount: 4 }), 3);
 
       expect(card.value).toBe("—");
-      expect(card.microfact).toBe("ordersTotal.coverageNone:4");
+      expect(card.microfact).toBe("ordersTotal.empty");
     });
 
     it("falls back to the empty line without active orders", () => {

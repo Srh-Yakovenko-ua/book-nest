@@ -46,6 +46,7 @@ export type OrderStatisticsRecord = {
   deliveryPrice: Nullable<number>;
   discount: Nullable<number>;
   id: string;
+  isFree: boolean;
   items: OrderStatisticsItemRecord[];
   orderDate: Nullable<Date>;
   orderNumber: Nullable<string>;
@@ -358,6 +359,7 @@ function classifyOrder({
   const financials = resolveOrderFinancials({
     deliveryPrice: record.deliveryPrice,
     discount: record.discount,
+    isFree: record.isFree,
     itemPrices: record.items.map((item) => item.price),
     totalAmount: record.totalAmount,
   });

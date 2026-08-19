@@ -10,7 +10,7 @@ import type { CreateBookOrderInputDtoItemsItem } from "./createBookOrderInputDto
 import type { CreateBookOrderInputDtoShipmentsItem } from "./createBookOrderInputDtoShipmentsItem";
 
 export interface CreateBookOrderInputDto {
-  currency?: CreateBookOrderInputDtoCurrency;
+  currency: CreateBookOrderInputDtoCurrency;
   /**
    * @minimum 0
    * @maximum 99999999.99
@@ -21,6 +21,7 @@ export interface CreateBookOrderInputDto {
    * @maximum 99999999.99
    */
   discount?: number;
+  isFree?: boolean;
   /**
    * @minItems 1
    * @maxItems 100

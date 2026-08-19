@@ -121,6 +121,7 @@ async function seedAttentionFixture(): Promise<BookOrderView> {
       orderDate: isoDay(-3),
       shipments: [{ bookIds: [waiting ?? ""], pickupUntil: isoDay(1), status: "ready_for_pickup" }],
       storeName: "Yakaboo",
+      totalAmount: 500,
     },
   });
 
@@ -132,6 +133,7 @@ async function seedAttentionFixture(): Promise<BookOrderView> {
       orderDate: isoDay(-3),
       shipments: [{ bookIds: [packed ?? ""], expectedDeliveryDate: isoDay(3) }],
       storeName: "Bookva",
+      totalAmount: 500,
     },
   });
 }
@@ -171,6 +173,7 @@ async function seedListFixture(): Promise<BookOrderView> {
         { bookIds: [noDate ?? ""] },
       ],
       storeName: "Yakaboo",
+      totalAmount: 800,
     },
   });
 }
@@ -224,11 +227,12 @@ async function seedWeekWindowFixture(): Promise<void> {
     path: ORDER_ROUTES.markInTransit(shipmentOf({ bookId: dueToday ?? "", view: splitOrder }).id),
   });
 
-  const pricelessOrder = await createOrder({
+  const freeOrder = await createOrder({
     accessToken: reader.accessToken,
     app,
     input: {
       currency: "UAH",
+      isFree: true,
       items: [{ bookId: waitingAtPickup ?? "" }],
       orderDate: isoDay(-10),
       shipments: [
@@ -245,7 +249,7 @@ async function seedWeekWindowFixture(): Promise<void> {
     accessToken: reader.accessToken,
     app,
     path: ORDER_ROUTES.markReadyForPickup(
-      shipmentOf({ bookId: waitingAtPickup ?? "", view: pricelessOrder }).id,
+      shipmentOf({ bookId: waitingAtPickup ?? "", view: freeOrder }).id,
     ),
   });
 
@@ -351,7 +355,7 @@ describe("GET /api/delivery/books/in-transit filters", () => {
     await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId: notDispatched }], storeName: "Yakaboo" },
+      input: { items: [{ bookId: notDispatched }], storeName: "Yakaboo", totalAmount: 500 },
     });
 
     await expect(inTransitTitles({ filter: "no_delivery_date" })).resolves.toEqual([
@@ -385,6 +389,7 @@ describe("GET /api/delivery/books/in-transit filters", () => {
         orderDate: isoDay(-3),
         shipments: [{ bookIds: [bookId], pickupUntil: isoDay(5), status: "ready_for_pickup" }],
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
 
@@ -401,7 +406,12 @@ describe("GET /api/delivery/books/in-transit filters", () => {
     await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId: freshBookId }], orderDate: isoDay(-1), storeName: "Yakaboo" },
+      input: {
+        items: [{ bookId: freshBookId }],
+        orderDate: isoDay(-1),
+        storeName: "Yakaboo",
+        totalAmount: 500,
+      },
     });
 
     const titles = await inTransitTitles({ filter: "awaiting_dispatch" });
@@ -433,7 +443,12 @@ describe("GET /api/delivery/books/in-transit filters", () => {
     await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId: onItsOwn }], orderDate: isoDay(-3), storeName: "Knygarnia" },
+      input: {
+        items: [{ bookId: onItsOwn }],
+        orderDate: isoDay(-3),
+        storeName: "Knygarnia",
+        totalAmount: 500,
+      },
     });
 
     await expect(inTransitTitles({ filter: "unassigned" })).resolves.toEqual([
@@ -542,6 +557,7 @@ describe("GET /api/delivery/books/in-transit/summary", () => {
           },
         ],
         storeName: "Bookva",
+        totalAmount: 500,
       },
     });
 
@@ -567,6 +583,7 @@ describe("GET /api/delivery/books/in-transit/summary", () => {
         orderDate: isoDay(-3),
         shipments: [{ bookIds: [bookId], pickupUntil: isoDay(-1), status: "ready_for_pickup" }],
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
 
@@ -641,13 +658,13 @@ describe("GET /api/delivery/books/in-transit/summary", () => {
     expect(summary).toMatchObject({ activeOrdersCount: 3, splitOrdersCount: 1 });
   });
 
-  it("leaves the order that carries no money at all out of the priced-order tally", async () => {
+  it("counts a free order into the average at its canonical total of zero", async () => {
     await seedWeekWindowFixture();
 
     const summary = await inTransitSummary();
 
-    expect(summary.ordersWithKnownTotalCount).toBe(2);
-    expect(summary.ordersWithKnownTotalCount).toBeLessThan(summary.activeOrdersCount);
+    expect(summary.activeOrdersTotalByCurrency).toEqual([{ currency: "UAH", total: 340 }]);
+    expect(summary.activeOrdersAverageByCurrency).toEqual([{ average: 340 / 3, currency: "UAH" }]);
   });
 });
 

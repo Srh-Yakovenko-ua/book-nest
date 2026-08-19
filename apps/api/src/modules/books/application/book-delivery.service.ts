@@ -145,7 +145,8 @@ function toSingleBookOrderInput({
   input: CreateDeliveryInput;
 }): CreateBookOrderInput {
   return {
-    ...(input.currency === undefined ? {} : { currency: input.currency }),
+    currency: input.currency,
+    isFree: input.isFree,
     items: [{ bookId, ...(input.price === undefined ? {} : { price: input.price }) }],
     ...(input.note === undefined ? {} : { note: input.note }),
     orderDate: input.orderDate,
@@ -172,6 +173,7 @@ function toSingleBookOrderPatch(input: UpdateDeliveryInput): SingleBookOrderPatc
     ...(input.expectedDeliveryDate === undefined
       ? {}
       : { expectedDeliveryDate: toUpdateDate(input.expectedDeliveryDate) ?? null }),
+    ...(input.isFree === undefined ? {} : { isFree: input.isFree }),
     ...(input.note === undefined ? {} : { note: input.note }),
     ...(input.orderDate === undefined ? {} : { orderDate: toUpdateDate(input.orderDate) ?? null }),
     ...(input.orderNumber === undefined ? {} : { orderNumber: input.orderNumber }),

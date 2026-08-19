@@ -15,6 +15,7 @@ const locale = "en-US";
 
 const labels: DeliveryCardLabels = {
   badge: (key) => key,
+  free: "Free",
   orderStatus: (key) => key,
   seriesPosition: (position, total) => `${position} of ${total}`,
 };
@@ -58,6 +59,7 @@ function makeOrder(overrides: Partial<BookOrderItemRowOrderView> = {}): BookOrde
     discount: null,
     effectiveTotalAmount: 480,
     id: "order-1",
+    isFree: false,
     itemsCount: 2,
     orderDate: "2026-07-05",
     orderNumber: "ORD-10241",
@@ -461,26 +463,7 @@ describe("toDeliveryOrderCards", () => {
     ).toEqual([false, false]);
   });
 
-  it("reports how many prices the fallback total actually counts", () => {
-    const order = makeOrder({
-      effectiveTotalAmount: null,
-      itemsCount: 3,
-      pricedItemsCount: 1,
-      totalAmount: null,
-    });
-    const cards = toDeliveryOrderCards(
-      [
-        makeRow({ id: "item-1", order, price: 500 }),
-        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
-        makeRow({ book: makeBook({ id: "book-3" }), id: "item-3", order, price: null }),
-      ],
-      { labels, locale },
-    );
-
-    expect(firstCard(cards).incompleteTotal).toEqual({ itemsCount: 3, pricedItemsCount: 1 });
-  });
-
-  it("keeps a stored total unflagged even while books stay unpriced", () => {
+  it("keeps a stored total showing even while books stay unpriced", () => {
     const cards = toDeliveryOrderCards(
       [
         makeRow({ id: "item-1", price: null }),
@@ -489,10 +472,28 @@ describe("toDeliveryOrderCards", () => {
       { labels, locale },
     );
 
-    expect(firstCard(cards)).toMatchObject({ incompleteTotal: null, totalText: "480 UAH" });
+    expect(firstCard(cards).totalText).toBe("480 UAH");
   });
 
-  it("flags nothing when every book carries a price", () => {
+  it("names a free order rather than pricing it at zero", () => {
+    const order = makeOrder({ effectiveTotalAmount: 0, isFree: true, totalAmount: 0 });
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({ id: "item-1", order, price: null }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).totalText).toBe("Free");
+    expect(
+      firstCard(cards).shipments.flatMap((group) =>
+        group.books.map((book) => book.resetsOrderTotal),
+      ),
+    ).toEqual([false, false]);
+  });
+
+  it("adds up every priced book into the calculated total", () => {
     const order = makeOrder({
       effectiveTotalAmount: 500,
       itemsCount: 2,
@@ -507,7 +508,7 @@ describe("toDeliveryOrderCards", () => {
       { labels, locale },
     );
 
-    expect(firstCard(cards)).toMatchObject({ incompleteTotal: null, totalText: "500 UAH" });
+    expect(firstCard(cards).totalText).toBe("500 UAH");
   });
 });
 

@@ -1,4 +1,3 @@
-import type { BookView, DeliveryView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { useState } from "react";
@@ -7,47 +6,17 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { makeBookView } from "./book-details.fixtures";
 import { CancelDeliveryDialog } from "./cancel-delivery-dialog";
 
-function activeDelivery(): DeliveryView {
-  return {
-    cancelledAt: null,
-    cancelReason: null,
-    createdAt: "2026-06-01T10:00:00.000Z",
-    currency: "UAH",
-    deliveryService: null,
-    expectedDeliveryDate: "2999-12-31",
-    id: "dddddddd-dddd-4ddd-8ddd-delivery0010",
-    note: null,
-    orderDate: "2026-06-01",
-    orderNumber: null,
-    price: null,
-    receivedAt: null,
-    status: "ordered",
-    storeName: "Книгарня «Є»",
-    trackingNumber: null,
-    trackingUrl: null,
-    updatedAt: "2026-06-01T10:00:00.000Z",
-  };
-}
-
-function cancelBook(): BookView {
-  return makeBookView({
-    id: "aaaaaaaa-aaaa-4aaa-8aaa-cancel000001",
-    loanInfo: null,
-    ownershipStatus: "in_transit",
-    purchaseInfo: null,
-  });
-}
+const CANCEL_TARGET = {
+  bookId: "aaaaaaaa-aaaa-4aaa-8aaa-cancel000001",
+  bookTitle: "Тінь вітру",
+  deliveryId: "dddddddd-dddd-4ddd-8ddd-delivery0010",
+};
 
 function Harness() {
   const [open, setOpen] = useState(true);
   return (
     <>
-      <CancelDeliveryDialog
-        book={cancelBook()}
-        delivery={activeDelivery()}
-        onOpenChange={setOpen}
-        open={open}
-      />
+      <CancelDeliveryDialog {...CANCEL_TARGET} onOpenChange={setOpen} open={open} />
       <p data-testid="open-state">{open ? "open" : "closed"}</p>
     </>
   );
@@ -65,7 +34,7 @@ function mockFetch(status: number, body: unknown) {
 }
 
 const meta = {
-  args: { book: cancelBook(), delivery: activeDelivery(), onOpenChange: () => {}, open: true },
+  args: { ...CANCEL_TARGET, onOpenChange: () => {}, open: true },
   component: CancelDeliveryDialog,
   parameters: { layout: "fullscreen" },
   tags: ["ai-generated"],
@@ -80,11 +49,19 @@ export const Default: Story = {
   play: async () => {
     const body = within(document.body);
     await waitFor(() =>
-      expect(body.getByRole("heading", { name: "Скасувати доставку" })).toBeVisible(),
+      expect(body.getByRole("heading", { name: "Скасувати цю книгу?" })).toBeVisible(),
     );
-    await expect(body.getByText("Залишити у списку бажань")).toBeVisible();
+    await expect(
+      body.getByText(
+        "«Тінь вітру» перейде в історію як скасована. Решта замовлення та інші книги в ньому не зміняться.",
+      ),
+    ).toBeVisible();
+    await expect(body.getByText("Повернути книгу до списку бажань")).toBeVisible();
     await expect(body.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
-    await expect(body.getByRole("button", { name: "Скасувати доставку" })).toBeVisible();
+    await expect(body.getByRole("checkbox")).toHaveAccessibleDescription(
+      "Книга залишиться у списку бажань, щоб замовити її знову",
+    );
+    await expect(body.getByRole("button", { name: "Підтвердити" })).toBeVisible();
   },
   render: () => <Harness />,
 };
@@ -96,6 +73,9 @@ export const UncheckKeep: Story = {
     await waitFor(() =>
       expect(body.getByRole("checkbox")).toHaveAttribute("aria-checked", "false"),
     );
+    await expect(body.getByRole("checkbox")).toHaveAccessibleDescription(
+      "Книга не потрапить у список бажань",
+    );
   },
   render: () => <Harness />,
 };
@@ -104,7 +84,7 @@ export const ServerErrorKeepsOpen: Story = {
   play: async () => {
     mockFetch(409, { message: "Доставку вже завершено" });
     const body = within(document.body);
-    await userEvent.click(body.getByRole("button", { name: "Скасувати доставку" }));
+    await userEvent.click(body.getByRole("button", { name: "Підтвердити" }));
     await waitFor(() => expect(body.getByText("Доставку вже завершено")).toBeVisible());
     await expect(body.getByTestId("open-state")).toHaveTextContent("open");
   },
@@ -115,7 +95,7 @@ export const SubmitSuccessCloses: Story = {
   play: async () => {
     mockFetch(200, makeBookView({ ownershipStatus: "want_to_buy" }));
     const body = within(document.body);
-    await userEvent.click(body.getByRole("button", { name: "Скасувати доставку" }));
+    await userEvent.click(body.getByRole("button", { name: "Підтвердити" }));
     await waitFor(() => expect(body.getByTestId("open-state")).toHaveTextContent("closed"));
   },
   render: () => <Harness />,
@@ -131,7 +111,7 @@ export const SubmitsCancelReason: Story = {
 
     const body = within(document.body);
     await userEvent.type(body.getByRole("textbox"), "Замовлення втрачено поштою");
-    await userEvent.click(body.getByRole("button", { name: "Скасувати доставку" }));
+    await userEvent.click(body.getByRole("button", { name: "Підтвердити" }));
     await waitFor(() => expect(body.getByTestId("open-state")).toHaveTextContent("closed"));
     await expect(capturedBody).toMatchObject({ cancelReason: "Замовлення втрачено поштою" });
   },

@@ -20,6 +20,7 @@ function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSu
   return {
     activeBooksCount: 0,
     activeBooksTotalByCurrency: [],
+    activeOrdersAverageByCurrency: [],
     activeOrdersCount: 0,
     activeOrdersTotalByCurrency: [],
     activeShipmentsCount: 0,
@@ -32,7 +33,6 @@ function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSu
     nextExpectedThisWeek: null,
     nextShipment: null,
     orderedCount: 0,
-    ordersWithKnownTotalCount: 0,
     readyForPickupCount: 0,
     splitOrdersCount: 0,
     uniqueStoresCount: 0,

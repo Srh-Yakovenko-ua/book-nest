@@ -19,6 +19,7 @@ export function makeDelivery(overrides: Partial<DeliveryView> = {}): DeliveryVie
     deliveryService: null,
     expectedDeliveryDate: null,
     id: "delivery-1",
+    isFree: false,
     note: null,
     orderDate: null,
     orderNumber: null,

@@ -79,7 +79,6 @@ function toAdvancedPatch(draft: DeliveryAdvancedState) {
     orderedTo: emptyToNull(draft.orderedTo),
     priceMax: draft.priceMax,
     priceMin: draft.priceMin,
-    pricePresence: draft.pricePresence,
     service: draft.service.length === 0 ? null : draft.service,
     store: draft.store.length === 0 ? null : draft.store,
     structure: draft.structure.length === 0 ? null : draft.structure,

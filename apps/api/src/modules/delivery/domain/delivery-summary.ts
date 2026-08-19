@@ -1,5 +1,6 @@
 import type {
   Currency,
+  CurrencyAverage,
   CurrencyTotal,
   InTransitAttention,
   InTransitSummaryView,
@@ -31,6 +32,7 @@ export type InTransitAttentionData = {
 export type InTransitAttentionInput = InTransitAttentionData & { today: Date };
 
 export type InTransitCurrencyTotal = {
+  count: number;
   currency: Nullable<string>;
   total: number;
 };
@@ -47,7 +49,6 @@ export type InTransitSummaryData = InTransitAttentionData & {
   nextExpectedDelivery: Nullable<string>;
   nextExpectedThisWeek: Nullable<string>;
   orderedCount: number;
-  ordersWithKnownTotalCount: number;
   orderTotals: InTransitCurrencyTotal[];
   readyForPickupCount: number;
   splitOrdersCount: number;
@@ -77,6 +78,7 @@ export function buildInTransitSummaryView(data: InTransitSummaryInput): InTransi
   return {
     activeBooksCount: data.activeBooksCount,
     activeBooksTotalByCurrency: toCurrencyTotals(data.bookTotals),
+    activeOrdersAverageByCurrency: toCurrencyAverages(data.orderTotals),
     activeOrdersCount: data.activeOrdersCount,
     activeOrdersTotalByCurrency: toCurrencyTotals(data.orderTotals),
     activeShipmentsCount: data.activeShipmentsCount,
@@ -89,7 +91,6 @@ export function buildInTransitSummaryView(data: InTransitSummaryInput): InTransi
     nextExpectedThisWeek: data.nextExpectedThisWeek,
     nextShipment: data.nextShipment,
     orderedCount: data.orderedCount,
-    ordersWithKnownTotalCount: data.ordersWithKnownTotalCount,
     readyForPickupCount: data.readyForPickupCount,
     splitOrdersCount: data.splitOrdersCount,
     uniqueStoresCount: data.uniqueStoresCount,
@@ -99,21 +100,22 @@ export function buildInTransitSummaryView(data: InTransitSummaryInput): InTransi
   };
 }
 
-export function toCurrencyTotals(totals: InTransitCurrencyTotal[]): CurrencyTotal[] {
-  const merged = new Map<Currency, number>();
-  for (const entry of totals) {
-    const currency =
-      entry.currency === null ? DEFAULT_CURRENCY : CurrencySchema.parse(entry.currency);
-    merged.set(currency, (merged.get(currency) ?? 0) + entry.total);
-  }
-
-  const result: CurrencyTotal[] = [];
-  for (const currency of CurrencySchema.options) {
-    const total = merged.get(currency);
-    if (total === undefined) {
+export function toCurrencyAverages(totals: InTransitCurrencyTotal[]): CurrencyAverage[] {
+  const result: CurrencyAverage[] = [];
+  for (const [currency, merged] of mergeByCurrency(totals)) {
+    if (merged.count === 0) {
       continue;
     }
-    result.push({ currency, total });
+    result.push({ average: merged.total / merged.count, currency });
+  }
+
+  return result;
+}
+
+export function toCurrencyTotals(totals: InTransitCurrencyTotal[]): CurrencyTotal[] {
+  const result: CurrencyTotal[] = [];
+  for (const [currency, merged] of mergeByCurrency(totals)) {
+    result.push({ currency, total: merged.total });
   }
 
   return result;
@@ -159,6 +161,32 @@ function delayedAttention({
       reason: ATTENTION_REASON.delayed,
     },
   ];
+}
+
+function mergeByCurrency(
+  totals: InTransitCurrencyTotal[],
+): Map<Currency, { count: number; total: number }> {
+  const merged = new Map<Currency, { count: number; total: number }>();
+  for (const entry of totals) {
+    const currency =
+      entry.currency === null ? DEFAULT_CURRENCY : CurrencySchema.parse(entry.currency);
+    const current = merged.get(currency) ?? { count: 0, total: 0 };
+    merged.set(currency, {
+      count: current.count + entry.count,
+      total: current.total + entry.total,
+    });
+  }
+
+  const ordered = new Map<Currency, { count: number; total: number }>();
+  for (const currency of CurrencySchema.options) {
+    const entry = merged.get(currency);
+    if (entry === undefined) {
+      continue;
+    }
+    ordered.set(currency, entry);
+  }
+
+  return ordered;
 }
 
 function pickupExpiringAttention({

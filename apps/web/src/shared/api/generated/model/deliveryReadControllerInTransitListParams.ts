@@ -8,7 +8,6 @@
 import type { DeliveryReadControllerInTransitListCurrencyItem } from "./deliveryReadControllerInTransitListCurrencyItem";
 import type { DeliveryReadControllerInTransitListFilter } from "./deliveryReadControllerInTransitListFilter";
 import type { DeliveryReadControllerInTransitListPriceCurrency } from "./deliveryReadControllerInTransitListPriceCurrency";
-import type { DeliveryReadControllerInTransitListPricePresence } from "./deliveryReadControllerInTransitListPricePresence";
 import type { DeliveryReadControllerInTransitListSort } from "./deliveryReadControllerInTransitListSort";
 import type { DeliveryReadControllerInTransitListStructureItem } from "./deliveryReadControllerInTransitListStructureItem";
 
@@ -66,7 +65,6 @@ export type DeliveryReadControllerInTransitListParams = {
    * @minimum 0
    */
   priceMin?: number;
-  pricePresence?: DeliveryReadControllerInTransitListPricePresence;
   /**
    * @maxLength 100
    */

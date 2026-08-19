@@ -153,26 +153,15 @@ export function useInTransitFilterChips({
           range: (min, max) => t("priceRange", { currency: priceCurrency, max, min }),
           to: (value) => t("priceTo", { currency: priceCurrency, max: value }),
         });
-  const presenceKey = pricePresenceKey(state.pricePresence);
-  const totalLabel = priceRangeLabel ?? (presenceKey === null ? null : t(presenceKey));
-  if (totalLabel !== null) {
+  if (priceRangeLabel !== null) {
     chips.push({
       key: "total",
-      label: totalLabel,
-      onRemove: () =>
-        onApplyAdvanced({ ...state, priceMax: null, priceMin: null, pricePresence: null }),
+      label: priceRangeLabel,
+      onRemove: () => onApplyAdvanced({ ...state, priceMax: null, priceMin: null }),
     });
   }
 
   return chips;
-}
-
-function pricePresenceKey(
-  presence: DeliveryAdvancedState["pricePresence"],
-): Nullable<"totalKnown" | "totalUnknown"> {
-  if (presence === "known") return "totalKnown";
-  if (presence === "unknown") return "totalUnknown";
-  return null;
 }
 
 function storableDay(value: Nullable<string>): Nullable<string> {
