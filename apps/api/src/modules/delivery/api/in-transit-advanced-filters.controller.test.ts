@@ -124,10 +124,41 @@ async function shipItems({
     },
     path: ORDER_ROUTES.createShipment(order.id),
   });
-  if (typeof res.body.id !== "string") {
+  if (res.status !== 201) {
     throw new Error(`shipment creation failed with ${res.status}: ${JSON.stringify(res.body)}`);
   }
-  return res.body.id;
+  const view: BookOrderView = res.body;
+  const shipmentId = view.items.find((item) => itemIds.includes(item.id))?.shipmentId;
+  if (shipmentId === null || shipmentId === undefined) {
+    throw new Error(`no parcel carries ${itemIds.join(", ")}: ${JSON.stringify(view.items)}`);
+  }
+  return shipmentId;
+}
+
+async function shipOneOfTwoBooks({
+  looseTitle,
+  shippedTitle,
+}: {
+  looseTitle: string;
+  shippedTitle: string;
+}): Promise<string> {
+  const [shipped, loose] = await Promise.all([
+    createBook({ accessToken: reader.accessToken, app, title: shippedTitle }),
+    createBook({ accessToken: reader.accessToken, app, title: looseTitle }),
+  ]);
+  const order = await createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: { items: [{ bookId: shipped }, { bookId: loose }], storeName: "Yakaboo" },
+  });
+  const item = order.items.find((candidate) => candidate.bookId === shipped);
+
+  return shipItems({
+    deliveryService: "Nova Poshta",
+    expectedDeliveryDate: isoDay(3),
+    itemIds: [item?.id ?? ""],
+    order,
+  });
 }
 
 describe("in-transit store, currency and price dimensions", () => {
@@ -243,7 +274,7 @@ describe("in-transit order date, book count and delivery dimensions", () => {
     await postJson({
       accessToken: reader.accessToken,
       app,
-      body: { reason: "Out of stock" },
+      body: { cancelReason: "Out of stock" },
       path: ORDER_ROUTES.cancelItem(cancelled?.id ?? ""),
     });
 
@@ -276,27 +307,35 @@ describe("in-transit order date, book count and delivery dimensions", () => {
     ]);
   });
 
-  it("leaves out an order whose only parcel already arrived", async () => {
-    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Arrived" });
-    const order = await createOrder({
-      accessToken: reader.accessToken,
-      app,
-      input: { items: [{ bookId }], storeName: "Yakaboo" },
-    });
-    const item = order.items.find((candidate) => candidate.bookId === bookId);
-    const shipmentId = await shipItems({
-      deliveryService: "Nova Poshta",
-      expectedDeliveryDate: isoDay(3),
-      itemIds: [item?.id ?? ""],
-      order,
+  it("stops matching an order once its only parcel is cancelled", async () => {
+    const shipmentId = await shipOneOfTwoBooks({
+      looseTitle: "Still Loose",
+      shippedTitle: "Cancelled Parcel",
     });
     await postJson({
       accessToken: reader.accessToken,
       app,
-      body: { reason: "Lost in the post" },
+      body: { cancelReason: "Lost in the post" },
       path: ORDER_ROUTES.cancelShipment(shipmentId),
     });
 
+    expect(await inTransitTitles("filter=all")).toEqual(["Still Loose"]);
+    expect(await inTransitTitles("service=Nova Poshta")).toEqual([]);
+    expect(await inTransitTitles(`expectedFrom=${isoDay(1)}&expectedTo=${isoDay(5)}`)).toEqual([]);
+  });
+
+  it("stops matching an order once its only parcel has arrived", async () => {
+    const shipmentId = await shipOneOfTwoBooks({
+      looseTitle: "Still Loose",
+      shippedTitle: "Arrived Parcel",
+    });
+    await postJson({
+      accessToken: reader.accessToken,
+      app,
+      path: ORDER_ROUTES.receiveShipment(shipmentId),
+    });
+
+    expect(await inTransitTitles("filter=all")).toEqual(["Still Loose"]);
     expect(await inTransitTitles("service=Nova Poshta")).toEqual([]);
     expect(await inTransitTitles(`expectedFrom=${isoDay(1)}&expectedTo=${isoDay(5)}`)).toEqual([]);
   });
