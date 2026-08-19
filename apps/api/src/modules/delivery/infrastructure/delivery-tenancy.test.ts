@@ -82,7 +82,8 @@ function attacksOnVictimRows(): Attack[] {
           postJson({
             ...attack,
             body: {
-              items: [{ bookId: bookIds[0] }],
+              currency: "UAH",
+              items: [{ bookId: bookIds[0], price: 350 }],
               orderDate: isoDay(0),
               storeName: "Stolen",
             },

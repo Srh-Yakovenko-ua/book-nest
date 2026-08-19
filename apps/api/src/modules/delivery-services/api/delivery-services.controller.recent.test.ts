@@ -67,8 +67,10 @@ function createDelivery(input: {
     .post(`/api/books/${input.bookId}/deliveries`)
     .set("Authorization", `Bearer ${input.accessToken}`)
     .send({
+      currency: "UAH",
       deliveryService: input.deliveryService,
       orderDate: "2026-01-20",
+      price: 350,
       storeName: "Yakaboo",
     });
 }

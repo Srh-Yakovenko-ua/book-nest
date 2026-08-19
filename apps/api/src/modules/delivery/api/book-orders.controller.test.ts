@@ -378,7 +378,8 @@ describe("POST /api/delivery/orders", () => {
       accessToken: reader.accessToken,
       app,
       body: {
-        items: [{ bookId: foreignBookId }],
+        currency: "UAH",
+        items: [{ bookId: foreignBookId, price: 350 }],
         orderDate: isoDay(0),
         storeName: "Yakaboo",
       },

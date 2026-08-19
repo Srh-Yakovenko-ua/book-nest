@@ -348,7 +348,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });
@@ -375,7 +375,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });
@@ -402,7 +402,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     });
 
     const res = await updateBook(accessToken, created.body.id, {
-      deliveryInfo: { storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
     });
 
@@ -420,7 +420,7 @@ describe("PATCH /api/books/:id delivery field parity", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });
@@ -487,6 +487,7 @@ describe("PATCH /api/books/:id delivery field parity", () => {
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
       deliveryInfo: {
+        currency: "UAH",
         price: 349.5,
         storeName: "Yakaboo",
         trackingNumber: "TTN-123",
@@ -507,7 +508,7 @@ describe("PATCH /api/books/:id delivery field parity", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });
@@ -526,7 +527,7 @@ describe("PATCH /api/books/:id delivery field parity", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });

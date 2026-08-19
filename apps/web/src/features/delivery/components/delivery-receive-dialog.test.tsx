@@ -24,6 +24,7 @@ const receivedOrder = {
   derivedStatus: "received",
   discount: null,
   id: "order-1",
+  isFree: false,
   items: [],
   note: null,
   orderDate: "2026-08-01",
