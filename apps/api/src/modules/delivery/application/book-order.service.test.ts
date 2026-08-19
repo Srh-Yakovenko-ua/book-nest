@@ -23,7 +23,7 @@ const TX = { marker: "tx" } as unknown as Prisma.TransactionClient;
 
 const emptyOrderRow = {
   createdAt: new Date("2026-08-01T00:00:00.000Z"),
-  currency: null,
+  currency: "UAH",
   deliveryPrice: null,
   discount: null,
   id: ORDER_ID,
@@ -34,7 +34,7 @@ const emptyOrderRow = {
   orderNumber: null,
   shipments: [],
   storeName: "Bookstore",
-  totalAmount: null,
+  totalAmount: new PrismaNamespace.Decimal(500),
   updatedAt: new Date("2026-08-01T00:00:00.000Z"),
   userId: USER,
 };
@@ -224,6 +224,7 @@ describe("BookOrderService.create", () => {
           { bookIds: bookIds.slice(0, 3), deliveryService: "Nova Poshta" },
           { bookIds: bookIds.slice(3), status: "in_transit" },
         ],
+        totalAmount: 500,
       }),
       userId: USER,
     });
@@ -267,6 +268,7 @@ describe("BookOrderService.create", () => {
           bookIds: [parcel.bookId],
           deliveryService: parcel.deliveryService,
         })),
+        totalAmount: 500,
       }),
       userId: USER,
     });
@@ -418,7 +420,11 @@ describe("BookOrderService.update", () => {
 
     expect(orders.updateOwned).toHaveBeenCalledWith(
       {
-        data: { orderDate: new Date("2026-08-05T00:00:00.000Z"), storeName: "Other store" },
+        data: {
+          orderDate: new Date("2026-08-05T00:00:00.000Z"),
+          storeName: "Other store",
+          totalAmount: 500,
+        },
         orderId: ORDER_ID,
         userId: USER,
       },
