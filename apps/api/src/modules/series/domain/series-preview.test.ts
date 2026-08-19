@@ -1,13 +1,9 @@
-import { OwnershipStatusSchema } from "@app/shared";
+import { computeHasUnreadEarlierParts, OwnershipStatusSchema } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
 import type { SeriesBookPreview, SeriesBookRow } from "./series-preview.js";
 
-import {
-  computeHasUnreadEarlierParts,
-  summarizeSeriesBooks,
-  toSeriesBookPreview,
-} from "./series-preview.js";
+import { summarizeSeriesBooks, toSeriesBookPreview } from "./series-preview.js";
 
 function makeBook(overrides: Partial<SeriesBookPreview> = {}): SeriesBookPreview {
   return {

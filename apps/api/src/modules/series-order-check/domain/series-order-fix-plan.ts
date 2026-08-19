@@ -5,7 +5,8 @@ import type {
   SeriesOrderQueuePreviewItem,
 } from "@app/shared";
 
-import { compareByPartThenCreated } from "../../series/index.js";
+import { compareByPartThenCreated } from "@app/shared";
+
 import { type SeriesOrderDetectedIssue } from "./series-order-detection.js";
 
 export type FixPlan = {

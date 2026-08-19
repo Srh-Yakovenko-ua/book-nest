@@ -10,10 +10,10 @@ import type {
   SeriesStatus,
 } from "@app/shared";
 
+import { compareByPartThenCreated } from "@app/shared";
 import { compareDesc, max } from "date-fns";
 
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
-import { compareByPartThenCreated } from "./series-preview.js";
 
 export type ContinuationBook = {
   authors: { id: string; name: string }[];

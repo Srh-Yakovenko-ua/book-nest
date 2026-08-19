@@ -1,9 +1,13 @@
 import type { Nullable, OwnershipStatus, ReadingStatus, SeriesNextBook } from "@app/shared";
 
-import { BOOK_PART_NUMBER_MIN, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
-import { compareAsc, max } from "date-fns";
-
-export type EarlierPartCandidate = Pick<SeriesBookPreview, "partNumber" | "readingStatus">;
+import {
+  BOOK_PART_NUMBER_MIN,
+  isInProgressReadingStatus,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+  selectNextBook,
+} from "@app/shared";
+import { max } from "date-fns";
 
 export type SeriesBookPreview = {
   createdAt: Date;
@@ -42,52 +46,7 @@ export type SeriesNextBookSummary = Omit<SeriesNextBook, "cover">;
 
 type PartNumberedBook = Pick<SeriesBookPreview, "partNumber">;
 
-type PartOrderedBook = {
-  createdAt: Date;
-  partNumber: Nullable<number>;
-};
-
-type ReadingOrderedBook = PartOrderedBook & { readingStatus: ReadingStatus };
-
 const FINISHED_READING_STATUS: ReadingStatus = "finished";
-
-const IN_PROGRESS_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
-  "reading",
-  "rereading",
-]);
-
-export function compareByPartThenCreated(first: PartOrderedBook, second: PartOrderedBook): number {
-  if (first.partNumber !== second.partNumber) {
-    if (first.partNumber === null) {
-      return 1;
-    }
-    if (second.partNumber === null) {
-      return -1;
-    }
-    return first.partNumber - second.partNumber;
-  }
-
-  return compareAsc(first.createdAt, second.createdAt);
-}
-
-export function computeHasUnreadEarlierParts({
-  books,
-  currentPartNumber,
-}: {
-  books: readonly EarlierPartCandidate[];
-  currentPartNumber: Nullable<number>;
-}): Nullable<boolean> {
-  if (currentPartNumber === null) {
-    return null;
-  }
-
-  return books.some(
-    (book) =>
-      book.partNumber !== null &&
-      book.partNumber < currentPartNumber &&
-      book.readingStatus !== FINISHED_READING_STATUS,
-  );
-}
 
 export function computeSeriesLastActivityAt({
   books,
@@ -101,18 +60,6 @@ export function computeSeriesLastActivityAt({
 
 export function countFinishedBooks(books: SeriesBookPreview[]): number {
   return books.filter((book) => book.readingStatus === FINISHED_READING_STATUS).length;
-}
-
-export function selectNextBook<TBook extends ReadingOrderedBook>(
-  books: readonly TBook[],
-): TBook | undefined {
-  const ordered = [...books].sort(compareByPartThenCreated);
-  const inProgress = ordered.find((book) => IN_PROGRESS_READING_STATUSES.has(book.readingStatus));
-  if (inProgress !== undefined) {
-    return inProgress;
-  }
-
-  return ordered.find((book) => book.readingStatus !== FINISHED_READING_STATUS);
 }
 
 export function summarizeSeriesBooks(books: SeriesBookPreview[]): SeriesBooksSummary {
@@ -169,7 +116,7 @@ function collectMissingPartNumbers(books: readonly PartNumberedBook[]): readonly
 }
 
 function countReadingBooks(books: SeriesBookPreview[]): number {
-  return books.filter((book) => IN_PROGRESS_READING_STATUSES.has(book.readingStatus)).length;
+  return books.filter((book) => isInProgressReadingStatus(book.readingStatus)).length;
 }
 
 function hasAnyPublicationYear(

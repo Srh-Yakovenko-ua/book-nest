@@ -1,10 +1,17 @@
-import type { InTransitImpact, Nullable, OwnershipStatus, QueuePriority } from "@app/shared";
+import type {
+  EarlierPartCandidate,
+  InTransitImpact,
+  Nullable,
+  OwnershipStatus,
+  QueuePriority,
+} from "@app/shared";
 
-import { ownershipStatusHoldsCopy, QueuePrioritySchema } from "@app/shared";
-
-import type { EarlierPartCandidate } from "../../series/index.js";
-
-import { computeHasUnreadEarlierParts, selectNextBook } from "../../series/index.js";
+import {
+  computeHasUnreadEarlierParts,
+  ownershipStatusHoldsCopy,
+  QueuePrioritySchema,
+  selectNextBook,
+} from "@app/shared";
 
 export type ImpactGoalRow = {
   bookId: string;
