@@ -2698,6 +2698,30 @@
         "unassigned_books": "Unassigned books"
       }
     },
+    "impact": {
+      "title": "What arriving will change",
+      "viewAll": "Show {count} more",
+      "series_completed": {
+        "label": "{count, plural, one {# series will be complete} other {# series will be complete}}",
+        "detail": "{count, plural, one {# book finishes the set} other {# books finish the sets}}"
+      },
+      "series_ownership_gaps": {
+        "label": "{count, plural, one {A gap closes in # series} other {Gaps close in # series}}",
+        "detail": "{count, plural, one {# book} other {# books}}"
+      },
+      "queue_available": {
+        "label": "{count, plural, one {# book becomes readable in the queue} other {# books become readable in the queue}}",
+        "detail": "{count, plural, one {# of them is high priority} other {# of them are high priority}}"
+      },
+      "series_next_step": {
+        "label": "{count, plural, one {You will be able to continue # series} other {You will be able to continue # series}}",
+        "detail": "The books you need for the next step are on their way"
+      },
+      "goal_books": {
+        "label": "{count, plural, one {# book belongs to an active goal} other {# books belong to active goals}}",
+        "detail": "{count, plural, one {in # goal} other {across # goals}}"
+      }
+    },
     "sidebar": {
       "title": "Delivery overview"
     },

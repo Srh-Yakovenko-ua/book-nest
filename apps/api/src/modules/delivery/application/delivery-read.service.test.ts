@@ -8,6 +8,7 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MediaService } from "../../media/index.js";
+import type { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repository.js";
 import type { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import type { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
 
@@ -53,9 +54,16 @@ const orderRow = {
 };
 
 function buildService(overrides: {
+  impact?: Partial<DeliveryImpactRepository>;
   reads?: Partial<DeliveryReadRepository>;
   statistics?: Partial<DeliveryStatisticsRepository>;
 }) {
+  const impact = {
+    listGoalRows: vi.fn().mockResolvedValue([]),
+    listQueueRows: vi.fn().mockResolvedValue([]),
+    listSeriesRows: vi.fn().mockResolvedValue([]),
+    ...overrides.impact,
+  } as unknown as DeliveryImpactRepository;
   const reads = {
     countHistory: vi.fn().mockResolvedValue(0),
     countInTransit: vi.fn().mockResolvedValue(0),
@@ -72,8 +80,9 @@ function buildService(overrides: {
   } as unknown as DeliveryStatisticsRepository;
 
   return {
+    impact,
     reads,
-    service: new DeliveryReadService(reads, statistics, mediaStub),
+    service: new DeliveryReadService(impact, reads, statistics, mediaStub),
     statistics,
   };
 }

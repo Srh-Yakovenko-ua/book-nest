@@ -47,6 +47,8 @@ type PartOrderedBook = {
   partNumber: Nullable<number>;
 };
 
+type ReadingOrderedBook = PartOrderedBook & { readingStatus: ReadingStatus };
+
 const FINISHED_READING_STATUS: ReadingStatus = "finished";
 
 const IN_PROGRESS_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
@@ -99,6 +101,18 @@ export function computeSeriesLastActivityAt({
 
 export function countFinishedBooks(books: SeriesBookPreview[]): number {
   return books.filter((book) => book.readingStatus === FINISHED_READING_STATUS).length;
+}
+
+export function selectNextBook<TBook extends ReadingOrderedBook>(
+  books: readonly TBook[],
+): TBook | undefined {
+  const ordered = [...books].sort(compareByPartThenCreated);
+  const inProgress = ordered.find((book) => IN_PROGRESS_READING_STATUSES.has(book.readingStatus));
+  if (inProgress !== undefined) {
+    return inProgress;
+  }
+
+  return ordered.find((book) => book.readingStatus !== FINISHED_READING_STATUS);
 }
 
 export function summarizeSeriesBooks(books: SeriesBookPreview[]): SeriesBooksSummary {
@@ -166,14 +180,4 @@ function hasAnyPublicationYear(
 
 function hasAnyPublisher(books: readonly Pick<SeriesBookPreview, "publisherId">[]): boolean {
   return books.some((book) => book.publisherId !== null);
-}
-
-function selectNextBook(books: SeriesBookPreview[]): SeriesBookPreview | undefined {
-  const ordered = [...books].sort(compareByPartThenCreated);
-  const inProgress = ordered.find((book) => IN_PROGRESS_READING_STATUSES.has(book.readingStatus));
-  if (inProgress !== undefined) {
-    return inProgress;
-  }
-
-  return ordered.find((book) => book.readingStatus !== FINISHED_READING_STATUS);
 }

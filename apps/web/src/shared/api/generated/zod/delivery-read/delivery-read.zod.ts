@@ -332,6 +332,98 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
 });
 
 /**
+ * @summary Get what receiving the books in the current user's active deliveries would change
+ */
+export const deliveryReadControllerInTransitImpactResponseItemsItemOneBooksCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemOneBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemOneSeriesCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemOneSeriesCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemTwoBooksCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemTwoBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemTwoSeriesCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemTwoSeriesCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemThreeBooksCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemThreeBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemThreeHighPriorityCountMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemThreeHighPriorityCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemFourSeriesCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemFourSeriesCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemFiveBooksCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemFiveBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitImpactResponseItemsItemFiveGoalsCountExclusiveMin = 0;
+export const deliveryReadControllerInTransitImpactResponseItemsItemFiveGoalsCountMax = 9007199254740991;
+
+export const DeliveryReadControllerInTransitImpactResponse = zod.object({
+  items: zod
+    .array(
+      zod.union([
+        zod.object({
+          booksCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemOneBooksCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemOneBooksCountMax),
+          kind: zod.enum(["series_completed"]),
+          seriesCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemOneSeriesCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemOneSeriesCountMax),
+        }),
+        zod.object({
+          booksCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemTwoBooksCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemTwoBooksCountMax),
+          kind: zod.enum(["series_ownership_gaps"]),
+          seriesCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemTwoSeriesCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemTwoSeriesCountMax),
+        }),
+        zod.object({
+          booksCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemThreeBooksCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemThreeBooksCountMax),
+          highPriorityCount: zod
+            .int()
+            .min(deliveryReadControllerInTransitImpactResponseItemsItemThreeHighPriorityCountMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemThreeHighPriorityCountMax),
+          kind: zod.enum(["queue_available"]),
+        }),
+        zod.object({
+          kind: zod.enum(["series_next_step"]),
+          seriesCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemFourSeriesCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemFourSeriesCountMax),
+        }),
+        zod.object({
+          booksCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemFiveBooksCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemFiveBooksCountMax),
+          goalsCount: zod
+            .int()
+            .gt(deliveryReadControllerInTransitImpactResponseItemsItemFiveGoalsCountExclusiveMin)
+            .max(deliveryReadControllerInTransitImpactResponseItemsItemFiveGoalsCountMax),
+          kind: zod.enum(["goal_books"]),
+        }),
+      ]),
+    )
+    .describe(
+      "What receiving the books in active deliveries would change, ordered by semantic value. Empty when nothing meaningful would change.",
+    ),
+});
+
+/**
  * @summary List the books the current user has on their way
  */
 export const deliveryReadControllerInTransitListQueryFilterDefault = `all`;

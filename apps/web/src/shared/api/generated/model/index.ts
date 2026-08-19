@@ -645,6 +645,8 @@ export * from "./favoritesSummaryViewDtoTopTagsItem";
 export * from "./forgotPasswordInputDto";
 export * from "./genresControllerRecentParams";
 export * from "./genreStatsViewDto";
+export * from "./inTransitImpactViewDto";
+export * from "./inTransitImpactViewDtoItemsItem";
 export * from "./inTransitSummaryViewDto";
 export * from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItem";
 export * from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItemCurrency";

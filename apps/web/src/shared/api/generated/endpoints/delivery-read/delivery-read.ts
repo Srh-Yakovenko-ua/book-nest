@@ -23,6 +23,7 @@ import type {
   DeliveryReadControllerHistoryListParams,
   DeliveryReadControllerHistorySummaryParams,
   DeliveryReadControllerInTransitListParams,
+  InTransitImpactViewDto,
   InTransitSummaryViewDto,
   PaginatedBookOrderItemRowsDto,
 } from "../../model";
@@ -210,6 +211,178 @@ export function useDeliveryReadControllerInTransitSummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getDeliveryReadControllerInTransitSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deliveryReadControllerInTransitImpactResponse200 = {
+  data: InTransitImpactViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerInTransitImpactResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerInTransitImpactResponseSuccess =
+  deliveryReadControllerInTransitImpactResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerInTransitImpactResponseError =
+  deliveryReadControllerInTransitImpactResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerInTransitImpactResponse =
+  | deliveryReadControllerInTransitImpactResponseSuccess
+  | deliveryReadControllerInTransitImpactResponseError;
+
+export const getDeliveryReadControllerInTransitImpactUrl = () => {
+  return `/api/delivery/books/in-transit/impact`;
+};
+
+/**
+ * @summary Get what receiving the books in the current user's active deliveries would change
+ */
+export const deliveryReadControllerInTransitImpact = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerInTransitImpactResponse> => {
+  return customInstance<deliveryReadControllerInTransitImpactResponse>(
+    getDeliveryReadControllerInTransitImpactUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerInTransitImpactQueryKey = () => {
+  return [`/api/delivery/books/in-transit/impact`] as const;
+};
+
+export const getDeliveryReadControllerInTransitImpactQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerInTransitImpactQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+  > = ({ signal }) => deliveryReadControllerInTransitImpact({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerInTransitImpactQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+>;
+export type DeliveryReadControllerInTransitImpactQueryError = void;
+
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get what receiving the books in the current user's active deliveries would change
+ */
+
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerInTransitImpactQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
