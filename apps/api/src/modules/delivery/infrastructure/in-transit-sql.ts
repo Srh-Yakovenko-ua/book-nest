@@ -2,7 +2,6 @@ import type {
   Currency,
   InTransitDeliveryStructure,
   InTransitFilter,
-  InTransitPricePresence,
   InTransitSort,
   Nullable,
 } from "@app/shared";
@@ -94,16 +93,19 @@ const ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL = Prisma.sql`(
     AND structure_shipment.status <> ${SHIPMENT_STATUS.cancelled}
 )`;
 
-const ORDER_EFFECTIVE_TOTAL_SQL = Prisma.sql`COALESCE(
-  (
-    SELECT sum(order_item.price)
-      + COALESCE(book_order.delivery_price, 0)
-      - COALESCE(book_order.discount, 0)
-    ${ORDER_LIVE_ITEMS_SQL}
-    HAVING count(*) > 0 AND count(*) FILTER (WHERE order_item.price IS NULL) = 0
-  ),
-  book_order.total_amount
-)`;
+export const ORDER_EFFECTIVE_TOTAL_SQL = Prisma.sql`(CASE
+  WHEN book_order.is_free THEN 0
+  ELSE COALESCE(
+    (
+      SELECT sum(order_item.price)
+        + COALESCE(book_order.delivery_price, 0)
+        - COALESCE(book_order.discount, 0)
+      ${ORDER_LIVE_ITEMS_SQL}
+      HAVING count(*) > 0 AND count(*) FILTER (WHERE order_item.price IS NULL) = 0
+    ),
+    book_order.total_amount
+  )
+END)`;
 
 const DELIVERY_STRUCTURE_SQL: Record<InTransitDeliveryStructure, Prisma.Sql> = {
   multiple_shipments: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} > 1`,
@@ -122,7 +124,6 @@ export type InTransitAdvancedFilter = {
   priceCurrency: Currency | undefined;
   priceMax: number | undefined;
   priceMin: number | undefined;
-  pricePresence: InTransitPricePresence | undefined;
   service: string[] | undefined;
   store: string[] | undefined;
   structure: InTransitDeliveryStructure[] | undefined;
@@ -173,7 +174,7 @@ const IN_TRANSIT_ORDER_SQL: Record<Exclude<InTransitSort, ExpectedDateSort>, Pri
   author: Prisma.sql`book.first_author_name ASC`,
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
   oldest_orders: Prisma.sql`book_order.order_date ASC NULLS LAST`,
-  price: Prisma.sql`item.price ASC NULLS LAST`,
+  price: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} ASC NULLS LAST, book_order.id ASC`,
   service: Prisma.sql`shipment.delivery_service_name ASC NULLS LAST`,
   store: Prisma.sql`book_order.store_name ASC`,
   title: Prisma.sql`book.title ASC`,
@@ -350,7 +351,6 @@ function advancedInTransitConditions({
   priceCurrency,
   priceMax,
   priceMin,
-  pricePresence,
   service,
   store,
   structure,
@@ -391,14 +391,6 @@ function advancedInTransitConditions({
 
   if (structure !== undefined) {
     conditions.push(anyOf(structure.map((option) => DELIVERY_STRUCTURE_SQL[option])));
-  }
-
-  if (pricePresence !== undefined) {
-    conditions.push(
-      pricePresence === "known"
-        ? Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} IS NOT NULL`
-        : Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} IS NULL`,
-    );
   }
 
   if (priceCurrency !== undefined) {

@@ -142,7 +142,6 @@ export class DeliveryReadService {
       priceCurrency: query.priceCurrency,
       priceMax: query.priceMax,
       priceMin: query.priceMin,
-      pricePresence: query.pricePresence,
       search: normalizeSearch(query.search),
       service: query.service,
       store: query.store,

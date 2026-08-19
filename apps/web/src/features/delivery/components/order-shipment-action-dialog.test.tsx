@@ -22,13 +22,14 @@ const updatedOrder = {
   derivedStatus: "shipped",
   discount: null,
   id: "order-1",
+  isFree: false,
   items: [],
   note: null,
   orderDate: "2026-08-01",
   orderNumber: "QA-1",
   shipments: [],
   storeName: "Yakaboo",
-  totalAmount: null,
+  totalAmount: 480,
   updatedAt: "2026-08-01T10:00:00.000Z",
 };
 
@@ -122,11 +123,12 @@ describe("OrderShipmentActionDialog edit-order", () => {
       currency: "UAH",
       deliveryPrice: null,
       discount: null,
+      isFree: false,
       note: null,
       orderDate: "2026-08-01",
       orderNumber: "QA-1",
       storeName: "Книгарня Є",
-      totalAmount: null,
+      totalAmount: 480,
     });
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
   });

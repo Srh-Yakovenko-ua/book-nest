@@ -65,6 +65,7 @@ function makeRow(overrides: Partial<BookOrderItemRowSource> = {}): BookOrderItem
       deliveryPrice: null,
       discount: null,
       id: ORDER_ID,
+      isFree: false,
       items: [makeOrderItem()],
       note: null,
       orderDate: ORDER_DATE,

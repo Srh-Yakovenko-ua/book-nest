@@ -55,10 +55,11 @@ function buildItem({
     id: ITEM_A,
     order: {
       createdAt: TOUCHED_AT,
-      currency: null,
+      currency: "UAH",
       deliveryPrice: null,
       discount: null,
       id: ORDER_ID,
+      isFree: false,
       items: orderItems.map((sibling, index) => ({
         ...sibling,
         id: index === 0 ? ITEM_A : `item-${index}`,
@@ -145,14 +146,15 @@ function buildService(
 
 function draft(overrides: Partial<NewSingleBookOrder> = {}): NewSingleBookOrder {
   return {
-    currency: null,
+    currency: "UAH",
     deliveryService: null,
     expectedDeliveryDate: null,
     hasShipment: true,
+    isFree: false,
     note: null,
     orderDate: null,
     orderNumber: null,
-    price: null,
+    price: 350,
     status: "ordered",
     storeName: "Yakaboo",
     trackingNumber: null,
@@ -208,7 +210,9 @@ describe("SingleBookOrderService.updateActiveItem on an order shared with other 
   it("still lets the reader price their own copy", async () => {
     const { items, orders, service, shipments } = buildService({
       items: {
-        findOwnedById: vi.fn().mockResolvedValue(buildItem({ orderItems: sharedOrderItems })),
+        findOwnedById: vi
+          .fn()
+          .mockResolvedValue(buildItem({ orderItems: sharedOrderItems, totalAmount: 800 })),
       },
     });
 
@@ -219,10 +223,23 @@ describe("SingleBookOrderService.updateActiveItem on an order shared with other 
       TX,
     );
     expect(orders.updateOwned).toHaveBeenCalledWith(
-      { data: { totalAmount: null }, orderId: ORDER_ID, userId: USER },
+      { data: { totalAmount: 800 }, orderId: ORDER_ID, userId: USER },
       TX,
     );
     expect(shipments.updateActive).not.toHaveBeenCalled();
+  });
+
+  it("refuses to price one book of an order whose total would then be unknown", async () => {
+    const { orders, service } = buildService({
+      items: {
+        findOwnedById: vi.fn().mockResolvedValue(buildItem({ orderItems: sharedOrderItems })),
+      },
+    });
+
+    await expect(
+      service.updateActiveItem({ itemId: ITEM_A, patch: update({ price: 249 }), userId: USER }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.updateOwned).not.toHaveBeenCalled();
   });
 
   it("recalculates the order total when an item price changes", async () => {
@@ -248,7 +265,7 @@ describe("SingleBookOrderService.updateActiveItem on an order shared with other 
     );
   });
 
-  it("clears a calculated total when an item price becomes unknown", async () => {
+  it("freezes the calculated total as a manual one when an item price becomes unknown", async () => {
     const { orders, service } = buildService({
       items: {
         findOwnedById: vi.fn().mockResolvedValue(
@@ -270,7 +287,7 @@ describe("SingleBookOrderService.updateActiveItem on an order shared with other 
     });
 
     expect(orders.updateOwned).toHaveBeenCalledWith(
-      { data: { totalAmount: null }, orderId: ORDER_ID, userId: USER },
+      { data: { totalAmount: 300 }, orderId: ORDER_ID, userId: USER },
       TX,
     );
   });
@@ -377,6 +394,40 @@ describe("SingleBookOrderService.create", () => {
       expect.objectContaining({ order: expect.objectContaining({ storeName: "" }) }),
       TX,
     );
+  });
+
+  it("stores a free single-book order at a canonical total of zero", async () => {
+    const { orders, service } = buildService();
+
+    await service.create(
+      { bookId: BOOK_A, draft: draft({ isFree: true, price: null }), userId: USER },
+      TX,
+    );
+
+    expect(orders.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        order: expect.objectContaining({ isFree: true, totalAmount: 0 }),
+      }),
+      TX,
+    );
+  });
+
+  it("refuses a single-book order whose price nobody entered", async () => {
+    const { orders, service } = buildService();
+
+    await expect(
+      service.create({ bookId: BOOK_A, draft: draft({ price: null }), userId: USER }, TX),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a single-book order that names no currency", async () => {
+    const { orders, service } = buildService();
+
+    await expect(
+      service.create({ bookId: BOOK_A, draft: draft({ currency: null }), userId: USER }, TX),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.create).not.toHaveBeenCalled();
   });
 
   it("turns a lost race on the one-active-item index into a conflict", async () => {

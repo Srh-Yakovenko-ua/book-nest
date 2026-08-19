@@ -6,7 +6,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 
 import { formatDayMonth, formatNumber, parseIsoDay } from "@/lib/format";
 
-import { formatCurrencyTotals } from "./money-format";
+import { formatCurrencyAverages, formatCurrencyTotals } from "./money-format";
 
 export type DeliverySummaryLabels = {
   active: {
@@ -32,9 +32,7 @@ export type DeliverySummaryLabels = {
   };
   mobile: (key: DeliverySummaryCardKey) => { compact: string; detailed: string };
   ordersTotal: {
-    coverageAll: (count: number) => string;
-    coverageNone: (count: number) => string;
-    coveragePartial: (known: number, total: number) => string;
+    average: (amounts: string) => string;
     empty: string;
     label: string;
   };
@@ -155,7 +153,7 @@ function toOrdersTotalCard({ labels, locale, summary }: SummaryCardOptions): Lib
     icon: "wallet",
     iconTone: "success",
     label: labels.ordersTotal.label,
-    microfact: summary === null ? undefined : toOrdersTotalMicrofact(summary, labels),
+    microfact: summary === null ? undefined : toOrdersTotalMicrofact(summary, labels, locale),
     mobileLabels: labels.mobile("ordersTotal"),
     value: formatCurrencyTotals(summary?.activeOrdersTotalByCurrency ?? [], locale),
   };
@@ -164,13 +162,10 @@ function toOrdersTotalCard({ labels, locale, summary }: SummaryCardOptions): Lib
 function toOrdersTotalMicrofact(
   summary: InTransitSummaryView,
   labels: DeliverySummaryLabels,
+  locale: string,
 ): string {
-  const { activeOrdersCount, ordersWithKnownTotalCount } = summary;
-
-  if (activeOrdersCount === 0) return labels.ordersTotal.empty;
-  if (ordersWithKnownTotalCount === 0) return labels.ordersTotal.coverageNone(activeOrdersCount);
-  if (ordersWithKnownTotalCount === activeOrdersCount) {
-    return labels.ordersTotal.coverageAll(activeOrdersCount);
-  }
-  return labels.ordersTotal.coveragePartial(ordersWithKnownTotalCount, activeOrdersCount);
+  if (summary.activeOrdersAverageByCurrency.length === 0) return labels.ordersTotal.empty;
+  return labels.ordersTotal.average(
+    formatCurrencyAverages(summary.activeOrdersAverageByCurrency, locale),
+  );
 }

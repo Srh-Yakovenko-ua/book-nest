@@ -84,9 +84,6 @@ export const deliveryReadControllerInTransitSummaryResponseNextShipmentSameDayCo
 export const deliveryReadControllerInTransitSummaryResponseOrderedCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseOrderedCountMax = 9007199254740991;
 
-export const deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMin = 0;
-export const deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMax = 9007199254740991;
-
 export const deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMin = 0;
 export const deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMax = 9007199254740991;
 
@@ -116,6 +113,16 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
       total: zod.number(),
     }),
   ),
+  activeOrdersAverageByCurrency: zod
+    .array(
+      zod.object({
+        average: zod.number(),
+        currency: zod.enum(["UAH", "EUR", "USD"]),
+      }),
+    )
+    .describe(
+      "The mean canonical total of one active order, kept per currency and never converted across them.",
+    ),
   activeOrdersCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseActiveOrdersCountMin)
@@ -301,10 +308,6 @@ export const DeliveryReadControllerInTransitSummaryResponse = zod.object({
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseOrderedCountMin)
     .max(deliveryReadControllerInTransitSummaryResponseOrderedCountMax),
-  ordersWithKnownTotalCount: zod
-    .int()
-    .min(deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMin)
-    .max(deliveryReadControllerInTransitSummaryResponseOrdersWithKnownTotalCountMax),
   readyForPickupCount: zod
     .int()
     .min(deliveryReadControllerInTransitSummaryResponseReadyForPickupCountMin)
@@ -572,7 +575,6 @@ export const DeliveryReadControllerInTransitListQueryParams = zod.object({
     ),
   priceMax: zod.number().min(deliveryReadControllerInTransitListQueryPriceMaxMin).optional(),
   priceMin: zod.number().min(deliveryReadControllerInTransitListQueryPriceMinMin).optional(),
-  pricePresence: zod.enum(["known", "unknown"]).optional(),
   search: zod.string().max(deliveryReadControllerInTransitListQuerySearchMax).optional(),
   service: zod
     .array(zod.string())
@@ -707,9 +709,12 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
           .number()
           .nullable()
           .describe(
-            "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.",
+            "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null only for a legacy order left behind by the backfill.",
           ),
         id: zod.string(),
+        isFree: zod
+          .boolean()
+          .describe("The order was received for free, so its canonical total is zero."),
         itemsCount: zod
           .int()
           .min(deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMin)
@@ -721,7 +726,7 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
           .int()
           .min(deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMin)
           .max(deliveryReadControllerInTransitListResponseItemsItemOrderPricedItemsCountMax)
-          .describe("How many of those books carry a price."),
+          .describe("How many of those books carry a price of their own."),
         storeName: zod.string(),
         totalAmount: zod.number().nullable(),
       }),
@@ -1059,9 +1064,12 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
           .number()
           .nullable()
           .describe(
-            "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.",
+            "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null only for a legacy order left behind by the backfill.",
           ),
         id: zod.string(),
+        isFree: zod
+          .boolean()
+          .describe("The order was received for free, so its canonical total is zero."),
         itemsCount: zod
           .int()
           .min(deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMin)
@@ -1073,7 +1081,7 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
           .int()
           .min(deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMin)
           .max(deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMax)
-          .describe("How many of those books carry a price."),
+          .describe("How many of those books carry a price of their own."),
         storeName: zod.string(),
         totalAmount: zod.number().nullable(),
       }),

@@ -30,6 +30,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
     deliveryPrice: null,
     discount: null,
     id: "order-1",
+    isFree: false,
     items: [],
     orderDate: MARCH_ORDER_DATE,
     orderNumber: null,

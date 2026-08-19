@@ -25,6 +25,7 @@ export type DeliveryBadgeKey =
 
 export type DeliveryCardLabels = {
   badge: (key: DeliveryBadgeKey) => string;
+  free: string;
   orderStatus: (key: BookOrderItemRowOrderView["derivedStatus"]) => string;
   seriesPosition: (position: number, total: number) => string;
 };
@@ -53,7 +54,7 @@ export type DeliveryOrderCardModel = {
   badge: StatusEntry;
   booksCount: number;
   id: string;
-  incompleteTotal: Nullable<IncompleteOrderTotal>;
+  isFree: boolean;
   orderDate: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
@@ -79,8 +80,6 @@ export type DeliveryShipmentGroupModel = {
   trackingUrl: Nullable<string>;
 };
 
-export type IncompleteOrderTotal = { itemsCount: number; pricedItemsCount: number };
-
 export type SelectableShipment = { activeItemsCount: number; id: string };
 
 export type SelectableShipmentGroup = DeliveryShipmentGroupModel & {
@@ -98,6 +97,7 @@ type OrderGroup = {
 
 type OrderTotalContext = {
   hasStoredTotal: boolean;
+  isFree: boolean;
   itemsCount: number;
   pricedItemsCount: number;
 };
@@ -131,7 +131,7 @@ export function toDeliveryOrderCards(
       badge: toOrderStatusBadge(group.order.derivedStatus, options.labels.orderStatus),
       booksCount: group.items.length,
       id: group.order.id,
-      incompleteTotal: toIncompleteOrderTotal(orderTotal),
+      isFree: group.order.isFree,
       orderDate: group.order.orderDate,
       orderDateText:
         group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),
@@ -140,11 +140,9 @@ export function toDeliveryOrderCards(
         toShipmentGroupModel(shipment, options, orderTotal),
       ),
       storeName: group.order.storeName,
-      totalText: formatPrice(
-        group.order.effectiveTotalAmount,
-        group.order.currency,
-        options.locale,
-      ),
+      totalText: group.order.isFree
+        ? options.labels.free
+        : formatPrice(group.order.effectiveTotalAmount, group.order.currency, options.locale),
     };
   });
 }
@@ -200,6 +198,7 @@ function groupByOrder(items: BookOrderItemRowView[]): OrderGroup[] {
 }
 
 function resetsOrderTotal(item: BookOrderItemRowView, orderTotal: OrderTotalContext): boolean {
+  if (orderTotal.isFree) return false;
   if (!orderTotal.hasStoredTotal) return false;
   const unpricedItemCount = orderTotal.itemsCount - orderTotal.pricedItemsCount;
   return unpricedItemCount - (item.price === null ? 1 : 0) > 0;
@@ -268,16 +267,10 @@ function toBookModel(
   };
 }
 
-function toIncompleteOrderTotal(orderTotal: OrderTotalContext): Nullable<IncompleteOrderTotal> {
-  if (orderTotal.hasStoredTotal) return null;
-  if (orderTotal.pricedItemsCount === 0) return null;
-  if (orderTotal.pricedItemsCount === orderTotal.itemsCount) return null;
-  return { itemsCount: orderTotal.itemsCount, pricedItemsCount: orderTotal.pricedItemsCount };
-}
-
 function toOrderTotalContext(group: OrderGroup): OrderTotalContext {
   return {
     hasStoredTotal: group.order.totalAmount !== null,
+    isFree: group.order.isFree,
     itemsCount: group.order.itemsCount,
     pricedItemsCount: group.order.pricedItemsCount,
   };

@@ -45,6 +45,7 @@ export function toBookOrderView(order: BookOrderRow): BookOrderView {
     derivedStatus: computeBookOrderDerivedStatus({ items: order.items, shipments }),
     discount: order.discount === null ? null : order.discount.toNumber(),
     id: order.id,
+    isFree: order.isFree,
     items: order.items.map(toBookOrderItemView),
     note: order.note,
     orderDate: toNullableIsoDate(order.orderDate),

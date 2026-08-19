@@ -32,6 +32,7 @@ function makeDelivery(overrides: Partial<DeliveryView> = {}): DeliveryView {
     deliveryService: "Нова пошта",
     expectedDeliveryDate: "2999-12-31",
     id: "dddddddd-dddd-4ddd-8ddd-delivery0001",
+    isFree: false,
     note: null,
     orderDate: "2026-06-01",
     orderNumber: "100500",

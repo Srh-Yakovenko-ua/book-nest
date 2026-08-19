@@ -1908,7 +1908,9 @@
           "createSubmit": "Order",
           "saveSubmit": "Save",
           "trackingUrl": "Tracking link",
-          "trackingUrlPlaceholder": "https://..."
+          "trackingUrlPlaceholder": "https://...",
+          "free": "Received for free",
+          "freeHint": "A gift, a review copy or a free promo edition, for instance."
         },
         "cancelDialog": {
           "title": "Cancel this book?",
@@ -1946,7 +1948,10 @@
           "notFound": "This record is gone. Refresh the page.",
           "sharedOrder": "This order also covers other books. Edit it from the order menu.",
           "sharedShipment": "This shipment also covers other books. Edit it from the shipment menu.",
-          "shipmentNotActive": "This shipment is no longer active. Refresh the page."
+          "shipmentNotActive": "This shipment is no longer active. Refresh the page.",
+          "currencyRequired": "Pick a currency.",
+          "priceRequired": "Enter the book price, or mark it as received for free.",
+          "freeWithPrice": "A free book cannot carry a price. Clear it, or switch \"Received for free\" off."
         }
       },
       "timeline": {
@@ -2469,7 +2474,9 @@
         "deliveryPrice": "Delivery cost",
         "discount": "Discount",
         "itemsSubtotal": "Books",
-        "note": "Comment"
+        "note": "Comment",
+        "free": "Received for free",
+        "freeHint": "A gift, a review copy or a free promo edition, for instance."
       },
       "cost": {
         "title": "Cost",
@@ -2491,7 +2498,8 @@
         "itemPricesCompleteTitle": "All prices are specified.",
         "itemPricesCompleteDescription": "The total has been calculated automatically.",
         "summaryPending": "The summary will appear after you enter a price for every book.",
-        "summaryFormula": "The amount is calculated automatically: book prices + delivery − discount."
+        "summaryFormula": "The amount is calculated automatically: book prices + delivery − discount.",
+        "freeSummary": "The order cost nothing, so book prices, delivery and discount are not needed."
       },
       "books": {
         "title": "Books",
@@ -2574,7 +2582,11 @@
       "validation": {
         "invalid": "Check the required fields, selected books, and shipment assignments.",
         "itemPricesRequired": "In Per book mode, enter a price for every selected book.",
-        "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative."
+        "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative.",
+        "totalRequired": "Enter the final order total, or mark the books as received for free.",
+        "currencyRequired": "Pick the order currency.",
+        "positiveTotal": "A paid order must cost more than zero. For free books, switch on \"Received for free\".",
+        "freeWithAmounts": "A free order cannot carry prices, delivery or a discount. If delivery was paid, switch \"Received for free\" off and enter its cost."
       },
       "submit": "Create order",
       "toast": {
@@ -2611,10 +2623,8 @@
           "empty": "No active orders"
         },
         "ordersTotal": {
-          "coverageAll": "{count, plural, one {Amount known for the only order} other {Amount known for all # orders}}",
-          "coveragePartial": "Amount known for {known} of {total} orders",
-          "coverageNone": "{count, plural, one {No amount for # order} other {No amount for # orders}}",
-          "empty": "No active orders"
+          "empty": "No active orders",
+          "average": "Average order — {amounts}"
         }
       },
       "mobile": {
@@ -2707,11 +2717,6 @@
         "max": "To",
         "hint": "Filters by the final total of the order.",
         "pickCurrency": "Pick one currency to filter by total."
-      },
-      "pricePresence": {
-        "all": "Any",
-        "known": "Recorded",
-        "unknown": "Missing"
       }
     },
     "activeFilters": {
@@ -2834,7 +2839,7 @@
         "service": "Delivery service: A–Z",
         "title": "Book title: A–Z",
         "author": "Author: A–Z",
-        "price": "Price: lowest first"
+        "price": "By order total: lowest first"
       },
       "mobile": {
         "title": "Sorting",
@@ -2848,7 +2853,7 @@
           "service": "Delivery service",
           "title": "Book title",
           "author": "Author",
-          "price": "Price"
+          "price": "Order total"
         },
         "options": {
           "closest_delivery": "Closest first",
@@ -2870,9 +2875,10 @@
           "service": "Service A–Z",
           "title": "Book A–Z",
           "author": "Author A–Z",
-          "price": "Price ↑"
+          "price": "Total ↑"
         }
-      }
+      },
+      "pickOneCurrency": "Pick a single currency to sort by total"
     },
     "badge": {
       "delayed": "Delayed",
@@ -2922,8 +2928,6 @@
       "booksInTransit": "{count, plural, one {# book in transit} other {# books in transit}}",
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
-      "incompleteTotalCaption": "prices for {priced} of {total}",
-      "incompleteTotalWarning": "The total is incomplete: it counts prices for {priced} of {total} books. Add the remaining prices, or enter the order total.",
       "pickupUntil": "Held until {date}",
       "note": "Note",
       "selectShipmentAria": "Select: {title}"
@@ -2972,7 +2976,14 @@
       "expectedDate": "Expected delivery date",
       "pickupUntil": "Held until",
       "status": "Delivery status",
-      "trackingUrl": "Tracking link"
+      "trackingUrl": "Tracking link",
+      "free": "Received for free",
+      "freeHint": "A gift, a review copy or a free promo edition, for instance.",
+      "freeSummary": "The order cost nothing, so book prices, delivery and discount are not needed.",
+      "totalRequired": "Enter the final order total, or mark the books as received for free.",
+      "currencyRequired": "Pick the order currency.",
+      "positiveTotal": "A paid order must cost more than zero. For free books, switch on \"Received for free\".",
+      "freeWithAmounts": "A free order cannot carry prices, delivery or a discount. If delivery was paid, switch \"Received for free\" off and enter its cost."
     },
     "bulk": {
       "regionLabel": "Bulk actions",
@@ -3249,7 +3260,8 @@
       "totalResetWarning": "The order total will be cleared, because not every book has a price. You can enter it again in Edit order.",
       "cancel": "Cancel",
       "save": "Save"
-    }
+    },
+    "freeOrder": "Free"
   },
   "favorites": {
     "metaTitle": "Favorite books",

@@ -7,6 +7,7 @@ import {
   CreateBookOrderInputSchema,
   ORDER_FINANCIAL_MESSAGES,
   validateOrderFinancials,
+  validateOrderInvariant,
 } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -69,6 +70,15 @@ import {
 import { formatMoney } from "../model/money-format";
 const CURRENCIES = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
 const MONEY_STEP = "1";
+const FINANCIAL_ERROR_KEY = {
+  [ORDER_FINANCIAL_MESSAGES.currencyRequired]: "validation.currencyRequired",
+  [ORDER_FINANCIAL_MESSAGES.freeOrderCarriesAmounts]: "validation.freeWithAmounts",
+  [ORDER_FINANCIAL_MESSAGES.mismatch]: "validation.invalid",
+  [ORDER_FINANCIAL_MESSAGES.negativeAmount]: "validation.invalid",
+  [ORDER_FINANCIAL_MESSAGES.negativeTotal]: "validation.negativeTotal",
+  [ORDER_FINANCIAL_MESSAGES.paidOrderNeedsPositiveTotal]: "validation.positiveTotal",
+  [ORDER_FINANCIAL_MESSAGES.unknownTotal]: "validation.totalRequired",
+} as const;
 const ORDER_PICKER_OWNERSHIP_STATUSES = [
   "none",
   "want_to_buy",
@@ -187,19 +197,21 @@ function CreateBookOrderForm({
   const isDistributionMode =
     shipping === "yes" &&
     (shipments.length > 1 || (shipments.length === 1 && unassignedBooks.length > 0));
-  const financialCheck = validateOrderFinancials({
+  const financialInput = {
+    currency: order.currency === "" ? null : order.currency,
     deliveryPrice: optionalMoney(order.deliveryPrice),
     discount: optionalMoney(order.discount),
+    isFree: order.isFree,
     itemPrices: books.map(({ price }) => optionalMoney(price)),
     totalAmount: optionalMoney(order.totalAmount),
-  });
-  const financials = financialCheck.summary;
+  };
+  const shapeCheck = validateOrderFinancials(financialInput);
+  const invariantCheck = validateOrderInvariant(financialInput);
+  const financials = shapeCheck.summary;
   const financialError =
-    financialCheck.error === null
-      ? null
-      : financialCheck.error === ORDER_FINANCIAL_MESSAGES.negativeTotal
-        ? t("validation.negativeTotal")
-        : t("validation.invalid");
+    shapeCheck.error === null ? null : t(FINANCIAL_ERROR_KEY[shapeCheck.error]);
+  const invariantError =
+    invariantCheck.error === null ? null : t(FINANCIAL_ERROR_KEY[invariantCheck.error]);
   const currency = order.currency === "" ? "UAH" : order.currency;
   const manualDeliveryPrice = optionalMoney(order.deliveryPrice);
   const manualDiscount = optionalMoney(order.discount);
@@ -207,7 +219,8 @@ function CreateBookOrderForm({
   const hasManualSummary =
     manualTotalAmount !== null || manualDeliveryPrice !== null || manualDiscount !== null;
   const remainingItemPricesCount = financials.itemsCount - financials.pricedItemsCount;
-  const itemPricesIncomplete = financialMode === "items" && !hasCompleteItemPrices(books);
+  const itemPricesIncomplete =
+    !order.isFree && financialMode === "items" && !hasCompleteItemPrices(books);
   const parsedDraft = CreateBookOrderInputSchema.safeParse(
     toCreateBookOrderInput({
       books: books.map(({ book, price }) => ({ bookId: book.id, price })),
@@ -219,7 +232,7 @@ function CreateBookOrderForm({
     ? null
     : itemPricesIncomplete
       ? t("validation.itemPricesRequired")
-      : (financialError ?? (parsedDraft.success ? null : t("validation.invalid")));
+      : (invariantError ?? (parsedDraft.success ? null : t("validation.invalid")));
 
   function updateOrder<K extends keyof OrderDraft>(key: K, value: OrderDraft[K]) {
     setOrder((current) => ({ ...current, [key]: value }));
@@ -322,6 +335,17 @@ function CreateBookOrderForm({
     const nextBooks = books.map((item) => (item.book.id === bookId ? { ...item, price } : item));
     clearManualTotalAfterCompleteBreakdown(nextBooks);
     setBooks(nextBooks);
+  }
+
+  function toggleFree(isFree: boolean) {
+    setOrder((current) => ({
+      ...current,
+      deliveryPrice: isFree ? "" : current.deliveryPrice,
+      discount: isFree ? "" : current.discount,
+      isFree,
+      totalAmount: isFree ? "" : current.totalAmount,
+    }));
+    if (isFree) setBooks((current) => current.map((item) => ({ ...item, price: "" })));
   }
 
   function changeFinancialMode(value: string) {
@@ -478,17 +502,30 @@ function CreateBookOrderForm({
 
         <FormSection description={t("cost.description")} icon="wallet" title={t("cost.title")}>
           <div className="flex flex-col gap-4">
-            <Segmented
-              block
-              label={t("cost.modeLabel")}
-              onValueChange={changeFinancialMode}
-              options={[
-                { label: t("cost.modes.total"), value: "total" },
-                { label: t("cost.modes.items"), value: "items" },
-              ]}
-              value={financialMode}
-            />
-            {financialMode !== "items" ? null : financialError === null ? (
+            <Label className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 font-normal">
+              <Checkbox
+                checked={order.isFree}
+                className="mt-0.5"
+                onCheckedChange={(checked) => toggleFree(checked === true)}
+              />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="font-medium text-ink">{t("order.free")}</span>
+                <span className="text-xs text-muted-foreground">{t("order.freeHint")}</span>
+              </span>
+            </Label>
+            {order.isFree ? null : (
+              <Segmented
+                block
+                label={t("cost.modeLabel")}
+                onValueChange={changeFinancialMode}
+                options={[
+                  { label: t("cost.modes.total"), value: "total" },
+                  { label: t("cost.modes.items"), value: "items" },
+                ]}
+                value={financialMode}
+              />
+            )}
+            {order.isFree || financialMode !== "items" ? null : financialError === null ? (
               <div
                 className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
                 role="status"
@@ -524,21 +561,28 @@ function CreateBookOrderForm({
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-12 sm:gap-x-3">
-              {financialMode === "total" ? (
+              {!order.isFree && financialMode === "total" ? (
                 <div className="flex flex-col gap-2 sm:col-span-9">
                   <MoneyField
                     hideSteppers
                     label={t("order.total")}
                     onChange={(value) => updateOrder("totalAmount", value)}
-                    optional
+                    required
                     value={order.totalAmount}
                   />
                   <p className="text-xs text-muted-foreground">{t("cost.totalHint")}</p>
                 </div>
               ) : null}
               <Field
-                className={financialMode === "total" ? "sm:col-span-3" : "sm:col-span-4"}
+                className={
+                  order.isFree
+                    ? "sm:col-span-4"
+                    : financialMode === "total"
+                      ? "sm:col-span-3"
+                      : "sm:col-span-4"
+                }
                 label={t("order.currency")}
+                required
               >
                 <Select
                   onValueChange={(value) => updateOrder("currency", value as Currency)}
@@ -556,27 +600,36 @@ function CreateBookOrderForm({
                   </SelectContent>
                 </Select>
               </Field>
-              {financialMode === "total" ? (
+              {!order.isFree && financialMode === "total" ? (
                 <p className="-mb-2 text-xs font-medium text-muted-foreground sm:col-span-12">
                   {t("cost.breakdownOptional")}
                 </p>
               ) : null}
-              <MoneyField
-                className={financialMode === "total" ? "sm:col-span-6" : "sm:col-span-4"}
-                label={t("order.deliveryPrice")}
-                onChange={(value) => updateOrder("deliveryPrice", value)}
-                optional
-                value={order.deliveryPrice}
-              />
-              <MoneyField
-                className={financialMode === "total" ? "sm:col-span-6" : "sm:col-span-4"}
-                label={t("order.discount")}
-                onChange={(value) => updateOrder("discount", value)}
-                optional
-                value={order.discount}
-              />
+              {order.isFree ? null : (
+                <>
+                  <MoneyField
+                    className={financialMode === "total" ? "sm:col-span-6" : "sm:col-span-4"}
+                    label={t("order.deliveryPrice")}
+                    onChange={(value) => updateOrder("deliveryPrice", value)}
+                    optional
+                    value={order.deliveryPrice}
+                  />
+                  <MoneyField
+                    className={financialMode === "total" ? "sm:col-span-6" : "sm:col-span-4"}
+                    label={t("order.discount")}
+                    onChange={(value) => updateOrder("discount", value)}
+                    optional
+                    value={order.discount}
+                  />
+                </>
+              )}
             </div>
-            {financialMode === "total" && hasManualSummary ? (
+            {order.isFree ? (
+              <p className="rounded-lg bg-secondary/30 px-3 py-2.5 text-sm text-muted-foreground">
+                {t("cost.freeSummary")}
+              </p>
+            ) : null}
+            {!order.isFree && financialMode === "total" && hasManualSummary ? (
               <div className="grid gap-1.5 rounded-lg bg-secondary/30 px-3 py-2.5 text-sm">
                 <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
                   {t("cost.summary")}
@@ -603,7 +656,7 @@ function CreateBookOrderForm({
                 )}
               </div>
             ) : null}
-            {financialMode === "items" ? (
+            {!order.isFree && financialMode === "items" ? (
               financials.isItemBreakdownComplete ? (
                 <div className="grid gap-1.5 rounded-lg bg-secondary/30 px-3 py-2.5 text-sm">
                   <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
@@ -955,6 +1008,7 @@ function MoneyField({
   label,
   onChange,
   optional,
+  required,
   value,
 }: {
   className?: string;
@@ -962,10 +1016,11 @@ function MoneyField({
   label: string;
   onChange: (value: string) => void;
   optional?: boolean;
+  required?: boolean;
   value: string;
 }) {
   return (
-    <Field className={className} label={label} optional={optional}>
+    <Field className={className} label={label} optional={optional} required={required}>
       <Input
         aria-label={label}
         className={

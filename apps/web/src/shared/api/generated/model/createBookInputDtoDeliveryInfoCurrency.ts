@@ -6,12 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 
-/**
- * @nullable
- */
 export type CreateBookInputDtoDeliveryInfoCurrency =
-  | (typeof CreateBookInputDtoDeliveryInfoCurrency)[keyof typeof CreateBookInputDtoDeliveryInfoCurrency]
-  | null;
+  (typeof CreateBookInputDtoDeliveryInfoCurrency)[keyof typeof CreateBookInputDtoDeliveryInfoCurrency];
 
 export const CreateBookInputDtoDeliveryInfoCurrency = {
   UAH: "UAH",

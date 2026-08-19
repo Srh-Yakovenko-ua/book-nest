@@ -24,6 +24,7 @@ import {
   IN_TRANSIT_ITEM_SOURCE,
   inTransitCategorySql,
   inTransitOrderSql,
+  ORDER_EFFECTIVE_TOTAL_SQL,
   ORDER_PLACED_ON_SQL,
   ordersWithActiveItemsSource,
   shipmentScopedCategorySql,
@@ -116,6 +117,7 @@ const FacetRowSchema = z.object({ count: z.number().int(), name: z.string() });
 const TotalCountRowSchema = z.object({ totalCount: z.number().int() });
 
 const CurrencyTotalRowSchema = z.object({
+  count: z.number().int(),
   currency: z.string().nullable(),
   total: z.number(),
 });
@@ -126,7 +128,6 @@ const NEXT_SHIPMENT_STATUSES = NextShipmentStatusSchema.options;
 
 const ActiveOrdersRowSchema = z.object({
   activeOrdersCount: z.number().int(),
-  ordersWithKnownTotalCount: z.number().int(),
   splitOrdersCount: z.number().int(),
   uniqueStoresCount: z.number().int(),
 });
@@ -191,12 +192,7 @@ const EMPTY_SUMMARY_ROWS: {
   itemCounts: z.infer<typeof ItemCountsRowSchema>;
   unassignedBooks: z.infer<typeof UnassignedBooksRowSchema>;
 } = {
-  activeOrders: {
-    activeOrdersCount: 0,
-    ordersWithKnownTotalCount: 0,
-    splitOrdersCount: 0,
-    uniqueStoresCount: 0,
-  },
+  activeOrders: { activeOrdersCount: 0, splitOrdersCount: 0, uniqueStoresCount: 0 },
   activeShipments: { activeShipmentsCount: 0 },
   attentionShipments: {
     delayedShipmentsCount: 0,
@@ -375,8 +371,6 @@ export class DeliveryReadRepository {
           SELECT
             (count(*))::int AS "activeOrdersCount",
             (count(DISTINCT book_order.store_name))::int AS "uniqueStoresCount",
-            (count(*) FILTER (WHERE book_order.total_amount IS NOT NULL))::int
-              AS "ordersWithKnownTotalCount",
             (count(*) FILTER (WHERE (
               SELECT count(*)
               FROM shipments shipment
@@ -399,18 +393,27 @@ export class DeliveryReadRepository {
             )
         `),
       this.prisma.$queryRaw(Prisma.sql`
-          SELECT book_order.currency AS "currency", (sum(item.price))::float8 AS "total"
+          SELECT
+            book_order.currency AS "currency",
+            (count(*))::int AS "count",
+            (sum(item.price))::float8 AS "total"
           ${IN_TRANSIT_ITEM_SOURCE}
           WHERE ${ownedActiveItems} AND item.price IS NOT NULL
           GROUP BY book_order.currency
         `),
       this.prisma.$queryRaw(Prisma.sql`
-          SELECT book_order.currency AS "currency", (sum(book_order.total_amount))::float8 AS "total"
-          ${ordersWithActiveItemsSource({
-            extraConditions: [Prisma.sql`book_order.total_amount IS NOT NULL`],
-            userId,
-          })}
-          GROUP BY book_order.currency
+          SELECT
+            currency,
+            (count(*))::int AS "count",
+            (sum(canonical_total))::float8 AS "total"
+          FROM (
+            SELECT
+              book_order.currency AS currency,
+              ${ORDER_EFFECTIVE_TOTAL_SQL} AS canonical_total
+            ${ordersWithActiveItemsSource({ extraConditions: [], userId })}
+          ) AS canonical
+          WHERE canonical_total IS NOT NULL
+          GROUP BY currency
         `),
       this.prisma.$queryRaw(Prisma.sql`
           SELECT
@@ -489,7 +492,6 @@ export class DeliveryReadRepository {
       activeOrdersCount: activeOrders.activeOrdersCount,
       activeShipmentsCount: activeShipments.activeShipmentsCount,
       bookTotals: z.array(CurrencyTotalRowSchema).parse(bookTotalRows),
-      ordersWithKnownTotalCount: activeOrders.ordersWithKnownTotalCount,
       orderTotals: z.array(CurrencyTotalRowSchema).parse(orderTotalRows),
       splitOrdersCount: activeOrders.splitOrdersCount,
       uniqueStoresCount: activeOrders.uniqueStoresCount,

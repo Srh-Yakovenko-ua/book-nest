@@ -1,10 +1,10 @@
 import type { ActiveShipmentStatus, Currency, Nullable } from "@app/shared";
 
 import {
+  CurrencySchema,
   DELIVERY_ERROR_CODES,
-  resolveOrderFinancials,
   ShipmentStatusSchema,
-  validateOrderFinancials,
+  validateOrderInvariant,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -36,6 +36,7 @@ export type NewSingleBookOrder = {
   deliveryService: Nullable<string>;
   expectedDeliveryDate: Nullable<Date>;
   hasShipment: boolean;
+  isFree: boolean;
   note: Nullable<string>;
   orderDate: Nullable<Date>;
   orderNumber: Nullable<string>;
@@ -55,6 +56,7 @@ export type SingleBookOrderPatch = {
   currency?: Nullable<Currency>;
   deliveryService?: Nullable<string>;
   expectedDeliveryDate?: Nullable<Date>;
+  isFree?: boolean;
   note?: Nullable<string>;
   orderDate?: Nullable<Date>;
   orderNumber?: Nullable<string>;
@@ -128,7 +130,11 @@ export class SingleBookOrderService {
     const service = draft.hasShipment
       ? await this.deliveryServiceResolver.resolve({ name: draft.deliveryService, userId }, client)
       : { deliveryServiceId: null, deliveryServiceName: null };
-    const financials = validatedFinancials({ itemPrices: [draft.price], totalAmount: null });
+    const financials = validatedFinancials({
+      currency: draft.currency,
+      isFree: draft.isFree,
+      itemPrices: draft.isFree ? [] : [draft.price],
+    });
 
     try {
       const order = await this.bookOrdersRepository.create(
@@ -138,6 +144,7 @@ export class SingleBookOrderService {
             currency: draft.currency,
             deliveryPrice: null,
             discount: null,
+            isFree: draft.isFree,
             note: draft.note,
             orderDate: draft.orderDate,
             orderNumber: draft.orderNumber,
@@ -231,36 +238,28 @@ export class SingleBookOrderService {
     const orderPatch = toOrderPatch(patch);
     const hasExplicitOrderPatch = Object.keys(orderPatch).length > 0;
     const nextPrice = patch.price;
-    if (nextPrice !== undefined) {
-      const currentFinancials = resolveOrderFinancials({
-        deliveryPrice:
-          item.order.deliveryPrice === null ? null : item.order.deliveryPrice.toNumber(),
-        discount: item.order.discount === null ? null : item.order.discount.toNumber(),
-        itemPrices: item.order.items.map((sibling) =>
-          sibling.price === null ? null : sibling.price.toNumber(),
-        ),
-        totalAmount: item.order.totalAmount === null ? null : item.order.totalAmount.toNumber(),
-      });
+    if (touchesFinancials(patch)) {
+      const isFree = patch.isFree ?? item.order.isFree;
+      const itemPrices = item.order.items.map((sibling) =>
+        sibling.id === item.id && nextPrice !== undefined
+          ? nextPrice
+          : toMoneyNumber(sibling.price),
+      );
+      const hasCompleteBreakdown =
+        itemPrices.length > 0 && itemPrices.every((price) => price !== null);
       const nextFinancials = validatedFinancials({
-        deliveryPrice:
-          item.order.deliveryPrice === null ? null : item.order.deliveryPrice.toNumber(),
-        discount: item.order.discount === null ? null : item.order.discount.toNumber(),
-        itemPrices: item.order.items.map((sibling) =>
-          sibling.id === item.id
-            ? nextPrice
-            : sibling.price === null
-              ? null
-              : sibling.price.toNumber(),
-        ),
-        totalAmount:
-          currentFinancials.totalSource === "calculated"
-            ? null
-            : item.order.totalAmount === null
-              ? null
-              : item.order.totalAmount.toNumber(),
+        currency: patch.currency ?? toCurrency(item.order.currency),
+        deliveryPrice: isFree ? null : toMoneyNumber(item.order.deliveryPrice),
+        discount: isFree ? null : toMoneyNumber(item.order.discount),
+        isFree,
+        itemPrices,
+        totalAmount: isFree || hasCompleteBreakdown ? null : toMoneyNumber(item.order.totalAmount),
       });
-      orderPatch.totalAmount =
-        nextFinancials.totalSource === "calculated" ? nextFinancials.effectiveTotalAmount : null;
+      orderPatch.totalAmount = nextFinancials.effectiveTotalAmount;
+      if (isFree) {
+        orderPatch.deliveryPrice = null;
+        orderPatch.discount = null;
+      }
     }
     if (Object.keys(orderPatch).length > 0) {
       if (hasExplicitOrderPatch && countBooksInOrder(item) > 1) {
@@ -398,6 +397,14 @@ function mergeShipmentDates({
   ];
 }
 
+function toCurrency(currency: Nullable<string>): Nullable<Currency> {
+  return currency === null ? null : CurrencySchema.parse(currency);
+}
+
+function toMoneyNumber(amount: Nullable<{ toNumber: () => number }>): Nullable<number> {
+  return amount === null ? null : amount.toNumber();
+}
+
 function toNewShipmentData({
   draft,
   service,
@@ -419,6 +426,7 @@ function toNewShipmentData({
 function toOrderPatch(patch: SingleBookOrderPatch): BookOrderPatch {
   return {
     ...(patch.currency === undefined ? {} : { currency: patch.currency }),
+    ...(patch.isFree === undefined ? {} : { isFree: patch.isFree }),
     ...(patch.note === undefined ? {} : { note: patch.note }),
     ...(patch.orderDate === undefined ? {} : { orderDate: patch.orderDate }),
     ...(patch.orderNumber === undefined ? {} : { orderNumber: patch.orderNumber }),
@@ -426,8 +434,12 @@ function toOrderPatch(patch: SingleBookOrderPatch): BookOrderPatch {
   };
 }
 
-function validatedFinancials(input: Parameters<typeof validateOrderFinancials>[0]) {
-  const validation = validateOrderFinancials(input);
+function touchesFinancials(patch: SingleBookOrderPatch): boolean {
+  return patch.currency !== undefined || patch.isFree !== undefined || patch.price !== undefined;
+}
+
+function validatedFinancials(input: Parameters<typeof validateOrderInvariant>[0]) {
+  const validation = validateOrderInvariant(input);
   if (validation.error !== null) {
     throw new BadRequestError(validation.error);
   }

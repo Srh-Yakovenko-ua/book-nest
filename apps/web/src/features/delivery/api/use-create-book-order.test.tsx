@@ -18,7 +18,9 @@ vi.mock("@/shared/api/generated/endpoints/book-orders/book-orders", () => ({
 }));
 
 const payload: CreateBookOrderInput = {
-  items: [{ bookId: BOOK_ID }],
+  currency: "UAH",
+  isFree: false,
+  items: [{ bookId: BOOK_ID, price: 480 }],
   storeName: "Yakaboo",
 };
 
@@ -29,6 +31,7 @@ const response: BookOrderView = {
   derivedStatus: "active",
   discount: null,
   id: ORDER_ID,
+  isFree: false,
   items: [
     {
       bookId: BOOK_ID,

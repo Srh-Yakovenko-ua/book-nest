@@ -115,6 +115,17 @@ export class BookOrderItemsRepository {
     return cancelled.count;
   }
 
+  async clearPricesForOrder(
+    { orderId, userId }: { orderId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const cleared = await client.bookOrderItem.updateMany({
+      data: { price: null },
+      where: { order: { id: orderId, userId }, price: { not: null } },
+    });
+    return cleared.count;
+  }
+
   async findActiveBookIds(
     { bookIds, userId }: { bookIds: string[]; userId: string },
     client: Prisma.TransactionClient = this.prisma,

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { InTransitSummaryViewDtoActiveBooksTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItem";
+import type { InTransitSummaryViewDtoActiveOrdersAverageByCurrencyItem } from "./inTransitSummaryViewDtoActiveOrdersAverageByCurrencyItem";
 import type { InTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem";
 import type { InTransitSummaryViewDtoAttentionItem } from "./inTransitSummaryViewDtoAttentionItem";
 import type { InTransitSummaryViewDtoNextShipment } from "./inTransitSummaryViewDtoNextShipment";
@@ -17,6 +18,8 @@ export interface InTransitSummaryViewDto {
    */
   activeBooksCount: number;
   activeBooksTotalByCurrency: InTransitSummaryViewDtoActiveBooksTotalByCurrencyItem[];
+  /** The mean canonical total of one active order, kept per currency and never converted across them. */
+  activeOrdersAverageByCurrency: InTransitSummaryViewDtoActiveOrdersAverageByCurrencyItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -64,11 +67,6 @@ export interface InTransitSummaryViewDto {
    * @maximum 9007199254740991
    */
   orderedCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  ordersWithKnownTotalCount: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991

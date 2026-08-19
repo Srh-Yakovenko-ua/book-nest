@@ -10,6 +10,7 @@ export const DeliveryViewSchema = z.object({
   deliveryService: z.string().nullable(),
   expectedDeliveryDate: z.string().nullable(),
   id: z.string(),
+  isFree: z.boolean().describe("The order this book arrived in was received for free."),
   note: z.string().nullable(),
   orderDate: z.string().nullable(),
   orderNumber: z.string().nullable(),

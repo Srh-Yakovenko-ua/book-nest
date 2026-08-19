@@ -19,7 +19,6 @@ import type {
 import {
   DeliveryReadControllerInTransitListCurrencyItem,
   DeliveryReadControllerInTransitListFilter,
-  DeliveryReadControllerInTransitListPricePresence,
   DeliveryReadControllerInTransitListSort,
   DeliveryReadControllerInTransitListStructureItem,
 } from "@/shared/api/generated/model";
@@ -42,9 +41,6 @@ export const DELIVERY_CURRENCY_VALUES = Object.values(
 export const DELIVERY_STRUCTURE_VALUES = Object.values(
   DeliveryReadControllerInTransitListStructureItem,
 );
-export const DELIVERY_PRICE_PRESENCE_VALUES = Object.values(
-  DeliveryReadControllerInTransitListPricePresence,
-);
 
 export type DeliveryFilterCounts = Record<DeliveryPrimaryFilter, number>;
 
@@ -66,7 +62,6 @@ export const deliveryQueryParsers = {
   orderedTo: parseAsString,
   priceMax: parseAsFloat,
   priceMin: parseAsFloat,
-  pricePresence: parseAsStringLiteral(DELIVERY_PRICE_PRESENCE_VALUES),
   q: parseAsString.withDefault(""),
   service: parseAsArrayOf(parseAsString).withDefault([]),
   sort: parseAsStringLiteral(sortValues).withDefault(DELIVERY_SORT_DEFAULT),
@@ -97,7 +92,6 @@ export const DELIVERY_ADVANCED_RESET = {
   orderedTo: null,
   priceMax: null,
   priceMin: null,
-  pricePresence: null,
   service: null,
   store: null,
   structure: null,
@@ -113,11 +107,14 @@ export const DELIVERY_ADVANCED_EMPTY: DeliveryAdvancedState = {
   orderedTo: null,
   priceMax: null,
   priceMin: null,
-  pricePresence: null,
   service: [],
   store: [],
   structure: [],
 };
+
+export function canSortByOrderTotal(state: Pick<DeliveryQueryState, "currency">): boolean {
+  return state.currency.length === 1;
+}
 
 export function countActiveDeliveryDimensions(state: DeliveryAdvancedState): number {
   return [
@@ -128,7 +125,7 @@ export function countActiveDeliveryDimensions(state: DeliveryAdvancedState): num
     state.expectedFrom !== null || state.expectedTo !== null,
     state.structure.length > 0,
     state.currency.length > 0,
-    state.pricePresence !== null || resolveDeliveryPriceCurrency(state) !== null,
+    resolveDeliveryPriceCurrency(state) !== null,
   ].filter(Boolean).length;
 }
 
@@ -174,6 +171,13 @@ export function resolveDeliveryPriceCurrency(
   return only;
 }
 
+export function resolveDeliverySort(
+  state: Pick<DeliveryQueryState, "currency" | "sort">,
+): DeliveryQueryState["sort"] {
+  if (state.sort !== DeliveryReadControllerInTransitListSort.price) return state.sort;
+  return canSortByOrderTotal(state) ? state.sort : DELIVERY_SORT_DEFAULT;
+}
+
 export function toDeliveryAttentionReason(
   filter: DeliveryReadControllerInTransitListFilter,
 ): Nullable<InTransitAttentionReason> {
@@ -204,7 +208,7 @@ export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListPar
     filter: state.filter,
     pageSize: DELIVERY_PAGE_SIZE,
     service: state.service,
-    sort: state.sort,
+    sort: resolveDeliverySort(state),
     store: state.store,
     structure: state.structure,
     ...(search === "" ? {} : { search }),
@@ -214,7 +218,6 @@ export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListPar
     ...(flags.expected ? {} : dayBound("expectedTo", state.expectedTo)),
     ...(flags.books || state.booksMin === null ? {} : { booksMin: state.booksMin }),
     ...(flags.books || state.booksMax === null ? {} : { booksMax: state.booksMax }),
-    ...(state.pricePresence === null ? {} : { pricePresence: state.pricePresence }),
     ...(priceCurrency === null
       ? {}
       : {

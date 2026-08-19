@@ -99,6 +99,7 @@ export function DeliveryInTransit() {
   const orders = toDeliveryOrderCards(loadedItems, {
     labels: {
       badge: (key) => tBadge(key),
+      free: t("freeOrder"),
       orderStatus: (key) => t(`orderStatus.${key}`),
       seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
     },
@@ -203,10 +204,7 @@ export function DeliveryInTransit() {
       detailed: tSummary(`mobile.detailed.${key}`),
     }),
     ordersTotal: {
-      coverageAll: (count) => tSummary("microfact.ordersTotal.coverageAll", { count }),
-      coverageNone: (count) => tSummary("microfact.ordersTotal.coverageNone", { count }),
-      coveragePartial: (known, total) =>
-        tSummary("microfact.ordersTotal.coveragePartial", { known, total }),
+      average: (amounts) => tSummary("microfact.ordersTotal.average", { amounts }),
       empty: tSummary("microfact.ordersTotal.empty"),
       label: tSummary("ordersTotal"),
     },

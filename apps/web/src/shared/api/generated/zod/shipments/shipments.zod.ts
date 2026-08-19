@@ -63,6 +63,9 @@ export const ShipmentsControllerCreateShipmentResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -146,6 +149,9 @@ export const ShipmentsControllerMoveItemsResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -268,6 +274,9 @@ export const ShipmentsControllerUpdateShipmentResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -346,6 +355,9 @@ export const ShipmentsControllerMarkInTransitResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -423,6 +435,9 @@ export const ShipmentsControllerMarkReadyForPickupResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -497,6 +512,9 @@ export const ShipmentsControllerMarkReceivedResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -572,6 +590,9 @@ export const ShipmentsControllerCancelShipmentResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),

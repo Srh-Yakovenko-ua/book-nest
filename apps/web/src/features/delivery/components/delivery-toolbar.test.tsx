@@ -187,16 +187,10 @@ describe("DeliveryToolbar advanced filter chips", () => {
   });
 
   it("keeps the picked currencies when the order total chip is removed", async () => {
-    const advanced = advancedState({
-      currency: ["UAH"],
-      priceMax: 500,
-      priceMin: 100,
-      pricePresence: "known",
-    });
+    const advanced = advancedState({ currency: ["UAH"], priceMax: 500, priceMin: 100 });
     const { onApplyAdvanced } = renderToolbar({ advanced, advancedCount: 2 });
 
     expect(screen.getByText("Вартість: 100–500 UAH")).toBeInTheDocument();
-    expect(screen.queryByText("Сума вказана")).not.toBeInTheDocument();
 
     await removeChip("Вартість: 100–500 UAH");
 
@@ -204,23 +198,6 @@ describe("DeliveryToolbar advanced filter chips", () => {
       ...advanced,
       priceMax: null,
       priceMin: null,
-      pricePresence: null,
-    });
-  });
-
-  it("names the bare presence on the order total chip when no range applies", async () => {
-    const advanced = advancedState({ pricePresence: "unknown" });
-    const { onApplyAdvanced } = renderToolbar({ advanced, advancedCount: 1 });
-
-    expect(screen.getByText("Сума не вказана")).toBeInTheDocument();
-
-    await removeChip("Сума не вказана");
-
-    expect(onApplyAdvanced).toHaveBeenCalledWith({
-      ...advanced,
-      priceMax: null,
-      priceMin: null,
-      pricePresence: null,
     });
   });
 
@@ -233,21 +210,6 @@ describe("DeliveryToolbar advanced filter chips", () => {
     expect(screen.queryByText(/^Вартість:/)).not.toBeInTheDocument();
     expect(screen.getByText("UAH")).toBeInTheDocument();
     expect(screen.getByText("EUR")).toBeInTheDocument();
-  });
-
-  it("falls back to the presence while the range cannot apply", () => {
-    renderToolbar({
-      advanced: advancedState({
-        currency: ["UAH", "EUR"],
-        priceMax: 500,
-        priceMin: 100,
-        pricePresence: "known",
-      }),
-      advancedCount: 2,
-    });
-
-    expect(screen.queryByText(/^Вартість:/)).not.toBeInTheDocument();
-    expect(screen.getByText("Сума вказана")).toBeInTheDocument();
   });
 
   it("says nothing about a range that reads backwards", () => {
@@ -307,11 +269,23 @@ describe("DeliveryToolbar selection", () => {
 
 describe("DeliveryToolbar sorting", () => {
   it("spells out the criterion and the direction on the desktop select", () => {
-    renderToolbar({ sort: "price" });
+    renderToolbar({ advanced: advancedState({ currency: ["UAH"] }), sort: "price" });
 
     expect(screen.getByRole("combobox", { name: "Сортування" })).toHaveTextContent(
-      "За ціною: від нижчої",
+      "За вартістю замовлення: від нижчої",
     );
+  });
+
+  it("holds the order-total sort back until a single currency gates it", async () => {
+    renderToolbar();
+
+    await userEvent.click(screen.getByRole("combobox", { name: "Сортування" }));
+
+    const option = await screen.findByRole("option", {
+      name: /За вартістю замовлення: від нижчої/,
+    });
+    expect(option).toHaveAttribute("aria-disabled", "true");
+    expect(option).toHaveTextContent("Оберіть одну валюту, щоб сортувати за вартістю");
   });
 
   it("shortens the same order down to a chip on the mobile trigger", () => {

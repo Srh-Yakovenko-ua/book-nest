@@ -10,6 +10,7 @@ import { DELIVERY_SORT_ORDER } from "../model/in-transit-params";
 
 type DeliverySortSheetProps = {
   className?: string;
+  disabledSortHint?: string;
   label: string;
   onChange: (value: DeliveryReadControllerInTransitListSort) => void;
   value: DeliveryReadControllerInTransitListSort;
@@ -30,7 +31,13 @@ const SORT_GROUP_BY_VALUE: Record<DeliveryReadControllerInTransitListSort, SortG
   title: "title",
 };
 
-export function DeliverySortSheet({ className, label, onChange, value }: DeliverySortSheetProps) {
+export function DeliverySortSheet({
+  className,
+  disabledSortHint,
+  label,
+  onChange,
+  value,
+}: DeliverySortSheetProps) {
   const t = useTranslations("delivery.sort.mobile");
 
   return (
@@ -39,6 +46,7 @@ export function DeliverySortSheet({ className, label, onChange, value }: Deliver
       closeLabel={t("close")}
       description={t("description")}
       groups={buildMobileSortGroups({
+        disabledHint: (option) => (option === "price" ? disabledSortHint : undefined),
         groupKeyByValue: SORT_GROUP_BY_VALUE,
         groupLabel: (key) => t(`groups.${key}`),
         optionLabel: (option) => t(`options.${option}`),

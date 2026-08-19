@@ -33,7 +33,7 @@ import {
   TrackingNumberSchema,
 } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
-import { ORDER_FINANCIAL_MESSAGES, validateOrderFinancials } from "./order-financials.js";
+import { ORDER_FINANCIAL_MESSAGES, validateOrderInvariant } from "./order-financials.js";
 
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
@@ -75,6 +75,18 @@ const PositiveCountSchema = z.number().int().positive();
 
 const hasUniqueValues = (values: readonly string[]): boolean =>
   new Set(values).size === values.length;
+
+const ORDER_FINANCIAL_ISSUE_PATHS = {
+  [ORDER_FINANCIAL_MESSAGES.currencyRequired]: ["currency"],
+  [ORDER_FINANCIAL_MESSAGES.freeOrderCarriesAmounts]: ["isFree"],
+  [ORDER_FINANCIAL_MESSAGES.negativeTotal]: ["discount"],
+} as const;
+
+const orderFinancialIssuePath = (message: string): string[] => [
+  ...(ORDER_FINANCIAL_ISSUE_PATHS[message as keyof typeof ORDER_FINANCIAL_ISSUE_PATHS] ?? [
+    "totalAmount",
+  ]),
+];
 
 export const BookOrderDerivedStatusSchema = z.enum([
   "active",
@@ -133,6 +145,7 @@ export const BookOrderViewSchema = z.object({
   derivedStatus: BookOrderDerivedStatusSchema,
   discount: z.number().nullable(),
   id: z.string(),
+  isFree: z.boolean().describe("The order was received for free, so its canonical total is zero."),
   items: z.array(BookOrderItemViewSchema),
   note: z.string().nullable(),
   orderDate: z.string().nullable(),
@@ -175,9 +188,10 @@ const BookOrderStoreNameSchema = OwnershipStoreNameSchema.pipe(
 );
 
 const BookOrderDraftSchema = z.object({
-  currency: CurrencySchema.optional(),
+  currency: CurrencySchema,
   deliveryPrice: OwnershipPriceSchema.optional(),
   discount: OwnershipPriceSchema.optional(),
+  isFree: z.boolean().default(false),
   items: z.array(BookOrderItemInputSchema).min(1).max(BOOK_ORDER_LIMITS.itemsMax),
   note: OwnershipNoteSchema.optional(),
   orderDate: notInFutureDate("Order date must not be in the future").optional(),
@@ -228,9 +242,11 @@ export const CreateBookOrderInputSchema = BookOrderDraftSchema.refine(hasUniqueO
     path: ["shipments"],
   })
   .superRefine((draft, context) => {
-    const validation = validateOrderFinancials({
+    const validation = validateOrderInvariant({
+      currency: draft.currency,
       deliveryPrice: draft.deliveryPrice,
       discount: draft.discount,
+      isFree: draft.isFree,
       itemPrices: draft.items.map((item) => item.price ?? null),
       totalAmount: draft.totalAmount,
     });
@@ -238,10 +254,7 @@ export const CreateBookOrderInputSchema = BookOrderDraftSchema.refine(hasUniqueO
       context.addIssue({
         code: "custom",
         message: validation.error,
-        path:
-          validation.error === ORDER_FINANCIAL_MESSAGES.negativeTotal
-            ? ["discount"]
-            : ["totalAmount"],
+        path: orderFinancialIssuePath(validation.error),
       });
     }
   });
@@ -249,9 +262,10 @@ export const CreateBookOrderInputSchema = BookOrderDraftSchema.refine(hasUniqueO
 export type CreateBookOrderInput = z.infer<typeof CreateBookOrderInputSchema>;
 
 export const UpdateBookOrderInputSchema = z.object({
-  currency: CurrencySchema.nullable().optional(),
+  currency: CurrencySchema.optional(),
   deliveryPrice: OwnershipPriceSchema.nullable().optional(),
   discount: OwnershipPriceSchema.nullable().optional(),
+  isFree: z.boolean().optional(),
   note: OwnershipNoteSchema.nullable().optional(),
   orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
   orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
@@ -557,10 +571,6 @@ export const InTransitDeliveryStructureSchema = z.enum([
 
 export type InTransitDeliveryStructure = z.infer<typeof InTransitDeliveryStructureSchema>;
 
-export const InTransitPricePresenceSchema = z.enum(["known", "unknown"]);
-
-export type InTransitPricePresence = z.infer<typeof InTransitPricePresenceSchema>;
-
 export const InTransitQuerySchema = z.object({
   booksMax: z.coerce.number().int().min(0).max(BOOK_ORDER_LIMITS.booksCountMax).optional(),
   booksMin: z.coerce.number().int().min(0).max(BOOK_ORDER_LIMITS.booksCountMax).optional(),
@@ -576,7 +586,6 @@ export const InTransitQuerySchema = z.object({
   ),
   priceMax: z.coerce.number().nonnegative().optional(),
   priceMin: z.coerce.number().nonnegative().optional(),
-  pricePresence: InTransitPricePresenceSchema.optional(),
   search: z.string().trim().max(BOOK_ORDER_LIMITS.searchMax).optional(),
   service: queryStringArray(DeliveryServiceSchema),
   sort: InTransitSortSchema.default("closest_delivery"),
@@ -684,13 +693,14 @@ export const BookOrderItemRowOrderViewSchema = z.object({
     .number()
     .nullable()
     .describe(
-      "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.",
+      "What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null only for a legacy order left behind by the backfill.",
     ),
   id: z.string(),
+  isFree: z.boolean().describe("The order was received for free, so its canonical total is zero."),
   itemsCount: CountSchema.describe("How many books the whole order holds, page and filter aside."),
   orderDate: z.string().nullable(),
   orderNumber: z.string().nullable(),
-  pricedItemsCount: CountSchema.describe("How many of those books carry a price."),
+  pricedItemsCount: CountSchema.describe("How many of those books carry a price of their own."),
   storeName: z.string(),
   totalAmount: z.number().nullable(),
 });
@@ -773,6 +783,11 @@ export type NextShipmentView = z.infer<typeof NextShipmentViewSchema>;
 export const InTransitSummaryViewSchema = z.object({
   activeBooksCount: CountSchema,
   activeBooksTotalByCurrency: z.array(CurrencyTotalSchema),
+  activeOrdersAverageByCurrency: z
+    .array(CurrencyAverageSchema)
+    .describe(
+      "The mean canonical total of one active order, kept per currency and never converted across them.",
+    ),
   activeOrdersCount: CountSchema,
   activeOrdersTotalByCurrency: z.array(CurrencyTotalSchema),
   activeShipmentsCount: CountSchema,
@@ -791,7 +806,6 @@ export const InTransitSummaryViewSchema = z.object({
     "The soonest shipment still awaiting arrival: status ordered or in_transit, an expected date of today or later, and at least one active book. Null when nothing qualifies.",
   ),
   orderedCount: CountSchema,
-  ordersWithKnownTotalCount: CountSchema,
   readyForPickupCount: CountSchema,
   splitOrdersCount: CountSchema,
   uniqueStoresCount: CountSchema,

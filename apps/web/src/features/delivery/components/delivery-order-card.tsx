@@ -173,14 +173,6 @@ export function DeliveryOrderCard({
               {model.totalText ?? "—"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{booksCountText}</p>
-            {model.incompleteTotal === null ? null : (
-              <p className="mt-0.5 text-xs text-warning">
-                {t("incompleteTotalCaption", {
-                  priced: model.incompleteTotal.pricedItemsCount,
-                  total: model.incompleteTotal.itemsCount,
-                })}
-              </p>
-            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -209,16 +201,6 @@ export function DeliveryOrderCard({
           </DropdownMenu>
         </div>
       </header>
-
-      {model.incompleteTotal === null ? null : (
-        <p className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
-          <UiIcon className="mt-0.5" name="alert-triangle" size={16} />
-          {t("incompleteTotalWarning", {
-            priced: model.incompleteTotal.pricedItemsCount,
-            total: model.incompleteTotal.itemsCount,
-          })}
-        </p>
-      )}
 
       <div
         className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"

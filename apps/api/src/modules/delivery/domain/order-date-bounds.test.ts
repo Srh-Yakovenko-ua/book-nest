@@ -52,13 +52,19 @@ const dateFieldCases = (day: string): DateFieldCase[] => [
     schema: BulkReceiveOrderItemsInputSchema,
   },
   {
-    input: { items: [{ bookId: BOOK_ID }], orderDate: day, storeName: "Bookstore" },
+    input: {
+      currency: "UAH",
+      items: [{ bookId: BOOK_ID, price: 100 }],
+      orderDate: day,
+      storeName: "Bookstore",
+    },
     label: "CreateBookOrderInputSchema.orderDate",
     schema: CreateBookOrderInputSchema,
   },
   {
     input: {
-      items: [{ bookId: BOOK_ID }],
+      currency: "UAH",
+      items: [{ bookId: BOOK_ID, price: 100 }],
       shipments: [{ bookIds: [BOOK_ID], expectedDeliveryDate: day }],
       storeName: "Bookstore",
     },

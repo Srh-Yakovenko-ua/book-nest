@@ -68,7 +68,11 @@ async function order(bookIds: string[]): Promise<void> {
   await createOrder({
     accessToken: reader.accessToken,
     app,
-    input: { items: bookIds.map((bookId) => ({ bookId })), storeName: "Yakaboo" },
+    input: {
+      items: bookIds.map((bookId) => ({ bookId })),
+      storeName: "Yakaboo",
+      totalAmount: 500,
+    },
   });
 }
 
@@ -155,7 +159,7 @@ describe("GET /api/delivery/books/in-transit/impact", () => {
     const view = await createOrder({
       accessToken: reader.accessToken,
       app,
-      input: { items: [{ bookId: queued.id }], storeName: "Yakaboo" },
+      input: { items: [{ bookId: queued.id }], storeName: "Yakaboo", totalAmount: 500 },
     });
     const item = view.items.find((candidate) => candidate.bookId === queued.id);
 

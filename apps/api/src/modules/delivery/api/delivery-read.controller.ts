@@ -89,7 +89,6 @@ export class DeliveryReadController {
   @ApiQuery({ name: "priceCurrency", required: false })
   @ApiQuery({ name: "priceMin", required: false })
   @ApiQuery({ name: "priceMax", required: false })
-  @ApiQuery({ name: "pricePresence", required: false })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

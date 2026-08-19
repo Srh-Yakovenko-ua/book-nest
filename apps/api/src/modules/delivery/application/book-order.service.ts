@@ -2,14 +2,16 @@ import type {
   BookOrderShipmentInput,
   BookOrderView,
   CreateBookOrderInput,
+  Currency,
+  Nullable,
   UpdateBookOrderInput,
 } from "@app/shared";
 
 import {
+  CurrencySchema,
   OwnershipStatusSchema,
-  resolveOrderFinancials,
   ShipmentStatusSchema,
-  validateOrderFinancials,
+  validateOrderInvariant,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -62,8 +64,10 @@ export class BookOrderService {
     const now = new Date();
     const bookIds = input.items.map((item) => item.bookId);
     const financials = validatedFinancials({
+      currency: input.currency,
       deliveryPrice: input.deliveryPrice,
       discount: input.discount,
+      isFree: input.isFree,
       itemPrices: input.items.map((item) => item.price ?? null),
       totalAmount: input.totalAmount,
     });
@@ -121,39 +125,28 @@ export class BookOrderService {
       }
 
       const patch = toOrderPatch(input);
-      const currentTotalAmount = order.totalAmount === null ? null : order.totalAmount.toNumber();
-      const itemPrices = order.items.map((item) =>
-        item.price === null ? null : item.price.toNumber(),
-      );
-      const currentFinancials = resolveOrderFinancials({
-        deliveryPrice: order.deliveryPrice === null ? null : order.deliveryPrice.toNumber(),
-        discount: order.discount === null ? null : order.discount.toNumber(),
-        itemPrices,
-        totalAmount: currentTotalAmount,
-      });
+      const isFree = input.isFree ?? order.isFree;
+      if (isFree) {
+        await this.bookOrderItemsRepository.clearPricesForOrder({ orderId, userId }, tx);
+      }
+      const itemPrices = isFree
+        ? []
+        : order.items.map((item) => (item.price === null ? null : item.price.toNumber()));
+      const hasCompleteBreakdown =
+        itemPrices.length > 0 && itemPrices.every((price) => price !== null);
       const financials = validatedFinancials({
-        deliveryPrice:
-          input.deliveryPrice === undefined
-            ? order.deliveryPrice === null
-              ? null
-              : order.deliveryPrice.toNumber()
-            : input.deliveryPrice,
-        discount:
-          input.discount === undefined
-            ? order.discount === null
-              ? null
-              : order.discount.toNumber()
-            : input.discount,
+        currency: input.currency ?? toCurrency(order.currency),
+        deliveryPrice: isFree ? null : patched(input.deliveryPrice, order.deliveryPrice),
+        discount: isFree ? null : patched(input.discount, order.discount),
+        isFree,
         itemPrices,
         totalAmount:
-          input.totalAmount === undefined && currentFinancials.totalSource === "calculated"
-            ? null
-            : input.totalAmount === undefined
-              ? currentTotalAmount
-              : input.totalAmount,
+          isFree || hasCompleteBreakdown ? null : patched(input.totalAmount, order.totalAmount),
       });
-      if (financials.totalSource === "calculated") {
-        patch.totalAmount = financials.effectiveTotalAmount;
+      patch.totalAmount = financials.effectiveTotalAmount;
+      if (isFree) {
+        patch.deliveryPrice = null;
+        patch.discount = null;
       }
       assertShipmentsExpectedAfter({
         orderDate: patch.orderDate ?? order.orderDate,
@@ -239,6 +232,20 @@ export class BookOrderService {
   }
 }
 
+function patched(
+  next: Nullable<number> | undefined,
+  current: Nullable<{ toNumber: () => number }>,
+): Nullable<number> {
+  if (next !== undefined) {
+    return next;
+  }
+  return current === null ? null : current.toNumber();
+}
+
+function toCurrency(currency: Nullable<string>): Nullable<Currency> {
+  return currency === null ? null : CurrencySchema.parse(currency);
+}
+
 function toNewOrderData({
   input,
   totalAmount,
@@ -247,9 +254,10 @@ function toNewOrderData({
   totalAmount: null | number;
 }): NewBookOrderData {
   return {
-    currency: input.currency ?? null,
+    currency: input.currency,
     deliveryPrice: input.deliveryPrice ?? null,
     discount: input.discount ?? null,
+    isFree: input.isFree,
     note: input.note ?? null,
     orderDate: toCreateDate(input.orderDate),
     orderNumber: input.orderNumber ?? null,
@@ -281,6 +289,7 @@ function toOrderPatch(input: UpdateBookOrderInput): BookOrderPatch {
     ...(input.currency === undefined ? {} : { currency: input.currency }),
     ...(input.deliveryPrice === undefined ? {} : { deliveryPrice: input.deliveryPrice }),
     ...(input.discount === undefined ? {} : { discount: input.discount }),
+    ...(input.isFree === undefined ? {} : { isFree: input.isFree }),
     ...(input.note === undefined ? {} : { note: input.note }),
     ...(input.orderDate === undefined ? {} : { orderDate: toUpdateDate(input.orderDate) ?? null }),
     ...(input.orderNumber === undefined ? {} : { orderNumber: input.orderNumber }),
@@ -289,8 +298,8 @@ function toOrderPatch(input: UpdateBookOrderInput): BookOrderPatch {
   };
 }
 
-function validatedFinancials(input: Parameters<typeof validateOrderFinancials>[0]) {
-  const validation = validateOrderFinancials(input);
+function validatedFinancials(input: Parameters<typeof validateOrderInvariant>[0]) {
+  const validation = validateOrderInvariant(input);
   if (validation.error !== null) {
     throw new BadRequestError(validation.error);
   }

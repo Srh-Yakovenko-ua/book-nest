@@ -20,6 +20,8 @@ export interface BookOrderViewDto {
   /** @nullable */
   discount: number | null;
   id: string;
+  /** The order was received for free, so its canonical total is zero. */
+  isFree: boolean;
   items: BookOrderViewDtoItemsItem[];
   /** @nullable */
   note: string | null;
