@@ -1,6 +1,7 @@
 import type {
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
+  InTransitFacetsView,
   InTransitImpactView,
   InTransitSummaryView,
   Paginator,
@@ -25,6 +26,7 @@ import { BookOrderHistoryQueryDto } from "./input-dto/book-order-history-query.i
 import { BookOrderHistorySummaryQueryDto } from "./input-dto/book-order-history-summary-query.input-dto.js";
 import { InTransitQueryDto } from "./input-dto/in-transit-query.input-dto.js";
 import { BookOrderHistorySummaryViewDto } from "./view-dto/book-order-history-summary.view-dto.js";
+import { InTransitFacetsViewDto } from "./view-dto/in-transit-facets.view-dto.js";
 import { InTransitImpactViewDto } from "./view-dto/in-transit-impact.view-dto.js";
 import { InTransitSummaryViewDto } from "./view-dto/in-transit-summary.view-dto.js";
 import { PaginatedBookOrderItemRowsDto } from "./view-dto/paginated-book-order-item-rows.view-dto.js";
@@ -60,14 +62,39 @@ export class DeliveryReadController {
   }
 
   @ApiOkResponse({
+    description:
+      "The stores and delivery services the current user's active deliveries run through",
+    type: InTransitFacetsViewDto,
+  })
+  @ApiOperation({
+    summary: "List the stores and delivery services behind the books on their way",
+  })
+  @Get("books/in-transit/facets")
+  @Throttle(READ_THROTTLE)
+  inTransitFacets(@CurrentUser() user: AuthenticatedUser): Promise<InTransitFacetsView> {
+    return this.deliveryReadService.inTransitFacets({ userId: user.id });
+  }
+
+  @ApiOkResponse({
     description: "A page of the books the current user has on their way",
     type: PaginatedBookOrderItemRowsDto,
   })
   @ApiOperation({ summary: "List the books the current user has on their way" })
   @ApiQuery({ name: "filter", required: false })
-  @ApiQuery({ name: "store", required: false })
-  @ApiQuery({ name: "service", required: false })
-  @ApiQuery({ name: "currency", required: false })
+  @ApiQuery({ isArray: true, name: "store", required: false, type: String })
+  @ApiQuery({ isArray: true, name: "service", required: false, type: String })
+  @ApiQuery({ isArray: true, name: "currency", required: false, type: String })
+  @ApiQuery({ isArray: true, name: "structure", required: false, type: String })
+  @ApiQuery({ name: "orderedFrom", required: false })
+  @ApiQuery({ name: "orderedTo", required: false })
+  @ApiQuery({ name: "expectedFrom", required: false })
+  @ApiQuery({ name: "expectedTo", required: false })
+  @ApiQuery({ name: "booksMin", required: false })
+  @ApiQuery({ name: "booksMax", required: false })
+  @ApiQuery({ name: "priceCurrency", required: false })
+  @ApiQuery({ name: "priceMin", required: false })
+  @ApiQuery({ name: "priceMax", required: false })
+  @ApiQuery({ name: "pricePresence", required: false })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

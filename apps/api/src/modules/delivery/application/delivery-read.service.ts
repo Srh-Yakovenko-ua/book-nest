@@ -6,6 +6,8 @@ import type {
   BookOrderStatisticsQuery,
   BookOrderStatisticsView,
   BookPreview,
+  InTransitFacetEntry,
+  InTransitFacetsView,
   InTransitImpactView,
   InTransitQuery,
   InTransitSummaryView,
@@ -30,6 +32,7 @@ import type {
 
 import { parseIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { MediaService } from "../../media/index.js";
 import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
@@ -109,6 +112,15 @@ export class DeliveryReadService {
     return buildOrderHistorySummaryView(data);
   }
 
+  async inTransitFacets({ userId }: { userId: string }): Promise<InTransitFacetsView> {
+    const rows = await this.deliveryReadRepository.inTransitFacets(userId);
+
+    return {
+      services: sortFacetEntries(rows.services),
+      stores: sortFacetEntries(rows.stores),
+    };
+  }
+
   async inTransitImpact({ userId }: { userId: string }): Promise<InTransitImpactView> {
     const { today } = deliveryDateBounds(new Date());
 
@@ -130,12 +142,23 @@ export class DeliveryReadService {
   }): Promise<Paginator<BookOrderItemRowView>> {
     const bounds = deliveryDateBounds(new Date());
     const filter = {
+      booksMax: query.booksMax,
+      booksMin: query.booksMin,
       bounds,
       currency: query.currency,
+      expectedFrom: query.expectedFrom,
+      expectedTo: query.expectedTo,
       filter: query.filter,
+      orderedFrom: query.orderedFrom,
+      orderedTo: query.orderedTo,
+      priceCurrency: query.priceCurrency,
+      priceMax: query.priceMax,
+      priceMin: query.priceMin,
+      pricePresence: query.pricePresence,
       search: normalizeSearch(query.search),
       service: query.service,
       store: query.store,
+      structure: query.structure,
       userId,
     };
 
@@ -244,4 +267,10 @@ export class DeliveryReadService {
   private toRowView({ row, today }: { row: BookOrderItemRow; today: Date }): BookOrderItemRowView {
     return toBookOrderItemRowView({ book: this.toBookPreview(row.book), row, today });
   }
+}
+
+function sortFacetEntries(entries: InTransitFacetEntry[]): InTransitFacetEntry[] {
+  return [...entries].sort(
+    (left, right) => right.count - left.count || UKRAINIAN_COLLATION.compare(left.name, right.name),
+  );
 }

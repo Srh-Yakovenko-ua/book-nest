@@ -6,9 +6,10 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { CurrencySchema, ShipmentStatusSchema } from "@app/shared";
+import { CurrencySchema, resolveOrderFinancials, ShipmentStatusSchema } from "@app/shared";
 
 import type {
+  BookModel,
   BookOrderItemModel,
   BookOrderModel,
   DeliveryServiceModel,
@@ -25,8 +26,13 @@ export type BookOrderItemRowSource = BookOrderItemModel & {
   shipment: Nullable<ShipmentModel & { deliveryService: Nullable<DeliveryServiceModel> }>;
 };
 
+type RowOrderItemSource = Pick<
+  BookOrderItemModel,
+  "cancelledAt" | "price" | "receivedAt" | "shipmentId"
+> & { book: Pick<BookModel, "deletedAt"> };
+
 type RowOrderSource = BookOrderModel & {
-  items: Pick<BookOrderItemModel, "cancelledAt" | "receivedAt" | "shipmentId">[];
+  items: RowOrderItemSource[];
   shipments: Pick<ShipmentModel, "id" | "status">[];
 };
 
@@ -71,9 +77,17 @@ function isSettledItem(row: BookOrderItemRowSource): boolean {
 }
 
 function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
+  const deliveryPrice = order.deliveryPrice === null ? null : order.deliveryPrice.toNumber();
+  const discount = order.discount === null ? null : order.discount.toNumber();
+  const totalAmount = order.totalAmount === null ? null : order.totalAmount.toNumber();
+  const itemPrices = order.items
+    .filter((item) => item.book.deletedAt === null)
+    .map((item) => (item.price === null ? null : item.price.toNumber()));
+  const financials = resolveOrderFinancials({ deliveryPrice, discount, itemPrices, totalAmount });
+
   return {
     currency: order.currency === null ? null : CurrencySchema.parse(order.currency),
-    deliveryPrice: order.deliveryPrice === null ? null : order.deliveryPrice.toNumber(),
+    deliveryPrice,
     derivedStatus: computeBookOrderDerivedStatus({
       items: order.items,
       shipments: order.shipments.map((shipment) => ({
@@ -81,12 +95,15 @@ function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
         status: ShipmentStatusSchema.parse(shipment.status),
       })),
     }),
-    discount: order.discount === null ? null : order.discount.toNumber(),
+    discount,
+    effectiveTotalAmount: financials.effectiveTotalAmount,
     id: order.id,
+    itemsCount: financials.itemsCount,
     orderDate: toNullableIsoDate(order.orderDate),
     orderNumber: order.orderNumber,
+    pricedItemsCount: financials.pricedItemsCount,
     storeName: order.storeName,
-    totalAmount: order.totalAmount === null ? null : order.totalAmount.toNumber(),
+    totalAmount,
   };
 }
 

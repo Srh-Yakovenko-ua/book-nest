@@ -619,6 +619,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Що зміниться після отримання",
     version: null,
   },
+  {
+    bodyEn:
+      "Books in transit now has a filter panel next to the quick filters. Narrow the list by store, order date, how many books are still on their way, delivery service, expected delivery date, whether an order travels in one parcel or several, currency, order total, and whether the total is recorded at all. Pick several stores or services and any of them counts; combine sections and all of them must hold. Nothing applies until you press Apply, the button carries a count of the sections in use, and a matched order keeps all of its parcels and books on the card. The order total on a card now comes from the whole order rather than the books on screen, so filtering the list no longer changes the sum.",
+    bodyUk:
+      "На сторінці «Книги в дорозі» поруч зі швидкими фільтрами з’явилася панель розширених. Звужуйте список за магазином, датою замовлення, кількістю книг, які ще їдуть, службою доставки, очікуваною датою, тим, чи їде замовлення однією посилкою чи кількома, валютою, вартістю замовлення та наявністю суми. Кілька магазинів або служб працюють як «будь-який із них», а різні секції складаються разом. Нічого не застосовується, доки ви не натиснете «Застосувати», на кнопці видно кількість задіяних секцій, а знайдене замовлення лишається на картці цілим - з усіма посилками й книгами. Сума замовлення на картці тепер рахується по всьому замовленню, а не по книгах на екрані, тож фільтрація списку більше не змінює її.",
+    category: "feature",
+    publishedAt: "2026-08-19T00:00:00.000Z",
+    slug: "delivery-advanced-filters",
+    titleEn: "Advanced filters for books in transit",
+    titleUk: "Розширені фільтри для книг у дорозі",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

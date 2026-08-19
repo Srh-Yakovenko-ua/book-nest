@@ -16,11 +16,28 @@ export type PaginatedBookOrderItemRowsDtoItemsItemOrder = {
   derivedStatus: PaginatedBookOrderItemRowsDtoItemsItemOrderDerivedStatus;
   /** @nullable */
   discount: number | null;
+  /**
+   * What the whole order costs, resolved by resolveOrderFinancials over every one of its books - not only the ones on this page. Null when the breakdown is incomplete and no manual total was entered.
+   * @nullable
+   */
+  effectiveTotalAmount: number | null;
   id: string;
+  /**
+   * How many books the whole order holds, page and filter aside.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  itemsCount: number;
   /** @nullable */
   orderDate: string | null;
   /** @nullable */
   orderNumber: string | null;
+  /**
+   * How many of those books carry a price.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  pricedItemsCount: number;
   storeName: string;
   /** @nullable */
   totalAmount: number | null;

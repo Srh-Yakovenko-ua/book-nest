@@ -1,13 +1,27 @@
 import type { InTransitAttentionReason, InTransitSummaryView, Nullable } from "@app/shared";
 
 import { IN_TRANSIT_ATTENTION_FILTER, InTransitAttentionReasonSchema } from "@app/shared";
-import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
+import { isAfter, isValid, parseISO } from "date-fns";
+import {
+  type inferParserType,
+  parseAsArrayOf,
+  parseAsFloat,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
-import type { DeliveryReadControllerInTransitListParams } from "@/shared/api/generated/model";
+import type {
+  DeliveryReadControllerInTransitListParams,
+  DeliveryReadControllerInTransitListPriceCurrency,
+} from "@/shared/api/generated/model";
 
 import {
+  DeliveryReadControllerInTransitListCurrencyItem,
   DeliveryReadControllerInTransitListFilter,
+  DeliveryReadControllerInTransitListPricePresence,
   DeliveryReadControllerInTransitListSort,
+  DeliveryReadControllerInTransitListStructureItem,
 } from "@/shared/api/generated/model";
 
 export const DELIVERY_PAGE_SIZE = 24;
@@ -22,6 +36,16 @@ export const DELIVERY_PRIMARY_FILTERS = [
   DeliveryReadControllerInTransitListFilter.delayed,
 ] as const satisfies readonly DeliveryReadControllerInTransitListFilter[];
 
+export const DELIVERY_CURRENCY_VALUES = Object.values(
+  DeliveryReadControllerInTransitListCurrencyItem,
+);
+export const DELIVERY_STRUCTURE_VALUES = Object.values(
+  DeliveryReadControllerInTransitListStructureItem,
+);
+export const DELIVERY_PRICE_PRESENCE_VALUES = Object.values(
+  DeliveryReadControllerInTransitListPricePresence,
+);
+
 export type DeliveryFilterCounts = Record<DeliveryPrimaryFilter, number>;
 
 export type DeliveryPrimaryFilter = (typeof DELIVERY_PRIMARY_FILTERS)[number];
@@ -32,27 +56,119 @@ const filterValues = Object.values(DeliveryReadControllerInTransitListFilter);
 const sortValues = Object.values(DeliveryReadControllerInTransitListSort);
 
 export const deliveryQueryParsers = {
+  booksMax: parseAsInteger,
+  booksMin: parseAsInteger,
+  currency: parseAsArrayOf(parseAsStringLiteral(DELIVERY_CURRENCY_VALUES)).withDefault([]),
+  expectedFrom: parseAsString,
+  expectedTo: parseAsString,
   filter: parseAsStringLiteral(filterValues).withDefault(DELIVERY_FILTER_DEFAULT),
+  orderedFrom: parseAsString,
+  orderedTo: parseAsString,
+  priceMax: parseAsFloat,
+  priceMin: parseAsFloat,
+  pricePresence: parseAsStringLiteral(DELIVERY_PRICE_PRESENCE_VALUES),
   q: parseAsString.withDefault(""),
+  service: parseAsArrayOf(parseAsString).withDefault([]),
   sort: parseAsStringLiteral(sortValues).withDefault(DELIVERY_SORT_DEFAULT),
+  store: parseAsArrayOf(parseAsString).withDefault([]),
+  structure: parseAsArrayOf(parseAsStringLiteral(DELIVERY_STRUCTURE_VALUES)).withDefault([]),
 };
+
+export type DeliveryAdvancedState = Omit<DeliveryQueryState, "filter" | "q" | "sort">;
 
 export type DeliveryListParams = Omit<DeliveryReadControllerInTransitListParams, "pageNumber">;
 
 export type DeliveryQueryState = inferParserType<typeof deliveryQueryParsers>;
 
+type DeliveryRangeFlags = {
+  books: boolean;
+  expected: boolean;
+  ordered: boolean;
+  price: boolean;
+};
+
+export const DELIVERY_ADVANCED_RESET = {
+  booksMax: null,
+  booksMin: null,
+  currency: null,
+  expectedFrom: null,
+  expectedTo: null,
+  orderedFrom: null,
+  orderedTo: null,
+  priceMax: null,
+  priceMin: null,
+  pricePresence: null,
+  service: null,
+  store: null,
+  structure: null,
+} satisfies Record<keyof DeliveryAdvancedState, null>;
+
+export const DELIVERY_ADVANCED_EMPTY: DeliveryAdvancedState = {
+  booksMax: null,
+  booksMin: null,
+  currency: [],
+  expectedFrom: null,
+  expectedTo: null,
+  orderedFrom: null,
+  orderedTo: null,
+  priceMax: null,
+  priceMin: null,
+  pricePresence: null,
+  service: [],
+  store: [],
+  structure: [],
+};
+
+export function countActiveDeliveryDimensions(state: DeliveryAdvancedState): number {
+  return [
+    state.store.length > 0,
+    state.orderedFrom !== null || state.orderedTo !== null,
+    state.booksMin !== null || state.booksMax !== null,
+    state.service.length > 0,
+    state.expectedFrom !== null || state.expectedTo !== null,
+    state.structure.length > 0,
+    state.currency.length > 0,
+    resolveDeliveryPriceCurrency(state) !== null,
+    state.pricePresence !== null,
+  ].filter(Boolean).length;
+}
+
+export function deliveryRangeFlags(state: DeliveryAdvancedState): DeliveryRangeFlags {
+  return {
+    books: isInvertedNumberRange(state.booksMin, state.booksMax),
+    expected: isInvertedDayRange(state.expectedFrom, state.expectedTo),
+    ordered: isInvertedDayRange(state.orderedFrom, state.orderedTo),
+    price: isInvertedNumberRange(state.priceMin, state.priceMax),
+  };
+}
+
 export function hasActiveDeliveryFilters(state: DeliveryQueryState): boolean {
-  return state.filter !== DELIVERY_FILTER_DEFAULT;
+  return state.filter !== DELIVERY_FILTER_DEFAULT || countActiveDeliveryDimensions(state) > 0;
 }
 
 export function hasActiveDeliverySearch(state: DeliveryQueryState): boolean {
   return state.q.trim() !== "";
 }
 
+export function hasInvalidDeliveryRange(state: DeliveryAdvancedState): boolean {
+  const flags = deliveryRangeFlags(state);
+  return flags.books || flags.expected || flags.ordered || flags.price;
+}
+
 export function isDeliveryPrimaryFilter(
   filter: DeliveryReadControllerInTransitListFilter,
 ): filter is DeliveryPrimaryFilter {
   return DELIVERY_PRIMARY_FILTERS.some((value) => value === filter);
+}
+
+export function resolveDeliveryPriceCurrency(
+  state: Pick<DeliveryAdvancedState, "currency" | "priceMax" | "priceMin">,
+): Nullable<DeliveryReadControllerInTransitListPriceCurrency> {
+  const [only] = state.currency;
+  if (only === undefined || state.currency.length > 1) return null;
+  if (state.priceMin === null && state.priceMax === null) return null;
+  if (isInvertedNumberRange(state.priceMin, state.priceMax)) return null;
+  return only;
 }
 
 export function toDeliveryAttentionReason(
@@ -77,11 +193,52 @@ export function toDeliveryFilterCounts(summary: InTransitSummaryView): DeliveryF
 
 export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListParams {
   const search = state.q.trim();
+  const flags = deliveryRangeFlags(state);
+  const priceCurrency = resolveDeliveryPriceCurrency(state);
 
   return {
+    currency: state.currency,
     filter: state.filter,
     pageSize: DELIVERY_PAGE_SIZE,
+    service: state.service,
     sort: state.sort,
+    store: state.store,
+    structure: state.structure,
     ...(search === "" ? {} : { search }),
+    ...(flags.ordered ? {} : dayBound("orderedFrom", state.orderedFrom)),
+    ...(flags.ordered ? {} : dayBound("orderedTo", state.orderedTo)),
+    ...(flags.expected ? {} : dayBound("expectedFrom", state.expectedFrom)),
+    ...(flags.expected ? {} : dayBound("expectedTo", state.expectedTo)),
+    ...(flags.books || state.booksMin === null ? {} : { booksMin: state.booksMin }),
+    ...(flags.books || state.booksMax === null ? {} : { booksMax: state.booksMax }),
+    ...(state.pricePresence === null ? {} : { pricePresence: state.pricePresence }),
+    ...(priceCurrency === null
+      ? {}
+      : {
+          priceCurrency,
+          ...(state.priceMin === null ? {} : { priceMin: state.priceMin }),
+          ...(state.priceMax === null ? {} : { priceMax: state.priceMax }),
+        }),
   };
+}
+
+function dayBound(
+  key: "expectedFrom" | "expectedTo" | "orderedFrom" | "orderedTo",
+  value: Nullable<string>,
+): Partial<DeliveryListParams> {
+  return isStorableDay(value) ? { [key]: value } : {};
+}
+
+function isInvertedDayRange(from: Nullable<string>, to: Nullable<string>): boolean {
+  if (!isStorableDay(from) || !isStorableDay(to)) return false;
+  return isAfter(parseISO(from), parseISO(to));
+}
+
+function isInvertedNumberRange(min: Nullable<number>, max: Nullable<number>): boolean {
+  if (min === null || max === null) return false;
+  return min > max;
+}
+
+function isStorableDay(value: Nullable<string>): value is string {
+  return value !== null && isValid(parseISO(value));
 }

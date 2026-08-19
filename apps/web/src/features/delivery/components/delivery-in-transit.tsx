@@ -167,7 +167,7 @@ export function DeliveryInTransit() {
   const activeAttentionReason = toDeliveryAttentionReason(params.filter);
 
   const filterCounts =
-    summaryData === undefined || params.hasActiveSearch
+    summaryData === undefined || params.hasActiveSearch || params.advancedCount > 0
       ? undefined
       : toDeliveryFilterCounts(summaryData);
 
@@ -363,6 +363,8 @@ export function DeliveryInTransit() {
         }
         toolbar={
           <DeliveryToolbar
+            advanced={params.state}
+            advancedCount={params.advancedCount}
             counterLabel={t("counter", {
               orders: orders.length,
               shown: loadedItems.length,
@@ -372,6 +374,9 @@ export function DeliveryInTransit() {
             filterCounts={filterCounts}
             isPending={listQuery.isPending}
             loadingLabel={t("states.loading")}
+            onApplyAdvanced={params.applyAdvanced}
+            onClearAdvanced={params.clearAdvanced}
+            onClearAll={params.clearAll}
             onClearSearch={params.clearSearch}
             onFilterChange={params.setFilter}
             onSearch={params.setSearch}

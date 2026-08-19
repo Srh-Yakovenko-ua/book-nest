@@ -56,9 +56,12 @@ function makeOrder(overrides: Partial<BookOrderItemRowOrderView> = {}): BookOrde
     deliveryPrice: null,
     derivedStatus: "active",
     discount: null,
+    effectiveTotalAmount: 480,
     id: "order-1",
+    itemsCount: 2,
     orderDate: "2026-07-05",
     orderNumber: "ORD-10241",
+    pricedItemsCount: 0,
     storeName: "Yakaboo",
     totalAmount: 480,
     ...overrides,
@@ -189,13 +192,10 @@ describe("toDeliveryOrderCards", () => {
     expect(bookIdsByGroup(cards)).toEqual([[["book-1", "book-2", "book-3"]]]);
   });
 
-  it("uses the normalized order total instead of recalculating item prices", () => {
+  it("shows the total the server resolved for the whole order, not the visible prices", () => {
+    const order = makeOrder({ effectiveTotalAmount: 1250, itemsCount: 3, pricedItemsCount: 3 });
     const cards = toDeliveryOrderCards(
-      [
-        makeRow({ id: "item-1", order: makeOrder({ totalAmount: 1250 }), price: 480 }),
-        makeRow({ id: "item-2", price: 610 }),
-        makeRow({ id: "item-3", price: 160 }),
-      ],
+      [makeRow({ id: "item-1", order, price: 480 }), makeRow({ id: "item-2", order, price: 610 })],
       { labels, locale },
     );
 
@@ -300,10 +300,11 @@ describe("toDeliveryOrderCards", () => {
   });
 
   it("reports no total when the normalized order total is unknown", () => {
+    const order = makeOrder({ effectiveTotalAmount: null, totalAmount: null });
     const cards = toDeliveryOrderCards(
       [
-        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: null }),
-        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: null }),
+        makeRow({ id: "item-1", order, price: null }),
+        makeRow({ id: "item-2", order, price: null }),
       ],
       { labels, locale },
     );
@@ -314,36 +315,33 @@ describe("toDeliveryOrderCards", () => {
     ]);
   });
 
-  it("falls back to the item prices when the order carries no total of its own", () => {
-    const cards = toDeliveryOrderCards(
-      [
-        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: 349.5 }),
-        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: 120.25 }),
-      ],
-      { labels, locale },
-    );
+  it("keeps the calculated order total whole while only one of its books is on the page", () => {
+    const order = makeOrder({
+      effectiveTotalAmount: 469.75,
+      itemsCount: 2,
+      pricedItemsCount: 2,
+      totalAmount: null,
+    });
+    const cards = toDeliveryOrderCards([makeRow({ id: "item-1", order, price: 349.5 })], {
+      labels,
+      locale,
+    });
 
     expect(firstCard(cards).totalText).toBe("469.75 UAH");
   });
 
-  it("sums the priced items alone when the rest carry no price", () => {
-    const cards = toDeliveryOrderCards(
-      [
-        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: 300 }),
-        makeRow({ id: "item-2", order: makeOrder({ totalAmount: null }), price: null }),
-      ],
-      { labels, locale },
-    );
-
-    expect(firstCard(cards).totalText).toBe("300 UAH");
-  });
-
   it("uses a manual total for an incomplete item breakdown", () => {
+    const order = makeOrder({
+      effectiveTotalAmount: 600,
+      itemsCount: 3,
+      pricedItemsCount: 2,
+      totalAmount: 600,
+    });
     const cards = toDeliveryOrderCards(
       [
-        makeRow({ id: "item-1", order: makeOrder({ totalAmount: 600 }), price: 480 }),
-        makeRow({ id: "item-2", price: null }),
-        makeRow({ id: "item-3", price: 120 }),
+        makeRow({ id: "item-1", order, price: 480 }),
+        makeRow({ id: "item-2", order, price: null }),
+        makeRow({ id: "item-3", order, price: 120 }),
       ],
       { labels, locale },
     );
@@ -429,10 +427,11 @@ describe("toDeliveryOrderCards", () => {
   });
 
   it("keeps the warning off the last unpriced book, whose price completes the breakdown", () => {
+    const order = makeOrder({ pricedItemsCount: 1 });
     const cards = toDeliveryOrderCards(
       [
-        makeRow({ book: makeBook({ id: "book-1" }), id: "item-1", price: 200 }),
-        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", price: null }),
+        makeRow({ book: makeBook({ id: "book-1" }), id: "item-1", order, price: 200 }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
       ],
       { labels, locale },
     );
@@ -445,15 +444,11 @@ describe("toDeliveryOrderCards", () => {
   });
 
   it("stays silent when the order carries no total to lose", () => {
+    const order = makeOrder({ effectiveTotalAmount: null, totalAmount: null });
     const cards = toDeliveryOrderCards(
       [
-        makeRow({ id: "item-1", order: makeOrder({ totalAmount: null }), price: null }),
-        makeRow({
-          book: makeBook({ id: "book-2" }),
-          id: "item-2",
-          order: makeOrder({ totalAmount: null }),
-          price: null,
-        }),
+        makeRow({ id: "item-1", order, price: null }),
+        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
       ],
       { labels, locale },
     );
@@ -465,21 +460,13 @@ describe("toDeliveryOrderCards", () => {
     ).toEqual([false, false]);
   });
 
-  it("subtracts the discount and adds delivery when it falls back to the known prices", () => {
-    const order = makeOrder({ deliveryPrice: 100, discount: 200, totalAmount: null });
-    const cards = toDeliveryOrderCards(
-      [
-        makeRow({ id: "item-1", order, price: 500 }),
-        makeRow({ book: makeBook({ id: "book-2" }), id: "item-2", order, price: null }),
-      ],
-      { labels, locale },
-    );
-
-    expect(firstCard(cards).totalText).toBe("400 UAH");
-  });
-
   it("reports how many prices the fallback total actually counts", () => {
-    const order = makeOrder({ totalAmount: null });
+    const order = makeOrder({
+      effectiveTotalAmount: null,
+      itemsCount: 3,
+      pricedItemsCount: 1,
+      totalAmount: null,
+    });
     const cards = toDeliveryOrderCards(
       [
         makeRow({ id: "item-1", order, price: 500 }),
@@ -505,7 +492,12 @@ describe("toDeliveryOrderCards", () => {
   });
 
   it("flags nothing when every book carries a price", () => {
-    const order = makeOrder({ totalAmount: null });
+    const order = makeOrder({
+      effectiveTotalAmount: 500,
+      itemsCount: 2,
+      pricedItemsCount: 2,
+      totalAmount: null,
+    });
     const cards = toDeliveryOrderCards(
       [
         makeRow({ id: "item-1", order, price: 200 }),

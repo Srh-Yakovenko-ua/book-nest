@@ -60,7 +60,13 @@ const inTransitRowRelations = {
     order: {
       include: {
         items: {
-          select: { cancelledAt: true, receivedAt: true, shipmentId: true },
+          select: {
+            book: { select: { deletedAt: true } },
+            cancelledAt: true,
+            price: true,
+            receivedAt: true,
+            shipmentId: true,
+          },
         },
         shipments: { select: { id: true, status: true } },
       },
@@ -76,6 +82,8 @@ export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRo
 
 export type DatedNextShipmentRow = NextShipmentRow & { expectedDeliveryDate: Date };
 
+export type InTransitFacetRows = { services: FacetRow[]; stores: FacetRow[] };
+
 export type NextShipmentBookRow = Prisma.BookOrderItemGetPayload<typeof nextShipmentBookRelations>;
 
 export type NextShipmentData = {
@@ -86,6 +94,8 @@ export type NextShipmentData = {
 };
 
 export type NextShipmentRow = Prisma.ShipmentGetPayload<typeof nextShipmentRelations>;
+
+type FacetRow = { count: number; name: string };
 
 type ListHistoryInput = HistoryFilterInput & {
   skip: number;
@@ -100,6 +110,8 @@ type ListInTransitInput = InTransitFilterInput & {
 };
 
 const OrderedIdRowSchema = z.object({ id: z.uuid() });
+
+const FacetRowSchema = z.object({ count: z.number().int(), name: z.string() });
 
 const TotalCountRowSchema = z.object({ totalCount: z.number().int() });
 
@@ -287,6 +299,38 @@ export class DeliveryReadRepository {
     return {
       ...counts,
       currencyTotals: z.array(CurrencyTotalRowSchema).parse(currencyRows),
+    };
+  }
+
+  async inTransitFacets(userId: string): Promise<InTransitFacetRows> {
+    const [storeRows, serviceRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT book_order.store_name AS "name", (count(*))::int AS "count"
+        ${ordersWithActiveItemsSource({ extraConditions: [], userId })}
+        GROUP BY book_order.store_name
+      `),
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          facet_shipment.delivery_service_name AS "name",
+          (count(DISTINCT book_order.id))::int AS "count"
+        FROM shipments facet_shipment
+        JOIN book_orders book_order ON book_order.id = facet_shipment.order_id
+        WHERE book_order.user_id = ${userId}::uuid
+          AND facet_shipment.status = ANY(${[...SHIPMENT_ACTIVE_STATUSES]}::text[])
+          AND facet_shipment.delivery_service_name IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM book_order_items item
+            JOIN books book ON book.id = item.book_id
+            WHERE item.order_id = book_order.id AND ${ACTIVE_ITEM_SQL}
+          )
+        GROUP BY facet_shipment.delivery_service_name
+      `),
+    ]);
+
+    return {
+      services: z.array(FacetRowSchema).parse(serviceRows),
+      stores: z.array(FacetRowSchema).parse(storeRows),
     };
   }
 

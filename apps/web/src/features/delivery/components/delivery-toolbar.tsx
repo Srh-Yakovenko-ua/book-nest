@@ -15,24 +15,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  type ActiveFilterChip,
+  LibraryActiveFilters,
+} from "@/features/books/components/library-active-filters";
 
-import type { DeliveryFilterCounts } from "../model/in-transit-params";
+import type { DeliveryAdvancedState, DeliveryFilterCounts } from "../model/in-transit-params";
 
 import {
+  DELIVERY_FILTER_DEFAULT,
   DELIVERY_PRIMARY_FILTERS,
   DELIVERY_SORT_DEFAULT,
   DELIVERY_SORT_ORDER,
   isDeliveryPrimaryFilter,
   toDeliveryAttentionReason,
 } from "../model/in-transit-params";
+import { DeliveryAdvancedFilters } from "./delivery-advanced-filters";
 import { DeliverySearchInput } from "./delivery-search-input";
+import { DeliverySortSheet } from "./delivery-sort-sheet";
 
 type DeliveryToolbarProps = {
+  advanced: DeliveryAdvancedState;
+  advancedCount: number;
   counterLabel: string;
   filter: DeliveryReadControllerInTransitListFilter;
   filterCounts?: DeliveryFilterCounts;
   isPending: boolean;
   loadingLabel: string;
+  onApplyAdvanced: (draft: DeliveryAdvancedState) => void;
+  onClearAdvanced: () => void;
+  onClearAll: () => void;
   onClearSearch: () => void;
   onFilterChange: (value: DeliveryReadControllerInTransitListFilter) => void;
   onSearch: (value: string) => void;
@@ -42,11 +54,16 @@ type DeliveryToolbarProps = {
 };
 
 export function DeliveryToolbar({
+  advanced,
+  advancedCount,
   counterLabel,
   filter,
   filterCounts,
   isPending,
   loadingLabel,
+  onApplyAdvanced,
+  onClearAdvanced,
+  onClearAll,
   onClearSearch,
   onFilterChange,
   onSearch,
@@ -54,6 +71,7 @@ export function DeliveryToolbar({
   searchValue,
   sort,
 }: DeliveryToolbarProps) {
+  const tActiveFilters = useTranslations("delivery.activeFilters");
   const tAttention = useTranslations("delivery.attention.chip");
   const tFilters = useTranslations("delivery.filters");
   const tSort = useTranslations("delivery.sort");
@@ -62,13 +80,31 @@ export function DeliveryToolbar({
     ? null
     : toDeliveryAttentionReason(filter);
 
-  const filterOptions = [
-    ...(attentionReason === null ? [] : [{ label: tAttention(attentionReason), value: filter }]),
-    ...DELIVERY_PRIMARY_FILTERS.map((value) => ({
-      count: filterCounts?.[value],
-      label: tFilters(value),
-      value,
-    })),
+  const filterOptions = DELIVERY_PRIMARY_FILTERS.map((value) => ({
+    count: filterCounts?.[value],
+    label: tFilters(value),
+    value,
+  }));
+
+  const activeFilterChips: ActiveFilterChip[] = [
+    ...(attentionReason === null
+      ? []
+      : [
+          {
+            key: "attention",
+            label: tActiveFilters("attention", { label: tAttention(attentionReason) }),
+            onRemove: () => onFilterChange(DELIVERY_FILTER_DEFAULT),
+          },
+        ]),
+    ...(advancedCount === 0
+      ? []
+      : [
+          {
+            key: "advanced",
+            label: tActiveFilters("advanced", { count: advancedCount }),
+            onRemove: onClearAdvanced,
+          },
+        ]),
   ];
 
   return (
@@ -77,27 +113,44 @@ export function DeliveryToolbar({
         <div className="lg:flex-1">
           <DeliverySearchInput onClear={onClearSearch} onSearch={onSearch} value={searchValue} />
         </div>
-        <div className="w-full sm:w-56">
-          <Select
-            onValueChange={(next) => onSortChange(next as DeliveryReadControllerInTransitListSort)}
+        <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-2.5">
+          <DeliverySortSheet
+            className="sm:hidden"
+            label={tSort("label")}
+            onChange={onSortChange}
             value={sort}
-          >
-            <SelectTrigger
-              aria-label={tSort("label")}
-              className="h-10 w-full data-[size=default]:h-10"
-              isClearable={sort !== DELIVERY_SORT_DEFAULT}
-              onClear={() => onSortChange(DELIVERY_SORT_DEFAULT)}
+          />
+
+          <DeliveryAdvancedFilters
+            activeCount={advancedCount}
+            onApply={onApplyAdvanced}
+            state={advanced}
+          />
+
+          <div className="hidden sm:block sm:w-80">
+            <Select
+              onValueChange={(next) =>
+                onSortChange(next as DeliveryReadControllerInTransitListSort)
+              }
+              value={sort}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DELIVERY_SORT_ORDER.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {tSort(`options.${value}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                aria-label={tSort("label")}
+                className="h-10 w-full data-[size=default]:h-10"
+                isClearable={sort !== DELIVERY_SORT_DEFAULT}
+                onClear={() => onSortChange(DELIVERY_SORT_DEFAULT)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DELIVERY_SORT_ORDER.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {tSort(`options.${value}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -115,6 +168,8 @@ export function DeliveryToolbar({
           value={filter}
         />
       </div>
+
+      <LibraryActiveFilters chips={activeFilterChips} onClearAll={onClearAll} />
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {isPending ? loadingLabel : counterLabel}

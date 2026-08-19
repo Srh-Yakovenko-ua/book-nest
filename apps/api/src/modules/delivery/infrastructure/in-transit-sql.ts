@@ -1,8 +1,16 @@
-import type { Currency, InTransitFilter, InTransitSort, Nullable } from "@app/shared";
+import type {
+  Currency,
+  InTransitDeliveryStructure,
+  InTransitFilter,
+  InTransitPricePresence,
+  InTransitSort,
+  Nullable,
+} from "@app/shared";
 
 import {
   DEFAULT_CURRENCY,
   IN_TRANSIT_EXPECTED_DATE_ORDER,
+  SHIPMENT_ACTIVE_STATUSES,
   ShipmentStatusSchema,
 } from "@app/shared";
 
@@ -65,15 +73,67 @@ export const IN_TRANSIT_ITEM_SOURCE = Prisma.sql`
   LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
+const ORDER_LIVE_ITEMS_SQL = Prisma.sql`
+  FROM book_order_items order_item
+  JOIN books order_book ON order_book.id = order_item.book_id
+  WHERE order_item.order_id = book_order.id
+    AND order_book.deleted_at IS NULL
+`;
+
+const ORDER_ACTIVE_ITEMS_COUNT_SQL = Prisma.sql`(
+  SELECT count(*)
+  ${ORDER_LIVE_ITEMS_SQL}
+    AND order_item.cancelled_at IS NULL
+    AND order_item.received_at IS NULL
+)`;
+
+const ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL = Prisma.sql`(
+  SELECT count(*)
+  FROM shipments structure_shipment
+  WHERE structure_shipment.order_id = book_order.id
+    AND structure_shipment.status <> ${SHIPMENT_STATUS.cancelled}
+)`;
+
+const ORDER_EFFECTIVE_TOTAL_SQL = Prisma.sql`COALESCE(
+  (
+    SELECT sum(order_item.price)
+      + COALESCE(book_order.delivery_price, 0)
+      - COALESCE(book_order.discount, 0)
+    ${ORDER_LIVE_ITEMS_SQL}
+    HAVING count(*) > 0 AND count(*) FILTER (WHERE order_item.price IS NULL) = 0
+  ),
+  book_order.total_amount
+)`;
+
+const DELIVERY_STRUCTURE_SQL: Record<InTransitDeliveryStructure, Prisma.Sql> = {
+  multiple_shipments: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} > 1`,
+  no_shipment: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} = 0`,
+  single_shipment: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} = 1`,
+};
+
+export type InTransitAdvancedFilter = {
+  booksMax: number | undefined;
+  booksMin: number | undefined;
+  currency: Currency[] | undefined;
+  expectedFrom: string | undefined;
+  expectedTo: string | undefined;
+  orderedFrom: string | undefined;
+  orderedTo: string | undefined;
+  priceCurrency: Currency | undefined;
+  priceMax: number | undefined;
+  priceMin: number | undefined;
+  pricePresence: InTransitPricePresence | undefined;
+  service: string[] | undefined;
+  store: string[] | undefined;
+  structure: InTransitDeliveryStructure[] | undefined;
+};
+
 export type InTransitCategorySql = OrderScopedCategorySql & ShipmentScopedCategorySql;
 
-export type InTransitFilterInput = {
+export type InTransitFilterInput = InTransitAdvancedFilter & {
   bounds: DeliveryDateBounds;
-  currency: Currency | undefined;
   filter: InTransitFilter;
   search: string | undefined;
-  service: string | undefined;
-  store: string | undefined;
   userId: string;
 };
 
@@ -148,29 +208,16 @@ const IN_TRANSIT_SEARCH_COLUMNS: Prisma.Sql[] = [
 
 export function buildInTransitConditions({
   bounds,
-  currency,
   filter,
   search,
-  service,
-  store,
   userId,
+  ...advanced
 }: InTransitFilterInput): Prisma.Sql {
   const conditions: Prisma.Sql[] = [
     Prisma.sql`book_order.user_id = ${userId}::uuid`,
     ACTIVE_ITEM_SQL,
+    ...advancedInTransitConditions(advanced),
   ];
-
-  if (store !== undefined) {
-    conditions.push(Prisma.sql`lower(book_order.store_name) = lower(${store})`);
-  }
-
-  if (service !== undefined) {
-    conditions.push(Prisma.sql`lower(shipment.delivery_service_name) = lower(${service})`);
-  }
-
-  if (currency !== undefined) {
-    conditions.push(currencySql(currency));
-  }
 
   const filterCondition = inTransitFilterSql({
     categories: inTransitCategorySql(toIsoBounds(bounds)),
@@ -292,6 +339,90 @@ export function toIsoBounds({
   };
 }
 
+function advancedInTransitConditions({
+  booksMax,
+  booksMin,
+  currency,
+  expectedFrom,
+  expectedTo,
+  orderedFrom,
+  orderedTo,
+  priceCurrency,
+  priceMax,
+  priceMin,
+  pricePresence,
+  service,
+  store,
+  structure,
+}: InTransitAdvancedFilter): Prisma.Sql[] {
+  const conditions: Prisma.Sql[] = [];
+
+  if (store !== undefined) {
+    conditions.push(Prisma.sql`lower(book_order.store_name) = ANY(${lowered(store)}::text[])`);
+  }
+
+  if (currency !== undefined) {
+    conditions.push(anyOf(currency.map(currencySql)));
+  }
+
+  if (service !== undefined) {
+    conditions.push(orderHasActiveShipmentWithServiceSql(service));
+  }
+
+  if (orderedFrom !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} >= ${orderedFrom}::date`);
+  }
+
+  if (orderedTo !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} <= ${orderedTo}::date`);
+  }
+
+  if (booksMin !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_ACTIVE_ITEMS_COUNT_SQL} >= ${booksMin}::int`);
+  }
+
+  if (booksMax !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_ACTIVE_ITEMS_COUNT_SQL} <= ${booksMax}::int`);
+  }
+
+  if (expectedFrom !== undefined || expectedTo !== undefined) {
+    conditions.push(orderHasAwaitedShipmentInRangeSql({ from: expectedFrom, to: expectedTo }));
+  }
+
+  if (structure !== undefined) {
+    conditions.push(anyOf(structure.map((option) => DELIVERY_STRUCTURE_SQL[option])));
+  }
+
+  if (pricePresence !== undefined) {
+    conditions.push(
+      pricePresence === "known"
+        ? Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} IS NOT NULL`
+        : Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} IS NULL`,
+    );
+  }
+
+  if (priceCurrency !== undefined) {
+    conditions.push(currencySql(priceCurrency));
+
+    if (priceMin !== undefined) {
+      conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} >= ${priceMin}`);
+    }
+
+    if (priceMax !== undefined) {
+      conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} <= ${priceMax}`);
+    }
+  }
+
+  return conditions;
+}
+
+function anyOf(options: Prisma.Sql[]): Prisma.Sql {
+  if (options.length === 0) {
+    return Prisma.sql`FALSE`;
+  }
+  return Prisma.sql`(${Prisma.join(options, " OR ")})`;
+}
+
 function inTransitFilterSql({
   categories,
   filter,
@@ -341,6 +472,45 @@ function inTransitFilterSql({
 
 function isExpectedDateSort(sort: InTransitSort): sort is ExpectedDateSort {
   return Object.hasOwn(IN_TRANSIT_EXPECTED_DATE_ORDER, sort);
+}
+
+function lowered(values: string[]): string[] {
+  return values.map((value) => value.toLowerCase());
+}
+
+function orderHasActiveShipmentWithServiceSql(services: string[]): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM shipments service_shipment
+    WHERE service_shipment.order_id = book_order.id
+      AND service_shipment.status = ANY(${[...SHIPMENT_ACTIVE_STATUSES]}::text[])
+      AND lower(service_shipment.delivery_service_name) = ANY(${lowered(services)}::text[])
+  )`;
+}
+
+function orderHasAwaitedShipmentInRangeSql({
+  from,
+  to,
+}: {
+  from: string | undefined;
+  to: string | undefined;
+}): Prisma.Sql {
+  const bounds: Prisma.Sql[] = [];
+  if (from !== undefined) {
+    bounds.push(Prisma.sql`AND expected_shipment.expected_delivery_date >= ${from}::date`);
+  }
+  if (to !== undefined) {
+    bounds.push(Prisma.sql`AND expected_shipment.expected_delivery_date <= ${to}::date`);
+  }
+
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM shipments expected_shipment
+    WHERE expected_shipment.order_id = book_order.id
+      AND expected_shipment.status = ANY(${[...AWAITING_ARRIVAL_SHIPMENT_STATUSES]}::text[])
+      AND expected_shipment.expected_delivery_date IS NOT NULL
+      ${Prisma.join(bounds, " ")}
+  )`;
 }
 
 function orderScopedCategorySql({ dispatchCutoffIso }: IsoDateBounds): OrderScopedCategorySql {
