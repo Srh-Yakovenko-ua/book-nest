@@ -4,6 +4,7 @@ import {
   BookGenresSchema,
   BookLanguageSchema,
   type BookView,
+  computeHasUnreadEarlierParts,
   CurrencySchema,
   type MediaView,
   type Nullable,
@@ -21,11 +22,7 @@ import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date
 import { toBookDeliverySummaryView } from "../../delivery/index.js";
 import { toBookListView } from "../../lists/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
-import {
-  computeHasUnreadEarlierParts,
-  toSeriesBookPreview,
-  toSeriesView,
-} from "../../series/index.js";
+import { toSeriesBookPreview, toSeriesView } from "../../series/index.js";
 
 export function toBookView({
   book,

@@ -23,6 +23,15 @@ export function isClosedReadingStatus(status: ReadingStatus): boolean {
   return CLOSED_READING_STATUS_SET.has(status);
 }
 
+const IN_PROGRESS_READING_STATUS_SET: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
+  "reading",
+  "rereading",
+]);
+
+export function isInProgressReadingStatus(status: ReadingStatus): boolean {
+  return IN_PROGRESS_READING_STATUS_SET.has(status);
+}
+
 export const OwnershipStatusSchema = z.enum([
   "none",
   "want_to_buy",

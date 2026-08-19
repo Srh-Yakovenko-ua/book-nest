@@ -1,17 +1,24 @@
 "use client";
 
-import type { InTransitAttention, InTransitAttentionReason, Nullable } from "@app/shared";
+import type {
+  InTransitAttention,
+  InTransitAttentionReason,
+  InTransitImpact,
+  Nullable,
+} from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
 import type { DeliveryNextShipmentCardModel } from "../model/next-shipment-card";
 
 import { DeliveryAttentionBlock } from "./delivery-attention-block";
+import { DeliveryImpactBlock } from "./delivery-impact-block";
 import { DeliveryNextShipmentCard } from "./delivery-next-shipment-card";
 
 type DeliveryInTransitSidebarProps = {
   activeAttentionReason: Nullable<InTransitAttentionReason>;
   attention: readonly InTransitAttention[];
+  impact: readonly InTransitImpact[];
   isLoading: boolean;
   nextShipment: Nullable<DeliveryNextShipmentCardModel>;
   onAttentionSelect: (reason: InTransitAttentionReason) => void;
@@ -22,6 +29,7 @@ type DeliveryInTransitSidebarProps = {
 export function DeliveryInTransitSidebar({
   activeAttentionReason,
   attention,
+  impact,
   isLoading,
   nextShipment,
   onAttentionSelect,
@@ -41,6 +49,7 @@ export function DeliveryInTransitSidebar({
         isLoading={isLoading}
         onSelect={onAttentionSelect}
       />
+      <DeliveryImpactBlock impact={impact} />
       <DeliveryNextShipmentCard
         isLoading={isLoading}
         model={nextShipment}

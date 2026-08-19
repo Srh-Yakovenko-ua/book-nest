@@ -1,6 +1,7 @@
 import type {
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
+  InTransitImpactView,
   InTransitSummaryView,
   Paginator,
 } from "@app/shared";
@@ -24,6 +25,7 @@ import { BookOrderHistoryQueryDto } from "./input-dto/book-order-history-query.i
 import { BookOrderHistorySummaryQueryDto } from "./input-dto/book-order-history-summary-query.input-dto.js";
 import { InTransitQueryDto } from "./input-dto/in-transit-query.input-dto.js";
 import { BookOrderHistorySummaryViewDto } from "./view-dto/book-order-history-summary.view-dto.js";
+import { InTransitImpactViewDto } from "./view-dto/in-transit-impact.view-dto.js";
 import { InTransitSummaryViewDto } from "./view-dto/in-transit-summary.view-dto.js";
 import { PaginatedBookOrderItemRowsDto } from "./view-dto/paginated-book-order-item-rows.view-dto.js";
 
@@ -42,6 +44,19 @@ export class DeliveryReadController {
   @Throttle(READ_THROTTLE)
   inTransitSummary(@CurrentUser() user: AuthenticatedUser): Promise<InTransitSummaryView> {
     return this.deliveryReadService.inTransitSummary({ userId: user.id });
+  }
+
+  @ApiOkResponse({
+    description: "What receiving the books in the current user's active deliveries would change",
+    type: InTransitImpactViewDto,
+  })
+  @ApiOperation({
+    summary: "Get what receiving the books in the current user's active deliveries would change",
+  })
+  @Get("books/in-transit/impact")
+  @Throttle(READ_THROTTLE)
+  inTransitImpact(@CurrentUser() user: AuthenticatedUser): Promise<InTransitImpactView> {
+    return this.deliveryReadService.inTransitImpact({ userId: user.id });
   }
 
   @ApiOkResponse({

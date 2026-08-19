@@ -16,6 +16,7 @@ import { ShipmentService } from "./application/shipment.service.js";
 import { SingleBookOrderService } from "./application/single-book-order.service.js";
 import { BookOrderItemsRepository } from "./infrastructure/book-order-items.repository.js";
 import { BookOrdersRepository } from "./infrastructure/book-orders.repository.js";
+import { DeliveryImpactRepository } from "./infrastructure/delivery-impact.repository.js";
 import { DeliveryReadRepository } from "./infrastructure/delivery-read.repository.js";
 import { DeliveryStatisticsRepository } from "./infrastructure/delivery-statistics.repository.js";
 import { OrderBooksRepository } from "./infrastructure/order-books.repository.js";
@@ -47,6 +48,7 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     ShipmentsRepository,
     BookOrderItemsRepository,
     OrderBooksRepository,
+    DeliveryImpactRepository,
     DeliveryReadRepository,
     DeliveryStatisticsRepository,
   ],

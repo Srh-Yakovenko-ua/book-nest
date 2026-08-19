@@ -11,6 +11,7 @@ import {
   AgeCategorySchema,
   BookFormatsSchema,
   BookGenresSchema,
+  compareByPartThenCreated,
   OwnershipStatusSchema,
   ReadingStatusSchema,
   SeriesStatusSchema,
@@ -27,7 +28,6 @@ import { toActiveBookDeliveryView } from "../../delivery/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
 import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import {
-  compareByPartThenCreated,
   computeSeriesLastActivityAt,
   summarizeSeriesBooks,
   toSeriesBookPreview,

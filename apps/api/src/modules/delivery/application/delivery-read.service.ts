@@ -6,6 +6,7 @@ import type {
   BookOrderStatisticsQuery,
   BookOrderStatisticsView,
   BookPreview,
+  InTransitImpactView,
   InTransitQuery,
   InTransitSummaryView,
   NextShipmentBookView,
@@ -32,6 +33,7 @@ import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
+import { buildInTransitImpact } from "../domain/in-transit-impact.js";
 import { toNextShipmentView } from "../domain/next-shipment.mapper.js";
 import { buildOrderHistorySummaryView } from "../domain/order-history-summary.js";
 import { toBookOrderItemRowView } from "../domain/order-item-row.mapper.js";
@@ -39,12 +41,14 @@ import {
   computeBookOrderStatistics,
   ORDER_STATISTICS_TOP_LIMIT,
 } from "../domain/order-statistics.js";
+import { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repository.js";
 import { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
 
 @Injectable()
 export class DeliveryReadService {
   constructor(
+    private readonly deliveryImpactRepository: DeliveryImpactRepository,
     private readonly deliveryReadRepository: DeliveryReadRepository,
     private readonly deliveryStatisticsRepository: DeliveryStatisticsRepository,
     private readonly mediaService: MediaService,
@@ -103,6 +107,18 @@ export class DeliveryReadService {
     });
 
     return buildOrderHistorySummaryView(data);
+  }
+
+  async inTransitImpact({ userId }: { userId: string }): Promise<InTransitImpactView> {
+    const { today } = deliveryDateBounds(new Date());
+
+    const [seriesRows, queueRows, goalRows] = await Promise.all([
+      this.deliveryImpactRepository.listSeriesRows(userId),
+      this.deliveryImpactRepository.listQueueRows(userId),
+      this.deliveryImpactRepository.listGoalRows({ today, userId }),
+    ]);
+
+    return { items: buildInTransitImpact({ goalRows, queueRows, seriesRows }) };
   }
 
   async inTransitList({

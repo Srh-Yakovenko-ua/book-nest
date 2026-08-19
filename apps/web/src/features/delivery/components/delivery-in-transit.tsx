@@ -18,6 +18,7 @@ import type { DeliveryOrderBookModel, DeliveryOrderCardModel } from "../model/or
 import type { DeliveryContent } from "./delivery-in-transit-view";
 
 import { bookOrderQueryOptions } from "../api/use-book-order";
+import { useInTransitImpact } from "../api/use-in-transit-impact";
 import { useInTransitList } from "../api/use-in-transit-list";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
@@ -57,6 +58,7 @@ export function DeliveryInTransit() {
   const params = useInTransitParams();
   const listQuery = useInTransitList(params.listParams);
   const summaryQuery = useInTransitSummary();
+  const impactQuery = useInTransitImpact();
   const setShipmentStatus = useSetShipmentStatus();
 
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
@@ -333,6 +335,7 @@ export function DeliveryInTransit() {
           <DeliveryInTransitSidebar
             activeAttentionReason={activeAttentionReason}
             attention={attention}
+            impact={impactQuery.data?.items ?? []}
             isLoading={summaryQuery.isPending}
             nextShipment={nextShipmentCard}
             onAttentionSelect={selectAttention}

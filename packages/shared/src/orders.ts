@@ -68,6 +68,8 @@ const BOOK_ORDER_MESSAGES = {
 
 const CountSchema = z.number().int().nonnegative();
 
+const PositiveCountSchema = z.number().int().positive();
+
 const hasUniqueValues = (values: readonly string[]): boolean =>
   new Set(values).size === values.length;
 
@@ -436,6 +438,59 @@ export const IN_TRANSIT_ATTENTION_FILTER = {
   without_expected_date: "no_delivery_date",
   without_tracking: "without_tracking_number",
 } as const satisfies Record<InTransitAttentionReason, InTransitFilter>;
+
+export const IN_TRANSIT_IMPACT_LIMITS = {
+  visible: 3,
+} as const;
+
+export const InTransitImpactKindSchema = z.enum([
+  "series_completed",
+  "series_ownership_gaps",
+  "queue_available",
+  "series_next_step",
+  "goal_books",
+]);
+
+export type InTransitImpactKind = z.infer<typeof InTransitImpactKindSchema>;
+
+export const InTransitImpactSchema = z.discriminatedUnion("kind", [
+  z.object({
+    booksCount: PositiveCountSchema,
+    kind: z.literal("series_completed"),
+    seriesCount: PositiveCountSchema,
+  }),
+  z.object({
+    booksCount: PositiveCountSchema,
+    kind: z.literal("series_ownership_gaps"),
+    seriesCount: PositiveCountSchema,
+  }),
+  z.object({
+    booksCount: PositiveCountSchema,
+    highPriorityCount: CountSchema,
+    kind: z.literal("queue_available"),
+  }),
+  z.object({
+    kind: z.literal("series_next_step"),
+    seriesCount: PositiveCountSchema,
+  }),
+  z.object({
+    booksCount: PositiveCountSchema,
+    goalsCount: PositiveCountSchema,
+    kind: z.literal("goal_books"),
+  }),
+]);
+
+export type InTransitImpact = z.infer<typeof InTransitImpactSchema>;
+
+export const InTransitImpactViewSchema = z.object({
+  items: z
+    .array(InTransitImpactSchema)
+    .describe(
+      "What receiving the books in active deliveries would change, ordered by semantic value. Empty when nothing meaningful would change.",
+    ),
+});
+
+export type InTransitImpactView = z.infer<typeof InTransitImpactViewSchema>;
 
 export const InTransitSortSchema = z.enum([
   "closest_delivery",
