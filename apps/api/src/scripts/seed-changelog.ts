@@ -607,6 +607,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Потребують уваги",
     version: null,
   },
+  {
+    bodyEn:
+      "The Books in transit page now shows what your library gains once the parcels arrive, not just where they are. A side block counts the series that will finally be complete, the gaps in a series that will close, the queued books that become readable, the series you will be able to carry on, and the books that belong to an active reading goal. The three most useful lines are shown first, the rest open on request, and the block stays away when arriving books change nothing worth mentioning.",
+    bodyUk:
+      "Сторінка «Книги в дорозі» тепер показує не лише де посилки, а й що зміниться в бібліотеці, коли вони приїдуть. Збоку з’явився блок, який рахує серії, що нарешті стануть повними, прогалини в серіях, які закриються, книги з черги читання, які стануть доступними, серії, які можна буде продовжити, і книги, що входять до активних цілей. Спершу показані три найкорисніші рядки, решта відкриваються за запитом, а якщо отримання нічого не змінює, блока просто немає.",
+    category: "feature",
+    publishedAt: "2026-08-19T00:00:00.000Z",
+    slug: "delivery-arrival-impact",
+    titleEn: "What arriving will change",
+    titleUk: "Що зміниться після отримання",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
