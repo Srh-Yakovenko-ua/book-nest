@@ -224,7 +224,7 @@ describe("buildInTransitSummaryView", () => {
       makeSummaryData({ bookTotals: [{ count: 1, currency: null, total: 120 }] }),
     );
 
-    expect(view.activeBooksTotalByCurrency).toEqual([{ count: 1, currency: "UAH", total: 120 }]);
+    expect(view.activeBooksTotalByCurrency).toEqual([{ currency: "UAH", total: 120 }]);
   });
 
   it("merges an amount without a currency into the explicit default-currency amount", () => {
@@ -237,7 +237,7 @@ describe("buildInTransitSummaryView", () => {
       }),
     );
 
-    expect(view.activeBooksTotalByCurrency).toEqual([{ count: 1, currency: "UAH", total: 200 }]);
+    expect(view.activeBooksTotalByCurrency).toEqual([{ currency: "UAH", total: 200 }]);
   });
 
   it("orders currency totals by the shared currency list rather than by arrival", () => {
@@ -252,9 +252,9 @@ describe("buildInTransitSummaryView", () => {
     );
 
     expect(view.activeOrdersTotalByCurrency).toEqual([
-      { count: 1, currency: "UAH", total: 1 },
-      { count: 1, currency: "EUR", total: 2 },
-      { count: 1, currency: "USD", total: 3 },
+      { currency: "UAH", total: 1 },
+      { currency: "EUR", total: 2 },
+      { currency: "USD", total: 3 },
     ]);
   });
 
@@ -263,7 +263,7 @@ describe("buildInTransitSummaryView", () => {
       makeSummaryData({ orderTotals: [{ count: 1, currency: "EUR", total: 42 }] }),
     );
 
-    expect(view.activeOrdersTotalByCurrency).toEqual([{ count: 1, currency: "EUR", total: 42 }]);
+    expect(view.activeOrdersTotalByCurrency).toEqual([{ currency: "EUR", total: 42 }]);
   });
 
   it("returns an empty total list when nothing in transit carries a price", () => {
@@ -292,8 +292,8 @@ describe("buildInTransitSummaryView", () => {
       books: view.activeBooksTotalByCurrency,
       orders: view.activeOrdersTotalByCurrency,
     }).toEqual({
-      books: [{ count: 1, currency: "UAH", total: 350 }],
-      orders: [{ count: 1, currency: "UAH", total: 400 }],
+      books: [{ currency: "UAH", total: 350 }],
+      orders: [{ currency: "UAH", total: 400 }],
     });
   });
 

@@ -228,6 +228,7 @@ describe("toBookOrderView", () => {
       derivedStatus: "active",
       discount: 15.5,
       id: ORDER_ID,
+      isFree: false,
       items: [
         {
           bookId: BOOK_ID,
