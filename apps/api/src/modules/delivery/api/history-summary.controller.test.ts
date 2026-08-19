@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthenticatedUser, AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -26,6 +27,11 @@ type SeededItem = {
 const RECEIVED_AT = new Date("2026-08-01T10:00:00.000Z");
 const CANCELLED_AT = new Date("2026-08-02T10:00:00.000Z");
 const TRASHED_AT = new Date("2026-08-03T10:00:00.000Z");
+const NOT_TRASHED = { deletedAt: null, purgeAt: null } as const;
+
+function trashStamp(trashed: boolean) {
+  return trashed ? TRASH_RETENTION.stamp(TRASHED_AT) : NOT_TRASHED;
+}
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -75,7 +81,7 @@ async function seedOrder({ items, storeName }: { items: SeededItem[]; storeName:
   for (const item of items) {
     const book = await prisma.book.create({
       data: {
-        deletedAt: item.trashedBook === true ? TRASHED_AT : null,
+        ...trashStamp(item.trashedBook === true),
         seriesId: item.seriesId ?? null,
         title: item.title,
         userId: reader.userId,
@@ -99,7 +105,7 @@ async function seedOrder({ items, storeName }: { items: SeededItem[]; storeName:
 async function seedSeries({ name, trashed = false }: { name: string; trashed?: boolean }) {
   const series = await app.get(PrismaService).series.create({
     data: {
-      deletedAt: trashed ? TRASHED_AT : null,
+      ...trashStamp(trashed),
       name,
       normalizedName: name.toLowerCase(),
       userId: reader.userId,
