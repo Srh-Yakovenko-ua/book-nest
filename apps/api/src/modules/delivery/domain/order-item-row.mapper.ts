@@ -55,7 +55,7 @@ export function toBookOrderItemRowView({
     order: toRowOrderView(row.order),
     price: row.price === null ? null : row.price.toNumber(),
     receivedAt: toNullableIsoDateTime(row.receivedAt),
-    shipment: shipment === null ? null : toRowShipmentView(shipment),
+    shipment: shipment === null ? null : toRowShipmentView({ items: row.order.items, shipment }),
     uiStatus: isSettledItem(row)
       ? null
       : getShipmentUiStatus({
@@ -107,12 +107,23 @@ function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
   };
 }
 
-function toRowShipmentView(
-  shipment: ShipmentModel & { deliveryService: Nullable<DeliveryServiceModel> },
-): BookOrderItemRowShipmentView {
+function toRowShipmentView({
+  items,
+  shipment,
+}: {
+  items: RowOrderItemSource[];
+  shipment: ShipmentModel & { deliveryService: Nullable<DeliveryServiceModel> };
+}): BookOrderItemRowShipmentView {
   const name = shipment.deliveryServiceName ?? shipment.deliveryService?.name ?? null;
 
   return {
+    activeItemsCount: items.filter(
+      (item) =>
+        item.shipmentId === shipment.id &&
+        item.book.deletedAt === null &&
+        item.cancelledAt === null &&
+        item.receivedAt === null,
+    ).length,
     deliveryService:
       name === null
         ? null

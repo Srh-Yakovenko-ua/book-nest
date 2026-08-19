@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
+import type { DeliveryAdvancedState } from "../model/in-transit-params";
+
 import { DELIVERY_ADVANCED_EMPTY } from "../model/in-transit-params";
 import { DeliveryToolbar } from "./delivery-toolbar";
 
@@ -17,11 +19,20 @@ const FILTER_COUNTS = {
   ready_for_pickup: 1,
 };
 
+function advancedState(overrides: Partial<DeliveryAdvancedState> = {}): DeliveryAdvancedState {
+  return { ...DELIVERY_ADVANCED_EMPTY, ...overrides };
+}
+
 function chipNames(): string[] {
   return screen.getAllByRole("radio").map((chip) => chip.textContent ?? "");
 }
 
+async function removeChip(label: string): Promise<void> {
+  await userEvent.click(screen.getByRole("button", { name: `Прибрати фільтр ${label}` }));
+}
+
 function renderToolbar(overrides: Partial<ComponentProps<typeof DeliveryToolbar>> = {}) {
+  const onApplyAdvanced = vi.fn();
   const onClearAll = vi.fn();
   const onFilterChange = vi.fn();
   const onSortChange = vi.fn();
@@ -34,8 +45,7 @@ function renderToolbar(overrides: Partial<ComponentProps<typeof DeliveryToolbar>
       filter="all"
       isPending={false}
       loadingLabel="Завантаження"
-      onApplyAdvanced={vi.fn()}
-      onClearAdvanced={vi.fn()}
+      onApplyAdvanced={onApplyAdvanced}
       onClearAll={onClearAll}
       onClearSearch={vi.fn()}
       onFilterChange={onFilterChange}
@@ -47,7 +57,7 @@ function renderToolbar(overrides: Partial<ComponentProps<typeof DeliveryToolbar>
     />,
   );
 
-  return { onClearAll, onFilterChange, onSortChange };
+  return { onApplyAdvanced, onClearAll, onFilterChange, onSortChange };
 }
 
 describe("DeliveryToolbar quick filters", () => {
@@ -117,7 +127,7 @@ describe("DeliveryToolbar attention filter", () => {
     expect(onFilterChange).toHaveBeenCalledWith("all");
   });
 
-  it("wipes the search along with the filter when everything is cleared", async () => {
+  it("hands the whole chip row back to the page when everything is cleared", async () => {
     const { onClearAll } = renderToolbar({ filter: "pickup_expiring", searchValue: "Хобб" });
 
     await userEvent.click(screen.getByRole("button", { name: "Очистити все" }));
@@ -130,6 +140,168 @@ describe("DeliveryToolbar attention filter", () => {
 
     expect(screen.queryByText(/^Увага:/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Очистити все" })).not.toBeInTheDocument();
+  });
+});
+
+describe("DeliveryToolbar advanced filter chips", () => {
+  it("names every picked store on a chip of its own", () => {
+    renderToolbar({ advanced: advancedState({ store: ["Yakaboo", "Book24"] }), advancedCount: 1 });
+
+    expect(screen.getByText("Магазин: Yakaboo")).toBeInTheDocument();
+    expect(screen.getByText("Магазин: Book24")).toBeInTheDocument();
+    expect(screen.queryByText(/Розширені фільтри/)).not.toBeInTheDocument();
+  });
+
+  it("drops a single store and leaves the other filters applied", async () => {
+    const advanced = advancedState({
+      booksMin: 2,
+      service: ["Нова пошта"],
+      store: ["Yakaboo", "Book24"],
+    });
+    const { onApplyAdvanced } = renderToolbar({ advanced, advancedCount: 3 });
+
+    await removeChip("Магазин: Yakaboo");
+
+    expect(onApplyAdvanced).toHaveBeenCalledWith({ ...advanced, store: ["Book24"] });
+  });
+
+  it("spells out a date range on one chip and clears both bounds with it", async () => {
+    const advanced = advancedState({
+      orderedFrom: "2026-08-01",
+      orderedTo: "2026-08-20",
+      store: ["Yakaboo"],
+    });
+    const { onApplyAdvanced } = renderToolbar({ advanced, advancedCount: 2 });
+
+    expect(
+      screen.getByText("Дата замовлення: 1 серп. 2026 р. – 20 серп. 2026 р."),
+    ).toBeInTheDocument();
+
+    await removeChip("Дата замовлення: 1 серп. 2026 р. – 20 серп. 2026 р.");
+
+    expect(onApplyAdvanced).toHaveBeenCalledWith({
+      ...advanced,
+      orderedFrom: null,
+      orderedTo: null,
+    });
+  });
+
+  it("keeps the picked currencies when the order total chip is removed", async () => {
+    const advanced = advancedState({
+      currency: ["UAH"],
+      priceMax: 500,
+      priceMin: 100,
+      pricePresence: "known",
+    });
+    const { onApplyAdvanced } = renderToolbar({ advanced, advancedCount: 2 });
+
+    expect(screen.getByText("Вартість: 100–500 UAH")).toBeInTheDocument();
+    expect(screen.queryByText("Сума вказана")).not.toBeInTheDocument();
+
+    await removeChip("Вартість: 100–500 UAH");
+
+    expect(onApplyAdvanced).toHaveBeenCalledWith({
+      ...advanced,
+      priceMax: null,
+      priceMin: null,
+      pricePresence: null,
+    });
+  });
+
+  it("names the bare presence on the order total chip when no range applies", async () => {
+    const advanced = advancedState({ pricePresence: "unknown" });
+    const { onApplyAdvanced } = renderToolbar({ advanced, advancedCount: 1 });
+
+    expect(screen.getByText("Сума не вказана")).toBeInTheDocument();
+
+    await removeChip("Сума не вказана");
+
+    expect(onApplyAdvanced).toHaveBeenCalledWith({
+      ...advanced,
+      priceMax: null,
+      priceMin: null,
+      pricePresence: null,
+    });
+  });
+
+  it("holds the order total back while more than one currency is picked", () => {
+    renderToolbar({
+      advanced: advancedState({ currency: ["UAH", "EUR"], priceMax: 500, priceMin: 100 }),
+      advancedCount: 1,
+    });
+
+    expect(screen.queryByText(/^Вартість:/)).not.toBeInTheDocument();
+    expect(screen.getByText("UAH")).toBeInTheDocument();
+    expect(screen.getByText("EUR")).toBeInTheDocument();
+  });
+
+  it("falls back to the presence while the range cannot apply", () => {
+    renderToolbar({
+      advanced: advancedState({
+        currency: ["UAH", "EUR"],
+        priceMax: 500,
+        priceMin: 100,
+        pricePresence: "known",
+      }),
+      advancedCount: 2,
+    });
+
+    expect(screen.queryByText(/^Вартість:/)).not.toBeInTheDocument();
+    expect(screen.getByText("Сума вказана")).toBeInTheDocument();
+  });
+
+  it("says nothing about a range that reads backwards", () => {
+    renderToolbar({
+      advanced: advancedState({ booksMax: 2, booksMin: 5, store: ["Yakaboo"] }),
+      advancedCount: 2,
+    });
+
+    expect(screen.queryByText(/Кількість книг/)).not.toBeInTheDocument();
+    expect(screen.getByText("Магазин: Yakaboo")).toBeInTheDocument();
+  });
+
+  it("keeps the attention chip in front of the advanced ones", () => {
+    renderToolbar({
+      advanced: advancedState({ structure: ["no_shipment"] }),
+      advancedCount: 1,
+      filter: "no_delivery_date",
+    });
+
+    const row = screen.getByRole("group", { name: "Активні фільтри" });
+    expect(
+      within(row)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Прибрати фільтр Увага: Без дати доставки", "Прибрати фільтр Ще без посилки", null]);
+  });
+});
+
+describe("DeliveryToolbar selection", () => {
+  it("stays out of the toolbar while nothing on the page can be selected", () => {
+    renderToolbar();
+
+    expect(screen.queryByRole("button", { name: "Вибрати" })).not.toBeInTheDocument();
+  });
+
+  it("offers the selection toggle once a parcel can be selected", async () => {
+    const onToggle = vi.fn();
+    renderToolbar({ selection: { isSelecting: false, onToggle } });
+
+    const toggle = screen.getByRole("button", { name: "Вибрати" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(toggle);
+
+    expect(onToggle).toHaveBeenCalledOnce();
+  });
+
+  it("offers the way out while the page is in selection mode", () => {
+    renderToolbar({ selection: { isSelecting: true, onToggle: vi.fn() } });
+
+    expect(screen.getByRole("button", { name: "Завершити вибір" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });
 

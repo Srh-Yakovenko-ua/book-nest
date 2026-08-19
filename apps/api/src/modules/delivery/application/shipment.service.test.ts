@@ -18,6 +18,7 @@ const USER = "user-1";
 const ORDER_ID = "order-1";
 const SHIPMENT_ID = "shipment-1";
 const OTHER_SHIPMENT_ID = "shipment-2";
+const UNKNOWN_SHIPMENT_ID = "shipment-3";
 
 const TX = { marker: "tx" } as unknown as Prisma.TransactionClient;
 
@@ -93,6 +94,7 @@ function buildService(overrides: {
 }
 
 function makeShipmentRow({
+  id = SHIPMENT_ID,
   items = [
     {
       bookId: "book-a",
@@ -105,6 +107,7 @@ function makeShipmentRow({
   orderDate = new Date("2026-08-01T00:00:00.000Z"),
   status = "in_transit" as ShipmentStatus,
 }: {
+  id?: string;
   items?: {
     bookId: string;
     cancelledAt: Nullable<Date>;
@@ -116,7 +119,7 @@ function makeShipmentRow({
   status?: ShipmentStatus;
 }) {
   return {
-    id: SHIPMENT_ID,
+    id,
     items,
     order: { id: ORDER_ID, orderDate, userId: USER },
     orderId: ORDER_ID,
@@ -533,6 +536,208 @@ describe("ShipmentService.markReadyForPickup", () => {
         shipmentId: SHIPMENT_ID,
         userId: USER,
       },
+      TX,
+    );
+  });
+});
+
+describe("ShipmentService.receiveMany", () => {
+  function findOwnedByStatus(statusById: Record<string, Nullable<ShipmentStatus>>) {
+    return vi.fn().mockImplementation(({ shipmentId }: { shipmentId: string }) => {
+      const status = statusById[shipmentId] ?? null;
+      return Promise.resolve(status === null ? null : makeShipmentRow({ id: shipmentId, status }));
+    });
+  }
+
+  it("receives every parcel the request named", async () => {
+    const { service } = buildService({
+      shipments: {
+        findOwnedById: findOwnedByStatus({
+          [OTHER_SHIPMENT_ID]: "ready_for_pickup",
+          [SHIPMENT_ID]: "in_transit",
+        }),
+      },
+    });
+
+    const result = await service.receiveMany({
+      input: { shipmentIds: [SHIPMENT_ID, OTHER_SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    expect(result).toEqual({
+      receivedShipmentIds: [SHIPMENT_ID, OTHER_SHIPMENT_ID],
+      skipped: [],
+    });
+  });
+
+  it("receives the whole batch inside a single transaction", async () => {
+    const { service, shipments, transactionRunner } = buildService({
+      shipments: {
+        findOwnedById: findOwnedByStatus({
+          [OTHER_SHIPMENT_ID]: "in_transit",
+          [SHIPMENT_ID]: "in_transit",
+        }),
+      },
+    });
+
+    await service.receiveMany({
+      input: { shipmentIds: [SHIPMENT_ID, OTHER_SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    expect(transactionRunner.run).toHaveBeenCalledTimes(1);
+    expect(shipments.receiveActive).toHaveBeenCalledWith(
+      expect.objectContaining({ shipmentId: SHIPMENT_ID }),
+      TX,
+    );
+    expect(shipments.receiveActive).toHaveBeenCalledWith(
+      expect.objectContaining({ shipmentId: OTHER_SHIPMENT_ID }),
+      TX,
+    );
+  });
+
+  it("hands over the books of every parcel of the batch", async () => {
+    const { books, items, service } = buildService({
+      shipments: {
+        findOwnedById: findOwnedByStatus({
+          [OTHER_SHIPMENT_ID]: "in_transit",
+          [SHIPMENT_ID]: "in_transit",
+        }),
+      },
+    });
+
+    await service.receiveMany({
+      input: { shipmentIds: [SHIPMENT_ID, OTHER_SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    expect(items.receiveForShipment).toHaveBeenCalledTimes(2);
+    expect(books.applyOwnership).toHaveBeenCalledTimes(2);
+    expect(books.applyOwnership).toHaveBeenCalledWith(
+      expect.objectContaining({ bookIds: ["book-a"], ownershipStatus: "owned" }),
+      TX,
+    );
+  });
+
+  it("stamps the receipt date the reader chose on every parcel of the batch", async () => {
+    const { items, service, shipments } = buildService({
+      shipments: {
+        findOwnedById: findOwnedByStatus({
+          [OTHER_SHIPMENT_ID]: "in_transit",
+          [SHIPMENT_ID]: "in_transit",
+        }),
+      },
+    });
+
+    await service.receiveMany({
+      input: { receivedAt: "2026-08-09", shipmentIds: [SHIPMENT_ID, OTHER_SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    const receivedAt = new Date("2026-08-09T00:00:00.000Z");
+    expect(shipments.receiveActive).toHaveBeenCalledWith(
+      { receivedAt, shipmentId: SHIPMENT_ID, userId: USER },
+      TX,
+    );
+    expect(shipments.receiveActive).toHaveBeenCalledWith(
+      { receivedAt, shipmentId: OTHER_SHIPMENT_ID, userId: USER },
+      TX,
+    );
+    expect(items.receiveForShipment).toHaveBeenCalledWith(
+      { receivedAt, shipmentId: OTHER_SHIPMENT_ID, userId: USER },
+      TX,
+    );
+  });
+
+  it("receives a parcel named twice only once", async () => {
+    const { service, shipments } = buildService({
+      shipments: { findOwnedById: findOwnedByStatus({ [SHIPMENT_ID]: "in_transit" }) },
+    });
+
+    const result = await service.receiveMany({
+      input: { shipmentIds: [SHIPMENT_ID, SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    expect(result).toEqual({ receivedShipmentIds: [SHIPMENT_ID], skipped: [] });
+    expect(shipments.receiveActive).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a parcel the reader does not own as missing and receives the rest", async () => {
+    const { service, shipments } = buildService({
+      shipments: { findOwnedById: findOwnedByStatus({ [SHIPMENT_ID]: "in_transit" }) },
+    });
+
+    const result = await service.receiveMany({
+      input: { shipmentIds: [UNKNOWN_SHIPMENT_ID, SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    expect(result).toEqual({
+      receivedShipmentIds: [SHIPMENT_ID],
+      skipped: [{ reason: "not_found", shipmentId: UNKNOWN_SHIPMENT_ID }],
+    });
+    expect(shipments.receiveActive).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["received", "cancelled"] as ShipmentStatus[])(
+    "skips a %s parcel without touching its items or its books",
+    async (status) => {
+      const { books, items, service, shipments } = buildService({
+        shipments: {
+          findOwnedById: findOwnedByStatus({
+            [OTHER_SHIPMENT_ID]: status,
+            [SHIPMENT_ID]: "in_transit",
+          }),
+        },
+      });
+
+      const result = await service.receiveMany({
+        input: { shipmentIds: [OTHER_SHIPMENT_ID, SHIPMENT_ID] },
+        userId: USER,
+      });
+
+      expect(result).toEqual({
+        receivedShipmentIds: [SHIPMENT_ID],
+        skipped: [{ reason: "not_active", shipmentId: OTHER_SHIPMENT_ID }],
+      });
+      expect(shipments.receiveActive).toHaveBeenCalledTimes(1);
+      expect(items.receiveForShipment).toHaveBeenCalledWith(
+        expect.objectContaining({ shipmentId: SHIPMENT_ID }),
+        TX,
+      );
+      expect(items.receiveForShipment).toHaveBeenCalledTimes(1);
+      expect(books.applyOwnership).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("skips a parcel that another request received while the batch was running", async () => {
+    const { items, service } = buildService({
+      shipments: {
+        findOwnedById: findOwnedByStatus({
+          [OTHER_SHIPMENT_ID]: "in_transit",
+          [SHIPMENT_ID]: "in_transit",
+        }),
+        receiveActive: vi
+          .fn()
+          .mockImplementation(({ shipmentId }: { shipmentId: string }) =>
+            Promise.resolve(shipmentId === OTHER_SHIPMENT_ID ? 0 : 1),
+          ),
+      },
+    });
+
+    const result = await service.receiveMany({
+      input: { shipmentIds: [SHIPMENT_ID, OTHER_SHIPMENT_ID] },
+      userId: USER,
+    });
+
+    expect(result).toEqual({
+      receivedShipmentIds: [SHIPMENT_ID],
+      skipped: [{ reason: "not_active", shipmentId: OTHER_SHIPMENT_ID }],
+    });
+    expect(items.receiveForShipment).toHaveBeenCalledTimes(1);
+    expect(items.receiveForShipment).toHaveBeenCalledWith(
+      expect.objectContaining({ shipmentId: SHIPMENT_ID }),
       TX,
     );
   });

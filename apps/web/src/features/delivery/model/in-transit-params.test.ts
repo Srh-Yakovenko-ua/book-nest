@@ -45,8 +45,17 @@ describe("counting the active advanced dimensions", () => {
     expect(countActiveDeliveryDimensions(advanced({ booksMax: 5, booksMin: 2 }))).toBe(1);
   });
 
-  it("counts currency and the total range as two separate dimensions", () => {
+  it("counts currency and the order total as two separate dimensions", () => {
     expect(countActiveDeliveryDimensions(advanced({ currency: ["UAH"], priceMin: 100 }))).toBe(2);
+  });
+
+  it("counts the order total once whether it carries a presence, a range or both", () => {
+    expect(countActiveDeliveryDimensions(advanced({ pricePresence: "unknown" }))).toBe(1);
+    expect(
+      countActiveDeliveryDimensions(
+        advanced({ currency: ["UAH"], priceMax: 500, priceMin: 100, pricePresence: "known" }),
+      ),
+    ).toBe(2);
   });
 
   it("leaves the total range uncounted while it cannot apply", () => {

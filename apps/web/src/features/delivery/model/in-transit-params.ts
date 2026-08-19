@@ -128,8 +128,7 @@ export function countActiveDeliveryDimensions(state: DeliveryAdvancedState): num
     state.expectedFrom !== null || state.expectedTo !== null,
     state.structure.length > 0,
     state.currency.length > 0,
-    resolveDeliveryPriceCurrency(state) !== null,
-    state.pricePresence !== null,
+    state.pricePresence !== null || resolveDeliveryPriceCurrency(state) !== null,
   ].filter(Boolean).length;
 }
 
@@ -159,6 +158,10 @@ export function isDeliveryPrimaryFilter(
   filter: DeliveryReadControllerInTransitListFilter,
 ): filter is DeliveryPrimaryFilter {
   return DELIVERY_PRIMARY_FILTERS.some((value) => value === filter);
+}
+
+export function isStorableDay(value: Nullable<string>): value is string {
+  return value !== null && isValid(parseISO(value));
 }
 
 export function resolveDeliveryPriceCurrency(
@@ -237,8 +240,4 @@ function isInvertedDayRange(from: Nullable<string>, to: Nullable<string>): boole
 function isInvertedNumberRange(min: Nullable<number>, max: Nullable<number>): boolean {
   if (min === null || max === null) return false;
   return min > max;
-}
-
-function isStorableDay(value: Nullable<string>): value is string {
-  return value !== null && isValid(parseISO(value));
 }

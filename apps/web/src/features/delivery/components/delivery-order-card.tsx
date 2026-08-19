@@ -2,7 +2,7 @@
 
 import type { ActiveShipmentStatus, Nullable } from "@app/shared";
 
-import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
+import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
@@ -34,6 +34,8 @@ import type {
 } from "../model/order-card-model";
 import type { OrderShipmentAction } from "./order-shipment-action-dialog";
 
+import { isSelectableShipment } from "../model/order-card-model";
+
 type DeliveryOrderCardProps = {
   model: DeliveryOrderCardModel;
   onCancelBook: (bookId: string) => void;
@@ -41,15 +43,15 @@ type DeliveryOrderCardProps = {
   onEditBook: (book: DeliveryOrderBookModel) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
-  onToggleSelectBook: (bookId: string) => void;
+  onToggleSelectShipment: (shipmentId: string) => void;
   preparingEdit: boolean;
   revealedOrderId?: Nullable<string>;
   revealedShipmentId?: Nullable<string>;
-  selectedBookIds: ReadonlySet<string>;
+  selectedShipmentIds: ReadonlySet<string>;
   selectionMode: boolean;
 };
 
-const INITIAL_BOOK_COUNT = 4;
+const INITIAL_BOOK_COUNT = 3;
 
 type ShipmentNextStep =
   | { icon: UiIconName; kind: "receive"; labelKey: "receiveShipmentCompact" }
@@ -59,6 +61,11 @@ type ShipmentNextStep =
       labelKey: "markInTransitCompact" | "markReadyForPickupCompact";
       status: ActiveShipmentStatus;
     };
+
+const SHIPMENT_HEADER_SLOTS = {
+  action: "max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-2 max-sm:h-11 max-sm:w-full",
+  menu: "max-sm:col-start-2 max-sm:row-start-1",
+} as const;
 
 const SHIPMENT_NEXT_STEP = {
   in_transit: {
@@ -85,9 +92,9 @@ type ShipmentSectionProps = {
   onEditBook: (book: DeliveryOrderBookModel) => void;
   onManage: (action: OrderShipmentAction) => void;
   onReceiveShipment: (shipmentId: string, bookCount: number) => void;
-  onToggleSelectBook: (bookId: string) => void;
+  onToggleSelectShipment: (shipmentId: string) => void;
   revealed: boolean;
-  selectedBookIds: ReadonlySet<string>;
+  selected: boolean;
   selectionMode: boolean;
   shipmentCount: number;
 };
@@ -99,11 +106,11 @@ export function DeliveryOrderCard({
   onEditBook,
   onManage,
   onReceiveShipment,
-  onToggleSelectBook,
+  onToggleSelectShipment,
   preparingEdit,
   revealedOrderId = null,
   revealedShipmentId = null,
-  selectedBookIds,
+  selectedShipmentIds,
   selectionMode,
 }: DeliveryOrderCardProps) {
   const t = useTranslations("delivery.card");
@@ -136,14 +143,14 @@ export function DeliveryOrderCard({
   return (
     <article
       className={cn(
-        "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card",
+        "flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card max-sm:gap-3 max-sm:p-3",
         "motion-safe:transition-shadow motion-safe:duration-500",
         revealedOrderId === model.id && "ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
       data-order-id={model.id}
     >
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
+      <header className="flex flex-wrap items-start justify-between gap-3 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-3">
+        <div className="flex min-w-0 items-start gap-3 max-sm:col-start-1 max-sm:row-start-1">
           <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-accent text-icon">
             <UiIcon name="store" size={17} />
           </span>
@@ -156,9 +163,12 @@ export function DeliveryOrderCard({
             )}
           </div>
         </div>
-        <div className="ml-auto flex shrink-0 items-start gap-2">
-          <StatusBadge className="mt-0.5" entry={model.badge} />
-          <div className="pt-0.5 text-right tabular-nums">
+        <div className="ml-auto flex shrink-0 items-start gap-2 max-sm:contents">
+          <StatusBadge
+            className="mt-0.5 max-sm:col-start-1 max-sm:row-start-2 max-sm:mt-0 max-sm:max-w-full"
+            entry={model.badge}
+          />
+          <div className="pt-0.5 text-right tabular-nums max-sm:col-start-2 max-sm:row-start-2 max-sm:min-w-0 max-sm:pt-0">
             <p className="font-heading text-lg leading-tight font-semibold text-ink">
               {model.totalText ?? "—"}
             </p>
@@ -176,6 +186,7 @@ export function DeliveryOrderCard({
             <DropdownMenuTrigger asChild>
               <Button
                 aria-label={t("orderActionsAria")}
+                className="max-sm:col-start-2 max-sm:row-start-1 max-sm:mt-0.5"
                 loading={preparingEdit}
                 size="icon"
                 variant="ghost"
@@ -225,9 +236,9 @@ export function DeliveryOrderCard({
               onEditBook={onEditBook}
               onManage={onManage}
               onReceiveShipment={onReceiveShipment}
-              onToggleSelectBook={onToggleSelectBook}
+              onToggleSelectShipment={onToggleSelectShipment}
               revealed={group.id !== null && group.id === revealedShipmentId}
-              selectedBookIds={selectedBookIds}
+              selected={group.id !== null && selectedShipmentIds.has(group.id)}
               selectionMode={selectionMode}
               shipmentCount={model.shipments.length}
             />
@@ -253,33 +264,15 @@ function BookRow({
   book,
   onCancel,
   onEdit,
-  onToggleSelect,
-  selected,
-  selectionMode,
 }: {
   book: DeliveryOrderBookModel;
   onCancel: () => void;
   onEdit: () => void;
-  onToggleSelect: () => void;
-  selected: boolean;
-  selectionMode: boolean;
 }) {
   const t = useTranslations("delivery.card");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   return (
-    <div
-      className={cn(
-        "group flex min-h-20 items-center gap-3 py-3 transition-colors",
-        selected && "bg-primary/5",
-      )}
-    >
-      {selectionMode ? (
-        <Checkbox
-          aria-label={t("selectAria", { title: book.title })}
-          checked={selected}
-          onCheckedChange={onToggleSelect}
-        />
-      ) : null}
+    <div className="group flex min-h-20 items-center gap-3 py-3 transition-colors max-sm:min-h-0 max-sm:py-2">
       <Link
         className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-accent shadow-soft"
         href={book.bookHref}
@@ -301,7 +294,7 @@ function BookRow({
       </Link>
       <div className="min-w-0 flex-1">
         <Link
-          className="line-clamp-1 font-heading text-sm font-semibold text-ink hover:text-primary"
+          className="line-clamp-2 font-heading text-sm font-semibold text-ink hover:text-primary max-sm:leading-tight sm:line-clamp-1"
           href={book.bookHref}
         >
           {book.title}
@@ -375,9 +368,9 @@ function ShipmentSection({
   onEditBook,
   onManage,
   onReceiveShipment,
-  onToggleSelectBook,
+  onToggleSelectShipment,
   revealed,
-  selectedBookIds,
+  selected,
   selectionMode,
   shipmentCount,
 }: ShipmentSectionProps) {
@@ -386,10 +379,9 @@ function ShipmentSection({
   const tStatus = useTranslations("books.deliveryStatus.labels");
   const shipmentTitle =
     shipmentCount === 1 ? t("shipment") : t("shipmentNumber", { number: index + 1 });
-  const activeShipment =
-    group.id !== null && group.status !== null && isActiveShipmentStatus(group.status)
-      ? { id: group.id, nextStep: SHIPMENT_NEXT_STEP[group.status], status: group.status }
-      : null;
+  const activeShipment = isSelectableShipment(group)
+    ? { id: group.id, nextStep: SHIPMENT_NEXT_STEP[group.status], status: group.status }
+    : null;
   const statusText =
     activeShipment === null || group.badge.value === activeShipment.status
       ? null
@@ -404,31 +396,49 @@ function ShipmentSection({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-md border border-border bg-card",
+        "overflow-hidden rounded-md border border-border transition-colors max-sm:border-0",
+        selected ? "bg-primary/5" : "bg-card",
         "motion-safe:transition-shadow motion-safe:duration-500",
         revealed && "ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
       data-shipment-id={group.id ?? undefined}
     >
-      <div className="flex items-start justify-between gap-3 bg-secondary/30 p-3">
+      <div className="flex items-start justify-between gap-3 bg-secondary/30 p-3 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-2 max-sm:gap-y-3">
         <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <UiIcon className="shrink-0 text-icon" name="package" size={16} />
-            <h4 className="font-heading text-sm font-semibold text-ink">{shipmentTitle}</h4>
-            <StatusBadge entry={group.badge} />
-            {statusText === null ? null : (
-              <span className="text-xs text-muted-foreground">{statusText}</span>
-            )}
-            {group.id === null ? (
-              <span className="text-xs text-muted-foreground">{t("notShipped")}</span>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-start">
+            <div className="contents max-sm:flex max-sm:w-full max-sm:min-w-0 max-sm:items-center max-sm:gap-2">
+              {selectionMode && activeShipment !== null ? (
+                <Checkbox
+                  aria-label={t("selectShipmentAria", { title: shipmentTitle })}
+                  checked={selected}
+                  onCheckedChange={() => onToggleSelectShipment(activeShipment.id)}
+                />
+              ) : null}
+              <UiIcon className="shrink-0 text-icon" name="package" size={16} />
+              <h4 className="min-w-0 truncate font-heading text-sm font-semibold text-ink">
+                {shipmentTitle}
+              </h4>
+            </div>
+            <div className="contents max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-2">
+              <StatusBadge className="max-sm:max-w-full" entry={group.badge} />
+              {statusText === null ? null : (
+                <span className="text-xs text-muted-foreground">{statusText}</span>
+              )}
+              {group.id === null ? (
+                <span className="text-xs text-muted-foreground">{t("notShipped")}</span>
+              ) : null}
+            </div>
           </div>
           {metadata.length === 0 && group.trackingHref === null ? null : (
-            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground max-sm:flex-col max-sm:items-start max-sm:gap-y-2">
               {metadata.map(({ label, value }, metadataIndex) => (
                 <span className="contents" key={label}>
-                  {metadataIndex === 0 ? null : <span aria-hidden>·</span>}
-                  <span>
+                  {metadataIndex === 0 ? null : (
+                    <span aria-hidden className="max-sm:hidden">
+                      ·
+                    </span>
+                  )}
+                  <span className="min-w-0 break-words">
                     <span className="sr-only">{label}: </span>
                     {value}
                   </span>
@@ -436,7 +446,11 @@ function ShipmentSection({
               ))}
               {group.trackingHref === null ? null : (
                 <>
-                  {metadata.length === 0 ? null : <span aria-hidden>·</span>}
+                  {metadata.length === 0 ? null : (
+                    <span aria-hidden className="max-sm:hidden">
+                      ·
+                    </span>
+                  )}
                   <a
                     className="inline-flex items-center gap-1.5 text-primary underline underline-offset-2"
                     href={group.trackingHref}
@@ -462,10 +476,11 @@ function ShipmentSection({
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 max-sm:contents">
           {activeShipment === null ? (
             <Button
               aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
+              className={SHIPMENT_HEADER_SLOTS.menu}
               disabled
               size="icon"
               variant="ghost"
@@ -475,6 +490,7 @@ function ShipmentSection({
           ) : (
             <>
               <Button
+                className={SHIPMENT_HEADER_SLOTS.action}
                 onClick={() =>
                   activeShipment.nextStep.kind === "receive"
                     ? onReceiveShipment(activeShipment.id, group.books.length)
@@ -490,6 +506,7 @@ function ShipmentSection({
                 <DropdownMenuTrigger asChild>
                   <Button
                     aria-label={t("shipmentActionsAria", { title: shipmentTitle })}
+                    className={SHIPMENT_HEADER_SLOTS.menu}
                     size="icon"
                     variant="ghost"
                   >
@@ -561,9 +578,6 @@ function ShipmentSection({
                 book={book}
                 onCancel={() => onCancelBook(book.bookId)}
                 onEdit={() => onEditBook(book)}
-                onToggleSelect={() => onToggleSelectBook(book.bookId)}
-                selected={selectedBookIds.has(book.bookId)}
-                selectionMode={selectionMode}
               />
             </li>
           ))}

@@ -631,6 +631,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Розширені фільтри для книг у дорозі",
     version: null,
   },
+  {
+    bodyEn:
+      "Marking parcels as received on the Books in transit page now works in bulk. Selection moved from the page header to the toolbar next to sorting and filters, and the checkbox sits on each parcel that can still be received rather than on individual books. Pick several parcels and confirm: all of them are marked as arrived in one step together with the books they carry, and if one of them was received or cancelled in the meantime you are told. The bar at the bottom shows how many parcels are selected and how many books they hold. Books not yet assigned to a parcel are not selectable here, because there is nothing physical to confirm as arrived; they are still received one at a time from the book's own page.",
+    bodyUk:
+      "Позначати посилки отриманими на сторінці «Книги в дорозі» тепер можна групою. Режим вибору переїхав із шапки сторінки на панель інструментів поруч із сортуванням і фільтрами, а прапорець стоїть на кожній посилці, яку ще можна отримати, а не на окремих книгах. Оберіть кілька посилок і підтвердьте: усі вони стануть отриманими за один раз разом із книгами, які везуть, а якщо якусь тим часом уже отримали або скасували, ви побачите про це повідомлення. Внизу видно, скільки посилок вибрано і скільки в них книг. Книги, ще не розподілені між посилками, тут не вибираються, бо підтверджувати прибуття нема чого: їх, як і раніше, отримують поодинці зі сторінки книги.",
+    category: "improvement",
+    publishedAt: "2026-08-19T00:00:00.000Z",
+    slug: "delivery-bulk-receive-parcels",
+    titleEn: "Receiving parcels in bulk",
+    titleUk: "Групове отримання посилок",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

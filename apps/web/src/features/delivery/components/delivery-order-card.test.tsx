@@ -62,9 +62,9 @@ function renderCard(
       onEditBook={vi.fn()}
       onManage={vi.fn()}
       onReceiveShipment={vi.fn()}
-      onToggleSelectBook={vi.fn()}
+      onToggleSelectShipment={vi.fn()}
       preparingEdit={false}
-      selectedBookIds={new Set<string>()}
+      selectedShipmentIds={new Set<string>()}
       selectionMode={false}
       {...overrides}
     />,
@@ -134,7 +134,7 @@ describe("DeliveryOrderCard", () => {
     );
   });
 
-  it("shows four books until the order is expanded", async () => {
+  it("shows three books until the order is expanded", async () => {
     const books = Array.from({ length: 6 }, (_, index) =>
       makeDeliveryOrderBookModel({
         bookId: `book-${index}`,
@@ -149,8 +149,8 @@ describe("DeliveryOrderCard", () => {
       }),
     );
 
-    expect(screen.getAllByRole("listitem")).toHaveLength(4);
-    await userEvent.click(screen.getByRole("button", { name: "Показати ще 2 книги" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 3 книги" }));
     expect(screen.getAllByRole("listitem")).toHaveLength(6);
     expect(screen.getByRole("button", { name: "Згорнути" })).toBeInTheDocument();
   });
@@ -165,9 +165,9 @@ describe("DeliveryOrderCard", () => {
     renderCard(makeShortAndLongShipments());
 
     expect(within(bookListAt(0)).getAllByRole("listitem")).toHaveLength(3);
-    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(3);
 
-    await userEvent.click(screen.getByRole("button", { name: "Показати ще 4 книги" }));
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 5 книг" }));
 
     expect(within(bookListAt(0)).getAllByRole("listitem")).toHaveLength(3);
     expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(8);
@@ -445,24 +445,67 @@ describe("DeliveryOrderCard", () => {
     expect(onCancelBook).toHaveBeenCalledWith("book-42");
   });
 
-  it("toggles the selection of the book whose checkbox was clicked", async () => {
-    const onToggleSelectBook = vi.fn();
-    renderCard(deliveryOrderCards.multiShipment, { onToggleSelectBook, selectionMode: true });
+  it("toggles the selection of the parcel whose checkbox was clicked", async () => {
+    const onToggleSelectShipment = vi.fn();
+    renderCard(deliveryOrderCards.multiShipment, { onToggleSelectShipment, selectionMode: true });
 
-    await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати «Пісня Ахілла»" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Вибрати: Посилка 2" }));
 
-    expect(onToggleSelectBook).toHaveBeenCalledTimes(1);
-    expect(onToggleSelectBook).toHaveBeenCalledWith("book-6");
+    expect(onToggleSelectShipment).toHaveBeenCalledTimes(1);
+    expect(onToggleSelectShipment).toHaveBeenCalledWith("shipment-3b");
   });
 
-  it("shows a selected book as checked and leaves the others unchecked", () => {
+  it("shows a selected parcel as checked and leaves the other parcels unchecked", () => {
     renderCard(deliveryOrderCards.multiShipment, {
-      selectedBookIds: new Set(["book-5"]),
+      selectedShipmentIds: new Set(["shipment-3a"]),
       selectionMode: true,
     });
 
-    expect(screen.getByRole("checkbox", { name: "Вибрати «Американські боги»" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Вибрати «Пісня Ахілла»" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Вибрати: Посилка 1" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Вибрати: Посилка 2" })).not.toBeChecked();
+  });
+
+  it("offers one checkbox per parcel and none per book", () => {
+    renderCard(deliveryOrderCards.multiShipment, { selectionMode: true });
+
+    expect(screen.getAllByRole("checkbox").map((box) => box.getAttribute("aria-label"))).toEqual([
+      "Вибрати: Посилка 1",
+      "Вибрати: Посилка 2",
+    ]);
+  });
+
+  it("offers no checkbox for the books that are not in a parcel yet", () => {
+    renderCard(deliveryOrderCards.notShipped, { selectionMode: true });
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it.each(["received", "cancelled"] as const)("offers no checkbox for a %s parcel", (status) => {
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [makeDeliveryShipmentGroupModel({ id: "shipment-closed", status })],
+      }),
+      { selectionMode: true },
+    );
+
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("keeps a parcel selected while its books are collapsed", async () => {
+    const onToggleSelectShipment = vi.fn();
+    renderCard(makeShortAndLongShipments(), {
+      onToggleSelectShipment,
+      selectedShipmentIds: new Set(["shipment-later"]),
+      selectionMode: true,
+    });
+
+    const checkbox = screen.getByRole("checkbox", { name: "Вибрати: Посилка 2" });
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще 5 книг" }));
+
+    expect(screen.getByRole("checkbox", { name: "Вибрати: Посилка 2" })).toBeChecked();
+    expect(onToggleSelectShipment).not.toHaveBeenCalled();
   });
 
   it("labels the group of books that has not been dispatched yet and still lists them", () => {
@@ -492,7 +535,7 @@ describe("DeliveryOrderCard", () => {
     const model = makeShortAndLongShipments();
     const { rerender } = renderCard(model);
 
-    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(3);
 
     rerender(
       <DeliveryOrderCard
@@ -502,10 +545,10 @@ describe("DeliveryOrderCard", () => {
         onEditBook={vi.fn()}
         onManage={vi.fn()}
         onReceiveShipment={vi.fn()}
-        onToggleSelectBook={vi.fn()}
+        onToggleSelectShipment={vi.fn()}
         preparingEdit={false}
         revealedShipmentId="shipment-later"
-        selectedBookIds={new Set<string>()}
+        selectedShipmentIds={new Set<string>()}
         selectionMode={false}
       />,
     );
@@ -518,6 +561,6 @@ describe("DeliveryOrderCard", () => {
 
     renderCard(model, { revealedShipmentId: "shipment-from-another-order" });
 
-    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(3);
   });
 });

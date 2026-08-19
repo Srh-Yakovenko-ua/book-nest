@@ -12,6 +12,12 @@ import type { PaginatedBookOrderItemRowsDtoItemsItemShipmentStatus } from "./pag
  * @nullable
  */
 export type PaginatedBookOrderItemRowsDtoItemsItemShipment = {
+  /**
+   * How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  activeItemsCount: number;
   /** @nullable */
   deliveryService: PaginatedBookOrderItemRowsDtoItemsItemShipmentDeliveryService;
   /** @nullable */

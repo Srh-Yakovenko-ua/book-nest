@@ -4,6 +4,8 @@ import { useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "@/features/books";
 
+import { rangeLabel } from "@/features/books/model/filter-chips";
+
 import type { UseWishlistQueryResult } from "./use-wishlist-query";
 import type { WishlistQueryState } from "./wishlist-query";
 
@@ -205,23 +207,4 @@ export function useWishlistFilterChips({
   }
 
   return chips;
-}
-
-function rangeLabel({
-  from,
-  max,
-  min,
-  range,
-  to,
-}: {
-  from: (value: number) => string;
-  max: null | number;
-  min: null | number;
-  range: (min: number, max: number) => string;
-  to: (value: number) => string;
-}): null | string {
-  if (min !== null && max !== null) return range(min, max);
-  if (min !== null) return from(min);
-  if (max !== null) return to(max);
-  return null;
 }

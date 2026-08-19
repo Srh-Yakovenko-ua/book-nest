@@ -2439,7 +2439,6 @@
     "loadMore": "Показати ще",
     "actions": {
       "addOrder": "Додати замовлення",
-      "receiveAll": "Позначити всі як отримані",
       "select": "Вибрати",
       "doneSelecting": "Завершити вибір"
     },
@@ -2669,8 +2668,7 @@
         "expectedDate": "Очікувана дата доставки",
         "structure": "Структура доставки",
         "currency": "Валюта",
-        "orderTotal": "Вартість замовлення",
-        "pricePresence": "Наявність вартості"
+        "orderTotal": "Вартість замовлення"
       },
       "range": {
         "from": "Від",
@@ -2706,18 +2704,32 @@
         "min": "Вартість від",
         "max": "Вартість до",
         "hint": "Фільтруємо за підсумковою сумою замовлення.",
-        "pickCurrency": "Оберіть одну валюту, щоб фільтрувати за вартістю.",
-        "oneCurrency": "Оберіть одну валюту, щоб фільтрувати за вартістю."
+        "pickCurrency": "Оберіть одну валюту, щоб фільтрувати за вартістю."
       },
       "pricePresence": {
-        "all": "Усі",
-        "known": "Сума вказана",
-        "unknown": "Сума не вказана"
+        "all": "Будь-яка",
+        "known": "Вказана",
+        "unknown": "Не вказана"
       }
     },
     "activeFilters": {
       "attention": "Увага: {label}",
-      "advanced": "Розширені фільтри: {count}"
+      "store": "Магазин: {value}",
+      "service": "Служба: {value}",
+      "orderedRange": "Дата замовлення: {from} – {to}",
+      "orderedFrom": "Дата замовлення: від {value}",
+      "orderedTo": "Дата замовлення: до {value}",
+      "expectedRange": "Очікувана доставка: {from} – {to}",
+      "expectedFrom": "Очікувана доставка: від {value}",
+      "expectedTo": "Очікувана доставка: до {value}",
+      "booksRange": "Кількість книг: {min}–{max}",
+      "booksFrom": "Кількість книг: від {min}",
+      "booksTo": "Кількість книг: до {max}",
+      "priceRange": "Вартість: {min}–{max} {currency}",
+      "priceFrom": "Вартість: від {min} {currency}",
+      "priceTo": "Вартість: до {max} {currency}",
+      "totalKnown": "Сума вказана",
+      "totalUnknown": "Сума не вказана"
     },
     "attention": {
       "title": "Потребують уваги",
@@ -2905,14 +2917,14 @@
       "edit": "Редагувати доставку",
       "cancel": "Скасувати замовлення",
       "actionsAria": "Дії для «{title}»",
-      "selectAria": "Вибрати «{title}»",
       "booksInTransit": "{count, plural, one {# книга в дорозі} few {# книги в дорозі} many {# книг у дорозі} other {# книг у дорозі}}",
       "orderTotal": "Сума",
       "notShipped": "Ще не відправлено",
       "incompleteTotalCaption": "ціни для {priced} з {total}",
       "incompleteTotalWarning": "Сума неповна: враховано ціни {priced} з {total} книг. Вкажіть ціни решти книг або введіть загальну суму замовлення.",
       "pickupUntil": "Зберігається до {date}",
-      "note": "Нотатка"
+      "note": "Нотатка",
+      "selectShipmentAria": "Вибрати: {title}"
     },
     "manage": {
       "editOrder": "Редагувати замовлення",
@@ -2962,10 +2974,11 @@
     },
     "bulk": {
       "regionLabel": "Масові дії",
-      "selected": "{count, plural, one {Вибрано # книгу} few {Вибрано # книги} many {Вибрано # книг} other {Вибрано # книг}}",
-      "receive": "Позначити як отримані",
+      "selected": "{count, plural, one {Вибрано # посилку} few {Вибрано # посилки} many {Вибрано # посилок} other {Вибрано # посилок}}",
+      "receive": "Позначити отриманими",
       "clear": "Скасувати вибір",
-      "selectAllVisible": "Вибрати всі видимі ({count})"
+      "selectAllVisible": "Вибрати всі видимі посилки ({count})",
+      "selectedBooks": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
     },
     "receiveDialog": {
       "title": "Позначити як отримані?",
@@ -2993,9 +3006,10 @@
     "toast": {
       "received": "Книгу позначено як отриману",
       "receivedBulk": "{count, plural, one {# книгу позначено як отриману} few {# книги позначено як отримані} many {# книг позначено як отримані} other {# книг позначено як отримані}}",
-      "receivedPartial": "Отримано: {received}. Пропущено: {skipped}",
       "statusUpdated": "Статус посилки оновлено",
-      "error": "Не вдалося виконати дію"
+      "error": "Не вдалося виконати дію",
+      "receivedShipments": "{count, plural, one {# посилку позначено отриманою} few {# посилки позначено отриманими} many {# посилок позначено отриманими} other {# посилок позначено отриманими}}",
+      "receivedShipmentsPartial": "Отримано посилок: {received}. Пропущено: {skipped}"
     },
     "subnav": {
       "label": "Розділи доставки",

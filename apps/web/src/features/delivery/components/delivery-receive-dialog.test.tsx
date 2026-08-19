@@ -5,6 +5,18 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { DeliveryReceiveDialog } from "./delivery-receive-dialog";
 
+const { toastMock } = vi.hoisted(() => ({
+  toastMock: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
+
+vi.mock("sonner", () => ({ toast: toastMock }));
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 const receivedOrder = {
   createdAt: "2026-08-01T10:00:00.000Z",
   currency: "UAH",
@@ -26,6 +38,9 @@ const fetchMock = vi.fn();
 
 beforeEach(() => {
   fetchMock.mockReset();
+  toastMock.error.mockReset();
+  toastMock.success.mockReset();
+  toastMock.warning.mockReset();
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -74,28 +89,75 @@ describe("DeliveryReceiveDialog", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("keeps selected-book receipt on the bulk book endpoint", async () => {
+  it("sends exactly the selected parcels to the batch shipment endpoint", async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ receivedBookIds: ["book-1", "book-2"], skipped: [] }), {
-        headers: { "Content-Type": "application/json" },
+      jsonResponse({ receivedShipmentIds: ["shipment-1", "shipment-2"], skipped: [] }),
+    );
+    const onReceived = vi.fn();
+    renderWithProviders(
+      <DeliveryReceiveDialog
+        onOpenChange={vi.fn()}
+        onReceived={onReceived}
+        open
+        target={{ bookCount: 5, kind: "shipments", shipmentIds: ["shipment-1", "shipment-2"] }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/5 книг будуть позначені як отримані та перемістяться у вашу бібліотеку/),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Позначити як отримані" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(String(url)).toContain("/api/delivery/shipments/receive");
+    expect(init).toMatchObject({
+      body: JSON.stringify({ shipmentIds: ["shipment-1", "shipment-2"] }),
+      method: "POST",
+    });
+    await waitFor(() => expect(onReceived).toHaveBeenCalledTimes(1));
+  });
+
+  it("reports received against skipped when the server refuses part of the batch", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        receivedShipmentIds: ["shipment-1"],
+        skipped: [{ reason: "not_active", shipmentId: "shipment-2" }],
       }),
     );
     renderWithProviders(
       <DeliveryReceiveDialog
         onOpenChange={vi.fn()}
         open
-        target={{ bookIds: ["book-1", "book-2"], kind: "books" }}
+        target={{ bookCount: 5, kind: "shipments", shipmentIds: ["shipment-1", "shipment-2"] }}
       />,
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Позначити як отримані" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const [url, init] = fetchMock.mock.calls[0] ?? [];
-    expect(String(url)).toContain("/api/delivery/books/receive");
-    expect(init).toMatchObject({
-      body: JSON.stringify({ bookIds: ["book-1", "book-2"] }),
-      method: "POST",
-    });
+    await waitFor(() =>
+      expect(toastMock.warning).toHaveBeenCalledWith("Отримано посилок: 1. Пропущено: 1"),
+    );
+    expect(toastMock.success).not.toHaveBeenCalled();
+  });
+
+  it("celebrates every parcel of a clean batch", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ receivedShipmentIds: ["shipment-1", "shipment-2"], skipped: [] }),
+    );
+    renderWithProviders(
+      <DeliveryReceiveDialog
+        onOpenChange={vi.fn()}
+        open
+        target={{ bookCount: 5, kind: "shipments", shipmentIds: ["shipment-1", "shipment-2"] }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Позначити як отримані" }));
+
+    await waitFor(() =>
+      expect(toastMock.success).toHaveBeenCalledWith("2 посилки позначено отриманими"),
+    );
   });
 });

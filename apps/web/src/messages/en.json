@@ -2439,7 +2439,6 @@
     "loadMore": "Show more",
     "actions": {
       "addOrder": "Add order",
-      "receiveAll": "Mark all as received",
       "select": "Select",
       "doneSelecting": "Done selecting"
     },
@@ -2669,8 +2668,7 @@
         "expectedDate": "Expected delivery date",
         "structure": "Delivery structure",
         "currency": "Currency",
-        "orderTotal": "Order total",
-        "pricePresence": "Total recorded"
+        "orderTotal": "Order total"
       },
       "range": {
         "from": "From",
@@ -2706,18 +2704,32 @@
         "min": "From",
         "max": "To",
         "hint": "Filters by the final total of the order.",
-        "pickCurrency": "Pick one currency to filter by total.",
-        "oneCurrency": "Pick one currency to filter by total."
+        "pickCurrency": "Pick one currency to filter by total."
       },
       "pricePresence": {
-        "all": "All",
-        "known": "Total recorded",
-        "unknown": "Total missing"
+        "all": "Any",
+        "known": "Recorded",
+        "unknown": "Missing"
       }
     },
     "activeFilters": {
       "attention": "Attention: {label}",
-      "advanced": "Advanced filters: {count}"
+      "store": "Store: {value}",
+      "service": "Service: {value}",
+      "orderedRange": "Ordered: {from} – {to}",
+      "orderedFrom": "Ordered from {value}",
+      "orderedTo": "Ordered until {value}",
+      "expectedRange": "Expected: {from} – {to}",
+      "expectedFrom": "Expected from {value}",
+      "expectedTo": "Expected until {value}",
+      "booksRange": "Books: {min}–{max}",
+      "booksFrom": "Books: from {min}",
+      "booksTo": "Books: up to {max}",
+      "priceRange": "Total: {min}–{max} {currency}",
+      "priceFrom": "Total: from {min} {currency}",
+      "priceTo": "Total: up to {max} {currency}",
+      "totalKnown": "Total recorded",
+      "totalUnknown": "Total missing"
     },
     "attention": {
       "title": "Needs attention",
@@ -2905,14 +2917,14 @@
       "edit": "Edit delivery",
       "cancel": "Cancel order",
       "actionsAria": "Actions for “{title}”",
-      "selectAria": "Select “{title}”",
       "booksInTransit": "{count, plural, one {# book in transit} other {# books in transit}}",
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
       "incompleteTotalCaption": "prices for {priced} of {total}",
       "incompleteTotalWarning": "The total is incomplete: it counts prices for {priced} of {total} books. Add the remaining prices, or enter the order total.",
       "pickupUntil": "Held until {date}",
-      "note": "Note"
+      "note": "Note",
+      "selectShipmentAria": "Select: {title}"
     },
     "manage": {
       "editOrder": "Edit order",
@@ -2962,10 +2974,11 @@
     },
     "bulk": {
       "regionLabel": "Bulk actions",
-      "selected": "{count, plural, one {# book selected} other {# books selected}}",
+      "selected": "{count, plural, one {# parcel selected} other {# parcels selected}}",
       "receive": "Mark as received",
       "clear": "Clear selection",
-      "selectAllVisible": "Select all visible ({count})"
+      "selectAllVisible": "Select all visible parcels ({count})",
+      "selectedBooks": "{count, plural, one {# book} other {# books}}"
     },
     "receiveDialog": {
       "title": "Mark as received?",
@@ -2993,9 +3006,10 @@
     "toast": {
       "received": "Book marked as received",
       "receivedBulk": "{count, plural, one {# book marked as received} other {# books marked as received}}",
-      "receivedPartial": "Received: {received}. Skipped: {skipped}",
       "statusUpdated": "Shipment status updated",
-      "error": "Could not complete the action"
+      "error": "Could not complete the action",
+      "receivedShipments": "{count, plural, one {# parcel marked as received} other {# parcels marked as received}}",
+      "receivedShipmentsPartial": "Received: {received}. Skipped: {skipped}"
     },
     "subnav": {
       "label": "Delivery sections",

@@ -37,9 +37,9 @@ const meta = {
         onEditBook={() => {}}
         onManage={() => {}}
         onReceiveShipment={() => {}}
-        onToggleSelectBook={() => {}}
+        onToggleSelectShipment={() => {}}
         preparingEdit={false}
-        selectedBookIds={new Set()}
+        selectedShipmentIds={new Set()}
         selectionMode={false}
       />
     ),
@@ -100,6 +100,6 @@ export const Ready: Story = {
     await waitFor(() => expect(canvas.getByText("Таємна історія")).toBeVisible());
     await expect(canvas.getByText("Американські боги")).toBeVisible();
     await expect(canvas.getByText("Ще не відправлено")).toBeVisible();
-    await expect(canvas.getByText(/Вибрати всі видимі/)).toBeVisible();
+    await expect(canvas.getByText(/Вибрати всі видимі посилки/)).toBeVisible();
   },
 };

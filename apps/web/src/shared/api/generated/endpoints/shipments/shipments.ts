@@ -26,6 +26,8 @@ import type {
   MarkShipmentReadyForPickupInputDto,
   MoveBookOrderItemsInputDto,
   ReceiveShipmentInputDto,
+  ReceiveShipmentsInputDto,
+  ReceiveShipmentsResultViewDto,
   UpdateShipmentInputDto,
 } from "../../model";
 
@@ -442,6 +444,202 @@ export function useShipmentsControllerMoveItems<
   const queryOptions = getShipmentsControllerMoveItemsQueryOptions(
     orderId,
     moveBookOrderItemsInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type shipmentsControllerReceiveShipmentsResponse200 = {
+  data: ReceiveShipmentsResultViewDto;
+  status: 200;
+};
+
+export type shipmentsControllerReceiveShipmentsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type shipmentsControllerReceiveShipmentsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type shipmentsControllerReceiveShipmentsResponseSuccess =
+  shipmentsControllerReceiveShipmentsResponse200 & {
+    headers: Headers;
+  };
+export type shipmentsControllerReceiveShipmentsResponseError = (
+  shipmentsControllerReceiveShipmentsResponse400 | shipmentsControllerReceiveShipmentsResponse401
+) & {
+  headers: Headers;
+};
+
+export type shipmentsControllerReceiveShipmentsResponse =
+  | shipmentsControllerReceiveShipmentsResponseSuccess
+  | shipmentsControllerReceiveShipmentsResponseError;
+
+export const getShipmentsControllerReceiveShipmentsUrl = () => {
+  return `/api/delivery/shipments/receive`;
+};
+
+/**
+ * @summary Mark many shipments as received in one batch, marking their books as owned
+ */
+export const shipmentsControllerReceiveShipments = async (
+  receiveShipmentsInputDto: ReceiveShipmentsInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<shipmentsControllerReceiveShipmentsResponse> => {
+  return customInstance<shipmentsControllerReceiveShipmentsResponse>(
+    getShipmentsControllerReceiveShipmentsUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(receiveShipmentsInputDto),
+    },
+  );
+};
+
+export const getShipmentsControllerReceiveShipmentsQueryKey = (
+  receiveShipmentsInputDto?: ReceiveShipmentsInputDto,
+) => {
+  return ["POST", `/api/delivery/shipments/receive`, receiveShipmentsInputDto] as const;
+};
+
+export const getShipmentsControllerReceiveShipmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+  TError = void,
+>(
+  receiveShipmentsInputDto: ReceiveShipmentsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getShipmentsControllerReceiveShipmentsQueryKey(receiveShipmentsInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>> = ({
+    signal,
+  }) =>
+    shipmentsControllerReceiveShipments(receiveShipmentsInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ShipmentsControllerReceiveShipmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>
+>;
+export type ShipmentsControllerReceiveShipmentsQueryError = void;
+
+export function useShipmentsControllerReceiveShipments<
+  TData = Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+  TError = void,
+>(
+  receiveShipmentsInputDto: ReceiveShipmentsInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+          TError,
+          Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useShipmentsControllerReceiveShipments<
+  TData = Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+  TError = void,
+>(
+  receiveShipmentsInputDto: ReceiveShipmentsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+          TError,
+          Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useShipmentsControllerReceiveShipments<
+  TData = Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+  TError = void,
+>(
+  receiveShipmentsInputDto: ReceiveShipmentsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Mark many shipments as received in one batch, marking their books as owned
+ */
+
+export function useShipmentsControllerReceiveShipments<
+  TData = Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+  TError = void,
+>(
+  receiveShipmentsInputDto: ReceiveShipmentsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof shipmentsControllerReceiveShipments>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getShipmentsControllerReceiveShipmentsQueryOptions(
+    receiveShipmentsInputDto,
     options,
   );
 

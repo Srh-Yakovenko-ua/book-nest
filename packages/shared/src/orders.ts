@@ -12,6 +12,7 @@ import {
   createPaginatedSchema,
   CurrencyAverageSchema,
   CurrencyTotalSchema,
+  LIST_PAGE_SIZE_MAX,
   paginationQueryFields,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
@@ -352,6 +353,24 @@ export const BulkReceiveOrderItemsResultViewSchema = z.object({
 
 export type BulkReceiveOrderItemsResultView = z.infer<typeof BulkReceiveOrderItemsResultViewSchema>;
 
+export const ReceiveShipmentsInputSchema = z.object({
+  receivedAt: notInFutureDate("Received date must not be in the future").optional(),
+  shipmentIds: z.array(z.uuid()).min(1).max(LIST_PAGE_SIZE_MAX),
+});
+
+export type ReceiveShipmentsInput = z.infer<typeof ReceiveShipmentsInputSchema>;
+
+export const ReceiveShipmentsSkipReasonSchema = z.enum(["not_active", "not_found"]);
+
+export type ReceiveShipmentsSkipReason = z.infer<typeof ReceiveShipmentsSkipReasonSchema>;
+
+export const ReceiveShipmentsResultViewSchema = z.object({
+  receivedShipmentIds: z.array(z.string()),
+  skipped: z.array(z.object({ reason: ReceiveShipmentsSkipReasonSchema, shipmentId: z.string() })),
+});
+
+export type ReceiveShipmentsResultView = z.infer<typeof ReceiveShipmentsResultViewSchema>;
+
 export const IN_TRANSIT_ATTENTION_THRESHOLDS = {
   awaitingDispatchDays: 7,
   pickupExpiringDays: 2,
@@ -665,6 +684,9 @@ export const BookOrderItemRowOrderViewSchema = z.object({
 export type BookOrderItemRowOrderView = z.infer<typeof BookOrderItemRowOrderViewSchema>;
 
 export const BookOrderItemRowShipmentViewSchema = z.object({
+  activeItemsCount: CountSchema.describe(
+    "How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.",
+  ),
   deliveryService: ShipmentDeliveryServiceViewSchema.nullable(),
   expectedDeliveryDate: z.string().nullable(),
   id: z.string(),

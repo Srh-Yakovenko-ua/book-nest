@@ -13,9 +13,9 @@ const meta = {
     onEditBook: () => {},
     onManage: () => {},
     onReceiveShipment: () => {},
-    onToggleSelectBook: () => {},
+    onToggleSelectShipment: () => {},
     preparingEdit: false,
-    selectedBookIds: new Set<string>(),
+    selectedShipmentIds: new Set<string>(),
     selectionMode: false,
   },
   component: DeliveryOrderCard,
@@ -77,14 +77,14 @@ export const NotShippedYet: Story = {
   },
 };
 
-export const WithSelectedBook: Story = {
+export const WithSelectedShipment: Story = {
   args: {
     model: deliveryOrderCards.multipleBooks,
-    selectedBookIds: new Set(["book-2"]),
+    selectedShipmentIds: new Set(["shipment-2"]),
     selectionMode: true,
   },
   play: async ({ canvas }) => {
-    const checkbox = canvas.getByRole("checkbox", { name: "Вибрати «Імʼя вітру»" });
+    const checkbox = canvas.getByRole("checkbox", { name: "Вибрати: Посилка" });
     await waitFor(() => expect(checkbox).toBeChecked());
   },
 };
