@@ -173,6 +173,7 @@ async function seedListFixture(): Promise<BookOrderView> {
         { bookIds: [noDate ?? ""] },
       ],
       storeName: "Yakaboo",
+      totalAmount: 800,
     },
   });
 }

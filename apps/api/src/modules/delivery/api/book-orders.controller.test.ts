@@ -4,6 +4,7 @@ import { BookOrderViewSchema } from "@app/shared";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser, AuthTestContext } from "../../../test/auth-test-context.js";
+import type { CreateOrderPayload } from "./book-order.fixtures.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
@@ -346,7 +347,8 @@ describe("POST /api/delivery/orders", () => {
 
   it("refuses to order a book that is already on its way", async () => {
     const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Dune" });
-    const input = {
+    const input: CreateOrderPayload = {
+      currency: "UAH",
       items: [{ bookId }],
       orderDate: isoDay(0),
       shipments: [{ bookIds: [bookId] }],

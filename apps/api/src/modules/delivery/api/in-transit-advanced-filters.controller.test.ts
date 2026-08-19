@@ -78,7 +78,7 @@ async function orderWithBook({
   currency,
   isFree,
   orderDate,
-  price,
+  price = 350,
   storeName,
   title,
   totalAmount,
@@ -96,7 +96,7 @@ async function orderWithBook({
     accessToken: reader.accessToken,
     app,
     input: {
-      items: [{ bookId, ...(price === undefined ? {} : { price }) }],
+      items: [{ bookId, ...(isFree === true ? {} : { price }) }],
       storeName,
       ...(currency === undefined ? {} : { currency }),
       ...(isFree === undefined ? {} : { isFree }),
