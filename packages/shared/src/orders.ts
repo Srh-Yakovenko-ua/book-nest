@@ -637,27 +637,41 @@ export const BookOrderHistoryQuerySchema = z.object({
 
 export type BookOrderHistoryQuery = z.infer<typeof BookOrderHistoryQuerySchema>;
 
-export const BookOrderHistorySummaryQuerySchema = z.object({
-  includeCancelled: QueryBooleanWithDefaultSchema,
-});
-
-export type BookOrderHistorySummaryQuery = z.infer<typeof BookOrderHistorySummaryQuerySchema>;
-
-export const BookOrderHistorySummaryViewSchema = z.object({
-  activeBooksCount: CountSchema,
-  booksCount: CountSchema,
-  cancelledBooksCount: CountSchema,
-  ordersCount: CountSchema,
-  receivedBooksCount: CountSchema,
-  shipmentsCount: CountSchema.describe(
-    "How many distinct shipments carry the counted books. A shipment that carries no counted book is not part of this number.",
-  ),
-  totalByCurrency: z
-    .array(CurrencyTotalSchema)
-    .describe(
-      "The only field the includeCancelled flag narrows. Every count above spans cancelled books as well, and reports them separately.",
+export const BookOrderHistorySummaryViewSchema = z
+  .object({
+    cancelledBooksCount: CountSchema.describe("Books whose order item was cancelled."),
+    cancelledOrdersCount: CountSchema.describe(
+      "Distinct orders holding at least one cancelled book.",
     ),
-});
+    completedOrdersCount: CountSchema.describe(
+      "Orders whose every book has reached a terminal state - received or cancelled - and that hold at least one book. An order still carrying an ordered, in-transit or ready-for-pickup book is not counted.",
+    ),
+    completedWithCancellationsCount: CountSchema.describe(
+      "Completed orders holding at least one cancelled book, partial cancellations and fully cancelled orders alike.",
+    ),
+    completedWithoutCancellationsCount: CountSchema.describe(
+      "Completed orders whose every book was received.",
+    ),
+    receivedBooksCount: CountSchema.describe("Books whose order item was received."),
+    receivedOrdersCount: CountSchema.describe(
+      "Distinct orders holding at least one received book.",
+    ),
+    receivedSeriesBooksCount: CountSchema.describe(
+      "Received books belonging to a series that still exists.",
+    ),
+    receivedSeriesCount: CountSchema.describe(
+      "Distinct still-existing series a received book belongs to, counted once per series however many of its books arrived.",
+    ),
+    receivedShipmentsCount: CountSchema.describe(
+      "Distinct parcels the received books arrived in. A received book recorded without a parcel adds nothing to this number.",
+    ),
+    receivedStandaloneBooksCount: CountSchema.describe(
+      "Received books outside any still-existing series, including books whose series was moved to the trash.",
+    ),
+  })
+  .describe(
+    "All-time overview of the finished part of the delivery history. Every number is scoped to books that are not in the trash, which is the same scope the history list itself renders.",
+  );
 
 export type BookOrderHistorySummaryView = z.infer<typeof BookOrderHistorySummaryViewSchema>;
 

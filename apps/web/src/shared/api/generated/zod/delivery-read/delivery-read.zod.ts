@@ -780,73 +780,112 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
 });
 
 /**
- * @summary Get summary metrics for the current user's ordered books
+ * @summary Get the all-time overview of the finished delivery history
  */
-export const deliveryReadControllerHistorySummaryQueryIncludeCancelledDefault = `false`;
-
-export const DeliveryReadControllerHistorySummaryQueryParams = zod.object({
-  includeCancelled: zod
-    .enum(["true", "false"])
-    .default(deliveryReadControllerHistorySummaryQueryIncludeCancelledDefault),
-});
-
-export const deliveryReadControllerHistorySummaryResponseActiveBooksCountMin = 0;
-export const deliveryReadControllerHistorySummaryResponseActiveBooksCountMax = 9007199254740991;
-
-export const deliveryReadControllerHistorySummaryResponseBooksCountMin = 0;
-export const deliveryReadControllerHistorySummaryResponseBooksCountMax = 9007199254740991;
-
 export const deliveryReadControllerHistorySummaryResponseCancelledBooksCountMin = 0;
 export const deliveryReadControllerHistorySummaryResponseCancelledBooksCountMax = 9007199254740991;
 
-export const deliveryReadControllerHistorySummaryResponseOrdersCountMin = 0;
-export const deliveryReadControllerHistorySummaryResponseOrdersCountMax = 9007199254740991;
+export const deliveryReadControllerHistorySummaryResponseCancelledOrdersCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseCancelledOrdersCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseCompletedOrdersCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseCompletedOrdersCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseCompletedWithCancellationsCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseCompletedWithCancellationsCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMax = 9007199254740991;
 
 export const deliveryReadControllerHistorySummaryResponseReceivedBooksCountMin = 0;
 export const deliveryReadControllerHistorySummaryResponseReceivedBooksCountMax = 9007199254740991;
 
-export const deliveryReadControllerHistorySummaryResponseShipmentsCountMin = 0;
-export const deliveryReadControllerHistorySummaryResponseShipmentsCountMax = 9007199254740991;
+export const deliveryReadControllerHistorySummaryResponseReceivedOrdersCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseReceivedOrdersCountMax = 9007199254740991;
 
-export const DeliveryReadControllerHistorySummaryResponse = zod.object({
-  activeBooksCount: zod
-    .int()
-    .min(deliveryReadControllerHistorySummaryResponseActiveBooksCountMin)
-    .max(deliveryReadControllerHistorySummaryResponseActiveBooksCountMax),
-  booksCount: zod
-    .int()
-    .min(deliveryReadControllerHistorySummaryResponseBooksCountMin)
-    .max(deliveryReadControllerHistorySummaryResponseBooksCountMax),
-  cancelledBooksCount: zod
-    .int()
-    .min(deliveryReadControllerHistorySummaryResponseCancelledBooksCountMin)
-    .max(deliveryReadControllerHistorySummaryResponseCancelledBooksCountMax),
-  ordersCount: zod
-    .int()
-    .min(deliveryReadControllerHistorySummaryResponseOrdersCountMin)
-    .max(deliveryReadControllerHistorySummaryResponseOrdersCountMax),
-  receivedBooksCount: zod
-    .int()
-    .min(deliveryReadControllerHistorySummaryResponseReceivedBooksCountMin)
-    .max(deliveryReadControllerHistorySummaryResponseReceivedBooksCountMax),
-  shipmentsCount: zod
-    .int()
-    .min(deliveryReadControllerHistorySummaryResponseShipmentsCountMin)
-    .max(deliveryReadControllerHistorySummaryResponseShipmentsCountMax)
-    .describe(
-      "How many distinct shipments carry the counted books. A shipment that carries no counted book is not part of this number.",
-    ),
-  totalByCurrency: zod
-    .array(
-      zod.object({
-        currency: zod.enum(["UAH", "EUR", "USD"]),
-        total: zod.number(),
-      }),
-    )
-    .describe(
-      "The only field the includeCancelled flag narrows. Every count above spans cancelled books as well, and reports them separately.",
-    ),
-});
+export const deliveryReadControllerHistorySummaryResponseReceivedSeriesBooksCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseReceivedSeriesBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseReceivedSeriesCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseReceivedSeriesCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseReceivedShipmentsCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseReceivedShipmentsCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseReceivedStandaloneBooksCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseReceivedStandaloneBooksCountMax = 9007199254740991;
+
+export const DeliveryReadControllerHistorySummaryResponse = zod
+  .object({
+    cancelledBooksCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseCancelledBooksCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseCancelledBooksCountMax)
+      .describe("Books whose order item was cancelled."),
+    cancelledOrdersCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseCancelledOrdersCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseCancelledOrdersCountMax)
+      .describe("Distinct orders holding at least one cancelled book."),
+    completedOrdersCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseCompletedOrdersCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseCompletedOrdersCountMax)
+      .describe(
+        "Orders whose every book has reached a terminal state - received or cancelled - and that hold at least one book. An order still carrying an ordered, in-transit or ready-for-pickup book is not counted.",
+      ),
+    completedWithCancellationsCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseCompletedWithCancellationsCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseCompletedWithCancellationsCountMax)
+      .describe(
+        "Completed orders holding at least one cancelled book, partial cancellations and fully cancelled orders alike.",
+      ),
+    completedWithoutCancellationsCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMax)
+      .describe("Completed orders whose every book was received."),
+    receivedBooksCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseReceivedBooksCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseReceivedBooksCountMax)
+      .describe("Books whose order item was received."),
+    receivedOrdersCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseReceivedOrdersCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseReceivedOrdersCountMax)
+      .describe("Distinct orders holding at least one received book."),
+    receivedSeriesBooksCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseReceivedSeriesBooksCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseReceivedSeriesBooksCountMax)
+      .describe("Received books belonging to a series that still exists."),
+    receivedSeriesCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseReceivedSeriesCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseReceivedSeriesCountMax)
+      .describe(
+        "Distinct still-existing series a received book belongs to, counted once per series however many of its books arrived.",
+      ),
+    receivedShipmentsCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseReceivedShipmentsCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseReceivedShipmentsCountMax)
+      .describe(
+        "Distinct parcels the received books arrived in. A received book recorded without a parcel adds nothing to this number.",
+      ),
+    receivedStandaloneBooksCount: zod
+      .int()
+      .min(deliveryReadControllerHistorySummaryResponseReceivedStandaloneBooksCountMin)
+      .max(deliveryReadControllerHistorySummaryResponseReceivedStandaloneBooksCountMax)
+      .describe(
+        "Received books outside any still-existing series, including books whose series was moved to the trash.",
+      ),
+  })
+  .describe(
+    "All-time overview of the finished part of the delivery history. Every number is scoped to books that are not in the trash, which is the same scope the history list itself renders.",
+  );
 
 /**
  * @summary List every book the current user has ever ordered

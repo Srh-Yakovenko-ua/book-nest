@@ -5,40 +5,75 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { BookOrderHistorySummaryViewDtoTotalByCurrencyItem } from "./bookOrderHistorySummaryViewDtoTotalByCurrencyItem";
 
+/**
+ * All-time overview of the finished part of the delivery history. Every number is scoped to books that are not in the trash, which is the same scope the history list itself renders.
+ */
 export interface BookOrderHistorySummaryViewDto {
   /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  activeBooksCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  booksCount: number;
-  /**
+   * Books whose order item was cancelled.
    * @minimum 0
    * @maximum 9007199254740991
    */
   cancelledBooksCount: number;
   /**
+   * Distinct orders holding at least one cancelled book.
    * @minimum 0
    * @maximum 9007199254740991
    */
-  ordersCount: number;
+  cancelledOrdersCount: number;
   /**
+   * Orders whose every book has reached a terminal state - received or cancelled - and that hold at least one book. An order still carrying an ordered, in-transit or ready-for-pickup book is not counted.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  completedOrdersCount: number;
+  /**
+   * Completed orders holding at least one cancelled book, partial cancellations and fully cancelled orders alike.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  completedWithCancellationsCount: number;
+  /**
+   * Completed orders whose every book was received.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  completedWithoutCancellationsCount: number;
+  /**
+   * Books whose order item was received.
    * @minimum 0
    * @maximum 9007199254740991
    */
   receivedBooksCount: number;
   /**
-   * How many distinct shipments carry the counted books. A shipment that carries no counted book is not part of this number.
+   * Distinct orders holding at least one received book.
    * @minimum 0
    * @maximum 9007199254740991
    */
-  shipmentsCount: number;
-  /** The only field the includeCancelled flag narrows. Every count above spans cancelled books as well, and reports them separately. */
-  totalByCurrency: BookOrderHistorySummaryViewDtoTotalByCurrencyItem[];
+  receivedOrdersCount: number;
+  /**
+   * Received books belonging to a series that still exists.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  receivedSeriesBooksCount: number;
+  /**
+   * Distinct still-existing series a received book belongs to, counted once per series however many of its books arrived.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  receivedSeriesCount: number;
+  /**
+   * Distinct parcels the received books arrived in. A received book recorded without a parcel adds nothing to this number.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  receivedShipmentsCount: number;
+  /**
+   * Received books outside any still-existing series, including books whose series was moved to the trash.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  receivedStandaloneBooksCount: number;
 }

@@ -8,10 +8,6 @@ import { makeHistoryCardModel } from "./delivery-history.fixtures";
 const meta = {
   args: {
     model: makeHistoryCardModel(),
-    onCancel: () => {},
-    onEdit: () => {},
-    onReceive: () => {},
-    receivePending: false,
   },
   component: DeliveryHistoryCard,
   parameters: { layout: "padded" },
@@ -31,28 +27,12 @@ export const Received: Story = {
   },
 };
 
-export const Active: Story = {
-  args: {
-    model: makeHistoryCardModel({
-      badge: { icon: "truck", label: "В дорозі", tone: "info", value: "in_transit" },
-      isActive: true,
-      receivedDateText: null,
-    }),
-  },
-  play: async ({ canvas }) => {
-    await waitFor(() =>
-      expect(canvas.getByRole("button", { name: "Позначити як отриману" })).toBeVisible(),
-    );
-  },
-};
-
 export const Cancelled: Story = {
   args: {
     model: makeHistoryCardModel({
       badge: { icon: "x-circle", label: "Скасовано", tone: "neutral", value: "cancelled" },
       cancelledDateText: "10 лип. 2026",
       cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
-      isActive: false,
       priceText: null,
       receivedDateText: null,
     }),
@@ -68,9 +48,9 @@ export const Cancelled: Story = {
 export const DeletedBook: Story = {
   args: {
     model: makeHistoryCardModel({
-      badge: { icon: "package", label: "Замовлено", tone: "neutral", value: "ordered" },
+      badge: { icon: "x-circle", label: "Скасовано", tone: "neutral", value: "cancelled" },
       book: null,
-      isActive: false,
+      cancelledDateText: "2 лип. 2026",
       receivedDateText: null,
     }),
   },

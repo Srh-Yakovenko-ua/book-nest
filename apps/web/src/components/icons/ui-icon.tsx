@@ -78,6 +78,7 @@ export type UiIconName =
   | "more"
   | "note"
   | "package"
+  | "package-check"
   | "pages"
   | "palette"
   | "panel"

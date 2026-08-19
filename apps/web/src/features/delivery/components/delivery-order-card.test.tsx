@@ -442,7 +442,9 @@ describe("DeliveryOrderCard", () => {
     await userEvent.click(screen.getByRole("button", { name: "Дії для «Амадока»" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Скасувати цю книгу" }));
 
-    expect(onCancelBook).toHaveBeenCalledWith("book-42");
+    expect(onCancelBook).toHaveBeenCalledWith(
+      expect.objectContaining({ bookId: "book-42", id: "item-1", title: "Амадока" }),
+    );
   });
 
   it("toggles the selection of the parcel whose checkbox was clicked", async () => {

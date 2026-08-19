@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
-import type { DeliveryReadControllerHistoryListTab } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
 import { pageTabsTriggerId } from "@/components/page-tabs";
@@ -14,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import type { DeliveryHistoryCardModel } from "../model/history-card-model";
+import type { DeliveryHistoryTab } from "../model/history-params";
 
 import { DELIVERY_HISTORY_PANEL_ID } from "../model/history-params";
 
@@ -34,7 +34,7 @@ type DeliveryHistoryViewProps = {
   renderCard: (model: DeliveryHistoryCardModel) => ReactNode;
   showToolbar: boolean;
   summary: ReactNode;
-  tab: DeliveryReadControllerHistoryListTab;
+  tab: DeliveryHistoryTab;
   toolbar: ReactNode;
 };
 
@@ -92,6 +92,7 @@ export function DeliveryHistoryView({
           onRetry={onRetry}
           pagination={pagination}
           renderCard={renderCard}
+          tab={tab}
         />
       </div>
     </div>
@@ -106,6 +107,7 @@ function HistoryContentArea({
   onRetry,
   pagination,
   renderCard,
+  tab,
 }: Pick<
   DeliveryHistoryViewProps,
   | "content"
@@ -115,6 +117,7 @@ function HistoryContentArea({
   | "onRetry"
   | "pagination"
   | "renderCard"
+  | "tab"
 >) {
   const t = useTranslations("delivery.history");
 
@@ -137,13 +140,22 @@ function HistoryContentArea({
   }
 
   if (content.kind === "empty") {
-    const emptyState: EmptyStateEntry = {
-      desc: t("states.empty.description"),
+    if (tab === "cancelled") {
+      const cancelledState: EmptyStateEntry = {
+        desc: t("states.empty.cancelled.description"),
+        illu: "empty-delivery",
+        title: t("states.empty.cancelled.title"),
+      };
+      return <EmptyState state={cancelledState} />;
+    }
+
+    const receivedState: EmptyStateEntry = {
+      desc: t("states.empty.received.description"),
       illu: "empty-purchases",
-      primary: { icon: "truck", label: t("states.empty.cta") },
-      title: t("states.empty.title"),
+      primary: { icon: "truck", label: t("states.empty.received.cta") },
+      title: t("states.empty.received.title"),
     };
-    return <EmptyState onPrimary={onGoToInTransit} state={emptyState} />;
+    return <EmptyState onPrimary={onGoToInTransit} state={receivedState} />;
   }
 
   if (content.kind === "filtered-empty") {

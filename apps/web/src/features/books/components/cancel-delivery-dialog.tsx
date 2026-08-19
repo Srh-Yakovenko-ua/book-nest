@@ -1,7 +1,5 @@
 "use client";
 
-import type { BookView, DeliveryView } from "@app/shared";
-
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -24,15 +22,17 @@ import { useDeliveryErrorText } from "../hooks/use-delivery-error-text";
 const CANCEL_REASON_MAX = 500;
 
 type CancelDeliveryDialogProps = {
-  book: BookView;
-  delivery: DeliveryView;
+  bookId: string;
+  bookTitle: string;
+  deliveryId: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
 export function CancelDeliveryDialog({
-  book,
-  delivery,
+  bookId,
+  bookTitle,
+  deliveryId,
   onOpenChange,
   open,
 }: CancelDeliveryDialogProps) {
@@ -40,7 +40,12 @@ export function CancelDeliveryDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-md">
         {open ? (
-          <CancelForm book={book} delivery={delivery} onDone={() => onOpenChange(false)} />
+          <CancelForm
+            bookId={bookId}
+            bookTitle={bookTitle}
+            deliveryId={deliveryId}
+            onDone={() => onOpenChange(false)}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
@@ -48,12 +53,14 @@ export function CancelDeliveryDialog({
 }
 
 function CancelForm({
-  book,
-  delivery,
+  bookId,
+  bookTitle,
+  deliveryId,
   onDone,
 }: {
-  book: BookView;
-  delivery: DeliveryView;
+  bookId: string;
+  bookTitle: string;
+  deliveryId: string;
   onDone: () => void;
 }) {
   const t = useTranslations("books.details.delivery.cancelDialog");
@@ -69,8 +76,8 @@ function CancelForm({
     const trimmedReason = cancelReason.trim();
     cancelDelivery.mutate(
       {
-        deliveryId: delivery.id,
-        id: book.id,
+        deliveryId,
+        id: bookId,
         payload: {
           cancelReason: trimmedReason.length > 0 ? trimmedReason : undefined,
           keepAsWantToBuy,
@@ -87,16 +94,22 @@ function CancelForm({
     <div className="flex flex-col gap-5">
       <DialogHeader>
         <DialogTitle>{t("title")}</DialogTitle>
-        <DialogDescription>{t("description")}</DialogDescription>
+        <DialogDescription>{t("description", { title: bookTitle })}</DialogDescription>
       </DialogHeader>
 
-      <label className="flex cursor-pointer items-center gap-3">
-        <Checkbox
-          checked={keepAsWantToBuy}
-          onCheckedChange={(next) => setKeepAsWantToBuy(next === true)}
-        />
-        <span className="text-sm text-foreground">{t("keepAsWantToBuy")}</span>
-      </label>
+      <div className="flex flex-col gap-1">
+        <label className="flex cursor-pointer items-center gap-3">
+          <Checkbox
+            aria-describedby="keep-as-want-to-buy-hint"
+            checked={keepAsWantToBuy}
+            onCheckedChange={(next) => setKeepAsWantToBuy(next === true)}
+          />
+          <span className="text-sm text-foreground">{t("keepAsWantToBuy")}</span>
+        </label>
+        <p className="pl-7 text-xs text-muted-foreground" id="keep-as-want-to-buy-hint">
+          {keepAsWantToBuy ? t("keepAsWantToBuyOn") : t("keepAsWantToBuyOff")}
+        </p>
+      </div>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="cancel-reason">{t("reasonLabel")}</Label>

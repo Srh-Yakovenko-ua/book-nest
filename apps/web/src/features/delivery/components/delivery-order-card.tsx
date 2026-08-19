@@ -38,7 +38,7 @@ import { isSelectableShipment } from "../model/order-card-model";
 
 type DeliveryOrderCardProps = {
   model: DeliveryOrderCardModel;
-  onCancelBook: (bookId: string) => void;
+  onCancelBook: (book: DeliveryOrderBookModel) => void;
   onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
   onEditBook: (book: DeliveryOrderBookModel) => void;
   onManage: (action: OrderShipmentAction) => void;
@@ -87,7 +87,7 @@ type ShipmentSectionProps = {
   books: DeliveryOrderBookModel[];
   group: DeliveryShipmentGroupModel;
   index: number;
-  onCancelBook: (bookId: string) => void;
+  onCancelBook: (book: DeliveryOrderBookModel) => void;
   onChangeShipmentStatus: (shipmentId: string, status: ActiveShipmentStatus) => void;
   onEditBook: (book: DeliveryOrderBookModel) => void;
   onManage: (action: OrderShipmentAction) => void;
@@ -576,7 +576,7 @@ function ShipmentSection({
             >
               <BookRow
                 book={book}
-                onCancel={() => onCancelBook(book.bookId)}
+                onCancel={() => onCancelBook(book)}
                 onEdit={() => onEditBook(book)}
               />
             </li>

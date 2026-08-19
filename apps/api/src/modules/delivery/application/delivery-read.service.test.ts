@@ -348,41 +348,37 @@ describe("DeliveryReadService.historyList", () => {
 });
 
 describe("DeliveryReadService.historySummary", () => {
-  it("keeps orders, parcels and books apart and folds the money by currency", async () => {
-    const { service } = buildService({
-      reads: {
-        historySummary: vi.fn().mockResolvedValue({
-          activeBooksCount: 2,
-          booksCount: 6,
-          cancelledBooksCount: 1,
-          currencyTotals: [
-            { currency: "UAH", total: 300 },
-            { currency: null, total: 40 },
-            { currency: "USD", total: 15 },
-          ],
-          ordersCount: 3,
-          receivedBooksCount: 3,
-          shipmentsCount: 4,
-        }),
-      },
+  it("asks the repository for the caller's history and hands the counts straight to the view", async () => {
+    const historySummary = vi.fn().mockResolvedValue({
+      cancelledBooksCount: 7,
+      cancelledOrdersCount: 5,
+      completedOrdersCount: 18,
+      completedWithCancellationsCount: 3,
+      completedWithoutCancellationsCount: 15,
+      receivedBooksCount: 25,
+      receivedOrdersCount: 12,
+      receivedSeriesBooksCount: 18,
+      receivedSeriesCount: 12,
+      receivedShipmentsCount: 14,
+      receivedStandaloneBooksCount: 7,
     });
+    const { service } = buildService({ reads: { historySummary } });
 
-    const summary = await service.historySummary({
-      query: { includeCancelled: false },
-      userId: USER,
-    });
+    const summary = await service.historySummary(USER);
 
+    expect(historySummary).toHaveBeenCalledWith(USER);
     expect(summary).toEqual({
-      activeBooksCount: 2,
-      booksCount: 6,
-      cancelledBooksCount: 1,
-      ordersCount: 3,
-      receivedBooksCount: 3,
-      shipmentsCount: 4,
-      totalByCurrency: [
-        { currency: "UAH", total: 340 },
-        { currency: "USD", total: 15 },
-      ],
+      cancelledBooksCount: 7,
+      cancelledOrdersCount: 5,
+      completedOrdersCount: 18,
+      completedWithCancellationsCount: 3,
+      completedWithoutCancellationsCount: 15,
+      receivedBooksCount: 25,
+      receivedOrdersCount: 12,
+      receivedSeriesBooksCount: 18,
+      receivedSeriesCount: 12,
+      receivedShipmentsCount: 14,
+      receivedStandaloneBooksCount: 7,
     });
   });
 });

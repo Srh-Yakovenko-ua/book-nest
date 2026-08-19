@@ -1911,10 +1911,12 @@
           "trackingUrlPlaceholder": "https://..."
         },
         "cancelDialog": {
-          "title": "Cancel delivery",
-          "description": "Mark this order as cancelled? The order data stays in the history.",
-          "keepAsWantToBuy": "Keep in the wishlist",
-          "confirm": "Cancel delivery",
+          "title": "Cancel this book?",
+          "description": "“{title}” moves to your history as cancelled. The rest of the order and the other books in it stay as they are.",
+          "keepAsWantToBuy": "Return the book to the wishlist",
+          "keepAsWantToBuyOn": "The book stays on your wishlist so you can order it again",
+          "keepAsWantToBuyOff": "The book will not go back on your wishlist",
+          "confirm": "Confirm",
           "reasonLabel": "Cancellation reason",
           "reasonPlaceholder": "Optional: why are you cancelling?"
         },
@@ -3020,38 +3022,58 @@
     "history": {
       "metaTitle": "Order history",
       "title": "Order history",
-      "subtitle": "All your delivery orders — active, received and cancelled.",
+      "subtitle": "Received and cancelled orders — the finished part of your delivery history.",
       "resultsTitle": "Order list",
       "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
       "loadMore": "Show more",
       "summary": {
-        "totalOrders": "Total orders",
-        "active": "Active",
-        "received": "Received",
-        "cancelled": "Cancelled",
-        "total": "Total amount",
+        "units": {
+          "books": "{count, plural, one {book} other {books}}",
+          "orders": "{count, plural, one {order} other {orders}}",
+          "series": "{count, plural, one {series} other {series}}"
+        },
+        "received": {
+          "label": "Received",
+          "orders": "In {count, plural, one {# order} other {# orders}}",
+          "shipments": "{count, plural, one {# parcel} other {# parcels}}",
+          "empty": "No received books yet"
+        },
+        "cancelled": {
+          "label": "Cancelled",
+          "orders": "In {count, plural, one {# order} other {# orders}}",
+          "empty": "No cancelled books"
+        },
+        "completed": {
+          "label": "Completed orders",
+          "withoutCancellations": "{count} without cancellations",
+          "withCancellations": "{count} with cancellations",
+          "empty": "No completed orders yet"
+        },
+        "seriesToppedUp": {
+          "label": "Series topped up",
+          "seriesBooks": "{count, plural, one {# book from a series} other {# books from series}}",
+          "standalone": "{count, plural, one {# standalone} other {# standalone}}",
+          "allStandalone": "{count, plural, one {The only received book is standalone} other {All # received books are standalone}}",
+          "empty": "No received books yet"
+        },
         "mobile": {
           "title": "Detailed stats",
           "compact": {
-            "totalOrders": "Orders",
-            "active": "Active",
             "received": "Received",
             "cancelled": "Cancelled",
-            "total": "Amount"
+            "completed": "Completed",
+            "seriesToppedUp": "Series"
           },
           "detailed": {
-            "totalOrders": "Total orders",
-            "active": "Active",
-            "received": "Received",
-            "cancelled": "Cancelled",
-            "total": "Total amount"
+            "received": "Books received",
+            "cancelled": "Books cancelled",
+            "completed": "Completed orders",
+            "seriesToppedUp": "Series topped up"
           }
         }
       },
       "tabs": {
         "label": "Order groups",
-        "all": "All",
-        "active": "Active",
         "received": "Received",
         "cancelled": "Cancelled"
       },
@@ -3102,9 +3124,15 @@
           "retry": "Try again"
         },
         "empty": {
-          "title": "Your order history is empty",
-          "description": "Your delivery orders will appear here once you create them.",
-          "cta": "Go to books in transit"
+          "received": {
+            "title": "No received orders yet",
+            "description": "As soon as you mark a book as received, it shows up here.",
+            "cta": "Go to books in transit"
+          },
+          "cancelled": {
+            "title": "No cancelled orders",
+            "description": "Orders you cancel are kept here."
+          }
         },
         "filteredEmpty": {
           "title": "No orders match the selected filters",

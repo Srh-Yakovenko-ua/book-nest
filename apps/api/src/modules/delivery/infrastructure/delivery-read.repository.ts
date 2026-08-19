@@ -134,22 +134,18 @@ const ActiveOrdersRowSchema = z.object({
 const ActiveShipmentsRowSchema = z.object({ activeShipmentsCount: z.number().int() });
 
 const HistorySummaryRowSchema = z.object({
-  activeBooksCount: z.number().int(),
-  booksCount: z.number().int(),
   cancelledBooksCount: z.number().int(),
-  ordersCount: z.number().int(),
+  cancelledOrdersCount: z.number().int(),
+  completedOrdersCount: z.number().int(),
+  completedWithCancellationsCount: z.number().int(),
+  completedWithoutCancellationsCount: z.number().int(),
   receivedBooksCount: z.number().int(),
-  shipmentsCount: z.number().int(),
+  receivedOrdersCount: z.number().int(),
+  receivedSeriesBooksCount: z.number().int(),
+  receivedSeriesCount: z.number().int(),
+  receivedShipmentsCount: z.number().int(),
+  receivedStandaloneBooksCount: z.number().int(),
 });
-
-const EMPTY_HISTORY_SUMMARY: z.infer<typeof HistorySummaryRowSchema> = {
-  activeBooksCount: 0,
-  booksCount: 0,
-  cancelledBooksCount: 0,
-  ordersCount: 0,
-  receivedBooksCount: 0,
-  shipmentsCount: 0,
-};
 
 const AttentionShipmentsRowSchema = z.object({
   delayedShipmentsCount: z.number().int(),
@@ -251,55 +247,51 @@ export class DeliveryReadRepository {
     return z.array(TotalCountRowSchema).parse(rows)[0]?.totalCount ?? 0;
   }
 
-  async historySummary({
-    includeCancelled,
-    userId,
-  }: {
-    includeCancelled: boolean;
-    userId: string;
-  }): Promise<OrderHistorySummaryData> {
-    const ownedItems = Prisma.sql`book_order.user_id = ${userId}::uuid AND ${LIVE_HISTORY_ITEM_SQL}`;
-    const includedItem = includeCancelled
-      ? Prisma.sql`TRUE`
-      : Prisma.sql`item.cancelled_at IS NULL`;
-
-    const [countRows, currencyRows] = await Promise.all([
-      this.prisma.$queryRaw(Prisma.sql`
+  async historySummary(userId: string): Promise<OrderHistorySummaryData> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      WITH live_item AS (
         SELECT
-          (count(*))::int AS "booksCount",
-          (count(*) FILTER (
-            WHERE item.cancelled_at IS NULL AND item.received_at IS NULL
-          ))::int AS "activeBooksCount",
-          (count(*) FILTER (WHERE item.received_at IS NOT NULL))::int AS "receivedBooksCount",
-          (count(*) FILTER (WHERE item.cancelled_at IS NOT NULL))::int AS "cancelledBooksCount",
-          (count(DISTINCT item.order_id))::int AS "ordersCount",
-          (count(DISTINCT item.shipment_id))::int AS "shipmentsCount"
+          item.order_id,
+          item.shipment_id,
+          item.received_at,
+          item.cancelled_at,
+          live_series.id AS series_id
         ${HISTORY_ITEM_SOURCE}
-        WHERE ${ownedItems}
-      `),
-      this.prisma.$queryRaw(Prisma.sql`
-        SELECT book_order.currency AS "currency", (sum(book_order.total_amount))::float8 AS "total"
-        FROM book_orders book_order
-        WHERE book_order.user_id = ${userId}::uuid
-          AND book_order.total_amount IS NOT NULL
-          AND EXISTS (
-            SELECT 1
-            FROM book_order_items item
-            JOIN books book ON book.id = item.book_id
-            WHERE item.order_id = book_order.id
-              AND ${LIVE_HISTORY_ITEM_SQL}
-              AND ${includedItem}
-          )
-        GROUP BY book_order.currency
-      `),
-    ]);
+        LEFT JOIN series live_series
+          ON live_series.id = book.series_id AND live_series.deleted_at IS NULL
+        WHERE book_order.user_id = ${userId}::uuid AND ${LIVE_HISTORY_ITEM_SQL}
+      ),
+      completed_order AS (
+        SELECT count(*) FILTER (WHERE cancelled_at IS NOT NULL) AS cancelled_books
+        FROM live_item
+        GROUP BY order_id
+        HAVING count(*) FILTER (WHERE cancelled_at IS NULL AND received_at IS NULL) = 0
+      )
+      SELECT
+        (SELECT (count(*) FILTER (WHERE received_at IS NOT NULL))::int FROM live_item)
+          AS "receivedBooksCount",
+        (SELECT (count(DISTINCT order_id) FILTER (WHERE received_at IS NOT NULL))::int FROM live_item)
+          AS "receivedOrdersCount",
+        (SELECT (count(DISTINCT shipment_id) FILTER (WHERE received_at IS NOT NULL))::int FROM live_item)
+          AS "receivedShipmentsCount",
+        (SELECT (count(*) FILTER (WHERE cancelled_at IS NOT NULL))::int FROM live_item)
+          AS "cancelledBooksCount",
+        (SELECT (count(DISTINCT order_id) FILTER (WHERE cancelled_at IS NOT NULL))::int FROM live_item)
+          AS "cancelledOrdersCount",
+        (SELECT (count(DISTINCT series_id) FILTER (WHERE received_at IS NOT NULL))::int FROM live_item)
+          AS "receivedSeriesCount",
+        (SELECT (count(*) FILTER (WHERE received_at IS NOT NULL AND series_id IS NOT NULL))::int FROM live_item)
+          AS "receivedSeriesBooksCount",
+        (SELECT (count(*) FILTER (WHERE received_at IS NOT NULL AND series_id IS NULL))::int FROM live_item)
+          AS "receivedStandaloneBooksCount",
+        (SELECT (count(*))::int FROM completed_order) AS "completedOrdersCount",
+        (SELECT (count(*) FILTER (WHERE cancelled_books = 0))::int FROM completed_order)
+          AS "completedWithoutCancellationsCount",
+        (SELECT (count(*) FILTER (WHERE cancelled_books > 0))::int FROM completed_order)
+          AS "completedWithCancellationsCount"
+    `);
 
-    const counts = z.array(HistorySummaryRowSchema).parse(countRows)[0] ?? EMPTY_HISTORY_SUMMARY;
-
-    return {
-      ...counts,
-      currencyTotals: z.array(CurrencyTotalRowSchema).parse(currencyRows),
-    };
+    return z.tuple([HistorySummaryRowSchema]).parse(rows)[0];
   }
 
   async inTransitFacets(userId: string): Promise<InTransitFacetRows> {
