@@ -59,14 +59,14 @@ describe("DeliveryImpactBlock", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("links the queue and goal insights to their pages and leaves series rows informational", async () => {
+  it("links the queue insight to its page and leaves the rows without a page informational", async () => {
     const user = userEvent.setup();
     renderWithProviders(<DeliveryImpactBlock impact={ALL_FIVE} />);
     await user.click(screen.getByRole("button"));
 
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
 
-    expect(hrefs).toEqual(["/reading-queue", "/goals"]);
+    expect(hrefs).toEqual(["/reading-queue"]);
   });
 
   it("omits the priority helper when no arriving queue book is high priority", () => {
