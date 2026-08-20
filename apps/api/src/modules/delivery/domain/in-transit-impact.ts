@@ -6,12 +6,15 @@ import type {
   QueuePriority,
 } from "@app/shared";
 
+import { computeHasUnreadEarlierParts, QueuePrioritySchema, selectNextBook } from "@app/shared";
+
+import type { SeriesSetRow } from "./series-set.js";
+
 import {
-  computeHasUnreadEarlierParts,
-  ownershipStatusHoldsCopy,
-  QueuePrioritySchema,
-  selectNextBook,
-} from "@app/shared";
+  countCompletingSubjects,
+  countGapClosingSubjects,
+  isMultiBookSeries,
+} from "./series-set.js";
 
 export type ImpactGoalRow = {
   bookId: string;
@@ -57,21 +60,22 @@ export function buildInTransitImpact({
   queueRows,
   seriesRows,
 }: InTransitImpactData): InTransitImpact[] {
-  const completed = collectCompletedSeries(seriesRows);
+  const arrivingSets = seriesRows.map((row) => toArrivingSet(row));
+  const completed = collectCompletedSeries(arrivingSets);
   const completedSeriesIds = new Set(completed.map((entry) => entry.seriesId));
 
   return [
     ...completedImpact(completed),
-    ...ownershipGapsImpact(seriesRows.filter((row) => !completedSeriesIds.has(row.id))),
+    ...ownershipGapsImpact(arrivingSets.filter((row) => !completedSeriesIds.has(row.id))),
     ...queueImpact(queueRows),
     ...nextStepImpact(seriesRows),
     ...goalImpact(goalRows),
   ];
 }
 
-function collectCompletedSeries(rows: readonly ImpactSeriesRow[]): CompletedSeries[] {
+function collectCompletedSeries(rows: readonly SeriesSetRow[]): CompletedSeries[] {
   return rows.flatMap((row) => {
-    const arrivingCount = countCompletingArrivals(row);
+    const arrivingCount = countCompletingSubjects(row);
     return arrivingCount === 0 ? [] : [{ arrivingCount, seriesId: row.id }];
   });
 }
@@ -90,48 +94,6 @@ function completedImpact(completed: readonly CompletedSeries[]): InTransitImpact
   ];
 }
 
-function countCompletingArrivals(row: ImpactSeriesRow): number {
-  if (!isMultiBookSeries(row)) {
-    return 0;
-  }
-  if (row.totalBooks !== null && row.books.length < row.totalBooks) {
-    return 0;
-  }
-
-  const arrivingCount = row.books.filter((book) => book.isArriving).length;
-  if (arrivingCount === 0) {
-    return 0;
-  }
-
-  const stillMissing = row.books.some(
-    (book) => !book.isArriving && !ownershipStatusHoldsCopy(book.ownershipStatus),
-  );
-
-  return stillMissing ? 0 : arrivingCount;
-}
-
-function countOwnershipGapArrivals(row: ImpactSeriesRow): number {
-  const ownedParts = row.books.flatMap((book) =>
-    ownershipStatusHoldsCopy(book.ownershipStatus) && book.partNumber !== null
-      ? [book.partNumber]
-      : [],
-  );
-  if (ownedParts.length === 0) {
-    return 0;
-  }
-
-  const lowestOwnedPart = Math.min(...ownedParts);
-  const highestOwnedPart = Math.max(...ownedParts);
-
-  return row.books.filter(
-    (book) =>
-      book.isArriving &&
-      book.partNumber !== null &&
-      book.partNumber > lowestOwnedPart &&
-      book.partNumber < highestOwnedPart,
-  ).length;
-}
-
 function goalImpact(rows: readonly ImpactGoalRow[]): InTransitImpact[] {
   if (rows.length === 0) {
     return [];
@@ -146,13 +108,10 @@ function goalImpact(rows: readonly ImpactGoalRow[]): InTransitImpact[] {
   ];
 }
 
-function isMultiBookSeries(row: ImpactSeriesRow): boolean {
-  return row.books.length > 1 || (row.totalBooks ?? 0) > 1;
-}
-
 function nextStepImpact(rows: readonly ImpactSeriesRow[]): InTransitImpact[] {
   const seriesCount = rows.filter(
-    (row) => isMultiBookSeries(row) && selectNextBook(row.books)?.isArriving === true,
+    (row) =>
+      isMultiBookSeries(toArrivingSet(row)) && selectNextBook(row.books)?.isArriving === true,
   ).length;
   if (seriesCount === 0) {
     return [];
@@ -161,9 +120,9 @@ function nextStepImpact(rows: readonly ImpactSeriesRow[]): InTransitImpact[] {
   return [{ kind: "series_next_step", seriesCount }];
 }
 
-function ownershipGapsImpact(rows: readonly ImpactSeriesRow[]): InTransitImpact[] {
+function ownershipGapsImpact(rows: readonly SeriesSetRow[]): InTransitImpact[] {
   const gaps = rows.flatMap((row) => {
-    const booksCount = countOwnershipGapArrivals(row);
+    const booksCount = countGapClosingSubjects(row);
     return booksCount === 0 ? [] : [booksCount];
   });
   if (gaps.length === 0) {
@@ -199,4 +158,16 @@ function queueImpact(rows: readonly ImpactQueueRow[]): InTransitImpact[] {
       kind: "queue_available",
     },
   ];
+}
+
+function toArrivingSet(row: ImpactSeriesRow): SeriesSetRow {
+  return {
+    books: row.books.map((book) => ({
+      isSubject: book.isArriving,
+      ownershipStatus: book.ownershipStatus,
+      partNumber: book.partNumber,
+    })),
+    id: row.id,
+    totalBooks: row.totalBooks,
+  };
 }

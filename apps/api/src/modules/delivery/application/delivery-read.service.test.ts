@@ -11,6 +11,7 @@ import type { MediaService } from "../../media/index.js";
 import type { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repository.js";
 import type { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import type { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
+import type { HistoryOutcomeRepository } from "../infrastructure/history-outcome.repository.js";
 
 import { Prisma } from "../../../generated/prisma/client.js";
 import { DeliveryReadService } from "./delivery-read.service.js";
@@ -55,6 +56,7 @@ const orderRow = {
 
 function buildService(overrides: {
   impact?: Partial<DeliveryImpactRepository>;
+  outcome?: Partial<HistoryOutcomeRepository>;
   reads?: Partial<DeliveryReadRepository>;
   statistics?: Partial<DeliveryStatisticsRepository>;
 }) {
@@ -69,6 +71,7 @@ function buildService(overrides: {
     countInTransit: vi.fn().mockResolvedValue(0),
     historySummary: vi.fn(),
     inTransitSummary: vi.fn(),
+    latestReceipt: vi.fn().mockResolvedValue(null),
     listHistory: vi.fn().mockResolvedValue([]),
     listInTransit: vi.fn().mockResolvedValue([]),
     nextShipment: vi.fn().mockResolvedValue(null),
@@ -78,12 +81,36 @@ function buildService(overrides: {
     listOrderRecords: vi.fn().mockResolvedValue([]),
     ...overrides.statistics,
   } as unknown as DeliveryStatisticsRepository;
+  const outcome = {
+    hasReceivedBooks: vi.fn().mockResolvedValue(false),
+    listReceivedSeriesRows: vi.fn().mockResolvedValue([]),
+    receivedUnreadCounts: vi.fn().mockResolvedValue({ booksCount: 0, inQueueCount: 0 }),
+    receivedUnreadPreviews: vi.fn().mockResolvedValue([]),
+    ...overrides.outcome,
+  } as unknown as HistoryOutcomeRepository;
 
   return {
     impact,
+    outcome,
     reads,
-    service: new DeliveryReadService(impact, reads, statistics, mediaStub),
+    service: new DeliveryReadService(impact, reads, statistics, outcome, mediaStub),
     statistics,
+  };
+}
+
+function emptyHistoryCounts() {
+  return {
+    cancelledBooksCount: 0,
+    cancelledOrdersCount: 0,
+    completedOrdersCount: 0,
+    completedWithCancellationsCount: 0,
+    completedWithoutCancellationsCount: 0,
+    receivedBooksCount: 0,
+    receivedOrdersCount: 0,
+    receivedSeriesBooksCount: 0,
+    receivedSeriesCount: 0,
+    receivedShipmentsCount: 0,
+    receivedStandaloneBooksCount: 0,
   };
 }
 
@@ -462,12 +489,131 @@ describe("DeliveryReadService.historySummary", () => {
       completedOrdersCount: 18,
       completedWithCancellationsCount: 3,
       completedWithoutCancellationsCount: 15,
+      latestReceipt: null,
       receivedBooksCount: 25,
       receivedOrdersCount: 12,
       receivedSeriesBooksCount: 18,
       receivedSeriesCount: 12,
       receivedShipmentsCount: 14,
       receivedStandaloneBooksCount: 7,
+    });
+  });
+
+  it("maps the latest receipt event, keeping the parcel-less case free of an invented service", async () => {
+    const latestReceipt = vi.fn().mockResolvedValue({
+      bookPreviews: [
+        {
+          book: { coverMedia: null, firstAuthorName: "Adams", id: "book-a", title: "Alpha" },
+        },
+      ],
+      event: {
+        booksCount: 4,
+        deliveryServiceId: null,
+        deliveryServiceName: null,
+        orderId: "order-9",
+        receivedAt: new Date("2026-08-19T10:15:00.000Z"),
+        sameDayCount: 2,
+        shipmentId: null,
+        storeName: "Bookstore",
+      },
+    });
+    const { service } = buildService({
+      reads: { historySummary: vi.fn().mockResolvedValue(emptyHistoryCounts()), latestReceipt },
+    });
+
+    const summary = await service.historySummary(USER);
+
+    expect(latestReceipt).toHaveBeenCalledWith({ bookPreviewsMax: 3, userId: USER });
+    expect(summary.latestReceipt).toEqual({
+      bookPreviews: [{ authorName: "Adams", cover: null, id: "book-a", title: "Alpha" }],
+      booksCount: 4,
+      deliveryService: null,
+      orderId: "order-9",
+      receivedAt: "2026-08-19T10:15:00.000Z",
+      sameDayCount: 2,
+      shipmentId: null,
+      storeName: "Bookstore",
+    });
+  });
+
+  it("keeps the parcel and its service on a receipt that arrived in one", async () => {
+    const latestReceipt = vi.fn().mockResolvedValue({
+      bookPreviews: [],
+      event: {
+        booksCount: 1,
+        deliveryServiceId: "service-1",
+        deliveryServiceName: "Nova Poshta",
+        orderId: "order-9",
+        receivedAt: new Date("2026-08-19T10:15:00.000Z"),
+        sameDayCount: 0,
+        shipmentId: "shipment-3",
+        storeName: "Bookstore",
+      },
+    });
+    const { service } = buildService({
+      reads: { historySummary: vi.fn().mockResolvedValue(emptyHistoryCounts()), latestReceipt },
+    });
+
+    const summary = await service.historySummary(USER);
+
+    expect(summary.latestReceipt?.deliveryService).toEqual({
+      id: "service-1",
+      name: "Nova Poshta",
+    });
+    expect(summary.latestReceipt?.shipmentId).toBe("shipment-3");
+  });
+});
+
+describe("DeliveryReadService.historyOutcome", () => {
+  it("leaves the unread block out entirely when nothing has been received", async () => {
+    const { service } = buildService({});
+
+    const outcome = await service.historyOutcome({ userId: USER });
+
+    expect(outcome).toEqual({ seriesInsights: [], unreadReceived: null });
+  });
+
+  it("reports the unread received books with their queue members and previews", async () => {
+    const receivedUnreadPreviews = vi
+      .fn()
+      .mockResolvedValue([
+        { coverMedia: null, firstAuthorName: "Adams", id: "book-a", title: "Alpha" },
+      ]);
+    const { service } = buildService({
+      outcome: {
+        hasReceivedBooks: vi.fn().mockResolvedValue(true),
+        receivedUnreadCounts: vi.fn().mockResolvedValue({ booksCount: 18, inQueueCount: 4 }),
+        receivedUnreadPreviews,
+      },
+    });
+
+    const outcome = await service.historyOutcome({ userId: USER });
+
+    expect(receivedUnreadPreviews).toHaveBeenCalledWith({ limit: 3, userId: USER });
+    expect(outcome.unreadReceived).toEqual({
+      bookPreviews: [{ authorName: "Adams", cover: null, id: "book-a", title: "Alpha" }],
+      booksCount: 18,
+      inQueueCount: 4,
+    });
+  });
+
+  it("skips the preview query when every received book has been picked up", async () => {
+    const receivedUnreadPreviews = vi.fn().mockResolvedValue([]);
+    const { service } = buildService({
+      outcome: {
+        hasReceivedBooks: vi.fn().mockResolvedValue(true),
+        receivedUnreadCounts: vi.fn().mockResolvedValue({ booksCount: 0, inQueueCount: 0 }),
+        receivedUnreadPreviews,
+      },
+    });
+
+    const outcome = await service.historyOutcome({ userId: USER });
+
+    expect(receivedUnreadPreviews).not.toHaveBeenCalled();
+    expect(outcome.unreadReceived).toEqual({
+      bookPreviews: [],
+      booksCount: 0,
+      inQueueCount: 0,
     });
   });
 });

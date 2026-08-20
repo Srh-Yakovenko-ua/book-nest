@@ -3149,6 +3149,50 @@
           "description": "Try changing the search or resetting the filters.",
           "reset": "Reset filters"
         }
+      },
+      "sidebar": {
+        "title": "What arrived so far"
+      },
+      "latestReceipt": {
+        "title": "Latest receipt",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+        "store": "Store",
+        "service": "Delivery service",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "sameDay": "{count, plural, one {# more receipt} other {# more receipts}} that day",
+        "empty": {
+          "text": "Nothing received yet"
+        },
+        "action": {
+          "open": "Open in history",
+          "resetHelper": "Showing it clears the search and filters"
+        }
+      },
+      "unreadReceived": {
+        "title": "Waiting to be read",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "inQueue": "{count, plural, one {# already in the reading queue} other {# already in the reading queue}}",
+        "empty": {
+          "text": "All read",
+          "helper": "None of the received books is still waiting."
+        }
+      },
+      "seriesOutcome": {
+        "title": "How series filled up",
+        "series_completed": {
+          "label": "{count, plural, one {# series became complete} other {# series became complete}}",
+          "detail": "{count, plural, one {thanks to # received book} other {thanks to # received books}}"
+        },
+        "series_gaps_closed": {
+          "label": "{count, plural, one {# series had a gap closed} other {# series had gaps closed}}",
+          "detail": "{count, plural, one {# received book took its place} other {# received books took their places}}"
+        },
+        "series_topped_up": {
+          "label": "{count, plural, one {# more series filled up} other {# more series filled up}}",
+          "detail": "{count, plural, one {# received book} other {# received books}}"
+        }
       }
     },
     "statistics": {

@@ -12,6 +12,11 @@ export const ReadingStatusSchema = z.enum([
 
 export type ReadingStatus = z.infer<typeof ReadingStatusSchema>;
 
+export const UNREAD_READING_STATUSES = [
+  "not_started",
+  "want_to_read",
+] as const satisfies readonly ReadingStatus[];
+
 export const CLOSED_READING_STATUSES = [
   "finished",
   "dnf",

@@ -668,6 +668,100 @@ export const BookOrderHistoryQuerySchema = z.object({
 
 export type BookOrderHistoryQuery = z.infer<typeof BookOrderHistoryQuerySchema>;
 
+export const HISTORY_RECEIPT_LIMITS = {
+  bookPreviewsMax: 3,
+} as const;
+
+export const DeliveryBookPreviewSchema = z.object({
+  authorName: z.string(),
+  cover: MediaViewSchema.nullable(),
+  id: z.string(),
+  title: z.string(),
+});
+
+export type DeliveryBookPreview = z.infer<typeof DeliveryBookPreviewSchema>;
+
+export const LatestReceiptViewSchema = z
+  .object({
+    bookPreviews: z
+      .array(DeliveryBookPreviewSchema)
+      .max(HISTORY_RECEIPT_LIMITS.bookPreviewsMax)
+      .describe(
+        "At most three books, enough to render one book in full or a stack of covers. booksCount carries the real size.",
+      ),
+    booksCount: PositiveCountSchema.describe("How many books this receipt event delivered."),
+    deliveryService: ShipmentDeliveryServiceViewSchema.nullable().describe(
+      "Null when the books were received without a parcel, which is a valid way to record a receipt.",
+    ),
+    orderId: z.uuid(),
+    receivedAt: z.string().describe("When the books of this event were received."),
+    sameDayCount: CountSchema.describe(
+      "How many OTHER receipt events happened on the same day. Zero when this one stands alone.",
+    ),
+    shipmentId: z.uuid().nullable(),
+    storeName: z.string(),
+  })
+  .describe(
+    "The most recent receipt event, keyed by the latest received_at across the books the history list renders. Books received into the same parcel on the same day form one event; books received without a parcel form one event per order and day. A parcel that is still only partly received still produces an event, so the sidebar never contradicts the received tab.",
+  );
+
+export type LatestReceiptView = z.infer<typeof LatestReceiptViewSchema>;
+
+export const ReceivedUnreadViewSchema = z
+  .object({
+    bookPreviews: z
+      .array(DeliveryBookPreviewSchema)
+      .max(HISTORY_RECEIPT_LIMITS.bookPreviewsMax)
+      .describe(
+        "Reading-queue members first, in queue order, then the rest newest by receipt. Empty when booksCount is zero.",
+      ),
+    booksCount: CountSchema.describe(
+      "Received books that are still not_started or want_to_read. Zero means every received book has been picked up.",
+    ),
+    inQueueCount: CountSchema.describe("How many of those books already sit in the reading queue."),
+  })
+  .describe("The received books still waiting to be read.");
+
+export type ReceivedUnreadView = z.infer<typeof ReceivedUnreadViewSchema>;
+
+export const ReceivedSeriesInsightKindSchema = z.enum([
+  "series_completed",
+  "series_gaps_closed",
+  "series_topped_up",
+]);
+
+export type ReceivedSeriesInsightKind = z.infer<typeof ReceivedSeriesInsightKindSchema>;
+
+export const ReceivedSeriesInsightSchema = z.object({
+  booksCount: PositiveCountSchema.describe("Received books behind this insight."),
+  kind: ReceivedSeriesInsightKindSchema,
+  seriesCount: PositiveCountSchema,
+});
+
+export type ReceivedSeriesInsight = z.infer<typeof ReceivedSeriesInsightSchema>;
+
+export const RECEIVED_SERIES_INSIGHT_LIMITS = {
+  visible: 3,
+} as const;
+
+export const BookOrderHistoryOutcomeViewSchema = z
+  .object({
+    seriesInsights: z
+      .array(ReceivedSeriesInsightSchema)
+      .max(RECEIVED_SERIES_INSIGHT_LIMITS.visible)
+      .describe(
+        "What the received books already changed in the series, strongest first: series_completed, series_gaps_closed, series_topped_up. A series is counted once, under its strongest insight. Empty when no series was completed and no ownership gap was closed, because a plain top-up count is what the history summary card already carries.",
+      ),
+    unreadReceived: ReceivedUnreadViewSchema.nullable().describe(
+      "Null when nothing has been received at all, which is the signal to leave the block out entirely.",
+    ),
+  })
+  .describe(
+    "What receiving the books already changed, scoped all-time over the books the history list renders and untouched by the list filters.",
+  );
+
+export type BookOrderHistoryOutcomeView = z.infer<typeof BookOrderHistoryOutcomeViewSchema>;
+
 export const BookOrderHistorySummaryViewSchema = z
   .object({
     cancelledBooksCount: CountSchema.describe("Books whose order item was cancelled."),
@@ -682,6 +776,9 @@ export const BookOrderHistorySummaryViewSchema = z
     ),
     completedWithoutCancellationsCount: CountSchema.describe(
       "Completed orders whose every book was received.",
+    ),
+    latestReceipt: LatestReceiptViewSchema.nullable().describe(
+      "The most recent receipt event, or null when nothing has been received yet.",
     ),
     receivedBooksCount: CountSchema.describe("Books whose order item was received."),
     receivedOrdersCount: CountSchema.describe(
@@ -846,18 +943,9 @@ export const NextShipmentStatusSchema = ShipmentStatusSchema.extract(["ordered",
 
 export type NextShipmentStatus = z.infer<typeof NextShipmentStatusSchema>;
 
-export const NextShipmentBookViewSchema = z.object({
-  authorName: z.string(),
-  cover: MediaViewSchema.nullable(),
-  id: z.string(),
-  title: z.string(),
-});
-
-export type NextShipmentBookView = z.infer<typeof NextShipmentBookViewSchema>;
-
 export const NextShipmentViewSchema = z.object({
   bookPreviews: z
-    .array(NextShipmentBookViewSchema)
+    .array(DeliveryBookPreviewSchema)
     .max(NEXT_SHIPMENT_LIMITS.bookPreviewsMax)
     .describe(
       "At most three books, enough to render one book in full or a stack of covers. booksCount carries the real size.",

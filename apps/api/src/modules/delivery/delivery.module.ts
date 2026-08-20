@@ -19,6 +19,7 @@ import { BookOrdersRepository } from "./infrastructure/book-orders.repository.js
 import { DeliveryImpactRepository } from "./infrastructure/delivery-impact.repository.js";
 import { DeliveryReadRepository } from "./infrastructure/delivery-read.repository.js";
 import { DeliveryStatisticsRepository } from "./infrastructure/delivery-statistics.repository.js";
+import { HistoryOutcomeRepository } from "./infrastructure/history-outcome.repository.js";
 import { OrderBooksRepository } from "./infrastructure/order-books.repository.js";
 import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
 
@@ -51,6 +52,7 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     DeliveryImpactRepository,
     DeliveryReadRepository,
     DeliveryStatisticsRepository,
+    HistoryOutcomeRepository,
   ],
 })
 export class DeliveryModule {}

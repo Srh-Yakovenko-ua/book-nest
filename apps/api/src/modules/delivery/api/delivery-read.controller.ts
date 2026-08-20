@@ -1,4 +1,5 @@
 import type {
+  BookOrderHistoryOutcomeView,
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
   InTransitFacetsView,
@@ -21,6 +22,7 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { DeliveryReadService } from "../application/delivery-read.service.js";
 import { BookOrderHistoryQueryDto } from "./input-dto/book-order-history-query.input-dto.js";
 import { InTransitQueryDto } from "./input-dto/in-transit-query.input-dto.js";
+import { BookOrderHistoryOutcomeViewDto } from "./view-dto/book-order-history-outcome.view-dto.js";
 import { BookOrderHistorySummaryViewDto } from "./view-dto/book-order-history-summary.view-dto.js";
 import { InTransitFacetsViewDto } from "./view-dto/in-transit-facets.view-dto.js";
 import { InTransitImpactViewDto } from "./view-dto/in-transit-impact.view-dto.js";
@@ -113,6 +115,19 @@ export class DeliveryReadController {
   @Throttle(READ_THROTTLE)
   historySummary(@CurrentUser() user: AuthenticatedUser): Promise<BookOrderHistorySummaryView> {
     return this.deliveryReadService.historySummary(user.id);
+  }
+
+  @ApiOkResponse({
+    description: "What the books the current user already received changed",
+    type: BookOrderHistoryOutcomeViewDto,
+  })
+  @ApiOperation({
+    summary: "Get what the already received books changed for reading and for series",
+  })
+  @Get("books/history/outcome")
+  @Throttle(READ_THROTTLE)
+  historyOutcome(@CurrentUser() user: AuthenticatedUser): Promise<BookOrderHistoryOutcomeView> {
+    return this.deliveryReadService.historyOutcome({ userId: user.id });
   }
 
   @ApiOkResponse({

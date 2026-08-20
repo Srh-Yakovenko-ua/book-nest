@@ -19,6 +19,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookOrderHistoryOutcomeViewDto,
   BookOrderHistorySummaryViewDto,
   DeliveryReadControllerHistoryListParams,
   DeliveryReadControllerInTransitListParams,
@@ -929,6 +930,174 @@ export function useDeliveryReadControllerHistorySummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getDeliveryReadControllerHistorySummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deliveryReadControllerHistoryOutcomeResponse200 = {
+  data: BookOrderHistoryOutcomeViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerHistoryOutcomeResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerHistoryOutcomeResponseSuccess =
+  deliveryReadControllerHistoryOutcomeResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerHistoryOutcomeResponseError =
+  deliveryReadControllerHistoryOutcomeResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerHistoryOutcomeResponse =
+  | deliveryReadControllerHistoryOutcomeResponseSuccess
+  | deliveryReadControllerHistoryOutcomeResponseError;
+
+export const getDeliveryReadControllerHistoryOutcomeUrl = () => {
+  return `/api/delivery/books/history/outcome`;
+};
+
+/**
+ * @summary Get what the already received books changed for reading and for series
+ */
+export const deliveryReadControllerHistoryOutcome = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerHistoryOutcomeResponse> => {
+  return customInstance<deliveryReadControllerHistoryOutcomeResponse>(
+    getDeliveryReadControllerHistoryOutcomeUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerHistoryOutcomeQueryKey = () => {
+  return [`/api/delivery/books/history/outcome`] as const;
+};
+
+export const getDeliveryReadControllerHistoryOutcomeQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerHistoryOutcomeQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+  > = ({ signal }) => deliveryReadControllerHistoryOutcome({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerHistoryOutcomeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+>;
+export type DeliveryReadControllerHistoryOutcomeQueryError = void;
+
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get what the already received books changed for reading and for series
+ */
+
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerHistoryOutcomeQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

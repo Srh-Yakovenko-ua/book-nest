@@ -1,18 +1,26 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { useLocale, useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 
+import type { DeliveryRevealTarget } from "../hooks/use-reveal-delivery-target";
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
 import type { HistoryContent } from "./delivery-history-view";
 
 import { useHistoryList } from "../api/use-history-list";
+import { useHistoryOutcome } from "../api/use-history-outcome";
 import { useHistorySummary } from "../api/use-history-summary";
+import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
 import { toHistoryOrderCards } from "../model/history-order-card-model";
+import { DELIVERY_HISTORY_TAB_DEFAULT } from "../model/history-params";
 import { buildHistorySummaryCards } from "../model/history-summary-cards";
+import { buildDeliveryLatestReceiptCard } from "../model/latest-receipt-card";
 import { useHistoryParams } from "../model/use-history-params";
 import { DeliveryHistoryCard } from "./delivery-history-card";
+import { DeliveryHistorySidebar } from "./delivery-history-sidebar";
 import { DeliveryHistoryToolbar } from "./delivery-history-toolbar";
 import { DeliveryHistoryView } from "./delivery-history-view";
 import { DeliveryOverviewPanel } from "./delivery-overview-panel";
@@ -20,6 +28,7 @@ import { DeliverySummaryCards } from "./delivery-summary-cards";
 
 export function DeliveryHistory() {
   const t = useTranslations("delivery.history");
+  const tLatestReceipt = useTranslations("delivery.history.latestReceipt");
   const tSummary = useTranslations("delivery.history.summary");
   const tHistoryCard = useTranslations("delivery.history.card");
   const tLibraryCard = useTranslations("books.library.card");
@@ -30,6 +39,7 @@ export function DeliveryHistory() {
   const params = useHistoryParams();
   const listQuery = useHistoryList(params.listParams);
   const summaryQuery = useHistorySummary();
+  const outcomeQuery = useHistoryOutcome();
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -104,8 +114,60 @@ export function DeliveryHistory() {
     summary: summaryQuery.data ?? null,
   });
 
+  const loadedShipmentIds = items.flatMap((item) =>
+    item.shipments.flatMap((group) => (group.id === null ? [] : [group.id])),
+  );
+  const reveal = useRevealDeliveryTarget({
+    fetchNextPage: () => void listQuery.fetchNextPage(),
+    hasNextPage: listQuery.hasNextPage,
+    isFetchingNextPage: listQuery.isFetchingNextPage,
+    isShowingPreviousList: listQuery.isPlaceholderData,
+    loadedOrderIds: items.map((item) => item.id),
+    loadedShipmentIds,
+  });
+  const revealedTarget = reveal.revealed;
+
+  const latestReceiptCard = buildDeliveryLatestReceiptCard({
+    labels: {
+      booksCount: (count) => tLatestReceipt("booksCount", { count }),
+      daysAgo: (count) => tLatestReceipt("daysAgo", { count }),
+      sameDay: (count) => tLatestReceipt("sameDay", { count }),
+      today: tLatestReceipt("today"),
+      yesterday: tLatestReceipt("yesterday"),
+    },
+    locale,
+    now: new Date(),
+    summary: summaryQuery.data ?? null,
+  });
+
+  const receiptTarget: Nullable<DeliveryRevealTarget> =
+    latestReceiptCard === null
+      ? null
+      : latestReceiptCard.shipmentId === null
+        ? { id: latestReceiptCard.orderId, kind: "order" }
+        : { id: latestReceiptCard.shipmentId, kind: "shipment" };
+
+  const receiptNeedsReset =
+    receiptTarget !== null &&
+    (params.hasActiveSearch || params.hasActiveFilters) &&
+    !(receiptTarget.kind === "order" ? items.map((item) => item.id) : loadedShipmentIds).includes(
+      receiptTarget.id,
+    );
+
+  function revealLatestReceipt() {
+    if (receiptTarget === null) return;
+    if (receiptNeedsReset) params.clearAll();
+    reveal.request(receiptTarget);
+  }
+
   const renderCard = (model: HistoryOrderCardModel) => (
-    <DeliveryHistoryCard key={model.id} model={model} search={params.state.q} />
+    <DeliveryHistoryCard
+      key={model.id}
+      model={model}
+      revealedOrderId={revealedTarget?.kind === "order" ? revealedTarget.id : null}
+      revealedShipmentId={revealedTarget?.kind === "shipment" ? revealedTarget.id : null}
+      search={params.state.q}
+    />
   );
 
   return (
@@ -121,6 +183,18 @@ export function DeliveryHistory() {
       }}
       renderCard={renderCard}
       showToolbar={showToolbar}
+      sidebar={
+        params.tab === DELIVERY_HISTORY_TAB_DEFAULT ? (
+          <DeliveryHistorySidebar
+            isOutcomeLoading={outcomeQuery.isPending}
+            isReceiptLoading={summaryQuery.isPending}
+            latestReceipt={latestReceiptCard}
+            onRevealLatestReceipt={revealLatestReceipt}
+            outcome={outcomeQuery.data ?? null}
+            revealResetsFilters={receiptNeedsReset}
+          />
+        ) : undefined
+      }
       summary={
         <DeliverySummaryCards
           cards={summaryCards}

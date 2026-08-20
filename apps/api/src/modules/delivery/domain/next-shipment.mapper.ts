@@ -1,4 +1,4 @@
-import type { NextShipmentBookView, NextShipmentView, Nullable } from "@app/shared";
+import type { DeliveryBookPreview, NextShipmentView, Nullable } from "@app/shared";
 
 import { NextShipmentStatusSchema } from "@app/shared";
 
@@ -18,7 +18,7 @@ export function toNextShipmentView({
   sameDayCount,
   shipment,
 }: {
-  bookPreviews: NextShipmentBookView[];
+  bookPreviews: DeliveryBookPreview[];
   booksCount: number;
   sameDayCount: number;
   shipment: NextShipmentSource;
