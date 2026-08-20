@@ -3035,7 +3035,7 @@
       "title": "Історія замовлень",
       "subtitle": "Отримані та скасовані замовлення — завершена історія ваших доставок.",
       "resultsTitle": "Список замовлень",
-      "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
+      "counter": "Показано {shown} з {total, plural, one {# замовлення} few {# замовлень} many {# замовлень} other {# замовлень}} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
       "loadMore": "Показати ще",
       "summary": {
         "units": {
@@ -3093,12 +3093,12 @@
         "options": {
           "newest_orders": "Новіші замовлення",
           "oldest_orders": "Старіші замовлення",
-          "recently_updated": "Нещодавно оновлені",
-          "status": "За статусом",
+          "recently_updated": "Нещодавно оновлені замовлення",
           "store": "За магазином",
-          "price": "За ціною",
-          "title": "За назвою книги"
-        }
+          "price_asc": "За вартістю замовлення: від нижчої",
+          "price_desc": "За вартістю замовлення: від вищої"
+        },
+        "priceNeedsCurrency": "Доступно, коли обрано валюту"
       },
       "filters": {
         "label": "Фільтри",
@@ -3120,12 +3120,11 @@
         "reset": "Скинути"
       },
       "card": {
-        "deletedBook": "Книгу видалено",
-        "deletedBookHint": "Дані книги недоступні — показано збережену інформацію про доставку.",
-        "receivedDate": "Дата отримання",
-        "cancelledDate": "Дата скасування",
         "cancelReason": "Причина скасування",
-        "note": "Нотатка"
+        "note": "Нотатка",
+        "receivedOn": "Отримано {date}",
+        "cancelledOn": "Скасовано {date}",
+        "expectedOn": "Очікувалось {date}"
       },
       "states": {
         "loading": "Завантаження…",

@@ -17,6 +17,7 @@ import type { DeliveryHistoryQueryState, DeliveryHistoryTab } from "../model/his
 import type { HistoryFilterPatch } from "../model/use-history-params";
 
 import {
+  comparesHistoryPrices,
   DELIVERY_HISTORY_PANEL_ID,
   DELIVERY_HISTORY_SORT_DEFAULT,
   DELIVERY_HISTORY_SORT_ORDER,
@@ -26,6 +27,7 @@ import { DeliveryHistoryFilters } from "./delivery-history-filters";
 import { DeliverySearchInput } from "./delivery-search-input";
 
 type DeliveryHistoryToolbarProps = {
+  canSortByPrice: boolean;
   counterLabel: string;
   filterCount: number;
   isPending: boolean;
@@ -42,6 +44,7 @@ type DeliveryHistoryToolbarProps = {
 };
 
 export function DeliveryHistoryToolbar({
+  canSortByPrice,
   counterLabel,
   filterCount,
   isPending,
@@ -94,8 +97,17 @@ export function DeliveryHistoryToolbar({
               </SelectTrigger>
               <SelectContent>
                 {DELIVERY_HISTORY_SORT_ORDER.map((value) => (
-                  <SelectItem key={value} value={value}>
+                  <SelectItem
+                    disabled={comparesHistoryPrices(value) && !canSortByPrice}
+                    key={value}
+                    value={value}
+                  >
                     {tSort(`options.${value}`)}
+                    {comparesHistoryPrices(value) && !canSortByPrice ? (
+                      <span className="text-xs text-muted-foreground">
+                        {tSort("priceNeedsCurrency")}
+                      </span>
+                    ) : null}
                   </SelectItem>
                 ))}
               </SelectContent>

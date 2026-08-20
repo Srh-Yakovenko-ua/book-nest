@@ -14,7 +14,7 @@ import {
   DeliveryReadControllerHistoryListTab,
 } from "@/shared/api/generated/model";
 
-export const DELIVERY_HISTORY_PAGE_SIZE = 24;
+export const DELIVERY_HISTORY_PAGE_SIZE = 10;
 export const DELIVERY_HISTORY_PANEL_ID = "delivery-history-results";
 export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryReadControllerHistoryListSort.newest_orders;
 
@@ -29,6 +29,11 @@ export const DELIVERY_HISTORY_TAB_DEFAULT: DeliveryHistoryTab =
   DeliveryReadControllerHistoryListTab.received;
 
 export const DELIVERY_HISTORY_SORT_ORDER = Object.values(DeliveryReadControllerHistoryListSort);
+
+export const DELIVERY_HISTORY_PRICE_SORTS = [
+  DeliveryReadControllerHistoryListSort.price_asc,
+  DeliveryReadControllerHistoryListSort.price_desc,
+] as const satisfies readonly DeliveryReadControllerHistoryListSort[];
 export const DELIVERY_CURRENCY_OPTIONS = Object.values(DeliveryReadControllerHistoryListCurrency);
 
 const sortValues = Object.values(DeliveryReadControllerHistoryListSort);
@@ -53,6 +58,10 @@ export type DeliveryHistoryListParams = Omit<DeliveryReadControllerHistoryListPa
 
 export type DeliveryHistoryQueryState = inferParserType<typeof deliveryHistoryParsers>;
 
+export function comparesHistoryPrices(sort: DeliveryReadControllerHistoryListSort): boolean {
+  return DELIVERY_HISTORY_PRICE_SORTS.some((priceSort) => priceSort === sort);
+}
+
 export function hasActiveHistoryFilters(state: DeliveryHistoryQueryState): boolean {
   return historyFilterCount(state) > 0;
 }
@@ -74,6 +83,10 @@ export function historyFilterCount(state: DeliveryHistoryQueryState): number {
     state.hasTrackingUrl !== null,
   ];
   return flags.filter(Boolean).length;
+}
+
+export function isKnownHistorySort(value: string): boolean {
+  return sortValues.some((sort) => sort === value);
 }
 
 export function isKnownHistoryTab(value: string): boolean {

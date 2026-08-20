@@ -31,8 +31,11 @@ import {
   toIsoBounds,
 } from "./in-transit-sql.js";
 import {
-  buildHistoryConditions,
+  buildHistoryContentConditions,
+  buildHistoryOrderConditions,
+  HISTORY_CONTENT_SOURCE,
   HISTORY_ITEM_SOURCE,
+  historyContentOrderSql,
   historyOrderSql,
   LIVE_HISTORY_ITEM_SQL,
 } from "./order-history-sql.js";
@@ -83,6 +86,8 @@ export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRo
 
 export type DatedNextShipmentRow = NextShipmentRow & { expectedDeliveryDate: Date };
 
+export type HistoryCounts = { totalBooksCount: number; totalCount: number };
+
 export type InTransitFacetRows = { services: FacetRow[]; stores: FacetRow[] };
 
 export type NextShipmentBookRow = Prisma.BookOrderItemGetPayload<typeof nextShipmentBookRelations>;
@@ -115,6 +120,11 @@ const OrderedIdRowSchema = z.object({ id: z.uuid() });
 const FacetRowSchema = z.object({ count: z.number().int(), name: z.string() });
 
 const TotalCountRowSchema = z.object({ totalCount: z.number().int() });
+
+const HistoryCountsRowSchema = z.object({
+  totalBooksCount: z.number().int(),
+  totalCount: z.number().int(),
+});
 
 const CurrencyTotalRowSchema = z.object({
   count: z.number().int(),
@@ -225,13 +235,23 @@ const EMPTY_SUMMARY_ROWS: {
 export class DeliveryReadRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async countHistory(filter: HistoryFilterInput): Promise<number> {
+  async countHistory(filter: HistoryFilterInput): Promise<HistoryCounts> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
-      SELECT (count(*))::int AS "totalCount"
-      ${HISTORY_ITEM_SOURCE}
-      WHERE ${buildHistoryConditions(filter)}
+      WITH qualifying_order AS (
+        SELECT book_order.id
+        FROM book_orders book_order
+        WHERE ${buildHistoryOrderConditions(filter)}
+      )
+      SELECT
+        (SELECT (count(*))::int FROM qualifying_order) AS "totalCount",
+        (
+          SELECT (count(*))::int
+          ${HISTORY_CONTENT_SOURCE}
+          WHERE item.order_id IN (SELECT id FROM qualifying_order)
+            AND ${buildHistoryContentConditions(filter)}
+        ) AS "totalBooksCount"
     `);
-    return z.array(TotalCountRowSchema).parse(rows)[0]?.totalCount ?? 0;
+    return z.array(HistoryCountsRowSchema).parse(rows)[0] ?? { totalBooksCount: 0, totalCount: 0 };
   }
 
   async countInTransit(filter: InTransitFilterInput): Promise<number> {
@@ -504,13 +524,29 @@ export class DeliveryReadRepository {
     take,
     ...filter
   }: ListHistoryInput): Promise<BookOrderItemRow[]> {
-    const idRows = await this.prisma.$queryRaw(Prisma.sql`
-      SELECT item.id::text AS "id"
-      ${HISTORY_ITEM_SOURCE}
-      WHERE ${buildHistoryConditions(filter)}
+    const orderIdRows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT book_order.id::text AS "id"
+      FROM book_orders book_order
+      WHERE ${buildHistoryOrderConditions(filter)}
       ORDER BY ${historyOrderSql(sort)}
       OFFSET ${skip}::int
       LIMIT ${take}::int
+    `);
+
+    const orderIds = z
+      .array(OrderedIdRowSchema)
+      .parse(orderIdRows)
+      .map((row) => row.id);
+    if (orderIds.length === 0) {
+      return [];
+    }
+
+    const idRows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT item.id::text AS "id"
+      ${HISTORY_CONTENT_SOURCE}
+      WHERE item.order_id = ANY(${orderIds}::uuid[])
+        AND ${buildHistoryContentConditions(filter)}
+      ORDER BY ${historyContentOrderSql(orderIds)}
     `);
 
     return this.loadRowsInOrder({ idRows, userId: filter.userId });

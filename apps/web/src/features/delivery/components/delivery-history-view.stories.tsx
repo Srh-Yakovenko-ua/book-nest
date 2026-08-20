@@ -55,7 +55,7 @@ const meta = {
     onResetFilters: () => {},
     onRetry: () => {},
     pagination: { hasNextPage: false, isFetchingNextPage: false },
-    renderCard: (model) => <DeliveryHistoryCard key={model.id} model={model} />,
+    renderCard: (model) => <DeliveryHistoryCard key={model.id} model={model} search="" />,
     showToolbar: false,
     summary: summaryNode,
     tab: DELIVERY_HISTORY_TAB_DEFAULT,

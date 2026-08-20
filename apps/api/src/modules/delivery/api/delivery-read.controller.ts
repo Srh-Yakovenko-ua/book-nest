@@ -4,6 +4,7 @@ import type {
   InTransitFacetsView,
   InTransitImpactView,
   InTransitSummaryView,
+  PaginatedOrderHistoryGroups,
   Paginator,
 } from "@app/shared";
 
@@ -25,6 +26,7 @@ import { InTransitFacetsViewDto } from "./view-dto/in-transit-facets.view-dto.js
 import { InTransitImpactViewDto } from "./view-dto/in-transit-impact.view-dto.js";
 import { InTransitSummaryViewDto } from "./view-dto/in-transit-summary.view-dto.js";
 import { PaginatedBookOrderItemRowsDto } from "./view-dto/paginated-book-order-item-rows.view-dto.js";
+import { PaginatedOrderHistoryGroupsDto } from "./view-dto/paginated-order-history-groups.view-dto.js";
 
 @ApiTags("delivery-read")
 @Controller("api/delivery")
@@ -114,10 +116,13 @@ export class DeliveryReadController {
   }
 
   @ApiOkResponse({
-    description: "A page of every book the current user has ever ordered",
-    type: PaginatedBookOrderItemRowsDto,
+    description:
+      "A page of finished orders, each carrying the parcels and books of the requested tab",
+    type: PaginatedOrderHistoryGroupsDto,
   })
-  @ApiOperation({ summary: "List every book the current user has ever ordered" })
+  @ApiOperation({
+    summary: "List the finished orders of the current user, grouped into their parcels and books",
+  })
   @ApiQuery({ name: "tab", required: false })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "store", required: false })
@@ -137,7 +142,7 @@ export class DeliveryReadController {
   historyList(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(BookOrderHistoryQuerySchema)) query: BookOrderHistoryQueryDto,
-  ): Promise<Paginator<BookOrderItemRowView>> {
+  ): Promise<PaginatedOrderHistoryGroups> {
     return this.deliveryReadService.historyList({ query, userId: user.id });
   }
 }

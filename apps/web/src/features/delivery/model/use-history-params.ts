@@ -13,10 +13,13 @@ import type {
 } from "./history-params";
 
 import {
+  comparesHistoryPrices,
+  DELIVERY_HISTORY_SORT_DEFAULT,
   deliveryHistoryParsers,
   hasActiveHistoryFilters,
   hasActiveHistorySearch,
   historyFilterCount,
+  isKnownHistorySort,
   isKnownHistoryTab,
   toDeliveryHistoryListParams,
 } from "./history-params";
@@ -37,6 +40,7 @@ export type HistoryFilterPatch = Partial<
 >;
 
 export type UseHistoryParamsResult = {
+  canSortByPrice: boolean;
   clearAll: () => void;
   clearFilters: () => void;
   clearSearch: () => void;
@@ -55,14 +59,25 @@ export type UseHistoryParamsResult = {
 
 export function useHistoryParams(): UseHistoryParamsResult {
   const [state, setState] = useQueryStates(deliveryHistoryParsers);
-  const rawTab = useSearchParams().get("tab");
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const rawSort = searchParams.get("sort");
   const hasRetiredTab = rawTab !== null && !isKnownHistoryTab(rawTab);
+  const hasRetiredSort = rawSort !== null && !isKnownHistorySort(rawSort);
+  const canSortByPrice = state.currency !== null;
+  const comparesUngatedPrices = comparesHistoryPrices(state.sort) && !canSortByPrice;
+  const sort = comparesUngatedPrices ? DELIVERY_HISTORY_SORT_DEFAULT : state.sort;
 
   useEffect(() => {
     if (hasRetiredTab) void setState({ tab: null });
   }, [hasRetiredTab, setState]);
 
+  useEffect(() => {
+    if (hasRetiredSort || comparesUngatedPrices) void setState({ sort: null });
+  }, [comparesUngatedPrices, hasRetiredSort, setState]);
+
   return {
+    canSortByPrice,
     clearAll: () =>
       void setState({
         currency: null,
@@ -92,12 +107,12 @@ export function useHistoryParams(): UseHistoryParamsResult {
     filterCount: historyFilterCount(state),
     hasActiveFilters: hasActiveHistoryFilters(state),
     hasActiveSearch: hasActiveHistorySearch(state),
-    listParams: toDeliveryHistoryListParams(state),
+    listParams: toDeliveryHistoryListParams({ ...state, sort }),
     setFilters: (patch) => void setState(patch),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),
     setTab: (value) => void setState({ tab: value }),
-    sort: state.sort,
+    sort,
     state,
     tab: state.tab,
   };

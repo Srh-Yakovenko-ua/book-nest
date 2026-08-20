@@ -90,11 +90,14 @@ function makeShipment(
 ): BookOrderItemRowShipmentView {
   return {
     activeItemsCount: 1,
+    cancelledAt: null,
+    cancelReason: null,
     deliveryService: { id: "service-1", name: "Nova Poshta" },
     expectedDeliveryDate: "2026-07-12",
     id: "shipment-1",
     note: null,
     pickupUntil: null,
+    receivedAt: null,
     status: "in_transit",
     trackingNumber: "20450012345678",
     trackingUrl: "https://tracking.example.com/20450012345678",

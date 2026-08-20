@@ -741,6 +741,13 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
             .describe(
               "How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.",
             ),
+          cancelledAt: zod.string().nullable().describe("When the whole parcel was cancelled."),
+          cancelReason: zod
+            .string()
+            .nullable()
+            .describe(
+              "Why the whole parcel was cancelled, as opposed to a reason carried by one book.",
+            ),
           deliveryService: zod
             .object({
               id: zod.string().nullable(),
@@ -751,6 +758,7 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
           id: zod.string(),
           note: zod.string().nullable(),
           pickupUntil: zod.string().nullable(),
+          receivedAt: zod.string().nullable().describe("When the whole parcel was received."),
           status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
           trackingNumber: zod.string().nullable(),
           trackingUrl: zod.string().nullable(),
@@ -893,7 +901,7 @@ export const DeliveryReadControllerHistorySummaryResponse = zod
   );
 
 /**
- * @summary List every book the current user has ever ordered
+ * @summary List the finished orders of the current user, grouped into their parcels and books
  */
 export const deliveryReadControllerHistoryListQueryFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -942,10 +950,9 @@ export const DeliveryReadControllerHistoryListQueryParams = zod.object({
       "newest_orders",
       "oldest_orders",
       "recently_updated",
-      "status",
       "store",
-      "price",
-      "title",
+      "price_asc",
+      "price_desc",
     ])
     .default(deliveryReadControllerHistoryListQuerySortDefault),
   store: zod.string().max(deliveryReadControllerHistoryListQueryStoreMax).optional(),
@@ -955,9 +962,8 @@ export const DeliveryReadControllerHistoryListQueryParams = zod.object({
   to: zod.iso.date().regex(deliveryReadControllerHistoryListQueryToRegExp).optional(),
 });
 
-export const deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMin =
-  -9007199254740991;
-export const deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMax = 9007199254740991;
+export const deliveryReadControllerHistoryListResponseItemsItemBooksCountMin = 0;
+export const deliveryReadControllerHistoryListResponseItemsItemBooksCountMax = 9007199254740991;
 
 export const deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMin = 0;
 export const deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMax = 9007199254740991;
@@ -965,8 +971,9 @@ export const deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMa
 export const deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMin = 0;
 export const deliveryReadControllerHistoryListResponseItemsItemOrderPricedItemsCountMax = 9007199254740991;
 
-export const deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMin = 0;
-export const deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMax = 9007199254740991;
+export const deliveryReadControllerHistoryListResponseItemsItemShipmentsItemBooksItemBookSeriesTotalBooksMin =
+  -9007199254740991;
+export const deliveryReadControllerHistoryListResponseItemsItemShipmentsItemBooksItemBookSeriesTotalBooksMax = 9007199254740991;
 
 export const deliveryReadControllerHistoryListResponsePageMin = -9007199254740991;
 export const deliveryReadControllerHistoryListResponsePageMax = 9007199254740991;
@@ -980,72 +987,19 @@ export const deliveryReadControllerHistoryListResponsePageSizeMax = 900719925474
 export const deliveryReadControllerHistoryListResponseTotalCountMin = -9007199254740991;
 export const deliveryReadControllerHistoryListResponseTotalCountMax = 9007199254740991;
 
+export const deliveryReadControllerHistoryListResponseTotalBooksCountMin = 0;
+export const deliveryReadControllerHistoryListResponseTotalBooksCountMax = 9007199254740991;
+
 export const DeliveryReadControllerHistoryListResponse = zod.object({
   items: zod.array(
     zod.object({
-      book: zod.object({
-        cover: zod
-          .object({
-            contentType: zod.string(),
-            createdAt: zod.string(),
-            height: zod.number(),
-            id: zod.string(),
-            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
-            name: zod.string().nullable(),
-            sizeBytes: zod.number(),
-            urls: zod.object({
-              card: zod.string(),
-              full: zod.string(),
-              thumb: zod.string(),
-            }),
-            width: zod.number(),
-          })
-          .nullable(),
-        firstAuthorName: zod.string(),
-        genres: zod.array(zod.string()),
-        id: zod.string(),
-        originalTitle: zod.string().nullable(),
-        ownershipStatus: zod.enum([
-          "none",
-          "want_to_buy",
-          "in_transit",
-          "owned",
-          "borrowed_from_someone",
-          "lent_to_someone",
-        ]),
-        publisher: zod
-          .object({
-            id: zod.string(),
-            name: zod.string(),
-          })
-          .nullable(),
-        readingStatus: zod.enum([
-          "not_started",
-          "want_to_read",
-          "reading",
-          "paused",
-          "finished",
-          "dnf",
-          "rereading",
-        ]),
-        series: zod
-          .object({
-            id: zod.string(),
-            name: zod.string(),
-            partNumber: zod.number().nullable(),
-            totalBooks: zod
-              .int()
-              .min(deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMin)
-              .max(deliveryReadControllerHistoryListResponseItemsItemBookSeriesTotalBooksMax)
-              .nullable(),
-          })
-          .nullable(),
-        tags: zod.array(zod.string()),
-        title: zod.string(),
-      }),
-      cancelledAt: zod.string().nullable(),
-      cancelReason: zod.string().nullable(),
-      id: zod.string(),
+      booksCount: zod
+        .int()
+        .min(deliveryReadControllerHistoryListResponseItemsItemBooksCountMin)
+        .max(deliveryReadControllerHistoryListResponseItemsItemBooksCountMax)
+        .describe(
+          "How many books of this order the requested tab and the active filters render, which is the sum over its parcel groups.",
+        ),
       order: zod.object({
         currency: zod
           .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
@@ -1085,40 +1039,123 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
         storeName: zod.string(),
         totalAmount: zod.number().nullable(),
       }),
-      price: zod.number().nullable(),
-      receivedAt: zod.string().nullable(),
-      shipment: zod
-        .object({
-          activeItemsCount: zod
-            .int()
-            .min(deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMin)
-            .max(deliveryReadControllerHistoryListResponseItemsItemShipmentActiveItemsCountMax)
-            .describe(
-              "How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.",
-            ),
-          deliveryService: zod
-            .object({
-              id: zod.string().nullable(),
-              name: zod.string(),
-            })
-            .nullable(),
-          expectedDeliveryDate: zod.string().nullable(),
-          id: zod.string(),
-          note: zod.string().nullable(),
-          pickupUntil: zod.string().nullable(),
-          status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
-          trackingNumber: zod.string().nullable(),
-          trackingUrl: zod.string().nullable(),
-        })
-        .nullable(),
-      uiStatus: zod
-        .union([
-          zod.literal("delayed"),
-          zod.literal("arriving_soon"),
-          zod.literal("no_delivery_date"),
-          zod.literal(null),
-        ])
-        .nullable(),
+      shipments: zod
+        .array(
+          zod.object({
+            books: zod
+              .array(
+                zod.object({
+                  book: zod.object({
+                    cover: zod
+                      .object({
+                        contentType: zod.string(),
+                        createdAt: zod.string(),
+                        height: zod.number(),
+                        id: zod.string(),
+                        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                        name: zod.string().nullable(),
+                        sizeBytes: zod.number(),
+                        urls: zod.object({
+                          card: zod.string(),
+                          full: zod.string(),
+                          thumb: zod.string(),
+                        }),
+                        width: zod.number(),
+                      })
+                      .nullable(),
+                    firstAuthorName: zod.string(),
+                    genres: zod.array(zod.string()),
+                    id: zod.string(),
+                    originalTitle: zod.string().nullable(),
+                    ownershipStatus: zod.enum([
+                      "none",
+                      "want_to_buy",
+                      "in_transit",
+                      "owned",
+                      "borrowed_from_someone",
+                      "lent_to_someone",
+                    ]),
+                    publisher: zod
+                      .object({
+                        id: zod.string(),
+                        name: zod.string(),
+                      })
+                      .nullable(),
+                    readingStatus: zod.enum([
+                      "not_started",
+                      "want_to_read",
+                      "reading",
+                      "paused",
+                      "finished",
+                      "dnf",
+                      "rereading",
+                    ]),
+                    series: zod
+                      .object({
+                        id: zod.string(),
+                        name: zod.string(),
+                        partNumber: zod.number().nullable(),
+                        totalBooks: zod
+                          .int()
+                          .min(
+                            deliveryReadControllerHistoryListResponseItemsItemShipmentsItemBooksItemBookSeriesTotalBooksMin,
+                          )
+                          .max(
+                            deliveryReadControllerHistoryListResponseItemsItemShipmentsItemBooksItemBookSeriesTotalBooksMax,
+                          )
+                          .nullable(),
+                      })
+                      .nullable(),
+                    tags: zod.array(zod.string()),
+                    title: zod.string(),
+                  }),
+                  cancelledAt: zod.string().nullable(),
+                  cancelReason: zod
+                    .string()
+                    .nullable()
+                    .describe(
+                      "Why this single book was cancelled, which can differ from the reason of its parcel.",
+                    ),
+                  id: zod.string(),
+                  price: zod.number().nullable(),
+                  receivedAt: zod.string().nullable(),
+                }),
+              )
+              .describe(
+                "The books of this parcel that belong to the requested tab. Never narrowed by the page boundary.",
+              ),
+            shipment: zod
+              .object({
+                cancelledAt: zod.string().nullable(),
+                cancelReason: zod.string().nullable(),
+                deliveryService: zod
+                  .object({
+                    id: zod.string().nullable(),
+                    name: zod.string(),
+                  })
+                  .nullable(),
+                expectedDeliveryDate: zod.string().nullable(),
+                id: zod.string(),
+                note: zod.string().nullable(),
+                pickupUntil: zod.string().nullable(),
+                receivedAt: zod.string().nullable(),
+                status: zod.enum([
+                  "ordered",
+                  "in_transit",
+                  "ready_for_pickup",
+                  "received",
+                  "cancelled",
+                ]),
+                trackingNumber: zod.string().nullable(),
+                trackingUrl: zod.string().nullable(),
+              })
+              .nullable()
+              .describe("Null for the books that were settled before they ever reached a parcel."),
+          }),
+        )
+        .describe(
+          "Dispatched parcels first, the never-dispatched books last. A parcel that carries no book of the requested tab is left out.",
+        ),
     }),
   ),
   page: zod
@@ -1137,4 +1174,11 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
     .int()
     .min(deliveryReadControllerHistoryListResponseTotalCountMin)
     .max(deliveryReadControllerHistoryListResponseTotalCountMax),
+  totalBooksCount: zod
+    .int()
+    .min(deliveryReadControllerHistoryListResponseTotalBooksCountMin)
+    .max(deliveryReadControllerHistoryListResponseTotalBooksCountMax)
+    .describe(
+      "How many books the whole selection holds, not only the orders on this page. totalCount counts orders instead.",
+    ),
 });

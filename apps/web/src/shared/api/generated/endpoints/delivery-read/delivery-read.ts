@@ -26,6 +26,7 @@ import type {
   InTransitImpactViewDto,
   InTransitSummaryViewDto,
   PaginatedBookOrderItemRowsDto,
+  PaginatedOrderHistoryGroupsDto,
 } from "../../model";
 
 import { customInstance } from "../../../mutator";
@@ -937,7 +938,7 @@ export function useDeliveryReadControllerHistorySummary<
 }
 
 export type deliveryReadControllerHistoryListResponse200 = {
-  data: PaginatedBookOrderItemRowsDto;
+  data: PaginatedOrderHistoryGroupsDto;
   status: 200;
 };
 
@@ -977,7 +978,7 @@ export const getDeliveryReadControllerHistoryListUrl = (
 };
 
 /**
- * @summary List every book the current user has ever ordered
+ * @summary List the finished orders of the current user, grouped into their parcels and books
  */
 export const deliveryReadControllerHistoryList = async (
   params?: DeliveryReadControllerHistoryListParams,
@@ -1086,7 +1087,7 @@ export function useDeliveryReadControllerHistoryList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List every book the current user has ever ordered
+ * @summary List the finished orders of the current user, grouped into their parcels and books
  */
 
 export function useDeliveryReadControllerHistoryList<

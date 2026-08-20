@@ -18,6 +18,16 @@ export type PaginatedBookOrderItemRowsDtoItemsItemShipment = {
    * @maximum 9007199254740991
    */
   activeItemsCount: number;
+  /**
+   * When the whole parcel was cancelled.
+   * @nullable
+   */
+  cancelledAt: string | null;
+  /**
+   * Why the whole parcel was cancelled, as opposed to a reason carried by one book.
+   * @nullable
+   */
+  cancelReason: string | null;
   /** @nullable */
   deliveryService: PaginatedBookOrderItemRowsDtoItemsItemShipmentDeliveryService;
   /** @nullable */
@@ -27,6 +37,11 @@ export type PaginatedBookOrderItemRowsDtoItemsItemShipment = {
   note: string | null;
   /** @nullable */
   pickupUntil: string | null;
+  /**
+   * When the whole parcel was received.
+   * @nullable
+   */
+  receivedAt: string | null;
   status: PaginatedBookOrderItemRowsDtoItemsItemShipmentStatus;
   /** @nullable */
   trackingNumber: string | null;

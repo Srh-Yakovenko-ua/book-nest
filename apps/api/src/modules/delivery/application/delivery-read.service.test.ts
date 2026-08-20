@@ -111,13 +111,17 @@ function itemRow({
   book = bookRow,
   cancelledAt = null,
   expectedDeliveryDate = null,
+  id = "item-1",
   receivedAt = null,
+  shipmentId = "shipment-1",
   status = "in_transit",
 }: {
   book?: ReturnType<typeof bookRowInSeries> | typeof bookRow;
   cancelledAt?: Date | null;
   expectedDeliveryDate?: Date | null;
+  id?: string;
   receivedAt?: Date | null;
+  shipmentId?: null | string;
   status?: string;
 }) {
   return {
@@ -126,7 +130,7 @@ function itemRow({
     cancelledAt,
     cancelReason: null,
     createdAt: new Date("2026-08-01T00:00:00.000Z"),
-    id: "item-1",
+    id,
     order: {
       ...orderRow,
       items: [
@@ -135,7 +139,7 @@ function itemRow({
           cancelledAt,
           price: new Prisma.Decimal("120.50"),
           receivedAt,
-          shipmentId: "shipment-1",
+          shipmentId,
         },
       ],
       shipments: [{ id: "shipment-1", status }],
@@ -143,29 +147,32 @@ function itemRow({
     orderId: orderRow.id,
     price: new Prisma.Decimal("120.50"),
     receivedAt,
-    shipment: {
-      cancelledAt: null,
-      cancelReason: null,
-      createdAt: new Date("2026-08-01T00:00:00.000Z"),
-      deliveryService: {
-        id: "service-1",
-        name: "Nova Poshta",
-        trackingUrlTemplate: "https://np.test/{trackingNumber}",
-      },
-      deliveryServiceId: "service-1",
-      deliveryServiceName: "Nova Poshta",
-      expectedDeliveryDate,
-      id: "shipment-1",
-      note: null,
-      orderId: orderRow.id,
-      pickupUntil: null,
-      receivedAt: null,
-      status,
-      trackingNumber: "TRK-1",
-      trackingUrl: null,
-      updatedAt: new Date("2026-08-01T00:00:00.000Z"),
-    },
-    shipmentId: "shipment-1",
+    shipment:
+      shipmentId === null
+        ? null
+        : {
+            cancelledAt: null,
+            cancelReason: null,
+            createdAt: new Date("2026-08-01T00:00:00.000Z"),
+            deliveryService: {
+              id: "service-1",
+              name: "Nova Poshta",
+              trackingUrlTemplate: "https://np.test/{trackingNumber}",
+            },
+            deliveryServiceId: "service-1",
+            deliveryServiceName: "Nova Poshta",
+            expectedDeliveryDate,
+            id: shipmentId,
+            note: null,
+            orderId: orderRow.id,
+            pickupUntil: null,
+            receivedAt,
+            status,
+            trackingNumber: "TRK-1",
+            trackingUrl: null,
+            updatedAt: new Date("2026-08-01T00:00:00.000Z"),
+          },
+    shipmentId,
     updatedAt: new Date("2026-08-01T00:00:00.000Z"),
   };
 }
@@ -292,25 +299,97 @@ describe("DeliveryReadService.inTransitList", () => {
 });
 
 describe("DeliveryReadService.historyList", () => {
-  it("keeps the history unit book-shaped and hides the arrival badge of a settled book", async () => {
+  it("groups the page into orders and their parcels instead of loose books", async () => {
     const { service } = buildService({
       reads: {
-        countHistory: vi.fn().mockResolvedValue(2),
+        countHistory: vi.fn().mockResolvedValue({ totalBooksCount: 2, totalCount: 1 }),
+        listHistory: vi.fn().mockResolvedValue([
+          itemRow({
+            id: "item-1",
+            receivedAt: new Date("2026-08-05T00:00:00.000Z"),
+            status: "received",
+          }),
+          itemRow({
+            id: "item-2",
+            receivedAt: new Date("2026-08-05T00:00:00.000Z"),
+            status: "received",
+          }),
+        ]),
+      },
+    });
+
+    const page = await service.historyList({
+      query: historyQuery({ tab: "received" }),
+      userId: USER,
+    });
+
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0]?.order.id).toBe(orderRow.id);
+    expect(page.items[0]?.booksCount).toBe(2);
+    expect(page.items[0]?.shipments).toHaveLength(1);
+    expect(page.items[0]?.shipments[0]?.books.map((entry) => entry.id)).toEqual([
+      "item-1",
+      "item-2",
+    ]);
+  });
+
+  it("counts orders in totalCount and keeps the book tally in its own field", async () => {
+    const { service } = buildService({
+      reads: {
+        countHistory: vi.fn().mockResolvedValue({ totalBooksCount: 128, totalCount: 34 }),
+        listHistory: vi
+          .fn()
+          .mockResolvedValue([itemRow({ receivedAt: new Date("2026-08-05T00:00:00.000Z") })]),
+      },
+    });
+
+    const page = await service.historyList({ query: historyQuery(), userId: USER });
+
+    expect(page.totalCount).toBe(34);
+    expect(page.totalBooksCount).toBe(128);
+  });
+
+  it("keeps the books that never reached a parcel in their own group", async () => {
+    const { service } = buildService({
+      reads: {
+        countHistory: vi.fn().mockResolvedValue({ totalBooksCount: 2, totalCount: 1 }),
+        listHistory: vi.fn().mockResolvedValue([
+          itemRow({ cancelledAt: new Date("2026-08-06T00:00:00.000Z"), id: "item-1" }),
+          itemRow({
+            cancelledAt: new Date("2026-08-07T00:00:00.000Z"),
+            id: "item-2",
+            shipmentId: null,
+          }),
+        ]),
+      },
+    });
+
+    const page = await service.historyList({
+      query: historyQuery({ tab: "cancelled" }),
+      userId: USER,
+    });
+
+    expect(page.items[0]?.shipments).toHaveLength(2);
+    expect(page.items[0]?.shipments[1]?.shipment).toBeNull();
+    expect(page.items[0]?.shipments[1]?.books[0]?.cancelledAt).toBe("2026-08-07T00:00:00.000Z");
+  });
+
+  it("carries the terminal state of the parcel itself, not only of its books", async () => {
+    const { service } = buildService({
+      reads: {
+        countHistory: vi.fn().mockResolvedValue({ totalBooksCount: 1, totalCount: 1 }),
         listHistory: vi
           .fn()
           .mockResolvedValue([
             itemRow({ receivedAt: new Date("2026-08-05T00:00:00.000Z"), status: "received" }),
-            itemRow({ cancelledAt: new Date("2026-08-06T00:00:00.000Z") }),
           ]),
       },
     });
 
     const page = await service.historyList({ query: historyQuery(), userId: USER });
 
-    expect(page.items).toHaveLength(2);
-    expect(page.items.map((item) => item.uiStatus)).toEqual([null, null]);
-    expect(page.items[0]?.receivedAt).toBe("2026-08-05T00:00:00.000Z");
-    expect(page.items[1]?.cancelledAt).toBe("2026-08-06T00:00:00.000Z");
+    expect(page.items[0]?.shipments[0]?.shipment?.receivedAt).toBe("2026-08-05T00:00:00.000Z");
+    expect(page.items[0]?.shipments[0]?.shipment?.status).toBe("received");
   });
 
   it("passes the tab, the parsed dates and the paging window to the repository", async () => {
@@ -318,12 +397,13 @@ describe("DeliveryReadService.historyList", () => {
 
     await service.historyList({
       query: historyQuery({
+        currency: "UAH",
         from: "2026-07-01",
         hasTrackingNumber: true,
         pageNumber: 2,
         pageSize: 5,
         priceMin: 10,
-        sort: "price",
+        sort: "price_desc",
         tab: "cancelled",
         to: "2026-08-01",
       }),
@@ -336,12 +416,22 @@ describe("DeliveryReadService.historyList", () => {
         hasTrackingNumber: true,
         priceMin: 10,
         skip: 5,
-        sort: "price",
+        sort: "price_desc",
         tab: "cancelled",
         take: 5,
         to: new Date("2026-08-01T00:00:00.000Z"),
         userId: USER,
       }),
+    );
+  });
+
+  it("falls back to the default sort when prices are compared across unnamed currencies", async () => {
+    const { reads, service } = buildService({});
+
+    await service.historyList({ query: historyQuery({ sort: "price_asc" }), userId: USER });
+
+    expect(reads.listHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "newest_orders" }),
     );
   });
 });
