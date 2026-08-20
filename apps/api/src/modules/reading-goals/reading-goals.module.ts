@@ -12,6 +12,7 @@ import { ReadingGoalDetailAssembler } from "./application/reading-goal-detail.as
 import { ReadingGoalExpirationReconciler } from "./application/reading-goal-expiration.reconciler.js";
 import { ReadingGoalInputValidator } from "./application/reading-goal-input.validator.js";
 import { ReadingGoalOverviewService } from "./application/reading-goal-overview.service.js";
+import { ReadingGoalPlansService } from "./application/reading-goal-plans.service.js";
 import { ReadingGoalSnapshotService } from "./application/reading-goal-snapshot.service.js";
 import { ReadingGoalSyncService } from "./application/reading-goal-sync.service.js";
 import { ReadingGoalViewBuilder } from "./application/reading-goal-view.builder.js";
@@ -22,7 +23,7 @@ import { ReadingGoalsRepository } from "./infrastructure/reading-goals.repositor
 
 @Module({
   controllers: [ReadingGoalsController],
-  exports: [ReadingGoalSyncService],
+  exports: [ReadingGoalPlansService, ReadingGoalSyncService],
   imports: [AuthModule, ListsModule, MediaModule],
   providers: [
     ReadingGoalsService,
@@ -34,6 +35,7 @@ import { ReadingGoalsRepository } from "./infrastructure/reading-goals.repositor
     ReadingGoalExpirationReconciler,
     ReadingGoalInputValidator,
     ReadingGoalOverviewService,
+    ReadingGoalPlansService,
     ReadingGoalSnapshotService,
     ReadingGoalSyncService,
     ReadingGoalViewBuilder,

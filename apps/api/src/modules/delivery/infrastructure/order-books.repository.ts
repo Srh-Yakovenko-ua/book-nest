@@ -15,6 +15,7 @@ export type OrderBookRow = {
 };
 
 type ApplyOwnershipInput = OwnedBooksRef & {
+  expectedStatus?: OwnershipStatus;
   now: Date;
   ownershipStatus: OwnershipStatus;
 };
@@ -29,23 +30,34 @@ export class OrderBooksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async applyOwnership(
-    { bookIds, now, ownershipStatus, userId }: ApplyOwnershipInput,
+    { bookIds, expectedStatus, now, ownershipStatus, userId }: ApplyOwnershipInput,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     if (bookIds.length === 0) {
       return 0;
     }
 
-    const scope = { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId };
+    const scope = {
+      ...SOFT_DELETE_SCOPE.active,
+      id: { in: bookIds },
+      userId,
+      ...(expectedStatus === undefined ? {} : { ownershipStatus: expectedStatus }),
+    };
     if (ownershipStatus === WISHLIST_OWNERSHIP_STATUS) {
       await client.book.updateMany({
         data: { wishlistAddedAt: now },
-        where: { ...scope, ownershipStatus: { not: WISHLIST_OWNERSHIP_STATUS } },
+        where:
+          expectedStatus === undefined
+            ? { ...scope, ownershipStatus: { not: WISHLIST_OWNERSHIP_STATUS } }
+            : scope,
       });
     } else {
       await client.book.updateMany({
         data: { wishlistAddedAt: null },
-        where: { ...scope, ownershipStatus: WISHLIST_OWNERSHIP_STATUS },
+        where:
+          expectedStatus === undefined
+            ? { ...scope, ownershipStatus: WISHLIST_OWNERSHIP_STATUS }
+            : scope,
       });
     }
 

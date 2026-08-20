@@ -10,17 +10,21 @@ import type { DeliveryRevealTarget } from "../hooks/use-reveal-delivery-target";
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
 import type { HistoryContent } from "./delivery-history-view";
 
+import { useCancelledFollowUp } from "../api/use-cancelled-follow-up";
 import { useHistoryList } from "../api/use-history-list";
 import { useHistoryOutcome } from "../api/use-history-outcome";
 import { useHistorySummary } from "../api/use-history-summary";
 import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
 import { toHistoryOrderCards } from "../model/history-order-card-model";
-import { DELIVERY_HISTORY_TAB_DEFAULT } from "../model/history-params";
 import { buildHistorySummaryCards } from "../model/history-summary-cards";
 import { buildDeliveryLatestReceiptCard } from "../model/latest-receipt-card";
 import { useHistoryParams } from "../model/use-history-params";
 import { DeliveryHistoryCard } from "./delivery-history-card";
-import { DeliveryHistorySidebar } from "./delivery-history-sidebar";
+import {
+  DeliveryHistoryCancelledBlocks,
+  DeliveryHistoryReceivedBlocks,
+  DeliveryHistorySidebar,
+} from "./delivery-history-sidebar";
 import { DeliveryHistoryToolbar } from "./delivery-history-toolbar";
 import { DeliveryHistoryView } from "./delivery-history-view";
 import { DeliveryOverviewPanel } from "./delivery-overview-panel";
@@ -29,6 +33,7 @@ import { DeliverySummaryCards } from "./delivery-summary-cards";
 export function DeliveryHistory() {
   const t = useTranslations("delivery.history");
   const tLatestReceipt = useTranslations("delivery.history.latestReceipt");
+  const tSidebar = useTranslations("delivery.history.sidebar");
   const tSummary = useTranslations("delivery.history.summary");
   const tHistoryCard = useTranslations("delivery.history.card");
   const tLibraryCard = useTranslations("books.library.card");
@@ -40,6 +45,8 @@ export function DeliveryHistory() {
   const listQuery = useHistoryList(params.listParams);
   const summaryQuery = useHistorySummary();
   const outcomeQuery = useHistoryOutcome();
+  const isCancelledTab = params.tab === "cancelled";
+  const followUpQuery = useCancelledFollowUp({ enabled: isCancelledTab });
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -160,6 +167,24 @@ export function DeliveryHistory() {
     reveal.request(receiptTarget);
   }
 
+  const followUp = followUpQuery.data ?? null;
+  const hasCancelledBlocks =
+    followUp !== null && (followUp.plans !== null || followUp.unresolved !== null);
+  const showsSidebar = !isCancelledTab || followUpQuery.isPending || hasCancelledBlocks;
+
+  const sidebarBlocks = isCancelledTab ? (
+    <DeliveryHistoryCancelledBlocks followUp={followUp} isLoading={followUpQuery.isPending} />
+  ) : (
+    <DeliveryHistoryReceivedBlocks
+      isOutcomeLoading={outcomeQuery.isPending}
+      isReceiptLoading={summaryQuery.isPending}
+      latestReceipt={latestReceiptCard}
+      onRevealLatestReceipt={revealLatestReceipt}
+      outcome={outcomeQuery.data ?? null}
+      revealResetsFilters={receiptNeedsReset}
+    />
+  );
+
   const renderCard = (model: HistoryOrderCardModel) => (
     <DeliveryHistoryCard
       key={model.id}
@@ -184,15 +209,8 @@ export function DeliveryHistory() {
       renderCard={renderCard}
       showToolbar={showToolbar}
       sidebar={
-        params.tab === DELIVERY_HISTORY_TAB_DEFAULT ? (
-          <DeliveryHistorySidebar
-            isOutcomeLoading={outcomeQuery.isPending}
-            isReceiptLoading={summaryQuery.isPending}
-            latestReceipt={latestReceiptCard}
-            onRevealLatestReceipt={revealLatestReceipt}
-            outcome={outcomeQuery.data ?? null}
-            revealResetsFilters={receiptNeedsReset}
-          />
+        showsSidebar ? (
+          <DeliveryHistorySidebar tab={params.tab}>{sidebarBlocks}</DeliveryHistorySidebar>
         ) : undefined
       }
       summary={
@@ -203,6 +221,16 @@ export function DeliveryHistory() {
             <DeliveryOverviewPanel
               detailsTitle={tSummary("mobile.title")}
               isLoading={summaryQuery.isPending}
+              sidebar={
+                showsSidebar
+                  ? {
+                      blocks: sidebarBlocks,
+                      label: isCancelledTab
+                        ? tSidebar("tabs.cancelled")
+                        : tSidebar("tabs.received"),
+                    }
+                  : undefined
+              }
               summaryCards={summaryCards}
             />
           }

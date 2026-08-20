@@ -14,6 +14,11 @@ export type SeriesSetRow = {
   totalBooks: Nullable<number>;
 };
 
+export type SeriesSizeRow = {
+  books: readonly unknown[];
+  totalBooks: Nullable<number>;
+};
+
 export function countCompletingSubjects(row: SeriesSetRow): number {
   if (!isMultiBookSeries(row)) {
     return 0;
@@ -60,6 +65,6 @@ export function countSubjects(row: SeriesSetRow): number {
   return row.books.filter((book) => book.isSubject).length;
 }
 
-export function isMultiBookSeries(row: SeriesSetRow): boolean {
+export function isMultiBookSeries(row: SeriesSizeRow): boolean {
   return row.books.length > 1 || (row.totalBooks ?? 0) > 1;
 }

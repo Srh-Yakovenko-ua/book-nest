@@ -21,6 +21,8 @@ import type {
 import type {
   BookOrderHistoryOutcomeViewDto,
   BookOrderHistorySummaryViewDto,
+  CancelledFollowUpViewDto,
+  CancelledFollowUpWishlistResultDto,
   DeliveryReadControllerHistoryListParams,
   DeliveryReadControllerInTransitListParams,
   InTransitFacetsViewDto,
@@ -1273,6 +1275,330 @@ export function useDeliveryReadControllerHistoryList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getDeliveryReadControllerHistoryListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type cancelledFollowUpControllerReadResponse200 = {
+  data: CancelledFollowUpViewDto;
+  status: 200;
+};
+
+export type cancelledFollowUpControllerReadResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type cancelledFollowUpControllerReadResponseSuccess =
+  cancelledFollowUpControllerReadResponse200 & {
+    headers: Headers;
+  };
+export type cancelledFollowUpControllerReadResponseError =
+  cancelledFollowUpControllerReadResponse401 & {
+    headers: Headers;
+  };
+
+export type cancelledFollowUpControllerReadResponse =
+  cancelledFollowUpControllerReadResponseSuccess | cancelledFollowUpControllerReadResponseError;
+
+export const getCancelledFollowUpControllerReadUrl = () => {
+  return `/api/delivery/books/history/cancelled-follow-up`;
+};
+
+/**
+ * @summary Get the cancelled books that never reached a next acquisition state
+ */
+export const cancelledFollowUpControllerRead = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<cancelledFollowUpControllerReadResponse> => {
+  return customInstance<cancelledFollowUpControllerReadResponse>(
+    getCancelledFollowUpControllerReadUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCancelledFollowUpControllerReadQueryKey = () => {
+  return [`/api/delivery/books/history/cancelled-follow-up`] as const;
+};
+
+export const getCancelledFollowUpControllerReadQueryOptions = <
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCancelledFollowUpControllerReadQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>> = ({
+    signal,
+  }) => cancelledFollowUpControllerRead({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CancelledFollowUpControllerReadQueryResult = NonNullable<
+  Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>
+>;
+export type CancelledFollowUpControllerReadQueryError = void;
+
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the cancelled books that never reached a next acquisition state
+ */
+
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCancelledFollowUpControllerReadQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponse200 = {
+  data: CancelledFollowUpWishlistResultDto;
+  status: 200;
+};
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponseSuccess =
+  cancelledFollowUpControllerReturnAllToWishlistResponse200 & {
+    headers: Headers;
+  };
+export type cancelledFollowUpControllerReturnAllToWishlistResponseError =
+  cancelledFollowUpControllerReturnAllToWishlistResponse401 & {
+    headers: Headers;
+  };
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponse =
+  | cancelledFollowUpControllerReturnAllToWishlistResponseSuccess
+  | cancelledFollowUpControllerReturnAllToWishlistResponseError;
+
+export const getCancelledFollowUpControllerReturnAllToWishlistUrl = () => {
+  return `/api/delivery/books/history/cancelled-follow-up/want-to-buy`;
+};
+
+/**
+ * @summary Move every cancelled book still without a next step to the wishlist
+ */
+export const cancelledFollowUpControllerReturnAllToWishlist = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<cancelledFollowUpControllerReturnAllToWishlistResponse> => {
+  return customInstance<cancelledFollowUpControllerReturnAllToWishlistResponse>(
+    getCancelledFollowUpControllerReturnAllToWishlistUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getCancelledFollowUpControllerReturnAllToWishlistQueryKey = () => {
+  return ["POST", `/api/delivery/books/history/cancelled-follow-up/want-to-buy`] as const;
+};
+
+export const getCancelledFollowUpControllerReturnAllToWishlistQueryOptions = <
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCancelledFollowUpControllerReturnAllToWishlistQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+  > = ({ signal }) => cancelledFollowUpControllerReturnAllToWishlist({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CancelledFollowUpControllerReturnAllToWishlistQueryResult = NonNullable<
+  Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+>;
+export type CancelledFollowUpControllerReturnAllToWishlistQueryError = void;
+
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Move every cancelled book still without a next step to the wishlist
+ */
+
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCancelledFollowUpControllerReturnAllToWishlistQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
