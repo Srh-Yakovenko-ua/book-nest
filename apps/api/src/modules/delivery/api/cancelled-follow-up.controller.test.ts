@@ -193,7 +193,7 @@ describe("books that need a decision", () => {
   it("stays quiet while nothing was cancelled", async () => {
     await seedBooks([{ cancelledAt: null, ownershipStatus: "owned", title: "Received" }]);
 
-    expect(await followUp()).toEqual({ plans: null, unresolved: null });
+    expect(await followUp()).toEqual({ outcomes: null, plans: null, unresolved: null });
   });
 
   it("keeps a cancelled book that never reached a next step", async () => {
