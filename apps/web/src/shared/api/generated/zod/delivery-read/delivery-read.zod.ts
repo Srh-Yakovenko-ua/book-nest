@@ -810,6 +810,20 @@ export const deliveryReadControllerHistorySummaryResponseCompletedWithCancellati
 export const deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMin = 0;
 export const deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMax = 9007199254740991;
 
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptBookPreviewsMax = 3;
+
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptBooksCountExclusiveMin = 0;
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptOrderIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptSameDayCountMin = 0;
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptSameDayCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistorySummaryResponseLatestReceiptShipmentIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const deliveryReadControllerHistorySummaryResponseReceivedBooksCountMin = 0;
 export const deliveryReadControllerHistorySummaryResponseReceivedBooksCountMax = 9007199254740991;
 
@@ -859,6 +873,70 @@ export const DeliveryReadControllerHistorySummaryResponse = zod
       .min(deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMin)
       .max(deliveryReadControllerHistorySummaryResponseCompletedWithoutCancellationsCountMax)
       .describe("Completed orders whose every book was received."),
+    latestReceipt: zod
+      .object({
+        bookPreviews: zod
+          .array(
+            zod.object({
+              authorName: zod.string(),
+              cover: zod
+                .object({
+                  contentType: zod.string(),
+                  createdAt: zod.string(),
+                  height: zod.number(),
+                  id: zod.string(),
+                  kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                  name: zod.string().nullable(),
+                  sizeBytes: zod.number(),
+                  urls: zod.object({
+                    card: zod.string(),
+                    full: zod.string(),
+                    thumb: zod.string(),
+                  }),
+                  width: zod.number(),
+                })
+                .nullable(),
+              id: zod.string(),
+              title: zod.string(),
+            }),
+          )
+          .max(deliveryReadControllerHistorySummaryResponseLatestReceiptBookPreviewsMax)
+          .describe(
+            "At most three books, enough to render one book in full or a stack of covers. booksCount carries the real size.",
+          ),
+        booksCount: zod
+          .int()
+          .gt(deliveryReadControllerHistorySummaryResponseLatestReceiptBooksCountExclusiveMin)
+          .max(deliveryReadControllerHistorySummaryResponseLatestReceiptBooksCountMax)
+          .describe("How many books this receipt event delivered."),
+        deliveryService: zod
+          .object({
+            id: zod.string().nullable(),
+            name: zod.string(),
+          })
+          .nullable()
+          .describe(
+            "Null when the books were received without a parcel, which is a valid way to record a receipt.",
+          ),
+        orderId: zod
+          .uuid()
+          .regex(deliveryReadControllerHistorySummaryResponseLatestReceiptOrderIdRegExp),
+        receivedAt: zod.string().describe("When the books of this event were received."),
+        sameDayCount: zod
+          .int()
+          .min(deliveryReadControllerHistorySummaryResponseLatestReceiptSameDayCountMin)
+          .max(deliveryReadControllerHistorySummaryResponseLatestReceiptSameDayCountMax)
+          .describe(
+            "How many OTHER receipt events happened on the same day. Zero when this one stands alone.",
+          ),
+        shipmentId: zod
+          .uuid()
+          .regex(deliveryReadControllerHistorySummaryResponseLatestReceiptShipmentIdRegExp)
+          .nullable(),
+        storeName: zod.string(),
+      })
+      .nullable()
+      .describe("The most recent receipt event, or null when nothing has been received yet."),
     receivedBooksCount: zod
       .int()
       .min(deliveryReadControllerHistorySummaryResponseReceivedBooksCountMin)
@@ -898,6 +976,103 @@ export const DeliveryReadControllerHistorySummaryResponse = zod
   })
   .describe(
     "All-time overview of the finished part of the delivery history. Every number is scoped to books that are not in the trash, which is the same scope the history list itself renders.",
+  );
+
+/**
+ * @summary Get what the already received books changed for reading and for series
+ */
+export const deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemBooksCountExclusiveMin = 0;
+export const deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemSeriesCountExclusiveMin = 0;
+export const deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemSeriesCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistoryOutcomeResponseSeriesInsightsMax = 3;
+
+export const deliveryReadControllerHistoryOutcomeResponseUnreadReceivedBookPreviewsMax = 3;
+
+export const deliveryReadControllerHistoryOutcomeResponseUnreadReceivedBooksCountMin = 0;
+export const deliveryReadControllerHistoryOutcomeResponseUnreadReceivedBooksCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistoryOutcomeResponseUnreadReceivedInQueueCountMin = 0;
+export const deliveryReadControllerHistoryOutcomeResponseUnreadReceivedInQueueCountMax = 9007199254740991;
+
+export const DeliveryReadControllerHistoryOutcomeResponse = zod
+  .object({
+    seriesInsights: zod
+      .array(
+        zod.object({
+          booksCount: zod
+            .int()
+            .gt(
+              deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemBooksCountExclusiveMin,
+            )
+            .max(deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemBooksCountMax)
+            .describe("Received books behind this insight."),
+          kind: zod.enum(["series_completed", "series_gaps_closed", "series_topped_up"]),
+          seriesCount: zod
+            .int()
+            .gt(
+              deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemSeriesCountExclusiveMin,
+            )
+            .max(deliveryReadControllerHistoryOutcomeResponseSeriesInsightsItemSeriesCountMax),
+        }),
+      )
+      .max(deliveryReadControllerHistoryOutcomeResponseSeriesInsightsMax)
+      .describe(
+        "What the received books already changed in the series, strongest first: series_completed, series_gaps_closed, series_topped_up. A series is counted once, under its strongest insight. Empty when no series was completed and no ownership gap was closed, because a plain top-up count is what the history summary card already carries.",
+      ),
+    unreadReceived: zod
+      .object({
+        bookPreviews: zod
+          .array(
+            zod.object({
+              authorName: zod.string(),
+              cover: zod
+                .object({
+                  contentType: zod.string(),
+                  createdAt: zod.string(),
+                  height: zod.number(),
+                  id: zod.string(),
+                  kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                  name: zod.string().nullable(),
+                  sizeBytes: zod.number(),
+                  urls: zod.object({
+                    card: zod.string(),
+                    full: zod.string(),
+                    thumb: zod.string(),
+                  }),
+                  width: zod.number(),
+                })
+                .nullable(),
+              id: zod.string(),
+              title: zod.string(),
+            }),
+          )
+          .max(deliveryReadControllerHistoryOutcomeResponseUnreadReceivedBookPreviewsMax)
+          .describe(
+            "Reading-queue members first, in queue order, then the rest newest by receipt. Empty when booksCount is zero.",
+          ),
+        booksCount: zod
+          .int()
+          .min(deliveryReadControllerHistoryOutcomeResponseUnreadReceivedBooksCountMin)
+          .max(deliveryReadControllerHistoryOutcomeResponseUnreadReceivedBooksCountMax)
+          .describe(
+            "Received books that are still not_started or want_to_read. Zero means every received book has been picked up.",
+          ),
+        inQueueCount: zod
+          .int()
+          .min(deliveryReadControllerHistoryOutcomeResponseUnreadReceivedInQueueCountMin)
+          .max(deliveryReadControllerHistoryOutcomeResponseUnreadReceivedInQueueCountMax)
+          .describe("How many of those books already sit in the reading queue."),
+      })
+      .nullable()
+      .describe(
+        "Null when nothing has been received at all, which is the signal to leave the block out entirely.",
+      ),
+  })
+  .describe(
+    "What receiving the books already changed, scoped all-time over the books the history list renders and untouched by the list filters.",
   );
 
 /**

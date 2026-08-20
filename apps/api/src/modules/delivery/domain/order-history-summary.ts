@@ -1,4 +1,4 @@
-import type { BookOrderHistorySummaryView } from "@app/shared";
+import type { BookOrderHistorySummaryView, LatestReceiptView, Nullable } from "@app/shared";
 
 export type OrderHistorySummaryData = {
   cancelledBooksCount: number;
@@ -14,8 +14,12 @@ export type OrderHistorySummaryData = {
   receivedStandaloneBooksCount: number;
 };
 
+export type OrderHistorySummarySource = OrderHistorySummaryData & {
+  latestReceipt: Nullable<LatestReceiptView>;
+};
+
 export function buildOrderHistorySummaryView(
-  data: OrderHistorySummaryData,
+  data: OrderHistorySummarySource,
 ): BookOrderHistorySummaryView {
   return {
     cancelledBooksCount: data.cancelledBooksCount,
@@ -23,6 +27,7 @@ export function buildOrderHistorySummaryView(
     completedOrdersCount: data.completedOrdersCount,
     completedWithCancellationsCount: data.completedWithCancellationsCount,
     completedWithoutCancellationsCount: data.completedWithoutCancellationsCount,
+    latestReceipt: data.latestReceipt,
     receivedBooksCount: data.receivedBooksCount,
     receivedOrdersCount: data.receivedOrdersCount,
     receivedSeriesBooksCount: data.receivedSeriesBooksCount,

@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import type { InTransitSummaryData } from "../domain/delivery-summary.js";
 import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
+import type { LatestReceiptEvent } from "../domain/latest-receipt.mapper.js";
 import type { OrderHistorySummaryData } from "../domain/order-history-summary.js";
 import type { InTransitFilterInput } from "./in-transit-sql.js";
 import type { HistoryFilterInput } from "./order-history-sql.js";
@@ -47,7 +48,7 @@ const nextShipmentRelations = {
   },
 } satisfies Prisma.ShipmentDefaultArgs;
 
-const nextShipmentBookRelations = {
+const bookPreviewRelations = {
   include: { book: { include: { coverMedia: true } } },
 } satisfies Prisma.BookOrderItemDefaultArgs;
 
@@ -86,14 +87,19 @@ export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRo
 
 export type DatedNextShipmentRow = NextShipmentRow & { expectedDeliveryDate: Date };
 
+export type DeliveryBookPreviewRow = Prisma.BookOrderItemGetPayload<typeof bookPreviewRelations>;
+
 export type HistoryCounts = { totalBooksCount: number; totalCount: number };
 
 export type InTransitFacetRows = { services: FacetRow[]; stores: FacetRow[] };
 
-export type NextShipmentBookRow = Prisma.BookOrderItemGetPayload<typeof nextShipmentBookRelations>;
+export type LatestReceiptData = {
+  bookPreviews: DeliveryBookPreviewRow[];
+  event: LatestReceiptEvent;
+};
 
 export type NextShipmentData = {
-  bookPreviews: NextShipmentBookRow[];
+  bookPreviews: DeliveryBookPreviewRow[];
   booksCount: number;
   sameDayCount: number;
   shipment: DatedNextShipmentRow;
@@ -156,6 +162,19 @@ const HistorySummaryRowSchema = z.object({
   receivedSeriesCount: z.number().int(),
   receivedShipmentsCount: z.number().int(),
   receivedStandaloneBooksCount: z.number().int(),
+});
+
+const LatestReceiptEventRowSchema = z.object({
+  booksCount: z.number().int().positive(),
+  deliveryServiceId: z.uuid().nullable(),
+  deliveryServiceName: z.string().nullable(),
+  orderId: z.uuid(),
+  receivedAt: z.date(),
+  receivedDay: z.date(),
+  receivedDayEnd: z.date(),
+  sameDayCount: z.number().int().nonnegative(),
+  shipmentId: z.uuid().nullable(),
+  storeName: z.string(),
 });
 
 const AttentionShipmentsRowSchema = z.object({
@@ -518,6 +537,95 @@ export class DeliveryReadRepository {
     };
   }
 
+  async latestReceipt({
+    bookPreviewsMax,
+    userId,
+  }: {
+    bookPreviewsMax: number;
+    userId: string;
+  }): Promise<Nullable<LatestReceiptData>> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      WITH received_item AS (
+        SELECT
+          item.order_id,
+          item.shipment_id,
+          item.received_at,
+          date_trunc('day', item.received_at AT TIME ZONE 'UTC') AS received_day
+        ${HISTORY_ITEM_SOURCE}
+        WHERE book_order.user_id = ${userId}::uuid
+          AND ${LIVE_HISTORY_ITEM_SQL}
+          AND item.received_at IS NOT NULL
+      ),
+      receipt_event AS (
+        SELECT
+          order_id,
+          shipment_id,
+          received_day,
+          max(received_at) AS received_at,
+          (count(*))::int AS books_count
+        FROM received_item
+        GROUP BY order_id, shipment_id, received_day
+      )
+      SELECT
+        receipt_event.order_id AS "orderId",
+        receipt_event.shipment_id AS "shipmentId",
+        receipt_event.received_at AS "receivedAt",
+        (receipt_event.received_day AT TIME ZONE 'UTC') AS "receivedDay",
+        ((receipt_event.received_day + interval '1 day') AT TIME ZONE 'UTC') AS "receivedDayEnd",
+        receipt_event.books_count AS "booksCount",
+        (
+          SELECT (count(*))::int - 1
+          FROM receipt_event same_day
+          WHERE same_day.received_day = receipt_event.received_day
+        ) AS "sameDayCount",
+        book_order.store_name AS "storeName",
+        receipt_shipment.delivery_service_id AS "deliveryServiceId",
+        COALESCE(receipt_shipment.delivery_service_name, receipt_service.name)
+          AS "deliveryServiceName"
+      FROM receipt_event
+      JOIN book_orders book_order ON book_order.id = receipt_event.order_id
+      LEFT JOIN shipments receipt_shipment ON receipt_shipment.id = receipt_event.shipment_id
+      LEFT JOIN delivery_services receipt_service
+        ON receipt_service.id = receipt_shipment.delivery_service_id
+      ORDER BY
+        receipt_event.received_at DESC,
+        receipt_event.shipment_id ASC NULLS LAST,
+        receipt_event.order_id ASC
+      LIMIT 1
+    `);
+
+    const row = z.array(LatestReceiptEventRowSchema).parse(rows)[0];
+    if (row === undefined) {
+      return null;
+    }
+
+    const bookPreviews = await this.prisma.bookOrderItem.findMany({
+      orderBy: [{ book: { title: "asc" } }, { id: "asc" }],
+      take: bookPreviewsMax,
+      where: {
+        book: SOFT_DELETE_SCOPE.active,
+        orderId: row.orderId,
+        receivedAt: { gte: row.receivedDay, lt: row.receivedDayEnd },
+        shipmentId: row.shipmentId,
+      },
+      ...bookPreviewRelations,
+    });
+
+    return {
+      bookPreviews,
+      event: {
+        booksCount: row.booksCount,
+        deliveryServiceId: row.deliveryServiceId,
+        deliveryServiceName: row.deliveryServiceName,
+        orderId: row.orderId,
+        receivedAt: row.receivedAt,
+        sameDayCount: row.sameDayCount,
+        shipmentId: row.shipmentId,
+        storeName: row.storeName,
+      },
+    };
+  }
+
   async listHistory({
     skip,
     sort,
@@ -611,7 +719,7 @@ export class DeliveryReadRepository {
         orderBy: [{ book: { title: "asc" } }, { id: "asc" }],
         take: bookPreviewsMax,
         where: { ...activeBooks, shipmentId: shipment.id },
-        ...nextShipmentBookRelations,
+        ...bookPreviewRelations,
       }),
       this.prisma.bookOrderItem.count({ where: { ...activeBooks, shipmentId: shipment.id } }),
       this.prisma.shipment.count({

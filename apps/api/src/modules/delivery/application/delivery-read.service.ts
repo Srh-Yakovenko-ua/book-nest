@@ -1,22 +1,26 @@
 import type {
+  BookOrderHistoryOutcomeView,
   BookOrderHistoryQuery,
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
   BookOrderStatisticsQuery,
   BookOrderStatisticsView,
   BookPreview,
+  DeliveryBookPreview,
   InTransitFacetEntry,
   InTransitFacetsView,
   InTransitImpactView,
   InTransitQuery,
   InTransitSummaryView,
-  NextShipmentBookView,
+  LatestReceiptView,
   NextShipmentView,
   PaginatedOrderHistoryGroups,
   Paginator,
+  ReceivedUnreadView,
 } from "@app/shared";
 
 import {
+  HISTORY_RECEIPT_LIMITS,
   NEXT_SHIPMENT_LIMITS,
   normalizeSearch,
   OwnershipStatusSchema,
@@ -27,9 +31,14 @@ import { Injectable } from "@nestjs/common";
 
 import type {
   BookOrderItemRow,
-  NextShipmentBookRow,
+  DeliveryBookPreviewRow,
+  LatestReceiptData,
   NextShipmentData,
 } from "../infrastructure/delivery-read.repository.js";
+import type {
+  ReceivedUnreadCounts,
+  ReceivedUnreadPreviewRow,
+} from "../infrastructure/history-outcome.repository.js";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
@@ -38,6 +47,7 @@ import { MediaService } from "../../media/index.js";
 import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
 import { buildInTransitImpact } from "../domain/in-transit-impact.js";
+import { toLatestReceiptView } from "../domain/latest-receipt.mapper.js";
 import { toNextShipmentView } from "../domain/next-shipment.mapper.js";
 import { toOrderHistoryGroups } from "../domain/order-history-group.mapper.js";
 import { buildOrderHistorySummaryView } from "../domain/order-history-summary.js";
@@ -46,9 +56,11 @@ import {
   computeBookOrderStatistics,
   ORDER_STATISTICS_TOP_LIMIT,
 } from "../domain/order-statistics.js";
+import { buildReceivedSeriesInsights } from "../domain/received-series-insight.js";
 import { DeliveryImpactRepository } from "../infrastructure/delivery-impact.repository.js";
 import { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
 import { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
+import { HistoryOutcomeRepository } from "../infrastructure/history-outcome.repository.js";
 
 @Injectable()
 export class DeliveryReadService {
@@ -56,6 +68,7 @@ export class DeliveryReadService {
     private readonly deliveryImpactRepository: DeliveryImpactRepository,
     private readonly deliveryReadRepository: DeliveryReadRepository,
     private readonly deliveryStatisticsRepository: DeliveryStatisticsRepository,
+    private readonly historyOutcomeRepository: HistoryOutcomeRepository,
     private readonly mediaService: MediaService,
   ) {}
 
@@ -102,8 +115,32 @@ export class DeliveryReadService {
     };
   }
 
+  async historyOutcome({ userId }: { userId: string }): Promise<BookOrderHistoryOutcomeView> {
+    const [hasReceivedBooks, counts, seriesRows] = await Promise.all([
+      this.historyOutcomeRepository.hasReceivedBooks(userId),
+      this.historyOutcomeRepository.receivedUnreadCounts(userId),
+      this.historyOutcomeRepository.listReceivedSeriesRows(userId),
+    ]);
+
+    return {
+      seriesInsights: buildReceivedSeriesInsights(seriesRows),
+      unreadReceived: hasReceivedBooks ? await this.toReceivedUnreadView(counts, userId) : null,
+    };
+  }
+
   async historySummary(userId: string): Promise<BookOrderHistorySummaryView> {
-    return buildOrderHistorySummaryView(await this.deliveryReadRepository.historySummary(userId));
+    const [data, latestReceipt] = await Promise.all([
+      this.deliveryReadRepository.historySummary(userId),
+      this.deliveryReadRepository.latestReceipt({
+        bookPreviewsMax: HISTORY_RECEIPT_LIMITS.bookPreviewsMax,
+        userId,
+      }),
+    ]);
+
+    return buildOrderHistorySummaryView({
+      ...data,
+      latestReceipt: latestReceipt === null ? null : this.toLatestReceiptView(latestReceipt),
+    });
   }
 
   async inTransitFacets({ userId }: { userId: string }): Promise<InTransitFacetsView> {
@@ -239,7 +276,7 @@ export class DeliveryReadService {
     };
   }
 
-  private toNextShipmentBookView(item: NextShipmentBookRow): NextShipmentBookView {
+  private toDeliveryBookPreview(item: DeliveryBookPreviewRow): DeliveryBookPreview {
     return {
       authorName: item.book.firstAuthorName,
       cover: this.mediaService.buildViewOrNull(item.book.coverMedia),
@@ -248,17 +285,52 @@ export class DeliveryReadService {
     };
   }
 
+  private toLatestReceiptView(data: LatestReceiptData): LatestReceiptView {
+    return toLatestReceiptView({
+      bookPreviews: data.bookPreviews.map((item) => this.toDeliveryBookPreview(item)),
+      event: data.event,
+    });
+  }
+
   private toNextShipmentView(data: NextShipmentData): NextShipmentView {
     return toNextShipmentView({
-      bookPreviews: data.bookPreviews.map((item) => this.toNextShipmentBookView(item)),
+      bookPreviews: data.bookPreviews.map((item) => this.toDeliveryBookPreview(item)),
       booksCount: data.booksCount,
       sameDayCount: data.sameDayCount,
       shipment: data.shipment,
     });
   }
 
+  private async toReceivedUnreadView(
+    counts: ReceivedUnreadCounts,
+    userId: string,
+  ): Promise<ReceivedUnreadView> {
+    const previews =
+      counts.booksCount === 0
+        ? []
+        : await this.historyOutcomeRepository.receivedUnreadPreviews({
+            limit: HISTORY_RECEIPT_LIMITS.bookPreviewsMax,
+            userId,
+          });
+
+    return {
+      bookPreviews: previews.map((book) => this.toUnreadBookPreview(book)),
+      booksCount: counts.booksCount,
+      inQueueCount: counts.inQueueCount,
+    };
+  }
+
   private toRowView({ row, today }: { row: BookOrderItemRow; today: Date }): BookOrderItemRowView {
     return toBookOrderItemRowView({ book: this.toBookPreview(row.book), row, today });
+  }
+
+  private toUnreadBookPreview(book: ReceivedUnreadPreviewRow): DeliveryBookPreview {
+    return {
+      authorName: book.firstAuthorName,
+      cover: this.mediaService.buildViewOrNull(book.coverMedia),
+      id: book.id,
+      title: book.title,
+    };
   }
 }
 

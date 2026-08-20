@@ -33,6 +33,7 @@ type DeliveryHistoryViewProps = {
   pagination: { hasNextPage: boolean; isFetchingNextPage: boolean };
   renderCard: (model: HistoryOrderCardModel) => ReactNode;
   showToolbar: boolean;
+  sidebar?: ReactNode;
   summary: ReactNode;
   tab: DeliveryHistoryTab;
   toolbar: ReactNode;
@@ -49,6 +50,7 @@ export function DeliveryHistoryView({
   pagination,
   renderCard,
   showToolbar,
+  sidebar,
   summary,
   tab,
   toolbar,
@@ -73,27 +75,30 @@ export function DeliveryHistoryView({
 
       {showToolbar ? toolbar : null}
 
-      <div
-        className="flex min-w-0 flex-col gap-6"
-        {...(showToolbar
-          ? {
-              "aria-labelledby": pageTabsTriggerId(DELIVERY_HISTORY_PANEL_ID, tab),
-              id: DELIVERY_HISTORY_PANEL_ID,
-              role: "tabpanel",
-            }
-          : {})}
-      >
-        <h2 className="sr-only">{t("resultsTitle")}</h2>
-        <HistoryContentArea
-          content={content}
-          onGoToInTransit={onGoToInTransit}
-          onLoadMore={onLoadMore}
-          onResetFilters={onResetFilters}
-          onRetry={onRetry}
-          pagination={pagination}
-          renderCard={renderCard}
-          tab={tab}
-        />
+      <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+        <div
+          className="flex min-w-0 flex-1 flex-col gap-6"
+          {...(showToolbar
+            ? {
+                "aria-labelledby": pageTabsTriggerId(DELIVERY_HISTORY_PANEL_ID, tab),
+                id: DELIVERY_HISTORY_PANEL_ID,
+                role: "tabpanel",
+              }
+            : {})}
+        >
+          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <HistoryContentArea
+            content={content}
+            onGoToInTransit={onGoToInTransit}
+            onLoadMore={onLoadMore}
+            onResetFilters={onResetFilters}
+            onRetry={onRetry}
+            pagination={pagination}
+            renderCard={renderCard}
+            tab={tab}
+          />
+        </div>
+        {sidebar}
       </div>
     </div>
   );

@@ -53,6 +53,7 @@ const EMPTY_SUMMARY: BookOrderHistorySummaryView = {
   completedOrdersCount: 0,
   completedWithCancellationsCount: 0,
   completedWithoutCancellationsCount: 0,
+  latestReceipt: null,
   receivedBooksCount: 0,
   receivedOrdersCount: 0,
   receivedSeriesBooksCount: 0,

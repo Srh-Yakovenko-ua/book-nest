@@ -9,41 +9,38 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
 
-import type { DeliveryNextShipmentCardModel } from "../model/next-shipment-card";
+import type { DeliveryLatestReceiptCardModel } from "../model/latest-receipt-card";
 
 import { DeliveryBookCoverStack, DeliveryBookLink } from "./delivery-book-preview";
 
-type DeliveryNextShipmentCardProps = {
+type DeliveryLatestReceiptCardProps = {
   isLoading: boolean;
-  model: Nullable<DeliveryNextShipmentCardModel>;
+  model: Nullable<DeliveryLatestReceiptCardModel>;
   onReveal: () => void;
   resetsFilters: boolean;
 };
 
-export function DeliveryNextShipmentCard({
+export function DeliveryLatestReceiptCard({
   isLoading,
   model,
   onReveal,
   resetsFilters,
-}: DeliveryNextShipmentCardProps) {
-  const t = useTranslations("delivery.nextShipment");
+}: DeliveryLatestReceiptCardProps) {
+  const t = useTranslations("delivery.history.latestReceipt");
 
   return (
     <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
       {isLoading ? (
         <CardSkeleton />
       ) : model === null ? (
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-ink">{t("empty.text")}</p>
-          <p className="text-xs text-muted-foreground">{t("empty.helper")}</p>
-        </div>
+        <p className="text-sm font-medium text-ink">{t("empty.text")}</p>
       ) : (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <p className="font-heading text-lg leading-tight font-semibold text-ink">
               {model.relativeDayText}
             </p>
-            <p className="text-xs text-muted-foreground">{model.expectedDateText}</p>
+            <p className="text-xs text-muted-foreground">{model.receivedDateText}</p>
           </div>
 
           <dl className="flex flex-col gap-1.5 text-xs">
@@ -51,12 +48,9 @@ export function DeliveryNextShipmentCard({
             {model.serviceName === null ? null : (
               <MetaRow icon="truck" label={t("service")} value={model.serviceName} />
             )}
-            {model.trackingText === null ? null : (
-              <MetaRow icon="package" label={t("tracking")} mono value={model.trackingText} />
-            )}
           </dl>
 
-          <ShipmentBooks books={model.books} />
+          <ReceiptBooks books={model.books} />
 
           {model.sameDayText === null ? null : (
             <p className="text-xs text-muted-foreground">{model.sameDayText}</p>
@@ -64,7 +58,7 @@ export function DeliveryNextShipmentCard({
 
           <div className="flex flex-col gap-1">
             <Button className="w-full justify-between" onClick={onReveal} variant="secondary">
-              {resetsFilters ? t("action.show") : t("action.open")}
+              {t("action.open")}
               <UiIcon name="arrow-right" size={15} />
             </Button>
             {resetsFilters ? (
@@ -91,12 +85,10 @@ function CardSkeleton() {
 function MetaRow({
   icon,
   label,
-  mono = false,
   value,
 }: {
-  icon: "package" | "store" | "truck";
+  icon: "store" | "truck";
   label: string;
-  mono?: boolean;
   value: string;
 }) {
   return (
@@ -105,12 +97,12 @@ function MetaRow({
         <UiIcon name={icon} size={14} />
         <span className="sr-only">{label}</span>
       </dt>
-      <dd className={`truncate text-ink ${mono ? "font-mono" : ""}`}>{value}</dd>
+      <dd className="truncate text-ink">{value}</dd>
     </div>
   );
 }
 
-function ShipmentBooks({ books }: { books: DeliveryNextShipmentCardModel["books"] }) {
+function ReceiptBooks({ books }: { books: DeliveryLatestReceiptCardModel["books"] }) {
   if (books.kind === "single") {
     return <DeliveryBookLink book={books.book} />;
   }

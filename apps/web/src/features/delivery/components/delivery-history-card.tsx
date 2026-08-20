@@ -1,5 +1,7 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
@@ -24,18 +26,28 @@ import {
 
 type DeliveryHistoryCardProps = {
   model: HistoryOrderCardModel;
+  revealedOrderId?: Nullable<string>;
+  revealedShipmentId?: Nullable<string>;
   search: string;
 };
 
-export function DeliveryHistoryCard({ model, search }: DeliveryHistoryCardProps) {
+export function DeliveryHistoryCard({
+  model,
+  revealedOrderId = null,
+  revealedShipmentId = null,
+  search,
+}: DeliveryHistoryCardProps) {
   const t = useTranslations("delivery.card");
 
+  const revealsThisCard =
+    revealedOrderId === model.id ||
+    (revealedShipmentId !== null && carriesShipment(model, revealedShipmentId));
   const books = useExpandableBooks({
     booksCount: model.booksCount,
     hiddenCount: countHiddenBooks(model.shipments),
     initiallyExpanded: model.revealsSearchMatch,
-    revealKey: search,
-    revealsThisCard: model.revealsSearchMatch,
+    revealKey: revealedOrderId ?? revealedShipmentId ?? search,
+    revealsThisCard: model.revealsSearchMatch || revealsThisCard,
   });
 
   return (
@@ -52,6 +64,7 @@ export function DeliveryHistoryCard({ model, search }: DeliveryHistoryCardProps)
         .filter((part) => part !== null)
         .join(" · ")}
       orderId={model.id}
+      revealed={revealedOrderId === model.id}
       storeName={model.storeName}
       totalText={model.totalText}
     >
@@ -62,6 +75,7 @@ export function DeliveryHistoryCard({ model, search }: DeliveryHistoryCardProps)
             group={group}
             index={index}
             key={group.id ?? "not-shipped"}
+            revealed={group.id !== null && group.id === revealedShipmentId}
             shipmentCount={model.shipments.length}
           />
         ))}
@@ -89,6 +103,10 @@ function BookFootnote({ book }: { book: HistoryBookModel }) {
   );
 }
 
+function carriesShipment(model: HistoryOrderCardModel, shipmentId: string): boolean {
+  return model.shipments.some((group) => group.id === shipmentId);
+}
+
 function countHiddenBooks(shipments: HistoryShipmentGroupModel[]): number {
   return shipments.reduce(
     (hidden, group) => hidden + Math.max(0, group.books.length - ORDER_CARD_LAYOUT.bookLimit),
@@ -100,11 +118,13 @@ function HistoryShipmentSection({
   books,
   group,
   index,
+  revealed,
   shipmentCount,
 }: {
   books: HistoryBookModel[];
   group: HistoryShipmentGroupModel;
   index: number;
+  revealed: boolean;
   shipmentCount: number;
 }) {
   const t = useTranslations("delivery.card");
@@ -165,6 +185,7 @@ function HistoryShipmentSection({
         { label: t("trackingNumber"), value: group.trackingNumber },
       ].flatMap(({ label, value }) => (value === null ? [] : [{ label, value }]))}
       openTrackingLabel={t("openTracking")}
+      revealed={revealed}
       shipmentId={group.id}
       title={shipmentTitle}
       trackingHref={group.trackingHref}

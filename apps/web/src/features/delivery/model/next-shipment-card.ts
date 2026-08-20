@@ -4,13 +4,9 @@ import { differenceInCalendarDays, startOfDay } from "date-fns";
 
 import { formatDate, parseIsoDay } from "@/lib/format";
 
-export type DeliveryNextShipmentBook = {
-  authorName: string;
-  bookHref: string;
-  coverSrc?: string;
-  id: string;
-  title: string;
-};
+import type { DeliveryBookPreviewModel } from "./delivery-book-preview";
+
+import { DELIVERY_BOOK_PREVIEW, toDeliveryBookPreviewModel } from "./delivery-book-preview";
 
 export type DeliveryNextShipmentCardModel = {
   books: DeliveryNextShipmentBooks;
@@ -33,11 +29,10 @@ export type DeliveryNextShipmentLabels = {
 };
 
 type DeliveryNextShipmentBooks =
-  | { book: DeliveryNextShipmentBook; kind: "single" }
-  | { countText: string; covers: DeliveryNextShipmentBook[]; kind: "stack" };
+  | { book: DeliveryBookPreviewModel; kind: "single" }
+  | { countText: string; covers: DeliveryBookPreviewModel[]; kind: "stack" };
 
 export const NEXT_SHIPMENT_CARD = {
-  coversMax: 3,
   trackingTailLength: 4,
   truncateTrackingFrom: 8,
 } as const;
@@ -69,21 +64,11 @@ export function buildDeliveryNextShipmentCard({
   };
 }
 
-function toBook(preview: NextShipmentView["bookPreviews"][number]): DeliveryNextShipmentBook {
-  return {
-    authorName: preview.authorName,
-    bookHref: `/books/${preview.id}`,
-    coverSrc: preview.cover?.urls.thumb,
-    id: preview.id,
-    title: preview.title,
-  };
-}
-
 function toBooks(
   shipment: NextShipmentView,
   labels: DeliveryNextShipmentLabels,
 ): DeliveryNextShipmentBooks {
-  const books = shipment.bookPreviews.map((preview) => toBook(preview));
+  const books = shipment.bookPreviews.map((preview) => toDeliveryBookPreviewModel(preview));
   const [only] = books;
 
   if (shipment.booksCount === 1 && only !== undefined) {
@@ -92,7 +77,7 @@ function toBooks(
 
   return {
     countText: labels.booksCount(shipment.booksCount),
-    covers: books.slice(0, NEXT_SHIPMENT_CARD.coversMax),
+    covers: books.slice(0, DELIVERY_BOOK_PREVIEW.coversMax),
     kind: "stack",
   };
 }

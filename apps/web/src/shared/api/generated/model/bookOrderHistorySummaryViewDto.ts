@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { BookOrderHistorySummaryViewDtoLatestReceipt } from "./bookOrderHistorySummaryViewDtoLatestReceipt";
 
 /**
  * All-time overview of the finished part of the delivery history. Every number is scoped to books that are not in the trash, which is the same scope the history list itself renders.
@@ -40,6 +41,11 @@ export interface BookOrderHistorySummaryViewDto {
    * @maximum 9007199254740991
    */
   completedWithoutCancellationsCount: number;
+  /**
+   * The most recent receipt event, or null when nothing has been received yet.
+   * @nullable
+   */
+  latestReceipt: BookOrderHistorySummaryViewDtoLatestReceipt;
   /**
    * Books whose order item was received.
    * @minimum 0
