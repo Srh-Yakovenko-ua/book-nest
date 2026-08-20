@@ -6,7 +6,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 
 import { formatDayMonth, formatNumber, parseIsoDay } from "@/lib/format";
 
-import { formatCurrencyAverages, formatCurrencyTotals } from "./money-format";
+import { formatCurrencyAverages, toTotalsStatValue } from "./money-format";
 
 export type DeliverySummaryLabels = {
   active: {
@@ -150,12 +150,12 @@ function toExpectedThisWeekMicrofact(
 
 function toOrdersTotalCard({ labels, locale, summary }: SummaryCardOptions): LibrarySummaryCard {
   return {
+    ...toTotalsStatValue(summary?.activeOrdersTotalByCurrency ?? [], locale),
     icon: "wallet",
     iconTone: "success",
     label: labels.ordersTotal.label,
     microfact: summary === null ? undefined : toOrdersTotalMicrofact(summary, labels, locale),
     mobileLabels: labels.mobile("ordersTotal"),
-    value: formatCurrencyTotals(summary?.activeOrdersTotalByCurrency ?? [], locale),
   };
 }
 
