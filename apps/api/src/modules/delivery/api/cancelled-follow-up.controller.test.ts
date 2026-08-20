@@ -138,12 +138,14 @@ async function seedBooks(books: SeededBook[]): Promise<Map<string, string>> {
 async function seedGoal({
   archivedAt = null,
   books,
+  createdAt,
   deadline,
   name = "Осіннє читання",
   targetCount = 5,
 }: {
   archivedAt?: Nullable<Date>;
   books: { id: string; qualifiedFinishedAt?: Date }[];
+  createdAt?: Date;
   deadline?: Date;
   name?: Nullable<string>;
   targetCount?: number;
@@ -152,6 +154,7 @@ async function seedGoal({
   const goal = await prisma.readingGoal.create({
     data: {
       archivedAt,
+      ...(createdAt === undefined ? {} : { createdAt }),
       deadline: deadline ?? addDays(new Date(), 30),
       name,
       targetCount,
@@ -296,8 +299,9 @@ describe("books the plans still count on", () => {
     await seedGoal({
       books: [
         { id: bookIds.get("In a reached goal") ?? "" },
-        { id: bookIds.get("Already counted") ?? "", qualifiedFinishedAt: new Date("2026-08-05") },
+        { id: bookIds.get("Already counted") ?? "", qualifiedFinishedAt: subDays(new Date(), 5) },
       ],
+      createdAt: subDays(new Date(), 10),
       targetCount: 1,
     });
 
