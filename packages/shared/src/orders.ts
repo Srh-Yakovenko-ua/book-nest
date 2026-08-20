@@ -29,7 +29,6 @@ import {
   OwnershipPriceSchema,
   OwnershipStoreNameSchema,
   OwnershipStoreUrlSchema,
-  QueryBooleanSchema,
   QueryBooleanWithDefaultSchema,
   queryStringArray,
   TrackingNumberSchema,
@@ -67,9 +66,14 @@ const BOOK_ORDER_MESSAGES = {
   duplicateOrderItem: "The same book cannot be ordered twice in one order",
   duplicateShipmentBook: "The same book cannot be listed twice in one shipment",
   duplicateShipmentItem: "The same order item cannot be listed twice in one shipment",
+  priceCurrencyOutsideSelection: "The order total currency must be one of the selected currencies",
+  priceRangeNeedsCurrency: "An order total range needs the currency it is measured in",
+  priceRangeNeedsOneCurrency: "An order total range needs exactly one currency",
   shipmentBookNotOrdered: "A shipment can only carry books from this order",
   shipmentBookReused: "A book cannot be placed in two shipments",
   storeNameRequired: "Store name is required",
+  terminalDateOffTab: (tab: string): string =>
+    `This date range only applies to the ${tab} tab of the order history`,
 } as const;
 
 const CountSchema = z.number().int().nonnegative();
@@ -598,18 +602,18 @@ export const InTransitQuerySchema = z.object({
 
 export type InTransitQuery = z.infer<typeof InTransitQuerySchema>;
 
-export const InTransitFacetEntrySchema = z.object({ count: CountSchema, name: z.string() });
+export const DeliveryFacetEntrySchema = z.object({ count: CountSchema, name: z.string() });
 
-export type InTransitFacetEntry = z.infer<typeof InTransitFacetEntrySchema>;
+export type DeliveryFacetEntry = z.infer<typeof DeliveryFacetEntrySchema>;
 
 export const InTransitFacetsViewSchema = z.object({
   services: z
-    .array(InTransitFacetEntrySchema)
+    .array(DeliveryFacetEntrySchema)
     .describe(
       "Delivery services carrying an active shipment of an order that still has books on their way, with how many such orders each one carries.",
     ),
   stores: z
-    .array(InTransitFacetEntrySchema)
+    .array(DeliveryFacetEntrySchema)
     .describe("Stores of the orders that still have books on their way, with their order counts."),
 });
 
@@ -635,6 +639,10 @@ export const BOOK_ORDER_HISTORY_SORT = {
   priceSorts: ["price_asc", "price_desc"],
 } as const satisfies { default: BookOrderHistorySort; priceSorts: readonly BookOrderHistorySort[] };
 
+export function comparesOneCurrency(currency: Currency[] | undefined): boolean {
+  return currency !== undefined && currency.length === 1;
+}
+
 export function comparesOrderPrices(sort: BookOrderHistorySort): boolean {
   return BOOK_ORDER_HISTORY_SORT.priceSorts.some((priceSort) => priceSort === sort);
 }
@@ -643,29 +651,111 @@ export function resolveBookOrderHistorySort({
   currency,
   sort,
 }: {
-  currency: Currency | undefined;
+  currency: Currency[] | undefined;
   sort: BookOrderHistorySort;
 }): BookOrderHistorySort {
-  return comparesOrderPrices(sort) && currency === undefined
+  return comparesOrderPrices(sort) && !comparesOneCurrency(currency)
     ? BOOK_ORDER_HISTORY_SORT.default
     : sort;
 }
 
-export const BookOrderHistoryQuerySchema = z.object({
-  currency: CurrencySchema.optional(),
-  from: isoDay().optional(),
-  hasTrackingNumber: QueryBooleanSchema.optional(),
-  hasTrackingUrl: QueryBooleanSchema.optional(),
-  ...paginationQueryFields({ pageSizeDefault: BOOK_ORDER_LIMITS.pageSizeDefault }),
-  priceMax: z.coerce.number().nonnegative().optional(),
-  priceMin: z.coerce.number().nonnegative().optional(),
-  search: z.string().trim().max(BOOK_ORDER_LIMITS.searchMax).optional(),
-  service: DeliveryServiceSchema.optional(),
-  sort: BookOrderHistorySortSchema.default(BOOK_ORDER_HISTORY_SORT.default),
-  store: z.string().trim().max(BOOK_ORDER_LIMITS.storeMax).optional(),
-  tab: BookOrderHistoryTabSchema.default("all"),
-  to: isoDay().optional(),
+export const BookOrderHistoryTerminalTabSchema = BookOrderHistoryTabSchema.extract([
+  "received",
+  "cancelled",
+]);
+
+export type BookOrderHistoryTerminalTab = z.infer<typeof BookOrderHistoryTerminalTabSchema>;
+
+export const BOOK_ORDER_HISTORY_TERMINAL_DATE_FIELDS = {
+  cancelled: ["cancelledFrom", "cancelledTo"],
+  received: ["receivedFrom", "receivedTo"],
+} as const satisfies Record<BookOrderHistoryTerminalTab, readonly string[]>;
+
+export const BookOrderHistoryFacetsQuerySchema = z.object({
+  tab: BookOrderHistoryTerminalTabSchema,
 });
+
+export type BookOrderHistoryFacetsQuery = z.infer<typeof BookOrderHistoryFacetsQuerySchema>;
+
+export const BookOrderHistoryFacetsViewSchema = z.object({
+  services: z
+    .array(DeliveryFacetEntrySchema)
+    .describe(
+      "Delivery services that carried a parcel holding a book of the requested tab, with how many orders each one carries. The list answers only to the tab, so picking another filter never makes an option disappear.",
+    ),
+  stores: z
+    .array(DeliveryFacetEntrySchema)
+    .describe(
+      "Stores of the orders holding a book of the requested tab, with their order counts. The list answers only to the tab.",
+    ),
+});
+
+export type BookOrderHistoryFacetsView = z.infer<typeof BookOrderHistoryFacetsViewSchema>;
+
+export const BookOrderHistoryQuerySchema = z
+  .object({
+    booksMax: z.coerce.number().int().min(0).max(BOOK_ORDER_LIMITS.booksCountMax).optional(),
+    booksMin: z.coerce.number().int().min(0).max(BOOK_ORDER_LIMITS.booksCountMax).optional(),
+    cancelledFrom: isoDay().optional(),
+    cancelledTo: isoDay().optional(),
+    currency: queryStringArray(CurrencySchema),
+    from: isoDay().optional(),
+    ...paginationQueryFields({ pageSizeDefault: BOOK_ORDER_LIMITS.pageSizeDefault }),
+    priceCurrency: CurrencySchema.optional().describe(
+      "Gates the canonical order total range. The range is ignored unless exactly one currency is named here.",
+    ),
+    priceMax: z.coerce.number().nonnegative().optional(),
+    priceMin: z.coerce.number().nonnegative().optional(),
+    receivedFrom: isoDay().optional(),
+    receivedTo: isoDay().optional(),
+    search: z.string().trim().max(BOOK_ORDER_LIMITS.searchMax).optional(),
+    service: queryStringArray(DeliveryServiceSchema),
+    sort: BookOrderHistorySortSchema.default(BOOK_ORDER_HISTORY_SORT.default),
+    store: queryStringArray(z.string().trim().max(BOOK_ORDER_LIMITS.storeMax)),
+    tab: BookOrderHistoryTabSchema.default("all"),
+    to: isoDay().optional(),
+  })
+  .superRefine((query, context) => {
+    for (const [tab, fields] of Object.entries(BOOK_ORDER_HISTORY_TERMINAL_DATE_FIELDS)) {
+      if (query.tab === tab) continue;
+
+      for (const field of fields) {
+        if (query[field] === undefined) continue;
+        context.addIssue({
+          code: "custom",
+          message: BOOK_ORDER_MESSAGES.terminalDateOffTab(tab),
+          path: [field],
+        });
+      }
+    }
+
+    if (query.priceCurrency === undefined) {
+      if (query.priceMin !== undefined || query.priceMax !== undefined) {
+        context.addIssue({
+          code: "custom",
+          message: BOOK_ORDER_MESSAGES.priceRangeNeedsCurrency,
+          path: ["priceCurrency"],
+        });
+      }
+      return;
+    }
+
+    if (query.currency !== undefined && !query.currency.includes(query.priceCurrency)) {
+      context.addIssue({
+        code: "custom",
+        message: BOOK_ORDER_MESSAGES.priceCurrencyOutsideSelection,
+        path: ["priceCurrency"],
+      });
+    }
+
+    if (query.currency !== undefined && query.currency.length > 1) {
+      context.addIssue({
+        code: "custom",
+        message: BOOK_ORDER_MESSAGES.priceRangeNeedsOneCurrency,
+        path: ["currency"],
+      });
+    }
+  });
 
 export type BookOrderHistoryQuery = z.infer<typeof BookOrderHistoryQuerySchema>;
 

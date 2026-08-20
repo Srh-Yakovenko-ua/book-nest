@@ -239,23 +239,24 @@ export function DeliveryHistory() {
       tab={params.tab}
       toolbar={
         <DeliveryHistoryToolbar
+          advanced={params.advanced}
+          advancedCount={params.advancedCount}
           canSortByPrice={params.canSortByPrice}
           counterLabel={t("counter", {
             books: totalBooksCount,
             shown: items.length,
             total: totalCount,
           })}
-          filterCount={params.filterCount}
           isPending={listQuery.isPending}
           loadingLabel={t("states.loading")}
-          onApplyFilters={params.setFilters}
+          onApplyAdvanced={params.applyAdvanced}
+          onClearAdvanced={params.clearAdvanced}
           onClearSearch={params.clearSearch}
-          onResetFilters={params.clearFilters}
           onSearch={params.setSearch}
           onSortChange={params.setSort}
           onTabChange={params.setTab}
+          searchValue={params.state.q}
           sort={params.sort}
-          state={params.state}
           tab={params.tab}
         />
       }

@@ -1,4 +1,9 @@
-import type { BookOrderHistorySort, InTransitSort, Nullable } from "@app/shared";
+import type {
+  BookOrderHistorySort,
+  BookOrderHistoryTerminalTab,
+  InTransitSort,
+  Nullable,
+} from "@app/shared";
 
 import {
   NextShipmentStatusSchema,
@@ -37,6 +42,7 @@ import {
   HISTORY_CONTENT_SOURCE,
   HISTORY_ITEM_SOURCE,
   historyContentOrderSql,
+  historyFacetTabSql,
   historyOrderSql,
   LIVE_HISTORY_ITEM_SQL,
 } from "./order-history-sql.js";
@@ -89,9 +95,9 @@ export type DatedNextShipmentRow = NextShipmentRow & { expectedDeliveryDate: Dat
 
 export type DeliveryBookPreviewRow = Prisma.BookOrderItemGetPayload<typeof bookPreviewRelations>;
 
-export type HistoryCounts = { totalBooksCount: number; totalCount: number };
+export type DeliveryFacetRows = { services: FacetRow[]; stores: FacetRow[] };
 
-export type InTransitFacetRows = { services: FacetRow[]; stores: FacetRow[] };
+export type HistoryCounts = { totalBooksCount: number; totalCount: number };
 
 export type LatestReceiptData = {
   bookPreviews: DeliveryBookPreviewRow[];
@@ -282,6 +288,50 @@ export class DeliveryReadRepository {
     return z.array(TotalCountRowSchema).parse(rows)[0]?.totalCount ?? 0;
   }
 
+  async historyFacets({
+    tab,
+    userId,
+  }: {
+    tab: BookOrderHistoryTerminalTab;
+    userId: string;
+  }): Promise<DeliveryFacetRows> {
+    const terminalContent = historyFacetTabSql(tab);
+
+    const [storeRows, serviceRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT book_order.store_name AS "name", (count(*))::int AS "count"
+        FROM book_orders book_order
+        WHERE book_order.user_id = ${userId}::uuid
+          AND EXISTS (
+            SELECT 1
+            ${HISTORY_CONTENT_SOURCE}
+            WHERE item.order_id = book_order.id AND ${terminalContent}
+          )
+        GROUP BY book_order.store_name
+      `),
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          facet_shipment.delivery_service_name AS "name",
+          (count(DISTINCT book_order.id))::int AS "count"
+        FROM shipments facet_shipment
+        JOIN book_orders book_order ON book_order.id = facet_shipment.order_id
+        WHERE book_order.user_id = ${userId}::uuid
+          AND facet_shipment.delivery_service_name IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            ${HISTORY_CONTENT_SOURCE}
+            WHERE item.shipment_id = facet_shipment.id AND ${terminalContent}
+          )
+        GROUP BY facet_shipment.delivery_service_name
+      `),
+    ]);
+
+    return {
+      services: z.array(FacetRowSchema).parse(serviceRows),
+      stores: z.array(FacetRowSchema).parse(storeRows),
+    };
+  }
+
   async historySummary(userId: string): Promise<OrderHistorySummaryData> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       WITH live_item AS (
@@ -329,7 +379,7 @@ export class DeliveryReadRepository {
     return z.tuple([HistorySummaryRowSchema]).parse(rows)[0];
   }
 
-  async inTransitFacets(userId: string): Promise<InTransitFacetRows> {
+  async inTransitFacets(userId: string): Promise<DeliveryFacetRows> {
     const [storeRows, serviceRows] = await Promise.all([
       this.prisma.$queryRaw(Prisma.sql`
         SELECT book_order.store_name AS "name", (count(*))::int AS "count"

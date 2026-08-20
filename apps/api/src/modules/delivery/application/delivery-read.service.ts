@@ -1,4 +1,6 @@
 import type {
+  BookOrderHistoryFacetsQuery,
+  BookOrderHistoryFacetsView,
   BookOrderHistoryOutcomeView,
   BookOrderHistoryQuery,
   BookOrderHistorySummaryView,
@@ -7,7 +9,7 @@ import type {
   BookOrderStatisticsView,
   BookPreview,
   DeliveryBookPreview,
-  InTransitFacetEntry,
+  DeliveryFacetEntry,
   InTransitFacetsView,
   InTransitImpactView,
   InTransitQuery,
@@ -72,6 +74,21 @@ export class DeliveryReadService {
     private readonly mediaService: MediaService,
   ) {}
 
+  async historyFacets({
+    query,
+    userId,
+  }: {
+    query: BookOrderHistoryFacetsQuery;
+    userId: string;
+  }): Promise<BookOrderHistoryFacetsView> {
+    const rows = await this.deliveryReadRepository.historyFacets({ tab: query.tab, userId });
+
+    return {
+      services: sortFacetEntries(rows.services),
+      stores: sortFacetEntries(rows.stores),
+    };
+  }
+
   async historyList({
     query,
     userId,
@@ -81,17 +98,22 @@ export class DeliveryReadService {
   }): Promise<PaginatedOrderHistoryGroups> {
     const { today } = deliveryDateBounds(new Date());
     const filter = {
+      booksMax: query.booksMax,
+      booksMin: query.booksMin,
+      cancelledFrom: query.cancelledFrom,
+      cancelledTo: query.cancelledTo,
       currency: query.currency,
-      from: query.from === undefined ? undefined : parseIsoDate(query.from),
-      hasTrackingNumber: query.hasTrackingNumber,
-      hasTrackingUrl: query.hasTrackingUrl,
+      from: query.from,
+      priceCurrency: query.priceCurrency,
       priceMax: query.priceMax,
       priceMin: query.priceMin,
+      receivedFrom: query.receivedFrom,
+      receivedTo: query.receivedTo,
       search: normalizeSearch(query.search),
       service: query.service,
       store: query.store,
       tab: query.tab,
-      to: query.to === undefined ? undefined : parseIsoDate(query.to),
+      to: query.to,
       userId,
     };
 
@@ -334,7 +356,7 @@ export class DeliveryReadService {
   }
 }
 
-function sortFacetEntries(entries: InTransitFacetEntry[]): InTransitFacetEntry[] {
+function sortFacetEntries(entries: DeliveryFacetEntry[]): DeliveryFacetEntry[] {
   return [...entries].sort(
     (left, right) => right.count - left.count || UKRAINIAN_COLLATION.compare(left.name, right.name),
   );

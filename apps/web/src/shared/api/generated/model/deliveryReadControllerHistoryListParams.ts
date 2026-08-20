@@ -5,20 +5,38 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { DeliveryReadControllerHistoryListCurrency } from "./deliveryReadControllerHistoryListCurrency";
-import type { DeliveryReadControllerHistoryListHasTrackingNumber } from "./deliveryReadControllerHistoryListHasTrackingNumber";
-import type { DeliveryReadControllerHistoryListHasTrackingUrl } from "./deliveryReadControllerHistoryListHasTrackingUrl";
+import type { DeliveryReadControllerHistoryListCurrencyItem } from "./deliveryReadControllerHistoryListCurrencyItem";
+import type { DeliveryReadControllerHistoryListPriceCurrency } from "./deliveryReadControllerHistoryListPriceCurrency";
 import type { DeliveryReadControllerHistoryListSort } from "./deliveryReadControllerHistoryListSort";
 import type { DeliveryReadControllerHistoryListTab } from "./deliveryReadControllerHistoryListTab";
 
 export type DeliveryReadControllerHistoryListParams = {
-  currency?: DeliveryReadControllerHistoryListCurrency;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  booksMax?: number;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  booksMin?: number;
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  cancelledFrom?: string;
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  cancelledTo?: string;
+  /**
+   * @maxItems 100
+   */
+  currency?: DeliveryReadControllerHistoryListCurrencyItem[];
   /**
    * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
    */
   from?: string;
-  hasTrackingNumber?: DeliveryReadControllerHistoryListHasTrackingNumber;
-  hasTrackingUrl?: DeliveryReadControllerHistoryListHasTrackingUrl;
   /**
    * @minimum 1
    * @maximum 21474836
@@ -30,6 +48,10 @@ export type DeliveryReadControllerHistoryListParams = {
    */
   pageSize?: number;
   /**
+   * Gates the canonical order total range. The range is ignored unless exactly one currency is named here.
+   */
+  priceCurrency?: DeliveryReadControllerHistoryListPriceCurrency;
+  /**
    * @minimum 0
    */
   priceMax?: number;
@@ -38,15 +60,26 @@ export type DeliveryReadControllerHistoryListParams = {
    */
   priceMin?: number;
   /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  receivedFrom?: string;
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  receivedTo?: string;
+  /**
    * @maxLength 100
    */
   search?: string;
-  service?: string;
+  /**
+   * @maxItems 100
+   */
+  service?: string[];
   sort?: DeliveryReadControllerHistoryListSort;
   /**
-   * @maxLength 200
+   * @maxItems 100
    */
-  store?: string;
+  store?: string[];
   tab?: DeliveryReadControllerHistoryListTab;
   /**
    * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$

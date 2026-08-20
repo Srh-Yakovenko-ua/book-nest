@@ -19,10 +19,12 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookOrderHistoryFacetsViewDto,
   BookOrderHistoryOutcomeViewDto,
   BookOrderHistorySummaryViewDto,
   CancelledFollowUpViewDto,
   CancelledFollowUpWishlistResultDto,
+  DeliveryReadControllerHistoryFacetsParams,
   DeliveryReadControllerHistoryListParams,
   DeliveryReadControllerInTransitListParams,
   InTransitFacetsViewDto,
@@ -1108,6 +1110,202 @@ export function useDeliveryReadControllerHistoryOutcome<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type deliveryReadControllerHistoryFacetsResponse200 = {
+  data: BookOrderHistoryFacetsViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerHistoryFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerHistoryFacetsResponseSuccess =
+  deliveryReadControllerHistoryFacetsResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerHistoryFacetsResponseError =
+  deliveryReadControllerHistoryFacetsResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerHistoryFacetsResponse =
+  | deliveryReadControllerHistoryFacetsResponseSuccess
+  | deliveryReadControllerHistoryFacetsResponseError;
+
+export const getDeliveryReadControllerHistoryFacetsUrl = (
+  params: DeliveryReadControllerHistoryFacetsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/delivery/books/history/facets?${stringifiedParams}`
+    : `/api/delivery/books/history/facets`;
+};
+
+/**
+ * @summary List the stores and delivery services behind one tab of the order history
+ */
+export const deliveryReadControllerHistoryFacets = async (
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerHistoryFacetsResponse> => {
+  return customInstance<deliveryReadControllerHistoryFacetsResponse>(
+    getDeliveryReadControllerHistoryFacetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerHistoryFacetsQueryKey = (
+  params?: DeliveryReadControllerHistoryFacetsParams,
+) => {
+  return [`/api/delivery/books/history/facets`, ...(params ? [params] : [])] as const;
+};
+
+export const getDeliveryReadControllerHistoryFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerHistoryFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>> = ({
+    signal,
+  }) => deliveryReadControllerHistoryFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerHistoryFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>
+>;
+export type DeliveryReadControllerHistoryFacetsQueryError = void;
+
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the stores and delivery services behind one tab of the order history
+ */
+
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerHistoryFacetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type deliveryReadControllerHistoryListResponse200 = {
   data: PaginatedOrderHistoryGroupsDto;
   status: 200;
@@ -1136,6 +1334,15 @@ export const getDeliveryReadControllerHistoryListUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["currency", "service", "store"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }

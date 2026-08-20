@@ -76,8 +76,6 @@ const coerceQueryStringArray = (value: unknown): unknown => {
 export const queryStringArray = <Schema extends z.ZodType>(schema: Schema) =>
   z.preprocess(coerceQueryStringArray, z.array(schema).max(LIST_PAGE_SIZE_MAX).optional());
 
-export const QueryBooleanSchema = z.enum(["true", "false"]).transform((value) => value === "true");
-
 export const QueryBooleanWithDefaultSchema = z
   .enum(["true", "false"])
   .default("false")

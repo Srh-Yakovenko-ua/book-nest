@@ -25,38 +25,51 @@ import { BookDateField } from "@/features/books/components/book-date-field";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
-import type { DeliveryAdvancedState } from "../model/in-transit-params";
+import type { DeliveryHistoryAdvancedState, DeliveryHistoryTab } from "../model/history-params";
 
-import { useInTransitFacets } from "../api/use-in-transit-facets";
+import { useHistoryFacets } from "../api/use-history-facets";
 import {
-  DELIVERY_ADVANCED_EMPTY,
-  DELIVERY_CURRENCY_VALUES,
-  DELIVERY_STRUCTURE_VALUES,
-  deliveryRangeFlags,
-  hasInvalidDeliveryRange,
-} from "../model/in-transit-params";
+  DELIVERY_HISTORY_ADVANCED_EMPTY,
+  DELIVERY_HISTORY_CURRENCY_VALUES,
+  hasInvalidHistoryRange,
+  historyRangeFlags,
+} from "../model/history-params";
 
-type DeliveryAdvancedFiltersProps = {
+type DeliveryHistoryAdvancedFiltersProps = {
   activeCount: number;
-  onApply: (draft: DeliveryAdvancedState) => void;
-  state: DeliveryAdvancedState;
+  onApply: (draft: DeliveryHistoryAdvancedState) => void;
+  state: DeliveryHistoryAdvancedState;
+  tab: DeliveryHistoryTab;
 };
 
-export function DeliveryAdvancedFilters({
+export function DeliveryHistoryAdvancedFilters({
   activeCount,
   onApply,
   state,
-}: DeliveryAdvancedFiltersProps) {
-  const t = useTranslations("delivery.advancedFilters");
+  tab,
+}: DeliveryHistoryAdvancedFiltersProps) {
+  const t = useTranslations("delivery.history.advancedFilters");
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<DeliveryAdvancedState>(state);
-  const facets = useInTransitFacets(open);
+  const [draft, setDraft] = useState<DeliveryHistoryAdvancedState>(state);
+  const facets = useHistoryFacets({ enabled: open, tab });
 
-  const rangeFlags = deliveryRangeFlags(draft);
+  const rangeFlags = historyRangeFlags(draft);
   const priceIsDisabled = draft.currency.length !== 1;
+  const isCancelledTab = tab === "cancelled";
+  const terminal = isCancelledTab
+    ? { from: draft.cancelledFrom, isInverted: rangeFlags.cancelled, to: draft.cancelledTo }
+    : { from: draft.receivedFrom, isInverted: rangeFlags.received, to: draft.receivedTo };
 
-  function patch(next: Partial<DeliveryAdvancedState>) {
+  function patch(next: Partial<DeliveryHistoryAdvancedState>) {
     setDraft((prev) => ({ ...prev, ...next }));
+  }
+
+  function patchTerminalFrom(value: Nullable<string>) {
+    patch(isCancelledTab ? { cancelledFrom: value } : { receivedFrom: value });
+  }
+
+  function patchTerminalTo(value: Nullable<string>) {
+    patch(isCancelledTab ? { cancelledTo: value } : { receivedTo: value });
   }
 
   return (
@@ -103,20 +116,20 @@ export function DeliveryAdvancedFilters({
           <FilterSection title={t("sections.orderDate")}>
             <div className="grid gap-2.5">
               <BookDateField
-                ariaLabel={t("range.from")}
+                ariaLabel={t("orderDate.from")}
                 className="h-9 text-sm"
-                id="delivery-filter-ordered-from"
-                onChange={(value) => patch({ orderedFrom: value ?? null })}
+                id="history-filter-ordered-from"
+                onChange={(value) => patch({ from: value ?? null })}
                 placeholder={t("range.from")}
-                value={draft.orderedFrom}
+                value={draft.from}
               />
               <BookDateField
-                ariaLabel={t("range.to")}
+                ariaLabel={t("orderDate.to")}
                 className="h-9 text-sm"
-                id="delivery-filter-ordered-to"
-                onChange={(value) => patch({ orderedTo: value ?? null })}
+                id="history-filter-ordered-to"
+                onChange={(value) => patch({ to: value ?? null })}
                 placeholder={t("range.to")}
-                value={draft.orderedTo}
+                value={draft.to}
               />
             </div>
             {rangeFlags.ordered ? (
@@ -147,7 +160,9 @@ export function DeliveryAdvancedFilters({
                 value={draft.booksMax ?? ""}
               />
             </div>
-            <p className="text-xs text-muted-foreground">{t("booksCount.hint")}</p>
+            <p className="text-xs text-muted-foreground">
+              {isCancelledTab ? t("booksCount.cancelledHint") : t("booksCount.receivedHint")}
+            </p>
             {rangeFlags.books ? (
               <p className="text-xs text-destructive">{t("range.invalid")}</p>
             ) : null}
@@ -162,49 +177,7 @@ export function DeliveryAdvancedFilters({
               searchPlaceholder={t("service.search")}
               value={draft.service}
             />
-          </FilterSection>
-
-          <FilterSection title={t("sections.expectedDate")}>
-            <div className="grid gap-2.5">
-              <BookDateField
-                allowFuture
-                ariaLabel={t("range.from")}
-                className="h-9 text-sm"
-                id="delivery-filter-expected-from"
-                onChange={(value) => patch({ expectedFrom: value ?? null })}
-                placeholder={t("range.from")}
-                value={draft.expectedFrom}
-              />
-              <BookDateField
-                allowFuture
-                ariaLabel={t("range.to")}
-                className="h-9 text-sm"
-                id="delivery-filter-expected-to"
-                onChange={(value) => patch({ expectedTo: value ?? null })}
-                placeholder={t("range.to")}
-                value={draft.expectedTo}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">{t("expectedDate.hint")}</p>
-            {rangeFlags.expected ? (
-              <p className="text-xs text-destructive">{t("range.invalid")}</p>
-            ) : null}
-          </FilterSection>
-
-          <FilterSection title={t("sections.structure")}>
-            <ChipGroup
-              label={t("sections.structure")}
-              mode="multi"
-              onValueChange={(next) =>
-                patch({ structure: DELIVERY_STRUCTURE_VALUES.filter((v) => next.includes(v)) })
-              }
-              options={DELIVERY_STRUCTURE_VALUES.map((value) => ({
-                label: t(`structure.${value}`),
-                value,
-              }))}
-              size="sm"
-              value={draft.structure}
-            />
+            <p className="text-xs text-muted-foreground">{t("service.hint")}</p>
           </FilterSection>
 
           <FilterSection title={t("sections.currency")}>
@@ -212,9 +185,13 @@ export function DeliveryAdvancedFilters({
               label={t("sections.currency")}
               mode="multi"
               onValueChange={(next) =>
-                patch({ currency: DELIVERY_CURRENCY_VALUES.filter((v) => next.includes(v)) })
+                patch({
+                  currency: DELIVERY_HISTORY_CURRENCY_VALUES.filter((value) =>
+                    next.includes(value),
+                  ),
+                })
               }
-              options={DELIVERY_CURRENCY_VALUES.map((value) => ({ label: value, value }))}
+              options={DELIVERY_HISTORY_CURRENCY_VALUES.map((value) => ({ label: value, value }))}
               size="sm"
               value={draft.currency}
             />
@@ -252,14 +229,47 @@ export function DeliveryAdvancedFilters({
               <p className="text-xs text-destructive">{t("range.invalid")}</p>
             ) : null}
           </FilterSection>
+
+          <FilterSection
+            title={isCancelledTab ? t("sections.cancelledDate") : t("sections.receivedDate")}
+          >
+            <div className="grid gap-2.5">
+              <BookDateField
+                ariaLabel={isCancelledTab ? t("cancelledDate.from") : t("receivedDate.from")}
+                className="h-9 text-sm"
+                id="history-filter-terminal-from"
+                onChange={(value) => patchTerminalFrom(value ?? null)}
+                placeholder={t("range.from")}
+                value={terminal.from}
+              />
+              <BookDateField
+                ariaLabel={isCancelledTab ? t("cancelledDate.to") : t("receivedDate.to")}
+                className="h-9 text-sm"
+                id="history-filter-terminal-to"
+                onChange={(value) => patchTerminalTo(value ?? null)}
+                placeholder={t("range.to")}
+                value={terminal.to}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isCancelledTab ? t("cancelledDate.hint") : t("receivedDate.hint")}
+            </p>
+            {terminal.isInverted ? (
+              <p className="text-xs text-destructive">{t("range.invalid")}</p>
+            ) : null}
+          </FilterSection>
         </div>
 
         <SheetFooter className="border-t">
-          <Button onClick={() => setDraft(DELIVERY_ADVANCED_EMPTY)} type="button" variant="ghost">
+          <Button
+            onClick={() => setDraft(DELIVERY_HISTORY_ADVANCED_EMPTY)}
+            type="button"
+            variant="ghost"
+          >
             {t("clear")}
           </Button>
           <Button
-            disabled={hasInvalidDeliveryRange(draft)}
+            disabled={hasInvalidHistoryRange(draft)}
             onClick={() => {
               onApply(draft);
               setOpen(false);

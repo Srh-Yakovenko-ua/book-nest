@@ -1,4 +1,5 @@
 import type {
+  BookOrderHistoryFacetsView,
   BookOrderHistoryOutcomeView,
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
@@ -9,7 +10,11 @@ import type {
   Paginator,
 } from "@app/shared";
 
-import { BookOrderHistoryQuerySchema, InTransitQuerySchema } from "@app/shared";
+import {
+  BookOrderHistoryFacetsQuerySchema,
+  BookOrderHistoryQuerySchema,
+  InTransitQuerySchema,
+} from "@app/shared";
 import { Controller, Get, Query } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
@@ -20,8 +25,10 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { DeliveryReadService } from "../application/delivery-read.service.js";
+import { BookOrderHistoryFacetsQueryDto } from "./input-dto/book-order-history-facets-query.input-dto.js";
 import { BookOrderHistoryQueryDto } from "./input-dto/book-order-history-query.input-dto.js";
 import { InTransitQueryDto } from "./input-dto/in-transit-query.input-dto.js";
+import { BookOrderHistoryFacetsViewDto } from "./view-dto/book-order-history-facets.view-dto.js";
 import { BookOrderHistoryOutcomeViewDto } from "./view-dto/book-order-history-outcome.view-dto.js";
 import { BookOrderHistorySummaryViewDto } from "./view-dto/book-order-history-summary.view-dto.js";
 import { InTransitFacetsViewDto } from "./view-dto/in-transit-facets.view-dto.js";
@@ -131,6 +138,24 @@ export class DeliveryReadController {
   }
 
   @ApiOkResponse({
+    description: "The stores and delivery services behind the finished orders of one history tab",
+    type: BookOrderHistoryFacetsViewDto,
+  })
+  @ApiOperation({
+    summary: "List the stores and delivery services behind one tab of the order history",
+  })
+  @ApiQuery({ name: "tab", required: true })
+  @Get("books/history/facets")
+  @Throttle(READ_THROTTLE)
+  historyFacets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(BookOrderHistoryFacetsQuerySchema))
+    query: BookOrderHistoryFacetsQueryDto,
+  ): Promise<BookOrderHistoryFacetsView> {
+    return this.deliveryReadService.historyFacets({ query, userId: user.id });
+  }
+
+  @ApiOkResponse({
     description:
       "A page of finished orders, each carrying the parcels and books of the requested tab",
     type: PaginatedOrderHistoryGroupsDto,
@@ -140,15 +165,20 @@ export class DeliveryReadController {
   })
   @ApiQuery({ name: "tab", required: false })
   @ApiQuery({ name: "search", required: false })
-  @ApiQuery({ name: "store", required: false })
-  @ApiQuery({ name: "service", required: false })
-  @ApiQuery({ name: "currency", required: false })
+  @ApiQuery({ isArray: true, name: "store", required: false, type: String })
+  @ApiQuery({ isArray: true, name: "service", required: false, type: String })
+  @ApiQuery({ isArray: true, name: "currency", required: false, type: String })
   @ApiQuery({ name: "from", required: false })
   @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "receivedFrom", required: false })
+  @ApiQuery({ name: "receivedTo", required: false })
+  @ApiQuery({ name: "cancelledFrom", required: false })
+  @ApiQuery({ name: "cancelledTo", required: false })
+  @ApiQuery({ name: "booksMin", required: false })
+  @ApiQuery({ name: "booksMax", required: false })
+  @ApiQuery({ name: "priceCurrency", required: false })
   @ApiQuery({ name: "priceMin", required: false })
   @ApiQuery({ name: "priceMax", required: false })
-  @ApiQuery({ name: "hasTrackingNumber", required: false })
-  @ApiQuery({ name: "hasTrackingUrl", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
