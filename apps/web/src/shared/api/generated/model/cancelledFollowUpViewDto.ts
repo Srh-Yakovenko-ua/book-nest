@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { CancelledFollowUpViewDtoOutcomes } from "./cancelledFollowUpViewDtoOutcomes";
 import type { CancelledFollowUpViewDtoPlans } from "./cancelledFollowUpViewDtoPlans";
 import type { CancelledFollowUpViewDtoUnresolved } from "./cancelledFollowUpViewDtoUnresolved";
 
@@ -12,6 +13,11 @@ import type { CancelledFollowUpViewDtoUnresolved } from "./cancelledFollowUpView
  * Cancelled books left without a next acquisition step, and the subset of them that active reading plans still count on. All-time and untouched by the history list filters.
  */
 export interface CancelledFollowUpViewDto {
+  /**
+   * Null when the reader has never had a book cancelled.
+   * @nullable
+   */
+  outcomes: CancelledFollowUpViewDtoOutcomes;
   /**
    * Null when no unresolved book sits in the reading queue, in an active goal or next in its series.
    * @nullable

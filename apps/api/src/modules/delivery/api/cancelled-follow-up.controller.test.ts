@@ -39,6 +39,8 @@ type SeededItem = {
 };
 
 const CANCELLED_AT = new Date("2026-08-10T10:00:00.000Z");
+const SECOND_CANCELLED_AT = new Date("2026-08-14T10:00:00.000Z");
+const RECEIVED_AT = new Date("2026-08-16T10:00:00.000Z");
 const NOT_TRASHED = { deletedAt: null, purgeAt: null } as const;
 const TRASHED_AT = new Date("2026-08-03T10:00:00.000Z");
 
@@ -342,5 +344,140 @@ describe("returning every undecided book to the wishlist", () => {
     await seedBooks([{ ownershipStatus: "owned", title: "Bought" }]);
 
     expect(await returnAllToWishlist()).toEqual({ updatedCount: 0 });
+  });
+});
+
+describe("where the cancelled books ended up", () => {
+  it("reports nothing at all until a book has actually been cancelled", async () => {
+    await seedBooks([{ cancelledAt: null, receivedAt: RECEIVED_AT, title: "Отримана" }]);
+
+    expect((await followUp()).outcomes).toBeNull();
+  });
+
+  it("counts a book cancelled twice only once", async () => {
+    await seedBooks([
+      {
+        items: [
+          { cancelledAt: CANCELLED_AT, cancelReason: "Немає в наявності" },
+          { cancelledAt: SECOND_CANCELLED_AT, cancelReason: "Знову немає" },
+        ],
+        title: "Двічі скасована",
+      },
+    ]);
+
+    const outcomes = (await followUp()).outcomes;
+    expect(outcomes?.totalBooksCount).toBe(1);
+    expect(outcomes?.unresolved).toBe(1);
+  });
+
+  it("counts a book that arrived in a later order as being in the library", async () => {
+    await seedBooks([
+      {
+        items: [{ cancelledAt: CANCELLED_AT }, { receivedAt: RECEIVED_AT }],
+        ownershipStatus: "owned",
+        title: "Приїхала другим разом",
+      },
+    ]);
+
+    expect((await followUp()).outcomes).toMatchObject({ inLibrary: 1, totalBooksCount: 1 });
+  });
+
+  it("counts a book carried by a fresh open order as reordered", async () => {
+    await seedBooks([
+      {
+        items: [{ cancelledAt: CANCELLED_AT }, {}],
+        ownershipStatus: "in_transit",
+        title: "Замовлена знову",
+      },
+    ]);
+
+    expect((await followUp()).outcomes).toMatchObject({ reordered: 1, totalBooksCount: 1 });
+  });
+
+  it("counts a book put back on the wishlist as wishlist", async () => {
+    await seedBooks([{ ownershipStatus: "want_to_buy", title: "У бажаних" }]);
+
+    expect((await followUp()).outcomes).toMatchObject({ totalBooksCount: 1, wishlist: 1 });
+  });
+
+  it("counts a book borrowed from someone separately from an owned one", async () => {
+    await seedBooks([{ ownershipStatus: "borrowed_from_someone", title: "Позичена" }]);
+
+    expect((await followUp()).outcomes).toMatchObject({
+      borrowed: 1,
+      inLibrary: 0,
+      totalBooksCount: 1,
+    });
+  });
+
+  it("counts a book with nothing lined up as unresolved, matching the decision block", async () => {
+    await seedBooks([{ title: "Без кроку" }]);
+
+    const view = await followUp();
+    expect(view.outcomes).toMatchObject({ totalBooksCount: 1, unresolved: 1 });
+    expect(view.unresolved?.booksCount).toBe(1);
+  });
+
+  it("leaves a trashed book out of the tally", async () => {
+    await seedBooks([{ title: "Жива" }, { title: "У кошику", trashed: true }]);
+
+    expect((await followUp()).outcomes?.totalBooksCount).toBe(1);
+  });
+
+  it("splits every book across the outcomes so they add up to the total", async () => {
+    await seedBooks([
+      { items: [{ cancelledAt: CANCELLED_AT }, { receivedAt: RECEIVED_AT }], title: "Отримана" },
+      { ownershipStatus: "owned", title: "Куплена деінде" },
+      { ownershipStatus: "lent_to_someone", title: "Віддана почитати" },
+      { items: [{ cancelledAt: CANCELLED_AT }, {}], title: "Замовлена знову" },
+      { ownershipStatus: "want_to_buy", title: "У бажаних" },
+      { ownershipStatus: "borrowed_from_someone", title: "Позичена" },
+      { title: "Без кроку" },
+    ]);
+
+    const outcomes = (await followUp()).outcomes;
+    expect(outcomes).toEqual({
+      borrowed: 1,
+      inLibrary: 3,
+      reordered: 1,
+      totalBooksCount: 7,
+      unresolved: 1,
+      wishlist: 1,
+    });
+    expect(
+      (outcomes?.borrowed ?? 0) +
+        (outcomes?.inLibrary ?? 0) +
+        (outcomes?.reordered ?? 0) +
+        (outcomes?.unresolved ?? 0) +
+        (outcomes?.wishlist ?? 0),
+    ).toBe(outcomes?.totalBooksCount);
+  });
+
+  it("ignores whatever the history list is filtered down to", async () => {
+    await seedBooks([
+      { ownershipStatus: "owned", title: "Куплена деінде" },
+      { ownershipStatus: "want_to_buy", title: "У бажаних" },
+      { title: "Без кроку" },
+    ]);
+    const before = (await followUp()).outcomes;
+
+    const narrowed = await getJson({
+      accessToken: reader.accessToken,
+      app,
+      path: `${ORDER_ROUTES.history}?tab=cancelled&q=${encodeURIComponent("Без кроку")}`,
+    });
+    expect(narrowed.status).toBe(200);
+
+    expect((await followUp()).outcomes).toEqual(before);
+    expect(before).toMatchObject({ inLibrary: 1, totalBooksCount: 3, unresolved: 1, wishlist: 1 });
+  });
+
+  it("keeps reporting the tally once no book needs a decision any more", async () => {
+    await seedBooks([{ ownershipStatus: "owned", title: "Куплена деінде" }]);
+
+    const view = await followUp();
+    expect(view.unresolved).toBeNull();
+    expect(view.plans).toBeNull();
+    expect(view.outcomes).toMatchObject({ inLibrary: 1, totalBooksCount: 1 });
   });
 });

@@ -1460,6 +1460,24 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
 /**
  * @summary Get the cancelled books that never reached a next acquisition state
  */
+export const cancelledFollowUpControllerReadResponseOutcomesBorrowedMin = 0;
+export const cancelledFollowUpControllerReadResponseOutcomesBorrowedMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponseOutcomesInLibraryMin = 0;
+export const cancelledFollowUpControllerReadResponseOutcomesInLibraryMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponseOutcomesReorderedMin = 0;
+export const cancelledFollowUpControllerReadResponseOutcomesReorderedMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponseOutcomesTotalBooksCountMin = 0;
+export const cancelledFollowUpControllerReadResponseOutcomesTotalBooksCountMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponseOutcomesUnresolvedMin = 0;
+export const cancelledFollowUpControllerReadResponseOutcomesUnresolvedMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponseOutcomesWishlistMin = 0;
+export const cancelledFollowUpControllerReadResponseOutcomesWishlistMax = 9007199254740991;
+
 export const cancelledFollowUpControllerReadResponsePlansBooksItemContextsItemTwoGoalsCountExclusiveMin = 0;
 export const cancelledFollowUpControllerReadResponsePlansBooksItemContextsItemTwoGoalsCountMax = 9007199254740991;
 
@@ -1475,6 +1493,45 @@ export const cancelledFollowUpControllerReadResponseUnresolvedBooksCountMax = 90
 
 export const CancelledFollowUpControllerReadResponse = zod
   .object({
+    outcomes: zod
+      .object({
+        borrowed: zod
+          .int()
+          .min(cancelledFollowUpControllerReadResponseOutcomesBorrowedMin)
+          .max(cancelledFollowUpControllerReadResponseOutcomesBorrowedMax)
+          .describe("Borrowed from someone instead of bought."),
+        inLibrary: zod
+          .int()
+          .min(cancelledFollowUpControllerReadResponseOutcomesInLibraryMin)
+          .max(cancelledFollowUpControllerReadResponseOutcomesInLibraryMax)
+          .describe("Received later, or owned outright, or owned and currently lent to someone."),
+        reordered: zod
+          .int()
+          .min(cancelledFollowUpControllerReadResponseOutcomesReorderedMin)
+          .max(cancelledFollowUpControllerReadResponseOutcomesReorderedMax)
+          .describe("Waiting in a new order that is still on its way."),
+        totalBooksCount: zod
+          .int()
+          .min(cancelledFollowUpControllerReadResponseOutcomesTotalBooksCountMin)
+          .max(cancelledFollowUpControllerReadResponseOutcomesTotalBooksCountMax)
+          .describe(
+            "Distinct live books that carry a cancellation, which is the sum of the five outcomes.",
+          ),
+        unresolved: zod
+          .int()
+          .min(cancelledFollowUpControllerReadResponseOutcomesUnresolvedMin)
+          .max(cancelledFollowUpControllerReadResponseOutcomesUnresolvedMax)
+          .describe(
+            "Left without a next acquisition step, the same set the decision block acts on.",
+          ),
+        wishlist: zod
+          .int()
+          .min(cancelledFollowUpControllerReadResponseOutcomesWishlistMin)
+          .max(cancelledFollowUpControllerReadResponseOutcomesWishlistMax)
+          .describe("Back on the wishlist, waiting to be ordered again."),
+      })
+      .nullable()
+      .describe("Null when the reader has never had a book cancelled."),
     plans: zod
       .object({
         books: zod

@@ -13,6 +13,7 @@ import type { DeliveryHistoryTab } from "../model/history-params";
 import type { DeliveryLatestReceiptCardModel } from "../model/latest-receipt-card";
 
 import { DeliveryCancelledDecisionBlock } from "./delivery-cancelled-decision-block";
+import { DeliveryCancelledOutcomeBlock } from "./delivery-cancelled-outcome-block";
 import { DeliveryCancelledPlansBlock } from "./delivery-cancelled-plans-block";
 import { DeliveryLatestReceiptCard } from "./delivery-latest-receipt-card";
 import { DeliverySeriesOutcomeBlock } from "./delivery-series-outcome-block";
@@ -46,6 +47,7 @@ export function DeliveryHistoryCancelledBlocks({
 
   return (
     <>
+      <DeliveryCancelledOutcomeBlock outcomes={followUp?.outcomes ?? null} />
       <DeliveryCancelledDecisionBlock
         isLoading={isLoading}
         unresolved={followUp?.unresolved ?? null}

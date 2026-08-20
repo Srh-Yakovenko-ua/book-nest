@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import type { ActiveReadingGoalMembership } from "../../reading-goals/index.js";
 import type {
+  CancelledBookStateRow,
   CancelledSeriesRow,
-  UnresolvedCancelledRow,
 } from "../infrastructure/cancelled-follow-up.repository.js";
 
 import { buildCancelledPlanEntries, selectSeriesNextBookIds } from "./cancelled-follow-up.js";
@@ -24,12 +24,15 @@ function makeGoal(
   };
 }
 
-function makeRow(overrides: Partial<UnresolvedCancelledRow> = {}): UnresolvedCancelledRow {
+function makeRow(overrides: Partial<CancelledBookStateRow> = {}): CancelledBookStateRow {
   return {
     cancelledAt: CANCELLED_AT,
     cancelReason: null,
+    hasActiveOrder: false,
+    hasReceivedOrder: false,
     id: "book-1",
     inQueue: false,
+    ownershipStatus: "none",
     seriesId: null,
     ...overrides,
   };

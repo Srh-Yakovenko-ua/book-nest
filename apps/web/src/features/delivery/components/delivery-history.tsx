@@ -169,7 +169,8 @@ export function DeliveryHistory() {
 
   const followUp = followUpQuery.data ?? null;
   const hasCancelledBlocks =
-    followUp !== null && (followUp.plans !== null || followUp.unresolved !== null);
+    followUp !== null &&
+    (followUp.outcomes !== null || followUp.plans !== null || followUp.unresolved !== null);
   const showsSidebar =
     !isCancelledTab || followUpQuery.isPending || followUpQuery.isError || hasCancelledBlocks;
 

@@ -3317,6 +3317,17 @@
           }
         }
       },
+      "cancelledOutcome": {
+        "title": "What happened next",
+        "booksCount": "{count, plural, one {# book with a cancellation} other {# books with a cancellation}}",
+        "outcomes": {
+          "inLibrary": "{count, plural, one {# already in the library} other {# already in the library}}",
+          "reordered": "{count, plural, one {# ordered again} other {# ordered again}}",
+          "wishlist": "{count, plural, one {# back on the wishlist} other {# back on the wishlist}}",
+          "borrowed": "{count, plural, one {# borrowed from someone} other {# borrowed from someone}}",
+          "unresolved": "{count, plural, one {# with no next step} other {# with no next step}}"
+        }
+      },
       "cancelledFollowUpError": {
         "title": "Cancelled books",
         "description": "We could not load which cancelled books are still waiting on a decision.",
