@@ -153,4 +153,35 @@ describe("DeliveryHistoryCard", () => {
 
     expect(screen.getByText("Книга 4")).toBeVisible();
   });
+
+  it("shows the order comment above the parcels, outside any of them", () => {
+    const model = makeHistoryCardModel({ note: "Замовляли на подарунок" });
+
+    renderWithProviders(<DeliveryHistoryCard model={model} search="" />);
+
+    const comment = screen.getByText("Замовляли на подарунок");
+    expect(comment).toBeVisible();
+    expect(comment.closest("[data-shipment-id]")).toBeNull();
+    expect(screen.getByText("Коментар до замовлення:")).toHaveClass("sr-only");
+  });
+
+  it("shows the comment of a parcel inside that parcel", () => {
+    const model = makeHistoryCardModel({
+      shipments: [makeHistoryShipmentGroup({ note: "Лишили у відділенні" })],
+    });
+
+    renderWithProviders(<DeliveryHistoryCard model={model} search="" />);
+
+    const comment = screen.getByText("Лишили у відділенні");
+    expect(comment).toBeVisible();
+    expect(comment.closest("[data-shipment-id]")).toHaveAttribute("data-shipment-id", "shipment-1");
+    expect(screen.getByText("Коментар до посилки:")).toHaveClass("sr-only");
+  });
+
+  it("renders no comment row when the order and its parcel carry none", () => {
+    renderWithProviders(<DeliveryHistoryCard model={makeHistoryCardModel()} search="" />);
+
+    expect(screen.queryByText("Коментар до замовлення:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Коментар до посилки:")).not.toBeInTheDocument();
+  });
 });

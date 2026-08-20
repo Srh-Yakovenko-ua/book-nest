@@ -33,6 +33,11 @@ export type OrderCardBookSeries = {
 
 export type OrderCardMetadataEntry = { label: string; value: string };
 
+const NOTE_TONE = {
+  block: "gap-2 rounded-md border border-border/60 bg-secondary/30 px-3 py-2",
+  inline: "gap-1.5",
+} as const;
+
 const TOTAL_SLOT = {
   alone: "pt-0.5 text-right tabular-nums max-sm:col-start-1 max-sm:row-start-2 max-sm:pt-0",
   besideBadge:
@@ -134,6 +139,7 @@ export function OrderCard({
   children,
   expandControl,
   metaText,
+  note,
   orderId,
   revealed = false,
   storeName,
@@ -145,6 +151,7 @@ export function OrderCard({
   children: ReactNode;
   expandControl?: ReactNode;
   metaText: string;
+  note?: ReactNode;
   orderId: string;
   revealed?: boolean;
   storeName: string;
@@ -184,6 +191,8 @@ export function OrderCard({
           {actions}
         </div>
       </header>
+
+      {note}
 
       {children}
 
@@ -231,6 +240,28 @@ export function OrderCardExpandButton({
       <UiIcon name={expanded ? "chevron-up" : "chevron-down"} size={16} />
       {expanded ? t("collapseBooks") : t("showMoreBooks", { count: hiddenCount })}
     </Button>
+  );
+}
+
+export function OrderCardNote({
+  label,
+  text,
+  tone,
+}: {
+  label: string;
+  text: Nullable<string>;
+  tone: keyof typeof NOTE_TONE;
+}) {
+  if (text === null) return null;
+
+  return (
+    <p className={cn("flex items-start text-xs text-muted-foreground", NOTE_TONE[tone])}>
+      <UiIcon className="mt-0.5 shrink-0 text-icon" name="note" size={13} />
+      <span className="min-w-0 break-words whitespace-pre-line">
+        <span className="sr-only">{label}: </span>
+        {text}
+      </span>
+    </p>
   );
 }
 

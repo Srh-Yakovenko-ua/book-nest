@@ -1,10 +1,14 @@
 import type {
   CancelledFollowUpBook,
+  CancelledOutcome,
+  CancelledOutcomeCounts,
   CancelledPlanBook,
   CancelledPlanContext,
   Nullable,
   ReadingGoalRiskLevel,
 } from "@app/shared";
+
+import { CANCELLED_OUTCOMES } from "@app/shared";
 
 import { formatDate } from "@/lib/format";
 
@@ -15,6 +19,11 @@ import { toDeliveryBookPreviewModel } from "./delivery-book-preview";
 export type CancelledDecisionRow = DeliveryBookPreviewModel & {
   cancelledOnText: string;
   cancelReason: Nullable<string>;
+};
+
+export type CancelledOutcomeRow = {
+  key: CancelledOutcome;
+  text: string;
 };
 
 export type CancelledPlanLabels = {
@@ -46,6 +55,18 @@ export function buildCancelledDecisionRows({
     cancelledOnText: cancelledOn(formatDate(book.cancelledAt, locale)),
     cancelReason: book.cancelReason,
   }));
+}
+
+export function buildCancelledOutcomeRows({
+  counts,
+  label,
+}: {
+  counts: CancelledOutcomeCounts;
+  label: (outcome: CancelledOutcome, count: number) => string;
+}): CancelledOutcomeRow[] {
+  return CANCELLED_OUTCOMES.flatMap((key) =>
+    counts[key] === 0 ? [] : [{ key, text: label(key, counts[key]) }],
+  );
 }
 
 export function buildCancelledPlanRows({

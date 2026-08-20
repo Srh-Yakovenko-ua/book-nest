@@ -2929,7 +2929,8 @@
       "orderTotal": "Сума",
       "notShipped": "Ще не відправлено",
       "pickupUntil": "Зберігається до {date}",
-      "note": "Нотатка",
+      "note": "Коментар до посилки",
+      "orderNote": "Коментар до замовлення",
       "selectShipmentAria": "Вибрати: {title}"
     },
     "manage": {
@@ -3209,7 +3210,6 @@
       },
       "card": {
         "cancelReason": "Причина скасування",
-        "note": "Нотатка",
         "receivedOn": "Отримано {date}",
         "cancelledOn": "Скасовано {date}",
         "expectedOn": "Очікувалось {date}"
@@ -3316,6 +3316,22 @@
             "critical": "критичний ризик"
           }
         }
+      },
+      "cancelledOutcome": {
+        "title": "Що сталося далі",
+        "booksCount": "{count, plural, one {# книга зі скасуванням} few {# книги зі скасуванням} many {# книг зі скасуванням} other {# книг зі скасуванням}}",
+        "outcomes": {
+          "inLibrary": "{count, plural, one {# уже у бібліотеці} other {# уже у бібліотеці}}",
+          "reordered": "{count, plural, one {# замовлена повторно} few {# замовлені повторно} many {# замовлених повторно} other {# замовлених повторно}}",
+          "wishlist": "{count, plural, one {# повернута у список бажань} few {# повернуті у список бажань} many {# повернутих у список бажань} other {# повернутих у список бажань}}",
+          "borrowed": "{count, plural, one {# позичена в когось} few {# позичені в когось} many {# позичених в когось} other {# позичених в когось}}",
+          "unresolved": "{count, plural, one {# без наступного кроку} other {# без наступного кроку}}"
+        }
+      },
+      "cancelledFollowUpError": {
+        "title": "Скасовані книги",
+        "description": "Не вдалося дізнатись, які скасовані книги ще чекають на рішення.",
+        "retry": "Спробувати ще раз"
       }
     },
     "statistics": {

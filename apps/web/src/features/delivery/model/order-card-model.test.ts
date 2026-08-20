@@ -61,6 +61,7 @@ function makeOrder(overrides: Partial<BookOrderItemRowOrderView> = {}): BookOrde
     id: "order-1",
     isFree: false,
     itemsCount: 2,
+    note: null,
     orderDate: "2026-07-05",
     orderNumber: "ORD-10241",
     pricedItemsCount: 0,
@@ -196,6 +197,28 @@ describe("toDeliveryOrderCards", () => {
     expect(cards).toHaveLength(1);
     expect(firstCard(cards).booksCount).toBe(3);
     expect(bookIdsByGroup(cards)).toEqual([[["book-1", "book-2", "book-3"]]]);
+  });
+
+  it("carries the order comment onto the card, next to the parcel comments", () => {
+    const cards = toDeliveryOrderCards(
+      [
+        makeRow({
+          id: "item-1",
+          order: makeOrder({ note: "Оплачено карткою" }),
+          shipment: makeShipment({ note: "Питати про другу коробку" }),
+        }),
+      ],
+      { labels, locale },
+    );
+
+    expect(firstCard(cards).note).toBe("Оплачено карткою");
+    expect(firstCard(cards).shipments[0]?.note).toBe("Питати про другу коробку");
+  });
+
+  it("leaves the card comment empty when the order carries none", () => {
+    const cards = toDeliveryOrderCards([makeRow({ id: "item-1" })], { labels, locale });
+
+    expect(firstCard(cards).note).toBeNull();
   });
 
   it("shows the total the server resolved for the whole order, not the visible prices", () => {

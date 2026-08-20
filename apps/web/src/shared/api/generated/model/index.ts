@@ -211,6 +211,7 @@ export * from "./bulkTagsInputDto";
 export * from "./cancelBookOrderItemInputDto";
 export * from "./cancelDeliveryInputDto";
 export * from "./cancelledFollowUpViewDto";
+export * from "./cancelledFollowUpViewDtoOutcomes";
 export * from "./cancelledFollowUpViewDtoPlans";
 export * from "./cancelledFollowUpViewDtoPlansBooksItem";
 export * from "./cancelledFollowUpViewDtoPlansBooksItemContextsItem";

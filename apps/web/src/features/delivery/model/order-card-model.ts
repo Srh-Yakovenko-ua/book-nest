@@ -57,6 +57,7 @@ export type DeliveryOrderCardModel = {
   booksCount: number;
   id: string;
   isFree: boolean;
+  note: Nullable<string>;
   orderDate: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
@@ -134,6 +135,7 @@ export function toDeliveryOrderCards(
       booksCount: group.items.length,
       id: group.order.id,
       isFree: group.order.isFree,
+      note: group.order.note,
       orderDate: group.order.orderDate,
       orderDateText:
         group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),

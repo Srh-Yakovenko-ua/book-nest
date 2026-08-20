@@ -4,8 +4,8 @@ import { ReadingGoalRiskLevelSchema, selectNextBook } from "@app/shared";
 
 import type { ActiveReadingGoalMembership } from "../../reading-goals/index.js";
 import type {
+  CancelledBookStateRow,
   CancelledSeriesRow,
-  UnresolvedCancelledRow,
 } from "../infrastructure/cancelled-follow-up.repository.js";
 
 import { isMultiBookSeries } from "./series-set.js";
@@ -39,7 +39,7 @@ export function buildCancelledPlanEntries({
   seriesRows,
 }: {
   goals: readonly ActiveReadingGoalMembership[];
-  rows: readonly UnresolvedCancelledRow[];
+  rows: readonly CancelledBookStateRow[];
   seriesRows: readonly CancelledSeriesRow[];
 }): CancelledPlanEntry[] {
   const goalsByBook = groupGoalsByBook(goals);

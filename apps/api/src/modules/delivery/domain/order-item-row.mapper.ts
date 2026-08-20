@@ -106,6 +106,7 @@ function toRowOrderView(order: RowOrderSource): BookOrderItemRowOrderView {
     id: order.id,
     isFree: order.isFree,
     itemsCount: financials.itemsCount,
+    note: order.note,
     orderDate: toNullableIsoDate(order.orderDate),
     orderNumber: order.orderNumber,
     pricedItemsCount: financials.pricedItemsCount,

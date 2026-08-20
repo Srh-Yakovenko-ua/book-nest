@@ -10,14 +10,15 @@ import { Injectable } from "@nestjs/common";
 
 import type { CancelledPlanEntry } from "../domain/cancelled-follow-up.js";
 import type {
+  CancelledBookStateRow,
   CancelledFollowUpPreviewRow,
-  UnresolvedCancelledRow,
 } from "../infrastructure/cancelled-follow-up.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { MediaService } from "../../media/index.js";
 import { ReadingGoalPlansService } from "../../reading-goals/index.js";
 import { buildCancelledPlanEntries } from "../domain/cancelled-follow-up.js";
+import { countCancelledOutcomes, isUnresolvedCancelledBook } from "../domain/cancelled-outcome.js";
 import { cancelledBookOwnership } from "../domain/order-item-transition.js";
 import { CancelledFollowUpRepository } from "../infrastructure/cancelled-follow-up.repository.js";
 import { OrderBooksRepository } from "../infrastructure/order-books.repository.js";
@@ -37,9 +38,15 @@ export class CancelledFollowUpService {
   ) {}
 
   async read({ userId }: { userId: string }): Promise<CancelledFollowUpView> {
-    const rows = await this.cancelledFollowUpRepository.listUnresolved(userId);
+    const states = await this.cancelledFollowUpRepository.listCancelledBookStates(userId);
+    if (states.length === 0) {
+      return { outcomes: null, plans: null, unresolved: null };
+    }
+
+    const outcomes = countCancelledOutcomes(states);
+    const rows = states.filter(isUnresolvedCancelledBook);
     if (rows.length === 0) {
-      return { plans: null, unresolved: null };
+      return { outcomes, plans: null, unresolved: null };
     }
 
     const [goals, seriesRows] = await Promise.all([
@@ -66,6 +73,7 @@ export class CancelledFollowUpService {
     });
 
     return {
+      outcomes,
       plans:
         planEntries.length === 0
           ? null
@@ -84,7 +92,9 @@ export class CancelledFollowUpService {
     const now = new Date();
 
     return this.transactionRunner.run(async (tx) => {
-      const rows = await this.cancelledFollowUpRepository.listUnresolved(userId, tx);
+      const rows = (
+        await this.cancelledFollowUpRepository.listCancelledBookStates(userId, tx)
+      ).filter(isUnresolvedCancelledBook);
       if (rows.length === 0) {
         return { updatedCount: 0 };
       }
@@ -145,7 +155,7 @@ function toUnresolvedBook({
   row,
 }: {
   previews: Map<string, DeliveryBookPreview>;
-  row: UnresolvedCancelledRow;
+  row: CancelledBookStateRow;
 }) {
   const preview = previews.get(row.id);
   if (preview === undefined) {

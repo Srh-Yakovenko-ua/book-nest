@@ -8,6 +8,8 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
+export type CancelledBookStateRow = z.infer<typeof CancelledBookStateRowSchema>;
+
 export type CancelledFollowUpPreviewRow = Prisma.BookGetPayload<typeof previewRelations>;
 
 export type CancelledSeriesBook = {
@@ -23,23 +25,65 @@ export type CancelledSeriesRow = {
   totalBooks: Nullable<number>;
 };
 
-export type UnresolvedCancelledRow = z.infer<typeof UnresolvedCancelledRowSchema>;
-
 const previewRelations = { include: { coverMedia: true } } satisfies Prisma.BookDefaultArgs;
 
-const UNRESOLVED_OWNERSHIP_STATUS = OwnershipStatusSchema.enum.none;
-
-const UnresolvedCancelledRowSchema = z.object({
+const CancelledBookStateRowSchema = z.object({
   cancelledAt: z.date(),
   cancelReason: z.string().nullable(),
+  hasActiveOrder: z.boolean(),
+  hasReceivedOrder: z.boolean(),
   id: z.uuid(),
   inQueue: z.boolean(),
+  ownershipStatus: OwnershipStatusSchema,
   seriesId: z.uuid().nullable(),
 });
 
 @Injectable()
 export class CancelledFollowUpRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async listCancelledBookStates(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<CancelledBookStateRow[]> {
+    const rows = await client.$queryRaw(Prisma.sql`
+      SELECT
+        latest.book_id AS "id",
+        latest.cancelled_at AS "cancelledAt",
+        latest.cancel_reason AS "cancelReason",
+        book.ownership_status AS "ownershipStatus",
+        (book.queue_position IS NOT NULL) AS "inQueue",
+        book.series_id AS "seriesId",
+        COALESCE(orders.has_received, false) AS "hasReceivedOrder",
+        COALESCE(orders.has_active, false) AS "hasActiveOrder"
+      FROM (
+        SELECT DISTINCT ON (item.book_id)
+          item.book_id,
+          item.cancelled_at,
+          item.cancel_reason
+        FROM book_order_items item
+        JOIN book_orders ord ON ord.id = item.order_id
+        WHERE ord.user_id = ${userId}::uuid
+          AND item.cancelled_at IS NOT NULL
+        ORDER BY item.book_id, item.cancelled_at DESC, item.id ASC
+      ) latest
+      JOIN books book ON book.id = latest.book_id
+      LEFT JOIN LATERAL (
+        SELECT
+          bool_or(other.received_at IS NOT NULL) AS has_received,
+          bool_or(other.cancelled_at IS NULL AND other.received_at IS NULL) AS has_active
+        FROM book_order_items other
+        JOIN book_orders other_order ON other_order.id = other.order_id
+        WHERE other.book_id = book.id
+          AND other_order.user_id = ${userId}::uuid
+      ) orders ON true
+      WHERE book.user_id = ${userId}::uuid
+        AND book.deleted_at IS NULL
+      ORDER BY latest.cancelled_at DESC, book.id ASC
+    `);
+
+    return z.array(CancelledBookStateRowSchema).parse(rows);
+  }
 
   listPreviews({
     bookIds,
@@ -91,45 +135,5 @@ export class CancelledFollowUpRepository {
       id: row.id,
       totalBooks: row.totalBooks,
     }));
-  }
-
-  async listUnresolved(
-    userId: string,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<UnresolvedCancelledRow[]> {
-    const rows = await client.$queryRaw(Prisma.sql`
-      SELECT
-        latest.book_id AS "id",
-        latest.cancelled_at AS "cancelledAt",
-        latest.cancel_reason AS "cancelReason",
-        (book.queue_position IS NOT NULL) AS "inQueue",
-        book.series_id AS "seriesId"
-      FROM (
-        SELECT DISTINCT ON (item.book_id)
-          item.book_id,
-          item.cancelled_at,
-          item.cancel_reason
-        FROM book_order_items item
-        JOIN book_orders ord ON ord.id = item.order_id
-        WHERE ord.user_id = ${userId}::uuid
-          AND item.cancelled_at IS NOT NULL
-        ORDER BY item.book_id, item.cancelled_at DESC, item.id ASC
-      ) latest
-      JOIN books book ON book.id = latest.book_id
-      WHERE book.user_id = ${userId}::uuid
-        AND book.deleted_at IS NULL
-        AND book.ownership_status = ${UNRESOLVED_OWNERSHIP_STATUS}
-        AND NOT EXISTS (
-          SELECT 1
-          FROM book_order_items other
-          JOIN book_orders other_order ON other_order.id = other.order_id
-          WHERE other.book_id = book.id
-            AND other_order.user_id = ${userId}::uuid
-            AND (other.received_at IS NOT NULL OR other.cancelled_at IS NULL)
-        )
-      ORDER BY latest.cancelled_at DESC, book.id ASC
-    `);
-
-    return z.array(UnresolvedCancelledRowSchema).parse(rows);
   }
 }

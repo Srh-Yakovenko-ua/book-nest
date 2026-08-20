@@ -888,8 +888,44 @@ export const CancelledPlanBookSchema = DeliveryBookPreviewSchema.extend({
 
 export type CancelledPlanBook = z.infer<typeof CancelledPlanBookSchema>;
 
+export const CANCELLED_OUTCOMES = [
+  "inLibrary",
+  "reordered",
+  "wishlist",
+  "borrowed",
+  "unresolved",
+] as const;
+
+export const CancelledOutcomeSchema = z.enum(CANCELLED_OUTCOMES);
+
+export type CancelledOutcome = z.infer<typeof CancelledOutcomeSchema>;
+
+export const CancelledOutcomeCountsSchema = z
+  .object({
+    borrowed: CountSchema.describe("Borrowed from someone instead of bought."),
+    inLibrary: CountSchema.describe(
+      "Received later, or owned outright, or owned and currently lent to someone.",
+    ),
+    reordered: CountSchema.describe("Waiting in a new order that is still on its way."),
+    totalBooksCount: CountSchema.describe(
+      "Distinct live books that carry a cancellation, which is the sum of the five outcomes.",
+    ),
+    unresolved: CountSchema.describe(
+      "Left without a next acquisition step, the same set the decision block acts on.",
+    ),
+    wishlist: CountSchema.describe("Back on the wishlist, waiting to be ordered again."),
+  })
+  .describe(
+    "Where every cancelled book stands today. The five outcomes partition the set, so they always add up to totalBooksCount.",
+  );
+
+export type CancelledOutcomeCounts = z.infer<typeof CancelledOutcomeCountsSchema>;
+
 export const CancelledFollowUpViewSchema = z
   .object({
+    outcomes: CancelledOutcomeCountsSchema.nullable().describe(
+      "Null when the reader has never had a book cancelled.",
+    ),
     plans: z
       .object({
         books: z.array(CancelledPlanBookSchema).max(CANCELLED_FOLLOW_UP_LIMITS.visible),
@@ -978,6 +1014,7 @@ export const BookOrderItemRowOrderViewSchema = z.object({
   id: z.string(),
   isFree: z.boolean().describe("The order was received for free, so its canonical total is zero."),
   itemsCount: CountSchema.describe("How many books the whole order holds, page and filter aside."),
+  note: z.string().nullable().describe("The comment the user left on the whole order."),
   orderDate: z.string().nullable(),
   orderNumber: z.string().nullable(),
   pricedItemsCount: CountSchema.describe("How many of those books carry a price of their own."),

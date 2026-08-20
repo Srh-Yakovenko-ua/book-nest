@@ -9,6 +9,7 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { DeliveryHistoryCancelledBlocks } from "./delivery-history-sidebar";
 
+const retryMock = vi.fn();
 const returnAllMock = vi.fn();
 const wantToBuyMock = vi.fn();
 
@@ -54,15 +55,153 @@ function makeUnresolvedBook(overrides: Partial<CancelledFollowUpBook> = {}): Can
   };
 }
 
-function renderBlocks(followUp: CancelledFollowUpView) {
+function renderBlocks(followUp: Partial<CancelledFollowUpView>) {
   return renderWithProviders(
-    <DeliveryHistoryCancelledBlocks followUp={followUp} isLoading={false} />,
+    <DeliveryHistoryCancelledBlocks
+      followUp={{ outcomes: null, plans: null, unresolved: null, ...followUp }}
+      isError={false}
+      isLoading={false}
+      onRetry={retryMock}
+    />,
+  );
+}
+
+function renderFailedBlocks() {
+  return renderWithProviders(
+    <DeliveryHistoryCancelledBlocks
+      followUp={null}
+      isError
+      isLoading={false}
+      onRetry={retryMock}
+    />,
   );
 }
 
 beforeEach(() => {
+  retryMock.mockReset();
   returnAllMock.mockReset();
   wantToBuyMock.mockReset();
+});
+
+function makeOutcomes(
+  overrides: Partial<NonNullable<CancelledFollowUpView["outcomes"]>> = {},
+): NonNullable<CancelledFollowUpView["outcomes"]> {
+  return {
+    borrowed: 0,
+    inLibrary: 0,
+    reordered: 0,
+    totalBooksCount: 0,
+    unresolved: 0,
+    wishlist: 0,
+    ...overrides,
+  };
+}
+
+describe("where the cancelled books ended up", () => {
+  it("stays out entirely until a book has been cancelled", () => {
+    renderBlocks({ outcomes: null });
+
+    expect(screen.queryByText("Що сталося далі")).not.toBeInTheDocument();
+  });
+
+  it("heads the block with the distinct books that carry a cancellation", () => {
+    renderBlocks({
+      outcomes: makeOutcomes({ inLibrary: 5, totalBooksCount: 7, wishlist: 2 }),
+    });
+
+    expect(screen.getByText("Що сталося далі")).toBeInTheDocument();
+    expect(screen.getByText("7 книг зі скасуванням")).toBeInTheDocument();
+  });
+
+  it("names every outcome that has books behind it", () => {
+    renderBlocks({
+      outcomes: makeOutcomes({
+        borrowed: 4,
+        inLibrary: 3,
+        reordered: 1,
+        totalBooksCount: 11,
+        unresolved: 1,
+        wishlist: 2,
+      }),
+    });
+
+    expect(screen.getByText("3 уже у бібліотеці")).toBeInTheDocument();
+    expect(screen.getByText("1 замовлена повторно")).toBeInTheDocument();
+    expect(screen.getByText("2 повернуті у список бажань")).toBeInTheDocument();
+    expect(screen.getByText("4 позичені в когось")).toBeInTheDocument();
+    expect(screen.getByText("1 без наступного кроку")).toBeInTheDocument();
+  });
+
+  it("leaves out an outcome that no book landed in", () => {
+    renderBlocks({
+      outcomes: makeOutcomes({ inLibrary: 5, totalBooksCount: 7, wishlist: 2 }),
+    });
+
+    expect(screen.getByText("5 уже у бібліотеці")).toBeInTheDocument();
+    expect(screen.getByText("2 повернуті у список бажань")).toBeInTheDocument();
+    expect(screen.queryByText(/замовлена повторно|замовлених повторно/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/без наступного кроку/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/позичен/)).not.toBeInTheDocument();
+  });
+
+  it("carries no actions, so the decision block stays the only place to act", () => {
+    renderBlocks({ outcomes: makeOutcomes({ totalBooksCount: 3, unresolved: 3 }) });
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("stands on its own when nothing needs a decision any more", () => {
+    renderBlocks({
+      outcomes: makeOutcomes({ inLibrary: 5, totalBooksCount: 7, wishlist: 2 }),
+      plans: null,
+      unresolved: null,
+    });
+
+    expect(screen.getByText("Що сталося далі")).toBeInTheDocument();
+    expect(screen.queryByText("Потребують рішення")).not.toBeInTheDocument();
+    expect(screen.queryByText("Впливають на плани")).not.toBeInTheDocument();
+  });
+
+  it("comes before the blocks a reader can act on", () => {
+    renderBlocks({
+      outcomes: makeOutcomes({ totalBooksCount: 1, unresolved: 1 }),
+      plans: { books: [makePlanBook()], booksCount: 1 },
+      unresolved: { books: [makeUnresolvedBook()], booksCount: 1 },
+    });
+
+    const titles = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(titles).toEqual(["Що сталося далі", "Потребують рішення", "Впливають на плани"]);
+  });
+});
+
+describe("a follow-up request that failed", () => {
+  it("says the follow-up could not be loaded instead of leaving the column silent", () => {
+    renderFailedBlocks();
+
+    expect(screen.getByText("Скасовані книги")).toBeInTheDocument();
+    expect(
+      screen.getByText("Не вдалося дізнатись, які скасовані книги ще чекають на рішення."),
+    ).toBeInTheDocument();
+  });
+
+  it("retries the request from the block", async () => {
+    renderFailedBlocks();
+
+    await userEvent.click(screen.getByRole("button", { name: "Спробувати ще раз" }));
+
+    expect(retryMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the decision, plan and outcome blocks out while the request is failed", () => {
+    renderFailedBlocks();
+
+    expect(screen.queryByText("Що сталося далі")).not.toBeInTheDocument();
+    expect(screen.queryByText("Потребують рішення")).not.toBeInTheDocument();
+    expect(screen.queryByText("Впливають на плани")).not.toBeInTheDocument();
+  });
 });
 
 describe("books that need a decision", () => {

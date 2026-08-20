@@ -65,6 +65,7 @@ function historyGroup(
       id: "order-1",
       isFree: false,
       itemsCount: 6,
+      note: null,
       orderDate: "2026-08-01",
       orderNumber: "ORD-10241",
       pricedItemsCount: 6,
@@ -115,6 +116,26 @@ describe("toHistoryOrderCards", () => {
 
     expect(card?.totalText).toBe("2\u00a0300 UAH");
     expect(card?.booksCount).toBe(1);
+  });
+
+  it("carries the order comment onto the card, next to the parcel comments", () => {
+    const [card] = toCards([
+      historyGroup(
+        [{ books: [historyBook()], shipment: historyShipment({ note: "Лишили у відділенні" }) }],
+        { note: "Замовляли на подарунок" },
+      ),
+    ]);
+
+    expect(card?.note).toBe("Замовляли на подарунок");
+    expect(card?.shipments[0]?.note).toBe("Лишили у відділенні");
+  });
+
+  it("leaves the card comment empty when the order carries none", () => {
+    const [card] = toCards([
+      historyGroup([{ books: [historyBook()], shipment: historyShipment() }]),
+    ]);
+
+    expect(card?.note).toBeNull();
   });
 
   it("leaves the total empty for a legacy order the backfill could not resolve", () => {

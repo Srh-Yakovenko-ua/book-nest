@@ -30,6 +30,11 @@ export type PaginatedOrderHistoryGroupsDtoItemsItemOrder = {
    * @maximum 9007199254740991
    */
   itemsCount: number;
+  /**
+   * The comment the user left on the whole order.
+   * @nullable
+   */
+  note: string | null;
   /** @nullable */
   orderDate: string | null;
   /** @nullable */
