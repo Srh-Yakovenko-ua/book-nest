@@ -170,10 +170,16 @@ export function DeliveryHistory() {
   const followUp = followUpQuery.data ?? null;
   const hasCancelledBlocks =
     followUp !== null && (followUp.plans !== null || followUp.unresolved !== null);
-  const showsSidebar = !isCancelledTab || followUpQuery.isPending || hasCancelledBlocks;
+  const showsSidebar =
+    !isCancelledTab || followUpQuery.isPending || followUpQuery.isError || hasCancelledBlocks;
 
   const sidebarBlocks = isCancelledTab ? (
-    <DeliveryHistoryCancelledBlocks followUp={followUp} isLoading={followUpQuery.isPending} />
+    <DeliveryHistoryCancelledBlocks
+      followUp={followUp}
+      isError={followUpQuery.isError}
+      isLoading={followUpQuery.isPending}
+      onRetry={() => void followUpQuery.refetch()}
+    />
   ) : (
     <DeliveryHistoryReceivedBlocks
       isOutcomeLoading={outcomeQuery.isPending}

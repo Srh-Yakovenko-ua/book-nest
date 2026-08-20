@@ -5,6 +5,10 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { LibraryOverviewSection } from "@/features/books/components/library-overview-blocks";
+
 import type { DeliveryHistoryTab } from "../model/history-params";
 import type { DeliveryLatestReceiptCardModel } from "../model/latest-receipt-card";
 
@@ -16,7 +20,9 @@ import { DeliveryUnreadReceivedBlock } from "./delivery-unread-received-block";
 
 type DeliveryHistoryCancelledBlocksProps = {
   followUp: Nullable<CancelledFollowUpView>;
+  isError: boolean;
   isLoading: boolean;
+  onRetry: () => void;
 };
 
 type DeliveryHistoryReceivedBlocksProps = {
@@ -30,8 +36,14 @@ type DeliveryHistoryReceivedBlocksProps = {
 
 export function DeliveryHistoryCancelledBlocks({
   followUp,
+  isError,
   isLoading,
+  onRetry,
 }: DeliveryHistoryCancelledBlocksProps) {
+  if (isError) {
+    return <CancelledFollowUpError onRetry={onRetry} />;
+  }
+
   return (
     <>
       <DeliveryCancelledDecisionBlock
@@ -84,5 +96,21 @@ export function DeliveryHistorySidebar({
     >
       {children}
     </aside>
+  );
+}
+
+function CancelledFollowUpError({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations("delivery.history.cancelledFollowUpError");
+
+  return (
+    <LibraryOverviewSection className="sidebar-card-leaf" title={t("title")}>
+      <div className="flex flex-col items-start gap-3">
+        <p className="text-xs text-muted-foreground">{t("description")}</p>
+        <Button className="w-full" onClick={onRetry} size="sm" variant="secondary">
+          <UiIcon aria-hidden name="refresh" size={16} />
+          {t("retry")}
+        </Button>
+      </div>
+    </LibraryOverviewSection>
   );
 }

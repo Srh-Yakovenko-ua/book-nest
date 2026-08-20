@@ -9,6 +9,7 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { DeliveryHistoryCancelledBlocks } from "./delivery-history-sidebar";
 
+const retryMock = vi.fn();
 const returnAllMock = vi.fn();
 const wantToBuyMock = vi.fn();
 
@@ -56,13 +57,56 @@ function makeUnresolvedBook(overrides: Partial<CancelledFollowUpBook> = {}): Can
 
 function renderBlocks(followUp: CancelledFollowUpView) {
   return renderWithProviders(
-    <DeliveryHistoryCancelledBlocks followUp={followUp} isLoading={false} />,
+    <DeliveryHistoryCancelledBlocks
+      followUp={followUp}
+      isError={false}
+      isLoading={false}
+      onRetry={retryMock}
+    />,
+  );
+}
+
+function renderFailedBlocks() {
+  return renderWithProviders(
+    <DeliveryHistoryCancelledBlocks
+      followUp={null}
+      isError
+      isLoading={false}
+      onRetry={retryMock}
+    />,
   );
 }
 
 beforeEach(() => {
+  retryMock.mockReset();
   returnAllMock.mockReset();
   wantToBuyMock.mockReset();
+});
+
+describe("a follow-up request that failed", () => {
+  it("says the follow-up could not be loaded instead of leaving the column silent", () => {
+    renderFailedBlocks();
+
+    expect(screen.getByText("Скасовані книги")).toBeInTheDocument();
+    expect(
+      screen.getByText("Не вдалося дізнатись, які скасовані книги ще чекають на рішення."),
+    ).toBeInTheDocument();
+  });
+
+  it("retries the request from the block", async () => {
+    renderFailedBlocks();
+
+    await userEvent.click(screen.getByRole("button", { name: "Спробувати ще раз" }));
+
+    expect(retryMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the decision and plan blocks out while the request is failed", () => {
+    renderFailedBlocks();
+
+    expect(screen.queryByText("Потребують рішення")).not.toBeInTheDocument();
+    expect(screen.queryByText("Впливають на плани")).not.toBeInTheDocument();
+  });
 });
 
 describe("books that need a decision", () => {

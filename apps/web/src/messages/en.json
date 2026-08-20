@@ -3316,6 +3316,11 @@
             "critical": "critical risk"
           }
         }
+      },
+      "cancelledFollowUpError": {
+        "title": "Cancelled books",
+        "description": "We could not load which cancelled books are still waiting on a decision.",
+        "retry": "Try again"
       }
     },
     "statistics": {
