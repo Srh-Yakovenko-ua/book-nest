@@ -3151,7 +3151,12 @@
         }
       },
       "sidebar": {
-        "title": "Підсумки отриманого"
+        "title": "Підсумки отриманого",
+        "cancelledTitle": "Що далі зі скасованими",
+        "tabs": {
+          "cancelled": "Що далі",
+          "received": "Підсумки"
+        }
       },
       "latestReceipt": {
         "title": "Останнє отримання",
@@ -3192,6 +3197,36 @@
         "series_topped_up": {
           "label": "{count, plural, one {Ще # серія поповнилася} few {Ще # серії поповнилися} many {Ще # серій поповнилися} other {Ще # серій поповнилися}}",
           "detail": "{count, plural, one {# отримана книга} few {# отримані книги} many {# отриманих книг} other {# отриманих книг}}"
+        }
+      },
+      "cancelledDecision": {
+        "title": "Потребують рішення",
+        "booksCount": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "helper": "після скасування залишились без наступного кроку",
+        "cancelledOn": "Скасовано {date}",
+        "cancelledWithReason": "{date} · {reason}",
+        "action": "Повернути у список бажань",
+        "bulkAction": "Повернути всі у список бажань",
+        "toast": {
+          "returned": "«{title}» знову у списку бажань",
+          "returnedAll": "{count, plural, one {# книгу повернуто у список бажань} few {# книги повернуто у список бажань} many {# книг повернуто у список бажань} other {# книг повернуто у список бажань}}"
+        }
+      },
+      "cancelledPlans": {
+        "title": "Впливають на плани",
+        "booksCount": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "helper": "пов'язані з активними планами читання",
+        "more": "{count, plural, one {Ще # книга впливає на плани} few {Ще # книги впливають на плани} many {Ще # книг впливають на плани} other {Ще # книг впливають на плани}}",
+        "context": {
+          "queue": "Черга читання",
+          "seriesNext": "Наступна у серії",
+          "goalNamed": "Ціль «{name}»",
+          "goalUnnamed": "Активна ціль",
+          "goalsCount": "{count, plural, one {# активна ціль} few {# активні цілі} many {# активних цілей} other {# активних цілей}}",
+          "risk": {
+            "high": "високий ризик",
+            "critical": "критичний ризик"
+          }
         }
       }
     },

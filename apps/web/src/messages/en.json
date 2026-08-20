@@ -3151,7 +3151,12 @@
         }
       },
       "sidebar": {
-        "title": "What arrived so far"
+        "title": "What arrived so far",
+        "cancelledTitle": "What happens to the cancelled books",
+        "tabs": {
+          "cancelled": "What next",
+          "received": "Outcome"
+        }
       },
       "latestReceipt": {
         "title": "Latest receipt",
@@ -3192,6 +3197,36 @@
         "series_topped_up": {
           "label": "{count, plural, one {# more series filled up} other {# more series filled up}}",
           "detail": "{count, plural, one {# received book} other {# received books}}"
+        }
+      },
+      "cancelledDecision": {
+        "title": "Waiting for a decision",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "helper": "were left without a next step after the cancellation",
+        "cancelledOn": "Cancelled on {date}",
+        "cancelledWithReason": "{date} · {reason}",
+        "action": "Move to the wishlist",
+        "bulkAction": "Move them all to the wishlist",
+        "toast": {
+          "returned": "“{title}” is back in the wishlist",
+          "returnedAll": "{count, plural, one {# book moved to the wishlist} other {# books moved to the wishlist}}"
+        }
+      },
+      "cancelledPlans": {
+        "title": "Affect the reading plans",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "helper": "are tied to active reading plans",
+        "more": "{count, plural, one {# more book affects the plans} other {# more books affect the plans}}",
+        "context": {
+          "queue": "Reading queue",
+          "seriesNext": "Next in the series",
+          "goalNamed": "Goal “{name}”",
+          "goalUnnamed": "Active goal",
+          "goalsCount": "{count, plural, one {# active goal} other {# active goals}}",
+          "risk": {
+            "high": "high risk",
+            "critical": "critical risk"
+          }
         }
       }
     },

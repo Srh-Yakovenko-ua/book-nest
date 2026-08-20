@@ -1,6 +1,7 @@
 "use client";
 
 import type { InTransitAttention, InTransitAttentionReason, Nullable } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -26,13 +27,20 @@ type DeliveryOverviewPanelProps = {
   attention?: DeliveryOverviewAttention;
   detailsTitle: string;
   isLoading: boolean;
+  sidebar?: DeliveryOverviewSidebar;
   summaryCards: LibrarySummaryCard[];
+};
+
+type DeliveryOverviewSidebar = {
+  blocks: ReactNode;
+  label: string;
 };
 
 export function DeliveryOverviewPanel({
   attention,
   detailsTitle,
   isLoading,
+  sidebar,
   summaryCards,
 }: DeliveryOverviewPanelProps) {
   const t = useTranslations("delivery.overviewPanel");
@@ -59,6 +67,15 @@ export function DeliveryOverviewPanel({
             ),
             id: "attention",
             label: t("tabs.attention"),
+          },
+        ]),
+    ...(sidebar === undefined
+      ? []
+      : [
+          {
+            content: <div className="flex flex-col gap-4">{sidebar.blocks}</div>,
+            id: "sidebar",
+            label: sidebar.label,
           },
         ]),
   ];

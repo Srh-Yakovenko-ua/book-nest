@@ -4,7 +4,7 @@ import { expect, waitFor } from "storybook/test";
 
 import { DELIVERY_HISTORY_TAB_DEFAULT } from "../model/history-params";
 import { DeliveryHistoryCard } from "./delivery-history-card";
-import { DeliveryHistorySidebar } from "./delivery-history-sidebar";
+import { DeliveryHistoryReceivedBlocks, DeliveryHistorySidebar } from "./delivery-history-sidebar";
 import { DeliveryHistoryView } from "./delivery-history-view";
 import { historyCardModels } from "./delivery-history.fixtures";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
@@ -49,46 +49,48 @@ const summaryNode = (
 );
 
 const sidebarNode = (
-  <DeliveryHistorySidebar
-    isOutcomeLoading={false}
-    isReceiptLoading={false}
-    latestReceipt={{
-      books: {
-        countText: "4 книги",
-        covers: [
-          { authorName: "Ерін Моргенштерн", bookHref: "/books/a", id: "a", title: "Нічний цирк" },
-          { authorName: "Донна Тартт", bookHref: "/books/b", id: "b", title: "Щиголь" },
-          { authorName: "Мадлен Міллер", bookHref: "/books/c", id: "c", title: "Цирцея" },
+  <DeliveryHistorySidebar tab={DELIVERY_HISTORY_TAB_DEFAULT}>
+    <DeliveryHistoryReceivedBlocks
+      isOutcomeLoading={false}
+      isReceiptLoading={false}
+      latestReceipt={{
+        books: {
+          countText: "4 книги",
+          covers: [
+            { authorName: "Ерін Моргенштерн", bookHref: "/books/a", id: "a", title: "Нічний цирк" },
+            { authorName: "Донна Тартт", bookHref: "/books/b", id: "b", title: "Щиголь" },
+            { authorName: "Мадлен Міллер", bookHref: "/books/c", id: "c", title: "Цирцея" },
+          ],
+          kind: "stack",
+        },
+        orderId: "order-1",
+        receivedDateText: "18 серп. 2026 р.",
+        relativeDayText: "Вчора",
+        sameDayText: "Ще 2 отримання цього дня",
+        serviceName: "Нова Пошта",
+        shipmentId: "shipment-1",
+        storeName: "Yakaboo",
+      }}
+      onRevealLatestReceipt={() => {}}
+      outcome={{
+        seriesInsights: [
+          { booksCount: 3, kind: "series_completed", seriesCount: 2 },
+          { booksCount: 4, kind: "series_gaps_closed", seriesCount: 3 },
+          { booksCount: 6, kind: "series_topped_up", seriesCount: 5 },
         ],
-        kind: "stack",
-      },
-      orderId: "order-1",
-      receivedDateText: "18 серп. 2026 р.",
-      relativeDayText: "Вчора",
-      sameDayText: "Ще 2 отримання цього дня",
-      serviceName: "Нова Пошта",
-      shipmentId: "shipment-1",
-      storeName: "Yakaboo",
-    }}
-    onRevealLatestReceipt={() => {}}
-    outcome={{
-      seriesInsights: [
-        { booksCount: 3, kind: "series_completed", seriesCount: 2 },
-        { booksCount: 4, kind: "series_gaps_closed", seriesCount: 3 },
-        { booksCount: 6, kind: "series_topped_up", seriesCount: 5 },
-      ],
-      unreadReceived: {
-        bookPreviews: [
-          { authorName: "Ерін Моргенштерн", cover: null, id: "a", title: "Нічний цирк" },
-          { authorName: "Донна Тартт", cover: null, id: "b", title: "Щиголь" },
-          { authorName: "Мадлен Міллер", cover: null, id: "c", title: "Цирцея" },
-        ],
-        booksCount: 18,
-        inQueueCount: 4,
-      },
-    }}
-    revealResetsFilters={false}
-  />
+        unreadReceived: {
+          bookPreviews: [
+            { authorName: "Ерін Моргенштерн", cover: null, id: "a", title: "Нічний цирк" },
+            { authorName: "Донна Тартт", cover: null, id: "b", title: "Щиголь" },
+            { authorName: "Мадлен Міллер", cover: null, id: "c", title: "Цирцея" },
+          ],
+          booksCount: 18,
+          inQueueCount: 4,
+        },
+      }}
+      revealResetsFilters={false}
+    />
+  </DeliveryHistorySidebar>
 );
 
 const meta = {

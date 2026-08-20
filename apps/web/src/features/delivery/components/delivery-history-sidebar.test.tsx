@@ -9,12 +9,13 @@ import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import type { DeliveryLatestReceiptCardModel } from "../model/latest-receipt-card";
 
-import { DeliveryHistorySidebar } from "./delivery-history-sidebar";
+import { DeliveryHistoryReceivedBlocks } from "./delivery-history-sidebar";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 function outcome(overrides: Partial<BookOrderHistoryOutcomeView> = {}) {
@@ -53,7 +54,7 @@ function renderSidebar({
   revealResetsFilters?: boolean;
 } = {}) {
   return renderWithProviders(
-    <DeliveryHistorySidebar
+    <DeliveryHistoryReceivedBlocks
       isOutcomeLoading={false}
       isReceiptLoading={false}
       latestReceipt={latestReceipt}

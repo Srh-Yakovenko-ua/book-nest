@@ -1,9 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
-import { Link } from "@/i18n/navigation";
+import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 
 import type { DeliveryBookPreviewModel } from "../model/delivery-book-preview";
 
@@ -57,7 +59,22 @@ export function DeliveryBookCoverStack({
 
 export function DeliveryBookLink({ book }: { book: DeliveryBookPreviewModel }) {
   return (
-    <Link
+    <DeliveryBookMetaLink
+      book={book}
+      meta={<span className="truncate text-xs text-muted-foreground">{book.authorName}</span>}
+    />
+  );
+}
+
+export function DeliveryBookMetaLink({
+  book,
+  meta,
+}: {
+  book: DeliveryBookPreviewModel;
+  meta: ReactNode;
+}) {
+  return (
+    <MobilePageOverviewLink
       className="flex min-w-0 items-center gap-2.5 rounded-md no-underline transition-colors hover:bg-secondary"
       href={book.bookHref}
     >
@@ -66,8 +83,8 @@ export function DeliveryBookLink({ book }: { book: DeliveryBookPreviewModel }) {
         <span className="line-clamp-2 font-heading text-sm leading-tight font-semibold text-ink">
           {book.title}
         </span>
-        <span className="truncate text-xs text-muted-foreground">{book.authorName}</span>
+        {meta}
       </span>
-    </Link>
+    </MobilePageOverviewLink>
   );
 }

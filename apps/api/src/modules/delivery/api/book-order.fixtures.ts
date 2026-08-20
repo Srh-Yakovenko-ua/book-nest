@@ -21,6 +21,8 @@ const MONTH_FORMAT = "yyyy-MM";
 
 export const ORDER_ROUTES = {
   cancelItem: (itemId: string): string => `/api/delivery/items/${itemId}/cancel`,
+  cancelledFollowUp: "/api/delivery/books/history/cancelled-follow-up",
+  cancelledFollowUpWantToBuy: "/api/delivery/books/history/cancelled-follow-up/want-to-buy",
   cancelShipment: (shipmentId: string): string => `/api/delivery/shipments/${shipmentId}/cancel`,
   createShipment: (orderId: string): string => `/api/delivery/orders/${orderId}/shipments`,
   history: "/api/delivery/books/history",

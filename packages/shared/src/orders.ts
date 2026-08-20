@@ -36,6 +36,7 @@ import {
 } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { ORDER_FINANCIAL_MESSAGES, validateOrderInvariant } from "./order-financials.js";
+import { ReadingGoalRiskLevelSchema } from "./reading-goals.js";
 
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
@@ -761,6 +762,76 @@ export const BookOrderHistoryOutcomeViewSchema = z
   );
 
 export type BookOrderHistoryOutcomeView = z.infer<typeof BookOrderHistoryOutcomeViewSchema>;
+
+export const CANCELLED_FOLLOW_UP_LIMITS = {
+  visible: 3,
+} as const;
+
+export const CancelledFollowUpBookSchema = DeliveryBookPreviewSchema.extend({
+  cancelledAt: z.string().describe("The latest cancellation recorded for this book."),
+  cancelReason: z.string().nullable(),
+});
+
+export type CancelledFollowUpBook = z.infer<typeof CancelledFollowUpBookSchema>;
+
+export const CancelledPlanContextSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("queue") }),
+  z.object({
+    goalName: z.string().nullable().describe("Set only when the book sits in exactly one goal."),
+    goalsCount: PositiveCountSchema,
+    kind: z.literal("goal"),
+    riskLevel: ReadingGoalRiskLevelSchema.describe(
+      "The strongest risk level across the goals this book belongs to. Existing goal context, not a consequence of the cancellation.",
+    ),
+  }),
+  z.object({ kind: z.literal("series_next") }),
+]);
+
+export type CancelledPlanContext = z.infer<typeof CancelledPlanContextSchema>;
+
+export const CancelledPlanBookSchema = DeliveryBookPreviewSchema.extend({
+  contexts: z
+    .array(CancelledPlanContextSchema)
+    .min(1)
+    .describe("Every plan this one book touches, so a book is rendered once however many it hits."),
+});
+
+export type CancelledPlanBook = z.infer<typeof CancelledPlanBookSchema>;
+
+export const CancelledFollowUpViewSchema = z
+  .object({
+    plans: z
+      .object({
+        books: z.array(CancelledPlanBookSchema).max(CANCELLED_FOLLOW_UP_LIMITS.visible),
+        booksCount: PositiveCountSchema.describe(
+          "Distinct unresolved books tied to a reading plan, counted once even when they hit several.",
+        ),
+      })
+      .nullable()
+      .describe(
+        "Null when no unresolved book sits in the reading queue, in an active goal or next in its series.",
+      ),
+    unresolved: z
+      .object({
+        books: z.array(CancelledFollowUpBookSchema).max(CANCELLED_FOLLOW_UP_LIMITS.visible),
+        booksCount: PositiveCountSchema,
+      })
+      .nullable()
+      .describe("Null when every cancelled book already carries a next acquisition state."),
+  })
+  .describe(
+    "Cancelled books left without a next acquisition step, and the subset of them that active reading plans still count on. All-time and untouched by the history list filters.",
+  );
+
+export type CancelledFollowUpView = z.infer<typeof CancelledFollowUpViewSchema>;
+
+export const CancelledFollowUpWishlistResultSchema = z.object({
+  updatedCount: CountSchema.describe(
+    "Books moved to the wishlist. The set is resolved on the server at mutation time, so a book that gained a next step meanwhile is simply not part of it.",
+  ),
+});
+
+export type CancelledFollowUpWishlistResult = z.infer<typeof CancelledFollowUpWishlistResultSchema>;
 
 export const BookOrderHistorySummaryViewSchema = z
   .object({

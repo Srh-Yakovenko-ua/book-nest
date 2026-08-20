@@ -1357,3 +1357,154 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
       "How many books the whole selection holds, not only the orders on this page. totalCount counts orders instead.",
     ),
 });
+
+/**
+ * @summary Get the cancelled books that never reached a next acquisition state
+ */
+export const cancelledFollowUpControllerReadResponsePlansBooksItemContextsItemTwoGoalsCountExclusiveMin = 0;
+export const cancelledFollowUpControllerReadResponsePlansBooksItemContextsItemTwoGoalsCountMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponsePlansBooksMax = 3;
+
+export const cancelledFollowUpControllerReadResponsePlansBooksCountExclusiveMin = 0;
+export const cancelledFollowUpControllerReadResponsePlansBooksCountMax = 9007199254740991;
+
+export const cancelledFollowUpControllerReadResponseUnresolvedBooksMax = 3;
+
+export const cancelledFollowUpControllerReadResponseUnresolvedBooksCountExclusiveMin = 0;
+export const cancelledFollowUpControllerReadResponseUnresolvedBooksCountMax = 9007199254740991;
+
+export const CancelledFollowUpControllerReadResponse = zod
+  .object({
+    plans: zod
+      .object({
+        books: zod
+          .array(
+            zod.object({
+              authorName: zod.string(),
+              cover: zod
+                .object({
+                  contentType: zod.string(),
+                  createdAt: zod.string(),
+                  height: zod.number(),
+                  id: zod.string(),
+                  kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                  name: zod.string().nullable(),
+                  sizeBytes: zod.number(),
+                  urls: zod.object({
+                    card: zod.string(),
+                    full: zod.string(),
+                    thumb: zod.string(),
+                  }),
+                  width: zod.number(),
+                })
+                .nullable(),
+              id: zod.string(),
+              title: zod.string(),
+              contexts: zod
+                .array(
+                  zod.union([
+                    zod.object({
+                      kind: zod.enum(["queue"]),
+                    }),
+                    zod.object({
+                      goalName: zod
+                        .string()
+                        .nullable()
+                        .describe("Set only when the book sits in exactly one goal."),
+                      goalsCount: zod
+                        .int()
+                        .gt(
+                          cancelledFollowUpControllerReadResponsePlansBooksItemContextsItemTwoGoalsCountExclusiveMin,
+                        )
+                        .max(
+                          cancelledFollowUpControllerReadResponsePlansBooksItemContextsItemTwoGoalsCountMax,
+                        ),
+                      kind: zod.enum(["goal"]),
+                      riskLevel: zod
+                        .enum(["none", "low", "medium", "high", "critical"])
+                        .describe(
+                          "The strongest risk level across the goals this book belongs to. Existing goal context, not a consequence of the cancellation.",
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["series_next"]),
+                    }),
+                  ]),
+                )
+                .min(1)
+                .describe(
+                  "Every plan this one book touches, so a book is rendered once however many it hits.",
+                ),
+            }),
+          )
+          .max(cancelledFollowUpControllerReadResponsePlansBooksMax),
+        booksCount: zod
+          .int()
+          .gt(cancelledFollowUpControllerReadResponsePlansBooksCountExclusiveMin)
+          .max(cancelledFollowUpControllerReadResponsePlansBooksCountMax)
+          .describe(
+            "Distinct unresolved books tied to a reading plan, counted once even when they hit several.",
+          ),
+      })
+      .nullable()
+      .describe(
+        "Null when no unresolved book sits in the reading queue, in an active goal or next in its series.",
+      ),
+    unresolved: zod
+      .object({
+        books: zod
+          .array(
+            zod.object({
+              authorName: zod.string(),
+              cover: zod
+                .object({
+                  contentType: zod.string(),
+                  createdAt: zod.string(),
+                  height: zod.number(),
+                  id: zod.string(),
+                  kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                  name: zod.string().nullable(),
+                  sizeBytes: zod.number(),
+                  urls: zod.object({
+                    card: zod.string(),
+                    full: zod.string(),
+                    thumb: zod.string(),
+                  }),
+                  width: zod.number(),
+                })
+                .nullable(),
+              id: zod.string(),
+              title: zod.string(),
+              cancelledAt: zod.string().describe("The latest cancellation recorded for this book."),
+              cancelReason: zod.string().nullable(),
+            }),
+          )
+          .max(cancelledFollowUpControllerReadResponseUnresolvedBooksMax),
+        booksCount: zod
+          .int()
+          .gt(cancelledFollowUpControllerReadResponseUnresolvedBooksCountExclusiveMin)
+          .max(cancelledFollowUpControllerReadResponseUnresolvedBooksCountMax),
+      })
+      .nullable()
+      .describe("Null when every cancelled book already carries a next acquisition state."),
+  })
+  .describe(
+    "Cancelled books left without a next acquisition step, and the subset of them that active reading plans still count on. All-time and untouched by the history list filters.",
+  );
+
+/**
+ * @summary Move every cancelled book still without a next step to the wishlist
+ */
+export const cancelledFollowUpControllerReturnAllToWishlistResponseUpdatedCountMin = 0;
+export const cancelledFollowUpControllerReturnAllToWishlistResponseUpdatedCountMax = 9007199254740991;
+
+export const CancelledFollowUpControllerReturnAllToWishlistResponse = zod.object({
+  updatedCount: zod
+    .int()
+    .min(cancelledFollowUpControllerReturnAllToWishlistResponseUpdatedCountMin)
+    .max(cancelledFollowUpControllerReturnAllToWishlistResponseUpdatedCountMax)
+    .describe(
+      "Books moved to the wishlist. The set is resolved on the server at mutation time, so a book that gained a next step meanwhile is simply not part of it.",
+    ),
+});
