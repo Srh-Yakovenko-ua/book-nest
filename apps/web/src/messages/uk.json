@@ -2929,7 +2929,8 @@
       "orderTotal": "Сума",
       "notShipped": "Ще не відправлено",
       "pickupUntil": "Зберігається до {date}",
-      "note": "Нотатка",
+      "note": "Коментар до посилки",
+      "orderNote": "Коментар до замовлення",
       "selectShipmentAria": "Вибрати: {title}"
     },
     "manage": {
@@ -3209,7 +3210,6 @@
       },
       "card": {
         "cancelReason": "Причина скасування",
-        "note": "Нотатка",
         "receivedOn": "Отримано {date}",
         "cancelledOn": "Скасовано {date}",
         "expectedOn": "Очікувалось {date}"

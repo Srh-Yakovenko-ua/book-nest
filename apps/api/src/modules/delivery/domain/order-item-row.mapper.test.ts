@@ -140,6 +140,22 @@ describe("toBookOrderItemRowView carries the reasons a reader wrote down", () =>
     expect(view.cancelReason).toBeNull();
   });
 
+  it("passes the order note through, so the card can show it above the parcels", () => {
+    const view = toBookOrderItemRowView({
+      book: BOOK,
+      row: makeRow({ order: { ...makeRow().order, note: "Paid by card, invoice needed" } }),
+      today: TODAY,
+    });
+
+    expect(view.order.note).toBe("Paid by card, invoice needed");
+  });
+
+  it("leaves the order note null when the reader left the comment empty", () => {
+    const view = toBookOrderItemRowView({ book: BOOK, row: makeRow(), today: TODAY });
+
+    expect(view.order.note).toBeNull();
+  });
+
   it("passes the parcel note through, since that is where a per-book note lives", () => {
     const view = toBookOrderItemRowView({
       book: BOOK,

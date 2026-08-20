@@ -48,6 +48,7 @@ export type HistoryCardLabels = {
 export type HistoryOrderCardModel = {
   booksCount: number;
   id: string;
+  note: Nullable<string>;
   orderDateText: Nullable<string>;
   orderNumber: Nullable<string>;
   revealsSearchMatch: boolean;
@@ -99,6 +100,7 @@ export function toHistoryOrderCards(
     return {
       booksCount: group.booksCount,
       id: group.order.id,
+      note: group.order.note,
       orderDateText:
         group.order.orderDate === null ? null : formatDate(group.order.orderDate, options.locale),
       orderNumber: group.order.orderNumber,

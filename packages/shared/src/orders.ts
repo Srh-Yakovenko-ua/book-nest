@@ -978,6 +978,7 @@ export const BookOrderItemRowOrderViewSchema = z.object({
   id: z.string(),
   isFree: z.boolean().describe("The order was received for free, so its canonical total is zero."),
   itemsCount: CountSchema.describe("How many books the whole order holds, page and filter aside."),
+  note: z.string().nullable().describe("The comment the user left on the whole order."),
   orderDate: z.string().nullable(),
   orderNumber: z.string().nullable(),
   pricedItemsCount: CountSchema.describe("How many of those books carry a price of their own."),

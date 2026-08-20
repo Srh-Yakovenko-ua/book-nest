@@ -42,6 +42,7 @@ export function makeHistoryCardModel(
   return {
     booksCount: 1,
     id: "order-1",
+    note: null,
     orderDateText: "5 лип. 2026",
     orderNumber: "ORD-10241",
     revealsSearchMatch: false,

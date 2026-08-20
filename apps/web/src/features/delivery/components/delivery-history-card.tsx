@@ -20,6 +20,7 @@ import {
   OrderCard,
   OrderCardBooksRegion,
   OrderCardExpandButton,
+  OrderCardNote,
   OrderShipmentSection,
   useExpandableBooks,
 } from "./order-card-parts";
@@ -63,6 +64,7 @@ export function DeliveryHistoryCard({
       metaText={[model.orderNumber, model.orderDateText]
         .filter((part) => part !== null)
         .join(" · ")}
+      note={<OrderCardNote label={t("orderNote")} text={model.note} tone="block" />}
       orderId={model.id}
       revealed={revealedOrderId === model.id}
       storeName={model.storeName}
@@ -169,15 +171,7 @@ function HistoryShipmentSection({
               </span>
             </p>
           )}
-          {group.note === null ? null : (
-            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <UiIcon className="mt-0.5 shrink-0 text-icon" name="note" size={13} />
-              <span className="min-w-0 break-words">
-                <span className="sr-only">{tHistory("note")}: </span>
-                {group.note}
-              </span>
-            </p>
-          )}
+          <OrderCardNote label={t("note")} text={group.note} tone="inline" />
         </>
       }
       metadata={[

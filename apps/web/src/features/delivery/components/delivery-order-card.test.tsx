@@ -565,4 +565,58 @@ describe("DeliveryOrderCard", () => {
 
     expect(within(bookListAt(1)).getAllByRole("listitem")).toHaveLength(3);
   });
+
+  it("shows the order comment above the parcels, outside any of them", () => {
+    renderCard(makeDeliveryOrderCardModel({ note: "Оплачено карткою, потрібен чек" }));
+
+    const comment = screen.getByText("Оплачено карткою, потрібен чек");
+    expect(comment).toBeVisible();
+    expect(comment.closest("[data-shipment-id]")).toBeNull();
+    expect(screen.getByText("Коментар до замовлення:")).toHaveClass("sr-only");
+  });
+
+  it("shows the comment of a parcel inside that parcel", () => {
+    renderCard(
+      makeDeliveryOrderCardModel({
+        shipments: [makeDeliveryShipmentGroupModel({ note: "Питати про другу коробку" })],
+      }),
+    );
+
+    const comment = screen.getByText("Питати про другу коробку");
+    expect(comment).toBeVisible();
+    expect(comment.closest("[data-shipment-id]")).toHaveAttribute("data-shipment-id", "shipment-1");
+    expect(screen.getByText("Коментар до посилки:")).toHaveClass("sr-only");
+  });
+
+  it("keeps the comment of each parcel with its own parcel", () => {
+    renderCard(
+      makeDeliveryOrderCardModel({
+        booksCount: 2,
+        shipments: [
+          makeDeliveryShipmentGroupModel({ note: "Перша коробка" }),
+          makeDeliveryShipmentGroupModel({
+            books: [makeDeliveryOrderBookModel({ bookId: "book-2", id: "item-2" })],
+            id: "shipment-2",
+            note: "Друга коробка",
+          }),
+        ],
+      }),
+    );
+
+    expect(screen.getByText("Перша коробка").closest("[data-shipment-id]")).toHaveAttribute(
+      "data-shipment-id",
+      "shipment-1",
+    );
+    expect(screen.getByText("Друга коробка").closest("[data-shipment-id]")).toHaveAttribute(
+      "data-shipment-id",
+      "shipment-2",
+    );
+  });
+
+  it("renders no comment row when the order and its parcel carry none", () => {
+    renderCard(makeDeliveryOrderCardModel());
+
+    expect(screen.queryByText("Коментар до замовлення:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Коментар до посилки:")).not.toBeInTheDocument();
+  });
 });

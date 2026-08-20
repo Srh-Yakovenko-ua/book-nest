@@ -2929,7 +2929,8 @@
       "orderTotal": "Total",
       "notShipped": "Not shipped yet",
       "pickupUntil": "Held until {date}",
-      "note": "Note",
+      "note": "Shipment note",
+      "orderNote": "Order note",
       "selectShipmentAria": "Select: {title}"
     },
     "manage": {
@@ -3209,7 +3210,6 @@
       },
       "card": {
         "cancelReason": "Cancellation reason",
-        "note": "Note",
         "receivedOn": "Received {date}",
         "cancelledOn": "Cancelled {date}",
         "expectedOn": "Expected {date}"

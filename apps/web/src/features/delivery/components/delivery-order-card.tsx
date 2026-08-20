@@ -38,6 +38,7 @@ import {
   OrderCard,
   OrderCardBooksRegion,
   OrderCardExpandButton,
+  OrderCardNote,
   OrderShipmentSection,
   useExpandableBooks,
 } from "./order-card-parts";
@@ -174,6 +175,7 @@ export function DeliveryOrderCard({
       metaText={[model.orderNumber, model.orderDateText]
         .filter((part) => part !== null)
         .join(" · ")}
+      note={<OrderCardNote label={t("orderNote")} text={model.note} tone="block" />}
       orderId={model.id}
       revealed={revealedOrderId === model.id}
       storeName={model.storeName}
@@ -413,6 +415,7 @@ function ShipmentSection({
               {t("pickupUntil", { date: pickupUntilText })}
             </p>
           )}
+          <OrderCardNote label={t("note")} text={group.note} tone="inline" />
         </>
       }
       leading={

@@ -19,6 +19,7 @@ const order: BookOrderItemRowOrderView = {
   id: "order-1",
   isFree: false,
   itemsCount: 6,
+  note: "Забрати до кінця тижня",
   orderDate: "2026-08-01",
   orderNumber: "ORD-10241",
   pricedItemsCount: 6,

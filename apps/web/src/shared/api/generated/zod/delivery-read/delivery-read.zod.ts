@@ -720,6 +720,7 @@ export const DeliveryReadControllerInTransitListResponse = zod.object({
           .min(deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMin)
           .max(deliveryReadControllerInTransitListResponseItemsItemOrderItemsCountMax)
           .describe("How many books the whole order holds, page and filter aside."),
+        note: zod.string().nullable().describe("The comment the user left on the whole order."),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
         pricedItemsCount: zod
@@ -1301,6 +1302,7 @@ export const DeliveryReadControllerHistoryListResponse = zod.object({
           .min(deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMin)
           .max(deliveryReadControllerHistoryListResponseItemsItemOrderItemsCountMax)
           .describe("How many books the whole order holds, page and filter aside."),
+        note: zod.string().nullable().describe("The comment the user left on the whole order."),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
         pricedItemsCount: zod
