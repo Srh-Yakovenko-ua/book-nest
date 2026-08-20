@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import type { StatisticsContent } from "./delivery-statistics-view";
 
 import { useStatistics } from "../api/use-statistics";
-import { formatCurrencyAverages, formatCurrencyTotals } from "../model/money-format";
+import { toAveragesStatValue, toTotalsStatValue } from "../model/money-format";
 import { hasAnyOrders, hasPricedData } from "../model/statistics-view-model";
 import { useStatisticsParams } from "../model/use-statistics-params";
 import { DeliveryOverviewPanel } from "./delivery-overview-panel";
@@ -47,39 +47,39 @@ export function DeliveryStatistics() {
 
   const summaryCards: LibrarySummaryCard[] = [
     {
+      ...toTotalsStatValue(summary?.totalsByCurrency ?? [], locale),
       icon: "wallet",
       iconTone: "primary",
       label: tSummary("total"),
       mobileLabels: mobileLabels("total"),
-      value: summary ? formatCurrencyTotals(summary.totalsByCurrency, locale) : "—",
     },
     {
+      ...toTotalsStatValue(summary?.activeTotalsByCurrency ?? [], locale),
       icon: "truck",
       iconTone: "info",
       label: tSummary("active"),
       mobileLabels: mobileLabels("active"),
-      value: summary ? formatCurrencyTotals(summary.activeTotalsByCurrency, locale) : "—",
     },
     {
+      ...toTotalsStatValue(summary?.receivedTotalsByCurrency ?? [], locale),
       icon: "check-circle",
       iconTone: "success",
       label: tSummary("received"),
       mobileLabels: mobileLabels("received"),
-      value: summary ? formatCurrencyTotals(summary.receivedTotalsByCurrency, locale) : "—",
     },
     {
+      ...toTotalsStatValue(summary?.cancelledTotalsByCurrency ?? [], locale),
       icon: "x-circle",
       iconTone: "ink",
       label: tSummary("cancelled"),
       mobileLabels: mobileLabels("cancelled"),
-      value: summary ? formatCurrencyTotals(summary.cancelledTotalsByCurrency, locale) : "—",
     },
     {
+      ...toAveragesStatValue(summary?.averageBookPriceByCurrency ?? [], locale),
       icon: "chart",
       iconTone: "genre",
       label: tSummary("average"),
       mobileLabels: mobileLabels("average"),
-      value: summary ? formatCurrencyAverages(summary.averageBookPriceByCurrency, locale) : "—",
     },
     {
       icon: "package",

@@ -73,6 +73,9 @@ export function LibrarySummaryDetails({
                   </span>
                 )}
               </span>
+              {card.caption === undefined ? null : (
+                <span className="text-xs break-words text-muted-foreground">{card.caption}</span>
+              )}
               {card.microfact === undefined ? null : (
                 <div className="text-xs text-muted-foreground">{card.microfact}</div>
               )}

@@ -9,11 +9,16 @@ import { DeliverySummaryCards } from "./delivery-summary-cards";
 const summaryNode = (
   <DeliverySummaryCards
     cards={[
-      { icon: "wallet", label: "Загальна сума", value: "1 860 UAH · 70 EUR · 24 USD" },
+      {
+        caption: "70 EUR · 24 USD",
+        icon: "wallet",
+        label: "Загальна сума",
+        value: "1 860 UAH",
+      },
       { icon: "truck", label: "Активні замовлення", value: "900 UAH" },
-      { icon: "check-circle", label: "Отримані замовлення", value: "960 UAH · 70 EUR" },
+      { caption: "70 EUR", icon: "check-circle", label: "Отримані замовлення", value: "960 UAH" },
       { icon: "x-circle", label: "Скасовані замовлення", value: "260 UAH" },
-      { icon: "chart", label: "Середня ціна", value: "310 UAH · 35 EUR" },
+      { caption: "35 EUR", icon: "chart", label: "Середня ціна", value: "310 UAH" },
       { icon: "package", label: "Замовлень з ціною", value: "6" },
     ]}
     isLoading={false}

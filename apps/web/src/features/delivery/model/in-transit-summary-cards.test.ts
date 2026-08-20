@@ -257,7 +257,8 @@ describe("buildDeliverySummaryCards", () => {
         3,
       );
 
-      expect(card.value).toBe("1,450 UAH · 30 USD");
+      expect(card.value).toBe("1,450 UAH");
+      expect(card.caption).toBe("30 USD");
       expect(card.unit).toBeUndefined();
       expect(card.microfact).toBe("ordersTotal.average:725 UAH · 15 USD");
     });
@@ -273,13 +274,32 @@ describe("buildDeliverySummaryCards", () => {
       );
 
       expect(card.value).toBe("6,000 UAH");
+      expect(card.caption).toBeUndefined();
       expect(card.microfact).toBe("ordersTotal.average:2,000 UAH");
+    });
+
+    it("keeps the leading currency alone on the headline when all three are present", () => {
+      const card = cardAt(
+        makeSummary({
+          activeOrdersCount: 9,
+          activeOrdersTotalByCurrency: [
+            { currency: "UAH", total: 27128 },
+            { currency: "EUR", total: 30.5 },
+            { currency: "USD", total: 59.99 },
+          ],
+        }),
+        3,
+      );
+
+      expect(card.value).toBe("27,128 UAH");
+      expect(card.caption).toBe("30.5 EUR · 59.99 USD");
     });
 
     it("shows a dash when no order carries a total", () => {
       const card = cardAt(makeSummary({ activeOrdersCount: 4 }), 3);
 
       expect(card.value).toBe("—");
+      expect(card.caption).toBeUndefined();
       expect(card.microfact).toBe("ordersTotal.empty");
     });
 
