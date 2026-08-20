@@ -2,7 +2,11 @@ import type { BookOrderStatisticsView } from "@app/shared";
 
 import type { StatusEntry } from "@/lib/book-status";
 
-import type { DeliveryHistoryCardModel } from "../model/history-card-model";
+import type {
+  HistoryBookModel,
+  HistoryOrderCardModel,
+  HistoryShipmentGroupModel,
+} from "../model/history-order-card-model";
 
 const receivedBadge: StatusEntry = {
   icon: "check-circle",
@@ -18,80 +22,129 @@ const cancelledBadge: StatusEntry = {
   value: "cancelled",
 };
 
-export function makeHistoryCardModel(
-  overrides: Partial<DeliveryHistoryCardModel> = {},
-): DeliveryHistoryCardModel {
+export function makeHistoryBook(overrides: Partial<HistoryBookModel> = {}): HistoryBookModel {
   return {
-    badge: receivedBadge,
-    book: {
-      authorName: "Донна Тартт",
-      href: "/books/1",
-      seriesText: null,
-      title: "Таємна історія",
-    },
-    cancelledDateText: null,
+    authorName: "Донна Тартт",
+    bookHref: "/books/1",
     cancelReason: null,
-    deliveryService: "Нова Пошта",
-    expectedDateText: "12 лип. 2026",
-    id: "1",
-    note: null,
+    id: "item-1",
+    priceText: "480 UAH",
+    series: null,
+    terminalText: null,
+    title: "Таємна історія",
+    ...overrides,
+  };
+}
+
+export function makeHistoryCardModel(
+  overrides: Partial<HistoryOrderCardModel> = {},
+): HistoryOrderCardModel {
+  return {
+    booksCount: 1,
+    id: "order-1",
     orderDateText: "5 лип. 2026",
     orderNumber: "ORD-10241",
-    priceText: "480 UAH",
-    receivedDateText: "14 лип. 2026",
+    revealsSearchMatch: false,
+    shipments: [makeHistoryShipmentGroup()],
     storeName: "Yakaboo",
-    trackingHref: "https://tracking.example.com/ORD-10241",
+    totalText: "480 UAH",
+    ...overrides,
+  };
+}
+
+export function makeHistoryShipmentGroup(
+  overrides: Partial<HistoryShipmentGroupModel> = {},
+): HistoryShipmentGroupModel {
+  return {
+    badge: receivedBadge,
+    books: [makeHistoryBook()],
+    cancelReason: null,
+    expectedText: null,
+    id: "shipment-1",
+    note: null,
+    serviceName: "Нова Пошта",
+    terminalText: "Отримано 19 серп. 2026",
+    trackingHref: "https://tracking.example.com/20450012345678",
     trackingNumber: "20450012345678",
     ...overrides,
   };
 }
 
-export const historyCardModels: DeliveryHistoryCardModel[] = [
-  makeHistoryCardModel({ id: "1" }),
+export const historyCardModels: HistoryOrderCardModel[] = [
+  makeHistoryCardModel(),
   makeHistoryCardModel({
-    badge: receivedBadge,
-    book: {
-      authorName: "Ерін Морґенштерн",
-      href: "/books/2",
-      seriesText: "Нічний цирк · том 1",
-      title: "Нічний цирк",
-    },
-    id: "2",
-    priceText: "35 EUR",
+    booksCount: 3,
+    id: "order-2",
+    orderNumber: "ORD-10255",
+    shipments: [
+      makeHistoryShipmentGroup({
+        books: [
+          makeHistoryBook({ id: "item-2", priceText: "35 EUR", title: "Нічний цирк" }),
+          makeHistoryBook({
+            authorName: "Ерін Морґенштерн",
+            id: "item-3",
+            priceText: "38 EUR",
+            series: { href: "/series/1", name: "Нічний цирк", positionLabel: "1 з 2" },
+            title: "Зорепад",
+          }),
+        ],
+        id: "shipment-2",
+        terminalText: "Отримано 12 серп. 2026",
+      }),
+      makeHistoryShipmentGroup({
+        books: [makeHistoryBook({ id: "item-4", priceText: "42 EUR", title: "Тіні минулого" })],
+        expectedText: "Очікувалось 14 серп. 2026",
+        id: "shipment-3",
+        note: "Забрати у відділенні до кінця тижня.",
+        terminalText: "Отримано 18 серп. 2026",
+        trackingHref: null,
+        trackingNumber: null,
+      }),
+    ],
     storeName: "Book Depository",
-    trackingHref: null,
-    trackingNumber: null,
+    totalText: "115 EUR",
   }),
   makeHistoryCardModel({
-    badge: cancelledBadge,
-    book: {
-      authorName: "Патрік Ротфусс",
-      href: "/books/3",
-      seriesText: null,
-      title: "Імʼя вітру",
-    },
-    cancelledDateText: "10 лип. 2026",
-    cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
-    expectedDateText: null,
-    id: "3",
-    note: "Спробувати замовити в іншому магазині.",
-    priceText: null,
-    receivedDateText: null,
+    booksCount: 2,
+    id: "order-3",
+    orderNumber: null,
+    shipments: [
+      makeHistoryShipmentGroup({
+        badge: cancelledBadge,
+        books: [
+          makeHistoryBook({
+            authorName: "Патрік Ротфусс",
+            id: "item-5",
+            priceText: null,
+            title: "Імʼя вітру",
+          }),
+        ],
+        cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
+        id: "shipment-4",
+        terminalText: "Скасовано 10 лип. 2026",
+        trackingHref: null,
+        trackingNumber: null,
+      }),
+      makeHistoryShipmentGroup({
+        badge: null,
+        books: [
+          makeHistoryBook({
+            cancelReason: "Знайшла дешевше в іншому магазині.",
+            id: "item-6",
+            priceText: null,
+            terminalText: "Скасовано 2 лип. 2026",
+            title: "Маленьке життя",
+          }),
+        ],
+        id: null,
+        serviceName: null,
+        terminalText: null,
+        trackingHref: null,
+        trackingNumber: null,
+      }),
+    ],
     storeName: "Читайлик",
-    trackingHref: null,
-    trackingNumber: null,
-  }),
-  makeHistoryCardModel({
-    badge: cancelledBadge,
-    book: null,
-    cancelledDateText: "2 лип. 2026",
-    expectedDateText: null,
-    id: "4",
-    priceText: "520 UAH",
-    receivedDateText: null,
-    storeName: "Yakaboo",
-    trackingHref: null,
-    trackingNumber: null,
+    totalText: null,
   }),
 ];
 

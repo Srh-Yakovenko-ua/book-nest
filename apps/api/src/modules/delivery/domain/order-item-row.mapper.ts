@@ -131,6 +131,8 @@ function toRowShipmentView({
         item.cancelledAt === null &&
         item.receivedAt === null,
     ).length,
+    cancelledAt: toNullableIsoDateTime(shipment.cancelledAt),
+    cancelReason: shipment.cancelReason,
     deliveryService:
       name === null
         ? null
@@ -139,6 +141,7 @@ function toRowShipmentView({
     id: shipment.id,
     note: shipment.note,
     pickupUntil: toNullableIsoDate(shipment.pickupUntil),
+    receivedAt: toNullableIsoDateTime(shipment.receivedAt),
     status: ShipmentStatusSchema.parse(shipment.status),
     trackingNumber: shipment.trackingNumber,
     trackingUrl: resolveTrackingUrl({

@@ -20,6 +20,8 @@ import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { toOrderStatusBadge } from "./statistics-view-model";
 
+export const ORDER_CARD_LAYOUT = { bookLimit: 3 } as const;
+
 export type DeliveryBadgeKey =
   "arriving_soon" | "delayed" | "in_transit" | "no_delivery_date" | "ordered" | "ready_for_pickup";
 

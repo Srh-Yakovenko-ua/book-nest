@@ -12,6 +12,7 @@ import type {
   InTransitSummaryView,
   NextShipmentBookView,
   NextShipmentView,
+  PaginatedOrderHistoryGroups,
   Paginator,
 } from "@app/shared";
 
@@ -20,6 +21,7 @@ import {
   normalizeSearch,
   OwnershipStatusSchema,
   ReadingStatusSchema,
+  resolveBookOrderHistorySort,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -37,6 +39,7 @@ import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
 import { buildInTransitImpact } from "../domain/in-transit-impact.js";
 import { toNextShipmentView } from "../domain/next-shipment.mapper.js";
+import { toOrderHistoryGroups } from "../domain/order-history-group.mapper.js";
 import { buildOrderHistorySummaryView } from "../domain/order-history-summary.js";
 import { toBookOrderItemRowView } from "../domain/order-item-row.mapper.js";
 import {
@@ -62,7 +65,7 @@ export class DeliveryReadService {
   }: {
     query: BookOrderHistoryQuery;
     userId: string;
-  }): Promise<Paginator<BookOrderItemRowView>> {
+  }): Promise<PaginatedOrderHistoryGroups> {
     const { today } = deliveryDateBounds(new Date());
     const filter = {
       currency: query.currency,
@@ -79,21 +82,24 @@ export class DeliveryReadService {
       userId,
     };
 
-    const [rows, totalCount] = await Promise.all([
+    const [rows, counts] = await Promise.all([
       this.deliveryReadRepository.listHistory({
         ...filter,
-        sort: query.sort,
+        sort: resolveBookOrderHistorySort({ currency: query.currency, sort: query.sort }),
         ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.deliveryReadRepository.countHistory(filter),
     ]);
 
-    return buildPaginator({
-      items: rows.map((row) => this.toRowView({ row, today })),
-      pageNumber: query.pageNumber,
-      pageSize: query.pageSize,
-      totalCount,
-    });
+    return {
+      ...buildPaginator({
+        items: toOrderHistoryGroups(rows.map((row) => this.toRowView({ row, today }))),
+        pageNumber: query.pageNumber,
+        pageSize: query.pageSize,
+        totalCount: counts.totalCount,
+      }),
+      totalBooksCount: counts.totalBooksCount,
+    };
   }
 
   async historySummary(userId: string): Promise<BookOrderHistorySummaryView> {

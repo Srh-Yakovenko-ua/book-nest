@@ -3035,7 +3035,7 @@
       "title": "Order history",
       "subtitle": "Received and cancelled orders — the finished part of your delivery history.",
       "resultsTitle": "Order list",
-      "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
+      "counter": "Showing {shown} of {total, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
       "loadMore": "Show more",
       "summary": {
         "units": {
@@ -3093,12 +3093,12 @@
         "options": {
           "newest_orders": "Newest orders",
           "oldest_orders": "Oldest orders",
-          "recently_updated": "Recently updated",
-          "status": "By status",
+          "recently_updated": "Recently updated orders",
           "store": "By store",
-          "price": "By price",
-          "title": "By book title"
-        }
+          "price_asc": "By order total: lowest first",
+          "price_desc": "By order total: highest first"
+        },
+        "priceNeedsCurrency": "Available once a currency is picked"
       },
       "filters": {
         "label": "Filters",
@@ -3120,12 +3120,11 @@
         "reset": "Reset"
       },
       "card": {
-        "deletedBook": "Book deleted",
-        "deletedBookHint": "Book data is unavailable — showing the stored delivery information.",
-        "receivedDate": "Received date",
-        "cancelledDate": "Cancelled date",
         "cancelReason": "Cancellation reason",
-        "note": "Note"
+        "note": "Note",
+        "receivedOn": "Received {date}",
+        "cancelledOn": "Cancelled {date}",
+        "expectedOn": "Expected {date}"
       },
       "states": {
         "loading": "Loading…",

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { Currency } from "./book-enums.js";
+
 import {
   ActiveShipmentStatusSchema,
   CurrencySchema,
@@ -620,13 +622,33 @@ export const BookOrderHistorySortSchema = z.enum([
   "newest_orders",
   "oldest_orders",
   "recently_updated",
-  "status",
   "store",
-  "price",
-  "title",
+  "price_asc",
+  "price_desc",
 ]);
 
 export type BookOrderHistorySort = z.infer<typeof BookOrderHistorySortSchema>;
+
+export const BOOK_ORDER_HISTORY_SORT = {
+  default: "newest_orders",
+  priceSorts: ["price_asc", "price_desc"],
+} as const satisfies { default: BookOrderHistorySort; priceSorts: readonly BookOrderHistorySort[] };
+
+export function comparesOrderPrices(sort: BookOrderHistorySort): boolean {
+  return BOOK_ORDER_HISTORY_SORT.priceSorts.some((priceSort) => priceSort === sort);
+}
+
+export function resolveBookOrderHistorySort({
+  currency,
+  sort,
+}: {
+  currency: Currency | undefined;
+  sort: BookOrderHistorySort;
+}): BookOrderHistorySort {
+  return comparesOrderPrices(sort) && currency === undefined
+    ? BOOK_ORDER_HISTORY_SORT.default
+    : sort;
+}
 
 export const BookOrderHistoryQuerySchema = z.object({
   currency: CurrencySchema.optional(),
@@ -638,7 +660,7 @@ export const BookOrderHistoryQuerySchema = z.object({
   priceMin: z.coerce.number().nonnegative().optional(),
   search: z.string().trim().max(BOOK_ORDER_LIMITS.searchMax).optional(),
   service: DeliveryServiceSchema.optional(),
-  sort: BookOrderHistorySortSchema.default("newest_orders"),
+  sort: BookOrderHistorySortSchema.default(BOOK_ORDER_HISTORY_SORT.default),
   store: z.string().trim().max(BOOK_ORDER_LIMITS.storeMax).optional(),
   tab: BookOrderHistoryTabSchema.default("all"),
   to: isoDay().optional(),
@@ -711,11 +733,17 @@ export const BookOrderItemRowShipmentViewSchema = z.object({
   activeItemsCount: CountSchema.describe(
     "How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.",
   ),
+  cancelledAt: z.string().nullable().describe("When the whole parcel was cancelled."),
+  cancelReason: z
+    .string()
+    .nullable()
+    .describe("Why the whole parcel was cancelled, as opposed to a reason carried by one book."),
   deliveryService: ShipmentDeliveryServiceViewSchema.nullable(),
   expectedDeliveryDate: z.string().nullable(),
   id: z.string(),
   note: z.string().nullable(),
   pickupUntil: z.string().nullable(),
+  receivedAt: z.string().nullable().describe("When the whole parcel was received."),
   status: ShipmentStatusSchema,
   trackingNumber: z.string().nullable(),
   trackingUrl: z.string().nullable(),
@@ -740,6 +768,75 @@ export type BookOrderItemRowView = z.infer<typeof BookOrderItemRowViewSchema>;
 export const PaginatedBookOrderItemRowsSchema = createPaginatedSchema(BookOrderItemRowViewSchema);
 
 export type PaginatedBookOrderItemRows = z.infer<typeof PaginatedBookOrderItemRowsSchema>;
+
+export const OrderHistoryBookViewSchema = z.object({
+  book: BookPreviewSchema,
+  cancelledAt: z.string().nullable(),
+  cancelReason: z
+    .string()
+    .nullable()
+    .describe(
+      "Why this single book was cancelled, which can differ from the reason of its parcel.",
+    ),
+  id: z.string(),
+  price: z.number().nullable(),
+  receivedAt: z.string().nullable(),
+});
+
+export type OrderHistoryBookView = z.infer<typeof OrderHistoryBookViewSchema>;
+
+export const OrderHistoryShipmentViewSchema = z.object({
+  cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
+  deliveryService: ShipmentDeliveryServiceViewSchema.nullable(),
+  expectedDeliveryDate: z.string().nullable(),
+  id: z.string(),
+  note: z.string().nullable(),
+  pickupUntil: z.string().nullable(),
+  receivedAt: z.string().nullable(),
+  status: ShipmentStatusSchema,
+  trackingNumber: z.string().nullable(),
+  trackingUrl: z.string().nullable(),
+});
+
+export type OrderHistoryShipmentView = z.infer<typeof OrderHistoryShipmentViewSchema>;
+
+export const OrderHistoryShipmentGroupViewSchema = z.object({
+  books: z
+    .array(OrderHistoryBookViewSchema)
+    .describe(
+      "The books of this parcel that belong to the requested tab. Never narrowed by the page boundary.",
+    ),
+  shipment: OrderHistoryShipmentViewSchema.nullable().describe(
+    "Null for the books that were settled before they ever reached a parcel.",
+  ),
+});
+
+export type OrderHistoryShipmentGroupView = z.infer<typeof OrderHistoryShipmentGroupViewSchema>;
+
+export const OrderHistoryGroupViewSchema = z.object({
+  booksCount: CountSchema.describe(
+    "How many books of this order the requested tab and the active filters render, which is the sum over its parcel groups.",
+  ),
+  order: BookOrderItemRowOrderViewSchema,
+  shipments: z
+    .array(OrderHistoryShipmentGroupViewSchema)
+    .describe(
+      "Dispatched parcels first, the never-dispatched books last. A parcel that carries no book of the requested tab is left out.",
+    ),
+});
+
+export type OrderHistoryGroupView = z.infer<typeof OrderHistoryGroupViewSchema>;
+
+export const PaginatedOrderHistoryGroupsSchema = createPaginatedSchema(
+  OrderHistoryGroupViewSchema,
+).extend({
+  totalBooksCount: CountSchema.describe(
+    "How many books the whole selection holds, not only the orders on this page. totalCount counts orders instead.",
+  ),
+});
+
+export type PaginatedOrderHistoryGroups = z.infer<typeof PaginatedOrderHistoryGroupsSchema>;
 
 export const NEXT_SHIPMENT_LIMITS = {
   bookPreviewsMax: 3,

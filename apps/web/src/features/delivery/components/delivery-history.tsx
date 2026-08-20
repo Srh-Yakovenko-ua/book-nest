@@ -4,12 +4,12 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 
-import type { DeliveryHistoryCardModel } from "../model/history-card-model";
+import type { HistoryOrderCardModel } from "../model/history-order-card-model";
 import type { HistoryContent } from "./delivery-history-view";
 
 import { useHistoryList } from "../api/use-history-list";
 import { useHistorySummary } from "../api/use-history-summary";
-import { toHistoryCardModel } from "../model/history-card-model";
+import { toHistoryOrderCards } from "../model/history-order-card-model";
 import { buildHistorySummaryCards } from "../model/history-summary-cards";
 import { useHistoryParams } from "../model/use-history-params";
 import { DeliveryHistoryCard } from "./delivery-history-card";
@@ -21,7 +21,8 @@ import { DeliverySummaryCards } from "./delivery-summary-cards";
 export function DeliveryHistory() {
   const t = useTranslations("delivery.history");
   const tSummary = useTranslations("delivery.history.summary");
-  const tCard = useTranslations("delivery.card");
+  const tHistoryCard = useTranslations("delivery.history.card");
+  const tLibraryCard = useTranslations("books.library.card");
   const tBadge = useTranslations("delivery.badge");
   const locale = useLocale();
   const router = useRouter();
@@ -32,17 +33,22 @@ export function DeliveryHistory() {
 
   const pages = listQuery.data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
-  const items: DeliveryHistoryCardModel[] = pages
-    .flatMap((page) => page.items)
-    .map((item) =>
-      toHistoryCardModel(item, {
-        labels: {
-          badge: (key) => tBadge(key),
-          seriesPart: ({ name, part }) => tCard("seriesPart", { name, part }),
-        },
-        locale,
-      }),
-    );
+  const totalBooksCount = pages[0]?.totalBooksCount ?? 0;
+  const items: HistoryOrderCardModel[] = toHistoryOrderCards(
+    pages.flatMap((page) => page.items),
+    {
+      labels: {
+        cancelledOn: (date) => tHistoryCard("cancelledOn", { date }),
+        expectedOn: (date) => tHistoryCard("expectedOn", { date }),
+        receivedOn: (date) => tHistoryCard("receivedOn", { date }),
+        seriesPosition: (position, total) => tLibraryCard("seriesPosition", { position, total }),
+        status: (key) => tBadge(key),
+      },
+      locale,
+      search: params.state.q,
+      tab: params.tab,
+    },
+  );
 
   const content: HistoryContent = listQuery.isError
     ? { kind: "error" }
@@ -98,8 +104,8 @@ export function DeliveryHistory() {
     summary: summaryQuery.data ?? null,
   });
 
-  const renderCard = (model: DeliveryHistoryCardModel) => (
-    <DeliveryHistoryCard key={model.id} model={model} />
+  const renderCard = (model: HistoryOrderCardModel) => (
+    <DeliveryHistoryCard key={model.id} model={model} search={params.state.q} />
   );
 
   return (
@@ -131,7 +137,12 @@ export function DeliveryHistory() {
       tab={params.tab}
       toolbar={
         <DeliveryHistoryToolbar
-          counterLabel={t("counter", { shown: items.length, total: totalCount })}
+          canSortByPrice={params.canSortByPrice}
+          counterLabel={t("counter", {
+            books: totalBooksCount,
+            shown: items.length,
+            total: totalCount,
+          })}
           filterCount={params.filterCount}
           isPending={listQuery.isPending}
           loadingLabel={t("states.loading")}

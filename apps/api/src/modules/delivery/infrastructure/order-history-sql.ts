@@ -1,13 +1,11 @@
 import type { BookOrderHistorySort, BookOrderHistoryTab, Currency } from "@app/shared";
 
-import { ShipmentStatusSchema } from "@app/shared";
+import { DEFAULT_CURRENCY } from "@app/shared";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { currencySql, ORDER_EFFECTIVE_TOTAL_SQL } from "./in-transit-sql.js";
-
-const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+import { ORDER_EFFECTIVE_TOTAL_SQL } from "./in-transit-sql.js";
 
 export const HISTORY_ITEM_SOURCE = Prisma.sql`
   FROM book_order_items item
@@ -16,12 +14,10 @@ export const HISTORY_ITEM_SOURCE = Prisma.sql`
   LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
-export const ITEM_EFFECTIVE_STATUS_SQL = Prisma.sql`
-  CASE
-    WHEN item.cancelled_at IS NOT NULL THEN ${SHIPMENT_STATUS.cancelled}
-    WHEN item.received_at IS NOT NULL THEN ${SHIPMENT_STATUS.received}
-    ELSE COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered})
-  END
+export const HISTORY_CONTENT_SOURCE = Prisma.sql`
+  FROM book_order_items item
+  JOIN books book ON book.id = item.book_id
+  LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
 export const LIVE_HISTORY_ITEM_SQL = Prisma.sql`book.deleted_at IS NULL`;
@@ -44,24 +40,32 @@ export type HistoryFilterInput = {
 const HISTORY_ORDER_SQL: Record<BookOrderHistorySort, Prisma.Sql> = {
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
   oldest_orders: Prisma.sql`book_order.order_date ASC NULLS LAST`,
-  price: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} DESC NULLS LAST, book_order.id ASC`,
+  price_asc: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} ASC NULLS LAST`,
+  price_desc: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} DESC NULLS LAST`,
   recently_updated: Prisma.sql`GREATEST(
-    item.updated_at,
     book_order.updated_at,
-    COALESCE(shipment.updated_at, item.updated_at)
+    COALESCE(
+      (SELECT max(touched.updated_at) FROM book_order_items touched WHERE touched.order_id = book_order.id),
+      book_order.updated_at
+    ),
+    COALESCE(
+      (SELECT max(dispatched.updated_at) FROM shipments dispatched WHERE dispatched.order_id = book_order.id),
+      book_order.updated_at
+    )
   ) DESC`,
-  status: Prisma.sql`(${ITEM_EFFECTIVE_STATUS_SQL}) ASC`,
   store: Prisma.sql`book_order.store_name ASC`,
-  title: Prisma.sql`book.title ASC`,
 };
 
-const HISTORY_SEARCH_COLUMNS: Prisma.Sql[] = [
-  Prisma.sql`book.title`,
-  Prisma.sql`book.original_title`,
-  Prisma.sql`book.first_author_name`,
+const ORDER_SEARCH_COLUMNS: Prisma.Sql[] = [
   Prisma.sql`book_order.store_name`,
   Prisma.sql`book_order.order_number`,
   Prisma.sql`book_order.note`,
+];
+
+const CONTENT_SEARCH_COLUMNS: Prisma.Sql[] = [
+  Prisma.sql`book.title`,
+  Prisma.sql`book.original_title`,
+  Prisma.sql`book.first_author_name`,
   Prisma.sql`shipment.tracking_number`,
   Prisma.sql`shipment.delivery_service_name`,
   Prisma.sql`shipment.note`,
@@ -69,36 +73,47 @@ const HISTORY_SEARCH_COLUMNS: Prisma.Sql[] = [
   Prisma.sql`item.cancel_reason`,
 ];
 
-export function buildHistoryConditions({
-  currency,
-  from,
+export function buildHistoryContentConditions({
   hasTrackingNumber,
   hasTrackingUrl,
-  priceMax,
-  priceMin,
-  search,
   service,
-  store,
   tab,
-  to,
-  userId,
 }: HistoryFilterInput): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [LIVE_HISTORY_ITEM_SQL, historyTabSql(tab)];
+
+  if (service !== undefined) {
+    conditions.push(Prisma.sql`lower(shipment.delivery_service_name) = lower(${service})`);
+  }
+
+  if (hasTrackingNumber !== undefined) {
+    conditions.push(
+      presenceSql({ column: Prisma.sql`shipment.tracking_number`, present: hasTrackingNumber }),
+    );
+  }
+
+  if (hasTrackingUrl !== undefined) {
+    conditions.push(
+      presenceSql({ column: Prisma.sql`shipment.tracking_url`, present: hasTrackingUrl }),
+    );
+  }
+
+  return Prisma.join(conditions, " AND ");
+}
+
+export function buildHistoryOrderConditions(filter: HistoryFilterInput): Prisma.Sql {
+  const { currency, from, priceMax, priceMin, search, store, to, userId } = filter;
+  const content = buildHistoryContentConditions(filter);
   const conditions: Prisma.Sql[] = [
     Prisma.sql`book_order.user_id = ${userId}::uuid`,
-    LIVE_HISTORY_ITEM_SQL,
-    historyTabSql(tab),
+    correlatedContentSql(content),
   ];
 
   if (store !== undefined) {
     conditions.push(Prisma.sql`lower(book_order.store_name) = lower(${store})`);
   }
 
-  if (service !== undefined) {
-    conditions.push(Prisma.sql`lower(shipment.delivery_service_name) = lower(${service})`);
-  }
-
   if (currency !== undefined) {
-    conditions.push(currencySql(currency));
+    conditions.push(orderCurrencySql(currency));
   }
 
   if (from !== undefined) {
@@ -117,34 +132,59 @@ export function buildHistoryConditions({
     conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} <= ${priceMax}`);
   }
 
-  if (hasTrackingNumber !== undefined) {
-    conditions.push(
-      presenceSql({ column: Prisma.sql`shipment.tracking_number`, present: hasTrackingNumber }),
-    );
-  }
-
-  if (hasTrackingUrl !== undefined) {
-    conditions.push(
-      presenceSql({ column: Prisma.sql`shipment.tracking_url`, present: hasTrackingUrl }),
-    );
-  }
-
   if (search !== undefined) {
-    conditions.push(searchSql(search));
+    conditions.push(historySearchSql({ content, search }));
   }
 
   return Prisma.join(conditions, " AND ");
 }
 
-export function historyOrderSql(sort: BookOrderHistorySort): Prisma.Sql {
-  return Prisma.sql`${historySortSql(sort)}, item.id ASC`;
+export function historyContentOrderSql(orderIds: string[]): Prisma.Sql {
+  return Prisma.sql`
+    array_position(${orderIds}::uuid[], item.order_id),
+    (shipment.id IS NULL),
+    shipment.created_at,
+    shipment.id,
+    book.title,
+    item.id
+  `;
 }
 
-function historySortSql(sort: BookOrderHistorySort): Prisma.Sql {
+export function historyOrderSql(sort: BookOrderHistorySort): Prisma.Sql {
   if (!Object.hasOwn(HISTORY_ORDER_SQL, sort)) {
     throw new Error(`Unsupported delivery history sort: ${String(sort)}`);
   }
-  return HISTORY_ORDER_SQL[sort];
+  return Prisma.sql`${HISTORY_ORDER_SQL[sort]}, book_order.id ASC`;
+}
+
+function correlatedContentSql(content: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    ${HISTORY_CONTENT_SOURCE}
+    WHERE item.order_id = book_order.id AND ${content}
+  )`;
+}
+
+function historySearchSql({
+  content,
+  search,
+}: {
+  content: Prisma.Sql;
+  search: string;
+}): Prisma.Sql {
+  const onOrder = ORDER_SEARCH_COLUMNS.map((column) => ilikeContains({ column, search }));
+  const inContent = CONTENT_SEARCH_COLUMNS.map((column) => ilikeContains({ column, search }));
+
+  return Prisma.sql`(
+    ${Prisma.join(onOrder, " OR ")}
+    OR EXISTS (
+      SELECT 1
+      ${HISTORY_CONTENT_SOURCE}
+      WHERE item.order_id = book_order.id
+        AND ${content}
+        AND (${Prisma.join(inContent, " OR ")})
+    )
+  )`;
 }
 
 function historyTabSql(tab: BookOrderHistoryTab): Prisma.Sql {
@@ -162,11 +202,26 @@ function historyTabSql(tab: BookOrderHistoryTab): Prisma.Sql {
   }
 }
 
-function presenceSql({ column, present }: { column: Prisma.Sql; present: boolean }): Prisma.Sql {
-  return present ? Prisma.sql`${column} IS NOT NULL` : Prisma.sql`${column} IS NULL`;
+function orderCurrencySql(currency: Currency): Prisma.Sql {
+  if (currency !== DEFAULT_CURRENCY) {
+    return Prisma.sql`book_order.currency = ${currency}`;
+  }
+  return Prisma.sql`(
+    book_order.currency = ${currency}
+    OR (
+      book_order.currency IS NULL
+      AND EXISTS (
+        SELECT 1
+        FROM book_order_items priced_item
+        JOIN books priced_book ON priced_book.id = priced_item.book_id
+        WHERE priced_item.order_id = book_order.id
+          AND priced_book.deleted_at IS NULL
+          AND priced_item.price IS NOT NULL
+      )
+    )
+  )`;
 }
 
-function searchSql(search: string): Prisma.Sql {
-  const matches = HISTORY_SEARCH_COLUMNS.map((column) => ilikeContains({ column, search }));
-  return Prisma.sql`(${Prisma.join(matches, " OR ")})`;
+function presenceSql({ column, present }: { column: Prisma.Sql; present: boolean }): Prisma.Sql {
+  return present ? Prisma.sql`${column} IS NOT NULL` : Prisma.sql`${column} IS NULL`;
 }
