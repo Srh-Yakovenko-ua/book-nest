@@ -26,6 +26,7 @@ export const ORDER_ROUTES = {
   cancelShipment: (shipmentId: string): string => `/api/delivery/shipments/${shipmentId}/cancel`,
   createShipment: (orderId: string): string => `/api/delivery/orders/${orderId}/shipments`,
   history: "/api/delivery/books/history",
+  historyFacets: "/api/delivery/books/history/facets",
   historyOutcome: "/api/delivery/books/history/outcome",
   historySummary: "/api/delivery/books/history/summary",
   inTransit: "/api/delivery/books/in-transit",

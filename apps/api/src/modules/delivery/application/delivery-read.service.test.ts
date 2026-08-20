@@ -69,6 +69,7 @@ function buildService(overrides: {
   const reads = {
     countHistory: vi.fn().mockResolvedValue(0),
     countInTransit: vi.fn().mockResolvedValue(0),
+    historyFacets: vi.fn().mockResolvedValue({ services: [], stores: [] }),
     historySummary: vi.fn(),
     inTransitSummary: vi.fn(),
     latestReceipt: vi.fn().mockResolvedValue(null),
@@ -419,18 +420,24 @@ describe("DeliveryReadService.historyList", () => {
     expect(page.items[0]?.shipments[0]?.shipment?.status).toBe("received");
   });
 
-  it("passes the tab, the parsed dates and the paging window to the repository", async () => {
+  it("passes the tab, every filter dimension and the paging window to the repository", async () => {
     const { reads, service } = buildService({});
 
     await service.historyList({
       query: historyQuery({
-        currency: "UAH",
+        booksMax: 9,
+        booksMin: 3,
+        cancelledFrom: "2026-08-01",
+        cancelledTo: "2026-08-20",
+        currency: ["UAH"],
         from: "2026-07-01",
-        hasTrackingNumber: true,
         pageNumber: 2,
         pageSize: 5,
+        priceCurrency: "UAH",
         priceMin: 10,
+        service: ["Nova Poshta"],
         sort: "price_desc",
+        store: ["Yakaboo"],
         tab: "cancelled",
         to: "2026-08-01",
       }),
@@ -439,14 +446,21 @@ describe("DeliveryReadService.historyList", () => {
 
     expect(reads.listHistory).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: new Date("2026-07-01T00:00:00.000Z"),
-        hasTrackingNumber: true,
+        booksMax: 9,
+        booksMin: 3,
+        cancelledFrom: "2026-08-01",
+        cancelledTo: "2026-08-20",
+        currency: ["UAH"],
+        from: "2026-07-01",
+        priceCurrency: "UAH",
         priceMin: 10,
+        service: ["Nova Poshta"],
         skip: 5,
         sort: "price_desc",
+        store: ["Yakaboo"],
         tab: "cancelled",
         take: 5,
-        to: new Date("2026-08-01T00:00:00.000Z"),
+        to: "2026-08-01",
         userId: USER,
       }),
     );
@@ -460,6 +474,52 @@ describe("DeliveryReadService.historyList", () => {
     expect(reads.listHistory).toHaveBeenCalledWith(
       expect.objectContaining({ sort: "newest_orders" }),
     );
+  });
+
+  it("falls back to the default sort when more than one currency is in play", async () => {
+    const { reads, service } = buildService({});
+
+    await service.historyList({
+      query: historyQuery({ currency: ["UAH", "EUR"], sort: "price_asc" }),
+      userId: USER,
+    });
+
+    expect(reads.listHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ sort: "newest_orders" }),
+    );
+  });
+
+  it("keeps a price sort once a single currency gates it", async () => {
+    const { reads, service } = buildService({});
+
+    await service.historyList({
+      query: historyQuery({ currency: ["UAH"], sort: "price_asc" }),
+      userId: USER,
+    });
+
+    expect(reads.listHistory).toHaveBeenCalledWith(expect.objectContaining({ sort: "price_asc" }));
+  });
+});
+
+describe("DeliveryReadService.historyFacets", () => {
+  it("ranks the stores and services of the asked tab by how many orders carry them", async () => {
+    const historyFacets = vi.fn().mockResolvedValue({
+      services: [
+        { count: 1, name: "Ukrposhta" },
+        { count: 4, name: "Nova Poshta" },
+      ],
+      stores: [
+        { count: 2, name: "Book24" },
+        { count: 2, name: "Yakaboo" },
+      ],
+    });
+    const { service } = buildService({ reads: { historyFacets } });
+
+    const view = await service.historyFacets({ query: { tab: "cancelled" }, userId: USER });
+
+    expect(historyFacets).toHaveBeenCalledWith({ tab: "cancelled", userId: USER });
+    expect(view.services.map((entry) => entry.name)).toEqual(["Nova Poshta", "Ukrposhta"]);
+    expect(view.stores.map((entry) => entry.name)).toEqual(["Book24", "Yakaboo"]);
   });
 });
 

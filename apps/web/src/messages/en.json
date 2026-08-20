@@ -3091,33 +3091,121 @@
       "sort": {
         "label": "Sort",
         "options": {
-          "newest_orders": "Newest orders",
-          "oldest_orders": "Oldest orders",
-          "recently_updated": "Recently updated orders",
-          "store": "By store",
+          "newest_orders": "Order date: newest first",
+          "oldest_orders": "Order date: oldest first",
+          "recently_updated": "Last updated: newest first",
+          "store": "Store: A–Z",
           "price_asc": "By order total: lowest first",
           "price_desc": "By order total: highest first"
         },
-        "priceNeedsCurrency": "Available once a currency is picked"
+        "mobile": {
+          "title": "Sorting",
+          "description": "Choose the order of past orders.",
+          "close": "Close",
+          "groups": {
+            "order_date": "Order date",
+            "updated": "Last updated",
+            "store": "Store",
+            "price": "Order total"
+          },
+          "options": {
+            "newest_orders": "Newest first",
+            "oldest_orders": "Oldest first",
+            "recently_updated": "Newest first",
+            "store": "A–Z",
+            "price_asc": "Lowest first",
+            "price_desc": "Highest first"
+          },
+          "trigger": {
+            "newest_orders": "Ordered ↓",
+            "oldest_orders": "Ordered ↑",
+            "recently_updated": "Updated ↓",
+            "store": "Store A–Z",
+            "price_asc": "Total ↑",
+            "price_desc": "Total ↓"
+          }
+        },
+        "pickOneCurrency": "Pick a single currency to sort by total"
       },
-      "filters": {
-        "label": "Filters",
-        "currency": "Currency",
-        "store": "Store",
-        "storePlaceholder": "Exact store name",
-        "service": "Delivery service",
-        "servicePlaceholder": "Exact service name",
-        "from": "Date from",
-        "to": "Date to",
-        "priceMin": "Price from",
-        "priceMax": "Price to",
-        "hasTrackingNumber": "Has tracking number",
-        "hasTrackingUrl": "Has tracking link",
-        "any": "Any",
-        "yes": "Yes",
-        "no": "No",
+      "advancedFilters": {
+        "trigger": "Filters",
+        "title": "Advanced filters",
+        "description": "They narrow the list of orders.",
         "apply": "Apply",
-        "reset": "Reset"
+        "clear": "Reset",
+        "sections": {
+          "store": "Store",
+          "orderDate": "Order date",
+          "booksCount": "Book count",
+          "service": "Delivery service",
+          "currency": "Currency",
+          "orderTotal": "Order total",
+          "receivedDate": "Receipt date",
+          "cancelledDate": "Cancellation date"
+        },
+        "range": {
+          "from": "From",
+          "to": "To",
+          "min": "From",
+          "max": "To",
+          "invalid": "The start of the range is past its end"
+        },
+        "store": {
+          "placeholder": "Any store",
+          "search": "Search stores",
+          "empty": "No stores found"
+        },
+        "service": {
+          "placeholder": "Any service",
+          "search": "Search services",
+          "empty": "No services found",
+          "hint": "The card keeps only the parcels of the picked services."
+        },
+        "booksCount": {
+          "min": "At least this many books",
+          "max": "At most this many books",
+          "receivedHint": "Counts the received books left after the other filters.",
+          "cancelledHint": "Counts the cancelled books left after the other filters."
+        },
+        "orderTotal": {
+          "min": "Total from",
+          "max": "Total to",
+          "hint": "Filters by the final total of the order.",
+          "pickCurrency": "Pick one currency to filter by total."
+        },
+        "orderDate": {
+          "from": "Ordered from",
+          "to": "Ordered until"
+        },
+        "receivedDate": {
+          "from": "Received from",
+          "to": "Received until",
+          "hint": "Keeps the books received inside this range."
+        },
+        "cancelledDate": {
+          "from": "Cancelled from",
+          "to": "Cancelled until",
+          "hint": "Keeps the books cancelled inside this range."
+        }
+      },
+      "activeFilters": {
+        "store": "Store: {value}",
+        "service": "Service: {value}",
+        "orderedRange": "Ordered: {from} – {to}",
+        "orderedFrom": "Ordered from {value}",
+        "orderedTo": "Ordered until {value}",
+        "receivedRange": "Received: {from} – {to}",
+        "receivedFrom": "Received from {value}",
+        "receivedTo": "Received until {value}",
+        "cancelledRange": "Cancelled: {from} – {to}",
+        "cancelledFrom": "Cancelled from {value}",
+        "cancelledTo": "Cancelled until {value}",
+        "booksRange": "Books: {min}–{max}",
+        "booksFrom": "Books: from {min}",
+        "booksTo": "Books: up to {max}",
+        "priceRange": "Total: {min}–{max} {currency}",
+        "priceFrom": "Total: from {min} {currency}",
+        "priceTo": "Total: up to {max} {currency}"
       },
       "card": {
         "cancelReason": "Cancellation reason",

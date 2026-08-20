@@ -3091,33 +3091,121 @@
       "sort": {
         "label": "Сортування",
         "options": {
-          "newest_orders": "Новіші замовлення",
-          "oldest_orders": "Старіші замовлення",
-          "recently_updated": "Нещодавно оновлені замовлення",
-          "store": "За магазином",
+          "newest_orders": "За датою замовлення: спочатку нові",
+          "oldest_orders": "За датою замовлення: спочатку старі",
+          "recently_updated": "За останніми змінами: спочатку нові",
+          "store": "За магазином: А–Я",
           "price_asc": "За вартістю замовлення: від нижчої",
           "price_desc": "За вартістю замовлення: від вищої"
         },
-        "priceNeedsCurrency": "Доступно, коли обрано валюту"
+        "mobile": {
+          "title": "Сортування",
+          "description": "Виберіть порядок замовлень в історії.",
+          "close": "Закрити",
+          "groups": {
+            "order_date": "Дата замовлення",
+            "updated": "Останні зміни",
+            "store": "Магазин",
+            "price": "Вартість замовлення"
+          },
+          "options": {
+            "newest_orders": "Спочатку нові",
+            "oldest_orders": "Спочатку старі",
+            "recently_updated": "Спочатку нові",
+            "store": "А–Я",
+            "price_asc": "Від нижчої",
+            "price_desc": "Від вищої"
+          },
+          "trigger": {
+            "newest_orders": "Замовлення ↓",
+            "oldest_orders": "Замовлення ↑",
+            "recently_updated": "Зміни ↓",
+            "store": "Магазин А–Я",
+            "price_asc": "Вартість ↑",
+            "price_desc": "Вартість ↓"
+          }
+        },
+        "pickOneCurrency": "Оберіть одну валюту, щоб сортувати за вартістю"
       },
-      "filters": {
-        "label": "Фільтри",
-        "currency": "Валюта",
-        "store": "Магазин",
-        "storePlaceholder": "Точна назва магазину",
-        "service": "Служба доставки",
-        "servicePlaceholder": "Точна назва служби",
-        "from": "Дата від",
-        "to": "Дата до",
-        "priceMin": "Ціна від",
-        "priceMax": "Ціна до",
-        "hasTrackingNumber": "Є номер ТТН",
-        "hasTrackingUrl": "Є посилання на трекінг",
-        "any": "Не важливо",
-        "yes": "Так",
-        "no": "Ні",
+      "advancedFilters": {
+        "trigger": "Фільтри",
+        "title": "Розширені фільтри",
+        "description": "Звужують список замовлень.",
         "apply": "Застосувати",
-        "reset": "Скинути"
+        "clear": "Скинути",
+        "sections": {
+          "store": "Магазин",
+          "orderDate": "Дата замовлення",
+          "booksCount": "Кількість книг",
+          "service": "Служба доставки",
+          "currency": "Валюта",
+          "orderTotal": "Вартість замовлення",
+          "receivedDate": "Дата отримання",
+          "cancelledDate": "Дата скасування"
+        },
+        "range": {
+          "from": "Від",
+          "to": "До",
+          "min": "Від",
+          "max": "До",
+          "invalid": "Початок діапазону пізніший за його кінець"
+        },
+        "store": {
+          "placeholder": "Будь-який магазин",
+          "search": "Пошук магазинів",
+          "empty": "Магазинів не знайдено"
+        },
+        "service": {
+          "placeholder": "Будь-яка служба",
+          "search": "Пошук служб",
+          "empty": "Служб не знайдено",
+          "hint": "У картці лишаються тільки посилки обраних служб."
+        },
+        "booksCount": {
+          "min": "Книг щонайменше",
+          "max": "Книг щонайбільше",
+          "receivedHint": "Рахує отримані книги, які лишилися після решти фільтрів.",
+          "cancelledHint": "Рахує скасовані книги, які лишилися після решти фільтрів."
+        },
+        "orderTotal": {
+          "min": "Вартість від",
+          "max": "Вартість до",
+          "hint": "Фільтрує за підсумковою сумою замовлення.",
+          "pickCurrency": "Оберіть одну валюту, щоб фільтрувати за вартістю."
+        },
+        "orderDate": {
+          "from": "Замовлено від",
+          "to": "Замовлено до"
+        },
+        "receivedDate": {
+          "from": "Отримано від",
+          "to": "Отримано до",
+          "hint": "Лишає книги, отримані в цей проміжок."
+        },
+        "cancelledDate": {
+          "from": "Скасовано від",
+          "to": "Скасовано до",
+          "hint": "Лишає книги, скасовані в цей проміжок."
+        }
+      },
+      "activeFilters": {
+        "store": "Магазин: {value}",
+        "service": "Служба: {value}",
+        "orderedRange": "Замовлено: {from} – {to}",
+        "orderedFrom": "Замовлено від {value}",
+        "orderedTo": "Замовлено до {value}",
+        "receivedRange": "Отримано: {from} – {to}",
+        "receivedFrom": "Отримано від {value}",
+        "receivedTo": "Отримано до {value}",
+        "cancelledRange": "Скасовано: {from} – {to}",
+        "cancelledFrom": "Скасовано від {value}",
+        "cancelledTo": "Скасовано до {value}",
+        "booksRange": "Книг: {min}–{max}",
+        "booksFrom": "Книг: від {min}",
+        "booksTo": "Книг: до {max}",
+        "priceRange": "Вартість: {min}–{max} {currency}",
+        "priceFrom": "Вартість: від {min} {currency}",
+        "priceTo": "Вартість: до {max} {currency}"
       },
       "card": {
         "cancelReason": "Причина скасування",

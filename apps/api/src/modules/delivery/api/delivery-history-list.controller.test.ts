@@ -13,6 +13,7 @@ import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { DeliveryModule } from "../delivery.module.js";
 import {
+  createBook,
   createBooks,
   createOrder,
   getJson,
@@ -51,11 +52,7 @@ function booksOf(group: OrderHistoryGroupView | undefined): string[] {
 }
 
 async function history(query: string): Promise<PaginatedOrderHistoryGroups> {
-  const res = await getJson({
-    accessToken: reader.accessToken,
-    app,
-    path: `${ORDER_ROUTES.history}?${query}`,
-  });
+  const res = await requestHistory(query);
   expect(res.status).toBe(200);
   return PaginatedOrderHistoryGroupsSchema.parse(res.body);
 }
@@ -64,6 +61,14 @@ function idAt(ids: string[], index: number): string {
   const id = ids[index];
   if (id === undefined) throw new Error(`no seeded id at index ${index}`);
   return id;
+}
+
+function requestHistory(query: string) {
+  return getJson({
+    accessToken: reader.accessToken,
+    app,
+    path: `${ORDER_ROUTES.history}?${query}`,
+  });
 }
 
 async function seedSplitOrder() {
@@ -120,6 +125,43 @@ async function seedSplitOrder() {
     app,
     body: { cancelReason: "Found it cheaper", keepAsWantToBuy: true },
     path: ORDER_ROUTES.cancelItem(unshippedItem.id),
+  });
+
+  return order;
+}
+
+async function seedStaggeredParcel() {
+  const accessToken = reader.accessToken;
+  const bookIds = await createBooks({
+    accessToken,
+    app,
+    titles: ["Early", "Late", "Latest"],
+  });
+  const early = idAt(bookIds, 0);
+
+  const order = await createOrder({
+    accessToken,
+    app,
+    input: {
+      items: bookIds.map((bookId) => ({ bookId, price: 100 })),
+      orderDate: isoDay(-30),
+      shipments: [{ bookIds, deliveryService: "Nova Poshta" }],
+      storeName: "Yakaboo",
+      totalAmount: 300,
+    },
+  });
+
+  await postJson({
+    accessToken,
+    app,
+    body: { bookIds: [early], receivedAt: isoDay(-10) },
+    path: ORDER_ROUTES.receiveBooks,
+  });
+  await postJson({
+    accessToken,
+    app,
+    body: { receivedAt: isoDay(-2) },
+    path: ORDER_ROUTES.receiveShipment(shipmentOf({ bookId: early, view: order }).id),
   });
 
   return order;
@@ -270,6 +312,141 @@ describe("GET /api/delivery/books/history", () => {
     await seedSplitOrder();
 
     const page = await history("tab=received&sort=price_desc");
+
+    expect(page.totalCount).toBe(1);
+  });
+  it("keeps only the books received inside the range, parcel and all", async () => {
+    await seedStaggeredParcel();
+
+    const page = await history(`tab=received&receivedFrom=${isoDay(-12)}&receivedTo=${isoDay(-8)}`);
+
+    expect(booksOf(page.items[0])).toEqual(["Early"]);
+    expect(page.totalBooksCount).toBe(1);
+  });
+
+  it("drops the order entirely when no book was received inside the range", async () => {
+    await seedStaggeredParcel();
+
+    const page = await history(
+      `tab=received&receivedFrom=${isoDay(-60)}&receivedTo=${isoDay(-40)}`,
+    );
+
+    expect(page.totalCount).toBe(0);
+    expect(page.totalBooksCount).toBe(0);
+  });
+
+  it("reads the receipt date off the book, not off the parcel that closed later", async () => {
+    await seedStaggeredParcel();
+
+    const page = await history(`tab=received&receivedFrom=${isoDay(-3)}`);
+
+    expect(booksOf(page.items[0])).toEqual(["Late", "Latest"]);
+  });
+
+  it("narrows the cancelled tab to the books cancelled inside the range", async () => {
+    await seedSplitOrder();
+
+    const page = await history(`tab=cancelled&cancelledFrom=${isoDay(-1)}`);
+
+    expect(booksOf(page.items[0])).toEqual(["Children", "Emperor"]);
+  });
+
+  it("refuses a receipt range on the cancelled tab", async () => {
+    const res = await requestHistory(`tab=cancelled&receivedFrom=${isoDay(-5)}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a cancellation range on the received tab", async () => {
+    const res = await requestHistory(`tab=received&cancelledTo=${isoDay(-5)}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("counts the books that survived the content filters, not the whole tab", async () => {
+    await seedSplitOrder();
+
+    const wide = await history("tab=received&booksMin=2");
+    const narrow = await history("tab=received&booksMin=2&service=Nova%20Poshta");
+    const tooNarrow = await history("tab=received&booksMin=3");
+
+    expect(wide.totalCount).toBe(1);
+    expect(narrow.totalCount).toBe(1);
+    expect(tooNarrow.totalCount).toBe(0);
+  });
+
+  it("counts only what the delivery service left in the card", async () => {
+    await seedSplitOrder();
+    await seedStaggeredParcel();
+
+    const page = await history("tab=received&service=Nova%20Poshta&booksMin=3");
+
+    expect(page.items.map((group) => group.order.storeName)).toEqual(["Yakaboo"]);
+  });
+
+  it("takes any of the named stores and any of the named services", async () => {
+    await seedSplitOrder();
+    await seedStaggeredParcel();
+
+    const page = await history("tab=received&store=Book24&store=Yakaboo");
+
+    expect(page.totalCount).toBe(2);
+    expect(page.totalBooksCount).toBe(5);
+  });
+
+  it("keeps an order without an explicit order date inside the order-date range", async () => {
+    const accessToken = reader.accessToken;
+    const bookId = await createBook({ accessToken, app, title: "Undated" });
+    const order = await createOrder({
+      accessToken,
+      app,
+      input: {
+        items: [{ bookId, price: 20 }],
+        shipments: [{ bookIds: [bookId] }],
+        storeName: "Undated Store",
+        totalAmount: 20,
+      },
+    });
+    await postJson({
+      accessToken,
+      app,
+      body: {},
+      path: ORDER_ROUTES.receiveShipment(shipmentOf({ bookId, view: order }).id),
+    });
+
+    const page = await history(`tab=received&from=${isoDay(-1)}&to=${isoDay(0)}`);
+
+    expect(page.items.map((group) => group.order.storeName)).toEqual(["Undated Store"]);
+  });
+
+  it("refuses an order total range that names no currency", async () => {
+    const res = await requestHistory("tab=received&priceMin=100");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses an order total range while several currencies are selected", async () => {
+    const res = await requestHistory(
+      "tab=received&currency=UAH&currency=EUR&priceCurrency=UAH&priceMin=100",
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("filters by the canonical order total once a single currency gates it", async () => {
+    await seedSplitOrder();
+
+    const inside = await history("tab=received&currency=UAH&priceCurrency=UAH&priceMin=300");
+    const outside = await history("tab=received&currency=UAH&priceCurrency=UAH&priceMin=500");
+
+    expect(inside.totalCount).toBe(1);
+    expect(outside.totalCount).toBe(0);
+  });
+
+  it("ignores the retired tracking params instead of failing on them", async () => {
+    await seedSplitOrder();
+
+    const page = await history("tab=received&hasTrackingNumber=false&hasTrackingUrl=true");
 
     expect(page.totalCount).toBe(1);
   });

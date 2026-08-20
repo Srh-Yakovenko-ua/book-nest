@@ -1076,8 +1076,64 @@ export const DeliveryReadControllerHistoryOutcomeResponse = zod
   );
 
 /**
+ * @summary List the stores and delivery services behind one tab of the order history
+ */
+export const DeliveryReadControllerHistoryFacetsQueryParams = zod.object({
+  tab: zod.enum(["received", "cancelled"]),
+});
+
+export const deliveryReadControllerHistoryFacetsResponseServicesItemCountMin = 0;
+export const deliveryReadControllerHistoryFacetsResponseServicesItemCountMax = 9007199254740991;
+
+export const deliveryReadControllerHistoryFacetsResponseStoresItemCountMin = 0;
+export const deliveryReadControllerHistoryFacetsResponseStoresItemCountMax = 9007199254740991;
+
+export const DeliveryReadControllerHistoryFacetsResponse = zod.object({
+  services: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(deliveryReadControllerHistoryFacetsResponseServicesItemCountMin)
+          .max(deliveryReadControllerHistoryFacetsResponseServicesItemCountMax),
+        name: zod.string(),
+      }),
+    )
+    .describe(
+      "Delivery services that carried a parcel holding a book of the requested tab, with how many orders each one carries. The list answers only to the tab, so picking another filter never makes an option disappear.",
+    ),
+  stores: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(deliveryReadControllerHistoryFacetsResponseStoresItemCountMin)
+          .max(deliveryReadControllerHistoryFacetsResponseStoresItemCountMax),
+        name: zod.string(),
+      }),
+    )
+    .describe(
+      "Stores of the orders holding a book of the requested tab, with their order counts. The list answers only to the tab.",
+    ),
+});
+
+/**
  * @summary List the finished orders of the current user, grouped into their parcels and books
  */
+export const deliveryReadControllerHistoryListQueryBooksMaxMin = 0;
+export const deliveryReadControllerHistoryListQueryBooksMaxMax = 1000;
+
+export const deliveryReadControllerHistoryListQueryBooksMinMin = 0;
+export const deliveryReadControllerHistoryListQueryBooksMinMax = 1000;
+
+export const deliveryReadControllerHistoryListQueryCancelledFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerHistoryListQueryCancelledToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerHistoryListQueryCurrencyMax = 100;
+
 export const deliveryReadControllerHistoryListQueryFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -1091,10 +1147,18 @@ export const deliveryReadControllerHistoryListQueryPriceMaxMin = 0;
 
 export const deliveryReadControllerHistoryListQueryPriceMinMin = 0;
 
+export const deliveryReadControllerHistoryListQueryReceivedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerHistoryListQueryReceivedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const deliveryReadControllerHistoryListQuerySearchMax = 100;
 
+export const deliveryReadControllerHistoryListQueryServiceMax = 100;
+
 export const deliveryReadControllerHistoryListQuerySortDefault = `newest_orders`;
-export const deliveryReadControllerHistoryListQueryStoreMax = 200;
+export const deliveryReadControllerHistoryListQueryStoreMax = 100;
 
 export const deliveryReadControllerHistoryListQueryTabDefault = `all`;
 export const deliveryReadControllerHistoryListQueryToRegExp = new RegExp(
@@ -1102,10 +1166,29 @@ export const deliveryReadControllerHistoryListQueryToRegExp = new RegExp(
 );
 
 export const DeliveryReadControllerHistoryListQueryParams = zod.object({
-  currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
+  booksMax: zod
+    .int()
+    .min(deliveryReadControllerHistoryListQueryBooksMaxMin)
+    .max(deliveryReadControllerHistoryListQueryBooksMaxMax)
+    .optional(),
+  booksMin: zod
+    .int()
+    .min(deliveryReadControllerHistoryListQueryBooksMinMin)
+    .max(deliveryReadControllerHistoryListQueryBooksMinMax)
+    .optional(),
+  cancelledFrom: zod.iso
+    .date()
+    .regex(deliveryReadControllerHistoryListQueryCancelledFromRegExp)
+    .optional(),
+  cancelledTo: zod.iso
+    .date()
+    .regex(deliveryReadControllerHistoryListQueryCancelledToRegExp)
+    .optional(),
+  currency: zod
+    .array(zod.enum(["UAH", "EUR", "USD"]))
+    .max(deliveryReadControllerHistoryListQueryCurrencyMax)
+    .optional(),
   from: zod.iso.date().regex(deliveryReadControllerHistoryListQueryFromRegExp).optional(),
-  hasTrackingNumber: zod.enum(["true", "false"]).optional(),
-  hasTrackingUrl: zod.enum(["true", "false"]).optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -1116,10 +1199,24 @@ export const DeliveryReadControllerHistoryListQueryParams = zod.object({
     .min(1)
     .max(deliveryReadControllerHistoryListQueryPageSizeMax)
     .default(deliveryReadControllerHistoryListQueryPageSizeDefault),
+  priceCurrency: zod
+    .enum(["UAH", "EUR", "USD"])
+    .optional()
+    .describe(
+      "Gates the canonical order total range. The range is ignored unless exactly one currency is named here.",
+    ),
   priceMax: zod.number().min(deliveryReadControllerHistoryListQueryPriceMaxMin).optional(),
   priceMin: zod.number().min(deliveryReadControllerHistoryListQueryPriceMinMin).optional(),
+  receivedFrom: zod.iso
+    .date()
+    .regex(deliveryReadControllerHistoryListQueryReceivedFromRegExp)
+    .optional(),
+  receivedTo: zod.iso
+    .date()
+    .regex(deliveryReadControllerHistoryListQueryReceivedToRegExp)
+    .optional(),
   search: zod.string().max(deliveryReadControllerHistoryListQuerySearchMax).optional(),
-  service: zod.string().optional(),
+  service: zod.array(zod.string()).max(deliveryReadControllerHistoryListQueryServiceMax).optional(),
   sort: zod
     .enum([
       "newest_orders",
@@ -1130,7 +1227,7 @@ export const DeliveryReadControllerHistoryListQueryParams = zod.object({
       "price_desc",
     ])
     .default(deliveryReadControllerHistoryListQuerySortDefault),
-  store: zod.string().max(deliveryReadControllerHistoryListQueryStoreMax).optional(),
+  store: zod.array(zod.string()).max(deliveryReadControllerHistoryListQueryStoreMax).optional(),
   tab: zod
     .enum(["all", "active", "received", "cancelled"])
     .default(deliveryReadControllerHistoryListQueryTabDefault),
