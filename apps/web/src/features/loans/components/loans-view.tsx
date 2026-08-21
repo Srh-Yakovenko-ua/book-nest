@@ -3,7 +3,7 @@
 import type { LoanListItemView, LoanType, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
@@ -18,9 +18,9 @@ import type { LoansAttention, LoansPeople } from "./loans-sidebar";
 
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
-import { restoreLoanContactTriggerFocus } from "../model/loan-focus";
 import { LOAN_PAGES } from "../model/loan-pages";
 import { loansQuickFilterCounts } from "../model/loans-quick-filters";
+import { useLoanContactDrawer } from "../model/use-loan-contact-drawer";
 import { useLoansQuery } from "../model/use-loans-query";
 import { LoanContactDrawer } from "./contact/loan-contact-drawer";
 import { EditLoanDialog } from "./edit-loan-dialog";
@@ -62,13 +62,7 @@ export function LoansView({ type }: { type: LoanType }) {
 
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
-  const [contactDrawerId, setContactDrawerId] = useState<Nullable<string>>(null);
-  const contactTriggerLoanIdRef = useRef<Nullable<string>>(null);
-
-  function openContact(loan: LoanListItemView) {
-    contactTriggerLoanIdRef.current = loan.id;
-    setContactDrawerId(loan.loanContactId);
-  }
+  const contactDrawer = useLoanContactDrawer();
 
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((loadedPage) => loadedPage.items);
@@ -95,6 +89,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const people: LoansPeople = {
     activeContactId: query.contactId,
     items: summary.isError ? [] : (directionSummary?.topPeople ?? []),
+    onPersonOpen: contactDrawer.openContact,
     onPersonSelect: (contactId) =>
       query.setContactId(contactId === query.contactId ? "" : contactId),
   };
@@ -110,7 +105,7 @@ export function LoansView({ type }: { type: LoanType }) {
       onAddBook={() => router.push("/books/new")}
       onClearFilters={query.clearFilters}
       onEdit={setEditTarget}
-      onOpenContact={openContact}
+      onOpenContact={(loan) => contactDrawer.openContact(loan.loanContactId)}
       onOpenLibrary={() => router.push("/books")}
       onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
       onRetry={() => void list.refetch()}
@@ -221,18 +216,7 @@ export function LoansView({ type }: { type: LoanType }) {
         />
       ) : null}
 
-      <LoanContactDrawer
-        contactId={contactDrawerId}
-        onCloseAutoFocus={(event) => {
-          const loanId = contactTriggerLoanIdRef.current;
-          if (loanId === null) return;
-          restoreLoanContactTriggerFocus(event, loanId);
-        }}
-        onOpenChange={(open) => {
-          if (!open) setContactDrawerId(null);
-        }}
-        open={contactDrawerId !== null}
-      />
+      <LoanContactDrawer {...contactDrawer.drawerProps} />
 
       {returnTarget ? (
         <ReturnLoanDialog

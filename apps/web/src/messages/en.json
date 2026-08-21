@@ -4894,7 +4894,8 @@
       },
       "people": {
         "title": "Who holds the most books",
-        "books": "{count, plural, one {# book} other {# books}}"
+        "books": "{count, plural, one {# book} other {# books}}",
+        "filter": "Show books: {name}"
       },
       "upcoming": {
         "title": "Nearest returns",

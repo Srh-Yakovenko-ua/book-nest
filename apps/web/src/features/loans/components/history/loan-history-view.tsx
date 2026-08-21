@@ -13,7 +13,9 @@ import type { LoanHistoryCorrectionMode } from "./loan-history-correction-dialog
 import { useLoanHistory } from "../../api/use-loan-history";
 import { useLoanHistoryOverview } from "../../api/use-loan-history-overview";
 import { restoreFocusTo, restoreLoanTriggerFocus } from "../../model/loan-focus";
+import { useLoanContactDrawer } from "../../model/use-loan-contact-drawer";
 import { useLoanHistoryQuery } from "../../model/use-loan-history-query";
+import { LoanContactDrawer } from "../contact/loan-contact-drawer";
 import { LoanHistoryCorrectionDialog } from "./loan-history-correction-dialog";
 import { LoanHistoryDetailDrawer } from "./loan-history-detail-drawer";
 import { LoanHistoryList } from "./loan-history-list";
@@ -38,6 +40,7 @@ export function LoanHistoryView() {
   const [detailLoanId, setDetailLoanId] = useState<Nullable<string>>(null);
   const [correction, setCorrection] = useState<Nullable<LoanHistoryCorrection>>(null);
   const detailActionRef = useRef<Nullable<HTMLElement>>(null);
+  const contactDrawer = useLoanContactDrawer();
 
   function correctFromDetail(mode: LoanHistoryCorrectionMode) {
     if (detailLoanId === null) return;
@@ -58,6 +61,7 @@ export function LoanHistoryView() {
   const analytics = {
     activeContactId: query.contactId,
     isLoading: overview.isPending,
+    onPersonOpen: contactDrawer.openContact,
     onPersonSelect: (contactId: string) =>
       query.setContactId(contactId === query.contactId ? "" : contactId),
     overview: overview.data,
@@ -72,6 +76,7 @@ export function LoanHistoryView() {
       onClearFilters={query.clearFilters}
       onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date", origin: "row" })}
       onEditNote={(loanId) => setCorrection({ loanId, mode: "note", origin: "row" })}
+      onOpenContact={contactDrawer.openContact}
       onOpenDetails={setDetailLoanId}
       onRetry={() => void list.refetch()}
     />
@@ -130,6 +135,8 @@ export function LoanHistoryView() {
       ) : (
         content
       )}
+
+      <LoanContactDrawer {...contactDrawer.drawerProps} />
 
       <LoanHistoryDetailDrawer
         loanId={detailLoanId}
