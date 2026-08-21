@@ -276,6 +276,18 @@ describe("GET /api/loans/contacts", () => {
     expect(contactNames(res)).toEqual(["Olha Melnyk"]);
   });
 
+  it("finds a person by the way you reach them, not only by their name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const res = await createContact(accessToken, { contact: "olha@example.com", name: "Olha" });
+    expect(res.status).toBe(201);
+    await createNamedContact(accessToken, "Ivan Petrenko");
+
+    const found = await listContacts(accessToken, "?search=olha%40example");
+
+    expect(contactNames(found)).toEqual(["Olha"]);
+    expect(contactCounts(found)).toEqual({ active: 1, all: 1, archived: 0 });
+  });
+
   it("treats a percent sign in the search term as a literal character", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createNamedContact(accessToken, "Ihor 100%");

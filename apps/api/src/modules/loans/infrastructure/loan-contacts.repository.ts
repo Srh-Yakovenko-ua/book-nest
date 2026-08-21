@@ -201,7 +201,11 @@ function buildLoanContactsWhere({
     where.archivedAt = { not: null };
   }
   if (search !== undefined) {
-    where.name = { contains: escapeLikePattern(search), mode: "insensitive" };
+    const contains = escapeLikePattern(search);
+    where.OR = [
+      { name: { contains, mode: "insensitive" } },
+      { contact: { contains, mode: "insensitive" } },
+    ];
   }
 
   return where;
