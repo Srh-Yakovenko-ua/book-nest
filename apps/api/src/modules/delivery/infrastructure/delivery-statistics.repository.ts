@@ -53,8 +53,9 @@ const orderStatisticsSelect = {
   },
 } satisfies Prisma.BookOrderDefaultArgs;
 
-export type ActiveMoneyAgeFilterInput = {
+export type ActiveOrderFilterInput = {
   currency: Currency | undefined;
+  status: ShipmentStatus | undefined;
   store: string | undefined;
   userId: string;
 };
@@ -74,13 +75,11 @@ type OrderStatisticsRow = Prisma.BookOrderGetPayload<typeof orderStatisticsSelec
 export class DeliveryStatisticsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listActiveOrderRecords(
-    filter: ActiveMoneyAgeFilterInput,
-  ): Promise<OrderStatisticsRecord[]> {
+  async listActiveOrderRecords(filter: ActiveOrderFilterInput): Promise<OrderStatisticsRecord[]> {
     const rows = await this.prisma.bookOrder.findMany({
       orderBy: { id: "asc" },
       take: ORDER_STATISTICS_FETCH.maxOrders,
-      where: buildActiveMoneyAgeWhere(filter),
+      where: buildActiveOrderWhere(filter),
       ...orderStatisticsSelect,
     });
 
@@ -108,11 +107,12 @@ export class DeliveryStatisticsRepository {
   }
 }
 
-function buildActiveMoneyAgeWhere({
+function buildActiveOrderWhere({
   currency,
+  status,
   store,
   userId,
-}: ActiveMoneyAgeFilterInput): Prisma.BookOrderWhereInput {
+}: ActiveOrderFilterInput): Prisma.BookOrderWhereInput {
   const conditions: Prisma.BookOrderWhereInput[] = [];
 
   if (store !== undefined) {
@@ -121,6 +121,10 @@ function buildActiveMoneyAgeWhere({
 
   if (currency !== undefined) {
     conditions.push(currencyWhere(currency));
+  }
+
+  if (status !== undefined) {
+    conditions.push(shipmentStatusWhere(status));
   }
 
   return {

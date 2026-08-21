@@ -65,7 +65,6 @@ type StatisticsBodyProps = {
   isCurrentMonthPeriod: boolean;
   onCurrencyChange: (currency: ReturnType<typeof resolveMoneyCurrency>) => void;
   params: ReturnType<typeof useStatisticsParams>;
-  snapshotView: BookOrderStatisticsView | undefined;
   statistics: ReturnType<typeof useStatistics>;
   view: BookOrderStatisticsView | undefined;
 };
@@ -88,13 +87,6 @@ export function DeliveryStatistics() {
     },
     { enabled: comparisonPeriod !== null },
   );
-
-  const snapshot = useStatistics({
-    ...params.queryParams,
-    compare: undefined,
-    from: undefined,
-    to: undefined,
-  });
 
   const activeAge = useActiveMoneyAge({
     ...(params.state.currency === null ? {} : { currency: params.state.currency }),
@@ -159,7 +151,6 @@ export function DeliveryStatistics() {
         isCurrentMonthPeriod={isCurrentMonthPeriod}
         onCurrencyChange={params.setMoneyCurrency}
         params={params}
-        snapshotView={snapshot.data}
         statistics={statistics}
         view={view}
       />
@@ -180,7 +171,6 @@ function StatisticsBody({
   isCurrentMonthPeriod,
   onCurrencyChange,
   params,
-  snapshotView,
   statistics,
   view,
 }: StatisticsBodyProps) {
@@ -210,11 +200,7 @@ function StatisticsBody({
 
   return (
     <div className="flex flex-col gap-6">
-      <StatisticsKpi
-        currency={currency}
-        snapshot={snapshotView?.snapshot ?? view.snapshot}
-        view={view}
-      />
+      <StatisticsKpi currency={currency} snapshot={view.snapshot} view={view} />
 
       <StatisticsBudget
         currency={currency}

@@ -56,13 +56,16 @@ function makeShipment(
 }
 
 function statisticsOf({
+  activeRecords,
   includeCancelled = false,
   records,
 }: {
+  activeRecords?: OrderStatisticsRecord[];
   includeCancelled?: boolean;
   records: OrderStatisticsRecord[];
 }): ReturnType<typeof computeBookOrderStatistics> {
   return computeBookOrderStatistics({
+    activeRecords: activeRecords ?? records,
     includeCancelled,
     previousRecords: null,
     records,
@@ -671,5 +674,125 @@ describe("computeBookOrderStatistics with no book left in scope", () => {
       ids: ["order-empty"],
       totals: [{ currency: "UAH", total: 400 }],
     });
+  });
+});
+
+describe("computeBookOrderStatistics snapshot", () => {
+  const OUTSIDE_PERIOD_DATE = new Date("2024-03-14T00:00:00.000Z");
+
+  const stillMoving = makeOrder({
+    id: "order-still-moving",
+    items: [makeItem({ bookId: "book-moving", price: 340, shipmentId: "s-moving" })],
+    orderDate: OUTSIDE_PERIOD_DATE,
+    shipments: [makeShipment({ id: "s-moving", status: "in_transit" })],
+    totalAmount: 340,
+  });
+
+  const alreadyHome = makeOrder({
+    id: "order-already-home",
+    items: [
+      makeItem({
+        bookId: "book-home",
+        price: 500,
+        receivedAt: APRIL_ORDER_DATE,
+        shipmentId: "s-home",
+      }),
+    ],
+    shipments: [makeShipment({ id: "s-home", receivedAt: APRIL_ORDER_DATE, status: "received" })],
+    totalAmount: 500,
+  });
+
+  it("still counts money in transit when the order sits outside the selected period", () => {
+    const { snapshot, summary } = statisticsOf({
+      activeRecords: [stillMoving],
+      records: [],
+    });
+
+    expect(summary.ordersCount).toBe(0);
+    expect(snapshot).toEqual({
+      activeBooksCount: 1,
+      activeOrdersCount: 1,
+      activeShipmentsCount: 1,
+      activeTotalsByCurrency: [{ currency: "UAH", total: 340 }],
+    });
+  });
+
+  it("does not move when the period narrows around it", () => {
+    const wide = statisticsOf({ activeRecords: [stillMoving], records: [stillMoving] });
+    const narrow = statisticsOf({ activeRecords: [stillMoving], records: [] });
+
+    expect(narrow.snapshot).toEqual(wide.snapshot);
+  });
+
+  it("drops an order from the snapshot once nothing in it is still on its way", () => {
+    const { snapshot, summary } = statisticsOf({
+      activeRecords: [],
+      records: [alreadyHome],
+    });
+
+    expect(summary.ordersCount).toBe(1);
+    expect(snapshot).toEqual({
+      activeBooksCount: 0,
+      activeOrdersCount: 0,
+      activeShipmentsCount: 0,
+      activeTotalsByCurrency: [],
+    });
+  });
+
+  it("counts an order that never got an order date", () => {
+    const undated = makeOrder({
+      id: "order-undated",
+      items: [makeItem({ bookId: "book-undated", price: 220, shipmentId: "s-undated" })],
+      orderDate: null,
+      shipments: [makeShipment({ id: "s-undated", status: "ordered" })],
+      totalAmount: 220,
+    });
+
+    const { snapshot } = statisticsOf({ activeRecords: [undated], records: [] });
+
+    expect(snapshot.activeOrdersCount).toBe(1);
+    expect(snapshot.activeTotalsByCurrency).toEqual([{ currency: "UAH", total: 220 }]);
+  });
+
+  it("keeps every currency apart", () => {
+    const euros = makeOrder({
+      currency: "EUR",
+      id: "order-euros",
+      items: [makeItem({ bookId: "book-euros", price: 24.9, shipmentId: "s-euros" })],
+      shipments: [makeShipment({ id: "s-euros", status: "in_transit" })],
+      totalAmount: 24.9,
+    });
+
+    const { snapshot } = statisticsOf({ activeRecords: [stillMoving, euros], records: [] });
+
+    expect(snapshot.activeTotalsByCurrency).toEqual([
+      { currency: "UAH", total: 340 },
+      { currency: "EUR", total: 24.9 },
+    ]);
+  });
+
+  it("leaves a cancelled parcel out of the active parcel count", () => {
+    const partlyCancelled = makeOrder({
+      id: "order-partly-cancelled",
+      items: [
+        makeItem({ bookId: "book-live", price: 100, shipmentId: "s-live" }),
+        makeItem({
+          bookId: "book-dropped",
+          cancelledAt: CANCELLED_AT,
+          price: 200,
+          shipmentId: "s-dropped",
+        }),
+      ],
+      shipments: [
+        makeShipment({ id: "s-live", status: "in_transit" }),
+        makeShipment({ cancelledAt: CANCELLED_AT, id: "s-dropped", status: "cancelled" }),
+      ],
+      totalAmount: 300,
+    });
+
+    const { snapshot } = statisticsOf({ activeRecords: [partlyCancelled], records: [] });
+
+    expect(snapshot.activeBooksCount).toBe(1);
+    expect(snapshot.activeShipmentsCount).toBe(1);
   });
 });

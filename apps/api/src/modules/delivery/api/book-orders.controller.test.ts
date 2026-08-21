@@ -719,6 +719,16 @@ describe("GET /api/delivery/orders/statistics contract", () => {
     expect(unfiltered.records.scope.isPeriodFiltered).toBe(false);
   });
 
+  it("keeps money in transit out of the period filter, whatever window is asked for", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+
+    const unfiltered = await statisticsOf();
+    const narrow = await statisticsOf(monthWindow(STATISTICS_FIXTURE_MONTH.previous));
+
+    expect(narrow.summary.ordersCount).toBeLessThan(unfiltered.summary.ordersCount);
+    expect(narrow.snapshot).toEqual(unfiltered.snapshot);
+  });
+
   it("keeps every reader's statistics to their own orders", async () => {
     const stranger = await context.registerVerifyAndLogin();
     await seedStatisticsFixture({ accessToken: stranger.accessToken, app });
