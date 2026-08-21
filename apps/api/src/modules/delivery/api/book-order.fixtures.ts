@@ -1,8 +1,14 @@
-import type { BookOrderView, CreateBookOrderInput } from "@app/shared";
+import type { BookOrderView } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
+import type { z } from "zod";
 
-import { addDays, format, startOfMonth, subMonths } from "date-fns";
+import { CreateBookOrderInputSchema, DEFAULT_CURRENCY } from "@app/shared";
+import { addDays, endOfWeek, format, startOfMonth, subMonths } from "date-fns";
 import request from "supertest";
+
+export type CreateOrderPayload = Omit<z.input<typeof CreateBookOrderInputSchema>, "currency"> & {
+  currency?: z.input<typeof CreateBookOrderInputSchema>["currency"];
+};
 
 type AuthedApp = {
   accessToken: string;
@@ -10,6 +16,7 @@ type AuthedApp = {
 };
 
 const ISO_DATE_FORMAT = "yyyy-MM-dd";
+const MONDAY = 1;
 const MONTH_FORMAT = "yyyy-MM";
 const OK_STATUS = 200;
 
@@ -17,9 +24,13 @@ export const ORDER_ROUTES = {
   budgets: "/api/delivery/budgets",
   budgetScheduled: (currency: string): string => `/api/delivery/budgets/${currency}/scheduled`,
   cancelItem: (itemId: string): string => `/api/delivery/items/${itemId}/cancel`,
+  cancelledFollowUp: "/api/delivery/books/history/cancelled-follow-up",
+  cancelledFollowUpWantToBuy: "/api/delivery/books/history/cancelled-follow-up/want-to-buy",
   cancelShipment: (shipmentId: string): string => `/api/delivery/shipments/${shipmentId}/cancel`,
   createShipment: (orderId: string): string => `/api/delivery/orders/${orderId}/shipments`,
   history: "/api/delivery/books/history",
+  historyFacets: "/api/delivery/books/history/facets",
+  historyOutcome: "/api/delivery/books/history/outcome",
   historySummary: "/api/delivery/books/history/summary",
   inTransit: "/api/delivery/books/in-transit",
   inTransitSummary: "/api/delivery/books/in-transit/summary",
@@ -56,11 +67,10 @@ export type StatisticsFixture = {
   euro: BookOrderView;
   free: BookOrderView;
   lastYear: BookOrderView;
-  manualMismatch: BookOrderView;
+  manualTotal: BookOrderView;
   multiShipment: BookOrderView;
   partiallyCancelled: BookOrderView;
   previousMonth: BookOrderView;
-  unknownPrice: BookOrderView;
 };
 
 export async function cancelBooksOfOrder({
@@ -118,8 +128,13 @@ export async function createOrder({
   accessToken,
   app,
   input,
-}: AuthedApp & { input: CreateBookOrderInput }): Promise<BookOrderView> {
-  const res = await postJson({ accessToken, app, body: input, path: ORDER_ROUTES.orders });
+}: AuthedApp & { input: CreateOrderPayload }): Promise<BookOrderView> {
+  const res = await postJson({
+    accessToken,
+    app,
+    body: { currency: DEFAULT_CURRENCY, ...input },
+    path: ORDER_ROUTES.orders,
+  });
   if (typeof res.body.id !== "string") {
     throw new Error(`order creation failed with status ${res.status}: ${JSON.stringify(res.body)}`);
   }
@@ -140,6 +155,10 @@ export function isoDay(offset: number): string {
 
 export function isoDayOfPreviousMonth(dayOffset: number): string {
   return format(addDays(subMonths(startOfMonth(new Date()), 1), dayOffset), ISO_DATE_FORMAT);
+}
+
+export function isoSundayOfThisWeek(): string {
+  return format(endOfWeek(new Date(), { weekStartsOn: MONDAY }), ISO_DATE_FORMAT);
 }
 
 export function itemOf({
@@ -248,29 +267,18 @@ export async function seedStatisticsFixture({
     }),
   });
 
-  const mismatchBooks = await createBooks({
+  const manualBooks = await createBooks({
     ...authed,
-    titles: ["Stat Mismatch A", "Stat Mismatch B"],
+    titles: ["Stat Manual Priced", "Stat Manual Unpriced"],
   });
-  const manualMismatch = await createOrder({
+  const manualTotal = await createOrder({
     ...authed,
     input: {
       currency: "UAH",
-      items: mismatchBooks.map((bookId) => ({ bookId, price: 300 })),
+      items: [{ bookId: manualBooks[0] ?? "", price: 300 }, { bookId: manualBooks[1] ?? "" }],
       orderDate: day("06"),
       storeName: STATISTICS_FIXTURE_STORE.depot,
-      totalAmount: 999,
-    },
-  });
-
-  const unpricedBookId = await createBook({ ...authed, title: "Stat Unpriced" });
-  const unknownPrice = await createOrder({
-    ...authed,
-    input: {
-      currency: "UAH",
-      items: [{ bookId: unpricedBookId }],
-      orderDate: day("07"),
-      storeName: STATISTICS_FIXTURE_STORE.depot,
+      totalAmount: 700,
     },
   });
 
@@ -279,10 +287,10 @@ export async function seedStatisticsFixture({
     ...authed,
     input: {
       currency: "UAH",
-      items: giftBooks.map((bookId) => ({ bookId, price: 0 })),
+      isFree: true,
+      items: giftBooks.map((bookId) => ({ bookId })),
       orderDate: day("08"),
       storeName: STATISTICS_FIXTURE_STORE.gift,
-      totalAmount: 0,
     },
   });
 
@@ -357,11 +365,10 @@ export async function seedStatisticsFixture({
     euro,
     free,
     lastYear,
-    manualMismatch,
+    manualTotal,
     multiShipment,
     partiallyCancelled,
     previousMonth,
-    unknownPrice,
   };
 }
 

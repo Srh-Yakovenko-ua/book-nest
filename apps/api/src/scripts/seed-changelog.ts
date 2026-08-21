@@ -583,6 +583,66 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Сортування за українською абеткою",
     version: null,
   },
+  {
+    bodyEn:
+      "A shipment now moves to its next status in one click, straight from the order card. The status is spelled out next to the badge, the shipment menu can send it back a step, and a parcel waiting at a pickup point can carry the date it is held until.",
+    bodyUk:
+      "Посилка тепер переходить до наступного статусу одним кліком просто з картки замовлення. Статус підписаний поруч зі значком, у меню посилки його можна повернути на крок назад, а посилці на відділенні можна вказати дату, до якої її зберігають.",
+    category: "feature",
+    publishedAt: "2026-08-17T00:00:00.000Z",
+    slug: "shipment-status-one-click",
+    titleEn: "One-click shipment status",
+    titleUk: "Статус посилки одним кліком",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The Books in transit page now has a side block that lists only the deliveries needing something from you: parcels whose pickup window has closed or is about to, parcels running late, orders the store has not shipped for over a week, dispatched parcels with no tracking number, parcels with no delivery date, and books not yet assigned to a parcel. Each row says how many, and clicking it shows exactly those deliveries in the list. When nothing needs you, the block says so.",
+    bodyUk:
+      "На сторінці «Книги в дорозі» збоку з’явився блок, який показує лише ті доставки, з якими треба щось зробити: посилки з простроченим або близьким кінцем зберігання, ті, що затримуються, замовлення, які магазин не відправив понад тиждень, відправлені посилки без ТТН, посилки без дати доставки та книги, не розподілені між посилками. Кожен рядок каже, скільки їх, а клік по ньому показує в списку саме ці доставки. Якщо все гаразд, блок так і каже.",
+    category: "feature",
+    publishedAt: "2026-08-18T00:00:00.000Z",
+    slug: "delivery-attention-cases",
+    titleEn: "Needs attention",
+    titleUk: "Потребують уваги",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The Books in transit page now shows what your library gains once the parcels arrive, not just where they are. A side block counts the series that will finally be complete, the gaps in a series that will close, the queued books that become readable, the series you will be able to carry on, and the books that belong to an active reading goal. The three most useful lines are shown first, the rest open on request, and the block stays away when arriving books change nothing worth mentioning.",
+    bodyUk:
+      "Сторінка «Книги в дорозі» тепер показує не лише де посилки, а й що зміниться в бібліотеці, коли вони приїдуть. Збоку з’явився блок, який рахує серії, що нарешті стануть повними, прогалини в серіях, які закриються, книги з черги читання, які стануть доступними, серії, які можна буде продовжити, і книги, що входять до активних цілей. Спершу показані три найкорисніші рядки, решта відкриваються за запитом, а якщо отримання нічого не змінює, блока просто немає.",
+    category: "feature",
+    publishedAt: "2026-08-19T00:00:00.000Z",
+    slug: "delivery-arrival-impact",
+    titleEn: "What arriving will change",
+    titleUk: "Що зміниться після отримання",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Books in transit now has a filter panel next to the quick filters. Narrow the list by store, order date, how many books are still on their way, delivery service, expected delivery date, whether an order travels in one parcel or several, currency, order total, and whether the total is recorded at all. Pick several stores or services and any of them counts; combine sections and all of them must hold. Nothing applies until you press Apply, the button carries a count of the sections in use, and a matched order keeps all of its parcels and books on the card. The order total on a card now comes from the whole order rather than the books on screen, so filtering the list no longer changes the sum.",
+    bodyUk:
+      "На сторінці «Книги в дорозі» поруч зі швидкими фільтрами з’явилася панель розширених. Звужуйте список за магазином, датою замовлення, кількістю книг, які ще їдуть, службою доставки, очікуваною датою, тим, чи їде замовлення однією посилкою чи кількома, валютою, вартістю замовлення та наявністю суми. Кілька магазинів або служб працюють як «будь-який із них», а різні секції складаються разом. Нічого не застосовується, доки ви не натиснете «Застосувати», на кнопці видно кількість задіяних секцій, а знайдене замовлення лишається на картці цілим - з усіма посилками й книгами. Сума замовлення на картці тепер рахується по всьому замовленню, а не по книгах на екрані, тож фільтрація списку більше не змінює її.",
+    category: "feature",
+    publishedAt: "2026-08-19T00:00:00.000Z",
+    slug: "delivery-advanced-filters",
+    titleEn: "Advanced filters for books in transit",
+    titleUk: "Розширені фільтри для книг у дорозі",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Marking parcels as received on the Books in transit page now works in bulk. Selection moved from the page header to the toolbar next to sorting and filters, and the checkbox sits on each parcel that can still be received rather than on individual books. Pick several parcels and confirm: all of them are marked as arrived in one step together with the books they carry, and if one of them was received or cancelled in the meantime you are told. The bar at the bottom shows how many parcels are selected and how many books they hold. Books not yet assigned to a parcel are not selectable here, because there is nothing physical to confirm as arrived; they are still received one at a time from the book's own page.",
+    bodyUk:
+      "Позначати посилки отриманими на сторінці «Книги в дорозі» тепер можна групою. Режим вибору переїхав із шапки сторінки на панель інструментів поруч із сортуванням і фільтрами, а прапорець стоїть на кожній посилці, яку ще можна отримати, а не на окремих книгах. Оберіть кілька посилок і підтвердьте: усі вони стануть отриманими за один раз разом із книгами, які везуть, а якщо якусь тим часом уже отримали або скасували, ви побачите про це повідомлення. Внизу видно, скільки посилок вибрано і скільки в них книг. Книги, ще не розподілені між посилками, тут не вибираються, бо підтверджувати прибуття нема чого: їх, як і раніше, отримують поодинці зі сторінки книги.",
+    category: "improvement",
+    publishedAt: "2026-08-19T00:00:00.000Z",
+    slug: "delivery-bulk-receive-parcels",
+    titleEn: "Receiving parcels in bulk",
+    titleUk: "Групове отримання посилок",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

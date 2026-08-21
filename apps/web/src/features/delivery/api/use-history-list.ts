@@ -1,4 +1,4 @@
-import { PaginatedBookOrderItemRowsSchema } from "@app/shared";
+import { PaginatedOrderHistoryGroupsSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
@@ -6,7 +6,7 @@ import { deliveryReadControllerHistoryList } from "@/shared/api/generated/endpoi
 
 import type { DeliveryHistoryListParams } from "../model/history-params";
 
-export type HistoryPage = z.infer<typeof PaginatedBookOrderItemRowsSchema>;
+export type HistoryPage = z.infer<typeof PaginatedOrderHistoryGroupsSchema>;
 
 const MAX_PAGES = 10;
 
@@ -22,7 +22,7 @@ export function useHistoryList(params: DeliveryHistoryListParams) {
         ...params,
         pageNumber: pageParam,
       });
-      return PaginatedBookOrderItemRowsSchema.parse(response);
+      return PaginatedOrderHistoryGroupsSchema.parse(response);
     },
     queryKey: ["/api/delivery/books/history", "list", params],
   });

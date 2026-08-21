@@ -30,6 +30,7 @@ function buildOrderRecords(count: number): OrderStatisticsRecord[] {
     deliveryPrice: null,
     discount: null,
     id: `order-${index}`,
+    isFree: false,
     items: [],
     orderDate: null,
     orderNumber: null,
@@ -68,6 +69,7 @@ describe("DeliveryStatisticsService.statistics", () => {
         deliveryPrice: null,
         discount: null,
         id: "order-1",
+        isFree: false,
         items: [
           {
             bookId: "book-a",

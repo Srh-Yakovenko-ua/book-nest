@@ -5,7 +5,7 @@ import type {
   ReadingQueueUnavailableBreakdown,
 } from "@app/shared";
 
-import { computeHasUnreadEarlierParts, type EarlierPartCandidate } from "../../series/index.js";
+import { computeHasUnreadEarlierParts, type EarlierPartCandidate } from "@app/shared";
 
 const AVAILABLE_OWNERSHIP_STATUSES: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "borrowed_from_someone",

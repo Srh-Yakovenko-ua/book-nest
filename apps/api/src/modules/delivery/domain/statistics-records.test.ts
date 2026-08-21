@@ -57,6 +57,7 @@ function storesOf(entries: { prices: number[]; storeName: string }[]) {
           deliveryPrice: null,
           discount: null,
           id: `order-${index}`,
+          isFree: false,
           items: entry.prices.map((price, itemIndex) => ({
             bookId: `book-${index}-${itemIndex}`,
             bookTitle: "Book",

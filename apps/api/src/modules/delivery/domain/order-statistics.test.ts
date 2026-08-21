@@ -32,6 +32,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
     deliveryPrice: null,
     discount: null,
     id: "order-1",
+    isFree: false,
     items: [],
     orderDate: MARCH_ORDER_DATE,
     orderNumber: null,
@@ -483,7 +484,7 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
     ]);
   });
 
-  it("prefers the order total over the book prices, so the two are never added together", () => {
+  it("normalizes a conflicting stored total from the complete item breakdown", () => {
     const { summary } = statisticsOf({
       records: [
         makeOrder({
@@ -494,10 +495,10 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
       ],
     });
 
-    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 400 }]);
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 320 }]);
   });
 
-  it("leaves a cancelled book out of the fallback sum unless the caller asks for it", () => {
+  it("keeps one financial total regardless of the cancelled-items filter", () => {
     const records = [
       makeOrder({
         id: "order-part-cancelled",
@@ -513,7 +514,7 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
       excluded: statisticsOf({ records }).summary.totalsByCurrency,
       included: statisticsOf({ includeCancelled: true, records }).summary.totalsByCurrency,
     }).toEqual({
-      excluded: [{ currency: "UAH", total: 320 }],
+      excluded: [{ currency: "UAH", total: 500 }],
       included: [{ currency: "UAH", total: 500 }],
     });
   });
@@ -564,7 +565,7 @@ describe("computeBookOrderStatistics counts delivery price and discount into the
     });
   });
 
-  it("leaves a cancelled book out of the priced part while still charging delivery", () => {
+  it("keeps the cost of a partly cancelled order steady across the cancellation scope", () => {
     const records = [
       makeOrder({
         deliveryPrice: 100,
@@ -582,12 +583,12 @@ describe("computeBookOrderStatistics counts delivery price and discount into the
       excluded: statisticsOf({ records }).summary.totalsByCurrency,
       included: statisticsOf({ includeCancelled: true, records }).summary.totalsByCurrency,
     }).toEqual({
-      excluded: [{ currency: "UAH", total: 320 }],
+      excluded: [{ currency: "UAH", total: 820 }],
       included: [{ currency: "UAH", total: 820 }],
     });
   });
 
-  it("keeps the explicit order total, delivery and discount included", () => {
+  it("recomputes the total from priced books, delivery and discount, ignoring a stale entry", () => {
     const { summary } = statisticsOf({
       records: [
         makeOrder({
@@ -600,7 +601,7 @@ describe("computeBookOrderStatistics counts delivery price and discount into the
       ],
     });
 
-    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 900 }]);
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 320 }]);
   });
 
   it("refuses to invent a total when only some of the books carry a price", () => {

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { OrderTotalSource } from "./order-financials.js";
+
 import { CurrencySchema } from "./book-enums.js";
 import { CurrencyTotalSchema, type Nullable } from "./common.js";
 import { CountSchema, isoDay } from "./internal.js";
@@ -49,9 +51,12 @@ export const CurrencyDeltaSchema = NumericDeltaSchema.extend({ currency: Currenc
 
 export type CurrencyDelta = z.infer<typeof CurrencyDeltaSchema>;
 
-export const OrderTotalSourceSchema = z.enum(["free", "manual", "calculated", "unknown"]);
-
-export type OrderTotalSource = z.infer<typeof OrderTotalSourceSchema>;
+export const OrderTotalSourceSchema = z.enum([
+  "free",
+  "manual",
+  "calculated",
+  "unknown",
+]) satisfies z.ZodType<OrderTotalSource>;
 
 export const CurrencyCountSchema = z.object({ count: CountSchema, currency: CurrencySchema });
 

@@ -12,10 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type { DeliveryCardModel } from "../model/delivery-card-model";
+import type { DeliveryOrderCardModel } from "../model/order-card-model";
 
 export type DeliveryContent =
-  | { items: DeliveryCardModel[]; kind: "ready" }
+  | { items: DeliveryOrderCardModel[]; kind: "ready" }
   | { kind: "empty" }
   | { kind: "error" }
   | { kind: "filtered-empty" }
@@ -30,14 +30,15 @@ type DeliveryInTransitViewProps = {
   onResetFilters: () => void;
   onRetry: () => void;
   pagination: { hasNextPage: boolean; isFetchingNextPage: boolean };
-  renderCard: (model: DeliveryCardModel) => ReactNode;
+  renderCard: (model: DeliveryOrderCardModel) => ReactNode;
   selectAll?: { checked: "indeterminate" | boolean; count: number; onToggle: () => void };
   showToolbar: boolean;
+  sidebar?: ReactNode;
   summary: ReactNode;
   toolbar: ReactNode;
 };
 
-const SKELETON_COUNT = 4;
+const SKELETON_COUNT = 3;
 
 export function DeliveryInTransitView({
   bulkBar,
@@ -51,6 +52,7 @@ export function DeliveryInTransitView({
   renderCard,
   selectAll,
   showToolbar,
+  sidebar,
   summary,
   toolbar,
 }: DeliveryInTransitViewProps) {
@@ -77,18 +79,21 @@ export function DeliveryInTransitView({
 
       {showToolbar ? toolbar : null}
 
-      <div className="flex min-w-0 flex-col gap-6">
-        <h2 className="sr-only">{t("resultsTitle")}</h2>
-        <DeliveryContentArea
-          content={content}
-          onGoToBooksToBuy={onGoToBooksToBuy}
-          onLoadMore={onLoadMore}
-          onResetFilters={onResetFilters}
-          onRetry={onRetry}
-          pagination={pagination}
-          renderCard={renderCard}
-          selectAll={selectAll}
-        />
+      <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          <DeliveryContentArea
+            content={content}
+            onGoToBooksToBuy={onGoToBooksToBuy}
+            onLoadMore={onLoadMore}
+            onResetFilters={onResetFilters}
+            onRetry={onRetry}
+            pagination={pagination}
+            renderCard={renderCard}
+            selectAll={selectAll}
+          />
+        </div>
+        {sidebar}
       </div>
 
       {bulkBar}
@@ -165,9 +170,7 @@ function DeliveryContentArea({
         </label>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {content.items.map((model) => renderCard(model))}
-      </div>
+      <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
 
       {pagination.hasNextPage ? (
         <div className="flex justify-center pt-2">
@@ -187,22 +190,28 @@ function DeliveryContentArea({
 
 function DeliverySkeletonList() {
   return (
-    <div aria-busy className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div aria-busy className="flex flex-col gap-4">
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <div
           className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card"
           key={index}
         >
-          <div className="flex gap-3.5">
-            <Skeleton className="h-24 w-16 shrink-0 rounded-md sm:w-20" />
-            <div className="flex flex-1 flex-col gap-2 pt-1">
-              <Skeleton className="h-5 w-24 rounded-full" />
-              <Skeleton className="h-4 w-4/5" />
-              <Skeleton className="h-3 w-1/2" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-2.5">
+              <Skeleton className="size-8 shrink-0 rounded-md" />
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-40" />
+              </div>
             </div>
+            <Skeleton className="h-3 w-24" />
           </div>
-          <Skeleton className="h-20 w-full rounded-md" />
-          <Skeleton className="h-9 w-full rounded-md" />
+          <div className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-14 w-full rounded-md" />
+            <Skeleton className="h-14 w-full rounded-md" />
+            <Skeleton className="h-9 w-full rounded-md" />
+          </div>
         </div>
       ))}
     </div>

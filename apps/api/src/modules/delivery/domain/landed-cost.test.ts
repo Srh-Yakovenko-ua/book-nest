@@ -61,6 +61,7 @@ function orderOf({
       deliveryPrice,
       discount,
       id,
+      isFree: false,
       items,
       orderDate: ORDER_DATE,
       orderNumber: null,
@@ -256,7 +257,7 @@ describe("allocateLandedCost", () => {
     expectReconciles({ effectiveTotalAmount: 0.01, result });
   });
 
-  it("leaves a cancelled book out of the allocation the caller hands it", () => {
+  it("charges the whole cost of the order to the books that were not cancelled", () => {
     const order = orderOf({
       deliveryPrice: 100,
       items: [
@@ -275,7 +276,7 @@ describe("allocateLandedCost", () => {
       throw new Error("expected an allocated landed cost result");
     }
     expect(result.allocations.map((allocation) => allocation.itemId)).toEqual(["item-a"]);
-    expectReconciles({ effectiveTotalAmount: 400, result });
+    expectReconciles({ effectiveTotalAmount: 900, result });
   });
 });
 

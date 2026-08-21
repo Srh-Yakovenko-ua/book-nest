@@ -13,8 +13,7 @@ export const DeliveryReadControllerHistoryListSort = {
   newest_orders: "newest_orders",
   oldest_orders: "oldest_orders",
   recently_updated: "recently_updated",
-  status: "status",
   store: "store",
-  price: "price",
-  title: "title",
+  price_asc: "price_asc",
+  price_desc: "price_desc",
 } as const;

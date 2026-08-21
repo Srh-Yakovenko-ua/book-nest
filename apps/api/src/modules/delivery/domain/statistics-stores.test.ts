@@ -45,6 +45,7 @@ function orderOf({
       deliveryPrice: null,
       discount: null,
       id,
+      isFree: false,
       items: prices.map((price, index) => makeItem(price, `${id}-book-${index}`)),
       orderDate: ORDER_DATE,
       orderNumber: null,

@@ -9,6 +9,7 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser, AuthTestContext } from "../../../test/auth-test-context.js";
+import type { CreateOrderPayload } from "./book-order.fixtures.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
@@ -25,6 +26,7 @@ import {
   isoDay,
   ORDER_ROUTES,
   ownershipOf,
+  patchJson,
   postJson,
   seedStatisticsFixture,
   shipmentOf,
@@ -69,6 +71,150 @@ async function countRows(userId: string): Promise<{
   return { items, orders, shipments };
 }
 
+describe("POST /api/delivery/orders under the order invariant", () => {
+  it("refuses an order whose books carry no price and no total", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Unpriced" });
+
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { currency: "UAH", items: [{ bookId }], storeName: "Yakaboo" },
+      path: ORDER_ROUTES.orders,
+    });
+
+    expect(res.status).toBe(400);
+    await expect(countRows(reader.userId)).resolves.toMatchObject({ orders: 0 });
+  });
+
+  it("refuses an order that names no currency", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "No Currency" });
+
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { items: [{ bookId, price: 350 }], storeName: "Yakaboo" },
+      path: ORDER_ROUTES.orders,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("stores a free order at a canonical total of zero", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Review Copy" });
+
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: { currency: "UAH", isFree: true, items: [{ bookId }], storeName: "Yakaboo" },
+    });
+
+    expect(BookOrderViewSchema.parse(order)).toMatchObject({
+      isFree: true,
+      items: [{ bookId, price: null }],
+      totalAmount: 0,
+    });
+  });
+
+  it("refuses a free order that still carries an amount", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Not Free" });
+
+    const res = await postJson({
+      accessToken: reader.accessToken,
+      app,
+      body: {
+        currency: "UAH",
+        isFree: true,
+        items: [{ bookId, price: 350 }],
+        storeName: "Yakaboo",
+      },
+      path: ORDER_ROUTES.orders,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("keeps free books with a paid delivery on the ordinary paid path", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Free Book" });
+
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        currency: "UAH",
+        deliveryPrice: 80,
+        items: [{ bookId, price: 0 }],
+        storeName: "Yakaboo",
+      },
+    });
+
+    expect(order).toMatchObject({ isFree: false, totalAmount: 80 });
+  });
+});
+
+describe("PATCH /api/delivery/orders/:orderId under the order invariant", () => {
+  it("drops every book price when the reader marks a paid order free", async () => {
+    const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Gifted" });
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        currency: "UAH",
+        deliveryPrice: 80,
+        items: [{ bookId, price: 350 }],
+        storeName: "Yakaboo",
+      },
+    });
+
+    const res = await patchJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { isFree: true },
+      path: ORDER_ROUTES.order(order.id),
+    });
+
+    expect(res.status).toBe(200);
+    expect(BookOrderViewSchema.parse(res.body)).toMatchObject({
+      deliveryPrice: null,
+      discount: null,
+      isFree: true,
+      items: [{ bookId, price: null }],
+      totalAmount: 0,
+    });
+  });
+
+  it("refuses an update that would leave the order without a total", async () => {
+    const bookIds = await createBooks({
+      accessToken: reader.accessToken,
+      app,
+      titles: ["Priced", "Unpriced"],
+    });
+    const order = await createOrder({
+      accessToken: reader.accessToken,
+      app,
+      input: {
+        currency: "UAH",
+        items: [{ bookId: bookIds[0] ?? "", price: 350 }, { bookId: bookIds[1] ?? "" }],
+        storeName: "Yakaboo",
+        totalAmount: 700,
+      },
+    });
+
+    const res = await patchJson({
+      accessToken: reader.accessToken,
+      app,
+      body: { totalAmount: null },
+      path: ORDER_ROUTES.order(order.id),
+    });
+
+    expect(res.status).toBe(400);
+    await expect(
+      getJson({ accessToken: reader.accessToken, app, path: ORDER_ROUTES.order(order.id) }).then(
+        (kept) => kept.body.totalAmount,
+      ),
+    ).resolves.toBe(700);
+  });
+});
+
 describe("POST /api/delivery/orders", () => {
   it("puts one book and one parcel under a single order", async () => {
     const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Dune" });
@@ -92,7 +238,7 @@ describe("POST /api/delivery/orders", () => {
     });
 
     expect(BookOrderViewSchema.parse(order)).toMatchObject({
-      derivedStatus: "shipped",
+      derivedStatus: "active",
       items: [{ bookId, price: 350 }],
       storeName: "Yakaboo",
     });
@@ -183,46 +329,6 @@ describe("POST /api/delivery/orders", () => {
     expect(ownerships).toEqual(new Array(5).fill("in_transit"));
   });
 
-  it("stores a manual total that does not match the sum of the book prices", async () => {
-    const bookIds = await createBooks({
-      accessToken: reader.accessToken,
-      app,
-      titles: ["Dune", "Emma"],
-    });
-
-    const res = await postJson({
-      accessToken: reader.accessToken,
-      app,
-      body: {
-        currency: "UAH",
-        deliveryPrice: 100,
-        discount: 80,
-        items: bookIds.map((bookId) => ({ bookId, price: 300 })),
-        orderDate: isoDay(-2),
-        storeName: "Yakaboo",
-        totalAmount: 999,
-      },
-      path: ORDER_ROUTES.orders,
-    });
-
-    expect(res.status).toBe(201);
-    const created = BookOrderViewSchema.parse(res.body);
-
-    const stored = await getJson({
-      accessToken: reader.accessToken,
-      app,
-      path: ORDER_ROUTES.order(created.id),
-    });
-    const view = BookOrderViewSchema.parse(stored.body);
-
-    expect({
-      deliveryPrice: view.deliveryPrice,
-      discount: view.discount,
-      itemPricesTotal: view.items.reduce((total, item) => total + (item.price ?? 0), 0),
-      totalAmount: view.totalAmount,
-    }).toEqual({ deliveryPrice: 100, discount: 80, itemPricesTotal: 600, totalAmount: 999 });
-  });
-
   it("keeps books without a parcel in the order and leaves them unshipped", async () => {
     const bookIds = await createBooks({
       accessToken: reader.accessToken,
@@ -236,8 +342,9 @@ describe("POST /api/delivery/orders", () => {
       input: {
         items: bookIds.map((bookId) => ({ bookId })),
         orderDate: isoDay(0),
-        shipments: [{ bookIds: [bookIds[0] ?? ""] }],
+        shipments: [{ bookIds: [bookIds[0] ?? ""], status: "in_transit" }],
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
 
@@ -248,11 +355,13 @@ describe("POST /api/delivery/orders", () => {
 
   it("refuses to order a book that is already on its way", async () => {
     const bookId = await createBook({ accessToken: reader.accessToken, app, title: "Dune" });
-    const input = {
+    const input: CreateOrderPayload = {
+      currency: "UAH",
       items: [{ bookId }],
       orderDate: isoDay(0),
       shipments: [{ bookIds: [bookId] }],
       storeName: "Yakaboo",
+      totalAmount: 500,
     };
     await createOrder({ accessToken: reader.accessToken, app, input });
 
@@ -279,7 +388,8 @@ describe("POST /api/delivery/orders", () => {
       accessToken: reader.accessToken,
       app,
       body: {
-        items: [{ bookId: foreignBookId }],
+        currency: "UAH",
+        items: [{ bookId: foreignBookId, price: 350 }],
         orderDate: isoDay(0),
         storeName: "Yakaboo",
       },
@@ -309,6 +419,7 @@ describe("POST /api/delivery/orders", () => {
         items: [{ bookId }],
         orderDate: isoDay(0),
         storeName: "Yakaboo",
+        totalAmount: 500,
       },
     });
 
@@ -365,7 +476,7 @@ describe("GET /api/delivery/orders/statistics over a realistic catalogue", () =>
 
     const view = await statisticsOf();
 
-    expect(totalsOf(view)).toEqual({ EUR: 45, UAH: 3369, USD: 36 });
+    expect(totalsOf(view)).toEqual({ EUR: 45, UAH: 3670, USD: 36 });
   });
 
   it("counts an order once no matter how many parcels carry it", async () => {
@@ -374,12 +485,12 @@ describe("GET /api/delivery/orders/statistics over a realistic catalogue", () =>
     const view = await statisticsOf();
 
     expect({ books: view.summary.booksCount, orders: view.summary.ordersCount }).toEqual({
-      books: 14,
-      orders: 9,
+      books: 13,
+      orders: 8,
     });
   });
 
-  it("drops a cancelled book out of its order's total without dropping the order", async () => {
+  it("counts only the books that survived a cancellation while the order keeps its own total", async () => {
     const fixture = await seedStatisticsFixture({ accessToken: reader.accessToken, app });
 
     const view = await statisticsOf();
@@ -387,27 +498,27 @@ describe("GET /api/delivery/orders/statistics over a realistic catalogue", () =>
     const partial = view.topOrders.find((order) => order.id === fixture.partiallyCancelled.id);
     expect({ booksCount: partial?.booksCount, totalAmount: partial?.totalAmount }).toEqual({
       booksCount: 1,
-      totalAmount: 400,
+      totalAmount: 1000,
     });
   });
 
-  it("trusts a manual total over the sum of the books it disagrees with", async () => {
+  it("takes the entered total when the books behind it are not all priced", async () => {
     const fixture = await seedStatisticsFixture({ accessToken: reader.accessToken, app });
 
     const view = await statisticsOf();
 
-    expect(
-      view.topOrders.find((order) => order.id === fixture.manualMismatch.id)?.totalAmount,
-    ).toBe(999);
+    expect(view.topOrders.find((order) => order.id === fixture.manualTotal.id)?.totalAmount).toBe(
+      700,
+    );
   });
 
-  it("leaves an order whose price nobody entered out of the money, but not out of the count", async () => {
+  it("counts a free order among the orders while it adds nothing to the money", async () => {
     const fixture = await seedStatisticsFixture({ accessToken: reader.accessToken, app });
 
     const view = await statisticsOf();
 
-    expect(view.topOrders.map((order) => order.id)).not.toContain(fixture.unknownPrice.id);
-    expect(view.summary.ordersCount).toBe(9);
+    expect(view.topOrders.find((order) => order.id === fixture.free.id)?.totalAmount).toBe(0);
+    expect(view.summary.ordersCount).toBe(8);
   });
 
   it("reads a currency filter as a filter on orders, not as a conversion", async () => {
@@ -425,7 +536,7 @@ describe("GET /api/delivery/orders/statistics over a realistic catalogue", () =>
     const view = await statisticsOf({ store: STATISTICS_FIXTURE_STORE.depot });
 
     expect(view.byStore.map((store) => store.store)).toEqual([STATISTICS_FIXTURE_STORE.depot]);
-    expect(totalsOf(view)).toEqual({ UAH: 999 });
+    expect(totalsOf(view)).toEqual({ UAH: 700 });
   });
 
   it("holds a cancelled order out of the totals until it is asked for", async () => {
@@ -434,8 +545,8 @@ describe("GET /api/delivery/orders/statistics over a realistic catalogue", () =>
     const excluded = await statisticsOf();
     const included = await statisticsOf({ includeCancelled: "true" });
 
-    expect(totalsOf(excluded).UAH).toBe(3369);
-    expect(totalsOf(included).UAH).toBe(4269);
+    expect(totalsOf(excluded).UAH).toBe(3670);
+    expect(totalsOf(included).UAH).toBe(3970);
     expect({
       excluded: excluded.lifecycle.orders.cancelled,
       included: included.lifecycle.orders.cancelled,
@@ -450,10 +561,10 @@ describe("GET /api/delivery/orders/statistics over a realistic catalogue", () =>
     expect(view.costs).toEqual([
       {
         currency: "UAH",
-        deliveryCostPerBook: expect.closeTo(11.11, 2),
-        deliveryShareOfSpendPercent: expect.closeTo(4.13, 2),
+        deliveryCostPerBook: 12.5,
+        deliveryShareOfSpendPercent: expect.closeTo(3.68, 2),
         deliveryTotal: 100,
-        discountShareOfRawSubtotalPercent: 4,
+        discountShareOfRawSubtotalPercent: expect.closeTo(4.71, 2),
         discountTotal: 80,
         ordersWithDeliveryCount: 1,
         ordersWithDiscountCount: 1,
@@ -498,7 +609,7 @@ describe("GET /api/delivery/orders/statistics comparison", () => {
     });
     expect(
       view.comparison?.totalsByCurrency.find((delta) => delta.currency === "UAH"),
-    ).toMatchObject({ current: 2419, previous: 250 });
+    ).toMatchObject({ current: 2720, previous: 250 });
   });
 
   it("compares a month against the same month a year earlier", async () => {
@@ -516,7 +627,7 @@ describe("GET /api/delivery/orders/statistics comparison", () => {
     });
     expect(
       view.comparison?.totalsByCurrency.find((delta) => delta.currency === "UAH"),
-    ).toMatchObject({ current: 2419, previous: 700 });
+    ).toMatchObject({ current: 2720, previous: 700 });
   });
 
   it("says nothing about a comparison nobody can compute from an open-ended period", async () => {
@@ -587,7 +698,7 @@ describe("GET /api/delivery/orders/statistics contract", () => {
 
     const view = await statisticsOf();
 
-    expect(view.meta).toMatchObject({ isTruncated: false, loadedOrdersCount: 10 });
+    expect(view.meta).toMatchObject({ isTruncated: false, loadedOrdersCount: 9 });
     expect(view.meta.maxOrders).toBeGreaterThan(view.meta.loadedOrdersCount);
   });
 

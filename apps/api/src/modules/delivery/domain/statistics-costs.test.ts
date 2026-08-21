@@ -48,6 +48,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
     deliveryPrice: null,
     discount: null,
     id: "order",
+    isFree: false,
     items: [],
     orderDate: null,
     orderNumber: null,
@@ -63,18 +64,20 @@ const CANCELLED_SCOPE_RECORDS: OrderStatisticsRecord[] = [
     deliveryPrice: 100,
     discount: 50,
     id: "live-order",
+    isFree: false,
     items: [makeItem({ price: 200 }), makeItem({ price: 200 })],
-    totalAmount: 350,
   }),
   makeOrder({
     deliveryPrice: 50,
     discount: 50,
     id: "cancelled-order",
+    isFree: false,
     items: [makeItem({ cancelledAt: CANCELLED_AT, price: 200 })],
   }),
   makeOrder({
     deliveryPrice: 50,
     id: "partly-cancelled-order",
+    isFree: false,
     items: [makeItem({ price: 100 }), makeItem({ cancelledAt: CANCELLED_AT, price: 100 })],
   }),
 ];
@@ -135,6 +138,7 @@ const COSTS_CASES: CostsCase[] = [
       makeOrder({
         discount: 100,
         id: "discounted-order",
+        isFree: false,
         items: [makeItem({ price: 500 }), makeItem({ price: 500 })],
       }),
       makeOrder({ id: "full-price-order", items: [makeItem({ price: 1000 })] }),
@@ -233,7 +237,7 @@ const COSTS_CASES: CostsCase[] = [
     expected: [
       {
         currency: "UAH",
-        deliveryCostPerBook: 40,
+        deliveryCostPerBook: 20,
         deliveryShareOfSpendPercent: null,
         deliveryTotal: 40,
         discountShareOfRawSubtotalPercent: 0,
@@ -244,7 +248,11 @@ const COSTS_CASES: CostsCase[] = [
     ],
     name: "a negative effective spend leaves the delivery share null rather than reporting a negative percentage",
     records: [
-      makeOrder({ deliveryPrice: 40, items: [makeItem({ price: 100 })], totalAmount: -100 }),
+      makeOrder({
+        deliveryPrice: 40,
+        items: [makeItem({ bookId: "priced", price: 100 }), makeItem({ bookId: "unpriced" })],
+        totalAmount: -100,
+      }),
     ],
   },
   {
@@ -261,7 +269,13 @@ const COSTS_CASES: CostsCase[] = [
       },
     ],
     name: "a negative raw subtotal still yields a signed discount share, because null means a zero or unknown denominator",
-    records: [makeOrder({ discount: 50, items: [makeItem({ price: -200 })], totalAmount: 1000 })],
+    records: [
+      makeOrder({
+        discount: 50,
+        items: [makeItem({ bookId: "priced", price: -200 }), makeItem({ bookId: "unpriced" })],
+        totalAmount: 1000,
+      }),
+    ],
   },
   {
     expected: [
@@ -277,7 +291,13 @@ const COSTS_CASES: CostsCase[] = [
       },
     ],
     name: "a discount larger than the raw subtotal reports more than one hundred percent instead of clamping",
-    records: [makeOrder({ discount: 3000, items: [makeItem({ price: 1000 })], totalAmount: 500 })],
+    records: [
+      makeOrder({
+        discount: 3000,
+        items: [makeItem({ bookId: "priced", price: 1000 }), makeItem({ bookId: "unpriced" })],
+        totalAmount: 500,
+      }),
+    ],
   },
   {
     expected: [
@@ -298,12 +318,14 @@ const COSTS_CASES: CostsCase[] = [
         deliveryPrice: 10.1,
         discount: 0.1,
         id: "cents-order-one",
+        isFree: false,
         items: [makeItem({ price: 0.1 })],
       }),
       makeOrder({
         deliveryPrice: 10.2,
         discount: 0.2,
         id: "cents-order-two",
+        isFree: false,
         items: [makeItem({ price: 0.2 })],
       }),
     ],
@@ -347,12 +369,14 @@ const COSTS_CASES: CostsCase[] = [
         currency: "USD",
         deliveryPrice: 10,
         id: "usd-order",
+        isFree: false,
         items: [makeItem({ price: 40 })],
       }),
       makeOrder({
         currency: "EUR",
         discount: 20,
         id: "eur-order",
+        isFree: false,
         items: [makeItem({ price: 100 }), makeItem({ price: 100 })],
       }),
       makeOrder({
@@ -360,6 +384,7 @@ const COSTS_CASES: CostsCase[] = [
         deliveryPrice: 100,
         discount: 100,
         id: "uah-order",
+        isFree: false,
         items: [makeItem({ price: 400 }), makeItem({ price: 600 })],
       }),
     ],
@@ -414,7 +439,7 @@ describe("computeStatisticsCosts", () => {
       {
         currency: "UAH",
         deliveryCostPerBook: 50,
-        deliveryShareOfSpendPercent: 30,
+        deliveryShareOfSpendPercent: expect.closeTo(21.43, 2),
         deliveryTotal: 150,
         discountShareOfRawSubtotalPercent: 10,
         discountTotal: 50,
@@ -426,7 +451,7 @@ describe("computeStatisticsCosts", () => {
       {
         currency: "UAH",
         deliveryCostPerBook: 40,
-        deliveryShareOfSpendPercent: 25,
+        deliveryShareOfSpendPercent: expect.closeTo(22.22, 2),
         deliveryTotal: 200,
         discountShareOfRawSubtotalPercent: 12.5,
         discountTotal: 100,

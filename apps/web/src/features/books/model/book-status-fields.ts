@@ -34,12 +34,6 @@ export const FORMAT_OPTIONS = [
   "audiobook",
 ] as const satisfies readonly BookFormat[];
 
-export const CREATE_DELIVERY_STATUS_OPTIONS = [
-  "ordered",
-  "in_transit",
-  "ready_for_pickup",
-] as const satisfies readonly ShipmentStatus[];
-
 export const EDIT_DELIVERY_STATUS_OPTIONS = [
   "ordered",
   "in_transit",
@@ -118,7 +112,7 @@ function activeOwnershipKeys(status: OwnershipStatus): readonly string[] {
       "deliveryStatus",
       "note",
     ];
-  if (ownershipUsesLoan(status)) return ["personName", "loanDate", "expectedReturnDate", "note"];
+  if (ownershipUsesLoan(status)) return ["loanContactId", "loanDate", "expectedReturnDate", "note"];
   return [];
 }
 

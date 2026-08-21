@@ -1,7 +1,11 @@
 import type { DeliveryUiStatus, Nullable, ShipmentStatus } from "@app/shared";
 
-import { DeliveryUiStatusSchema, ShipmentStatusSchema } from "@app/shared";
-import { addDays, differenceInCalendarDays } from "date-fns";
+import {
+  DeliveryUiStatusSchema,
+  IN_TRANSIT_ATTENTION_THRESHOLDS,
+  ShipmentStatusSchema,
+} from "@app/shared";
+import { addDays, differenceInCalendarDays, subDays } from "date-fns";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { startOfUtcDay } from "../../../core/iso-date.js";
@@ -13,10 +17,11 @@ const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 const UI_STATUS = DeliveryUiStatusSchema.enum;
 
 export type DeliveryDateBounds = {
+  dispatchCutoff: Date;
+  pickupDeadline: Date;
   soonEnd: Date;
   today: Date;
   weekEnd: Date;
-  weekStart: Date;
 };
 
 export type ShipmentUiStatusSource = {
@@ -29,10 +34,15 @@ export function deliveryDateBounds(now: Date): DeliveryDateBounds {
   const today = startOfUtcDay(now);
   const soonEnd = addDays(today, ARRIVING_SOON_DAYS);
   const mondayOffset = (today.getUTCDay() + 6) % 7;
-  const weekStart = addDays(today, -mondayOffset);
-  const weekEnd = addDays(weekStart, DAYS_FROM_MONDAY_TO_SUNDAY);
+  const weekEnd = addDays(today, DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset);
 
-  return { soonEnd, today, weekEnd, weekStart };
+  return {
+    dispatchCutoff: subDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.awaitingDispatchDays),
+    pickupDeadline: addDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.pickupExpiringDays),
+    soonEnd,
+    today,
+    weekEnd,
+  };
 }
 
 export function getDeliveryUiStatus({
@@ -42,7 +52,7 @@ export function getDeliveryUiStatus({
   expectedDeliveryDate: Nullable<Date>;
   today: Date;
 }): Nullable<DeliveryUiStatus> {
-  return uiStatusFromExpectedDate({ expectedDeliveryDate, today });
+  return uiStatusFromDueDate({ dueDate: expectedDeliveryDate, today });
 }
 
 export function getShipmentUiStatus({
@@ -62,13 +72,10 @@ export function getShipmentUiStatus({
       return null;
     case SHIPMENT_STATUS.in_transit:
     case SHIPMENT_STATUS.ordered:
-      return uiStatusFromExpectedDate({
-        expectedDeliveryDate: shipment.expectedDeliveryDate,
-        today,
-      });
+      return uiStatusFromDueDate({ dueDate: shipment.expectedDeliveryDate, today });
     case SHIPMENT_STATUS.ready_for_pickup:
-      return uiStatusFromExpectedDate({
-        expectedDeliveryDate: shipment.expectedDeliveryDate ?? shipment.pickupUntil,
+      return uiStatusFromDueDate({
+        dueDate: shipment.pickupUntil ?? shipment.expectedDeliveryDate,
         today,
       });
     default:
@@ -76,22 +83,22 @@ export function getShipmentUiStatus({
   }
 }
 
-function uiStatusFromExpectedDate({
-  expectedDeliveryDate,
+function uiStatusFromDueDate({
+  dueDate,
   today,
 }: {
-  expectedDeliveryDate: Nullable<Date>;
+  dueDate: Nullable<Date>;
   today: Date;
 }): Nullable<DeliveryUiStatus> {
-  if (expectedDeliveryDate === null) {
+  if (dueDate === null) {
     return UI_STATUS.no_delivery_date;
   }
 
-  const daysUntilDelivery = differenceInCalendarDays(expectedDeliveryDate, today);
-  if (daysUntilDelivery < 0) {
+  const daysUntilDue = differenceInCalendarDays(dueDate, today);
+  if (daysUntilDue < 0) {
     return UI_STATUS.delayed;
   }
-  if (daysUntilDelivery <= ARRIVING_SOON_DAYS) {
+  if (daysUntilDue <= ARRIVING_SOON_DAYS) {
     return UI_STATUS.arriving_soon;
   }
 

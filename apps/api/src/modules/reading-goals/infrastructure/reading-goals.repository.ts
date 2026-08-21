@@ -165,6 +165,23 @@ export class ReadingGoalsRepository {
     return client.readingGoal.findFirst({ where: { id: goalId, userId }, ...goalWithListArgs });
   }
 
+  findOwnedByIds({
+    goalIds,
+    userId,
+  }: {
+    goalIds: string[];
+    userId: string;
+  }): Promise<ReadingGoalWithList[]> {
+    if (goalIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.readingGoal.findMany({
+      orderBy: { id: "asc" },
+      where: { id: { in: goalIds }, userId },
+      ...goalWithListArgs,
+    });
+  }
+
   async update(
     {
       data,

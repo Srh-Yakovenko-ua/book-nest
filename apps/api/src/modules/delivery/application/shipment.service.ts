@@ -8,11 +8,18 @@ import type {
   MoveBookOrderItemsInput,
   Nullable,
   ReceiveShipmentInput,
+  ReceiveShipmentsInput,
+  ReceiveShipmentsResultView,
+  ReceiveShipmentsSkipReason,
   ShipmentStatus,
   UpdateShipmentInput,
 } from "@app/shared";
 
-import { ShipmentStatusSchema } from "@app/shared";
+import {
+  DELIVERY_ERROR_CODES,
+  ReceiveShipmentsSkipReasonSchema,
+  ShipmentStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -40,10 +47,17 @@ import {
   DELIVERY_WRITE_MESSAGES,
   orderNotFoundError,
   shipmentNotActiveError,
+  shipmentReceiptSkipError,
 } from "./delivery-write-errors.js";
 import { ShipmentDeliveryServiceResolver } from "./shipment-delivery-service.resolver.js";
 
+const RECEIVE_SKIP_REASON = ReceiveShipmentsSkipReasonSchema.enum;
+
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+
+type ShipmentReceiptOutcome =
+  | { orderId: string; outcome: "received" }
+  | { outcome: "skipped"; reason: ReceiveShipmentsSkipReason };
 
 @Injectable()
 export class ShipmentService {
@@ -225,38 +239,18 @@ export class ShipmentService {
     const now = new Date();
 
     return this.transactionRunner.run(async (tx) => {
-      const shipment = await this.loadShipmentOrThrow({ client: tx, shipmentId, userId });
-      const plan = planShipmentReceipt({
+      const receipt = await this.receiveOne({
+        client: tx,
+        now,
         receivedAt: resolveShipmentReceivedAt({ now, receivedAt: input.receivedAt }),
-        status: ShipmentStatusSchema.parse(shipment.status),
+        shipmentId,
+        userId,
       });
-      if (plan.outcome === "rejected") {
-        throw shipmentNotActiveError();
+      if (receipt.outcome === "skipped") {
+        throw shipmentReceiptSkipError(receipt.reason);
       }
 
-      const received = await this.shipmentsRepository.receiveActive(
-        { receivedAt: plan.shipment.receivedAt, shipmentId, userId },
-        tx,
-      );
-      if (received === 0) {
-        throw shipmentNotActiveError();
-      }
-
-      const receivedItems = await this.bookOrderItemsRepository.receiveForShipment(
-        { receivedAt: plan.shipment.receivedAt, shipmentId, userId },
-        tx,
-      );
-      await this.orderBooksRepository.applyOwnership(
-        {
-          bookIds: receivedItems.map((item) => item.bookId),
-          now,
-          ownershipStatus: plan.ownership.ownershipStatus,
-          userId,
-        },
-        tx,
-      );
-
-      return this.viewLoader.loadOrThrow({ orderId: shipment.orderId, userId }, tx);
+      return this.viewLoader.loadOrThrow({ orderId: receipt.orderId, userId }, tx);
     });
   }
 
@@ -294,6 +288,34 @@ export class ShipmentService {
       });
 
       return this.viewLoader.loadOrThrow({ orderId, userId }, tx);
+    });
+  }
+
+  receiveMany({
+    input,
+    userId,
+  }: {
+    input: ReceiveShipmentsInput;
+    userId: string;
+  }): Promise<ReceiveShipmentsResultView> {
+    const now = new Date();
+    const requestedShipmentIds = [...new Set(input.shipmentIds)];
+
+    return this.transactionRunner.run(async (tx) => {
+      const receivedAt = resolveShipmentReceivedAt({ now, receivedAt: input.receivedAt });
+      const receivedShipmentIds: string[] = [];
+      const skipped: ReceiveShipmentsResultView["skipped"] = [];
+
+      for (const shipmentId of requestedShipmentIds) {
+        const receipt = await this.receiveOne({ client: tx, now, receivedAt, shipmentId, userId });
+        if (receipt.outcome === "skipped") {
+          skipped.push({ reason: receipt.reason, shipmentId });
+          continue;
+        }
+        receivedShipmentIds.push(shipmentId);
+      }
+
+      return { receivedShipmentIds, skipped };
     });
   }
 
@@ -422,8 +444,61 @@ export class ShipmentService {
       client,
     );
     if (moved !== itemIds.length) {
-      throw new BadRequestError(DELIVERY_WRITE_MESSAGES.itemsNotMovable);
+      throw new BadRequestError(DELIVERY_WRITE_MESSAGES.itemsNotMovable, {
+        code: DELIVERY_ERROR_CODES.itemsNotMovable,
+      });
     }
+  }
+
+  private async receiveOne({
+    client,
+    now,
+    receivedAt,
+    shipmentId,
+    userId,
+  }: {
+    client: Prisma.TransactionClient;
+    now: Date;
+    receivedAt: Date;
+    shipmentId: string;
+    userId: string;
+  }): Promise<ShipmentReceiptOutcome> {
+    const shipment = await this.shipmentsRepository.findOwnedById({ shipmentId, userId }, client);
+    if (shipment === null) {
+      return { outcome: "skipped", reason: RECEIVE_SKIP_REASON.not_found };
+    }
+
+    const plan = planShipmentReceipt({
+      receivedAt,
+      status: ShipmentStatusSchema.parse(shipment.status),
+    });
+    if (plan.outcome === "rejected") {
+      return { outcome: "skipped", reason: RECEIVE_SKIP_REASON.not_active };
+    }
+
+    const received = await this.shipmentsRepository.receiveActive(
+      { receivedAt: plan.shipment.receivedAt, shipmentId, userId },
+      client,
+    );
+    if (received === 0) {
+      return { outcome: "skipped", reason: RECEIVE_SKIP_REASON.not_active };
+    }
+
+    const receivedItems = await this.bookOrderItemsRepository.receiveForShipment(
+      { receivedAt: plan.shipment.receivedAt, shipmentId, userId },
+      client,
+    );
+    await this.orderBooksRepository.applyOwnership(
+      {
+        bookIds: receivedItems.map((item) => item.bookId),
+        now,
+        ownershipStatus: plan.ownership.ownershipStatus,
+        userId,
+      },
+      client,
+    );
+
+    return { orderId: shipment.orderId, outcome: "received" };
   }
 
   private updateWhileActive({

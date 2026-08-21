@@ -12,6 +12,11 @@ export const ReadingStatusSchema = z.enum([
 
 export type ReadingStatus = z.infer<typeof ReadingStatusSchema>;
 
+export const UNREAD_READING_STATUSES = [
+  "not_started",
+  "want_to_read",
+] as const satisfies readonly ReadingStatus[];
+
 export const CLOSED_READING_STATUSES = [
   "finished",
   "dnf",
@@ -21,6 +26,15 @@ const CLOSED_READING_STATUS_SET: ReadonlySet<ReadingStatus> = new Set(CLOSED_REA
 
 export function isClosedReadingStatus(status: ReadingStatus): boolean {
   return CLOSED_READING_STATUS_SET.has(status);
+}
+
+const IN_PROGRESS_READING_STATUS_SET: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
+  "reading",
+  "rereading",
+]);
+
+export function isInProgressReadingStatus(status: ReadingStatus): boolean {
+  return IN_PROGRESS_READING_STATUS_SET.has(status);
 }
 
 export const OwnershipStatusSchema = z.enum([

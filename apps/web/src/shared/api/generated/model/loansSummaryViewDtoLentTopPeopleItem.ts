@@ -13,6 +13,7 @@ export type LoansSummaryViewDtoLentTopPeopleItem = {
    * @maximum 9007199254740991
    */
   bookCount: number;
+  contactId: string;
   covers: LoansSummaryViewDtoLentTopPeopleItemCoversItem[];
   personName: string;
 };

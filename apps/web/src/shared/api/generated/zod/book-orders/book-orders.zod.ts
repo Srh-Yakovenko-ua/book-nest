@@ -16,6 +16,7 @@ export const bookOrdersControllerCreateBodyDeliveryPriceMax = 99999999.99;
 export const bookOrdersControllerCreateBodyDiscountMin = 0;
 export const bookOrdersControllerCreateBodyDiscountMax = 99999999.99;
 
+export const bookOrdersControllerCreateBodyIsFreeDefault = false;
 export const bookOrdersControllerCreateBodyItemsItemBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
@@ -46,7 +47,7 @@ export const bookOrdersControllerCreateBodyTotalAmountMin = 0;
 export const bookOrdersControllerCreateBodyTotalAmountMax = 99999999.99;
 
 export const BookOrdersControllerCreateBody = zod.object({
-  currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
+  currency: zod.enum(["UAH", "EUR", "USD"]),
   deliveryPrice: zod
     .number()
     .min(bookOrdersControllerCreateBodyDeliveryPriceMin)
@@ -57,6 +58,7 @@ export const BookOrdersControllerCreateBody = zod.object({
     .min(bookOrdersControllerCreateBodyDiscountMin)
     .max(bookOrdersControllerCreateBodyDiscountMax)
     .optional(),
+  isFree: zod.boolean().default(bookOrdersControllerCreateBodyIsFreeDefault),
   items: zod
     .array(
       zod.object({
@@ -124,6 +126,9 @@ export const BookOrdersControllerCreateResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -1547,6 +1552,9 @@ export const BookOrdersControllerFindByIdResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -1610,9 +1618,7 @@ export const bookOrdersControllerUpdateBodyTotalAmountMin = 0;
 export const bookOrdersControllerUpdateBodyTotalAmountMax = 99999999.99;
 
 export const BookOrdersControllerUpdateBody = zod.object({
-  currency: zod
-    .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-    .nullish(),
+  currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
   deliveryPrice: zod
     .number()
     .min(bookOrdersControllerUpdateBodyDeliveryPriceMin)
@@ -1623,6 +1629,7 @@ export const BookOrdersControllerUpdateBody = zod.object({
     .min(bookOrdersControllerUpdateBodyDiscountMin)
     .max(bookOrdersControllerUpdateBodyDiscountMax)
     .nullish(),
+  isFree: zod.boolean().optional(),
   note: zod.string().nullish(),
   orderDate: zod.iso.date().regex(bookOrdersControllerUpdateBodyOrderDateRegExp).nullish(),
   orderNumber: zod.string().nullish(),
@@ -1650,6 +1657,9 @@ export const BookOrdersControllerUpdateResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),

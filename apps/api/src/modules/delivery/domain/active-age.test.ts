@@ -41,6 +41,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
     deliveryPrice: null,
     discount: null,
     id: "order-1",
+    isFree: false,
     items: [makeItem({ price: 100 })],
     orderDate: subDays(NOW, 1),
     orderNumber: null,
@@ -82,10 +83,12 @@ describe("buildActiveMoneyAge scope", () => {
         makeOrder({ id: "order-active", items: [makeItem({ bookId: "a", price: 200 })] }),
         makeOrder({
           id: "order-received",
+          isFree: false,
           items: [makeItem({ bookId: "b", price: 500, receivedAt: NOW })],
         }),
         makeOrder({
           id: "order-cancelled",
+          isFree: false,
           items: [makeItem({ bookId: "c", cancelledAt: NOW, price: 900 })],
         }),
       ].map((record) => classifyOrder({ includeCancelled: false, record })),

@@ -1,29 +1,38 @@
-import type { BookOrderHistorySummaryView } from "@app/shared";
-
-import type { InTransitCurrencyTotal } from "./delivery-summary.js";
-
-import { toCurrencyTotals } from "./delivery-summary.js";
+import type { BookOrderHistorySummaryView, LatestReceiptView, Nullable } from "@app/shared";
 
 export type OrderHistorySummaryData = {
-  activeBooksCount: number;
-  booksCount: number;
   cancelledBooksCount: number;
-  currencyTotals: InTransitCurrencyTotal[];
-  ordersCount: number;
+  cancelledOrdersCount: number;
+  completedOrdersCount: number;
+  completedWithCancellationsCount: number;
+  completedWithoutCancellationsCount: number;
   receivedBooksCount: number;
-  shipmentsCount: number;
+  receivedOrdersCount: number;
+  receivedSeriesBooksCount: number;
+  receivedSeriesCount: number;
+  receivedShipmentsCount: number;
+  receivedStandaloneBooksCount: number;
+};
+
+export type OrderHistorySummarySource = OrderHistorySummaryData & {
+  latestReceipt: Nullable<LatestReceiptView>;
 };
 
 export function buildOrderHistorySummaryView(
-  data: OrderHistorySummaryData,
+  data: OrderHistorySummarySource,
 ): BookOrderHistorySummaryView {
   return {
-    activeBooksCount: data.activeBooksCount,
-    booksCount: data.booksCount,
     cancelledBooksCount: data.cancelledBooksCount,
-    ordersCount: data.ordersCount,
+    cancelledOrdersCount: data.cancelledOrdersCount,
+    completedOrdersCount: data.completedOrdersCount,
+    completedWithCancellationsCount: data.completedWithCancellationsCount,
+    completedWithoutCancellationsCount: data.completedWithoutCancellationsCount,
+    latestReceipt: data.latestReceipt,
     receivedBooksCount: data.receivedBooksCount,
-    shipmentsCount: data.shipmentsCount,
-    totalByCurrency: toCurrencyTotals(data.currencyTotals),
+    receivedOrdersCount: data.receivedOrdersCount,
+    receivedSeriesBooksCount: data.receivedSeriesBooksCount,
+    receivedSeriesCount: data.receivedSeriesCount,
+    receivedShipmentsCount: data.receivedShipmentsCount,
+    receivedStandaloneBooksCount: data.receivedStandaloneBooksCount,
   };
 }

@@ -14,9 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type LoanHistorySidebarProps = {
-  activePerson: string;
+  activeContactId: string;
   isLoading: boolean;
-  onPersonSelect: (personName: string) => void;
+  onPersonSelect: (contactId: string) => void;
   overview: LoanHistoryOverviewView | undefined;
 };
 
@@ -37,7 +37,7 @@ export function LoanHistoryOverviewPanel(props: LoanHistorySidebarProps) {
         <div className="flex flex-col gap-4">
           <LoanHistorySidebarSections
             {...props}
-            onPersonSelect={(personName) => panel.closeThen(() => props.onPersonSelect(personName))}
+            onPersonSelect={(contactId) => panel.closeThen(() => props.onPersonSelect(contactId))}
           />
         </div>
       </MobilePageOverviewPanel>
@@ -93,7 +93,7 @@ function DurationBlock({
 }
 
 function LoanHistorySidebarSections({
-  activePerson,
+  activeContactId,
   isLoading,
   onPersonSelect,
   overview,
@@ -101,7 +101,7 @@ function LoanHistorySidebarSections({
   return (
     <>
       <PeopleBlock
-        activePerson={activePerson}
+        activeContactId={activeContactId}
         isLoading={isLoading}
         onPersonSelect={onPersonSelect}
         people={overview?.topPeople ?? []}
@@ -122,14 +122,14 @@ function MetricRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function PeopleBlock({
-  activePerson,
+  activeContactId,
   isLoading,
   onPersonSelect,
   people,
 }: {
-  activePerson: string;
+  activeContactId: string;
   isLoading: boolean;
-  onPersonSelect: (personName: string) => void;
+  onPersonSelect: (contactId: string) => void;
   people: LoanHistoryOverviewView["topPeople"];
 }) {
   const t = useTranslations("loans.history.sidebar.people");
@@ -145,15 +145,15 @@ function PeopleBlock({
       {!isLoading && people.length > 0 ? (
         <ul className="-mx-1.5 flex flex-col gap-0.5">
           {people.map((person) => (
-            <li key={person.personName}>
+            <li key={person.contactId}>
               <button
                 aria-label={t("filter", { name: person.personName })}
-                aria-pressed={person.personName === activePerson}
+                aria-pressed={person.contactId === activeContactId}
                 className={cn(
                   "group/person flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-1.5 py-1.5 text-left transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
-                  person.personName === activePerson && "bg-secondary",
+                  person.contactId === activeContactId && "bg-secondary",
                 )}
-                onClick={() => onPersonSelect(person.personName)}
+                onClick={() => onPersonSelect(person.contactId)}
                 type="button"
               >
                 <span className="flex items-baseline justify-between gap-2">
@@ -227,7 +227,7 @@ function RowSkeleton({ rows }: { rows: number }) {
 
 function SidebarBlock({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+    <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card">
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>

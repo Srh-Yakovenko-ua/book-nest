@@ -12,7 +12,7 @@ const bookOrderItemContext = {
     order: {
       include: {
         items: {
-          select: { bookId: true, shipmentId: true },
+          select: { bookId: true, id: true, price: true, shipmentId: true },
           where: { book: SOFT_DELETE_SCOPE.active },
         },
         shipments: { select: { expectedDeliveryDate: true, id: true } },
@@ -113,6 +113,17 @@ export class BookOrderItemsRepository {
       where: { ...activeItemWhere(userId), id: itemId },
     });
     return cancelled.count;
+  }
+
+  async clearPricesForOrder(
+    { orderId, userId }: { orderId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const cleared = await client.bookOrderItem.updateMany({
+      data: { price: null },
+      where: { order: { id: orderId, userId }, price: { not: null } },
+    });
+    return cleared.count;
   }
 
   async findActiveBookIds(

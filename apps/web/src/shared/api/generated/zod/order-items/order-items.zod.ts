@@ -39,6 +39,9 @@ export const BookOrderItemsControllerCancelItemResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),

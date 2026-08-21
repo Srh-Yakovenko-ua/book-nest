@@ -66,6 +66,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
     deliveryPrice: null,
     discount: null,
     id: "order-1",
+    isFree: false,
     items: [],
     orderDate: ORDER_DATE,
     orderNumber: null,
@@ -180,8 +181,8 @@ const SINGLE_BOOK_CASES: SingleBookCase[] = [
     record: makeOrder({ items: [makeItem()] }),
   },
   {
-    expected: stageCounts({ shipped: 1, total: 1 }),
-    name: "a lone book in a parcel that was only ordered counts as shipped",
+    expected: stageCounts({ active: 1, total: 1 }),
+    name: "a lone book in a parcel that has not left yet still counts as active",
     record: makeOrder({
       items: [makeItem({ shipmentId: "parcel-ordered" })],
       shipments: [makeShipment({ id: "parcel-ordered", status: "ordered" })],
@@ -234,15 +235,14 @@ describe("computeBookOrderLifecycle", () => {
 
     expect(lifecycle.orders).toEqual(
       stageCounts({
-        active: 1,
+        active: 2,
         partially_received: 1,
-        partially_shipped: 1,
         received: 1,
         shipped: 1,
         total: 5,
       }),
     );
-    expect(lifecycle.books).toEqual(stageCounts({ active: 2, received: 2, shipped: 4, total: 8 }));
+    expect(lifecycle.books).toEqual(stageCounts({ active: 3, received: 2, shipped: 3, total: 8 }));
   });
 
   it("adds the cancelled side branch to both sides once cancelled orders are included", () => {
@@ -250,17 +250,16 @@ describe("computeBookOrderLifecycle", () => {
 
     expect(lifecycle.orders).toEqual(
       stageCounts({
-        active: 1,
+        active: 2,
         cancelled: 1,
         partially_received: 1,
-        partially_shipped: 1,
         received: 1,
         shipped: 1,
         total: 6,
       }),
     );
     expect(lifecycle.books).toEqual(
-      stageCounts({ active: 2, cancelled: 1, received: 2, shipped: 4, total: 9 }),
+      stageCounts({ active: 3, cancelled: 1, received: 2, shipped: 3, total: 9 }),
     );
   });
 
@@ -364,7 +363,6 @@ describe("computeBookOrderLifecycle", () => {
     const lifecycle = lifecycleOf({ includeCancelled: true, records: MIXED_RECORDS });
 
     expect(lifecycle.orders.partially_received).toBe(1);
-    expect(lifecycle.orders.partially_shipped).toBe(1);
     expect(lifecycle.books.partially_received).toBe(0);
     expect(lifecycle.books.partially_shipped).toBe(0);
   });
@@ -410,10 +408,10 @@ describe("computeBookOrderLifecycle comparison", () => {
     });
 
     expect(lifecycle.comparison?.orders.delta).toEqual({
-      active: 0,
+      active: -1,
       cancelled: 0,
       partially_received: -1,
-      partially_shipped: -1,
+      partially_shipped: 0,
       received: -1,
       shipped: -1,
       total: -4,

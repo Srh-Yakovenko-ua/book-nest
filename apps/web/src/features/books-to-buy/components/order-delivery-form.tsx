@@ -17,6 +17,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DialogFooter } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
@@ -46,6 +47,7 @@ type OrderDeliveryFormProps = {
 
 type OrderDeliveryValues = {
   expectedDeliveryDate: string;
+  isFree: boolean;
   orderDate: string;
   store: StoreSourceValue;
 };
@@ -59,6 +61,7 @@ export function OrderDeliveryForm({
 }: OrderDeliveryFormProps) {
   const t = useTranslations("booksToBuy.statusDialog.ordered");
   const tConfirm = useTranslations("books.details.ownership.buyConfirm");
+  const tDelivery = useTranslations("books.details.delivery");
   const tErrors = useTranslations("books.details.delivery.errors");
   const tOwnershipErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
@@ -73,6 +76,7 @@ export function OrderDeliveryForm({
   } = useForm<OrderDeliveryValues>({
     defaultValues: {
       expectedDeliveryDate: "",
+      isFree: false,
       orderDate: todayIso(),
       store: toStoreSourceDefaults({ bestOffer, purchaseInfo: book.purchaseInfo, storeLinks }),
     },
@@ -81,6 +85,7 @@ export function OrderDeliveryForm({
       z
         .object({
           expectedDeliveryDate: z.string(),
+          isFree: z.boolean(),
           orderDate: z
             .string()
             .refine((value) => value.length > 0, tErrors("orderDateRequired"))
@@ -103,7 +108,15 @@ export function OrderDeliveryForm({
             values.orderDate.length === 0 ||
             !isBefore(parseISO(values.expectedDeliveryDate), parseISO(values.orderDate)),
           { message: tErrors("expectedBeforeOrder"), path: ["expectedDeliveryDate"] },
-        ),
+        )
+        .refine((values) => values.isFree || resolveStorePrice(values.store) !== null, {
+          message: tErrors("priceRequired"),
+          path: ["store", "price"],
+        })
+        .refine((values) => !values.isFree || resolveStorePrice(values.store) === null, {
+          message: tErrors("freeWithPrice"),
+          path: ["store", "price"],
+        }),
     ),
   });
 
@@ -136,6 +149,26 @@ export function OrderDeliveryForm({
                 storeLinks={storeLinks}
                 value={field.value}
               />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="isFree"
+            render={({ field }) => (
+              <Label className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 font-normal">
+                <Checkbox
+                  checked={field.value}
+                  className="mt-0.5"
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-medium text-ink">{tDelivery("form.free")}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {tDelivery("form.freeHint")}
+                  </span>
+                </span>
+              </Label>
             )}
           />
 
@@ -217,6 +250,8 @@ function buildPayload({
   values: OrderDeliveryValues;
 }): CreateDeliveryInput {
   const payload: CreateDeliveryInput = {
+    currency: values.store.currency,
+    isFree: values.isFree,
     orderDate: values.orderDate,
     storeName: resolveStoreName({ storeLinks, value: values.store }),
   };
@@ -224,8 +259,7 @@ function buildPayload({
 
   if (values.expectedDeliveryDate.length > 0)
     payload.expectedDeliveryDate = values.expectedDeliveryDate;
-  if (price !== null) {
-    payload.currency = values.store.currency;
+  if (!values.isFree && price !== null) {
     payload.price = price;
   }
 

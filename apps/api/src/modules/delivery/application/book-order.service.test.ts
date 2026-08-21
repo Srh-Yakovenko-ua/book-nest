@@ -23,17 +23,18 @@ const TX = { marker: "tx" } as unknown as Prisma.TransactionClient;
 
 const emptyOrderRow = {
   createdAt: new Date("2026-08-01T00:00:00.000Z"),
-  currency: null,
+  currency: "UAH",
   deliveryPrice: null,
   discount: null,
   id: ORDER_ID,
+  isFree: false,
   items: [],
   note: null,
   orderDate: null,
   orderNumber: null,
   shipments: [],
   storeName: "Bookstore",
-  totalAmount: null,
+  totalAmount: new PrismaNamespace.Decimal(500),
   updatedAt: new Date("2026-08-01T00:00:00.000Z"),
   userId: USER,
 };
@@ -59,6 +60,7 @@ function buildService(overrides: {
     ...overrides.orders,
   } as unknown as BookOrdersRepository;
   const items = {
+    clearPricesForOrder: vi.fn().mockResolvedValue(0),
     findActiveBookIds: vi.fn().mockResolvedValue([]),
     ...overrides.items,
   } as unknown as BookOrderItemsRepository;
@@ -96,13 +98,61 @@ function buildService(overrides: {
 
 function createInput(overrides: Partial<CreateBookOrderInput> = {}): CreateBookOrderInput {
   return {
-    items: [{ bookId: BOOK_A }, { bookId: BOOK_B }],
+    currency: "UAH",
+    isFree: false,
+    items: [
+      { bookId: BOOK_A, price: 100 },
+      { bookId: BOOK_B, price: 150 },
+    ],
     storeName: "Bookstore",
     ...overrides,
   };
 }
 
 describe("BookOrderService.create", () => {
+  it("normalizes a complete financial breakdown before persistence", async () => {
+    const { orders, service } = buildService({});
+
+    await service.create({
+      input: createInput({
+        deliveryPrice: 100,
+        discount: 200,
+        items: [
+          { bookId: BOOK_A, price: 500 },
+          { bookId: BOOK_B, price: 600 },
+        ],
+      }),
+      userId: USER,
+    });
+
+    expect(orders.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        order: expect.objectContaining({ totalAmount: 1000 }),
+      }),
+      TX,
+    );
+  });
+
+  it("rejects a conflicting client total before persistence", async () => {
+    const { orders, service } = buildService({});
+
+    await expect(
+      service.create({
+        input: createInput({
+          deliveryPrice: 100,
+          discount: 200,
+          items: [
+            { bookId: BOOK_A, price: 500 },
+            { bookId: BOOK_B, price: 600 },
+          ],
+          totalAmount: 200,
+        }),
+        userId: USER,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.create).not.toHaveBeenCalled();
+  });
+
   it("refuses an order that names a book the reader does not own", async () => {
     const { orders, service } = buildService({
       books: { listOwned: vi.fn().mockResolvedValue([{ id: BOOK_A, ownershipStatus: "none" }]) },
@@ -174,6 +224,7 @@ describe("BookOrderService.create", () => {
           { bookIds: bookIds.slice(0, 3), deliveryService: "Nova Poshta" },
           { bookIds: bookIds.slice(3), status: "in_transit" },
         ],
+        totalAmount: 500,
       }),
       userId: USER,
     });
@@ -217,6 +268,7 @@ describe("BookOrderService.create", () => {
           bookIds: [parcel.bookId],
           deliveryService: parcel.deliveryService,
         })),
+        totalAmount: 500,
       }),
       userId: USER,
     });
@@ -250,6 +302,89 @@ describe("BookOrderService.create", () => {
 });
 
 describe("BookOrderService.update", () => {
+  it("recalculates total when delivery or discount changes", async () => {
+    const { orders, service } = buildService({
+      orders: {
+        findOwnedById: vi.fn().mockResolvedValue({
+          ...emptyOrderRow,
+          items: [{ price: new PrismaNamespace.Decimal(500) }],
+        }),
+      },
+    });
+
+    await service.update({
+      input: { deliveryPrice: 100, discount: 50 },
+      orderId: ORDER_ID,
+      userId: USER,
+    });
+
+    expect(orders.updateOwned).toHaveBeenCalledWith(
+      {
+        data: { deliveryPrice: 100, discount: 50, totalAmount: 550 },
+        orderId: ORDER_ID,
+        userId: USER,
+      },
+      TX,
+    );
+  });
+
+  it("stores a free order at a canonical total of zero and drops its amounts", async () => {
+    const { items, orders, service } = buildService({
+      orders: {
+        findOwnedById: vi.fn().mockResolvedValue({
+          ...emptyOrderRow,
+          deliveryPrice: new PrismaNamespace.Decimal(100),
+          items: [{ price: new PrismaNamespace.Decimal(500) }],
+        }),
+      },
+    });
+
+    await service.update({ input: { isFree: true }, orderId: ORDER_ID, userId: USER });
+
+    expect(items.clearPricesForOrder).toHaveBeenCalledWith({ orderId: ORDER_ID, userId: USER }, TX);
+    expect(orders.updateOwned).toHaveBeenCalledWith(
+      {
+        data: { deliveryPrice: null, discount: null, isFree: true, totalAmount: 0 },
+        orderId: ORDER_ID,
+        userId: USER,
+      },
+      TX,
+    );
+  });
+
+  it("refuses to leave an order without a total anybody can read", async () => {
+    const { orders, service } = buildService({
+      orders: {
+        findOwnedById: vi.fn().mockResolvedValue({
+          ...emptyOrderRow,
+          currency: "UAH",
+          items: [{ price: new PrismaNamespace.Decimal(500) }, { price: null }],
+        }),
+      },
+    });
+
+    await expect(
+      service.update({ input: { totalAmount: null }, orderId: ORDER_ID, userId: USER }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it("rejects a discount that would make the recalculated total negative", async () => {
+    const { orders, service } = buildService({
+      orders: {
+        findOwnedById: vi.fn().mockResolvedValue({
+          ...emptyOrderRow,
+          items: [{ price: new PrismaNamespace.Decimal(500) }],
+        }),
+      },
+    });
+
+    await expect(
+      service.update({ input: { discount: 501 }, orderId: ORDER_ID, userId: USER }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(orders.updateOwned).not.toHaveBeenCalled();
+  });
+
   it("refuses an order date later than a parcel that is already expected", async () => {
     const { orders, service } = buildService({
       orders: {
@@ -285,7 +420,11 @@ describe("BookOrderService.update", () => {
 
     expect(orders.updateOwned).toHaveBeenCalledWith(
       {
-        data: { orderDate: new Date("2026-08-05T00:00:00.000Z"), storeName: "Other store" },
+        data: {
+          orderDate: new Date("2026-08-05T00:00:00.000Z"),
+          storeName: "Other store",
+          totalAmount: 500,
+        },
         orderId: ORDER_ID,
         userId: USER,
       },

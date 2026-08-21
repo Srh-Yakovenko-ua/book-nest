@@ -57,6 +57,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
     deliveryPrice: null,
     discount: null,
     id: "order-1",
+    isFree: false,
     items: [makeItem()],
     orderDate: ORDER_INSTANTS.marchFourth,
     orderNumber: null,
@@ -69,6 +70,7 @@ function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatist
 
 const CANCELLED_MARCH_FIFTH_ORDER = makeOrder({
   id: "order-cancelled",
+  isFree: false,
   items: [makeItem({ bookId: "book-cancelled", cancelledAt: CANCELLED_AT, price: 500 })],
   orderDate: ORDER_INSTANTS.marchFifth,
   totalAmount: 500,
@@ -76,6 +78,7 @@ const CANCELLED_MARCH_FIFTH_ORDER = makeOrder({
 
 const LIVE_MARCH_FOURTH_ORDER = makeOrder({
   id: "order-live",
+  isFree: false,
   items: [makeItem({ bookId: "book-live", price: 120 })],
   totalAmount: 120,
 });
@@ -136,11 +139,13 @@ describe("buildOrderDaily merges the orders of a single day", () => {
       records: [
         makeOrder({
           id: "order-a",
+          isFree: false,
           items: [makeItem({ bookId: "book-a", price: 100 }), makeItem({ bookId: "book-b" })],
           totalAmount: 300,
         }),
         makeOrder({
           id: "order-b",
+          isFree: false,
           items: [makeItem({ bookId: "book-c" })],
           totalAmount: 200,
         }),
@@ -260,11 +265,12 @@ describe("buildOrderDaily follows the cancellation scope it was handed", () => {
     ]);
   });
 
-  it("leaves a cancelled book out of its day's book count while the order still counts", () => {
+  it("leaves a cancelled book out of its day's book count while its cost still counts", () => {
     const daily = dailyOf({
       records: [
         makeOrder({
           id: "order-partly-cancelled",
+          isFree: false,
           items: [
             makeItem({ bookId: "book-kept", price: 100 }),
             makeItem({ bookId: "book-dropped", cancelledAt: CANCELLED_AT, price: 200 }),
@@ -278,7 +284,7 @@ describe("buildOrderDaily follows the cancellation scope it was handed", () => {
         booksCount: 1,
         date: "2026-03-04",
         ordersCount: 1,
-        totalsByCurrency: [{ currency: "UAH", total: 100 }],
+        totalsByCurrency: [{ currency: "UAH", total: 300 }],
       },
     ]);
   });

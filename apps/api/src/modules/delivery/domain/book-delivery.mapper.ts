@@ -53,6 +53,7 @@ export function toBookDeliveryView(item: OrderedBookRow): DeliveryView {
     deliveryService: shipment?.deliveryServiceName ?? null,
     expectedDeliveryDate: toNullableIsoDate(shipment?.expectedDeliveryDate ?? null),
     id: item.id,
+    isFree: order.isFree,
     note: order.note,
     orderDate: toNullableIsoDate(order.orderDate),
     orderNumber: order.orderNumber,

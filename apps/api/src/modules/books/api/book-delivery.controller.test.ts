@@ -65,7 +65,7 @@ function createDelivery(
   return request(app.getHttpServer())
     .post(`/api/books/${bookId}/deliveries`)
     .set("Authorization", `Bearer ${accessToken}`)
-    .send(body);
+    .send({ currency: "UAH", price: 350, ...body });
 }
 
 function listDeliveries(accessToken: string, bookId: string): request.Test {

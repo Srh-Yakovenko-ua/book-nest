@@ -837,7 +837,7 @@ describe("POST /api/books", () => {
 
     const res = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", orderNumber: "TTN-1", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });
@@ -882,6 +882,7 @@ describe("POST /api/books", () => {
     expect(res.body.loanInfo).toEqual({
       contact: null,
       expectedReturnDate: null,
+      loanContactId: expect.any(String),
       loanDate: "2026-02-01",
       loanType: "borrowed_from_someone",
       loanUiStatus: "no_return_date",

@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  ActiveShipmentStatus,
   BookView,
   CreateDeliveryInput,
   Currency,
@@ -9,7 +8,7 @@ import type {
   UpdateDeliveryInput,
 } from "@app/shared";
 
-import { isActiveShipmentStatus, SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
+import { DEFAULT_CURRENCY } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -17,6 +16,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -40,10 +40,10 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
-import { ApiError } from "@/lib/http-client";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useCreateDelivery, useUpdateDelivery } from "../api/use-delivery";
+import { useDeliveryErrorText } from "../hooks/use-delivery-error-text";
 import { ISO_DATE_PATTERN, todayIso } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
 import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
@@ -76,14 +76,17 @@ type DeliveryDialogProps =
     };
 
 type DeliveryMessages = {
+  currencyRequired: string;
   dateInvalid: string;
   expectedBeforeOrder: string;
+  freeWithPrice: string;
   noteMax: string;
   orderDateFuture: string;
   orderDateRequired: string;
   orderNumberMax: string;
   price: string;
   priceMax: string;
+  priceRequired: string;
   serviceMax: string;
   serviceMin: string;
   storeNameMax: string;
@@ -97,11 +100,11 @@ type DeliveryValues = {
   currency: "" | Currency;
   deliveryService: string;
   expectedDeliveryDate: string;
+  isFree: boolean;
   note: string;
   orderDate: string;
   orderNumber: string;
   price: string;
-  status: ActiveShipmentStatus;
   storeName: string;
   trackingNumber: string;
   trackingUrl: string;
@@ -131,6 +134,8 @@ export function DeliveryDialog(props: DeliveryDialogProps) {
 
 function buildCreatePayload(values: DeliveryValues): CreateDeliveryInput {
   const payload: CreateDeliveryInput = {
+    currency: values.currency === "" ? DEFAULT_CURRENCY : values.currency,
+    isFree: values.isFree,
     orderDate: values.orderDate,
     storeName: values.storeName.trim(),
   };
@@ -147,8 +152,9 @@ function buildCreatePayload(values: DeliveryValues): CreateDeliveryInput {
   if (service.length > 0) payload.deliveryService = service;
   if (trackingNumber.length > 0) payload.trackingNumber = trackingNumber;
   if (trackingUrl.length > 0) payload.trackingUrl = trackingUrl;
-  if (values.price.trim().length > 0 && Number.isFinite(price)) payload.price = price;
-  if (values.currency !== "") payload.currency = values.currency;
+  if (!values.isFree && values.price.trim().length > 0 && Number.isFinite(price)) {
+    payload.price = price;
+  }
   if (note.length > 0) payload.note = note;
 
   return payload;
@@ -157,7 +163,9 @@ function buildCreatePayload(values: DeliveryValues): CreateDeliveryInput {
 function buildSchema(messages: DeliveryMessages) {
   return z
     .object({
-      currency: z.enum(["", "UAH", "EUR", "USD"]),
+      currency: z
+        .enum(["", "UAH", "EUR", "USD"])
+        .refine((value) => value !== "", messages.currencyRequired),
       deliveryService: z
         .string()
         .max(SERVICE_MAX, messages.serviceMax)
@@ -171,6 +179,7 @@ function buildSchema(messages: DeliveryMessages) {
           (value) => value.length === 0 || ISO_DATE_PATTERN.test(value),
           messages.dateInvalid,
         ),
+      isFree: z.boolean(),
       note: z.string().max(NOTE_MAX, messages.noteMax),
       orderDate: z
         .string()
@@ -185,7 +194,6 @@ function buildSchema(messages: DeliveryMessages) {
           (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
           messages.priceMax,
         ),
-      status: z.enum(SHIPMENT_ACTIVE_STATUSES),
       storeName: z
         .string()
         .refine((value) => value.trim().length > 0, messages.storeNameRequired)
@@ -205,7 +213,15 @@ function buildSchema(messages: DeliveryMessages) {
         value.orderDate.length === 0 ||
         value.expectedDeliveryDate >= value.orderDate,
       { message: messages.expectedBeforeOrder, path: ["expectedDeliveryDate"] },
-    );
+    )
+    .refine((value) => value.isFree || value.price.trim().length > 0, {
+      message: messages.priceRequired,
+      path: ["price"],
+    })
+    .refine((value) => !value.isFree || value.price.trim().length === 0, {
+      message: messages.freeWithPrice,
+      path: ["price"],
+    });
 }
 
 function buildUpdatePayload(values: DeliveryValues): UpdateDeliveryInput {
@@ -213,14 +229,14 @@ function buildUpdatePayload(values: DeliveryValues): UpdateDeliveryInput {
   const hasPrice = values.price.trim().length > 0 && Number.isFinite(price);
 
   return {
-    currency: values.currency === "" ? null : values.currency,
+    currency: values.currency === "" ? DEFAULT_CURRENCY : values.currency,
     deliveryService: emptyToNull(values.deliveryService.trim()),
     expectedDeliveryDate: emptyToNull(values.expectedDeliveryDate),
+    isFree: values.isFree,
     note: emptyToNull(values.note.trim()),
     orderDate: values.orderDate,
     orderNumber: emptyToNull(values.orderNumber.trim()),
-    price: hasPrice ? price : null,
-    status: values.status,
+    price: values.isFree || !hasPrice ? null : price,
     storeName: values.storeName.trim(),
     trackingNumber: emptyToNull(values.trackingNumber.trim()),
     trackingUrl: emptyToNull(values.trackingUrl.trim()),
@@ -238,7 +254,7 @@ function DeliveryForm({
 }) {
   const t = useTranslations("books.details.delivery");
   const tErrors = useTranslations("books.details.delivery.errors");
-  const tStatus = useTranslations("books.deliveryStatus.labels");
+  const deliveryErrorText = useDeliveryErrorText();
   const tActions = useTranslations("books.actions");
   const createDelivery = useCreateDelivery();
   const updateDelivery = useUpdateDelivery();
@@ -252,19 +268,23 @@ function DeliveryForm({
     formState: { errors },
     handleSubmit,
     register,
+    watch,
   } = useForm<DeliveryValues>({
     defaultValues: toDefaults(delivery),
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
+        currencyRequired: tErrors("currencyRequired"),
         dateInvalid: tErrors("dateInvalid"),
         expectedBeforeOrder: tErrors("expectedBeforeOrder"),
+        freeWithPrice: tErrors("freeWithPrice"),
         noteMax: tErrors("noteMax", { max: NOTE_MAX }),
         orderDateFuture: tErrors("orderDateFuture"),
         orderDateRequired: tErrors("orderDateRequired"),
         orderNumberMax: tErrors("orderNumberMax", { max: ORDER_NUMBER_MAX }),
         price: tErrors("price"),
         priceMax: tErrors("priceMax"),
+        priceRequired: tErrors("priceRequired"),
         serviceMax: tErrors("serviceMax", { max: SERVICE_MAX }),
         serviceMin: tErrors("serviceMin", { min: SERVICE_MIN }),
         storeNameMax: tErrors("storeNameMax", { max: STORE_NAME_MAX }),
@@ -276,10 +296,11 @@ function DeliveryForm({
     ),
   });
 
+  const isFree = watch("isFree");
+
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
-    const onError = (error: Error) =>
-      setServerError(error instanceof ApiError ? error.message : tErrors("generic"));
+    const onError = (error: Error) => setServerError(deliveryErrorText(error));
 
     if (delivery !== undefined) {
       updateDelivery.mutate(
@@ -369,33 +390,6 @@ function DeliveryForm({
         </div>
       </div>
 
-      {isEdit ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="delivery-status">{t("editDialog.status")}</Label>
-          <Controller
-            control={control}
-            name="status"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger
-                  className="h-10 w-full data-[size=default]:h-10"
-                  id="delivery-status"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SHIPMENT_ACTIVE_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {tStatus(status)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </div>
-      ) : null}
-
       <div className="flex flex-col gap-2">
         <Label htmlFor="delivery-service">{t("form.deliveryService")}</Label>
         <Controller
@@ -461,6 +455,24 @@ function DeliveryForm({
         <FieldError error={errors.trackingUrl} id="delivery-tracking-url-error" />
       </div>
 
+      <Controller
+        control={control}
+        name="isFree"
+        render={({ field }) => (
+          <Label className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5 font-normal">
+            <Checkbox
+              checked={field.value}
+              className="mt-0.5"
+              onCheckedChange={(checked) => field.onChange(checked === true)}
+            />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="font-medium text-ink">{t("form.free")}</span>
+              <span className="text-xs text-muted-foreground">{t("form.freeHint")}</span>
+            </span>
+          </Label>
+        )}
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="delivery-price">{t("form.price")}</Label>
@@ -468,6 +480,7 @@ function DeliveryForm({
             aria-describedby={errors.price ? "delivery-price-error" : undefined}
             aria-invalid={errors.price !== undefined}
             className="h-10"
+            disabled={isFree}
             id="delivery-price"
             inputMode="decimal"
             min={0}
@@ -572,17 +585,14 @@ function emptyToNull(value: string): null | string {
 
 function toDefaults(delivery: DeliveryView | undefined): DeliveryValues {
   return {
-    currency: delivery === undefined ? "UAH" : (delivery.currency ?? ""),
+    currency: delivery === undefined ? "UAH" : (delivery.currency ?? "UAH"),
     deliveryService: delivery?.deliveryService ?? "",
     expectedDeliveryDate: delivery?.expectedDeliveryDate ?? "",
+    isFree: delivery?.isFree ?? false,
     note: delivery?.note ?? "",
     orderDate: delivery?.orderDate ?? todayIso(),
     orderNumber: delivery?.orderNumber ?? "",
     price: delivery?.price != null ? String(delivery.price) : "",
-    status:
-      delivery !== undefined && isActiveShipmentStatus(delivery.status)
-        ? delivery.status
-        : "ordered",
     storeName: delivery?.storeName ?? "",
     trackingNumber: delivery?.trackingNumber ?? "",
     trackingUrl: delivery?.trackingUrl ?? "",

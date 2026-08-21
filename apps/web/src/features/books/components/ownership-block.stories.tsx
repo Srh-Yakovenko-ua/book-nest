@@ -157,6 +157,7 @@ export const BorrowedWithLoan: Story = {
       loanInfo: {
         contact: "@olha",
         expectedReturnDate: "2026-08-01",
+        loanContactId: "77777777-7777-4777-8777-777777777771",
         loanDate: "2026-06-01",
         loanType: "borrowed_from_someone",
         loanUiStatus: "on_time",
@@ -182,6 +183,7 @@ export const LentOverdue: Story = {
       loanInfo: {
         contact: null,
         expectedReturnDate: "2026-01-01",
+        loanContactId: "77777777-7777-4777-8777-777777777772",
         loanDate: "2025-12-01",
         loanType: "lent_to_someone",
         loanUiStatus: "overdue",

@@ -27,6 +27,7 @@ export interface LoanHistoryDetailViewDto {
   expectedReturnDate: string | null;
   historyResult: LoanHistoryDetailViewDtoHistoryResult;
   id: string;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   personName: string;

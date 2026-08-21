@@ -6,14 +6,45 @@
  * OpenAPI spec version: 1.0
  */
 import type { DeliveryReadControllerInTransitListAgeBucket } from "./deliveryReadControllerInTransitListAgeBucket";
-import type { DeliveryReadControllerInTransitListCurrency } from "./deliveryReadControllerInTransitListCurrency";
+import type { DeliveryReadControllerInTransitListCurrencyItem } from "./deliveryReadControllerInTransitListCurrencyItem";
 import type { DeliveryReadControllerInTransitListFilter } from "./deliveryReadControllerInTransitListFilter";
+import type { DeliveryReadControllerInTransitListPriceCurrency } from "./deliveryReadControllerInTransitListPriceCurrency";
 import type { DeliveryReadControllerInTransitListSort } from "./deliveryReadControllerInTransitListSort";
+import type { DeliveryReadControllerInTransitListStructureItem } from "./deliveryReadControllerInTransitListStructureItem";
 
 export type DeliveryReadControllerInTransitListParams = {
   ageBucket?: DeliveryReadControllerInTransitListAgeBucket;
-  currency?: DeliveryReadControllerInTransitListCurrency;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  booksMax?: number;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  booksMin?: number;
+  /**
+   * @maxItems 100
+   */
+  currency?: DeliveryReadControllerInTransitListCurrencyItem[];
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  expectedFrom?: string;
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  expectedTo?: string;
   filter?: DeliveryReadControllerInTransitListFilter;
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  orderedFrom?: string;
+  /**
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  orderedTo?: string;
   /**
    * @minimum 1
    * @maximum 21474836
@@ -25,13 +56,32 @@ export type DeliveryReadControllerInTransitListParams = {
    */
   pageSize?: number;
   /**
+   * Gates the canonical order total range. The range is ignored unless exactly one currency is named here.
+   */
+  priceCurrency?: DeliveryReadControllerInTransitListPriceCurrency;
+  /**
+   * @minimum 0
+   */
+  priceMax?: number;
+  /**
+   * @minimum 0
+   */
+  priceMin?: number;
+  /**
    * @maxLength 100
    */
   search?: string;
-  service?: string;
+  /**
+   * @maxItems 100
+   */
+  service?: string[];
   sort?: DeliveryReadControllerInTransitListSort;
   /**
-   * @maxLength 200
+   * @maxItems 100
    */
-  store?: string;
+  store?: string[];
+  /**
+   * @maxItems 100
+   */
+  structure?: DeliveryReadControllerInTransitListStructureItem[];
 };

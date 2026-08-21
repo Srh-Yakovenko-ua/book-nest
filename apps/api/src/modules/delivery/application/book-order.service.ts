@@ -2,10 +2,17 @@ import type {
   BookOrderShipmentInput,
   BookOrderView,
   CreateBookOrderInput,
+  Currency,
+  Nullable,
   UpdateBookOrderInput,
 } from "@app/shared";
 
-import { OwnershipStatusSchema, ShipmentStatusSchema } from "@app/shared";
+import {
+  CurrencySchema,
+  OwnershipStatusSchema,
+  ShipmentStatusSchema,
+  validateOrderInvariant,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -17,7 +24,7 @@ import type {
 import type { ShipmentDeliveryServiceSnapshot } from "./shipment-delivery-service.resolver.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
 import { evaluateBookOrderEntry } from "../domain/order-item-transition.js";
 import { toBookOrderView } from "../domain/order.mapper.js";
@@ -56,6 +63,14 @@ export class BookOrderService {
   }): Promise<BookOrderView> {
     const now = new Date();
     const bookIds = input.items.map((item) => item.bookId);
+    const financials = validatedFinancials({
+      currency: input.currency,
+      deliveryPrice: input.deliveryPrice,
+      discount: input.discount,
+      isFree: input.isFree,
+      itemPrices: input.items.map((item) => item.price ?? null),
+      totalAmount: input.totalAmount,
+    });
     assertShipmentsExpectedAfter({ orderDate: input.orderDate, shipments: input.shipments ?? [] });
 
     try {
@@ -68,7 +83,7 @@ export class BookOrderService {
               bookId: item.bookId,
               price: item.price ?? null,
             })),
-            order: toNewOrderData(input),
+            order: toNewOrderData({ input, totalAmount: financials.effectiveTotalAmount }),
             shipments: await this.buildShipments({ client: tx, input, userId }),
             userId,
           },
@@ -110,6 +125,29 @@ export class BookOrderService {
       }
 
       const patch = toOrderPatch(input);
+      const isFree = input.isFree ?? order.isFree;
+      if (isFree) {
+        await this.bookOrderItemsRepository.clearPricesForOrder({ orderId, userId }, tx);
+      }
+      const itemPrices = isFree
+        ? []
+        : order.items.map((item) => (item.price === null ? null : item.price.toNumber()));
+      const hasCompleteBreakdown =
+        itemPrices.length > 0 && itemPrices.every((price) => price !== null);
+      const financials = validatedFinancials({
+        currency: input.currency ?? toCurrency(order.currency),
+        deliveryPrice: isFree ? null : patched(input.deliveryPrice, order.deliveryPrice),
+        discount: isFree ? null : patched(input.discount, order.discount),
+        isFree,
+        itemPrices,
+        totalAmount:
+          isFree || hasCompleteBreakdown ? null : patched(input.totalAmount, order.totalAmount),
+      });
+      patch.totalAmount = financials.effectiveTotalAmount;
+      if (isFree) {
+        patch.deliveryPrice = null;
+        patch.discount = null;
+      }
       assertShipmentsExpectedAfter({
         orderDate: patch.orderDate ?? order.orderDate,
         shipments: order.shipments,
@@ -194,16 +232,37 @@ export class BookOrderService {
   }
 }
 
-function toNewOrderData(input: CreateBookOrderInput): NewBookOrderData {
+function patched(
+  next: Nullable<number> | undefined,
+  current: Nullable<{ toNumber: () => number }>,
+): Nullable<number> {
+  if (next !== undefined) {
+    return next;
+  }
+  return current === null ? null : current.toNumber();
+}
+
+function toCurrency(currency: Nullable<string>): Nullable<Currency> {
+  return currency === null ? null : CurrencySchema.parse(currency);
+}
+
+function toNewOrderData({
+  input,
+  totalAmount,
+}: {
+  input: CreateBookOrderInput;
+  totalAmount: null | number;
+}): NewBookOrderData {
   return {
-    currency: input.currency ?? null,
+    currency: input.currency,
     deliveryPrice: input.deliveryPrice ?? null,
     discount: input.discount ?? null,
+    isFree: input.isFree,
     note: input.note ?? null,
     orderDate: toCreateDate(input.orderDate),
     orderNumber: input.orderNumber ?? null,
     storeName: input.storeName,
-    totalAmount: input.totalAmount ?? null,
+    totalAmount,
   };
 }
 
@@ -230,10 +289,19 @@ function toOrderPatch(input: UpdateBookOrderInput): BookOrderPatch {
     ...(input.currency === undefined ? {} : { currency: input.currency }),
     ...(input.deliveryPrice === undefined ? {} : { deliveryPrice: input.deliveryPrice }),
     ...(input.discount === undefined ? {} : { discount: input.discount }),
+    ...(input.isFree === undefined ? {} : { isFree: input.isFree }),
     ...(input.note === undefined ? {} : { note: input.note }),
     ...(input.orderDate === undefined ? {} : { orderDate: toUpdateDate(input.orderDate) ?? null }),
     ...(input.orderNumber === undefined ? {} : { orderNumber: input.orderNumber }),
     ...(input.storeName === undefined ? {} : { storeName: input.storeName }),
     ...(input.totalAmount === undefined ? {} : { totalAmount: input.totalAmount }),
   };
+}
+
+function validatedFinancials(input: Parameters<typeof validateOrderInvariant>[0]) {
+  const validation = validateOrderInvariant(input);
+  if (validation.error !== null) {
+    throw new BadRequestError(validation.error);
+  }
+  return validation.summary;
 }

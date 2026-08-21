@@ -17,6 +17,7 @@ import { ListsModule } from "../../lists/lists.module.js";
 import { LoansModule } from "../loans.module.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const MISSING_CONTACT_ID = "00000000-0000-4000-8000-000000000000";
 const EMPTY_DIRECTION_SUMMARY = {
   earliestLoanDate: null,
   longHeldCount: 0,
@@ -90,6 +91,14 @@ async function borrowCustomBook(
   });
 }
 
+async function contactIdFor(name: string): Promise<string> {
+  const contact = await prisma.loanContact.findFirstOrThrow({
+    select: { id: true },
+    where: { name },
+  });
+  return contact.id;
+}
+
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .post("/api/books")
@@ -151,6 +160,14 @@ function loanSummary(accessToken: string): request.Test {
 
 function loanTitles(loans: { book: { title: string } }[]): string[] {
   return loans.map((loan) => loan.book.title);
+}
+
+async function renameContact(accessToken: string, contactId: string, name: string): Promise<void> {
+  const res = await request(app.getHttpServer())
+    .patch(`/api/loans/contacts/${contactId}`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ name });
+  expect(res.status).toBe(200);
 }
 
 function startLoan(accessToken: string, id: string, body: Record<string, unknown>): request.Test {
@@ -749,25 +766,38 @@ describe("GET /api/loans/summary top people", () => {
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.lent.topPeople).toEqual([{ bookCount: 1, covers: [], personName: "Ivan" }]);
-    expect(res.body.borrowed.topPeople).toEqual([{ bookCount: 1, covers: [], personName: "Olha" }]);
+    expect(res.body.lent.topPeople).toEqual([
+      { bookCount: 1, contactId: await contactIdFor("Ivan"), covers: [], personName: "Ivan" },
+    ]);
+    expect(res.body.borrowed.topPeople).toEqual([
+      { bookCount: 1, contactId: await contactIdFor("Olha"), covers: [], personName: "Olha" },
+    ]);
   });
 });
 
-describe("GET /api/loans by person", () => {
-  it("returns only the loans of the requested person", async () => {
+describe("GET /api/loans by contact", () => {
+  it("returns only the loans of the requested contact", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
     await createLentLoan(accessToken, { personName: "Ivan" }, "His");
 
-    const res = await listLoans(accessToken, `?person=${encodeURIComponent("Olha")}`);
+    const res = await listLoans(accessToken, `?contactId=${await contactIdFor("Olha")}`);
 
     expect(res.status).toBe(200);
     expect(res.body.totalCount).toBe(1);
     expect(loanTitles(res.body.items)).toEqual(["Hers"]);
   });
 
-  it("combines the person with the other list filters", async () => {
+  it("returns 400 for a person name in place of the contact id", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
+
+    const res = await listLoans(accessToken, `?contactId=${encodeURIComponent("Olha")}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("combines the contact with the other list filters", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createLentLoan(
       accessToken,
@@ -787,10 +817,84 @@ describe("GET /api/loans by person", () => {
 
     const res = await listLoans(
       accessToken,
-      `?person=${encodeURIComponent("Olha")}&filter=overdue`,
+      `?contactId=${await contactIdFor("Olha")}&filter=overdue`,
     );
 
     expect(loanTitles(res.body.items)).toEqual(["Hers overdue"]);
+  });
+
+  it("returns an empty page for a contact id that matches no loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
+
+    const res = await listLoans(accessToken, `?contactId=${MISSING_CONTACT_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ items: [], totalCount: 0 });
+  });
+});
+
+describe("GET /api/loans after a contact rename", () => {
+  async function lendToRenamedPerson(accessToken: string): Promise<void> {
+    await createBorrowedLoan(accessToken, { personName: "Olha Melnyk" }, "Hers");
+    await createLentLoan(accessToken, { personName: "Ivan Petrenko" }, "His");
+    await renameContact(accessToken, await contactIdFor("Olha Melnyk"), "Olha Sydorenko");
+  }
+
+  it("shows the current name of the contact rather than the name stored on the loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await lendToRenamedPerson(accessToken);
+
+    const res = await listLoans(accessToken, "?type=borrowed_from_someone");
+
+    expect(res.body.items[0].personName).toBe("Olha Sydorenko");
+  });
+
+  it("finds the loan by the new name of the contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await lendToRenamedPerson(accessToken);
+
+    const res = await listLoans(accessToken, "?search=sydorenko");
+
+    expect(loanTitles(res.body.items)).toEqual(["Hers"]);
+  });
+
+  it("still finds the loan by the name stored on it when the loan started", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await lendToRenamedPerson(accessToken);
+
+    const res = await listLoans(accessToken, "?search=melnyk");
+
+    expect(loanTitles(res.body.items)).toEqual(["Hers"]);
+  });
+});
+
+describe("GET /api/loans/summary people grouped by contact", () => {
+  async function lendTwiceUnderTwoSpellings(accessToken: string): Promise<void> {
+    await createLentLoan(accessToken, { personName: "Ігор" }, "First");
+    await renameContact(accessToken, await contactIdFor("Ігор"), "ігор");
+    await createLentLoan(accessToken, { personName: "ігор" }, "Second");
+  }
+
+  it("counts two loans that share a contact as one person", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await lendTwiceUnderTwoSpellings(accessToken);
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.totalCount).toBe(2);
+    expect(res.body.lent.peopleCount).toBe(1);
+  });
+
+  it("groups the top people by contact rather than by the name stored on the loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await lendTwiceUnderTwoSpellings(accessToken);
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.topPeople).toEqual([
+      { bookCount: 2, contactId: await contactIdFor("ігор"), covers: [], personName: "ігор" },
+    ]);
   });
 });
 

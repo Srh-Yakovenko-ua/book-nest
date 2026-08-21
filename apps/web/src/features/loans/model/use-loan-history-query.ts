@@ -28,15 +28,15 @@ import {
 
 export type UseLoanHistoryQueryResult = {
   clearFilters: () => void;
+  contactId: string;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   listParams: LoanHistoryListParams;
   overviewParams: LoanHistoryControllerOverviewParams;
   period: LoanHistoryPeriod;
-  person: string;
   result: LoanHistoryControllerListResult;
+  setContactId: (value: string) => void;
   setPeriod: (period: LoanHistoryPeriod) => void;
-  setPerson: (value: string) => void;
   setResult: (value: LoanHistoryControllerListResult) => void;
   setSearch: (value: string) => void;
   setSort: (value: LoanHistoryControllerListSort) => void;
@@ -51,16 +51,16 @@ export function useLoanHistoryQuery(): UseLoanHistoryQueryResult {
 
   return {
     clearFilters: () => void setState(LOAN_HISTORY_FILTERS_RESET),
+    contactId: state.contactId,
     hasActiveFilters: hasActiveLoanHistoryFilters(state),
     hasActiveSearch: hasActiveLoanHistorySearch(state),
     listParams: toLoanHistoryListParams(state),
     overviewParams: toLoanHistoryOverviewParams(state),
     period: { from: state.from, to: state.to },
-    person: state.person,
     result: state.result,
+    setContactId: (value) => void setState({ contactId: value === "" ? null : value }),
     setPeriod: ({ from, to }) =>
       void setState({ from: from === "" ? null : from, to: to === "" ? null : to }),
-    setPerson: (value) => void setState({ person: value === "" ? null : value }),
     setResult: (value) => void setState({ result: value }),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),

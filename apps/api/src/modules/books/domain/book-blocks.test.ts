@@ -20,6 +20,8 @@ describe("buildDeliveryInfoData", () => {
       currency: "UAH",
       deliveryService: "Nova Poshta",
       expectedDeliveryDate: null,
+      hasShipment: true,
+      isFree: false,
       note: null,
       orderDate: null,
       orderNumber: null,
@@ -36,6 +38,8 @@ describe("buildDeliveryInfoData", () => {
       currency: null,
       deliveryService: null,
       expectedDeliveryDate: null,
+      hasShipment: true,
+      isFree: false,
       note: null,
       orderDate: null,
       orderNumber: null,
@@ -45,6 +49,14 @@ describe("buildDeliveryInfoData", () => {
       trackingNumber: null,
       trackingUrl: null,
     });
+  });
+
+  it("marks the order as having no shipment when the book is not shipped yet", () => {
+    expect(buildDeliveryInfoData({ isShipped: false }).hasShipment).toBe(false);
+  });
+
+  it("carries an explicitly free order through to the create payload", () => {
+    expect(buildDeliveryInfoData({ isFree: true }).isFree).toBe(true);
   });
 });
 
@@ -82,5 +94,10 @@ describe("buildDeliveryInfoUpdateData", () => {
 
     expect(data.price).toBeNull();
     expect(data.trackingUrl).toBeNull();
+  });
+
+  it("leaves the free flag undefined unless the patch names it", () => {
+    expect(buildDeliveryInfoUpdateData({}).isFree).toBeUndefined();
+    expect(buildDeliveryInfoUpdateData({ isFree: true }).isFree).toBe(true);
   });
 });

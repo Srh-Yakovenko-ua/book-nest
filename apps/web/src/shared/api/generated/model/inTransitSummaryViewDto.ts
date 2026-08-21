@@ -6,7 +6,10 @@
  * OpenAPI spec version: 1.0
  */
 import type { InTransitSummaryViewDtoActiveBooksTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveBooksTotalByCurrencyItem";
+import type { InTransitSummaryViewDtoActiveOrdersAverageByCurrencyItem } from "./inTransitSummaryViewDtoActiveOrdersAverageByCurrencyItem";
 import type { InTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem } from "./inTransitSummaryViewDtoActiveOrdersTotalByCurrencyItem";
+import type { InTransitSummaryViewDtoAttentionItem } from "./inTransitSummaryViewDtoAttentionItem";
+import type { InTransitSummaryViewDtoNextShipment } from "./inTransitSummaryViewDtoNextShipment";
 
 export interface InTransitSummaryViewDto {
   /**
@@ -15,6 +18,8 @@ export interface InTransitSummaryViewDto {
    */
   activeBooksCount: number;
   activeBooksTotalByCurrency: InTransitSummaryViewDtoActiveBooksTotalByCurrencyItem[];
+  /** The mean canonical total of one active order, kept per currency and never converted across them. */
+  activeOrdersAverageByCurrency: InTransitSummaryViewDtoActiveOrdersAverageByCurrencyItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -30,7 +35,9 @@ export interface InTransitSummaryViewDto {
    * @minimum 0
    * @maximum 9007199254740991
    */
-  attentionCount: number;
+  arrivingSoonCount: number;
+  /** Cases that ask the reader to act, ordered by severity: pickup_expiring, delayed, awaiting_dispatch, without_tracking, without_expected_date, unassigned_books. A case with a zero count is left out, and each case counts in its own unit - parcels, orders or books. */
+  attention: InTransitSummaryViewDtoAttentionItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -48,6 +55,13 @@ export interface InTransitSummaryViewDto {
   inTransitCount: number;
   /** @nullable */
   nextExpectedDelivery: string | null;
+  /** @nullable */
+  nextExpectedThisWeek: string | null;
+  /**
+   * The soonest shipment still awaiting arrival: status ordered or in_transit, an expected date of today or later, and at least one active book. Null when nothing qualifies.
+   * @nullable
+   */
+  nextShipment: InTransitSummaryViewDtoNextShipment;
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -58,6 +72,11 @@ export interface InTransitSummaryViewDto {
    * @maximum 9007199254740991
    */
   readyForPickupCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  splitOrdersCount: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991

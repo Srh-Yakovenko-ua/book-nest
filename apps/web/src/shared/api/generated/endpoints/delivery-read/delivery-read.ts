@@ -19,12 +19,19 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookOrderHistoryFacetsViewDto,
+  BookOrderHistoryOutcomeViewDto,
   BookOrderHistorySummaryViewDto,
+  CancelledFollowUpViewDto,
+  CancelledFollowUpWishlistResultDto,
+  DeliveryReadControllerHistoryFacetsParams,
   DeliveryReadControllerHistoryListParams,
-  DeliveryReadControllerHistorySummaryParams,
   DeliveryReadControllerInTransitListParams,
+  InTransitFacetsViewDto,
+  InTransitImpactViewDto,
   InTransitSummaryViewDto,
   PaginatedBookOrderItemRowsDto,
+  PaginatedOrderHistoryGroupsDto,
 } from "../../model";
 
 import { customInstance } from "../../../mutator";
@@ -218,6 +225,350 @@ export function useDeliveryReadControllerInTransitSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type deliveryReadControllerInTransitImpactResponse200 = {
+  data: InTransitImpactViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerInTransitImpactResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerInTransitImpactResponseSuccess =
+  deliveryReadControllerInTransitImpactResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerInTransitImpactResponseError =
+  deliveryReadControllerInTransitImpactResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerInTransitImpactResponse =
+  | deliveryReadControllerInTransitImpactResponseSuccess
+  | deliveryReadControllerInTransitImpactResponseError;
+
+export const getDeliveryReadControllerInTransitImpactUrl = () => {
+  return `/api/delivery/books/in-transit/impact`;
+};
+
+/**
+ * @summary Get what receiving the books in the current user's active deliveries would change
+ */
+export const deliveryReadControllerInTransitImpact = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerInTransitImpactResponse> => {
+  return customInstance<deliveryReadControllerInTransitImpactResponse>(
+    getDeliveryReadControllerInTransitImpactUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerInTransitImpactQueryKey = () => {
+  return [`/api/delivery/books/in-transit/impact`] as const;
+};
+
+export const getDeliveryReadControllerInTransitImpactQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerInTransitImpactQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+  > = ({ signal }) => deliveryReadControllerInTransitImpact({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerInTransitImpactQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+>;
+export type DeliveryReadControllerInTransitImpactQueryError = void;
+
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get what receiving the books in the current user's active deliveries would change
+ */
+
+export function useDeliveryReadControllerInTransitImpact<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitImpact>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerInTransitImpactQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deliveryReadControllerInTransitFacetsResponse200 = {
+  data: InTransitFacetsViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerInTransitFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerInTransitFacetsResponseSuccess =
+  deliveryReadControllerInTransitFacetsResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerInTransitFacetsResponseError =
+  deliveryReadControllerInTransitFacetsResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerInTransitFacetsResponse =
+  | deliveryReadControllerInTransitFacetsResponseSuccess
+  | deliveryReadControllerInTransitFacetsResponseError;
+
+export const getDeliveryReadControllerInTransitFacetsUrl = () => {
+  return `/api/delivery/books/in-transit/facets`;
+};
+
+/**
+ * @summary List the stores and delivery services behind the books on their way
+ */
+export const deliveryReadControllerInTransitFacets = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerInTransitFacetsResponse> => {
+  return customInstance<deliveryReadControllerInTransitFacetsResponse>(
+    getDeliveryReadControllerInTransitFacetsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerInTransitFacetsQueryKey = () => {
+  return [`/api/delivery/books/in-transit/facets`] as const;
+};
+
+export const getDeliveryReadControllerInTransitFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerInTransitFacetsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+  > = ({ signal }) => deliveryReadControllerInTransitFacets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerInTransitFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+>;
+export type DeliveryReadControllerInTransitFacetsQueryError = void;
+
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the stores and delivery services behind the books on their way
+ */
+
+export function useDeliveryReadControllerInTransitFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerInTransitFacetsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type deliveryReadControllerInTransitListResponse200 = {
   data: PaginatedBookOrderItemRowsDto;
   status: 200;
@@ -247,6 +598,15 @@ export const getDeliveryReadControllerInTransitListUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["currency", "service", "store", "structure"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -437,33 +797,18 @@ export type deliveryReadControllerHistorySummaryResponse =
   | deliveryReadControllerHistorySummaryResponseSuccess
   | deliveryReadControllerHistorySummaryResponseError;
 
-export const getDeliveryReadControllerHistorySummaryUrl = (
-  params?: DeliveryReadControllerHistorySummaryParams,
-) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/delivery/books/history/summary?${stringifiedParams}`
-    : `/api/delivery/books/history/summary`;
+export const getDeliveryReadControllerHistorySummaryUrl = () => {
+  return `/api/delivery/books/history/summary`;
 };
 
 /**
- * @summary Get summary metrics for the current user's ordered books
+ * @summary Get the all-time overview of the finished delivery history
  */
 export const deliveryReadControllerHistorySummary = async (
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<deliveryReadControllerHistorySummaryResponse> => {
   return customInstance<deliveryReadControllerHistorySummaryResponse>(
-    getDeliveryReadControllerHistorySummaryUrl(params),
+    getDeliveryReadControllerHistorySummaryUrl(),
     {
       ...options,
       method: "GET",
@@ -471,36 +816,26 @@ export const deliveryReadControllerHistorySummary = async (
   );
 };
 
-export const getDeliveryReadControllerHistorySummaryQueryKey = (
-  params?: DeliveryReadControllerHistorySummaryParams,
-) => {
-  return [`/api/delivery/books/history/summary`, ...(params ? [params] : [])] as const;
+export const getDeliveryReadControllerHistorySummaryQueryKey = () => {
+  return [`/api/delivery/books/history/summary`] as const;
 };
 
 export const getDeliveryReadControllerHistorySummaryQueryOptions = <
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
->(
-  params?: DeliveryReadControllerHistorySummaryParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getDeliveryReadControllerHistorySummaryQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerHistorySummaryQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>
-  > = ({ signal }) => deliveryReadControllerHistorySummary(params, { signal, ...requestOptions });
+  > = ({ signal }) => deliveryReadControllerHistorySummary({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
@@ -518,7 +853,6 @@ export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params: undefined | DeliveryReadControllerHistorySummaryParams,
   options: {
     query: Partial<
       UseQueryOptions<
@@ -543,7 +877,6 @@ export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -568,7 +901,6 @@ export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -582,14 +914,13 @@ export function useDeliveryReadControllerHistorySummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get summary metrics for the current user's ordered books
+ * @summary Get the all-time overview of the finished delivery history
  */
 
 export function useDeliveryReadControllerHistorySummary<
   TData = Awaited<ReturnType<typeof deliveryReadControllerHistorySummary>>,
   TError = void,
 >(
-  params?: DeliveryReadControllerHistorySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -602,7 +933,371 @@ export function useDeliveryReadControllerHistorySummary<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getDeliveryReadControllerHistorySummaryQueryOptions(params, options);
+  const queryOptions = getDeliveryReadControllerHistorySummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deliveryReadControllerHistoryOutcomeResponse200 = {
+  data: BookOrderHistoryOutcomeViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerHistoryOutcomeResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerHistoryOutcomeResponseSuccess =
+  deliveryReadControllerHistoryOutcomeResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerHistoryOutcomeResponseError =
+  deliveryReadControllerHistoryOutcomeResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerHistoryOutcomeResponse =
+  | deliveryReadControllerHistoryOutcomeResponseSuccess
+  | deliveryReadControllerHistoryOutcomeResponseError;
+
+export const getDeliveryReadControllerHistoryOutcomeUrl = () => {
+  return `/api/delivery/books/history/outcome`;
+};
+
+/**
+ * @summary Get what the already received books changed for reading and for series
+ */
+export const deliveryReadControllerHistoryOutcome = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerHistoryOutcomeResponse> => {
+  return customInstance<deliveryReadControllerHistoryOutcomeResponse>(
+    getDeliveryReadControllerHistoryOutcomeUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerHistoryOutcomeQueryKey = () => {
+  return [`/api/delivery/books/history/outcome`] as const;
+};
+
+export const getDeliveryReadControllerHistoryOutcomeQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerHistoryOutcomeQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+  > = ({ signal }) => deliveryReadControllerHistoryOutcome({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerHistoryOutcomeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+>;
+export type DeliveryReadControllerHistoryOutcomeQueryError = void;
+
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get what the already received books changed for reading and for series
+ */
+
+export function useDeliveryReadControllerHistoryOutcome<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryOutcome>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerHistoryOutcomeQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deliveryReadControllerHistoryFacetsResponse200 = {
+  data: BookOrderHistoryFacetsViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerHistoryFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerHistoryFacetsResponseSuccess =
+  deliveryReadControllerHistoryFacetsResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerHistoryFacetsResponseError =
+  deliveryReadControllerHistoryFacetsResponse401 & {
+    headers: Headers;
+  };
+
+export type deliveryReadControllerHistoryFacetsResponse =
+  | deliveryReadControllerHistoryFacetsResponseSuccess
+  | deliveryReadControllerHistoryFacetsResponseError;
+
+export const getDeliveryReadControllerHistoryFacetsUrl = (
+  params: DeliveryReadControllerHistoryFacetsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/delivery/books/history/facets?${stringifiedParams}`
+    : `/api/delivery/books/history/facets`;
+};
+
+/**
+ * @summary List the stores and delivery services behind one tab of the order history
+ */
+export const deliveryReadControllerHistoryFacets = async (
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerHistoryFacetsResponse> => {
+  return customInstance<deliveryReadControllerHistoryFacetsResponse>(
+    getDeliveryReadControllerHistoryFacetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerHistoryFacetsQueryKey = (
+  params?: DeliveryReadControllerHistoryFacetsParams,
+) => {
+  return [`/api/delivery/books/history/facets`, ...(params ? [params] : [])] as const;
+};
+
+export const getDeliveryReadControllerHistoryFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getDeliveryReadControllerHistoryFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>> = ({
+    signal,
+  }) => deliveryReadControllerHistoryFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerHistoryFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>
+>;
+export type DeliveryReadControllerHistoryFacetsQueryError = void;
+
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the stores and delivery services behind one tab of the order history
+ */
+
+export function useDeliveryReadControllerHistoryFacets<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+  TError = void,
+>(
+  params: DeliveryReadControllerHistoryFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerHistoryFacets>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerHistoryFacetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -612,7 +1307,7 @@ export function useDeliveryReadControllerHistorySummary<
 }
 
 export type deliveryReadControllerHistoryListResponse200 = {
-  data: PaginatedBookOrderItemRowsDto;
+  data: PaginatedOrderHistoryGroupsDto;
   status: 200;
 };
 
@@ -639,6 +1334,15 @@ export const getDeliveryReadControllerHistoryListUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["currency", "service", "store"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -652,7 +1356,7 @@ export const getDeliveryReadControllerHistoryListUrl = (
 };
 
 /**
- * @summary List every book the current user has ever ordered
+ * @summary List the finished orders of the current user, grouped into their parcels and books
  */
 export const deliveryReadControllerHistoryList = async (
   params?: DeliveryReadControllerHistoryListParams,
@@ -761,7 +1465,7 @@ export function useDeliveryReadControllerHistoryList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List every book the current user has ever ordered
+ * @summary List the finished orders of the current user, grouped into their parcels and books
  */
 
 export function useDeliveryReadControllerHistoryList<
@@ -778,6 +1482,330 @@ export function useDeliveryReadControllerHistoryList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getDeliveryReadControllerHistoryListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type cancelledFollowUpControllerReadResponse200 = {
+  data: CancelledFollowUpViewDto;
+  status: 200;
+};
+
+export type cancelledFollowUpControllerReadResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type cancelledFollowUpControllerReadResponseSuccess =
+  cancelledFollowUpControllerReadResponse200 & {
+    headers: Headers;
+  };
+export type cancelledFollowUpControllerReadResponseError =
+  cancelledFollowUpControllerReadResponse401 & {
+    headers: Headers;
+  };
+
+export type cancelledFollowUpControllerReadResponse =
+  cancelledFollowUpControllerReadResponseSuccess | cancelledFollowUpControllerReadResponseError;
+
+export const getCancelledFollowUpControllerReadUrl = () => {
+  return `/api/delivery/books/history/cancelled-follow-up`;
+};
+
+/**
+ * @summary Get the cancelled books that never reached a next acquisition state
+ */
+export const cancelledFollowUpControllerRead = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<cancelledFollowUpControllerReadResponse> => {
+  return customInstance<cancelledFollowUpControllerReadResponse>(
+    getCancelledFollowUpControllerReadUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCancelledFollowUpControllerReadQueryKey = () => {
+  return [`/api/delivery/books/history/cancelled-follow-up`] as const;
+};
+
+export const getCancelledFollowUpControllerReadQueryOptions = <
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCancelledFollowUpControllerReadQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>> = ({
+    signal,
+  }) => cancelledFollowUpControllerRead({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CancelledFollowUpControllerReadQueryResult = NonNullable<
+  Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>
+>;
+export type CancelledFollowUpControllerReadQueryError = void;
+
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the cancelled books that never reached a next acquisition state
+ */
+
+export function useCancelledFollowUpControllerRead<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof cancelledFollowUpControllerRead>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCancelledFollowUpControllerReadQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponse200 = {
+  data: CancelledFollowUpWishlistResultDto;
+  status: 200;
+};
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponseSuccess =
+  cancelledFollowUpControllerReturnAllToWishlistResponse200 & {
+    headers: Headers;
+  };
+export type cancelledFollowUpControllerReturnAllToWishlistResponseError =
+  cancelledFollowUpControllerReturnAllToWishlistResponse401 & {
+    headers: Headers;
+  };
+
+export type cancelledFollowUpControllerReturnAllToWishlistResponse =
+  | cancelledFollowUpControllerReturnAllToWishlistResponseSuccess
+  | cancelledFollowUpControllerReturnAllToWishlistResponseError;
+
+export const getCancelledFollowUpControllerReturnAllToWishlistUrl = () => {
+  return `/api/delivery/books/history/cancelled-follow-up/want-to-buy`;
+};
+
+/**
+ * @summary Move every cancelled book still without a next step to the wishlist
+ */
+export const cancelledFollowUpControllerReturnAllToWishlist = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<cancelledFollowUpControllerReturnAllToWishlistResponse> => {
+  return customInstance<cancelledFollowUpControllerReturnAllToWishlistResponse>(
+    getCancelledFollowUpControllerReturnAllToWishlistUrl(),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getCancelledFollowUpControllerReturnAllToWishlistQueryKey = () => {
+  return ["POST", `/api/delivery/books/history/cancelled-follow-up/want-to-buy`] as const;
+};
+
+export const getCancelledFollowUpControllerReturnAllToWishlistQueryOptions = <
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<
+      Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCancelledFollowUpControllerReturnAllToWishlistQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+  > = ({ signal }) => cancelledFollowUpControllerReturnAllToWishlist({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CancelledFollowUpControllerReturnAllToWishlistQueryResult = NonNullable<
+  Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+>;
+export type CancelledFollowUpControllerReturnAllToWishlistQueryError = void;
+
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+          TError,
+          Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Move every cancelled book still without a next step to the wishlist
+ */
+
+export function useCancelledFollowUpControllerReturnAllToWishlist<
+  TData = Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof cancelledFollowUpControllerReturnAllToWishlist>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCancelledFollowUpControllerReturnAllToWishlistQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

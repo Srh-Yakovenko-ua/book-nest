@@ -2,7 +2,7 @@ import type { MediaView, Nullable, SeriesBookView, SeriesDetailsView } from "@ap
 
 import { describe, expect, it } from "vitest";
 
-import type { BookLoanModel } from "../../../generated/prisma/models.js";
+import type { LoanContactModel } from "../../../generated/prisma/models.js";
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
 
 import { fakeOf } from "../../../test/fake.js";
@@ -14,6 +14,7 @@ type OrderedBookShipment = NonNullable<OrderedBook["shipment"]>;
 type SeriesAuthorLink = SeriesWithDetails["authors"][number];
 type SeriesDetailAuthor = SeriesDetailBook["authors"][number]["author"];
 type SeriesDetailBook = SeriesWithDetails["books"][number];
+type SeriesDetailLoan = SeriesDetailBook["loans"][number];
 
 function makeAuthor(id: string, name: string): SeriesDetailAuthor {
   return fakeOf<SeriesDetailAuthor>({ id, name });
@@ -79,16 +80,23 @@ function makeBook(overrides: Partial<SeriesDetailBook> = {}): SeriesDetailBook {
   });
 }
 
-function makeLoan(overrides: Partial<BookLoanModel> = {}): BookLoanModel {
-  return fakeOf<BookLoanModel>({
+function makeLoan(overrides: Partial<SeriesDetailLoan> = {}): SeriesDetailLoan {
+  const personName = overrides.personName ?? "Olena";
+  return fakeOf<SeriesDetailLoan>({
     bookId: "book-1",
     contact: null,
     createdAt: BASE_CREATED_AT,
     expectedReturnDate: null,
     id: "loan-1",
+    loanContact: fakeOf<LoanContactModel>({
+      contact: null,
+      id: "contact-1",
+      name: personName,
+    }),
+    loanContactId: "contact-1",
     loanDate: null,
     note: null,
-    personName: "Olena",
+    personName,
     remindToReturn: false,
     returnedAt: null,
     status: "active",

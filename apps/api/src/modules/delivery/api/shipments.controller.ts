@@ -1,4 +1,4 @@
-import type { BookOrderView } from "@app/shared";
+import type { BookOrderView, ReceiveShipmentsResultView } from "@app/shared";
 
 import {
   CancelShipmentInputSchema,
@@ -7,6 +7,7 @@ import {
   MarkShipmentReadyForPickupInputSchema,
   MoveBookOrderItemsInputSchema,
   ReceiveShipmentInputSchema,
+  ReceiveShipmentsInputSchema,
   UpdateShipmentInputSchema,
 } from "@app/shared";
 import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Patch, Post } from "@nestjs/common";
@@ -36,8 +37,10 @@ import { MarkShipmentInTransitInputDto } from "./input-dto/mark-shipment-in-tran
 import { MarkShipmentReadyForPickupInputDto } from "./input-dto/mark-shipment-ready-for-pickup.input-dto.js";
 import { MoveBookOrderItemsInputDto } from "./input-dto/move-book-order-items.input-dto.js";
 import { ReceiveShipmentInputDto } from "./input-dto/receive-shipment.input-dto.js";
+import { ReceiveShipmentsInputDto } from "./input-dto/receive-shipments.input-dto.js";
 import { UpdateShipmentInputDto } from "./input-dto/update-shipment.input-dto.js";
 import { BookOrderViewDto } from "./view-dto/book-order.view-dto.js";
+import { ReceiveShipmentsResultViewDto } from "./view-dto/receive-shipments-result.view-dto.js";
 
 @ApiTags("shipments")
 @Controller("api/delivery")
@@ -81,6 +84,25 @@ export class ShipmentsController {
     @Body(new ZodBodyPipe(MoveBookOrderItemsInputSchema)) body: MoveBookOrderItemsInputDto,
   ): Promise<BookOrderView> {
     return this.shipmentService.moveItems({ input: body, orderId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: ReceiveShipmentsInputDto })
+  @ApiOkResponse({
+    description: "The shipment ids received in this batch, plus the ones safely skipped",
+    type: ReceiveShipmentsResultViewDto,
+  })
+  @ApiOperation({
+    summary: "Mark many shipments as received in one batch, marking their books as owned",
+  })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("shipments/receive")
+  @Throttle(MUTATION_THROTTLE)
+  receiveShipments(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodBodyPipe(ReceiveShipmentsInputSchema)) body: ReceiveShipmentsInputDto,
+  ): Promise<ReceiveShipmentsResultView> {
+    return this.shipmentService.receiveMany({ input: body, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

@@ -49,6 +49,9 @@ export const booksControllerCreateBodyListIdsMax = 50;
 export const booksControllerCreateBodyLoanInfoExpectedReturnDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerCreateBodyLoanInfoLoanContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerCreateBodyLoanInfoLoanDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -152,15 +155,15 @@ export const BooksControllerCreateBody = zod.object({
   dedication: zod.string().nullish(),
   deliveryInfo: zod
     .object({
-      currency: zod
-        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-        .nullish(),
+      currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
       deliveryService: zod.string().nullish(),
       deliveryStatus: zod.enum(["ordered", "in_transit", "ready_for_pickup"]).optional(),
       expectedDeliveryDate: zod.iso
         .date()
         .regex(booksControllerCreateBodyDeliveryInfoExpectedDeliveryDateRegExp)
         .nullish(),
+      isFree: zod.boolean().optional(),
+      isShipped: zod.boolean().optional(),
       note: zod.string().nullish(),
       orderDate: zod.iso
         .date()
@@ -201,6 +204,10 @@ export const BooksControllerCreateBody = zod.object({
         .date()
         .regex(booksControllerCreateBodyLoanInfoExpectedReturnDateRegExp)
         .nullish(),
+      loanContactId: zod
+        .uuid()
+        .regex(booksControllerCreateBodyLoanInfoLoanContactIdRegExp)
+        .optional(),
       loanDate: zod.iso.date().regex(booksControllerCreateBodyLoanInfoLoanDateRegExp).nullish(),
       note: zod.string().nullish(),
       personName: zod.string().optional(),
@@ -417,6 +424,7 @@ export const BooksControllerCreateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -440,6 +448,7 @@ export const BooksControllerCreateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -477,6 +486,7 @@ export const BooksControllerCreateResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -798,6 +808,7 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.string().min(1).max(booksControllerListQueryGenreItemMax))
     .max(booksControllerListQueryGenreMax)
     .optional(),
+  hasActiveOrder: zod.string().optional(),
   hasCover: zod.string().optional(),
   hasDedication: zod.string().optional(),
   hasRating: zod.string().optional(),
@@ -997,6 +1008,7 @@ export const BooksControllerListResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -1031,6 +1043,7 @@ export const BooksControllerListResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -1082,6 +1095,7 @@ export const BooksControllerListResponse = zod.object({
         .object({
           contact: zod.string().nullable(),
           expectedReturnDate: zod.string().nullable(),
+          loanContactId: zod.string(),
           loanDate: zod.string().nullable(),
           loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -1449,6 +1463,7 @@ export const BooksControllerOverviewResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -1483,6 +1498,7 @@ export const BooksControllerOverviewResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -1534,6 +1550,7 @@ export const BooksControllerOverviewResponse = zod.object({
         .object({
           contact: zod.string().nullable(),
           expectedReturnDate: zod.string().nullable(),
+          loanContactId: zod.string(),
           loanDate: zod.string().nullable(),
           loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -2086,6 +2103,7 @@ export const BooksControllerWishlistResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -2120,6 +2138,7 @@ export const BooksControllerWishlistResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -2171,6 +2190,7 @@ export const BooksControllerWishlistResponse = zod.object({
         .object({
           contact: zod.string().nullable(),
           expectedReturnDate: zod.string().nullable(),
+          loanContactId: zod.string(),
           loanDate: zod.string().nullable(),
           loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -2649,6 +2669,7 @@ export const BooksControllerDedicationsResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -2683,6 +2704,7 @@ export const BooksControllerDedicationsResponse = zod.object({
             deliveryService: zod.string().nullable(),
             expectedDeliveryDate: zod.string().nullable(),
             id: zod.string(),
+            isFree: zod.boolean().describe("The order this book arrived in was received for free."),
             note: zod.string().nullable(),
             orderDate: zod.string().nullable(),
             orderNumber: zod.string().nullable(),
@@ -2734,6 +2756,7 @@ export const BooksControllerDedicationsResponse = zod.object({
         .object({
           contact: zod.string().nullable(),
           expectedReturnDate: zod.string().nullable(),
+          loanContactId: zod.string(),
           loanDate: zod.string().nullable(),
           loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -3191,6 +3214,7 @@ export const BooksControllerGetByIdResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -3214,6 +3238,7 @@ export const BooksControllerGetByIdResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -3251,6 +3276,7 @@ export const BooksControllerGetByIdResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -3519,6 +3545,9 @@ export const booksControllerUpdateBodyListIdsMax = 50;
 export const booksControllerUpdateBodyLoanInfoExpectedReturnDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerUpdateBodyLoanInfoLoanContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerUpdateBodyLoanInfoLoanDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -3621,15 +3650,15 @@ export const BooksControllerUpdateBody = zod.object({
   dedication: zod.string().nullish(),
   deliveryInfo: zod
     .object({
-      currency: zod
-        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-        .nullish(),
+      currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
       deliveryService: zod.string().nullish(),
       deliveryStatus: zod.enum(["ordered", "in_transit", "ready_for_pickup"]).optional(),
       expectedDeliveryDate: zod.iso
         .date()
         .regex(booksControllerUpdateBodyDeliveryInfoExpectedDeliveryDateRegExp)
         .nullish(),
+      isFree: zod.boolean().optional(),
+      isShipped: zod.boolean().optional(),
       note: zod.string().nullish(),
       orderDate: zod.iso
         .date()
@@ -3669,6 +3698,10 @@ export const BooksControllerUpdateBody = zod.object({
         .date()
         .regex(booksControllerUpdateBodyLoanInfoExpectedReturnDateRegExp)
         .nullish(),
+      loanContactId: zod
+        .uuid()
+        .regex(booksControllerUpdateBodyLoanInfoLoanContactIdRegExp)
+        .optional(),
       loanDate: zod.iso.date().regex(booksControllerUpdateBodyLoanInfoLoanDateRegExp).nullish(),
       note: zod.string().nullish(),
       personName: zod.string().optional(),
@@ -3885,6 +3918,7 @@ export const BooksControllerUpdateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -3908,6 +3942,7 @@ export const BooksControllerUpdateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -3945,6 +3980,7 @@ export const BooksControllerUpdateResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -4272,6 +4308,7 @@ export const BooksControllerRestoreResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -4295,6 +4332,7 @@ export const BooksControllerRestoreResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -4332,6 +4370,7 @@ export const BooksControllerRestoreResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -4823,6 +4862,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -4846,6 +4886,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -4883,6 +4924,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -5220,6 +5262,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -5243,6 +5286,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -5280,6 +5324,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -5598,6 +5643,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -5621,6 +5667,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -5658,6 +5705,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -5974,6 +6022,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -5997,6 +6046,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -6034,6 +6084,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -6352,6 +6403,7 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -6375,6 +6427,7 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -6412,6 +6465,7 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -6750,6 +6804,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -6773,6 +6828,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -6810,6 +6866,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -7149,6 +7206,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -7172,6 +7230,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -7209,6 +7268,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -7455,6 +7515,9 @@ export const BookLoanControllerCreateLoanParams = zod.object({
 export const bookLoanControllerCreateLoanBodyExpectedReturnDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookLoanControllerCreateLoanBodyLoanContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookLoanControllerCreateLoanBodyLoanDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -7466,9 +7529,10 @@ export const BookLoanControllerCreateLoanBody = zod.object({
     .date()
     .regex(bookLoanControllerCreateLoanBodyExpectedReturnDateRegExp)
     .nullish(),
+  loanContactId: zod.uuid().regex(bookLoanControllerCreateLoanBodyLoanContactIdRegExp).optional(),
   loanDate: zod.iso.date().regex(bookLoanControllerCreateLoanBodyLoanDateRegExp),
   note: zod.string().nullish(),
-  personName: zod.string(),
+  personName: zod.string().optional(),
   remindToReturn: zod.boolean().optional(),
 });
 
@@ -7543,6 +7607,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -7566,6 +7631,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -7603,6 +7669,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -7846,6 +7913,9 @@ export const BookLoanControllerEditLoanParams = zod.object({
 export const bookLoanControllerEditLoanBodyExpectedReturnDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookLoanControllerEditLoanBodyLoanContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookLoanControllerEditLoanBodyLoanDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -7856,9 +7926,10 @@ export const BookLoanControllerEditLoanBody = zod.object({
     .date()
     .regex(bookLoanControllerEditLoanBodyExpectedReturnDateRegExp)
     .nullish(),
+  loanContactId: zod.uuid().regex(bookLoanControllerEditLoanBodyLoanContactIdRegExp).optional(),
   loanDate: zod.iso.date().regex(bookLoanControllerEditLoanBodyLoanDateRegExp).nullish(),
   note: zod.string().nullish(),
-  personName: zod.string(),
+  personName: zod.string().optional(),
   remindToReturn: zod.boolean().optional(),
 });
 
@@ -7933,6 +8004,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -7956,6 +8028,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -7993,6 +8066,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -8308,6 +8382,7 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -8331,6 +8406,7 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -8368,6 +8444,7 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -8691,6 +8768,7 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -8714,6 +8792,7 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -8751,6 +8830,7 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -9065,6 +9145,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -9088,6 +9169,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -9125,6 +9207,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -9368,6 +9451,7 @@ export const BookDeliveryControllerCreateParams = zod.object({
 export const bookDeliveryControllerCreateBodyExpectedDeliveryDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const bookDeliveryControllerCreateBodyIsFreeDefault = false;
 export const bookDeliveryControllerCreateBodyOrderDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -9377,12 +9461,13 @@ export const bookDeliveryControllerCreateBodyPriceMax = 99999999.99;
 export const bookDeliveryControllerCreateBodyTrackingUrlMax = 300;
 
 export const BookDeliveryControllerCreateBody = zod.object({
-  currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
+  currency: zod.enum(["UAH", "EUR", "USD"]),
   deliveryService: zod.string().optional(),
   expectedDeliveryDate: zod.iso
     .date()
     .regex(bookDeliveryControllerCreateBodyExpectedDeliveryDateRegExp)
     .optional(),
+  isFree: zod.boolean().default(bookDeliveryControllerCreateBodyIsFreeDefault),
   note: zod.string().optional(),
   orderDate: zod.iso.date().regex(bookDeliveryControllerCreateBodyOrderDateRegExp),
   orderNumber: zod.string().optional(),
@@ -9467,6 +9552,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -9490,6 +9576,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -9527,6 +9614,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -9777,6 +9865,7 @@ export const BookDeliveryControllerListHistoryResponseItem = zod.object({
   deliveryService: zod.string().nullable(),
   expectedDeliveryDate: zod.string().nullable(),
   id: zod.string(),
+  isFree: zod.boolean().describe("The order this book arrived in was received for free."),
   note: zod.string().nullable(),
   orderDate: zod.string().nullable(),
   orderNumber: zod.string().nullable(),
@@ -9812,14 +9901,13 @@ export const bookDeliveryControllerUpdateBodyPriceMax = 99999999.99;
 export const bookDeliveryControllerUpdateBodyTrackingUrlMax = 300;
 
 export const BookDeliveryControllerUpdateBody = zod.object({
-  currency: zod
-    .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-    .nullish(),
+  currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
   deliveryService: zod.string().nullish(),
   expectedDeliveryDate: zod.iso
     .date()
     .regex(bookDeliveryControllerUpdateBodyExpectedDeliveryDateRegExp)
     .nullish(),
+  isFree: zod.boolean().optional(),
   note: zod.string().nullish(),
   orderDate: zod.iso.date().regex(bookDeliveryControllerUpdateBodyOrderDateRegExp).nullish(),
   orderNumber: zod.string().nullish(),
@@ -9905,6 +9993,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -9928,6 +10017,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -9965,6 +10055,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -10285,6 +10376,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -10308,6 +10400,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -10345,6 +10438,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
@@ -10667,6 +10761,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -10690,6 +10785,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
+        isFree: zod.boolean().describe("The order this book arrived in was received for free."),
         note: zod.string().nullable(),
         orderDate: zod.string().nullable(),
         orderNumber: zod.string().nullable(),
@@ -10727,6 +10823,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
     .object({
       contact: zod.string().nullable(),
       expectedReturnDate: zod.string().nullable(),
+      loanContactId: zod.string(),
       loanDate: zod.string().nullable(),
       loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),

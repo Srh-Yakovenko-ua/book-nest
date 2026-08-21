@@ -7,14 +7,13 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { ShipmentStatusSchema } from "@app/shared";
-
 import type {
   ClassifiedOrder,
   OrderStatisticsItemRecord,
   OrderStatisticsShipmentRecord,
 } from "./statistics-scope.js";
 
+import { isDispatchedShipmentStatus } from "./order-derived-status.js";
 import { isActiveItem, isReceivedItem, ORDER_ENUMS } from "./statistics-scope.js";
 
 const SINGLE_BOOK_UNREACHABLE_STAGES = Object.freeze({
@@ -68,9 +67,9 @@ function countBookStages({
   let total = 0;
 
   for (const order of orders) {
-    const liveShipmentIds = toLiveShipmentIds(order.record.shipments);
+    const dispatchedShipmentIds = toDispatchedShipmentIds(order.record.shipments);
     for (const item of order.countedItems) {
-      const stage = toBookStage({ item, liveShipmentIds });
+      const stage = toBookStage({ dispatchedShipmentIds, item });
       if (!isCountedStage({ includeCancelled, stage })) {
         continue;
       }
@@ -126,13 +125,15 @@ function countStages({
 }
 
 function isAwaitingArrival({
+  dispatchedShipmentIds,
   item,
-  liveShipmentIds,
 }: {
+  dispatchedShipmentIds: ReadonlySet<string>;
   item: OrderStatisticsItemRecord;
-  liveShipmentIds: ReadonlySet<string>;
 }): boolean {
-  return isActiveItem(item) && item.shipmentId !== null && liveShipmentIds.has(item.shipmentId);
+  return (
+    isActiveItem(item) && item.shipmentId !== null && dispatchedShipmentIds.has(item.shipmentId)
+  );
 }
 
 function isCountedStage({
@@ -146,11 +147,11 @@ function isCountedStage({
 }
 
 function toBookStage({
+  dispatchedShipmentIds,
   item,
-  liveShipmentIds,
 }: {
+  dispatchedShipmentIds: ReadonlySet<string>;
   item: OrderStatisticsItemRecord;
-  liveShipmentIds: ReadonlySet<string>;
 }): LifecycleBookStage {
   if (item.cancelledAt !== null) {
     return ORDER_ENUMS.derivedStatus.cancelled;
@@ -158,11 +159,21 @@ function toBookStage({
   if (isReceivedItem(item)) {
     return ORDER_ENUMS.derivedStatus.received;
   }
-  if (isAwaitingArrival({ item, liveShipmentIds })) {
+  if (isAwaitingArrival({ dispatchedShipmentIds, item })) {
     return ORDER_ENUMS.derivedStatus.shipped;
   }
 
   return ORDER_ENUMS.derivedStatus.active;
+}
+
+function toDispatchedShipmentIds(
+  shipments: readonly OrderStatisticsShipmentRecord[],
+): ReadonlySet<string> {
+  return new Set(
+    shipments
+      .filter((shipment) => isDispatchedShipmentStatus(shipment.status))
+      .map((shipment) => shipment.id),
+  );
 }
 
 function toLifecycleComparison({
@@ -182,16 +193,6 @@ function toLifecycleComparison({
       previous: previous.orders,
     },
   };
-}
-
-function toLiveShipmentIds(
-  shipments: readonly OrderStatisticsShipmentRecord[],
-): ReadonlySet<string> {
-  return new Set(
-    shipments
-      .filter((shipment) => shipment.status !== ShipmentStatusSchema.enum.cancelled)
-      .map((shipment) => shipment.id),
-  );
 }
 
 function toStageDeltas({

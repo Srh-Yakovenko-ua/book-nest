@@ -27,6 +27,7 @@ const orderStatisticsSelect = {
     deliveryPrice: true,
     discount: true,
     id: true,
+    isFree: true,
     items: {
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       select: {
@@ -162,7 +163,13 @@ function currencyWhere(currency: Currency): Prisma.BookOrderWhereInput {
   if (currency !== DEFAULT_CURRENCY) {
     return { currency };
   }
-  return { OR: [{ currency }, { currency: null, totalAmount: { not: null } }] };
+  return {
+    OR: [
+      { currency },
+      { currency: null, isFree: true },
+      { currency: null, totalAmount: { not: null } },
+    ],
+  };
 }
 
 function shipmentStatusWhere(status: ShipmentStatus): Prisma.BookOrderWhereInput {
@@ -193,6 +200,7 @@ function toOrderStatisticsRecord(row: OrderStatisticsRow): OrderStatisticsRecord
     deliveryPrice: row.deliveryPrice === null ? null : row.deliveryPrice.toNumber(),
     discount: row.discount === null ? null : row.discount.toNumber(),
     id: row.id,
+    isFree: row.isFree,
     items: row.items.map((item) => ({
       bookId: item.bookId,
       bookTitle: item.book.title,

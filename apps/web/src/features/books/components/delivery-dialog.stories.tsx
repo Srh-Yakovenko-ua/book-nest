@@ -16,6 +16,7 @@ function activeDelivery(): DeliveryView {
     deliveryService: "Нова пошта",
     expectedDeliveryDate: "2999-12-31",
     id: "dddddddd-dddd-4ddd-8ddd-delivery0009",
+    isFree: false,
     note: "Зателефонувати перед доставкою",
     orderDate: "2026-06-01",
     orderNumber: "100500",

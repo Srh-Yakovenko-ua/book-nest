@@ -1,9 +1,9 @@
 import type { Nullable, ReadingStatus, SeriesStatsView } from "@app/shared";
 
+import { compareByPartThenCreated } from "@app/shared";
 import { differenceInCalendarDays, max, min } from "date-fns";
 
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
-import { compareByPartThenCreated } from "./series-preview.js";
 
 type PagedBook = Pick<StatsBook, "pagesCount">;
 

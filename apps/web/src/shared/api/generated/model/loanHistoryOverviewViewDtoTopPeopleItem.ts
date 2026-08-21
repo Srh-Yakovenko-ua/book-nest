@@ -12,6 +12,7 @@ export type LoanHistoryOverviewViewDtoTopPeopleItem = {
    * @maximum 9007199254740991
    */
   borrowedCount: number;
+  contactId: string;
   /**
    * @minimum 0
    * @maximum 9007199254740991

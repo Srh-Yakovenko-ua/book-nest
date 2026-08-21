@@ -4,6 +4,7 @@ import type {
   CurrencyAverage,
   CurrencyTotal,
   Nullable,
+  OrderFinancialSummary,
   OrderTotalSource,
   ShipmentStatus,
 } from "@app/shared";
@@ -14,10 +15,11 @@ import {
   DEFAULT_CURRENCY,
   isActiveShipmentStatus,
   OrderTotalSourceSchema,
+  resolveOrderFinancials,
 } from "@app/shared";
 
+import { fromMinorUnits, toMinorUnits } from "./money-minor-units.js";
 import { computeBookOrderDerivedStatus } from "./order-derived-status.js";
-import { resolveOrderFinancials } from "./order-financials.js";
 
 export const ORDER_ENUMS = Object.freeze({
   derivedStatus: BookOrderDerivedStatusSchema.enum,
@@ -55,6 +57,7 @@ export type OrderStatisticsRecord = {
   deliveryPrice: Nullable<number>;
   discount: Nullable<number>;
   id: string;
+  isFree: boolean;
   items: OrderStatisticsItemRecord[];
   orderDate: Nullable<Date>;
   orderNumber: Nullable<string>;
@@ -218,6 +221,24 @@ function effectiveCurrency(currency: Nullable<Currency>): Currency {
   return currency ?? DEFAULT_CURRENCY;
 }
 
+function reconciliationAdjustment({
+  componentSubtotal,
+  summary,
+}: {
+  componentSubtotal: Nullable<number>;
+  summary: OrderFinancialSummary;
+}): Nullable<number> {
+  if (componentSubtotal === null || summary.effectiveTotalAmount === null) {
+    return null;
+  }
+  const componentTotalMinorUnits =
+    toMinorUnits(componentSubtotal) +
+    toMinorUnits(summary.deliveryPrice) -
+    toMinorUnits(summary.discount);
+
+  return fromMinorUnits(toMinorUnits(summary.effectiveTotalAmount) - componentTotalMinorUnits);
+}
+
 function resolveOrderTotal({
   countedItems,
   record,
@@ -234,13 +255,19 @@ function resolveOrderTotal({
     };
   }
 
-  const { componentSubtotal, effectiveTotalAmount, reconciliationAdjustment, source } =
-    resolveOrderFinancials({
-      countedItems,
-      deliveryPrice: record.deliveryPrice,
-      discount: record.discount,
-      totalAmount: record.totalAmount,
-    });
+  const summary = resolveOrderFinancials({
+    deliveryPrice: record.deliveryPrice,
+    discount: record.discount,
+    isFree: record.isFree,
+    itemPrices: record.items.map((item) => item.price),
+    totalAmount: record.totalAmount,
+  });
+  const componentSubtotal = summary.isItemBreakdownComplete ? summary.itemsSubtotal : null;
 
-  return { amount: effectiveTotalAmount, componentSubtotal, reconciliationAdjustment, source };
+  return {
+    amount: summary.effectiveTotalAmount,
+    componentSubtotal,
+    reconciliationAdjustment: reconciliationAdjustment({ componentSubtotal, summary }),
+    source: summary.totalSource,
+  };
 }

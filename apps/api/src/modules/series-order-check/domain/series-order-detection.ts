@@ -7,9 +7,7 @@ import type {
   SeriesOrderSeverity,
 } from "@app/shared";
 
-import { isClosedReadingStatus } from "@app/shared";
-
-import { compareByPartThenCreated } from "../../series/index.js";
+import { compareByPartThenCreated, isClosedReadingStatus } from "@app/shared";
 
 export type SeriesOrderConflict = {
   affectedBook: SeriesOrderDetectionBook;

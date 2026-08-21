@@ -1,13 +1,11 @@
 import type { BookOrderHistorySort, BookOrderHistoryTab, Currency } from "@app/shared";
 
-import { ShipmentStatusSchema } from "@app/shared";
+import { DEFAULT_CURRENCY } from "@app/shared";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { currencySql } from "./in-transit-sql.js";
-
-const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+import { ORDER_EFFECTIVE_TOTAL_SQL, ORDER_PLACED_ON_SQL } from "./in-transit-sql.js";
 
 export const HISTORY_ITEM_SOURCE = Prisma.sql`
   FROM book_order_items item
@@ -16,52 +14,67 @@ export const HISTORY_ITEM_SOURCE = Prisma.sql`
   LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
-export const ITEM_EFFECTIVE_STATUS_SQL = Prisma.sql`
-  CASE
-    WHEN item.cancelled_at IS NOT NULL THEN ${SHIPMENT_STATUS.cancelled}
-    WHEN item.received_at IS NOT NULL THEN ${SHIPMENT_STATUS.received}
-    ELSE COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered})
-  END
+export const HISTORY_CONTENT_SOURCE = Prisma.sql`
+  FROM book_order_items item
+  JOIN books book ON book.id = item.book_id
+  LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
 export const LIVE_HISTORY_ITEM_SQL = Prisma.sql`book.deleted_at IS NULL`;
 
 export type HistoryFilterInput = {
-  currency: Currency | undefined;
-  from: Date | undefined;
-  hasTrackingNumber: boolean | undefined;
-  hasTrackingUrl: boolean | undefined;
+  booksMax: number | undefined;
+  booksMin: number | undefined;
+  cancelledFrom: string | undefined;
+  cancelledTo: string | undefined;
+  currency: Currency[] | undefined;
+  from: string | undefined;
+  priceCurrency: Currency | undefined;
   priceMax: number | undefined;
   priceMin: number | undefined;
+  receivedFrom: string | undefined;
+  receivedTo: string | undefined;
   search: string | undefined;
-  service: string | undefined;
-  store: string | undefined;
+  service: string[] | undefined;
+  store: string[] | undefined;
   tab: BookOrderHistoryTab;
-  to: Date | undefined;
+  to: string | undefined;
   userId: string;
 };
+
+const ITEM_RECEIVED_ON_SQL = Prisma.sql`(item.received_at AT TIME ZONE 'UTC')::date`;
+
+const ITEM_CANCELLED_ON_SQL = Prisma.sql`(item.cancelled_at AT TIME ZONE 'UTC')::date`;
 
 const HISTORY_ORDER_SQL: Record<BookOrderHistorySort, Prisma.Sql> = {
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
   oldest_orders: Prisma.sql`book_order.order_date ASC NULLS LAST`,
-  price: Prisma.sql`item.price DESC NULLS LAST`,
+  price_asc: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} ASC NULLS LAST`,
+  price_desc: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} DESC NULLS LAST`,
   recently_updated: Prisma.sql`GREATEST(
-    item.updated_at,
     book_order.updated_at,
-    COALESCE(shipment.updated_at, item.updated_at)
+    COALESCE(
+      (SELECT max(touched.updated_at) FROM book_order_items touched WHERE touched.order_id = book_order.id),
+      book_order.updated_at
+    ),
+    COALESCE(
+      (SELECT max(dispatched.updated_at) FROM shipments dispatched WHERE dispatched.order_id = book_order.id),
+      book_order.updated_at
+    )
   ) DESC`,
-  status: Prisma.sql`(${ITEM_EFFECTIVE_STATUS_SQL}) ASC`,
   store: Prisma.sql`book_order.store_name ASC`,
-  title: Prisma.sql`book.title ASC`,
 };
 
-const HISTORY_SEARCH_COLUMNS: Prisma.Sql[] = [
-  Prisma.sql`book.title`,
-  Prisma.sql`book.original_title`,
-  Prisma.sql`book.first_author_name`,
+const ORDER_SEARCH_COLUMNS: Prisma.Sql[] = [
   Prisma.sql`book_order.store_name`,
   Prisma.sql`book_order.order_number`,
   Prisma.sql`book_order.note`,
+];
+
+const CONTENT_SEARCH_COLUMNS: Prisma.Sql[] = [
+  Prisma.sql`book.title`,
+  Prisma.sql`book.original_title`,
+  Prisma.sql`book.first_author_name`,
   Prisma.sql`shipment.tracking_number`,
   Prisma.sql`shipment.delivery_service_name`,
   Prisma.sql`shipment.note`,
@@ -69,82 +82,147 @@ const HISTORY_SEARCH_COLUMNS: Prisma.Sql[] = [
   Prisma.sql`item.cancel_reason`,
 ];
 
-export function buildHistoryConditions({
-  currency,
-  from,
-  hasTrackingNumber,
-  hasTrackingUrl,
-  priceMax,
-  priceMin,
-  search,
+export function buildHistoryContentConditions({
+  cancelledFrom,
+  cancelledTo,
+  receivedFrom,
+  receivedTo,
   service,
-  store,
   tab,
-  to,
-  userId,
 }: HistoryFilterInput): Prisma.Sql {
-  const conditions: Prisma.Sql[] = [
-    Prisma.sql`book_order.user_id = ${userId}::uuid`,
-    LIVE_HISTORY_ITEM_SQL,
-    historyTabSql(tab),
-  ];
-
-  if (store !== undefined) {
-    conditions.push(Prisma.sql`lower(book_order.store_name) = lower(${store})`);
-  }
+  const conditions: Prisma.Sql[] = [LIVE_HISTORY_ITEM_SQL, historyTabSql(tab)];
 
   if (service !== undefined) {
-    conditions.push(Prisma.sql`lower(shipment.delivery_service_name) = lower(${service})`);
-  }
-
-  if (currency !== undefined) {
-    conditions.push(currencySql(currency));
-  }
-
-  if (from !== undefined) {
-    conditions.push(Prisma.sql`book_order.order_date >= ${from}::date`);
-  }
-
-  if (to !== undefined) {
-    conditions.push(Prisma.sql`book_order.order_date <= ${to}::date`);
-  }
-
-  if (priceMin !== undefined) {
-    conditions.push(Prisma.sql`item.price >= ${priceMin}`);
-  }
-
-  if (priceMax !== undefined) {
-    conditions.push(Prisma.sql`item.price <= ${priceMax}`);
-  }
-
-  if (hasTrackingNumber !== undefined) {
     conditions.push(
-      presenceSql({ column: Prisma.sql`shipment.tracking_number`, present: hasTrackingNumber }),
+      Prisma.sql`lower(shipment.delivery_service_name) = ANY(${lowered(service)}::text[])`,
     );
   }
 
-  if (hasTrackingUrl !== undefined) {
-    conditions.push(
-      presenceSql({ column: Prisma.sql`shipment.tracking_url`, present: hasTrackingUrl }),
-    );
+  if (receivedFrom !== undefined) {
+    conditions.push(Prisma.sql`${ITEM_RECEIVED_ON_SQL} >= ${receivedFrom}::date`);
   }
 
-  if (search !== undefined) {
-    conditions.push(searchSql(search));
+  if (receivedTo !== undefined) {
+    conditions.push(Prisma.sql`${ITEM_RECEIVED_ON_SQL} <= ${receivedTo}::date`);
+  }
+
+  if (cancelledFrom !== undefined) {
+    conditions.push(Prisma.sql`${ITEM_CANCELLED_ON_SQL} >= ${cancelledFrom}::date`);
+  }
+
+  if (cancelledTo !== undefined) {
+    conditions.push(Prisma.sql`${ITEM_CANCELLED_ON_SQL} <= ${cancelledTo}::date`);
   }
 
   return Prisma.join(conditions, " AND ");
 }
 
-export function historyOrderSql(sort: BookOrderHistorySort): Prisma.Sql {
-  return Prisma.sql`${historySortSql(sort)}, item.id ASC`;
+export function buildHistoryOrderConditions(filter: HistoryFilterInput): Prisma.Sql {
+  const { booksMax, booksMin, currency, from, search, store, to, userId } = filter;
+  const content = buildHistoryContentConditions(filter);
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`book_order.user_id = ${userId}::uuid`,
+    correlatedContentSql(content),
+  ];
+
+  if (store !== undefined) {
+    conditions.push(Prisma.sql`lower(book_order.store_name) = ANY(${lowered(store)}::text[])`);
+  }
+
+  if (currency !== undefined) {
+    conditions.push(anyOf(currency.map(orderCurrencySql)));
+  }
+
+  if (from !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} >= ${from}::date`);
+  }
+
+  if (to !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} <= ${to}::date`);
+  }
+
+  if (booksMin !== undefined) {
+    conditions.push(Prisma.sql`${contentCountSql(content)} >= ${booksMin}::int`);
+  }
+
+  if (booksMax !== undefined) {
+    conditions.push(Prisma.sql`${contentCountSql(content)} <= ${booksMax}::int`);
+  }
+
+  conditions.push(...orderTotalConditions(filter));
+
+  if (search !== undefined) {
+    conditions.push(historySearchSql({ content, search }));
+  }
+
+  return Prisma.join(conditions, " AND ");
 }
 
-function historySortSql(sort: BookOrderHistorySort): Prisma.Sql {
+export function historyContentOrderSql(orderIds: string[]): Prisma.Sql {
+  return Prisma.sql`
+    array_position(${orderIds}::uuid[], item.order_id),
+    (shipment.id IS NULL),
+    shipment.created_at,
+    shipment.id,
+    book.title,
+    item.id
+  `;
+}
+
+export function historyFacetTabSql(tab: BookOrderHistoryTab): Prisma.Sql {
+  return Prisma.join([LIVE_HISTORY_ITEM_SQL, historyTabSql(tab)], " AND ");
+}
+
+export function historyOrderSql(sort: BookOrderHistorySort): Prisma.Sql {
   if (!Object.hasOwn(HISTORY_ORDER_SQL, sort)) {
     throw new Error(`Unsupported delivery history sort: ${String(sort)}`);
   }
-  return HISTORY_ORDER_SQL[sort];
+  return Prisma.sql`${HISTORY_ORDER_SQL[sort]}, book_order.id ASC`;
+}
+
+function anyOf(options: Prisma.Sql[]): Prisma.Sql {
+  if (options.length === 0) {
+    return Prisma.sql`FALSE`;
+  }
+  return Prisma.sql`(${Prisma.join(options, " OR ")})`;
+}
+
+function contentCountSql(content: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`(
+    SELECT count(*)
+    ${HISTORY_CONTENT_SOURCE}
+    WHERE item.order_id = book_order.id AND ${content}
+  )`;
+}
+
+function correlatedContentSql(content: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    ${HISTORY_CONTENT_SOURCE}
+    WHERE item.order_id = book_order.id AND ${content}
+  )`;
+}
+
+function historySearchSql({
+  content,
+  search,
+}: {
+  content: Prisma.Sql;
+  search: string;
+}): Prisma.Sql {
+  const onOrder = ORDER_SEARCH_COLUMNS.map((column) => ilikeContains({ column, search }));
+  const inContent = CONTENT_SEARCH_COLUMNS.map((column) => ilikeContains({ column, search }));
+
+  return Prisma.sql`(
+    ${Prisma.join(onOrder, " OR ")}
+    OR EXISTS (
+      SELECT 1
+      ${HISTORY_CONTENT_SOURCE}
+      WHERE item.order_id = book_order.id
+        AND ${content}
+        AND (${Prisma.join(inContent, " OR ")})
+    )
+  )`;
 }
 
 function historyTabSql(tab: BookOrderHistoryTab): Prisma.Sql {
@@ -162,11 +240,48 @@ function historyTabSql(tab: BookOrderHistoryTab): Prisma.Sql {
   }
 }
 
-function presenceSql({ column, present }: { column: Prisma.Sql; present: boolean }): Prisma.Sql {
-  return present ? Prisma.sql`${column} IS NOT NULL` : Prisma.sql`${column} IS NULL`;
+function lowered(values: string[]): string[] {
+  return values.map((value) => value.toLowerCase());
 }
 
-function searchSql(search: string): Prisma.Sql {
-  const matches = HISTORY_SEARCH_COLUMNS.map((column) => ilikeContains({ column, search }));
-  return Prisma.sql`(${Prisma.join(matches, " OR ")})`;
+function orderCurrencySql(currency: Currency): Prisma.Sql {
+  if (currency !== DEFAULT_CURRENCY) {
+    return Prisma.sql`book_order.currency = ${currency}`;
+  }
+  return Prisma.sql`(
+    book_order.currency = ${currency}
+    OR (
+      book_order.currency IS NULL
+      AND EXISTS (
+        SELECT 1
+        FROM book_order_items priced_item
+        JOIN books priced_book ON priced_book.id = priced_item.book_id
+        WHERE priced_item.order_id = book_order.id
+          AND priced_book.deleted_at IS NULL
+          AND priced_item.price IS NOT NULL
+      )
+    )
+  )`;
+}
+
+function orderTotalConditions({
+  priceCurrency,
+  priceMax,
+  priceMin,
+}: HistoryFilterInput): Prisma.Sql[] {
+  if (priceCurrency === undefined) {
+    return [];
+  }
+
+  const conditions: Prisma.Sql[] = [orderCurrencySql(priceCurrency)];
+
+  if (priceMin !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} >= ${priceMin}`);
+  }
+
+  if (priceMax !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} <= ${priceMax}`);
+  }
+
+  return conditions;
 }

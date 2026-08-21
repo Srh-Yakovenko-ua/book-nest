@@ -1115,6 +1115,14 @@
     },
     "deliveryInfo": {
       "title": "Delivery details",
+      "orderDetails": "Order details",
+      "delivery": "Delivery",
+      "shippedQuestion": "Has the order been shipped?",
+      "shippedOptions": {
+        "no": "Not yet",
+        "yes": "Yes, it has been shipped"
+      },
+      "additional": "Additional details",
       "fields": {
         "storeName": "Store",
         "orderNumber": "Order number",
@@ -1824,8 +1832,6 @@
         },
         "submit": "Save",
         "errors": {
-          "personNameMin": "Name must be at least {min} characters.",
-          "personNameMax": "No more than {max} characters.",
           "dateInvalid": "Pick a valid date.",
           "loanDateFuture": "The date can’t be in the future.",
           "returnBeforeLoan": "Return can’t be before the loan date.",
@@ -1880,8 +1886,7 @@
         },
         "editDialog": {
           "title": "Edit delivery",
-          "description": "Update the order details.",
-          "status": "Delivery status"
+          "description": "Update the order details."
         },
         "form": {
           "storeName": "Store",
@@ -1903,13 +1908,17 @@
           "createSubmit": "Order",
           "saveSubmit": "Save",
           "trackingUrl": "Tracking link",
-          "trackingUrlPlaceholder": "https://..."
+          "trackingUrlPlaceholder": "https://...",
+          "free": "Received for free",
+          "freeHint": "A gift, a review copy or a free promo edition, for instance."
         },
         "cancelDialog": {
-          "title": "Cancel delivery",
-          "description": "Mark this order as cancelled? The order data stays in the history.",
-          "keepAsWantToBuy": "Keep in the wishlist",
-          "confirm": "Cancel delivery",
+          "title": "Cancel this book?",
+          "description": "“{title}” moves to your history as cancelled. The rest of the order and the other books in it stay as they are.",
+          "keepAsWantToBuy": "Return the book to the wishlist",
+          "keepAsWantToBuyOn": "The book stays on your wishlist so you can order it again",
+          "keepAsWantToBuyOff": "The book will not go back on your wishlist",
+          "confirm": "Confirm",
           "reasonLabel": "Cancellation reason",
           "reasonPlaceholder": "Optional: why are you cancelling?"
         },
@@ -1929,7 +1938,20 @@
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again.",
           "trackingUrl": "Enter a valid https link.",
-          "trackingUrlMax": "No more than {max} characters."
+          "trackingUrlMax": "No more than {max} characters.",
+          "bookAlreadyOrdered": "This book already has an active delivery.",
+          "bookNotOrderable": "A delivery can only be started for a book you do not own yet.",
+          "itemAlreadyCancelled": "This book was already cancelled.",
+          "itemAlreadyReceived": "This book has already arrived.",
+          "itemNoLongerActive": "This delivery is no longer active. Refresh the page.",
+          "itemsNotMovable": "Only active books of this order can be moved.",
+          "notFound": "This record is gone. Refresh the page.",
+          "sharedOrder": "This order also covers other books. Edit it from the order menu.",
+          "sharedShipment": "This shipment also covers other books. Edit it from the shipment menu.",
+          "shipmentNotActive": "This shipment is no longer active. Refresh the page.",
+          "currencyRequired": "Pick a currency.",
+          "priceRequired": "Enter the book price, or mark it as received for free.",
+          "freeWithPrice": "A free book cannot carry a price. Clear it, or switch \"Received for free\" off."
         }
       },
       "timeline": {
@@ -2420,32 +2442,204 @@
     "title": "Books in transit",
     "subtitle": "Track ordered books from purchase to delivery",
     "resultsTitle": "Active deliveries",
-    "counter": "{count, plural, one {# active delivery} other {# active deliveries}}",
+    "counter": "Showing {shown} of {total, plural, one {# book} other {# books}} across {orders, plural, one {# order} other {# orders}}",
     "loadMore": "Show more",
     "actions": {
-      "receiveAll": "Mark all as received"
+      "addOrder": "Add order",
+      "select": "Select",
+      "doneSelecting": "Done selecting"
+    },
+    "orderStatus": {
+      "active": "Active",
+      "partially_shipped": "Partially shipped",
+      "shipped": "Shipped",
+      "partially_received": "Partially received",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    },
+    "createOrder": {
+      "title": "New order",
+      "description": "Add books to the order and, if shipping details are known, assign them to shipments.",
+      "cancel": "Cancel",
+      "order": {
+        "title": "Order",
+        "description": "Where and when you placed the order.",
+        "store": "Store",
+        "storePlaceholder": "Store name",
+        "number": "Order number",
+        "date": "Order date",
+        "currency": "Currency",
+        "currencyPlaceholder": "Select currency",
+        "total": "Final amount",
+        "deliveryPrice": "Delivery cost",
+        "discount": "Discount",
+        "itemsSubtotal": "Books",
+        "note": "Comment",
+        "free": "Received for free",
+        "freeHint": "A gift, a review copy or a free promo edition, for instance."
+      },
+      "cost": {
+        "title": "Cost",
+        "description": "Choose how you want to record the order amount.",
+        "modeLabel": "Cost entry method",
+        "modes": {
+          "total": "Total amount",
+          "items": "Per book"
+        },
+        "totalHint": "Final amount including delivery and discount.",
+        "breakdownOptional": "Breakdown (optional)",
+        "summary": "Summary",
+        "paidTotal": "Total paid",
+        "deliverySummary": "Plus delivery",
+        "discountSummary": "Discount applied",
+        "itemPricesProgressTitle": "Prices are specified for {pricedItemsCount} of {itemsCount} books.",
+        "itemPricesEmptyDescription": "Enter every book price to see the automatic total.",
+        "itemPricesRemainingDescription": "Enter a price for {count, plural, one {# more book} other {# more books}} to calculate the total.",
+        "itemPricesCompleteTitle": "All prices are specified.",
+        "itemPricesCompleteDescription": "The total has been calculated automatically.",
+        "summaryPending": "The summary will appear after you enter a price for every book.",
+        "summaryFormula": "The amount is calculated automatically: book prices + delivery − discount.",
+        "freeSummary": "The order cost nothing, so book prices, delivery and discount are not needed."
+      },
+      "books": {
+        "title": "Books",
+        "description": "Add one or more books from this order.",
+        "add": "Add book",
+        "price": "Price",
+        "priceFor": "Price for “{title}”",
+        "remove": "Remove “{title}”"
+      },
+      "bookPicker": {
+        "title": "Add books",
+        "description": "Select one or more books from your library for this order.",
+        "library": "Your library",
+        "selected": "Selected books: {count}",
+        "clear": "Clear",
+        "emptySelected": "Nothing selected yet",
+        "removeSelected": "Remove selected book",
+        "selectLoaded": "Select all shown ({count})",
+        "search": "Search books",
+        "empty": "No books found",
+        "back": "Back to order",
+        "applySelection": "Apply selection",
+        "loadMore": "Show more",
+        "add": "Add to order"
+      },
+      "shipments": {
+        "title": "Delivery",
+        "description": "Shipping details can be added now or later.",
+        "shippedQuestion": "Has the order been shipped?",
+        "shippedOptions": {
+          "no": "Not yet",
+          "yes": "Yes, it has been shipped"
+        },
+        "splitQuestion": "Was the order split into multiple shipments?",
+        "splitHint": "If the store ships books in separate parcels, distribute the books between them.",
+        "split": "Split delivery",
+        "additional": "Additional details",
+        "add": "Add shipment",
+        "addAnother": "Add another shipment",
+        "shipment": "Shipment {number}",
+        "singleShipment": "Shipment",
+        "bookCount": "{count, plural, one {# book} other {# books}}",
+        "unassignedTitle": "Not yet distributed between shipments",
+        "unassignedCount": "{count, plural, one {# book is not assigned to a shipment yet.} other {# books are not assigned to any shipment yet.}}",
+        "distributionHint": "Distribute them between shipments to finish setting up delivery.",
+        "allDistributed": "All books distributed",
+        "allDistributedHint": "All books are already assigned to shipments.",
+        "inShipment": "{count, plural, one {# book in this shipment} other {# books in this shipment}}",
+        "selectBooks": "Books for this shipment",
+        "editBooks": "Change shipment contents",
+        "doneSelectingBooks": "Apply selection",
+        "emptyShipment": "No books added yet",
+        "emptyShipmentHint": "Add one or more books to this shipment.",
+        "addBooksToShipment": "Add books",
+        "mergeAll": "Merge everything into one shipment",
+        "mergeHint": "All unassigned books will be added to this shipment.",
+        "remove": "Remove shipment {number}",
+        "removeConfirmTitle": "Remove Shipment {number}?",
+        "removeConfirmDescription": "Books from this shipment will remain in the order and become unassigned.",
+        "removeConfirmCancel": "Cancel",
+        "removeConfirmAction": "Remove",
+        "service": "Delivery service",
+        "servicePlaceholder": "Service name",
+        "trackingNumber": "Tracking number",
+        "trackingUrl": "Tracking URL",
+        "expectedDate": "Expected delivery date",
+        "pickupUntil": "Pickup until",
+        "status": "Initial status",
+        "note": "Comment",
+        "books": "Books in this shipment",
+        "awaiting": "Awaiting shipment",
+        "awaitingHint": "Books are not assigned to a shipment yet. Delivery details can be added later.",
+        "noneAwaiting": "All books are assigned to shipments.",
+        "statuses": {
+          "ordered": "Ordered",
+          "in_transit": "In transit",
+          "ready_for_pickup": "Ready for pickup"
+        }
+      },
+      "validation": {
+        "invalid": "Check the required fields, selected books, and shipment assignments.",
+        "itemPricesRequired": "In Per book mode, enter a price for every selected book.",
+        "negativeTotal": "The discount is larger than the books plus delivery, so the total comes out negative.",
+        "totalRequired": "Enter the final order total, or mark the books as received for free.",
+        "currencyRequired": "Pick the order currency.",
+        "positiveTotal": "A paid order must cost more than zero. For free books, switch on \"Received for free\".",
+        "freeWithAmounts": "A free order cannot carry prices, delivery or a discount. If delivery was paid, switch \"Received for free\" off and enter its cost."
+      },
+      "submit": "Create order",
+      "toast": {
+        "success": "Order created",
+        "error": "Could not create the order"
+      }
     },
     "summary": {
       "active": "In transit",
       "expectedThisWeek": "Expected this week",
-      "delayed": "Delayed",
-      "total": "Total amount",
-      "stores": "Stores",
+      "activeOrders": "Active orders",
+      "ordersTotal": "Order value",
+      "units": {
+        "books": "{count, plural, one {book} other {books}}",
+        "orders": "{count, plural, one {order} other {orders}}"
+      },
+      "microfact": {
+        "active": {
+          "ordered": "{count, plural, other {# awaiting dispatch}}",
+          "inTransit": "{count, plural, other {# on the way}}",
+          "readyForPickup": "{count, plural, other {# ready for pickup}}",
+          "empty": "No active deliveries"
+        },
+        "expectedThisWeek": {
+          "today": "Nearest — today",
+          "tomorrow": "Nearest — tomorrow",
+          "onDate": "Nearest — {date}",
+          "empty": "No deliveries expected this week"
+        },
+        "activeOrders": {
+          "shipments": "{count, plural, one {# active parcel} other {# active parcels}}",
+          "split": "{count, plural, one {# order split} other {# orders split}}",
+          "noShipments": "No parcels created yet",
+          "empty": "No active orders"
+        },
+        "ordersTotal": {
+          "empty": "No active orders",
+          "average": "Average order — {amounts}"
+        }
+      },
       "mobile": {
         "title": "Detailed stats",
         "compact": {
           "active": "In transit",
           "expectedThisWeek": "This week",
-          "delayed": "Delayed",
-          "total": "Amount",
-          "stores": "Stores"
+          "activeOrders": "Orders",
+          "ordersTotal": "Amount"
         },
         "detailed": {
           "active": "In transit",
           "expectedThisWeek": "Expected this week",
-          "delayed": "Delayed",
-          "total": "Total amount",
-          "stores": "Stores"
+          "activeOrders": "Active orders",
+          "ordersTotal": "Order value"
         }
       }
     },
@@ -2453,7 +2647,11 @@
       "trigger": "Delivery overview",
       "title": "Delivery overview",
       "subtitle": "Full stats for this section",
-      "close": "Close overview"
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "attention": "Needs attention"
+      }
     },
     "search": {
       "label": "Search deliveries",
@@ -2463,26 +2661,224 @@
     "filters": {
       "label": "Delivery filters",
       "all": "All",
-      "ordered": "Ordered",
+      "ordered": "Awaiting dispatch",
       "in_transit": "In transit",
-      "arriving_soon": "Arriving soon",
-      "this_week": "This week",
-      "delayed": "Delayed",
-      "no_delivery_date": "No delivery date"
+      "ready_for_pickup": "Ready for pickup",
+      "delayed": "Delayed"
+    },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "title": "Advanced filters",
+      "description": "They narrow the list of orders. Quick filters work separately and stack on top.",
+      "apply": "Apply",
+      "clear": "Reset",
+      "sections": {
+        "store": "Store",
+        "orderDate": "Order date",
+        "booksCount": "Book count",
+        "service": "Delivery service",
+        "expectedDate": "Expected delivery date",
+        "structure": "Delivery structure",
+        "currency": "Currency",
+        "orderTotal": "Order total"
+      },
+      "range": {
+        "from": "From",
+        "to": "To",
+        "min": "From",
+        "max": "To",
+        "invalid": "The start of the range is past its end"
+      },
+      "store": {
+        "placeholder": "Any store",
+        "search": "Search stores",
+        "empty": "No stores found"
+      },
+      "service": {
+        "placeholder": "Any service",
+        "search": "Search services",
+        "empty": "No services found"
+      },
+      "booksCount": {
+        "min": "At least",
+        "max": "At most",
+        "hint": "Counts the books still on their way: received and cancelled ones are left out."
+      },
+      "expectedDate": {
+        "hint": "Counts parcels that are still travelling, and only those with a date on them."
+      },
+      "structure": {
+        "no_shipment": "No parcel yet",
+        "single_shipment": "One parcel",
+        "multiple_shipments": "Several parcels"
+      },
+      "orderTotal": {
+        "min": "From",
+        "max": "To",
+        "hint": "Filters by the final total of the order.",
+        "pickCurrency": "Pick one currency to filter by total."
+      }
+    },
+    "activeFilters": {
+      "attention": "Attention: {label}",
+      "store": "Store: {value}",
+      "service": "Service: {value}",
+      "orderedRange": "Ordered: {from} – {to}",
+      "orderedFrom": "Ordered from {value}",
+      "orderedTo": "Ordered until {value}",
+      "expectedRange": "Expected: {from} – {to}",
+      "expectedFrom": "Expected from {value}",
+      "expectedTo": "Expected until {value}",
+      "booksRange": "Books: {min}–{max}",
+      "booksFrom": "Books: from {min}",
+      "booksTo": "Books: up to {max}",
+      "priceRange": "Total: {min}–{max} {currency}",
+      "priceFrom": "Total: from {min} {currency}",
+      "priceTo": "Total: up to {max} {currency}",
+      "totalKnown": "Total recorded",
+      "totalUnknown": "Total missing"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "viewAll": "Show all {count}",
+      "allClear": {
+        "title": "All clear",
+        "text": "No delivery needs your attention."
+      },
+      "pickup_expiring": {
+        "expiring": "Pickup window is closing",
+        "expired": "Pickup window has closed",
+        "today": "Pick up today",
+        "tomorrow": "Pick up by tomorrow",
+        "onDate": "Pick up by {date}",
+        "detail": "{count, plural, one {# parcel} other {# parcels}}",
+        "alsoExpired": "{count, plural, one {# parcel} other {# parcels}} · {expired} already overdue"
+      },
+      "delayed": {
+        "label": "{count, plural, one {# parcel is delayed} other {# parcels are delayed}}",
+        "detail": "Longest delay — {days, plural, one {# day} other {# days}}"
+      },
+      "awaiting_dispatch": {
+        "label": "{count, plural, one {# order has not shipped} other {# orders have not shipped}} for over {days, plural, one {# day} other {# days}}",
+        "detail": "Longest wait — {days, plural, one {# day} other {# days}}"
+      },
+      "without_tracking": {
+        "label": "{count, plural, one {# shipped parcel without a tracking number} other {# shipped parcels without a tracking number}}"
+      },
+      "without_expected_date": {
+        "label": "{count, plural, one {# parcel without a delivery date} other {# parcels without a delivery date}}"
+      },
+      "unassigned_books": {
+        "label": "{count, plural, one {# book is not assigned to a parcel} other {# books are not assigned to a parcel}}",
+        "detail": "{count, plural, one {in # order} other {in # orders}}"
+      },
+      "chip": {
+        "pickup_expiring": "Pickup expiring",
+        "delayed": "Delayed",
+        "awaiting_dispatch": "Not shipped",
+        "without_tracking": "No tracking number",
+        "without_expected_date": "No delivery date",
+        "unassigned_books": "Unassigned books"
+      }
+    },
+    "impact": {
+      "title": "What arriving will change",
+      "viewAll": "Show {count} more",
+      "series_completed": {
+        "label": "{count, plural, one {# series will be complete} other {# series will be complete}}",
+        "detail": "{count, plural, one {# book finishes the set} other {# books finish the sets}}"
+      },
+      "series_ownership_gaps": {
+        "label": "{count, plural, one {A gap closes in # series} other {Gaps close in # series}}",
+        "detail": "{count, plural, one {# book} other {# books}}"
+      },
+      "queue_available": {
+        "label": "{count, plural, one {# book becomes readable in the queue} other {# books become readable in the queue}}",
+        "detail": "{count, plural, one {# of them is high priority} other {# of them are high priority}}"
+      },
+      "series_next_step": {
+        "label": "{count, plural, one {You will be able to continue # series} other {You will be able to continue # series}}",
+        "detail": "The books you need for the next step are on their way"
+      },
+      "goal_books": {
+        "label": "{count, plural, one {# book belongs to an active goal} other {# books belong to active goals}}",
+        "detail": "{count, plural, one {in # goal} other {across # goals}}"
+      }
+    },
+    "sidebar": {
+      "title": "Delivery overview"
+    },
+    "nextShipment": {
+      "title": "Next delivery",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "inDays": "In {count, plural, one {# day} other {# days}}",
+      "store": "Store",
+      "service": "Delivery service",
+      "tracking": "Tracking number",
+      "booksCount": "{count, plural, one {# book} other {# books}}",
+      "sameDay": "{count, plural, one {# more delivery} other {# more deliveries}} that day",
+      "action": {
+        "open": "Open delivery",
+        "show": "Show delivery",
+        "resetHelper": "Search and active filters will be cleared"
+      },
+      "empty": {
+        "text": "The date is not known yet",
+        "helper": "None of the active deliveries carries an expected date."
+      }
     },
     "sort": {
       "label": "Sort",
       "options": {
-        "closest_delivery": "Closest delivery",
-        "newest_orders": "Newest orders",
-        "oldest_orders": "Oldest orders",
-        "delayed_first": "Delayed first",
-        "store": "By store",
-        "service": "By delivery service",
-        "title": "By book title",
-        "author": "By author",
-        "price": "By price"
-      }
+        "closest_delivery": "Delivery date: closest first",
+        "newest_orders": "Order date: newest first",
+        "oldest_orders": "Order date: oldest first",
+        "delayed_first": "Status: delayed first",
+        "store": "Store: A–Z",
+        "service": "Delivery service: A–Z",
+        "title": "Book title: A–Z",
+        "author": "Author: A–Z",
+        "price": "By order total: lowest first"
+      },
+      "mobile": {
+        "title": "Sorting",
+        "description": "Choose the order of books on the way.",
+        "close": "Close",
+        "groups": {
+          "delivery_date": "Delivery date",
+          "order_date": "Order date",
+          "status": "Status",
+          "store": "Store",
+          "service": "Delivery service",
+          "title": "Book title",
+          "author": "Author",
+          "price": "Order total"
+        },
+        "options": {
+          "closest_delivery": "Closest first",
+          "newest_orders": "Newest first",
+          "oldest_orders": "Oldest first",
+          "delayed_first": "Delayed first",
+          "store": "A–Z",
+          "service": "A–Z",
+          "title": "A–Z",
+          "author": "A–Z",
+          "price": "Lowest first"
+        },
+        "trigger": {
+          "closest_delivery": "Delivery ↑",
+          "newest_orders": "Ordered ↓",
+          "oldest_orders": "Ordered ↑",
+          "delayed_first": "Delayed",
+          "store": "Store A–Z",
+          "service": "Service A–Z",
+          "title": "Book A–Z",
+          "author": "Author A–Z",
+          "price": "Total ↑"
+        }
+      },
+      "pickOneCurrency": "Pick a single currency to sort by total"
     },
     "badge": {
       "delayed": "Delayed",
@@ -2499,6 +2895,7 @@
       "store": "Store",
       "orderDate": "Order date",
       "expectedDate": "Expected delivery",
+      "expectedDeliveryDate": "Expected delivery date: {date}",
       "orderNumber": "Order number",
       "service": "Delivery service",
       "trackingNumber": "Tracking number",
@@ -2506,22 +2903,100 @@
       "tracking": "Tracking",
       "openTracking": "Open tracking",
       "openBook": "Go to book",
+      "changePrice": "Change price",
+      "cancelBook": "Cancel this book",
+      "shipment": "Shipment",
+      "shipmentNumber": "Shipment {number}",
+      "booksCount": "{count, plural, one {# book} other {# books}}",
+      "showMoreBooks": "Show {count, plural, one {# more book} other {# more books}}",
+      "collapseBooks": "Collapse",
+      "orderActionsAria": "Order actions",
+      "shipmentActionsAria": "Actions: {title}",
+      "editOrder": "Edit order",
+      "addShipment": "Add shipment",
+      "editShipment": "Edit shipment",
+      "cancelShipment": "Cancel shipment",
+      "receiveShipmentMenu": "Mark shipment as received",
+      "receiveShipmentCompact": "Mark as received",
+      "markInTransitCompact": "Mark as in transit",
+      "markReadyForPickupCompact": "Mark as arrived",
+      "statusMenu": "Shipment status",
       "receive": "Mark as received",
       "edit": "Edit delivery",
       "cancel": "Cancel order",
       "actionsAria": "Actions for “{title}”",
-      "selectAria": "Select “{title}”"
+      "booksInTransit": "{count, plural, one {# book in transit} other {# books in transit}}",
+      "orderTotal": "Total",
+      "notShipped": "Not shipped yet",
+      "pickupUntil": "Held until {date}",
+      "note": "Shipment note",
+      "orderNote": "Order note",
+      "selectShipmentAria": "Select: {title}"
+    },
+    "manage": {
+      "editOrder": "Edit order",
+      "editOrderDescription": "Update the main order details.",
+      "addShipment": "Add shipment",
+      "addShipmentDescription": "Unassigned books will be added to the new shipment.",
+      "editShipment": "Edit shipment",
+      "editShipmentDescription": "Update the dispatch details of this shipment.",
+      "cancelShipment": "Cancel shipment",
+      "cancelShipmentDescription": "Every active book in this shipment will also be cancelled.",
+      "orderSection": "Order",
+      "costSection": "Cost",
+      "store": "Store",
+      "storePlaceholder": "Store name",
+      "orderNumber": "Order number",
+      "orderDate": "Order date",
+      "note": "Comment",
+      "currency": "Currency",
+      "currencyPlaceholder": "Pick a currency",
+      "total": "Final total",
+      "deliveryPrice": "Delivery cost",
+      "discount": "Discount",
+      "itemsSubtotal": "Books",
+      "summary": "Summary",
+      "paidTotal": "Paid in total",
+      "deliverySummary": "Plus delivery",
+      "discountSummary": "Discount applied",
+      "calculatedTotalHint": "Every book has a price, so the total is calculated automatically: book prices + delivery − discount. A book price is changed from its own menu.",
+      "manualTotalHint": "Not every book in this order has a price, so set the final total by hand: book prices + delivery − discount. A book price is changed from its own menu.",
+      "negativeTotal": "The discount is larger than the books and delivery, so the total goes negative.",
+      "negativeAmount": "Amounts cannot be negative.",
+      "trackingNumber": "Tracking number",
+      "save": "Save",
+      "close": "Close",
+      "confirmCancel": "Cancel shipment",
+      "orderUpdated": "Order updated",
+      "shipmentAdded": "Shipment added",
+      "shipmentUpdated": "Shipment updated",
+      "shipmentCancelled": "Shipment cancelled",
+      "error": "Could not complete the action",
+      "deliveryService": "Delivery service",
+      "deliveryServicePlaceholder": "Service name",
+      "expectedDate": "Expected delivery date",
+      "pickupUntil": "Held until",
+      "status": "Delivery status",
+      "trackingUrl": "Tracking link",
+      "free": "Received for free",
+      "freeHint": "A gift, a review copy or a free promo edition, for instance.",
+      "freeSummary": "The order cost nothing, so book prices, delivery and discount are not needed.",
+      "totalRequired": "Enter the final order total, or mark the books as received for free.",
+      "currencyRequired": "Pick the order currency.",
+      "positiveTotal": "A paid order must cost more than zero. For free books, switch on \"Received for free\".",
+      "freeWithAmounts": "A free order cannot carry prices, delivery or a discount. If delivery was paid, switch \"Received for free\" off and enter its cost."
     },
     "bulk": {
       "regionLabel": "Bulk actions",
-      "selected": "{count, plural, one {# book selected} other {# books selected}}",
+      "selected": "{count, plural, one {# parcel selected} other {# parcels selected}}",
       "receive": "Mark as received",
       "clear": "Clear selection",
-      "selectAllVisible": "Select all visible ({count})"
+      "selectAllVisible": "Select all visible parcels ({count})",
+      "selectedBooks": "{count, plural, one {# book} other {# books}}"
     },
     "receiveDialog": {
       "title": "Mark as received?",
-      "description": "{count, plural, one {# book will be marked as received and moved into your library.} other {# books will be marked as received and moved into your library.}}",
+      "description": "{count, plural, one {# book will be marked as received and moved into your library.} other {# books will be marked as received and moved into your library.}} This action cannot be undone.",
       "confirm": "Mark as received"
     },
     "states": {
@@ -2545,8 +3020,10 @@
     "toast": {
       "received": "Book marked as received",
       "receivedBulk": "{count, plural, one {# book marked as received} other {# books marked as received}}",
-      "receivedPartial": "Received: {received}. Skipped: {skipped}",
-      "error": "Could not complete the action"
+      "statusUpdated": "Shipment status updated",
+      "error": "Could not complete the action",
+      "receivedShipments": "{count, plural, one {# parcel marked as received} other {# parcels marked as received}}",
+      "receivedShipmentsPartial": "Received: {received}. Skipped: {skipped}"
     },
     "subnav": {
       "label": "Delivery sections",
@@ -2557,79 +3034,185 @@
     "history": {
       "metaTitle": "Order history",
       "title": "Order history",
-      "subtitle": "All your delivery orders — active, received and cancelled.",
+      "subtitle": "Received and cancelled orders — the finished part of your delivery history.",
       "resultsTitle": "Order list",
-      "counter": "{count, plural, one {# order} other {# orders}}",
+      "counter": "Showing {shown} of {total, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
       "loadMore": "Show more",
       "summary": {
-        "totalOrders": "Total orders",
-        "active": "Active",
-        "received": "Received",
-        "cancelled": "Cancelled",
-        "total": "Total amount",
+        "units": {
+          "books": "{count, plural, one {book} other {books}}",
+          "orders": "{count, plural, one {order} other {orders}}",
+          "series": "{count, plural, one {series} other {series}}"
+        },
+        "received": {
+          "label": "Received",
+          "orders": "In {count, plural, one {# order} other {# orders}}",
+          "shipments": "{count, plural, one {# parcel} other {# parcels}}",
+          "empty": "No received books yet"
+        },
+        "cancelled": {
+          "label": "Cancelled",
+          "orders": "In {count, plural, one {# order} other {# orders}}",
+          "empty": "No cancelled books"
+        },
+        "completed": {
+          "label": "Completed orders",
+          "withoutCancellations": "{count} without cancellations",
+          "withCancellations": "{count} with cancellations",
+          "empty": "No completed orders yet"
+        },
+        "seriesToppedUp": {
+          "label": "Series topped up",
+          "seriesBooks": "{count, plural, one {# book from a series} other {# books from series}}",
+          "standalone": "{count, plural, one {# standalone} other {# standalone}}",
+          "allStandalone": "{count, plural, one {The only received book is standalone} other {All # received books are standalone}}",
+          "empty": "No received books yet"
+        },
         "mobile": {
           "title": "Detailed stats",
           "compact": {
-            "totalOrders": "Orders",
-            "active": "Active",
             "received": "Received",
             "cancelled": "Cancelled",
-            "total": "Amount"
+            "completed": "Completed",
+            "seriesToppedUp": "Series"
           },
           "detailed": {
-            "totalOrders": "Total orders",
-            "active": "Active",
-            "received": "Received",
-            "cancelled": "Cancelled",
-            "total": "Total amount"
+            "received": "Books received",
+            "cancelled": "Books cancelled",
+            "completed": "Completed orders",
+            "seriesToppedUp": "Series topped up"
           }
         }
       },
       "tabs": {
         "label": "Order groups",
-        "all": "All",
-        "active": "Active",
         "received": "Received",
         "cancelled": "Cancelled"
       },
       "sort": {
         "label": "Sort",
         "options": {
-          "newest_orders": "Newest orders",
-          "oldest_orders": "Oldest orders",
-          "recently_updated": "Recently updated",
-          "status": "By status",
-          "store": "By store",
-          "price": "By price",
-          "title": "By book title"
+          "newest_orders": "Order date: newest first",
+          "oldest_orders": "Order date: oldest first",
+          "recently_updated": "Last updated: newest first",
+          "store": "Store: A–Z",
+          "price_asc": "By order total: lowest first",
+          "price_desc": "By order total: highest first"
+        },
+        "mobile": {
+          "title": "Sorting",
+          "description": "Choose the order of past orders.",
+          "close": "Close",
+          "groups": {
+            "order_date": "Order date",
+            "updated": "Last updated",
+            "store": "Store",
+            "price": "Order total"
+          },
+          "options": {
+            "newest_orders": "Newest first",
+            "oldest_orders": "Oldest first",
+            "recently_updated": "Newest first",
+            "store": "A–Z",
+            "price_asc": "Lowest first",
+            "price_desc": "Highest first"
+          },
+          "trigger": {
+            "newest_orders": "Ordered ↓",
+            "oldest_orders": "Ordered ↑",
+            "recently_updated": "Updated ↓",
+            "store": "Store A–Z",
+            "price_asc": "Total ↑",
+            "price_desc": "Total ↓"
+          }
+        },
+        "pickOneCurrency": "Pick a single currency to sort by total"
+      },
+      "advancedFilters": {
+        "trigger": "Filters",
+        "title": "Advanced filters",
+        "description": "They narrow the list of orders.",
+        "apply": "Apply",
+        "clear": "Reset",
+        "sections": {
+          "store": "Store",
+          "orderDate": "Order date",
+          "booksCount": "Book count",
+          "service": "Delivery service",
+          "currency": "Currency",
+          "orderTotal": "Order total",
+          "receivedDate": "Receipt date",
+          "cancelledDate": "Cancellation date"
+        },
+        "range": {
+          "from": "From",
+          "to": "To",
+          "min": "From",
+          "max": "To",
+          "invalid": "The start of the range is past its end"
+        },
+        "store": {
+          "placeholder": "Any store",
+          "search": "Search stores",
+          "empty": "No stores found"
+        },
+        "service": {
+          "placeholder": "Any service",
+          "search": "Search services",
+          "empty": "No services found",
+          "hint": "The card keeps only the parcels of the picked services."
+        },
+        "booksCount": {
+          "min": "At least this many books",
+          "max": "At most this many books",
+          "receivedHint": "Counts the received books left after the other filters.",
+          "cancelledHint": "Counts the cancelled books left after the other filters."
+        },
+        "orderTotal": {
+          "min": "Total from",
+          "max": "Total to",
+          "hint": "Filters by the final total of the order.",
+          "pickCurrency": "Pick one currency to filter by total."
+        },
+        "orderDate": {
+          "from": "Ordered from",
+          "to": "Ordered until"
+        },
+        "receivedDate": {
+          "from": "Received from",
+          "to": "Received until",
+          "hint": "Keeps the books received inside this range."
+        },
+        "cancelledDate": {
+          "from": "Cancelled from",
+          "to": "Cancelled until",
+          "hint": "Keeps the books cancelled inside this range."
         }
       },
-      "filters": {
-        "label": "Filters",
-        "currency": "Currency",
-        "store": "Store",
-        "storePlaceholder": "Exact store name",
-        "service": "Delivery service",
-        "servicePlaceholder": "Exact service name",
-        "from": "Date from",
-        "to": "Date to",
-        "priceMin": "Price from",
-        "priceMax": "Price to",
-        "hasTrackingNumber": "Has tracking number",
-        "hasTrackingUrl": "Has tracking link",
-        "any": "Any",
-        "yes": "Yes",
-        "no": "No",
-        "apply": "Apply",
-        "reset": "Reset"
+      "activeFilters": {
+        "store": "Store: {value}",
+        "service": "Service: {value}",
+        "orderedRange": "Ordered: {from} – {to}",
+        "orderedFrom": "Ordered from {value}",
+        "orderedTo": "Ordered until {value}",
+        "receivedRange": "Received: {from} – {to}",
+        "receivedFrom": "Received from {value}",
+        "receivedTo": "Received until {value}",
+        "cancelledRange": "Cancelled: {from} – {to}",
+        "cancelledFrom": "Cancelled from {value}",
+        "cancelledTo": "Cancelled until {value}",
+        "booksRange": "Books: {min}–{max}",
+        "booksFrom": "Books: from {min}",
+        "booksTo": "Books: up to {max}",
+        "priceRange": "Total: {min}–{max} {currency}",
+        "priceFrom": "Total: from {min} {currency}",
+        "priceTo": "Total: up to {max} {currency}"
       },
       "card": {
-        "deletedBook": "Book deleted",
-        "deletedBookHint": "Book data is unavailable — showing the stored delivery information.",
-        "receivedDate": "Received date",
-        "cancelledDate": "Cancelled date",
         "cancelReason": "Cancellation reason",
-        "note": "Note"
+        "receivedOn": "Received {date}",
+        "cancelledOn": "Cancelled {date}",
+        "expectedOn": "Expected {date}"
       },
       "states": {
         "loading": "Loading…",
@@ -2639,15 +3222,116 @@
           "retry": "Try again"
         },
         "empty": {
-          "title": "Your order history is empty",
-          "description": "Your delivery orders will appear here once you create them.",
-          "cta": "Go to books in transit"
+          "received": {
+            "title": "No received orders yet",
+            "description": "As soon as you mark a book as received, it shows up here.",
+            "cta": "Go to books in transit"
+          },
+          "cancelled": {
+            "title": "No cancelled orders",
+            "description": "Orders you cancel are kept here."
+          }
         },
         "filteredEmpty": {
           "title": "No orders match the selected filters",
           "description": "Try changing the search or resetting the filters.",
           "reset": "Reset filters"
         }
+      },
+      "sidebar": {
+        "title": "What arrived so far",
+        "cancelledTitle": "What happens to the cancelled books",
+        "tabs": {
+          "cancelled": "What next",
+          "received": "Outcome"
+        }
+      },
+      "latestReceipt": {
+        "title": "Latest receipt",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+        "store": "Store",
+        "service": "Delivery service",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "sameDay": "{count, plural, one {# more receipt} other {# more receipts}} that day",
+        "empty": {
+          "text": "Nothing received yet"
+        },
+        "action": {
+          "open": "Open in history",
+          "resetHelper": "Showing it clears the search and filters"
+        }
+      },
+      "unreadReceived": {
+        "title": "Waiting to be read",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "inQueue": "{count, plural, one {# already in the reading queue} other {# already in the reading queue}}",
+        "empty": {
+          "text": "All read",
+          "helper": "None of the received books is still waiting."
+        }
+      },
+      "seriesOutcome": {
+        "title": "How series filled up",
+        "series_completed": {
+          "label": "{count, plural, one {# series became complete} other {# series became complete}}",
+          "detail": "{count, plural, one {thanks to # received book} other {thanks to # received books}}"
+        },
+        "series_gaps_closed": {
+          "label": "{count, plural, one {# series had a gap closed} other {# series had gaps closed}}",
+          "detail": "{count, plural, one {# received book took its place} other {# received books took their places}}"
+        },
+        "series_topped_up": {
+          "label": "{count, plural, one {# more series filled up} other {# more series filled up}}",
+          "detail": "{count, plural, one {# received book} other {# received books}}"
+        }
+      },
+      "cancelledDecision": {
+        "title": "Waiting for a decision",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "helper": "were left without a next step after the cancellation",
+        "cancelledOn": "Cancelled on {date}",
+        "cancelledWithReason": "{date} · {reason}",
+        "action": "Move to the wishlist",
+        "bulkAction": "Move them all to the wishlist",
+        "toast": {
+          "returned": "“{title}” is back in the wishlist",
+          "returnedAll": "{count, plural, one {# book moved to the wishlist} other {# books moved to the wishlist}}"
+        }
+      },
+      "cancelledPlans": {
+        "title": "Affect the reading plans",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "helper": "are tied to active reading plans",
+        "more": "{count, plural, one {# more book affects the plans} other {# more books affect the plans}}",
+        "context": {
+          "queue": "Reading queue",
+          "seriesNext": "Next in the series",
+          "goalNamed": "Goal “{name}”",
+          "goalUnnamed": "Active goal",
+          "goalsCount": "{count, plural, one {# active goal} other {# active goals}}",
+          "risk": {
+            "high": "high risk",
+            "critical": "critical risk"
+          }
+        }
+      },
+      "cancelledOutcome": {
+        "title": "What happened next",
+        "booksCount": "{count, plural, one {# book with a cancellation} other {# books with a cancellation}}",
+        "outcomes": {
+          "inLibrary": "{count, plural, one {# already in the library} other {# already in the library}}",
+          "reordered": "{count, plural, one {# ordered again} other {# ordered again}}",
+          "wishlist": "{count, plural, one {# back on the wishlist} other {# back on the wishlist}}",
+          "borrowed": "{count, plural, one {# borrowed from someone} other {# borrowed from someone}}",
+          "unresolved": "{count, plural, one {# with no next step} other {# with no next step}}"
+        }
+      },
+      "cancelledFollowUpError": {
+        "title": "Cancelled books",
+        "description": "We could not load which cancelled books are still waiting on a decision.",
+        "retry": "Try again"
       }
     },
     "statistics": {
@@ -2749,7 +3433,17 @@
           "reset": "Reset filters"
         }
       }
-    }
+    },
+    "priceDialog": {
+      "title": "Book price",
+      "description": "Update what “{title}” cost in this order.",
+      "price": "Price",
+      "hint": "Leave the field empty to drop the price.",
+      "totalResetWarning": "The order total will be cleared, because not every book has a price. You can enter it again in Edit order.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "freeOrder": "Free"
   },
   "favorites": {
     "metaTitle": "Favorite books",
@@ -3836,6 +4530,22 @@
     }
   },
   "loans": {
+    "contactPicker": {
+      "searching": "Searching contacts…",
+      "empty": "No contacts found.",
+      "contactsHeading": "Your contacts",
+      "createHeading": "New contact",
+      "createAction": "Create “{name}”",
+      "creating": "Creating…",
+      "loanCount": "{count, plural, one {# loan} other {# loans}}",
+      "clear": "Clear",
+      "required": "Pick a person from the list or create a new one.",
+      "errors": {
+        "archivedName": "An archived contact already uses this name. Pick a different name.",
+        "duplicateName": "A contact with this name already exists. Pick it from the list.",
+        "createFailed": "Couldn’t create the contact. Please try again."
+      }
+    },
     "pages": {
       "borrowed": {
         "metaTitle": "To return",

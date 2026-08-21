@@ -1,0 +1,52 @@
+{
+  "spec": "docs/specs/create-book-order-manual-total-ux/spec.md",
+  "generatedAt": "2026-08-16",
+  "openDecisions": [],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Restructure manual total hierarchy",
+      "mandatory": true,
+      "doneWhen": [
+        "Final amount and currency form the primary row",
+        "delivery and discount are grouped as optional breakdown",
+        "manual total is never recalculated"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Add compact conditional summary",
+      "mandatory": true,
+      "doneWhen": [
+        "final amount is visually emphasized",
+        "empty delivery and discount rows are omitted",
+        "per-book summary remains unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Localize and verify",
+      "mandatory": true,
+      "doneWhen": [
+        "Ukrainian and English catalogs remain in sync",
+        "focused tests, typecheck, lint and formatting pass"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Polish manual total hierarchy",
+      "mandatory": true,
+      "doneWhen": [
+        "helper clarifies delivery and discount are included",
+        "breakdown heading and spacing are visually secondary",
+        "amount and currency form a tighter row",
+        "manual summary is compact and conditional",
+        "primary amount input has no native number steppers"
+      ],
+      "status": "done"
+    }
+  ]
+}

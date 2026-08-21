@@ -21,6 +21,7 @@ import { subDays } from "date-fns";
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
+import { resolveLoanPerson } from "../domain/loan-person.js";
 import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
 import {
   type LoanDirectionCounts,
@@ -66,11 +67,10 @@ export class LoansService {
     userId: string;
   }): Promise<Paginator<LoanListItemView>> {
     const { soonEnd, today } = loanDateBounds(new Date());
-    const search = normalizeSearch(query.search);
     const filter = {
+      contactId: query.contactId,
       filter: query.filter,
-      person: normalizeSearch(query.person),
-      search,
+      search: normalizeSearch(query.search),
       soonEnd,
       today,
       type: query.type,
@@ -158,16 +158,19 @@ export class LoansService {
   }
 
   private toListItemView(loan: LoanWithBook, today: Date): LoanListItemView {
+    const person = resolveLoanPerson(loan);
+
     return {
       book: this.toBookPreview(loan.book),
-      contact: loan.contact,
+      contact: person.contact,
       createdAt: loan.createdAt.toISOString(),
       expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
       id: loan.id,
+      loanContactId: person.loanContactId,
       loanDate: toNullableIsoDate(loan.loanDate),
       loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
       note: loan.note,
-      personName: loan.personName,
+      personName: person.personName,
       remindBeforeDays: loan.remindBeforeDays,
       remindToReturn: loan.remindToReturn,
       type: LoanTypeSchema.parse(loan.type),
@@ -185,6 +188,7 @@ export class LoansService {
 
     return rows.map((row) => ({
       bookCount: row.bookCount,
+      contactId: row.contactId,
       covers: (row.coverMediaIds ?? []).flatMap((id) => {
         const view = coverViews.get(id);
         return view === undefined || view === null ? [] : [view];
@@ -226,5 +230,10 @@ function toDirectionSummary(
 function toPersonSummaries(people: PersonSummaryWithType[], type: LoanType): LoanPersonSummary[] {
   return people
     .filter((person) => person.type === type)
-    .map(({ bookCount, covers, personName }) => ({ bookCount, covers, personName }));
+    .map(({ bookCount, contactId, covers, personName }) => ({
+      bookCount,
+      contactId,
+      covers,
+      personName,
+    }));
 }

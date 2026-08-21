@@ -179,7 +179,12 @@ export function withRelations(userId: string) {
     authors: { include: { author: true }, orderBy: { position: "asc" } },
     coverMedia: true,
     lists: { include: { list: true }, where: { list: SOFT_DELETE_SCOPE.active } },
-    loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
+    loans: {
+      include: { loanContact: true },
+      orderBy: { createdAt: "desc" },
+      take: 1,
+      where: { status: "active" },
+    },
     orderItems: {
       include: { order: true, shipment: { include: { deliveryService: true } } },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -269,6 +274,7 @@ export type BookWithRelations = Prisma.BookGetPayload<{
 export type CreateLoanInfoData = {
   contact: Nullable<string>;
   expectedReturnDate: Nullable<Date>;
+  loanContactId: string;
   loanDate: Nullable<Date>;
   note: Nullable<string>;
   personName: string;
@@ -362,9 +368,10 @@ export type TrashedBookRow = Trashed<TrashedBookSelection>;
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
   expectedReturnDate: Nullable<Date>;
+  loanContactId: string;
   loanDate: Nullable<Date>;
   note: Nullable<string>;
-  personName: string;
+  personName?: string;
   remindBeforeDays: Nullable<number>;
   remindToReturn: boolean;
 };
@@ -1099,8 +1106,9 @@ export class BooksRepository {
     userId: string,
     bookId: string,
     data: UpdateActiveLoanData,
+    client?: Prisma.TransactionClient,
   ): Promise<void> {
-    await this.updateActiveLoanFields(userId, bookId, data);
+    await this.updateActiveLoanFields(userId, bookId, data, client);
   }
 
   async updateActiveLoanReminder(
@@ -1304,8 +1312,9 @@ export class BooksRepository {
     userId: string,
     bookId: string,
     data: Prisma.BookLoanUncheckedUpdateManyInput,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    const updated = await this.prisma.bookLoan.updateMany({
+    const updated = await client.bookLoan.updateMany({
       data,
       where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, bookId, status: "active" },
     });

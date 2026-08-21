@@ -25,6 +25,7 @@ export type BookOrderPatch = {
   currency?: Nullable<Currency>;
   deliveryPrice?: Nullable<number>;
   discount?: Nullable<number>;
+  isFree?: boolean;
   note?: Nullable<string>;
   orderDate?: Nullable<Date>;
   orderNumber?: Nullable<string>;
@@ -38,6 +39,7 @@ export type NewBookOrderData = {
   currency: Nullable<Currency>;
   deliveryPrice: Nullable<number>;
   discount: Nullable<number>;
+  isFree: boolean;
   note: Nullable<string>;
   orderDate: Nullable<Date>;
   orderNumber: Nullable<string>;

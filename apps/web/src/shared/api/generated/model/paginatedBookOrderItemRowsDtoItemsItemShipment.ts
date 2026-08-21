@@ -12,6 +12,22 @@ import type { PaginatedBookOrderItemRowsDtoItemsItemShipmentStatus } from "./pag
  * @nullable
  */
 export type PaginatedBookOrderItemRowsDtoItemsItemShipment = {
+  /**
+   * How many books of this parcel are still on their way - not received, not cancelled, book not trashed. Counted over the whole parcel, not only the books on this page.
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  activeItemsCount: number;
+  /**
+   * When the whole parcel was cancelled.
+   * @nullable
+   */
+  cancelledAt: string | null;
+  /**
+   * Why the whole parcel was cancelled, as opposed to a reason carried by one book.
+   * @nullable
+   */
+  cancelReason: string | null;
   /** @nullable */
   deliveryService: PaginatedBookOrderItemRowsDtoItemsItemShipmentDeliveryService;
   /** @nullable */
@@ -21,6 +37,11 @@ export type PaginatedBookOrderItemRowsDtoItemsItemShipment = {
   note: string | null;
   /** @nullable */
   pickupUntil: string | null;
+  /**
+   * When the whole parcel was received.
+   * @nullable
+   */
+  receivedAt: string | null;
   status: PaginatedBookOrderItemRowsDtoItemsItemShipmentStatus;
   /** @nullable */
   trackingNumber: string | null;

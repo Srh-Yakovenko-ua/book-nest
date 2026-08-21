@@ -16,6 +16,7 @@ export type LibraryOverviewViewDtoRecentlyAddedItemLoanInfo = {
   contact: string | null;
   /** @nullable */
   expectedReturnDate: string | null;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   loanType: LibraryOverviewViewDtoRecentlyAddedItemLoanInfoLoanType;

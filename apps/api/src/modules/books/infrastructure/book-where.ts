@@ -20,6 +20,7 @@ export type LibraryFilter = {
   bookType?: BookType;
   formats?: BookFormat[];
   genreKeys?: string[];
+  hasActiveOrder?: boolean;
   hasCover?: boolean;
   hasDedication?: boolean;
   hasRating?: boolean;
@@ -98,6 +99,12 @@ export function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput 
   }
   if (filter.notInList !== undefined) {
     where.lists = { none: { listId: filter.notInList } };
+  }
+  if (filter.hasActiveOrder !== undefined) {
+    const activeOrderItem = { cancelledAt: null, receivedAt: null };
+    where.orderItems = filter.hasActiveOrder
+      ? { some: activeOrderItem }
+      : { none: activeOrderItem };
   }
   if (filter.hasCover === true) {
     where.coverMediaId = { not: null };

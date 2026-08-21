@@ -54,6 +54,7 @@ import {
 } from "./lists.js";
 import { LoanInfoViewSchema, LoanNoteSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
+import { validateOrderInvariant } from "./order-financials.js";
 import { LOAN_REMINDER_LEAD_DAYS } from "./profile.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
@@ -283,10 +284,12 @@ export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
 
 export const DeliveryInfoInputSchema = z
   .object({
-    currency: CurrencySchema.nullable().optional(),
+    currency: CurrencySchema.optional(),
     deliveryService: DeliveryServiceSchema.nullable().optional(),
     deliveryStatus: ActiveShipmentStatusSchema.optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
+    isFree: z.boolean().optional(),
+    isShipped: z.boolean().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
@@ -305,9 +308,10 @@ export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 export const CreateDeliveryInputSchema = z
   .object({
-    currency: CurrencySchema.optional(),
+    currency: CurrencySchema,
     deliveryService: DeliveryServiceSchema.optional(),
     expectedDeliveryDate: z.iso.date().optional(),
+    isFree: z.boolean().default(false),
     note: OwnershipNoteSchema.optional(),
     orderDate: notInFutureDate("Order date must not be in the future"),
     orderNumber: OwnershipOrderNumberSchema.optional(),
@@ -319,15 +323,26 @@ export const CreateDeliveryInputSchema = z
   .refine(isExpectedNotBeforeOrder, {
     error: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
     path: ["expectedDeliveryDate"],
+  })
+  .superRefine((delivery, context) => {
+    const validation = validateOrderInvariant({
+      currency: delivery.currency,
+      isFree: delivery.isFree,
+      itemPrices: [delivery.price ?? null],
+    });
+    if (validation.error !== null) {
+      context.addIssue({ code: "custom", message: validation.error, path: ["price"] });
+    }
   });
 
 export type CreateDeliveryInput = z.infer<typeof CreateDeliveryInputSchema>;
 
 export const UpdateDeliveryInputSchema = z
   .object({
-    currency: CurrencySchema.nullable().optional(),
+    currency: CurrencySchema.optional(),
     deliveryService: DeliveryServiceSchema.nullable().optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
+    isFree: z.boolean().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
@@ -392,8 +407,18 @@ const isReturnNotBeforeLoan = (value: {
   value.expectedReturnDate === null ||
   value.expectedReturnDate >= value.loanDate;
 
+export const LOAN_PERSON_REQUIRED_MESSAGE = "Enter the person's name";
+
+export function hasLoanPersonIdentity(value: {
+  loanContactId?: string;
+  personName?: string;
+}): boolean {
+  return value.loanContactId !== undefined || (value.personName ?? "").length > 0;
+}
+
 const LoanInfoFieldsSchema = z.object({
   expectedReturnDate: z.iso.date().nullable().optional(),
+  loanContactId: z.uuid().optional(),
   loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
   note: LoanNoteSchema.nullable().optional(),
   personName: OwnershipPersonNameSchema.optional(),
@@ -411,14 +436,19 @@ export const CreateLoanInputSchema = z
     contact: OwnershipContactSchema.nullable().optional(),
     direction: LoanDirectionSchema,
     expectedReturnDate: z.iso.date().nullable().optional(),
+    loanContactId: z.uuid().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future"),
     note: LoanNoteSchema.nullable().optional(),
-    personName: OwnershipPersonNameSchema,
+    personName: OwnershipPersonNameSchema.optional(),
     remindToReturn: z.boolean().optional(),
   })
   .refine(isReturnNotBeforeLoan, {
     error: RETURN_BEFORE_LOAN_MESSAGE,
     path: ["expectedReturnDate"],
+  })
+  .refine(hasLoanPersonIdentity, {
+    error: LOAN_PERSON_REQUIRED_MESSAGE,
+    path: ["personName"],
   })
   .refine(
     (value) =>
@@ -436,14 +466,19 @@ export const UpdateLoanInputSchema = z
   .object({
     contact: OwnershipContactSchema.nullable().optional(),
     expectedReturnDate: z.iso.date().nullable().optional(),
+    loanContactId: z.uuid().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
     note: LoanNoteSchema.nullable().optional(),
-    personName: OwnershipPersonNameSchema,
+    personName: OwnershipPersonNameSchema.optional(),
     remindToReturn: z.boolean().optional(),
   })
   .refine(isReturnNotBeforeLoan, {
     error: RETURN_BEFORE_LOAN_MESSAGE,
     path: ["expectedReturnDate"],
+  })
+  .refine(hasLoanPersonIdentity, {
+    error: LOAN_PERSON_REQUIRED_MESSAGE,
+    path: ["personName"],
   })
   .refine(
     (value) =>
@@ -530,11 +565,11 @@ export const CreateBookInputSchema = z
 
     if (
       ownershipStatusUsesLoan(value.ownershipStatus) &&
-      (value.loanInfo?.personName ?? "").length === 0
+      !hasLoanPersonIdentity(value.loanInfo ?? {})
     ) {
       context.addIssue({
         code: "custom",
-        message: "Enter the person's name",
+        message: LOAN_PERSON_REQUIRED_MESSAGE,
         path: ["loanInfo", "personName"],
       });
     }
@@ -800,6 +835,7 @@ export const LibraryBooksQuerySchema = z
     bookType: BookTypeSchema.optional(),
     format: queryStringArray(BookFormatSchema),
     genre: queryStringArray(GenreKeySchema),
+    hasActiveOrder: z.stringbool().optional(),
     hasCover: z.stringbool().optional(),
     hasDedication: z.stringbool().optional(),
     hasRating: z.stringbool().optional(),

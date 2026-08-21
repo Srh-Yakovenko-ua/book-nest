@@ -17,7 +17,7 @@ type HistoryFixture = LoanHistoryDetailView;
 
 type MockOptions = {
   overview?: LoanHistoryOverviewView;
-  people?: { personName: string; totalCount: number }[];
+  people?: { contactId: string; personName: string; totalCount: number }[];
 };
 
 type RecordedRequest = {
@@ -25,6 +25,11 @@ type RecordedRequest = {
   method: string;
   url: string;
 };
+
+const CONTACT_IDS = {
+  ihor: "22222222-2222-4222-8222-222222222222",
+  olena: "11111111-1111-4111-8111-111111111111",
+} as const;
 
 const TODAY = new Date(2026, 7, 14, 9, 0, 0);
 
@@ -67,12 +72,14 @@ const OVERVIEW: LoanHistoryOverviewView = {
   topPeople: [
     {
       borrowedCount: 3,
+      contactId: CONTACT_IDS.olena,
       lentCount: 5,
       personName: "Олена",
       totalCount: 8,
     },
     {
       borrowedCount: 2,
+      contactId: CONTACT_IDS.ihor,
       lentCount: 0,
       personName: "Ігор",
       totalCount: 2,
@@ -289,7 +296,7 @@ describe("LoanHistoryView toolbar", () => {
     await pickOption(copy.toolbar.personLabel, /Олена/);
 
     await waitFor(() => {
-      expect(lastListUrl()).toContain(`person=${encodeURIComponent("Олена")}`);
+      expect(lastListUrl()).toContain(`contactId=${CONTACT_IDS.olena}`);
     });
   });
 
@@ -311,7 +318,18 @@ describe("LoanHistoryView toolbar", () => {
       expect(personFilter()).toHaveTextContent(copy.person.all);
     });
     expect(personFilter()).not.toHaveTextContent("Олена");
+    expect(lastListUrl()).not.toContain("contactId=");
+  });
+
+  it("drops a legacy person filter from the URL instead of asking the API for it", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory(`?person=${encodeURIComponent("Олена")}&contactId=olena`);
+
+    await findRow("Дюна");
     expect(lastListUrl()).not.toContain("person=");
+    expect(lastListUrl()).not.toContain("contactId=");
+    expect(personFilter()).toHaveTextContent(copy.person.all);
   });
 
   it("asks for another order when the reader changes the sort", async () => {
@@ -671,7 +689,7 @@ describe("LoanHistoryView analytics sidebar", () => {
     await userEvent.click(person);
 
     await waitFor(() => {
-      expect(lastListUrl()).toContain(`person=${encodeURIComponent("Олена")}`);
+      expect(lastListUrl()).toContain(`contactId=${CONTACT_IDS.olena}`);
     });
     expect(person).toHaveAttribute("aria-pressed", "true");
   });
@@ -917,6 +935,7 @@ function historyItem(overrides: Partial<HistoryFixture> = {}): HistoryFixture {
     expectedReturnDate: "2026-07-10",
     historyResult: "on_time",
     id: "loan-dune",
+    loanContactId: CONTACT_IDS.olena,
     loanDate: "2026-06-12",
     note: null,
     personName: "Олена",
@@ -994,7 +1013,9 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
       if (url.includes("/api/loans/history/people")) {
         return Promise.resolve(
           jsonResponse({
-            items: options.people ?? [{ personName: "Олена", totalCount: 8 }],
+            items: options.people ?? [
+              { contactId: CONTACT_IDS.olena, personName: "Олена", totalCount: 8 },
+            ],
           }),
         );
       }

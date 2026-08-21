@@ -1,265 +1,153 @@
-import type { Nullable } from "@app/shared";
-
+import {
+  CreateBookOrderInputSchema,
+  ORDER_FINANCIAL_MESSAGES,
+  resolveOrderFinancials,
+  validateOrderInvariant,
+} from "@app/shared";
 import { describe, expect, it } from "vitest";
 
-import type { OrderFinancials, OrderFinancialsItem } from "./order-financials.js";
+const BOOK_ID = "11111111-1111-4111-8111-111111111111";
 
-import { resolveOrderFinancials } from "./order-financials.js";
-
-type FinancialsCase = {
-  countedItems: OrderFinancialsItem[];
-  deliveryPrice: Nullable<number>;
-  discount: Nullable<number>;
-  expected: OrderFinancials;
-  name: string;
-  totalAmount: Nullable<number>;
-};
-
-const LIVE_BOOK_PRICE = 300;
-const CANCELLED_BOOK_PRICE = 200;
-const DELIVERY_PRICE = 50;
-
-function priced(prices: Nullable<number>[]): OrderFinancialsItem[] {
-  return prices.map((price) => ({ price }));
+function parseOrder(overrides: Record<string, unknown>) {
+  return CreateBookOrderInputSchema.safeParse({
+    currency: "UAH",
+    items: [{ bookId: BOOK_ID, price: 500 }],
+    storeName: "Yakaboo",
+    ...overrides,
+  });
 }
 
-const ITEMS_INCLUDING_CANCELLED = priced([LIVE_BOOK_PRICE, CANCELLED_BOOK_PRICE]);
-const ITEMS_EXCLUDING_CANCELLED = priced([LIVE_BOOK_PRICE]);
-const ITEMS_LEFT_AFTER_EXCLUDING_EVERY_CANCELLED_BOOK = priced([]);
-
-const FINANCIALS_CASES: FinancialsCase[] = [
-  {
-    countedItems: priced([300, 200]),
-    deliveryPrice: 50,
-    discount: null,
-    expected: {
-      componentSubtotal: 500,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: 0,
-      source: "manual",
-    },
-    name: "an explicit total that matches its components reconciles to zero",
-    totalAmount: 550,
-  },
-  {
-    countedItems: priced([300, null]),
-    deliveryPrice: 50,
-    discount: null,
-    expected: {
-      componentSubtotal: null,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: null,
-      source: "manual",
-    },
-    name: "an explicit total stands even when one book has no price, and the subtotal stays unknown",
-    totalAmount: 550,
-  },
-  {
-    countedItems: priced([300, 200]),
-    deliveryPrice: 50,
-    discount: null,
-    expected: {
-      componentSubtotal: 500,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: 0,
-      source: "calculated",
-    },
-    name: "without an explicit total the books and the delivery add up to the calculated total",
-    totalAmount: null,
-  },
-  {
-    countedItems: priced([300, null]),
-    deliveryPrice: 50,
-    discount: null,
-    expected: {
-      componentSubtotal: null,
-      effectiveTotalAmount: null,
-      reconciliationAdjustment: null,
-      source: "unknown",
-    },
-    name: "without an explicit total a single unpriced book leaves the whole order unknown",
-    totalAmount: null,
-  },
-  {
-    countedItems: priced([300, 200]),
-    deliveryPrice: null,
-    discount: null,
-    expected: {
-      componentSubtotal: 500,
-      effectiveTotalAmount: 0,
-      reconciliationAdjustment: -500,
-      source: "free",
-    },
-    name: "an explicit zero reads as a free order and records the priced books it overrode",
-    totalAmount: 0,
-  },
-  {
-    countedItems: priced([300]),
-    deliveryPrice: null,
-    discount: 300,
-    expected: {
-      componentSubtotal: 300,
-      effectiveTotalAmount: 0,
-      reconciliationAdjustment: 0,
-      source: "free",
-    },
-    name: "an order discounted down to nothing reads as free just like an explicit zero",
-    totalAmount: null,
-  },
-  {
-    countedItems: priced([0]),
-    deliveryPrice: 50,
-    discount: null,
-    expected: {
-      componentSubtotal: 0,
-      effectiveTotalAmount: 50,
-      reconciliationAdjustment: 0,
-      source: "calculated",
-    },
-    name: "an order of free books still costs its delivery",
-    totalAmount: null,
-  },
-  {
-    countedItems: priced([300, 200]),
-    deliveryPrice: 50,
-    discount: 120,
-    expected: {
-      componentSubtotal: 500,
-      effectiveTotalAmount: 430,
-      reconciliationAdjustment: 0,
-      source: "calculated",
-    },
-    name: "a discount comes off the total after the delivery is added",
-    totalAmount: null,
-  },
-  {
-    countedItems: priced([0.1, 0.2]),
-    deliveryPrice: null,
-    discount: null,
-    expected: {
-      componentSubtotal: 0.3,
-      effectiveTotalAmount: 0.3,
-      reconciliationAdjustment: 0,
-      source: "calculated",
-    },
-    name: "two cent amounts add up in minor units instead of drifting by a fraction",
-    totalAmount: null,
-  },
-];
-
 describe("resolveOrderFinancials", () => {
-  it.each(FINANCIALS_CASES)(
-    "$name",
-    ({ countedItems, deliveryPrice, discount, expected, totalAmount }) => {
-      expect(
-        resolveOrderFinancials({ countedItems, deliveryPrice, discount, totalAmount }),
-      ).toEqual(expected);
-    },
-  );
-
-  it("keeps an explicit total that disagrees with its components and reports the gap instead of failing", () => {
-    const resolve = (): OrderFinancials =>
-      resolveOrderFinancials({
-        countedItems: priced([300, 200]),
-        deliveryPrice: 50,
-        discount: null,
-        totalAmount: 600,
-      });
-
-    expect(resolve).not.toThrow();
-    expect(resolve()).toEqual({
-      componentSubtotal: 500,
-      effectiveTotalAmount: 600,
-      reconciliationAdjustment: 50,
-      source: "manual",
+  it("calculates a complete item breakdown", () => {
+    expect(resolveOrderFinancials({ itemPrices: [500, 600, 800] })).toMatchObject({
+      effectiveTotalAmount: 1900,
+      isItemBreakdownComplete: true,
+      itemsSubtotal: 1900,
+      totalSource: "calculated",
     });
   });
 
-  it("drops a cancelled book out of the calculated total once its caller stops counting it", () => {
-    const withCancelled = resolveOrderFinancials({
-      countedItems: ITEMS_INCLUDING_CANCELLED,
-      deliveryPrice: DELIVERY_PRICE,
-      discount: null,
-      totalAmount: null,
-    });
-    const withoutCancelled = resolveOrderFinancials({
-      countedItems: ITEMS_EXCLUDING_CANCELLED,
-      deliveryPrice: DELIVERY_PRICE,
-      discount: null,
-      totalAmount: null,
-    });
-
-    expect(withCancelled).toEqual({
-      componentSubtotal: 500,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: 0,
-      source: "calculated",
-    });
-    expect(withoutCancelled).toEqual({
-      componentSubtotal: 300,
-      effectiveTotalAmount: 350,
-      reconciliationAdjustment: 0,
-      source: "calculated",
-    });
-  });
-
-  it("treats a manual total as order level truth: dropping a cancelled book infers no refund and only widens the reconciliation gap", () => {
-    const withCancelled = resolveOrderFinancials({
-      countedItems: ITEMS_INCLUDING_CANCELLED,
-      deliveryPrice: DELIVERY_PRICE,
-      discount: null,
-      totalAmount: 550,
-    });
-    const withoutCancelled = resolveOrderFinancials({
-      countedItems: ITEMS_EXCLUDING_CANCELLED,
-      deliveryPrice: DELIVERY_PRICE,
-      discount: null,
-      totalAmount: 550,
-    });
-
-    expect(withCancelled).toEqual({
-      componentSubtotal: 500,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: 0,
-      source: "manual",
-    });
-    expect(withoutCancelled).toEqual({
-      componentSubtotal: 300,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: 200,
-      source: "manual",
-    });
-  });
-
-  it("counts every book of a fully cancelled order while its caller still includes cancelled books", () => {
+  it("includes delivery and subtracts discount using money precision", () => {
     expect(
-      resolveOrderFinancials({
-        countedItems: ITEMS_INCLUDING_CANCELLED,
-        deliveryPrice: DELIVERY_PRICE,
-        discount: null,
-        totalAmount: null,
-      }),
-    ).toEqual({
-      componentSubtotal: 500,
-      effectiveTotalAmount: 550,
-      reconciliationAdjustment: 0,
-      source: "calculated",
+      resolveOrderFinancials({ deliveryPrice: 100, discount: 200, itemPrices: [500, 600, 800] }),
+    ).toMatchObject({ effectiveTotalAmount: 1800, totalSource: "calculated" });
+    expect(resolveOrderFinancials({ itemPrices: [0.1, 0.2] }).effectiveTotalAmount).toBe(0.3);
+  });
+
+  it("uses a manual total when the item breakdown is incomplete", () => {
+    expect(
+      resolveOrderFinancials({ itemPrices: [500, null, 800], totalAmount: 1500 }),
+    ).toMatchObject({
+      effectiveTotalAmount: 1500,
+      isItemBreakdownComplete: false,
+      pricedItemsCount: 2,
+      totalSource: "manual",
     });
   });
 
-  it("resolves a fully cancelled order down to its delivery alone once its caller excludes every book", () => {
-    expect(
-      resolveOrderFinancials({
-        countedItems: ITEMS_LEFT_AFTER_EXCLUDING_EVERY_CANCELLED_BOOK,
-        deliveryPrice: DELIVERY_PRICE,
-        discount: null,
-        totalAmount: null,
-      }),
-    ).toEqual({
-      componentSubtotal: 0,
-      effectiveTotalAmount: 50,
-      reconciliationAdjustment: 0,
-      source: "calculated",
+  it("keeps an incomplete order without a manual total unknown", () => {
+    expect(resolveOrderFinancials({ itemPrices: [null, null] })).toMatchObject({
+      effectiveTotalAmount: null,
+      totalSource: "unknown",
     });
+  });
+
+  it("reads a free order as costing exactly nothing", () => {
+    expect(resolveOrderFinancials({ isFree: true, itemPrices: [null, null] })).toMatchObject({
+      effectiveTotalAmount: 0,
+      isItemBreakdownComplete: false,
+      totalSource: "free",
+    });
+  });
+
+  it("rejects a conflicting client total for a complete breakdown", () => {
+    expect(
+      parseOrder({
+        deliveryPrice: 100,
+        discount: 200,
+        items: [
+          { bookId: BOOK_ID, price: 500 },
+          { bookId: "22222222-2222-4222-8222-222222222222", price: 600 },
+          { bookId: "33333333-3333-4333-8333-333333333333", price: 800 },
+        ],
+        totalAmount: 200,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a discount that makes the calculated total negative", () => {
+    expect(parseOrder({ discount: 501 }).success).toBe(false);
+  });
+});
+
+describe("validateOrderInvariant", () => {
+  it("accepts a paid order whose books add up to a positive total", () => {
+    expect(validateOrderInvariant({ currency: "UAH", itemPrices: [500, 600] })).toMatchObject({
+      error: null,
+    });
+  });
+
+  it("accepts a free order that carries no amount at all", () => {
+    expect(validateOrderInvariant({ currency: "UAH", isFree: true, itemPrices: [null] })).toEqual({
+      error: null,
+      summary: expect.objectContaining({ effectiveTotalAmount: 0, totalSource: "free" }),
+    });
+  });
+
+  it("refuses an order whose total nobody can work out", () => {
+    expect(validateOrderInvariant({ currency: "UAH", itemPrices: [500, null] }).error).toBe(
+      ORDER_FINANCIAL_MESSAGES.unknownTotal,
+    );
+  });
+
+  it("refuses an order that names no currency", () => {
+    expect(validateOrderInvariant({ itemPrices: [500] }).error).toBe(
+      ORDER_FINANCIAL_MESSAGES.currencyRequired,
+    );
+  });
+
+  it("refuses a paid order that adds up to nothing", () => {
+    expect(validateOrderInvariant({ currency: "UAH", itemPrices: [0] }).error).toBe(
+      ORDER_FINANCIAL_MESSAGES.paidOrderNeedsPositiveTotal,
+    );
+  });
+
+  it("refuses a free order that still carries a price, a delivery cost or a discount", () => {
+    for (const carried of [
+      { itemPrices: [500] },
+      { deliveryPrice: 80, itemPrices: [null] },
+      { discount: 20, itemPrices: [null] },
+      { itemPrices: [null], totalAmount: 0 },
+    ]) {
+      expect(validateOrderInvariant({ currency: "UAH", isFree: true, ...carried }).error).toBe(
+        ORDER_FINANCIAL_MESSAGES.freeOrderCarriesAmounts,
+      );
+    }
+  });
+
+  it("keeps free books with a paid delivery on the ordinary paid path", () => {
+    expect(
+      validateOrderInvariant({ currency: "UAH", deliveryPrice: 80, itemPrices: [0] }),
+    ).toMatchObject({ error: null, summary: { effectiveTotalAmount: 80 } });
+  });
+});
+
+describe("CreateBookOrderInputSchema under the order invariant", () => {
+  it("refuses an order with neither a total nor a full price breakdown", () => {
+    expect(parseOrder({ items: [{ bookId: BOOK_ID }] }).success).toBe(false);
+  });
+
+  it("refuses an order that names no currency", () => {
+    expect(
+      CreateBookOrderInputSchema.safeParse({
+        items: [{ bookId: BOOK_ID, price: 500 }],
+        storeName: "Yakaboo",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a free order and defaults every other order to paid", () => {
+    expect(parseOrder({ isFree: true, items: [{ bookId: BOOK_ID }] }).success).toBe(true);
+    expect(parseOrder({}).data?.isFree).toBe(false);
   });
 });

@@ -63,6 +63,9 @@ export const ShipmentsControllerCreateShipmentResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -146,6 +149,9 @@ export const ShipmentsControllerMoveItemsResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -187,6 +193,38 @@ export const ShipmentsControllerMoveItemsResponse = zod.object({
   storeName: zod.string(),
   totalAmount: zod.number().nullable(),
   updatedAt: zod.string(),
+});
+
+/**
+ * @summary Mark many shipments as received in one batch, marking their books as owned
+ */
+export const shipmentsControllerReceiveShipmentsBodyReceivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const shipmentsControllerReceiveShipmentsBodyShipmentIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const shipmentsControllerReceiveShipmentsBodyShipmentIdsMax = 100;
+
+export const ShipmentsControllerReceiveShipmentsBody = zod.object({
+  receivedAt: zod.iso
+    .date()
+    .regex(shipmentsControllerReceiveShipmentsBodyReceivedAtRegExp)
+    .optional(),
+  shipmentIds: zod
+    .array(zod.uuid().regex(shipmentsControllerReceiveShipmentsBodyShipmentIdsItemRegExp))
+    .min(1)
+    .max(shipmentsControllerReceiveShipmentsBodyShipmentIdsMax),
+});
+
+export const ShipmentsControllerReceiveShipmentsResponse = zod.object({
+  receivedShipmentIds: zod.array(zod.string()),
+  skipped: zod.array(
+    zod.object({
+      reason: zod.enum(["not_active", "not_found"]),
+      shipmentId: zod.string(),
+    }),
+  ),
 });
 
 /**
@@ -236,6 +274,9 @@ export const ShipmentsControllerUpdateShipmentResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -314,6 +355,9 @@ export const ShipmentsControllerMarkInTransitResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -391,6 +435,9 @@ export const ShipmentsControllerMarkReadyForPickupResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -465,6 +512,9 @@ export const ShipmentsControllerMarkReceivedResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -540,6 +590,9 @@ export const ShipmentsControllerCancelShipmentResponse = zod.object({
   ]),
   discount: zod.number().nullable(),
   id: zod.string(),
+  isFree: zod
+    .boolean()
+    .describe("The order was received for free, so its canonical total is zero."),
   items: zod.array(
     zod.object({
       bookId: zod.string(),

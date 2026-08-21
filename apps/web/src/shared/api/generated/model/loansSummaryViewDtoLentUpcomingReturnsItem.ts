@@ -17,6 +17,7 @@ export type LoansSummaryViewDtoLentUpcomingReturnsItem = {
   /** @nullable */
   expectedReturnDate: string | null;
   id: string;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   loanUiStatus: LoansSummaryViewDtoLentUpcomingReturnsItemLoanUiStatus;

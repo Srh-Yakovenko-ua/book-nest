@@ -1,4 +1,4 @@
-import { addDays } from "date-fns";
+import { addDays, subDays } from "date-fns";
 import { describe, expect, it } from "vitest";
 
 import type { ShipmentUiStatusSource } from "./delivery-ui-status.js";
@@ -62,18 +62,36 @@ describe("deliveryDateBounds", () => {
     expect(soonEnd.toISOString()).toBe(addDays(today, 7).toISOString());
   });
 
-  it("spans the Monday-to-Sunday week that contains today", () => {
-    const { weekEnd, weekStart } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+  it("puts the dispatch cutoff a week behind today, so an older order counts as waiting", () => {
+    const { dispatchCutoff, today } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
 
-    expect(weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
-    expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
-    expect(weekEnd.toISOString()).toBe(addDays(weekStart, 6).toISOString());
+    expect(dispatchCutoff.toISOString()).toBe("2026-07-01T00:00:00.000Z");
+    expect(dispatchCutoff.toISOString()).toBe(subDays(today, 7).toISOString());
   });
 
-  it("keeps today within the week when the instant falls on a Sunday", () => {
-    const { today, weekEnd, weekStart } = deliveryDateBounds(new Date("2026-07-12T23:59:59.000Z"));
+  it("puts the pickup deadline two days ahead of today, so a parcel due then already asks for attention", () => {
+    const { pickupDeadline, today } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
 
-    expect(weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+    expect(pickupDeadline.toISOString()).toBe("2026-07-10T00:00:00.000Z");
+    expect(pickupDeadline.toISOString()).toBe(addDays(today, 2).toISOString());
+  });
+
+  it("closes the week on the Sunday of the Monday-to-Sunday week holding today", () => {
+    const { weekEnd } = deliveryDateBounds(new Date("2026-07-08T15:30:00.000Z"));
+
+    expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
+  });
+
+  it("still reaches the coming Sunday when the instant falls on the Monday", () => {
+    const { today, weekEnd } = deliveryDateBounds(new Date("2026-07-06T09:00:00.000Z"));
+
+    expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
+    expect(today.toISOString()).toBe("2026-07-06T00:00:00.000Z");
+  });
+
+  it("collapses the week onto today when the instant falls on the Sunday", () => {
+    const { today, weekEnd } = deliveryDateBounds(new Date("2026-07-12T23:59:59.000Z"));
+
     expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
     expect(today.toISOString()).toBe("2026-07-12T00:00:00.000Z");
   });
@@ -150,17 +168,27 @@ describe("getShipmentUiStatus", () => {
     expect(getShipmentUiStatus({ shipment, today: TODAY })).toBe("delayed");
   });
 
-  it("prefers the delivery date over the pickup deadline when the parcel carries both", () => {
+  it("prefers the pickup deadline over the delivery date when the parcel carries both", () => {
     const shipment = makeShipment({
       expectedDeliveryDate: utc("2026-07-20"),
       pickupUntil: utc("2026-07-09"),
       status: "ready_for_pickup",
     });
 
-    expect(getShipmentUiStatus({ shipment, today: TODAY })).toBeNull();
+    expect(getShipmentUiStatus({ shipment, today: TODAY })).toBe("arriving_soon");
   });
 
-  it("gives ready_for_pickup no UI status of its own, because a UI status only answers when a parcel is due, and a parcel waiting at a pickup point answers that with a date like any other", () => {
+  it("stops calling a waiting parcel delayed once its pickup deadline moves the due date ahead", () => {
+    const shipment = makeShipment({
+      expectedDeliveryDate: utc("2026-07-01"),
+      pickupUntil: utc("2026-07-14"),
+      status: "ready_for_pickup",
+    });
+
+    expect(getShipmentUiStatus({ shipment, today: TODAY })).toBe("arriving_soon");
+  });
+
+  it("keeps counting from the delivery date while a waiting parcel has no pickup deadline, because a UI status only answers when a parcel is due", () => {
     const dueDate = utc("2026-07-09");
     const waiting = makeShipment({ expectedDeliveryDate: dueDate, status: "ready_for_pickup" });
     const travelling = makeShipment({ expectedDeliveryDate: dueDate, status: "in_transit" });

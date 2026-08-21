@@ -118,10 +118,17 @@ async function createLoan({
   remindToReturn?: boolean;
   userId: string;
 }): Promise<string> {
+  const loanContact = await prisma.loanContact.upsert({
+    create: { name: "Paul Atreides", normalizedName: "paul atreides", userId },
+    select: { id: true },
+    update: {},
+    where: { userId_normalizedName: { normalizedName: "paul atreides", userId } },
+  });
   const loan = await prisma.bookLoan.create({
     data: {
       bookId,
       expectedReturnDate,
+      loanContactId: loanContact.id,
       personName: "Paul Atreides",
       remindToReturn,
       status: "active",
@@ -206,6 +213,24 @@ describe("NotificationReminderSweeper", () => {
       bookTitle: "Dune",
       dueDate: "2026-08-02",
       personName: "Paul Atreides",
+    });
+  });
+
+  it("carries the current name of the contact into a reminder written after a rename", async () => {
+    const { bookId, userId } = await seedLoanCandidate();
+    await prisma.loanContact.updateMany({
+      data: { name: "Paul Muad'Dib", normalizedName: "paul muad'dib" },
+      where: { userId },
+    });
+
+    await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
+
+    const notifications = await readNotifications(userId);
+    expect(notifications[0]?.params).toEqual({
+      bookId,
+      bookTitle: "Dune",
+      dueDate: "2026-08-02",
+      personName: "Paul Muad'Dib",
     });
   });
 

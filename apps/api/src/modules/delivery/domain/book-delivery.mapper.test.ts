@@ -37,6 +37,7 @@ function buildRow({
       deliveryPrice: null,
       discount: null,
       id: "order-1",
+      isFree: false,
       note: null,
       orderDate: null,
       orderNumber: null,

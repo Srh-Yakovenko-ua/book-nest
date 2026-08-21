@@ -1,6 +1,7 @@
 import type {
   ActiveMoneyAgeBucket,
   Currency,
+  InTransitDeliveryStructure,
   InTransitFilter,
   InTransitSort,
   Nullable,
@@ -10,6 +11,7 @@ import {
   ACTIVE_MONEY_AGE_BUCKET_DAYS,
   DEFAULT_CURRENCY,
   IN_TRANSIT_EXPECTED_DATE_ORDER,
+  SHIPMENT_ACTIVE_STATUSES,
   ShipmentStatusSchema,
 } from "@app/shared";
 
@@ -19,9 +21,45 @@ import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { addDaysToIsoDate, toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { IN_TRANSIT_ATTENTION_CATEGORIES } from "../domain/delivery-summary.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+
+const AWAITING_ARRIVAL_SHIPMENT_STATUSES = [
+  SHIPMENT_STATUS.ordered,
+  SHIPMENT_STATUS.in_transit,
+] as const;
+
+const AWAITING_ARRIVAL_SQL = Prisma.sql`shipment.status = ANY(${[
+  ...AWAITING_ARRIVAL_SHIPMENT_STATUSES,
+]}::text[])`;
+
+export const ORDER_PLACED_ON_SQL = Prisma.sql`
+  COALESCE(book_order.order_date, (book_order.created_at AT TIME ZONE 'UTC')::date)
+`;
+
+const DISPATCHED_SHIPMENT_STATUSES = [
+  SHIPMENT_STATUS.in_transit,
+  SHIPMENT_STATUS.ready_for_pickup,
+  SHIPMENT_STATUS.received,
+] as const;
+
+const ORDER_HAS_UNCANCELLED_SHIPMENT_SQL = Prisma.sql`
+  EXISTS (
+    SELECT 1
+    FROM shipments uncancelled_shipment
+    WHERE uncancelled_shipment.order_id = book_order.id
+      AND uncancelled_shipment.status <> ${SHIPMENT_STATUS.cancelled}
+  )
+`;
+
+const ORDER_HAS_DISPATCHED_SHIPMENT_SQL = Prisma.sql`
+  EXISTS (
+    SELECT 1
+    FROM shipments dispatched_shipment
+    WHERE dispatched_shipment.order_id = book_order.id
+      AND dispatched_shipment.status = ANY(${[...DISPATCHED_SHIPMENT_STATUSES]}::text[])
+  )
+`;
 
 export const ACTIVE_ITEM_SQL = Prisma.sql`
   book.deleted_at IS NULL
@@ -36,54 +74,110 @@ export const IN_TRANSIT_ITEM_SOURCE = Prisma.sql`
   LEFT JOIN shipments shipment ON shipment.id = item.shipment_id
 `;
 
-export type InTransitCategorySql = {
-  arrivingSoon: Prisma.Sql;
-  delayed: Prisma.Sql;
-  hasPrice: Prisma.Sql;
-  hasTrackingNumber: Prisma.Sql;
-  hasTrackingUrl: Prisma.Sql;
-  inTransit: Prisma.Sql;
-  ordered: Prisma.Sql;
-  readyForPickup: Prisma.Sql;
-  thisWeek: Prisma.Sql;
-  withoutExpectedDate: Prisma.Sql;
-  withoutPrice: Prisma.Sql;
-  withoutTrackingNumber: Prisma.Sql;
-  withoutTrackingUrl: Prisma.Sql;
+const ORDER_LIVE_ITEMS_SQL = Prisma.sql`
+  FROM book_order_items order_item
+  JOIN books order_book ON order_book.id = order_item.book_id
+  WHERE order_item.order_id = book_order.id
+    AND order_book.deleted_at IS NULL
+`;
+
+const ORDER_ACTIVE_ITEMS_COUNT_SQL = Prisma.sql`(
+  SELECT count(*)
+  ${ORDER_LIVE_ITEMS_SQL}
+    AND order_item.cancelled_at IS NULL
+    AND order_item.received_at IS NULL
+)`;
+
+const ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL = Prisma.sql`(
+  SELECT count(*)
+  FROM shipments structure_shipment
+  WHERE structure_shipment.order_id = book_order.id
+    AND structure_shipment.status <> ${SHIPMENT_STATUS.cancelled}
+)`;
+
+export const ORDER_EFFECTIVE_TOTAL_SQL = Prisma.sql`(CASE
+  WHEN book_order.is_free THEN 0
+  ELSE COALESCE(
+    (
+      SELECT sum(order_item.price)
+        + COALESCE(book_order.delivery_price, 0)
+        - COALESCE(book_order.discount, 0)
+      ${ORDER_LIVE_ITEMS_SQL}
+      HAVING count(*) > 0 AND count(*) FILTER (WHERE order_item.price IS NULL) = 0
+    ),
+    book_order.total_amount
+  )
+END)`;
+
+const DELIVERY_STRUCTURE_SQL: Record<InTransitDeliveryStructure, Prisma.Sql> = {
+  multiple_shipments: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} > 1`,
+  no_shipment: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} = 0`,
+  single_shipment: Prisma.sql`${ORDER_UNCANCELLED_SHIPMENTS_COUNT_SQL} = 1`,
 };
 
-export type InTransitFilterInput = {
+export type InTransitAdvancedFilter = {
+  booksMax: number | undefined;
+  booksMin: number | undefined;
+  currency: Currency[] | undefined;
+  expectedFrom: string | undefined;
+  expectedTo: string | undefined;
+  orderedFrom: string | undefined;
+  orderedTo: string | undefined;
+  priceCurrency: Currency | undefined;
+  priceMax: number | undefined;
+  priceMin: number | undefined;
+  service: string[] | undefined;
+  store: string[] | undefined;
+  structure: InTransitDeliveryStructure[] | undefined;
+};
+
+export type InTransitCategorySql = OrderScopedCategorySql & ShipmentScopedCategorySql;
+
+export type InTransitFilterInput = InTransitAdvancedFilter & {
   ageBucket: ActiveMoneyAgeBucket | undefined;
   bounds: DeliveryDateBounds;
-  currency: Currency | undefined;
   filter: InTransitFilter;
   search: string | undefined;
-  service: string | undefined;
-  store: string | undefined;
   userId: string;
 };
 
 export type IsoDateBounds = {
+  dispatchCutoffIso: string;
+  pickupDeadlineIso: string;
   soonEndIso: string;
   todayIso: string;
   weekEndIso: string;
-  weekStartIso: string;
 };
 
-type AgeBucketOrderDateBounds = {
-  newestOrderDateIso: string;
-  oldestOrderDateIso: Nullable<string>;
+export type ShipmentScopedCategorySql = {
+  arrivingSoon: Prisma.Sql;
+  delayed: Prisma.Sql;
+  hasTrackingNumber: Prisma.Sql;
+  hasTrackingUrl: Prisma.Sql;
+  inTransit: Prisma.Sql;
+  ordered: Prisma.Sql;
+  pickupExpiring: Prisma.Sql;
+  readyForPickup: Prisma.Sql;
+  thisWeek: Prisma.Sql;
+  withoutExpectedDate: Prisma.Sql;
+  withoutTrackingNumber: Prisma.Sql;
+  withoutTrackingUrl: Prisma.Sql;
 };
-
-type DatedActiveMoneyAgeBucket = keyof typeof ACTIVE_MONEY_AGE_BUCKET_DAYS;
 
 type ExpectedDateSort = keyof typeof IN_TRANSIT_EXPECTED_DATE_ORDER;
+
+type OrderScopedCategorySql = {
+  awaitingDispatch: Prisma.Sql;
+  hasPrice: Prisma.Sql;
+  unassigned: Prisma.Sql;
+  withoutPrice: Prisma.Sql;
+};
 
 const IN_TRANSIT_ORDER_SQL: Record<Exclude<InTransitSort, ExpectedDateSort>, Prisma.Sql> = {
   author: Prisma.sql`book.first_author_name ASC`,
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
   oldest_orders: Prisma.sql`book_order.order_date ASC NULLS LAST`,
-  price: Prisma.sql`item.price ASC NULLS LAST`,
+  price: Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} ASC NULLS LAST, book_order.id ASC`,
   service: Prisma.sql`shipment.delivery_service_name ASC NULLS LAST`,
   store: Prisma.sql`book_order.store_name ASC`,
   title: Prisma.sql`book.title ASC`,
@@ -116,40 +210,27 @@ const IN_TRANSIT_SEARCH_COLUMNS: Prisma.Sql[] = [
   Prisma.sql`shipment.note`,
 ];
 
-export function attentionSql(categories: InTransitCategorySql): Prisma.Sql {
-  const predicates = IN_TRANSIT_ATTENTION_CATEGORIES.map(
-    (category) => Prisma.sql`(${categories[category]})`,
-  );
-  return Prisma.sql`(${Prisma.join(predicates, " OR ")})`;
-}
+type AgeBucketOrderDateBounds = {
+  newestOrderDateIso: string;
+  oldestOrderDateIso: Nullable<string>;
+};
+
+type DatedActiveMoneyAgeBucket = keyof typeof ACTIVE_MONEY_AGE_BUCKET_DAYS;
 
 export function buildInTransitConditions({
   ageBucket,
   bounds,
-  currency,
   filter,
   search,
-  service,
-  store,
   userId,
+  ...advanced
 }: InTransitFilterInput): Prisma.Sql {
   const isoBounds = toIsoBounds(bounds);
   const conditions: Prisma.Sql[] = [
     Prisma.sql`book_order.user_id = ${userId}::uuid`,
     ACTIVE_ITEM_SQL,
+    ...advancedInTransitConditions(advanced),
   ];
-
-  if (store !== undefined) {
-    conditions.push(Prisma.sql`lower(book_order.store_name) = lower(${store})`);
-  }
-
-  if (service !== undefined) {
-    conditions.push(Prisma.sql`lower(shipment.delivery_service_name) = lower(${service})`);
-  }
-
-  if (currency !== undefined) {
-    conditions.push(currencySql(currency));
-  }
 
   if (ageBucket !== undefined) {
     conditions.push(ageBucketSql({ ageBucket, todayIso: isoBounds.todayIso }));
@@ -180,27 +261,8 @@ export function currencySql(currency: Currency): Prisma.Sql {
   )`;
 }
 
-export function inTransitCategorySql({
-  soonEndIso,
-  todayIso,
-  weekEndIso,
-  weekStartIso,
-}: IsoDateBounds): InTransitCategorySql {
-  return {
-    arrivingSoon: Prisma.sql`shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${soonEndIso}::date`,
-    delayed: Prisma.sql`shipment.expected_delivery_date < ${todayIso}::date`,
-    hasPrice: Prisma.sql`item.price IS NOT NULL`,
-    hasTrackingNumber: Prisma.sql`shipment.tracking_number IS NOT NULL`,
-    hasTrackingUrl: Prisma.sql`shipment.tracking_url IS NOT NULL`,
-    inTransit: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.in_transit}`,
-    ordered: Prisma.sql`COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered}) = ${SHIPMENT_STATUS.ordered}`,
-    readyForPickup: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}`,
-    thisWeek: Prisma.sql`shipment.expected_delivery_date BETWEEN ${weekStartIso}::date AND ${weekEndIso}::date`,
-    withoutExpectedDate: Prisma.sql`shipment.expected_delivery_date IS NULL`,
-    withoutPrice: Prisma.sql`item.price IS NULL`,
-    withoutTrackingNumber: Prisma.sql`shipment.tracking_number IS NULL`,
-    withoutTrackingUrl: Prisma.sql`shipment.tracking_url IS NULL`,
-  };
+export function inTransitCategorySql(bounds: IsoDateBounds): InTransitCategorySql {
+  return { ...orderScopedCategorySql(bounds), ...shipmentScopedCategorySql(bounds) };
 }
 
 export function inTransitOrderSql({
@@ -240,18 +302,126 @@ export function ordersWithActiveItemsSource({
   `;
 }
 
+export function shipmentScopedCategorySql({
+  pickupDeadlineIso,
+  soonEndIso,
+  todayIso,
+  weekEndIso,
+}: IsoDateBounds): ShipmentScopedCategorySql {
+  return {
+    arrivingSoon: Prisma.sql`shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${soonEndIso}::date`,
+    delayed: Prisma.sql`(
+      ${AWAITING_ARRIVAL_SQL}
+      AND shipment.expected_delivery_date < ${todayIso}::date
+    )`,
+    hasTrackingNumber: Prisma.sql`shipment.tracking_number IS NOT NULL`,
+    hasTrackingUrl: Prisma.sql`shipment.tracking_url IS NOT NULL`,
+    inTransit: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.in_transit}`,
+    ordered: Prisma.sql`COALESCE(shipment.status, ${SHIPMENT_STATUS.ordered}) = ${SHIPMENT_STATUS.ordered}`,
+    pickupExpiring: Prisma.sql`(
+      shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}
+      AND shipment.pickup_until IS NOT NULL
+      AND shipment.pickup_until <= ${pickupDeadlineIso}::date
+    )`,
+    readyForPickup: Prisma.sql`shipment.status = ${SHIPMENT_STATUS.ready_for_pickup}`,
+    thisWeek: Prisma.sql`(
+      shipment.expected_delivery_date BETWEEN ${todayIso}::date AND ${weekEndIso}::date
+      AND ${AWAITING_ARRIVAL_SQL}
+    )`,
+    withoutExpectedDate: Prisma.sql`(
+      ${AWAITING_ARRIVAL_SQL}
+      AND shipment.expected_delivery_date IS NULL
+    )`,
+    withoutTrackingNumber: Prisma.sql`(
+      shipment.status = ${SHIPMENT_STATUS.in_transit}
+      AND shipment.tracking_number IS NULL
+    )`,
+    withoutTrackingUrl: Prisma.sql`shipment.tracking_url IS NULL`,
+  };
+}
+
 export function toIsoBounds({
+  dispatchCutoff,
+  pickupDeadline,
   soonEnd,
   today,
   weekEnd,
-  weekStart,
 }: DeliveryDateBounds): IsoDateBounds {
   return {
+    dispatchCutoffIso: toIsoDate(dispatchCutoff),
+    pickupDeadlineIso: toIsoDate(pickupDeadline),
     soonEndIso: toIsoDate(soonEnd),
     todayIso: toIsoDate(today),
     weekEndIso: toIsoDate(weekEnd),
-    weekStartIso: toIsoDate(weekStart),
   };
+}
+
+function advancedInTransitConditions({
+  booksMax,
+  booksMin,
+  currency,
+  expectedFrom,
+  expectedTo,
+  orderedFrom,
+  orderedTo,
+  priceCurrency,
+  priceMax,
+  priceMin,
+  service,
+  store,
+  structure,
+}: InTransitAdvancedFilter): Prisma.Sql[] {
+  const conditions: Prisma.Sql[] = [];
+
+  if (store !== undefined) {
+    conditions.push(Prisma.sql`lower(book_order.store_name) = ANY(${lowered(store)}::text[])`);
+  }
+
+  if (currency !== undefined) {
+    conditions.push(anyOf(currency.map(currencySql)));
+  }
+
+  if (service !== undefined) {
+    conditions.push(orderHasActiveShipmentWithServiceSql(service));
+  }
+
+  if (orderedFrom !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} >= ${orderedFrom}::date`);
+  }
+
+  if (orderedTo !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_PLACED_ON_SQL} <= ${orderedTo}::date`);
+  }
+
+  if (booksMin !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_ACTIVE_ITEMS_COUNT_SQL} >= ${booksMin}::int`);
+  }
+
+  if (booksMax !== undefined) {
+    conditions.push(Prisma.sql`${ORDER_ACTIVE_ITEMS_COUNT_SQL} <= ${booksMax}::int`);
+  }
+
+  if (expectedFrom !== undefined || expectedTo !== undefined) {
+    conditions.push(orderHasAwaitedShipmentInRangeSql({ from: expectedFrom, to: expectedTo }));
+  }
+
+  if (structure !== undefined) {
+    conditions.push(anyOf(structure.map((option) => DELIVERY_STRUCTURE_SQL[option])));
+  }
+
+  if (priceCurrency !== undefined) {
+    conditions.push(currencySql(priceCurrency));
+
+    if (priceMin !== undefined) {
+      conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} >= ${priceMin}`);
+    }
+
+    if (priceMax !== undefined) {
+      conditions.push(Prisma.sql`${ORDER_EFFECTIVE_TOTAL_SQL} <= ${priceMax}`);
+    }
+  }
+
+  return conditions;
 }
 
 function ageBucketOrderDateBounds({
@@ -292,6 +462,13 @@ function ageBucketSql({
   return Prisma.sql`book_order.order_date BETWEEN ${oldestOrderDateIso}::date AND ${newestOrderDateIso}::date`;
 }
 
+function anyOf(options: Prisma.Sql[]): Prisma.Sql {
+  if (options.length === 0) {
+    return Prisma.sql`FALSE`;
+  }
+  return Prisma.sql`(${Prisma.join(options, " OR ")})`;
+}
+
 function inTransitFilterSql({
   categories,
   filter,
@@ -304,6 +481,8 @@ function inTransitFilterSql({
       return null;
     case "arriving_soon":
       return categories.arrivingSoon;
+    case "awaiting_dispatch":
+      return categories.awaitingDispatch;
     case "delayed":
       return categories.delayed;
     case "has_price":
@@ -318,10 +497,14 @@ function inTransitFilterSql({
       return categories.withoutExpectedDate;
     case "ordered":
       return categories.ordered;
+    case "pickup_expiring":
+      return categories.pickupExpiring;
     case "ready_for_pickup":
       return categories.readyForPickup;
     case "this_week":
       return categories.thisWeek;
+    case "unassigned":
+      return categories.unassigned;
     case "without_price":
       return categories.withoutPrice;
     case "without_tracking_number":
@@ -333,8 +516,8 @@ function inTransitFilterSql({
   }
 }
 
-function isDatedAgeBucket(ageBucket: ActiveMoneyAgeBucket): ageBucket is DatedActiveMoneyAgeBucket {
-  return Object.hasOwn(ACTIVE_MONEY_AGE_BUCKET_DAYS, ageBucket);
+function isDatedAgeBucket(bucket: ActiveMoneyAgeBucket): bucket is DatedActiveMoneyAgeBucket {
+  return bucket in ACTIVE_MONEY_AGE_BUCKET_DAYS;
 }
 
 function isExpectedDateSort(sort: InTransitSort): sort is ExpectedDateSort {
@@ -343,6 +526,57 @@ function isExpectedDateSort(sort: InTransitSort): sort is ExpectedDateSort {
 
 function isoDateDaysAgo({ days, todayIso }: { days: number; todayIso: string }): string {
   return addDaysToIsoDate(todayIso, -days);
+}
+
+function lowered(values: string[]): string[] {
+  return values.map((value) => value.toLowerCase());
+}
+
+function orderHasActiveShipmentWithServiceSql(services: string[]): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM shipments service_shipment
+    WHERE service_shipment.order_id = book_order.id
+      AND service_shipment.status = ANY(${[...SHIPMENT_ACTIVE_STATUSES]}::text[])
+      AND lower(service_shipment.delivery_service_name) = ANY(${lowered(services)}::text[])
+  )`;
+}
+
+function orderHasAwaitedShipmentInRangeSql({
+  from,
+  to,
+}: {
+  from: string | undefined;
+  to: string | undefined;
+}): Prisma.Sql {
+  const bounds: Prisma.Sql[] = [];
+  if (from !== undefined) {
+    bounds.push(Prisma.sql`AND expected_shipment.expected_delivery_date >= ${from}::date`);
+  }
+  if (to !== undefined) {
+    bounds.push(Prisma.sql`AND expected_shipment.expected_delivery_date <= ${to}::date`);
+  }
+
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM shipments expected_shipment
+    WHERE expected_shipment.order_id = book_order.id
+      AND expected_shipment.status = ANY(${[...AWAITING_ARRIVAL_SHIPMENT_STATUSES]}::text[])
+      AND expected_shipment.expected_delivery_date IS NOT NULL
+      ${Prisma.join(bounds, " ")}
+  )`;
+}
+
+function orderScopedCategorySql({ dispatchCutoffIso }: IsoDateBounds): OrderScopedCategorySql {
+  return {
+    awaitingDispatch: Prisma.sql`(
+      ${ORDER_PLACED_ON_SQL} <= ${dispatchCutoffIso}::date
+      AND NOT ${ORDER_HAS_DISPATCHED_SHIPMENT_SQL}
+    )`,
+    hasPrice: Prisma.sql`item.price IS NOT NULL`,
+    unassigned: Prisma.sql`(item.shipment_id IS NULL AND ${ORDER_HAS_UNCANCELLED_SHIPMENT_SQL})`,
+    withoutPrice: Prisma.sql`item.price IS NULL`,
+  };
 }
 
 function plainInTransitOrderSql(sort: Exclude<InTransitSort, ExpectedDateSort>): Prisma.Sql {
