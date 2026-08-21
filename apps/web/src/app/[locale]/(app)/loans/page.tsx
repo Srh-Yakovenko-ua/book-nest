@@ -1,31 +1,32 @@
-import type { Metadata } from "next";
-
+import { LoanTypeSchema } from "@app/shared";
 import { hasLocale } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { LoansView } from "@/features/loans";
+import { LOAN_PAGES } from "@/features/loans";
+import { redirect } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale } = await params;
-  const resolvedLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
-  const t = await getTranslations({ locale: resolvedLocale, namespace: "loans" });
-  return { title: t("metaTitle") };
-}
-
-export default async function LoansPage({ params }: Props) {
+export default async function LoansPage({ params, searchParams }: Props) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
-  setRequestLocale(locale);
 
-  return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
-      <LoansView />
-    </main>
+  const { tab, ...rest } = await searchParams;
+  const requestedType = LoanTypeSchema.safeParse(tab);
+  const pathname = requestedType.success
+    ? LOAN_PAGES[requestedType.data].href
+    : LOAN_PAGES.borrowed_from_someone.href;
+
+  redirect({ href: { pathname, query: keptParams(rest) }, locale });
+}
+
+function keptParams(source: Record<string, string | string[] | undefined>): Record<string, string> {
+  const entries = Object.entries(source).flatMap(([key, value]) =>
+    typeof value === "string" ? [[key, value] as const] : [],
   );
+  return Object.fromEntries(entries);
 }

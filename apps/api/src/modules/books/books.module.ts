@@ -1,13 +1,15 @@
 import { BullModule } from "@nestjs/bullmq";
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
 import { AuthorsModule } from "../authors/index.js";
-import { DeliveryServicesModule } from "../delivery-services/index.js";
+import { DeliveryModule } from "../delivery/index.js";
 import { GenresModule } from "../genres/index.js";
 import { ListsModule } from "../lists/index.js";
+import { LoansModule } from "../loans/index.js";
 import { MediaModule } from "../media/index.js";
 import { PublishersModule } from "../publishers/index.js";
+import { ReadingGoalsModule } from "../reading-goals/index.js";
 import { SeriesModule } from "../series/index.js";
 import { TagsModule } from "../tags/index.js";
 import { BookDeliveryController } from "./api/book-delivery.controller.js";
@@ -23,6 +25,7 @@ import { ListMembershipController } from "./api/list-membership.controller.js";
 import { BookAccessService } from "./application/book-access.service.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
+import { BookFacetsService } from "./application/book-facets.service.js";
 import { BookLibraryReadService } from "./application/book-library-read.service.js";
 import { BookLifecycleService } from "./application/book-lifecycle.service.js";
 import { BookListsService } from "./application/book-lists.service.js";
@@ -44,7 +47,7 @@ import { ListMembershipService } from "./application/list-membership.service.js"
 import { ListOverviewService } from "./application/list-overview.service.js";
 import { WishlistService } from "./application/wishlist.service.js";
 import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
-import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
+import { BookFacetsRepository } from "./infrastructure/book-facets.repository.js";
 import { BookLibraryReadRepository } from "./infrastructure/book-library-read.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
 import { BookStoreLinkRepository } from "./infrastructure/book-store-link.repository.js";
@@ -76,9 +79,11 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     TagsModule,
     SeriesModule,
     ListsModule,
+    forwardRef(() => LoansModule),
     GenresModule,
     MediaModule,
-    DeliveryServicesModule,
+    DeliveryModule,
+    ReadingGoalsModule,
     BullModule.registerQueue({ name: BOOK_PURGE_QUEUE_NAME }),
   ],
   providers: [
@@ -101,7 +106,6 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     DedicationsService,
     BookLibraryReadRepository,
     BooksRepository,
-    BookDeliveriesRepository,
     BookStoreLinkRepository,
     BulkBooksService,
     BulkBooksRepository,
@@ -109,6 +113,8 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     ListBooksRepository,
     ListFacetsService,
     ListFacetsRepository,
+    BookFacetsService,
+    BookFacetsRepository,
     ListOverviewService,
     ListOverviewRepository,
     ListMembershipService,

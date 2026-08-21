@@ -16,11 +16,15 @@ export const DeliveryServiceSchema = z
     ).max(DELIVERY_SERVICE_MAX, "Delivery service must be at most 100 characters long"),
   );
 
+export const TRACKING_URL_TEMPLATE_PLACEHOLDER = "{trackingNumber}";
+
 export const DeliveryServiceViewSchema = z.object({
   countryCode: z.string().nullable(),
   id: z.string(),
   isCustom: z.boolean(),
   name: z.string(),
+  providerKey: z.string().nullable(),
+  trackingUrlTemplate: z.string().nullable(),
 });
 
 export type DeliveryServiceView = z.infer<typeof DeliveryServiceViewSchema>;

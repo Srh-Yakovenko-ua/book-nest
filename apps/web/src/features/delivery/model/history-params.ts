@@ -1,104 +1,290 @@
+import type { Nullable } from "@app/shared";
+
+import { isAfter, isValid, parseISO } from "date-fns";
 import {
   type inferParserType,
-  parseAsBoolean,
+  parseAsArrayOf,
   parseAsFloat,
+  parseAsInteger,
   parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server";
 
-import type { DeliveryControllerHistoryListParams } from "@/shared/api/generated/model";
-
-import {
-  DeliveryControllerHistoryListCurrency,
-  DeliveryControllerHistoryListSort,
-  DeliveryControllerHistoryListTab,
+import type {
+  DeliveryReadControllerHistoryListParams,
+  DeliveryReadControllerHistoryListPriceCurrency,
 } from "@/shared/api/generated/model";
 
-export const DELIVERY_HISTORY_PAGE_SIZE = 24;
+import {
+  DeliveryReadControllerHistoryListCurrencyItem,
+  DeliveryReadControllerHistoryListSort,
+  DeliveryReadControllerHistoryListTab,
+} from "@/shared/api/generated/model";
+
+export const DELIVERY_HISTORY_PAGE_SIZE = 10;
 export const DELIVERY_HISTORY_PANEL_ID = "delivery-history-results";
-export const DELIVERY_HISTORY_TAB_DEFAULT = DeliveryControllerHistoryListTab.all;
-export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryControllerHistoryListSort.newest_orders;
+export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryReadControllerHistoryListSort.newest_orders;
 
 export const DELIVERY_HISTORY_TABS = [
-  DeliveryControllerHistoryListTab.all,
-  DeliveryControllerHistoryListTab.active,
-  DeliveryControllerHistoryListTab.received,
-  DeliveryControllerHistoryListTab.cancelled,
-] as const satisfies readonly DeliveryControllerHistoryListTab[];
+  DeliveryReadControllerHistoryListTab.received,
+  DeliveryReadControllerHistoryListTab.cancelled,
+] as const satisfies readonly DeliveryReadControllerHistoryListTab[];
 
-export const DELIVERY_HISTORY_SORT_ORDER = Object.values(DeliveryControllerHistoryListSort);
-export const DELIVERY_CURRENCY_OPTIONS = Object.values(DeliveryControllerHistoryListCurrency);
+export type DeliveryHistoryTab = (typeof DELIVERY_HISTORY_TABS)[number];
 
-const tabValues = Object.values(DeliveryControllerHistoryListTab);
-const sortValues = Object.values(DeliveryControllerHistoryListSort);
-const currencyValues = Object.values(DeliveryControllerHistoryListCurrency);
+export const DELIVERY_HISTORY_TAB_DEFAULT: DeliveryHistoryTab =
+  DeliveryReadControllerHistoryListTab.received;
+
+export const DELIVERY_HISTORY_SORT_ORDER = Object.values(DeliveryReadControllerHistoryListSort);
+
+export const DELIVERY_HISTORY_PRICE_SORTS = [
+  DeliveryReadControllerHistoryListSort.price_asc,
+  DeliveryReadControllerHistoryListSort.price_desc,
+] as const satisfies readonly DeliveryReadControllerHistoryListSort[];
+
+export const DELIVERY_HISTORY_CURRENCY_VALUES = Object.values(
+  DeliveryReadControllerHistoryListCurrencyItem,
+);
+
+export const deliveryHistoryRetiredParsers = {
+  hasTrackingNumber: parseAsString,
+  hasTrackingUrl: parseAsString,
+};
+
+const sortValues = Object.values(DeliveryReadControllerHistoryListSort);
 
 export const deliveryHistoryParsers = {
-  currency: parseAsStringLiteral(currencyValues),
-  from: parseAsString.withDefault(""),
-  hasTrackingNumber: parseAsBoolean,
-  hasTrackingUrl: parseAsBoolean,
+  booksMax: parseAsInteger,
+  booksMin: parseAsInteger,
+  cancelledFrom: parseAsString,
+  cancelledTo: parseAsString,
+  currency: parseAsArrayOf(parseAsStringLiteral(DELIVERY_HISTORY_CURRENCY_VALUES)).withDefault([]),
+  from: parseAsString,
   priceMax: parseAsFloat,
   priceMin: parseAsFloat,
   q: parseAsString.withDefault(""),
-  service: parseAsString.withDefault(""),
+  receivedFrom: parseAsString,
+  receivedTo: parseAsString,
+  service: parseAsArrayOf(parseAsString).withDefault([]),
   sort: parseAsStringLiteral(sortValues).withDefault(DELIVERY_HISTORY_SORT_DEFAULT),
-  store: parseAsString.withDefault(""),
-  tab: parseAsStringLiteral(tabValues).withDefault(DELIVERY_HISTORY_TAB_DEFAULT),
-  to: parseAsString.withDefault(""),
+  store: parseAsArrayOf(parseAsString).withDefault([]),
+  tab: parseAsStringLiteral(DELIVERY_HISTORY_TABS).withDefault(DELIVERY_HISTORY_TAB_DEFAULT),
+  to: parseAsString,
 };
 
-export type DeliveryHistoryListParams = Omit<DeliveryControllerHistoryListParams, "pageNumber">;
+export type DeliveryHistoryAdvancedState = Omit<DeliveryHistoryQueryState, "q" | "sort" | "tab">;
+
+export type DeliveryHistoryListParams = Omit<DeliveryReadControllerHistoryListParams, "pageNumber">;
 
 export type DeliveryHistoryQueryState = inferParserType<typeof deliveryHistoryParsers>;
 
-export function hasActiveHistoryFilters(state: DeliveryHistoryQueryState): boolean {
-  return state.tab !== DELIVERY_HISTORY_TAB_DEFAULT || historyFilterCount(state) > 0;
+type DeliveryHistoryRangeFlags = {
+  books: boolean;
+  cancelled: boolean;
+  ordered: boolean;
+  price: boolean;
+  received: boolean;
+};
+
+export const DELIVERY_HISTORY_ADVANCED_RESET = {
+  booksMax: null,
+  booksMin: null,
+  cancelledFrom: null,
+  cancelledTo: null,
+  currency: null,
+  from: null,
+  priceMax: null,
+  priceMin: null,
+  receivedFrom: null,
+  receivedTo: null,
+  service: null,
+  store: null,
+  to: null,
+} satisfies Record<keyof DeliveryHistoryAdvancedState, null>;
+
+export const DELIVERY_HISTORY_ADVANCED_EMPTY: DeliveryHistoryAdvancedState = {
+  booksMax: null,
+  booksMin: null,
+  cancelledFrom: null,
+  cancelledTo: null,
+  currency: [],
+  from: null,
+  priceMax: null,
+  priceMin: null,
+  receivedFrom: null,
+  receivedTo: null,
+  service: [],
+  store: [],
+  to: null,
+};
+
+export function canSortByHistoryTotal(state: Pick<DeliveryHistoryQueryState, "currency">): boolean {
+  return state.currency.length === 1;
 }
 
-export function hasActiveHistorySearch(state: DeliveryHistoryQueryState): boolean {
+export function comparesHistoryPrices(sort: DeliveryReadControllerHistoryListSort): boolean {
+  return DELIVERY_HISTORY_PRICE_SORTS.some((priceSort) => priceSort === sort);
+}
+
+export function countActiveHistoryDimensions({
+  state,
+  tab,
+}: {
+  state: DeliveryHistoryAdvancedState;
+  tab: DeliveryHistoryTab;
+}): number {
+  const terminal = historyTerminalRange({ state, tab });
+
+  return [
+    state.store.length > 0,
+    state.from !== null || state.to !== null,
+    state.booksMin !== null || state.booksMax !== null,
+    state.service.length > 0,
+    terminal.from !== null || terminal.to !== null,
+    state.currency.length > 0,
+    resolveHistoryPriceCurrency(state) !== null,
+  ].filter(Boolean).length;
+}
+
+export function hasActiveHistoryFilters({
+  state,
+  tab,
+}: {
+  state: DeliveryHistoryAdvancedState;
+  tab: DeliveryHistoryTab;
+}): boolean {
+  return countActiveHistoryDimensions({ state, tab }) > 0;
+}
+
+export function hasActiveHistorySearch(state: Pick<DeliveryHistoryQueryState, "q">): boolean {
   return state.q.trim() !== "";
 }
 
-export function historyFilterCount(state: DeliveryHistoryQueryState): number {
-  const flags = [
-    state.currency !== null,
-    state.store.trim() !== "",
-    state.service.trim() !== "",
-    state.from !== "",
-    state.to !== "",
-    state.priceMin !== null,
-    state.priceMax !== null,
-    state.hasTrackingNumber !== null,
-    state.hasTrackingUrl !== null,
-  ];
-  return flags.filter(Boolean).length;
+export function hasInvalidHistoryRange(state: DeliveryHistoryAdvancedState): boolean {
+  return Object.values(historyRangeFlags(state)).some(Boolean);
+}
+
+export function historyRangeFlags(state: DeliveryHistoryAdvancedState): DeliveryHistoryRangeFlags {
+  return {
+    books: isInvertedNumberRange(state.booksMin, state.booksMax),
+    cancelled: isInvertedDayRange(state.cancelledFrom, state.cancelledTo),
+    ordered: isInvertedDayRange(state.from, state.to),
+    price: isInvertedNumberRange(state.priceMin, state.priceMax),
+    received: isInvertedDayRange(state.receivedFrom, state.receivedTo),
+  };
+}
+
+export function historyTerminalRange({
+  state,
+  tab,
+}: {
+  state: DeliveryHistoryAdvancedState;
+  tab: DeliveryHistoryTab;
+}): { from: Nullable<string>; isInverted: boolean; to: Nullable<string> } {
+  const flags = historyRangeFlags(state);
+
+  if (tab === DeliveryReadControllerHistoryListTab.cancelled) {
+    return {
+      from: storableDay(state.cancelledFrom),
+      isInverted: flags.cancelled,
+      to: storableDay(state.cancelledTo),
+    };
+  }
+
+  return {
+    from: storableDay(state.receivedFrom),
+    isInverted: flags.received,
+    to: storableDay(state.receivedTo),
+  };
+}
+
+export function isKnownHistorySort(value: string): boolean {
+  return sortValues.some((sort) => sort === value);
+}
+
+export function isKnownHistoryTab(value: string): boolean {
+  return DELIVERY_HISTORY_TABS.some((tab) => tab === value);
+}
+
+export function isStorableHistoryDay(value: Nullable<string>): value is string {
+  return value !== null && isValid(parseISO(value));
+}
+
+export function resolveHistoryPriceCurrency(
+  state: Pick<DeliveryHistoryAdvancedState, "currency" | "priceMax" | "priceMin">,
+): Nullable<DeliveryReadControllerHistoryListPriceCurrency> {
+  const [only] = state.currency;
+  if (only === undefined || state.currency.length > 1) return null;
+  if (state.priceMin === null && state.priceMax === null) return null;
+  if (isInvertedNumberRange(state.priceMin, state.priceMax)) return null;
+  return only;
+}
+
+export function resolveHistorySort(
+  state: Pick<DeliveryHistoryQueryState, "currency" | "sort">,
+): DeliveryReadControllerHistoryListSort {
+  if (!comparesHistoryPrices(state.sort)) return state.sort;
+  return canSortByHistoryTotal(state) ? state.sort : DELIVERY_HISTORY_SORT_DEFAULT;
 }
 
 export function toDeliveryHistoryListParams(
   state: DeliveryHistoryQueryState,
 ): DeliveryHistoryListParams {
   const search = state.q.trim();
-  const store = state.store.trim();
-  const service = state.service.trim();
+  const flags = historyRangeFlags(state);
+  const terminal = historyTerminalRange({ state, tab: state.tab });
+  const priceCurrency = resolveHistoryPriceCurrency(state);
+  const terminalKeys = TERMINAL_RANGE_KEYS[state.tab];
 
   return {
+    currency: state.currency,
     pageSize: DELIVERY_HISTORY_PAGE_SIZE,
-    sort: state.sort,
+    service: state.service,
+    sort: resolveHistorySort(state),
+    store: state.store,
     tab: state.tab,
     ...(search === "" ? {} : { search }),
-    ...(store === "" ? {} : { store }),
-    ...(service === "" ? {} : { service }),
-    ...(state.currency === null ? {} : { currency: state.currency }),
-    ...(state.from === "" ? {} : { from: state.from }),
-    ...(state.to === "" ? {} : { to: state.to }),
-    ...(state.priceMin === null ? {} : { priceMin: state.priceMin }),
-    ...(state.priceMax === null ? {} : { priceMax: state.priceMax }),
-    ...(state.hasTrackingNumber === null
+    ...(flags.ordered ? {} : dayBound("from", state.from)),
+    ...(flags.ordered ? {} : dayBound("to", state.to)),
+    ...(terminal.isInverted ? {} : dayBound(terminalKeys.from, terminal.from)),
+    ...(terminal.isInverted ? {} : dayBound(terminalKeys.to, terminal.to)),
+    ...(flags.books || state.booksMin === null ? {} : { booksMin: state.booksMin }),
+    ...(flags.books || state.booksMax === null ? {} : { booksMax: state.booksMax }),
+    ...(priceCurrency === null
       ? {}
-      : { hasTrackingNumber: state.hasTrackingNumber ? "true" : "false" }),
-    ...(state.hasTrackingUrl === null
-      ? {}
-      : { hasTrackingUrl: state.hasTrackingUrl ? "true" : "false" }),
+      : {
+          priceCurrency,
+          ...(state.priceMin === null ? {} : { priceMin: state.priceMin }),
+          ...(state.priceMax === null ? {} : { priceMax: state.priceMax }),
+        }),
   };
+}
+
+const TERMINAL_RANGE_KEYS = {
+  cancelled: { from: "cancelledFrom", to: "cancelledTo" },
+  received: { from: "receivedFrom", to: "receivedTo" },
+} as const satisfies Record<
+  DeliveryHistoryTab,
+  { from: keyof DeliveryHistoryListParams; to: keyof DeliveryHistoryListParams }
+>;
+
+function dayBound(
+  key: "cancelledFrom" | "cancelledTo" | "from" | "receivedFrom" | "receivedTo" | "to",
+  value: Nullable<string>,
+): Partial<DeliveryHistoryListParams> {
+  return isStorableHistoryDay(value) ? { [key]: value } : {};
+}
+
+function isInvertedDayRange(from: Nullable<string>, to: Nullable<string>): boolean {
+  if (!isStorableHistoryDay(from) || !isStorableHistoryDay(to)) return false;
+  return isAfter(parseISO(from), parseISO(to));
+}
+
+function isInvertedNumberRange(min: Nullable<number>, max: Nullable<number>): boolean {
+  if (min === null || max === null) return false;
+  return min > max;
+}
+
+function storableDay(value: Nullable<string>): Nullable<string> {
+  return isStorableHistoryDay(value) ? value : null;
 }

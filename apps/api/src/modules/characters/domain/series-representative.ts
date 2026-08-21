@@ -8,6 +8,8 @@ import type {
 
 import { compareAsc, isBefore } from "date-fns";
 
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+
 export type DefaultReadingContext = {
   contextBookId: Nullable<string>;
   partNumber: Nullable<number>;
@@ -51,8 +53,8 @@ const SERIES_SUMMARY_COMPARATORS: Record<
 > = {
   importance: (left, right) =>
     SERIES_IMPORTANCE_RANK[left.importance] - SERIES_IMPORTANCE_RANK[right.importance] ||
-    left.name.localeCompare(right.name),
-  name: (left, right) => left.name.localeCompare(right.name),
+    UKRAINIAN_COLLATION.compare(left.name, right.name),
+  name: (left, right) => UKRAINIAN_COLLATION.compare(left.name, right.name),
 };
 
 export function pickSeriesRepresentatives<Appearance extends SeriesAppearanceLike>({

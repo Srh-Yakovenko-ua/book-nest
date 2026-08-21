@@ -1,0 +1,497 @@
+{
+  "spec": "docs/backend-task-ukrainian-collation.md",
+  "generatedAt": "2026-08-12T08:47:05Z",
+  "scope": {
+    "included": [
+      "Variant A (column-level COLLATE \"uk-UA-x-icu\" via a hand-written Prisma migration)",
+      "The 9 columns the spec names",
+      "8 additional sorted user-visible text columns the spec missed",
+      "Migration authoring + DROP INDEX strip check + raw-sql-indexes.test.ts",
+      "Prisma drift verification",
+      "Integration tests pinning Ukrainian order on the surfaces the spec's DoD names",
+      "Regression sweep of every existing ordering assertion"
+    ],
+    "excluded": [
+      "Variant B (database-level LC_COLLATE, needs dump/restore + downtime) - spec itself defers it",
+      "Variant C (COLLATE in every ORDER BY) - spec rejects it",
+      "Variant D (denormalized sort-key column) - spec rejects it",
+      "apps/web/** - spec's Mezhi section forbids touching the frontend",
+      "Wishlist server-side ordering DoD - WISHLIST_ORDER_SQL does not exist on dev, WishlistQuerySchema has no sort field, and the FE still sorts client-side. See D1.",
+      "*_normalized_name columns - equality-only, never ORDER BY, and uk-UA-x-icu is deterministic so the collision set is unchanged. See T0 evidence.",
+      "book_timelines.name - carries the UNIQUE functional index book_timelines_book_id_name_lower_idx on lower(name); ICU changes lower() semantics and the column is never sorted alphabetically (timeline.repository.ts:230 sorts by position)",
+      "book_timeline_events.title - event-sort.ts:7-11 has no alphabetical sort option",
+      "reading_goals.name - reading-goals.repository.ts:20 sorts by position",
+      "changelog_entries.title_uk/title_en - changelog.repository.ts:51 sorts by publishedAt",
+      "character_forms.name / character_aliases.name - characters.repository.ts:31,43 sort by position",
+      "authors.search_text / publishers.search_text - never sorted; excluding them avoids rebuilding the two trigram GIN indexes",
+      "genres.key / genres.group_key - ASCII machine keys used as grouping/tiebreak, no Ukrainian letters possible"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T0",
+      "title": "Record the empirical DDL facts in the spec file so the plan is auditable",
+      "specRef": "Spec section 'Spochatku pereviryty' - the spec demands the fork be resolved and written back into the file",
+      "layer": "prisma",
+      "files": ["docs/backend-task-ukrainian-collation.md"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "The spec file records: pg_collation has uk-UA-x-icu with collprovider='i' and collisdeterministic='t'",
+        "The spec file records: ALTER TABLE t ALTER COLUMN c TYPE text COLLATE \"uk-UA-x-icu\" does NOT change pg_class.relfilenode of the table (no rewrite); only indexes referencing c get a new relfilenode",
+        "The spec file records: the ALTER takes AccessExclusiveLock on the table and on the indexes referencing the column",
+        "The spec file's claim 'ALTER COLUMN ... TYPE perepysuye tablytsyu' (line 148) is corrected to 'rebuilds only the dependent indexes, no table rewrite'",
+        "The spec file records: two DIFFERENT non-default collations meeting in UNION/COALESCE raise 'could not determine which collation to use'; one non-default plus default resolves to the non-default"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T1",
+      "title": "Hand-write the collation migration SQL",
+      "specRef": "Variant A, spec lines 134-141",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/migrations/<timestamp>_ukrainian_collation/migration.sql"],
+      "dependsOn": ["T0"],
+      "mandatory": true,
+      "doneWhen": [
+        "A new migration folder exists under apps/api/prisma/migrations/ with a migration.sql authored by hand (prisma migrate dev --create-only emits nothing here: schema.prisma is unchanged, Prisma's Postgres IR does not model collation)",
+        "migration.sql contains exactly one ALTER TABLE ... ALTER COLUMN ... TYPE text COLLATE \"uk-UA-x-icu\" statement per column in the agreed set",
+        "Every statement uses the SAME collation name; no column gets uk-x-icu or und-x-icu",
+        "migration.sql contains zero DROP INDEX lines",
+        "migration.sql contains zero statements touching a *_normalized_name column",
+        "migration.sql contains zero statements touching authors.search_text or publishers.search_text",
+        "migration.sql contains zero statements touching book_timelines.name",
+        "apps/api/prisma/schema.prisma is byte-identical to its pre-task state (Prisma has no collation attribute; the schema must not be edited)"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T2",
+      "title": "Cover the 9 columns the spec names",
+      "specRef": "Spec lines 102-104",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/migrations/<timestamp>_ukrainian_collation/migration.sql"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "books.title is altered (schema.prisma:215)",
+        "books.first_author_name is altered (schema.prisma:216)",
+        "authors.name is altered (schema.prisma:132)",
+        "publishers.name is altered (schema.prisma:175)",
+        "series.name is altered (schema.prisma:105)",
+        "book_lists.name is altered (schema.prisma:525)",
+        "characters.name is altered (schema.prisma:798)",
+        "tags.name is altered (schema.prisma:460)",
+        "genres.name is altered (schema.prisma:490)"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T3",
+      "title": "Cover the 8 sorted text columns the spec missed",
+      "specRef": "Not in spec - found by sweep; blocked by D3",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/migrations/<timestamp>_ukrainian_collation/migration.sql"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "delivery_services.name is altered (schema.prisma:509; sorted at delivery-services.repository.ts:106)",
+        "character_groups.name is altered (schema.prisma:951; sorted at character-groups.repository.ts:252)",
+        "book_loans.person_name is altered (schema.prisma:389; sorted at loans.repository.ts:128)",
+        "book_deliveries.store_name is altered (schema.prisma:359; sorted at delivery.repository.ts:428 and :443)",
+        "book_deliveries.delivery_service is altered (schema.prisma:365; sorted at delivery.repository.ts:442)",
+        "book_purchase_info.store_name is altered (schema.prisma:342; sorted at book-library-read.repository.ts:333,337)",
+        "book_store_links.store_name is altered (schema.prisma:412; same UNION ALL as book_purchase_info.store_name)",
+        "publisher_names.name is altered (schema.prisma:201; feeds the COALESCE at publishers.repository.ts:509-517 whose name alias is ORDER BY'd at :539 via buildLibraryOrderBy :449/:451)"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T4",
+      "title": "Apply the migration locally and prove the column collations landed",
+      "specRef": "Spec DoD line 190",
+      "layer": "prisma",
+      "files": [],
+      "dependsOn": ["T2", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/api db:migrate:deploy exits 0 against the local docker Postgres",
+        "A query over pg_attribute joined to pg_collation returns collname='uk-UA-x-icu' for every column listed in T2 and T3, and for no other column",
+        "SELECT title FROM books ORDER BY title returns A before Ye and Ganok immediately after Harnyi on a seeded Ukrainian fixture set"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T5",
+      "title": "Prove no raw-SQL index was lost and none was silently rebuilt outside the expected set",
+      "specRef": "Spec lines 148-151 and DoD line 190; CLAUDE.md section 6 raw-SQL-index trap",
+      "layer": "test",
+      "files": ["apps/api/src/core/database/raw-sql-indexes.test.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm exec vitest run src/core/database/raw-sql-indexes.test.ts is green: all 10 raw-SQL indexes present with their predicates",
+        "pg_indexes for the altered tables lists the same index names before and after the migration (count and names identical)",
+        "The only schema-declared index whose relfilenode changed is books' @@index([userId, firstAuthorName]) (schema.prisma:272), plus any index on an altered column"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T6",
+      "title": "Prove Prisma sees no drift after the migration",
+      "specRef": "Spec lines 145-147 - 'holovna nevidomist variantu'",
+      "layer": "prisma",
+      "files": [],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/api db:migrate:status reports the schema is up to date with no drift",
+        "prisma migrate dev --create-only --name drift_probe produces no migration folder (or an empty one that is then deleted), i.e. Prisma does not try to revert the collation",
+        "The probe migration folder is not committed"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T7",
+      "title": "Pin the invariant so the collation cannot be silently dropped",
+      "specRef": "Spec DoD lines 187-189",
+      "layer": "test",
+      "files": ["apps/api/src/core/database/raw-sql-indexes.test.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "A test asserts, for every column in T2+T3, that pg_attribute.attcollation resolves to 'uk-UA-x-icu'",
+        "The assertion is data-driven from one exported list of table/column pairs, not a scatter of individual its (CLAUDE.md section 8 rule 10)",
+        "The test fails if a single column is missing the collation, naming that column in the failure message"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T8",
+      "title": "Integration test: library title sort orders G-with-upturn, Ye, I, Yi in Ukrainian positions",
+      "specRef": "Spec DoD lines 182-185, 'odyn integracijnyj test na biblioteku'",
+      "layer": "test",
+      "files": ["apps/api/src/modules/books/api/books.controller.library.test.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "A test seeds books titled at minimum Аркан, Бездоганний, Гарний, Ґанок, Едем, Єва, Зима, Ігри, Їжак, Йорж, Яблуко",
+        "GET /api/books?sort=title_asc returns them in exactly that order",
+        "The assertion is an exact toEqual on the full array, not a subset or a contains",
+        "A companion assertion covers sort=title_desc as the exact reverse"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T9",
+      "title": "Integration test: library author sort places Ye after A and G-with-upturn after G",
+      "specRef": "Spec DoD line 184",
+      "layer": "test",
+      "files": ["apps/api/src/modules/books/api/books.controller.library.test.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "A test seeds books whose first_author_name covers Алекс Астер, Алі Гейзелвуд, Анна Савас, Ґанна Тест, Євгенія Кузнєцова",
+        "GET /api/books?sort=author_asc returns Євгенія Кузнєцова after Анна Савас and Ґанна Тест immediately after the Г-initial names",
+        "The assertion is an exact toEqual on the full ordered array of firstAuthorName values"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T10",
+      "title": "Integration coverage for the other named surfaces",
+      "specRef": "Spec DoD line 186 - 'Te same dlya nazv serij, vydavnyctv, spyskiv, personazhiv, tegiv i zhanriv'",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/series/api/series.controller.test.ts",
+        "apps/api/src/modules/publishers/api/publishers.controller.test.ts",
+        "apps/api/src/modules/lists/api/lists.controller.test.ts",
+        "apps/api/src/modules/characters/api/characters.controller.test.ts",
+        "apps/api/src/modules/tags/api/tags.controller.test.ts",
+        "apps/api/src/modules/genres/api/genres.controller.test.ts"
+      ],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "Each of series, publishers, lists, characters, tags, genres has one test seeding names starting with Г, Ґ, Е, Є, З, І, Ї, Й and asserting the exact returned order",
+        "Each assertion targets the endpoint the spec's DoD names, not the repository directly",
+        "genres coverage accounts for genres.repository.ts:149 ordering by groupKey first, so the fixture keeps groupKey constant"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T11",
+      "title": "Regression sweep: prove no existing ordering assertion flipped",
+      "specRef": "CLAUDE.md section 9 blast-radius rule; a collation change is contract-shaped",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "These files run green: books.controller.library.test.ts, lists.controller.test.ts, list-details.controller.test.ts, list-details.controller.filters.test.ts, loans.controller.test.ts, delivery.controller.test.ts, dedications.controller.test.ts, books.controller.multi-author.test.ts, delivery-services.controller.test.ts, delivery-services.controller.recent.test.ts, genres.controller.test.ts, tags.controller.test.ts, quotes.controller.test.ts, notes controller tests, characters controller tests, publishers controller tests",
+        "Any assertion that flipped is reported, not silently rewritten to match the new output",
+        "Multi-word ASCII fixtures are specifically re-checked: musl default collation is byte order (space < letters) while ICU root treats punctuation and space as significant differently, so 'Book Two' vs 'Bookshelf' style pairs can reorder"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T12",
+      "title": "Guard the CI and server Postgres images against a missing ICU collation",
+      "specRef": "Spec lines 127-130 - 'yakshcho ICU-kolacij v pereliku nemaye ... variant z COLLATE vidpadaye'",
+      "layer": "prisma",
+      "files": [".github/workflows/ci.yml"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "It is proven that postgres:17 (Debian, used by .github/workflows/ci.yml:79) contains uk-UA-x-icu, by running the pg_collation query against that exact image",
+        "It is proven that the deployed dev and prod databases (deploy/docker-compose.yml:31, postgres:17-alpine) contain uk-UA-x-icu",
+        "The divergence is recorded: CI runs postgres:17 (glibc) while local and server run postgres:17-alpine (musl), and today the default collation therefore behaves differently between them"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T13",
+      "title": "Reconcile the in-application localeCompare sorts with the new database order",
+      "specRef": "Not in spec; blocked by D4. Spec's boundary line 197 demands 'odnakovyj poryadok skriz' which these six sites break.",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/series/domain/series-aggregates.ts",
+        "apps/api/src/modules/series/domain/series.mapper.ts",
+        "apps/api/src/modules/characters/domain/character-summary.ts",
+        "apps/api/src/modules/characters/domain/character-graph.ts",
+        "apps/api/src/modules/characters/domain/series-representative.ts"
+      ],
+      "dependsOn": ["T4"],
+      "mandatory": false,
+      "doneWhen": [
+        "Each of series-aggregates.ts:92, series.mapper.ts:158, character-summary.ts:130, character-graph.ts:190, series-representative.ts:54 and :55 either sorts with an explicit Ukrainian collator or is documented as intentionally locale-neutral",
+        "If a collator is introduced it is one shared constant, not five inline Intl.Collator constructions (CLAUDE.md section 8 rule 10)",
+        "No new localeCompare call is added without an explicit locale argument"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T14",
+      "title": "Run the gates",
+      "specRef": "CLAUDE.md section 9",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T5", "T6", "T7", "T8", "T9", "T10", "T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm typecheck exits 0",
+        "pnpm lint exits 0",
+        "pnpm format:check exits 0",
+        "pnpm dev:api starts clean and curl -i http://localhost:4000/api/health returns 200 with x-request-id",
+        "A captured curl of GET /api/books?sort=title_asc against seeded Ukrainian data shows the corrected order"
+      ],
+      "status": "todo"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "The spec's central premise is absent from dev. WISHLIST_ORDER_SQL does not exist anywhere in apps/api/src, the branch fix/pages-styles does not exist locally or on origin, WishlistQuerySchema (packages/shared/src/book-store-links.ts:148-172) has no sort field, listWishlistBooks hardcodes created_desc (books.repository.ts:897), and the frontend still sorts client-side (apps/web/src/features/books-to-buy/model/books-to-buy-derive.ts:222). Two of the spec's DoD bullets are therefore unverifiable. How do we proceed?",
+      "options": [
+        "Ship the collation on dev now; drop the wishlist DoD bullets from scope until fix/pages-styles lands (the collation will cover it automatically once it does)",
+        "Rebase this work onto fix/pages-styles and verify both DoD bullets there",
+        "Merge fix/pages-styles into dev first, then run this plan against the merged state"
+      ],
+      "specRef": "Spec lines 70-73, 98-100, 182-183",
+      "blocks": ["T1"]
+    },
+    {
+      "id": "D2",
+      "question": "Which collation name, and is one name enough? Empirically: two DIFFERENT non-default collations meeting in a UNION ALL or COALESCE raise 'could not determine which collation to use for string comparison'. One non-default plus the database default resolves to the non-default with no error. book-library-read.repository.ts:315-333 UNIONs book_purchase_info.store_name with book_store_links.store_name, and publishers.repository.ts:509-517 COALESCEs publisher_names.name (:511) with publishers.name (:516) - so a mixed-name rollout would be a runtime 500.",
+      "options": [
+        "uk-UA-x-icu everywhere (spec's choice, matches the empirical test)",
+        "uk-x-icu everywhere (language-only, same ordering, shorter)",
+        "und-x-icu everywhere (CLDR root, correct for Ukrainian and neutral for English titles)"
+      ],
+      "specRef": "Spec line 137",
+      "blocks": ["T1", "T2", "T3"]
+    },
+    {
+      "id": "D3",
+      "question": "Column set: the spec's 9, or the 9 plus the 8 sorted columns it missed (delivery_services.name, character_groups.name, book_loans.person_name, book_deliveries.store_name, book_deliveries.delivery_service, book_purchase_info.store_name, book_store_links.store_name, publisher_names.name)? All 8 are ORDER BY'd on user-visible values today.",
+      "options": [
+        "All 17 - the spec's boundary line 197 says the goal is one order everywhere",
+        "The spec's 9 only - smaller migration, but delivery/loans/store-name lists stay broken",
+        "The 9 plus only the 3 that a user can actually type Ukrainian into today (delivery_services.name, character_groups.name, book_loans.person_name)"
+      ],
+      "specRef": "Spec lines 102-104 vs line 197",
+      "blocks": ["T3"]
+    },
+    {
+      "id": "D4",
+      "question": "Six domain-layer sorts use String.prototype.localeCompare with no locale argument, so they follow the Node/ICU default locale rather than the database. After the migration they will disagree with Postgres for the same data. Fix now or leave?",
+      "options": [
+        "Fix now with one shared Ukrainian collator constant - keeps 'one order everywhere' true",
+        "Leave and file a follow-up - they are in-memory sorts over already-fetched pages, so the divergence is bounded",
+        "Push these sorts down into the repository so Postgres owns all ordering"
+      ],
+      "specRef": "Spec line 197 (boundary: 'meta - odnakovyj poryadok skriz')",
+      "blocks": ["T13"]
+    },
+    {
+      "id": "D5",
+      "question": "CI runs postgres:17 (Debian/glibc, .github/workflows/ci.yml:79); local and server run postgres:17-alpine (musl, docker-compose.yml:5 and deploy/docker-compose.yml:31). musl has no en_US.UTF-8 collation data, so the current default order there is byte order; glibc's en_US.utf8 already orders Cyrillic by ISO 14651. An ordering test written today can therefore be green in CI and red locally. What do we do about the divergence?",
+      "options": [
+        "Nothing - after the migration both use uk-UA-x-icu explicitly and the baselines converge",
+        "Align CI to postgres:17-alpine so CI matches production",
+        "Align local and server to postgres:17 so the default collation is sane even for columns we do not alter"
+      ],
+      "specRef": "Spec line 60 and lines 108-118",
+      "blocks": ["T12"]
+    },
+    {
+      "id": "D6",
+      "question": "Prod rollout gate. Measured locally: ALTER TABLE ... ALTER COLUMN ... TYPE text COLLATE does NOT rewrite the table (pg_class.relfilenode unchanged) and rebuilds only the indexes that reference the altered column, under AccessExclusiveLock. In our set that is exactly one index, books' @@index([userId, firstAuthorName]) at schema.prisma:272. Is that enough to ship through the normal deploy?",
+      "options": [
+        "Ship through the normal deploy - no rewrite, one small index rebuild",
+        "Still time it on a copy of the prod database first, as spec line 153 asks",
+        "Ship, but split books into its own migration step so the one index rebuild is isolated"
+      ],
+      "specRef": "Spec lines 148-153",
+      "blocks": ["T4"]
+    },
+    {
+      "id": "D7",
+      "question": "Migration authoring mechanism. schema.prisma does not change at all (Prisma has no collation attribute), so prisma migrate dev --create-only will report 'already in sync' and generate nothing. CLAUDE.md section 6's two-step flow has no path for a schema-less migration.",
+      "options": [
+        "Create the folder and migration.sql by hand, then db:migrate:deploy (matches how the ten raw-SQL indexes were added)",
+        "Create an empty migration via prisma migrate dev --create-only --name ... after a throwaway schema edit, then revert the edit and fill the SQL",
+        "Add a note to CLAUDE.md section 6 documenting the hand-written-migration path"
+      ],
+      "specRef": "Spec lines 134-141; CLAUDE.md section 6",
+      "blocks": ["T1"]
+    },
+    {
+      "id": "D8",
+      "question": "Where does the collation invariant test live? raw-sql-indexes.test.ts already owns 'invariants the Prisma schema cannot express' and would need only a new describe block, but its name would stop matching its contents.",
+      "options": [
+        "Extend raw-sql-indexes.test.ts with a collation describe block",
+        "New file apps/api/src/core/database/column-collations.test.ts",
+        "Rename raw-sql-indexes.test.ts to schema-invariants.test.ts and put both there"
+      ],
+      "specRef": "Spec DoD lines 187-190",
+      "blocks": ["T7"]
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "WISHLIST_ORDER_SQL lives in books.repository.ts:57 and is the only raw-SQL sort site",
+      "specRef": "Spec lines 70-71, 98-99",
+      "verdict": "FALSE",
+      "evidence": "rg -n 'WISHLIST_ORDER_SQL' over apps/api/src returns zero hits on dev@1d09f909. books.repository.ts:57 is a type annotation inside buildWishlistWhere. There are 16 other raw-SQL ORDER BY sites, e.g. lists.repository.ts:321, publishers.repository.ts:539, list-overview.repository.ts:112, list-facets.repository.ts:50, book-library-read.repository.ts:333."
+    },
+    {
+      "claim": "The branch fix/pages-styles moved wishlist sorting to the backend and deleted the client comparators",
+      "specRef": "Spec lines 70-73",
+      "verdict": "FALSE",
+      "evidence": "git branch -a lists no fix/pages-styles locally or on origin; apps/web/src/features/books-to-buy/model/books-to-buy-derive.ts:222 still calls left.localeCompare(right, locale); packages/shared/src/book-store-links.ts:148-172 (WishlistQuerySchema) has no sort field; apps/api/src/modules/books/infrastructure/books.repository.ts:897 hardcodes LIBRARY_ORDER_BY.created_desc."
+    },
+    {
+      "claim": "books.repository.ts:1317 holds the library title_asc/title_desc sort",
+      "specRef": "Spec line 86",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/books/infrastructure/books.repository.ts:1219-1220 (LIBRARY_ORDER_BY declared at :1188). Author sort at :1189-1190."
+    },
+    {
+      "claim": "books.repository.ts:1333 holds the dedications author_asc/book_title_asc sort",
+      "specRef": "Spec line 87",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/books/infrastructure/books.repository.ts:1235-1236 (DEDICATIONS_ORDER_BY declared at :1234)."
+    },
+    {
+      "claim": "series.repository.ts:336 orders series by name",
+      "specRef": "Spec line 88",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/series/infrastructure/series.repository.ts:336 orderBy: { name: \"asc\" }"
+    },
+    {
+      "claim": "publishers.repository.ts:316 orders publishers by name",
+      "specRef": "Spec line 89",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/publishers/infrastructure/publishers.repository.ts:316 orderBy: [{ userId: ... }, { name: \"asc\" }]. A second, missed site is the raw-SQL library aggregate at :539 ordered by buildLibraryOrderBy (:442-452) over the COALESCE alias built at :509-517."
+    },
+    {
+      "claim": "authors.repository.ts:174 orders authors by name",
+      "specRef": "Spec line 90",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/authors/infrastructure/authors.repository.ts:174 orderBy: [{ userId: ... }, { name: \"asc\" }]"
+    },
+    {
+      "claim": "book-lists.repository.ts:38 orders lists by name",
+      "specRef": "Spec line 91",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/infrastructure/book-lists.repository.ts:38 orderBy: { name: \"asc\" }"
+    },
+    {
+      "claim": "characters.repository.ts:103 orders characters by name",
+      "specRef": "Spec line 92",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/characters/infrastructure/characters.repository.ts:103 name: [{ name: \"asc\" }, { createdAt: \"asc\" }] inside GLOBAL_CHARACTER_ORDER_BY (:99). Five further character-name sorts the spec missed: :104, :105, :542, :874, :893, :911."
+    },
+    {
+      "claim": "tags.repository.ts:122 orders tags by name",
+      "specRef": "Spec line 93",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/tags/infrastructure/tags.repository.ts:122 listOwned. A second site at :127 (searchOwned) is not in the spec."
+    },
+    {
+      "claim": "genres.repository.ts:149 orders genres by name",
+      "specRef": "Spec line 94",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/genres/infrastructure/genres.repository.ts:149 orderBy: [{ groupKey: \"asc\" }, { sortOrder: \"asc\" }, { name: \"asc\" }] - name is the third key, so it only breaks ties inside a group."
+    },
+    {
+      "claim": "loans.repository.ts:131 orders loans by book title",
+      "specRef": "Spec line 95",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/loans/infrastructure/loans.repository.ts:131 title: [{ book: { title: \"asc\" } }, ID_TIEBREAKER]. Two further sorts the spec missed: :125 book.firstAuthorName, :128 personName."
+    },
+    {
+      "claim": "delivery.repository.ts:429 orders deliveries by book title",
+      "specRef": "Spec line 96",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/delivery/infrastructure/delivery.repository.ts:429 (history) title: [{ book: { title: \"asc\" } }]. Four further sorts the spec missed: :428 storeName, :436 firstAuthorName, :442 deliveryService, :443 storeName, :444 title (in-transit)."
+    },
+    {
+      "claim": "schema.prisma:272 has @@index([userId, firstAuthorName]) serving the author sort",
+      "specRef": "Spec line 176",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:272. Empirically it is the only schema index in the whole target set that references an altered column, so it is the only one the ALTER rebuilds."
+    },
+    {
+      "claim": "ALTER COLUMN ... TYPE rewrites the table and rebuilds dependent indexes; the partial-unique name indexes from CLAUDE.md section 6 hang on the name columns",
+      "specRef": "Spec lines 148-151",
+      "verdict": "FALSE",
+      "evidence": "Probe on the local postgres:17-alpine: pg_class.relfilenode of the altered table was 118129477 before and after (no rewrite). Only indexes referencing the altered column got new relfilenodes; the partial-unique index on normalized_name and the gin_trgm index on search_text kept theirs. None of the ten raw-SQL indexes in CLAUDE.md section 6 references a column in the proposed set: they cover search_text, book_id, (user_id, queue_position), (series_id, part_number), (user_id, normalized_name), (book_id, lower(name)) on book_timelines, and (list_id). The partial-unique name indexes hang on normalized_name, not on name."
+    },
+    {
+      "claim": "A collation change on a uniqueness key changes which values collide",
+      "specRef": "Caller question 5",
+      "verdict": "FALSE for this codebase",
+      "evidence": "pg_collation reports collisdeterministic='t' for uk-UA-x-icu, so equality stays byte equality and the collision set is unchanged. Separately, every uniqueness key in the target area is *_normalized_name (schema.prisma:106,133,162,176,202,461,491,510,526,799,839,860,952), whose value is computed in JS by normalizeName at packages/shared/src/common.ts:94-96 and never ORDER BY'd. The one lower()-based index, book_timelines_book_id_name_lower_idx, is why book_timelines.name is excluded."
+    },
+    {
+      "claim": "No migration in apps/api/prisma/migrations contains the word COLLATE",
+      "specRef": "Spec lines 61-62",
+      "verdict": "CONFIRMED",
+      "evidence": "rg -rn 'COLLATE' apps/api/prisma/migrations/ returns zero hits."
+    },
+    {
+      "claim": "Prisma orderBy is the only other code path; sorting is entirely server-side in apps/api",
+      "specRef": "Spec lines 79-81",
+      "verdict": "FALSE",
+      "evidence": "Six domain-layer sorts run in JS with String.prototype.localeCompare and no locale argument: series-aggregates.ts:92, series.mapper.ts:158, character-summary.ts:130, character-graph.ts:190, series-representative.ts:54 and :55. These follow the Node default locale and will diverge from Postgres after the migration."
+    },
+    {
+      "claim": "The existing suite has assertions that a collation change would break",
+      "specRef": "Caller question 6",
+      "verdict": "CONFIRMED as no-break",
+      "evidence": "Every DB-ordered assertion checked uses fixtures whose first characters already differ under any collation: books.controller.library.test.ts:1257,1266,1281,1285; lists.controller.test.ts:459-465; list-details.controller.test.ts:257-258,283; loans.controller.test.ts:406-411,437-440. delivery-services.controller.test.ts:125 and genres.controller.test.ts:134 apply a JS .sort() before asserting, so DB order is irrelevant there; delivery-services.controller.test.ts:195 groups by isDefault and sortOrder first; delivery-services.controller.recent.test.ts:171 orders by max(created_at) DESC. No existing assertion is expected to flip, but T11 still runs them because multi-word ASCII fixtures can reorder when a byte-order default is replaced by ICU."
+    }
+  ]
+}

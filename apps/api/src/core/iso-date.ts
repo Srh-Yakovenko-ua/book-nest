@@ -1,7 +1,7 @@
 import type { Nullable } from "@app/shared";
 
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime, toDate } from "date-fns-tz";
 
 const UTC_TIME_ZONE = "UTC";
 const ISO_DATE_FORMAT = "yyyy-MM-dd";
@@ -34,6 +34,10 @@ export function toCreateDate(value: Nullable<string> | undefined): Nullable<Date
 
 export function toIsoDate(date: Date): string {
   return formatInTimeZone(date, UTC_TIME_ZONE, ISO_DATE_FORMAT);
+}
+
+export function toIsoDateFromIsoString(value: string): string {
+  return toIsoDate(toDate(value, { timeZone: UTC_TIME_ZONE }));
 }
 
 export function toNullableIsoDate(value: Nullable<Date>): Nullable<string> {

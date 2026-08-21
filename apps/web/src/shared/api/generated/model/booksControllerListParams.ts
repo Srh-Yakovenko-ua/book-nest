@@ -35,6 +35,7 @@ export type BooksControllerListParams = {
    * @items.maxLength 64
    */
   genre?: string[];
+  hasActiveOrder?: string;
   hasCover?: string;
   hasDedication?: string;
   hasRating?: string;

@@ -5,8 +5,9 @@ import type { BookView } from "@app/shared";
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useId, useState } from "react";
 
+import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { cn } from "@/lib/utils";
 
 import { FormSection } from "./form-section";
@@ -22,78 +23,16 @@ export function BookDetailsAbout({ book }: BookDetailsAboutProps) {
   const description = book.description?.trim() ?? "";
 
   const descriptionId = useId();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLParagraphElement>(null);
-  const previousExpanded = useRef<boolean | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [overflowing, setOverflowing] = useState(false);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const content = contentRef.current;
-    if (container === null || content === null) return;
-
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let removeTransitionEnd: (() => void) | undefined;
-
-    const collapsedHeight = () => {
-      const lineHeight = Number.parseFloat(getComputedStyle(content).lineHeight);
-      if (Number.isNaN(lineHeight)) return content.scrollHeight;
-      return Math.round(lineHeight * COLLAPSED_LINES);
-    };
-
-    const settleAtRest = (collapsed: number) => {
-      container.style.maxHeight = expanded ? "none" : `${collapsed}px`;
-    };
-
-    const animate = (collapsed: number) => {
-      removeTransitionEnd?.();
-      if (reducedMotion.matches) {
-        settleAtRest(collapsed);
-        return;
-      }
-      if (expanded) {
-        container.style.maxHeight = `${content.scrollHeight}px`;
-        const handleEnd = (event: TransitionEvent) => {
-          if (event.propertyName !== "max-height") return;
-          container.style.maxHeight = "none";
-          container.removeEventListener("transitionend", handleEnd);
-        };
-        container.addEventListener("transitionend", handleEnd);
-        removeTransitionEnd = () => container.removeEventListener("transitionend", handleEnd);
-        return;
-      }
-      container.style.maxHeight = `${content.scrollHeight}px`;
-      void container.offsetHeight;
-      container.style.maxHeight = `${collapsed}px`;
-    };
-
-    const sync = () => {
-      const collapsed = collapsedHeight();
-      setOverflowing(content.scrollHeight > collapsed + 1);
-      const toggled = previousExpanded.current !== null && previousExpanded.current !== expanded;
-      previousExpanded.current = expanded;
-      if (toggled) {
-        animate(collapsed);
-      } else {
-        settleAtRest(collapsed);
-      }
-    };
-
-    sync();
-
-    const observer = new ResizeObserver(() => {
-      const collapsed = collapsedHeight();
-      setOverflowing(content.scrollHeight > collapsed + 1);
-      if (!expanded) container.style.maxHeight = `${collapsed}px`;
-    });
-    observer.observe(content);
-
-    return () => {
-      observer.disconnect();
-      removeTransitionEnd?.();
-    };
-  }, [expanded, description]);
+  const {
+    containerRef,
+    contentRef,
+    isClamped: overflowing,
+  } = useAnimatedHeight<HTMLParagraphElement>({
+    collapsedHeight: collapsedDescriptionHeight,
+    contentKey: description,
+    expanded,
+  });
 
   return (
     <FormSection
@@ -119,7 +58,7 @@ export function BookDetailsAbout({ book }: BookDetailsAboutProps) {
         <div className="flex flex-col gap-2">
           <div className="relative">
             <div
-              className="overflow-hidden motion-safe:transition-[max-height] motion-safe:duration-300 motion-safe:ease-out"
+              className="overflow-hidden motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-out"
               ref={containerRef}
             >
               <p
@@ -156,4 +95,10 @@ export function BookDetailsAbout({ book }: BookDetailsAboutProps) {
       )}
     </FormSection>
   );
+}
+
+function collapsedDescriptionHeight(content: HTMLParagraphElement): number {
+  const lineHeight = Number.parseFloat(getComputedStyle(content).lineHeight);
+  if (Number.isNaN(lineHeight)) return content.scrollHeight;
+  return Math.round(lineHeight * COLLAPSED_LINES);
 }

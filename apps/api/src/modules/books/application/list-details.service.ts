@@ -2,13 +2,15 @@ import type { CustomListBooksQuery, CustomListDetail, ListBookView } from "@app/
 
 import { Injectable } from "@nestjs/common";
 
-import type { LibraryFilter } from "../infrastructure/book-where.js";
-
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import { ListsService } from "../../lists/index.js";
-import { buildListBookFilter } from "../domain/list-book-filter.js";
-import { toListStatusCounts } from "../domain/list-status-counts.js";
+import {
+  buildListBookFilter,
+  clearQuickFilterAxes,
+  hasQuickFilterAxis,
+} from "../domain/list-book-filter.js";
+import { toListQuickCountsView } from "../domain/list-quick-counts.js";
 import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import {
   type BookListItemWithBook,
@@ -47,18 +49,20 @@ export class ListDetailsService {
         : await this.genresService.searchKeys({ query: search, userId });
 
     const filter = buildListBookFilter({ query, search, searchGenreKeys, userId });
-    const tabCountsFilter: LibraryFilter = { ...filter, readingStatuses: undefined };
-    const narrowedByStatus = filter.readingStatuses !== undefined;
+    const narrowedByQuickFilter = hasQuickFilterAxis(filter);
 
-    const [items, tabCounts, narrowedCount, positionRanks] = await Promise.all([
+    const [items, quickCounts, narrowedCount, positionRanks] = await Promise.all([
       this.listBooksRepository.listBooks({
         filter,
         listId,
         sort,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.listBooksRepository.countByTab({ filter: tabCountsFilter, listId }),
-      narrowedByStatus
+      this.listBooksRepository.countQuickFilters({
+        filter: clearQuickFilterAxes(filter),
+        listId,
+      }),
+      narrowedByQuickFilter
         ? this.listBooksRepository.countBooks({ filter, listId })
         : Promise.resolve(undefined),
       sort === "position"
@@ -70,10 +74,10 @@ export class ListDetailsService {
       items: items.map((item) => this.toListBookView({ item, positionRanks })),
       pageNumber,
       pageSize,
-      totalCount: narrowedCount ?? tabCounts.all,
+      totalCount: narrowedCount ?? quickCounts.all,
     });
 
-    return { ...header, books, statusCounts: toListStatusCounts(tabCounts) };
+    return { ...header, books, quickCounts: toListQuickCountsView(quickCounts) };
   }
 
   private toListBookView({ item, positionRanks }: ListBookViewInput): ListBookView {

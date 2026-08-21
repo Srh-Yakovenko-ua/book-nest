@@ -16,6 +16,7 @@ export type SeriesDetailsViewDtoBooksItemLoanInfo = {
   contact: string | null;
   /** @nullable */
   expectedReturnDate: string | null;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   loanType: SeriesDetailsViewDtoBooksItemLoanInfoLoanType;
@@ -23,5 +24,11 @@ export type SeriesDetailsViewDtoBooksItemLoanInfo = {
   /** @nullable */
   note: string | null;
   personName: string;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   * @nullable
+   */
+  remindBeforeDays: number | null;
   remindToReturn: boolean;
 } | null;

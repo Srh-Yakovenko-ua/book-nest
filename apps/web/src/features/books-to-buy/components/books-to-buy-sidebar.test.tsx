@@ -50,7 +50,6 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}) {
   const props: SidebarProps = {
     bestOffers: [],
     isLoading: false,
-    onShowBestOffers: vi.fn(),
     ...overrides,
   };
   return renderWithProviders(<BooksToBuySidebar {...props} />);
@@ -87,20 +86,17 @@ describe("BooksToBuySidebar best offers", () => {
     expect(screen.getAllByRole("link", { name: /Книга/ })).toHaveLength(3);
   });
 
-  it("switches the list to the cheapest sort from the sidebar", async () => {
-    const onShowBestOffers = vi.fn();
-    renderSidebar({ bestOffers: [offer], onShowBestOffers });
+  it("leaves the list order alone, offering only a way into each book", () => {
+    renderSidebar({ bestOffers: [offer] });
 
-    await userEvent.click(screen.getByRole("button", { name: "Переглянути всі" }));
-
-    expect(onShowBestOffers).toHaveBeenCalledOnce();
+    expect(screen.getByRole("link", { name: /Останнє бажання/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Переглянути/ })).not.toBeInTheDocument();
   });
 
   it("promises best offers once prices exist", () => {
     renderSidebar({ bestOffers: [] });
 
     expect(screen.getByText("Тут з'являться книги з найнижчими цінами.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Переглянути всі" })).not.toBeInTheDocument();
   });
 });
 

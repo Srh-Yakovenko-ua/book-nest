@@ -1,5 +1,6 @@
 import type {
   BookDeletionResult,
+  BookFacetsView,
   BookView,
   DedicationsSummaryView,
   FavoritesSummaryView,
@@ -7,11 +8,13 @@ import type {
   PaginatedTrashedBooks,
   Paginator,
   RecentPurchaseStores,
+  WishlistFacetsView,
   WishlistQuery,
   WishlistView,
 } from "@app/shared";
 
 import {
+  BookFacetsQuerySchema,
   CreateBookInputSchema,
   DedicationsQuerySchema,
   LibraryBooksQuerySchema,
@@ -51,11 +54,13 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { BookFacetsService } from "../application/book-facets.service.js";
 import { BookLibraryReadService } from "../application/book-library-read.service.js";
 import { BookLifecycleService } from "../application/book-lifecycle.service.js";
 import { BooksService } from "../application/books.service.js";
 import { DedicationsService } from "../application/dedications.service.js";
 import { WishlistService } from "../application/wishlist.service.js";
+import { BookFacetsQueryDto } from "./input-dto/book-facets.input-dto.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { DedicationsQueryDto } from "./input-dto/dedications-query.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
@@ -65,12 +70,14 @@ import { TrashedBooksQueryDto } from "./input-dto/trashed-books-query.input-dto.
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 import { WishlistQueryDto } from "./input-dto/wishlist-query.input-dto.js";
 import { BookDeletionResultDto } from "./view-dto/book-deletion-result.view-dto.js";
+import { BookFacetsViewDto } from "./view-dto/book-facets.view-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { DedicationsSummaryViewDto } from "./view-dto/dedications.view-dto.js";
 import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
 import { PaginatedTrashedBooksDto } from "./view-dto/paginated-trashed-books.view-dto.js";
+import { WishlistFacetsViewDto } from "./view-dto/wishlist-facets.view-dto.js";
 import { WishlistViewDto } from "./view-dto/wishlist.view-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
@@ -84,6 +91,7 @@ export class BooksController {
     private readonly libraryReadService: BookLibraryReadService,
     private readonly wishlistService: WishlistService,
     private readonly dedicationsService: DedicationsService,
+    private readonly bookFacetsService: BookFacetsService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -167,6 +175,33 @@ export class BooksController {
     @Query(new ZodQueryPipe(WishlistQuerySchema)) query: WishlistQueryDto,
   ): Promise<WishlistView> {
     return this.wishlistService.getWishlist({ query: query as WishlistQuery, userId: user.id });
+  }
+  @ApiOkResponse({
+    description: "Authors and genres present in the requested book scope, with book counts",
+    type: BookFacetsViewDto,
+  })
+  @ApiOperation({
+    summary: "Get the author and genre filter facets of a book scope, authors optionally searched",
+  })
+  @Get("facets")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  facets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(BookFacetsQuerySchema)) query: BookFacetsQueryDto,
+  ): Promise<BookFacetsView> {
+    return this.bookFacetsService.facets({ scope: query.scope, search: query.q, userId: user.id });
+  }
+  @ApiOkResponse({
+    description: "Store names available across the whole wishlist, ignoring the active filters",
+    type: WishlistFacetsViewDto,
+  })
+  @ApiOperation({ summary: "Get the filter facets of the current user books-to-buy wishlist" })
+  @Get("wishlist/facets")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  wishlistFacets(@CurrentUser() user: AuthenticatedUser): Promise<WishlistFacetsView> {
+    return this.wishlistService.getFacets({ userId: user.id });
   }
   @ApiOkResponse({
     description: "A page of the current user books that carry a dedication",

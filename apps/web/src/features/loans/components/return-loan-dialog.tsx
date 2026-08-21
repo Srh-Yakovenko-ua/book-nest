@@ -38,7 +38,9 @@ export function ReturnLoanDialog({ loan, onOpenChange, open }: ReturnLoanDialogP
     returnLoan.mutate(loan.book.id, {
       onError: () => toast.error(t("error")),
       onSuccess: () => {
-        toast.success(t("success"));
+        toast.success(
+          t(isBorrowed ? "successBorrowed" : "successLent", { title: loan.book.title }),
+        );
         onOpenChange(false);
       },
     });
@@ -51,17 +53,18 @@ export function ReturnLoanDialog({ loan, onOpenChange, open }: ReturnLoanDialogP
       }}
       open={open}
     >
-      <AlertDialogContent
-        onCloseAutoFocus={(event) => restoreLoanTriggerFocus(event, loan.id)}
-        size="sm"
-      >
+      <AlertDialogContent onCloseAutoFocus={(event) => restoreLoanTriggerFocus(event, loan.id)}>
         <AlertDialogHeader>
           <AlertDialogMedia>
             <UiIcon name="check-circle" size={24} />
           </AlertDialogMedia>
-          <AlertDialogTitle>{isBorrowed ? t("titleBorrowed") : t("titleLent")}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {isBorrowed ? t("titleBorrowed", { title: loan.book.title }) : t("titleLent")}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            {isBorrowed ? t("descriptionBorrowed") : t("descriptionLent")}
+            {isBorrowed
+              ? t("descriptionBorrowed")
+              : t("descriptionLent", { title: loan.book.title })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

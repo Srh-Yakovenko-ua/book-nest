@@ -1,4 +1,4 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, ReadingQueueQuery } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
@@ -8,7 +8,43 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
-import { type BookWithRelations, withRelations } from "../../books/index.js";
+import { type BookWithRelations, buildLibraryWhere, withRelations } from "../../books/index.js";
+
+function buildQueueWhere({
+  query,
+  userId,
+}: {
+  query: ReadingQueueQuery | undefined;
+  userId: string;
+}): Prisma.BookWhereInput {
+  if (query === undefined) {
+    return { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId };
+  }
+
+  return buildLibraryWhere({
+    ageCategories: query.ageCategory,
+    authorIds: query.author,
+    bookType: query.bookType,
+    formats: query.format,
+    genreKeys: query.genre,
+    hasCover: query.hasCover,
+    inQueue: true,
+    languages: query.language,
+    ownershipStatuses: query.owner,
+    pagesMax: query.pagesMax,
+    pagesMin: query.pagesMin,
+    publisherIds: query.publisher,
+    queuePriorities: query.priority,
+    ratingMax: query.ratingMax,
+    ratingMin: query.ratingMin,
+    readingStatuses: query.status,
+    search: query.q === "" ? undefined : query.q,
+    tagIds: query.tag,
+    userId,
+    yearMax: query.yearMax,
+    yearMin: query.yearMin,
+  });
+}
 
 const summaryRowSelect = {
   id: true,
@@ -104,11 +140,11 @@ export class ReadingQueueRepository {
     return book?.queuePosition ?? null;
   }
 
-  listQueue(userId: string): Promise<BookWithRelations[]> {
+  listQueue(userId: string, query?: ReadingQueueQuery): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
-      include: withRelations,
+      include: withRelations(userId),
       orderBy: [{ queuePosition: "asc" }, { id: "asc" }],
-      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
+      where: buildQueueWhere({ query, userId }),
     });
   }
 

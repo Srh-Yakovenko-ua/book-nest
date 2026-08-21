@@ -9,7 +9,6 @@ import { useState } from "react";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLibraryBooks } from "@/features/books/api/use-books";
@@ -26,14 +25,9 @@ const UNSET_OWNERSHIP_ITEM_ID = "unset_ownership";
 type BooksToBuySidebarProps = {
   bestOffers: WishlistBestOffer[];
   isLoading: boolean;
-  onShowBestOffers: () => void;
 };
 
-export function BooksToBuySidebar({
-  bestOffers,
-  isLoading,
-  onShowBestOffers,
-}: BooksToBuySidebarProps) {
+export function BooksToBuySidebar({ bestOffers, isLoading }: BooksToBuySidebarProps) {
   const t = useTranslations("booksToBuy.sidebar");
 
   return (
@@ -43,20 +37,12 @@ export function BooksToBuySidebar({
     >
       <WishlistUnsetOwnershipBlock />
 
-      <WishlistBestOffersBlock
-        bestOffers={bestOffers}
-        isLoading={isLoading}
-        onShowBestOffers={onShowBestOffers}
-      />
+      <WishlistBestOffersBlock bestOffers={bestOffers} isLoading={isLoading} />
     </aside>
   );
 }
 
-export function WishlistBestOffersBlock({
-  bestOffers,
-  isLoading,
-  onShowBestOffers,
-}: BooksToBuySidebarProps) {
+export function WishlistBestOffersBlock({ bestOffers, isLoading }: BooksToBuySidebarProps) {
   const t = useTranslations("booksToBuy.sidebar");
 
   return (
@@ -66,60 +52,12 @@ export function WishlistBestOffersBlock({
       ) : bestOffers.length === 0 ? (
         <EmptyText>{t("bestOffers.empty")}</EmptyText>
       ) : (
-        <>
-          <ul className="flex flex-col gap-1">
-            {bestOffers.slice(0, BEST_OFFERS_LIMIT).map((offer) => (
-              <BestOfferRow key={offer.bookId} offer={offer} />
-            ))}
-          </ul>
-          <Button className="self-start" onClick={onShowBestOffers} size="sm" variant="secondary">
-            {t("bestOffers.showAll")}
-            <UiIcon name="arrow-right" size={14} />
-          </Button>
-        </>
+        <ul className="flex flex-col gap-1">
+          {bestOffers.slice(0, BEST_OFFERS_LIMIT).map((offer) => (
+            <BestOfferRow key={offer.bookId} offer={offer} />
+          ))}
+        </ul>
       )}
-    </SidebarBlock>
-  );
-}
-
-export function WishlistHowItWorksBlock() {
-  const t = useTranslations("booksToBuy.sidebar");
-
-  return (
-    <SidebarBlock title={t("howItWorks.title")}>
-      <div className="flex flex-col gap-2">
-        <p className="text-xs leading-relaxed text-muted-foreground">{t("howItWorks.bought")}</p>
-        <p className="text-xs leading-relaxed text-muted-foreground">{t("howItWorks.delivery")}</p>
-      </div>
-    </SidebarBlock>
-  );
-}
-
-export function WishlistQuickActionsBlock() {
-  const t = useTranslations("booksToBuy.sidebar");
-
-  return (
-    <SidebarBlock title={t("quickActions.title")}>
-      <div className="flex flex-col gap-2">
-        <Button asChild className="justify-start" variant="secondary">
-          <MobilePageOverviewLink href="/books/new">
-            <UiIcon name="plus" size={16} />
-            {t("quickActions.addBook")}
-          </MobilePageOverviewLink>
-        </Button>
-        <Button asChild className="justify-start" variant="secondary">
-          <MobilePageOverviewLink href="/books">
-            <UiIcon name="library" size={16} />
-            {t("quickActions.openLibrary")}
-          </MobilePageOverviewLink>
-        </Button>
-        <Button asChild className="justify-start" variant="ghost">
-          <MobilePageOverviewLink href="/delivery/in-transit">
-            <UiIcon name="truck" size={16} />
-            {t("quickActions.inTransit")}
-          </MobilePageOverviewLink>
-        </Button>
-      </div>
     </SidebarBlock>
   );
 }

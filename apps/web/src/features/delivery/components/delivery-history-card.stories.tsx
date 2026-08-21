@@ -3,15 +3,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, waitFor } from "storybook/test";
 
 import { DeliveryHistoryCard } from "./delivery-history-card";
-import { makeHistoryCardModel } from "./delivery-history.fixtures";
+import { historyCardModels, makeHistoryCardModel } from "./delivery-history.fixtures";
 
 const meta = {
   args: {
     model: makeHistoryCardModel(),
-    onCancel: () => {},
-    onEdit: () => {},
-    onReceive: () => {},
-    receivePending: false,
+    search: "",
   },
   component: DeliveryHistoryCard,
   parameters: { layout: "padded" },
@@ -27,54 +24,30 @@ export const Received: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Таємна історія")).toBeVisible());
     await expect(canvas.getByText("Отримано")).toBeVisible();
-    await expect(canvas.getByText("14 лип. 2026")).toBeVisible();
+    await expect(canvas.getByText("Отримано 19 серп. 2026")).toBeVisible();
+    await expect(canvas.getByText("Yakaboo")).toBeVisible();
   },
 };
 
-export const Active: Story = {
-  args: {
-    model: makeHistoryCardModel({
-      badge: { icon: "truck", label: "В дорозі", tone: "info", value: "in_transit" },
-      isActive: true,
-      receivedDateText: null,
-    }),
-  },
+export const MultipleShipments: Story = {
+  args: { model: historyCardModels[1] },
   play: async ({ canvas }) => {
-    await waitFor(() =>
-      expect(canvas.getByRole("button", { name: "Позначити як отриману" })).toBeVisible(),
-    );
+    await waitFor(() => expect(canvas.getByText("Посилка 1")).toBeVisible());
+    await expect(canvas.getByText("Посилка 2")).toBeVisible();
+    await expect(canvas.getByText("Отримано 12 серп. 2026")).toBeVisible();
+    await expect(canvas.getByText("Отримано 18 серп. 2026")).toBeVisible();
+    await expect(canvas.getByText("Очікувалось 14 серп. 2026")).toBeVisible();
   },
 };
 
 export const Cancelled: Story = {
-  args: {
-    model: makeHistoryCardModel({
-      badge: { icon: "x-circle", label: "Скасовано", tone: "neutral", value: "cancelled" },
-      cancelledDateText: "10 лип. 2026",
-      cancelReason: "Магазин скасував замовлення — книги немає в наявності.",
-      isActive: false,
-      priceText: null,
-      receivedDateText: null,
-    }),
-  },
+  args: { model: historyCardModels[2] },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Причина скасування")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("Скасовано 10 лип. 2026")).toBeVisible());
     await expect(
       canvas.getByText("Магазин скасував замовлення — книги немає в наявності."),
     ).toBeVisible();
-  },
-};
-
-export const DeletedBook: Story = {
-  args: {
-    model: makeHistoryCardModel({
-      badge: { icon: "package", label: "Замовлено", tone: "neutral", value: "ordered" },
-      book: null,
-      isActive: false,
-      receivedDateText: null,
-    }),
-  },
-  play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Книгу видалено")).toBeVisible());
+    await expect(canvas.getByText("Ще не відправлено")).toBeVisible();
+    await expect(canvas.getByText("Скасовано 2 лип. 2026")).toBeVisible();
   },
 };

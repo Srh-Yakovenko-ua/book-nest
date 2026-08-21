@@ -98,6 +98,7 @@ export function PublisherToolbar({
           <MobileSortSheet
             className="sm:hidden"
             closeLabel={tSortMobile("close")}
+            description={tSortMobile("description")}
             groups={[
               {
                 key: "sort",

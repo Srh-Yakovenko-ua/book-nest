@@ -5,10 +5,14 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { SeriesOverviewViewDtoAlmostReadItem } from "./seriesOverviewViewDtoAlmostReadItem";
+import type { SeriesOverviewViewDtoAttentionCounts } from "./seriesOverviewViewDtoAttentionCounts";
 import type { SeriesOverviewViewDtoStatusCounts } from "./seriesOverviewViewDtoStatusCounts";
 import type { SeriesOverviewViewDtoTopUnfinishedItem } from "./seriesOverviewViewDtoTopUnfinishedItem";
 
 export interface SeriesOverviewViewDto {
+  almostRead?: SeriesOverviewViewDtoAlmostReadItem[];
+  attentionCounts: SeriesOverviewViewDtoAttentionCounts;
   booksInSeries: number;
   booksLeftInUnfinishedSeries?: number;
   finishedBooksInSeries?: number;

@@ -69,21 +69,23 @@ describe("ListBookCard", () => {
     renderCard({ position: 2, title: "Друга книга" });
 
     expect(screen.getByRole("link", { name: "Друга книга" })).toBeInTheDocument();
-    expect(screen.getByText("Позиція 2")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Змінити порядок книги «Друга книга» · позиція 2" }),
+    ).toHaveTextContent("#2");
   });
 
   it("hides the position badge when the list is not sorted by position", () => {
     renderCard({ position: 2, title: "Друга книга" }, { showPosition: false });
 
-    expect(screen.queryByText("Позиція 2")).not.toBeInTheDocument();
+    expect(screen.queryByText("#2")).not.toBeInTheDocument();
   });
 
-  it("offers view, queue, other-list, reorder and remove actions", async () => {
+  it("offers queue, other-list, reorder and remove actions without a view link", async () => {
     renderCard({ title: "Книга" });
 
     await openMenu("Книга");
 
-    expect(screen.getByRole("link", { name: "Переглянути книгу" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Переглянути книгу" })).not.toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Додати в чергу" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Додати до іншого списку" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Перемістити вище" })).toBeInTheDocument();
@@ -117,11 +119,11 @@ describe("ListBookCard", () => {
     );
   });
 
-  it("disables both reorder actions and explains why when reordering is unavailable", async () => {
+  it("hides the drag handle and disables both reorder actions when reordering is unavailable", async () => {
     renderCard({ position: 2, title: "Книга" }, { bookCount: 3, canReorder: false });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Книга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Книга»/u }),
     ).not.toBeInTheDocument();
 
     await openMenu("Книга");
@@ -134,18 +136,13 @@ describe("ListBookCard", () => {
       "aria-disabled",
       "true",
     );
-    expect(
-      screen.getByText(
-        "Щоб змінити порядок книг, виберіть сортування «Позиція в списку» та скиньте пошук і фільтри.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows the drag handle while reordering is possible", () => {
     renderCard({ position: 2, title: "Книга" }, { bookCount: 3 });
 
     expect(
-      screen.getByRole("button", { name: "Змінити порядок книги «Книга»" }),
+      screen.getByRole("button", { name: /^Змінити порядок книги «Книга»/u }),
     ).toBeInTheDocument();
   });
 
@@ -191,28 +188,45 @@ describe("ListBookCard", () => {
   });
 });
 
-describe("ListBookCard call to action", () => {
-  const ctaByStatus: [ReadingStatus, string][] = [
-    ["dnf", "Переглянути книгу"],
-    ["finished", "Переглянути книгу"],
+describe("ListBookCard reading action", () => {
+  const withAction: [ReadingStatus, string][] = [
     ["not_started", "Почати читання"],
     ["paused", "Відновити читання"],
-    ["reading", "Продовжити читання"],
-    ["rereading", "Продовжити читання"],
     ["want_to_read", "Почати читання"],
   ];
+  const withoutAction: ReadingStatus[] = ["dnf", "finished", "reading", "rereading"];
 
-  it.each(ctaByStatus)("renders the %s call to action", (readingStatus, expected) => {
+  it.each(withAction)(
+    "offers the %s reading action in the menu",
+    async (readingStatus, expected) => {
+      renderCard({ readingStatus, title: "Книга" });
+
+      await openMenu("Книга");
+
+      expect(screen.getByRole("menuitem", { name: expected })).toBeInTheDocument();
+    },
+  );
+
+  it.each(withoutAction)("offers no reading action for %s", async (readingStatus) => {
     renderCard({ readingStatus, title: "Книга" });
 
-    expect(screen.getAllByText(expected).length).toBeGreaterThan(0);
+    await openMenu("Книга");
+
+    expect(screen.queryByRole("menuitem", { name: /читання/ })).not.toBeInTheDocument();
   });
 
-  it("starts reading from the call to action", async () => {
+  it.each(withAction)("keeps the %s action out of the card body", (readingStatus, label) => {
+    renderCard({ readingStatus, title: "Книга" });
+
+    expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
+  });
+
+  it("starts reading from the menu", async () => {
     const onStartReading = vi.fn();
     renderCard({ readingStatus: "not_started", title: "Книга" }, { onStartReading });
 
-    await userEvent.click(screen.getByRole("button", { name: "Почати читання" }));
+    await openMenu("Книга");
+    await userEvent.click(screen.getByRole("menuitem", { name: "Почати читання" }));
 
     expect(onStartReading).toHaveBeenCalledOnce();
   });
@@ -253,6 +267,6 @@ describe("ListBookCard partial data", () => {
       title: "Книга",
     });
 
-    expect(screen.getByRole("img", { name: "rating 8" })).toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: "rating 8" }).length).toBeGreaterThan(0);
   });
 });

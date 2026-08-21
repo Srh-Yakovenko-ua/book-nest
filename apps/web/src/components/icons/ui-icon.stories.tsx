@@ -76,6 +76,7 @@ const ALL_UI_ICONS: readonly UiIconName[] = [
   "trophy",
   "package",
   "store",
+  "shopping-bag",
   "wallet",
   "pie",
   "pages",

@@ -155,6 +155,33 @@ async function createMixedStatusList(userId: string): Promise<string> {
   return listId;
 }
 
+async function createQuickFilterList(userId: string): Promise<string> {
+  const listId = await createList(userId, "Autumn reads");
+  const seriesId = await createSeries(userId, "Dune saga");
+  await addBookToList(listId, 0, {
+    isFavorite: true,
+    queuePosition: 1,
+    readingStatus: "reading",
+    title: "Queued favourite",
+    userId,
+  });
+  await addBookToList(listId, 1, {
+    queuePosition: 2,
+    readingStatus: "not_started",
+    seriesId,
+    title: "Queued series part",
+    userId,
+  });
+  await addBookToList(listId, 2, {
+    isFavorite: true,
+    readingStatus: "finished",
+    title: "Finished favourite",
+    userId,
+  });
+  await addBookToList(listId, 3, { readingStatus: "not_started", title: "Plain book", userId });
+  return listId;
+}
+
 async function createRatedList(userId: string): Promise<string> {
   const listId = await createList(userId, "Autumn reads");
   const slim = await addBookToList(listId, 0, {
@@ -390,45 +417,92 @@ describe("GET /api/lists/:listId filters", () => {
   });
 });
 
-describe("GET /api/lists/:listId status counts", () => {
-  it("returns a count for every status bucket of the list", async () => {
+describe("GET /api/lists/:listId quick counts", () => {
+  it("returns a count for every quick filter of the list", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createMixedStatusList(userId);
 
     const res = await getDetail(accessToken, listId);
 
-    expect(res.body.statusCounts).toEqual({ all: 4, finished: 2, not_started: 1, reading: 1 });
+    expect(res.body.quickCounts).toEqual({
+      all: 4,
+      favorites: 0,
+      finished: 2,
+      in_queue: 0,
+      not_started: 1,
+      reading: 1,
+      series: 0,
+    });
   });
 
-  it("keeps the status counts unchanged when the requested tab changes", async () => {
+  it("counts the favourite, queued and series books of the list", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createQuickFilterList(userId);
+
+    const res = await getDetail(accessToken, listId);
+
+    expect(res.body.quickCounts).toEqual({
+      all: 4,
+      favorites: 2,
+      finished: 1,
+      in_queue: 2,
+      not_started: 2,
+      reading: 1,
+      series: 1,
+    });
+  });
+
+  it("keeps the quick counts unchanged when the requested tab changes", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createMixedStatusList(userId);
 
     const allTab = await getDetail(accessToken, listId, { tab: "all" });
     const finishedTab = await getDetail(accessToken, listId, { tab: "finished" });
 
-    expect(finishedTab.body.statusCounts).toEqual(allTab.body.statusCounts);
+    expect(finishedTab.body.quickCounts).toEqual(allTab.body.quickCounts);
     expect(titles(finishedTab.body)).toEqual(["Fantasy finished", "Space finished"]);
   });
 
-  it("keeps the status counts unchanged when the status filter changes", async () => {
+  it("keeps the quick counts unchanged when the status filter changes", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createMixedStatusList(userId);
 
     const unfiltered = await getDetail(accessToken, listId);
     const filtered = await getDetail(accessToken, listId, { status: "reading" });
 
-    expect(filtered.body.statusCounts).toEqual(unfiltered.body.statusCounts);
+    expect(filtered.body.quickCounts).toEqual(unfiltered.body.quickCounts);
     expect(titles(filtered.body)).toEqual(["Fantasy reading"]);
   });
 
-  it("narrows every status bucket when a genre filter is applied", async () => {
+  it("keeps the quick counts unchanged when a sibling chip is pressed", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createQuickFilterList(userId);
+
+    const unfiltered = await getDetail(accessToken, listId);
+    const favorites = await getDetail(accessToken, listId, { isFavorite: "true" });
+    const queued = await getDetail(accessToken, listId, { inQueue: "true" });
+    const series = await getDetail(accessToken, listId, { bookType: "series_part" });
+
+    expect(favorites.body.quickCounts).toEqual(unfiltered.body.quickCounts);
+    expect(queued.body.quickCounts).toEqual(unfiltered.body.quickCounts);
+    expect(series.body.quickCounts).toEqual(unfiltered.body.quickCounts);
+  });
+
+  it("narrows every quick count when a genre filter is applied", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createMixedStatusList(userId);
 
     const res = await getDetail(accessToken, listId, { genre: "fantasy" });
 
-    expect(res.body.statusCounts).toEqual({ all: 2, finished: 1, not_started: 0, reading: 1 });
+    expect(res.body.quickCounts).toEqual({
+      all: 2,
+      favorites: 0,
+      finished: 1,
+      in_queue: 0,
+      not_started: 0,
+      reading: 1,
+      series: 0,
+    });
   });
 
   it("counts want_to_read under not_started and rereading under reading", async () => {
@@ -439,7 +513,15 @@ describe("GET /api/lists/:listId status counts", () => {
 
     const res = await getDetail(accessToken, listId);
 
-    expect(res.body.statusCounts).toEqual({ all: 2, finished: 0, not_started: 1, reading: 1 });
+    expect(res.body.quickCounts).toEqual({
+      all: 2,
+      favorites: 0,
+      finished: 0,
+      in_queue: 0,
+      not_started: 1,
+      reading: 1,
+      series: 0,
+    });
   });
 
   it("counts a paused book in the all bucket only", async () => {
@@ -449,7 +531,66 @@ describe("GET /api/lists/:listId status counts", () => {
 
     const res = await getDetail(accessToken, listId);
 
-    expect(res.body.statusCounts).toEqual({ all: 1, finished: 0, not_started: 0, reading: 0 });
+    expect(res.body.quickCounts).toEqual({
+      all: 1,
+      favorites: 0,
+      finished: 0,
+      in_queue: 0,
+      not_started: 0,
+      reading: 0,
+      series: 0,
+    });
+  });
+});
+
+describe("GET /api/lists/:listId quick filter pagination", () => {
+  it("pages the favourites while the quick counts keep the whole list", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createQuickFilterList(userId);
+
+    const res = await getDetail(accessToken, listId, { isFavorite: "true" });
+
+    expect(res.body.quickCounts.all).toBe(4);
+    expect(res.body.quickCounts.favorites).toBe(2);
+    expect(res.body.books.totalCount).toBe(2);
+    expect(titles(res.body)).toEqual(["Queued favourite", "Finished favourite"]);
+  });
+
+  it("pages the queued books while the quick counts keep the whole list", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createQuickFilterList(userId);
+
+    const res = await getDetail(accessToken, listId, { inQueue: "true" });
+
+    expect(res.body.quickCounts.all).toBe(4);
+    expect(res.body.books.totalCount).toBe(2);
+    expect(titles(res.body)).toEqual(["Queued favourite", "Queued series part"]);
+  });
+
+  it("pages the series parts while the quick counts keep the whole list", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createQuickFilterList(userId);
+
+    const res = await getDetail(accessToken, listId, { bookType: "series_part" });
+
+    expect(res.body.quickCounts.all).toBe(4);
+    expect(res.body.books.totalCount).toBe(1);
+    expect(titles(res.body)).toEqual(["Queued series part"]);
+  });
+
+  it("counts only the last page of the favourites as the page total", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createQuickFilterList(userId);
+
+    const res = await getDetail(accessToken, listId, {
+      isFavorite: "true",
+      pageNumber: "2",
+      pageSize: "1",
+    });
+
+    expect(res.body.books.totalCount).toBe(2);
+    expect(res.body.books.pagesCount).toBe(2);
+    expect(titles(res.body)).toEqual(["Finished favourite"]);
   });
 });
 

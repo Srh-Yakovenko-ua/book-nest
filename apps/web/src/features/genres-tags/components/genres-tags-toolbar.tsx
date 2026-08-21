@@ -104,6 +104,7 @@ export function GenresTagsToolbar({
           <MobileSortSheet
             className="max-w-[9.5rem] sm:hidden"
             closeLabel={tSortMobile("close")}
+            description={tSortMobile("genreDescription")}
             groups={[
               {
                 key: "genreSort",
@@ -121,6 +122,7 @@ export function GenresTagsToolbar({
           <MobileSortSheet
             className="max-w-[9.5rem] sm:hidden"
             closeLabel={tSortMobile("close")}
+            description={tSortMobile("tagDescription")}
             groups={[
               {
                 key: "tagSort",

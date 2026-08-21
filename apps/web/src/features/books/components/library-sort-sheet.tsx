@@ -2,10 +2,9 @@
 
 import { useTranslations } from "next-intl";
 
-import type { MobileSortGroup } from "@/components/ui/mobile-sort-sheet";
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
-import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
+import { buildMobileSortGroups, MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 
 import type { LibrarySortOption } from "./library-sort-select";
 
@@ -46,21 +45,17 @@ export function LibrarySortSheet({
 }: LibrarySortSheetProps) {
   const t = useTranslations("books.library.sort.mobile");
 
-  const groups: MobileSortGroup<BooksControllerListSort>[] = [];
-
-  for (const option of options) {
-    const key = SORT_GROUP_BY_VALUE[option.value];
-    const entry = { label: t(`options.${option.value}`), value: option.value };
-    const group = groups.find((candidate) => candidate.key === key);
-    if (group === undefined) groups.push({ key, label: t(`groups.${key}`), options: [entry] });
-    else group.options.push(entry);
-  }
-
   return (
     <MobileSortSheet
       className={className}
       closeLabel={t("close")}
-      groups={groups}
+      description={t("description")}
+      groups={buildMobileSortGroups({
+        groupKeyByValue: SORT_GROUP_BY_VALUE,
+        groupLabel: (key) => t(`groups.${key}`),
+        optionLabel: (option) => t(`options.${option}`),
+        values: options.map((option) => option.value),
+      })}
       id="library-sort"
       label={label}
       onChange={onChange}

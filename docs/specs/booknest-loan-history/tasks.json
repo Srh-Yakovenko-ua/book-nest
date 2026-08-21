@@ -1,0 +1,1180 @@
+{
+  "spec": "docs/booknest-loan-history-spec/",
+  "generatedAt": "2026-08-13T20:07:23Z",
+  "branch": "fix/loans-sort",
+  "scope": {
+    "included": [
+      "00_CLAUDE_TASK.md §1-§21 (navigation, lifecycle, historyResult, derived calculations, backend API, filters, sorting, stat cards, history row, click behavior, detail drawer, restricted editing, right sidebar, analytics scope, empty/loading/error, responsive, localization, icons, backend requirements, tests, DoD)",
+      "01_PRODUCT_UX.md §1-§15",
+      "02_BACKEND_API.md §1-§25",
+      "03_FRONTEND.md §1-§20",
+      "04_TESTS_ACCEPTANCE.md §1-§21 + final DoD checklist",
+      "05_IMPLEMENTATION_PLAN.md Phase 0-13 (used as slice order, not as separate work)"
+    ],
+    "excluded": [
+      "LoanHistory table — spec forbids it (README:52, 00_CLAUDE_TASK.md:67, 02_BACKEND_API.md:5). History stays a read-model over book_loans.",
+      "LoanContact normalized entity, person page, QR/loan passport, book-condition photos, expectedReturnDate change journal, automatic SMS/email, new notification system, new bottom navigation — README:75-84, 05_IMPLEMENTATION_PLAN.md:199-208 list all of these as out of scope.",
+      "Month grouping of the history list (Серпень 2026 / Липень 2026) — 01_PRODUCT_UX.md:316-326 marks it a future enhancement and explicitly not part of DoD.",
+      "Reminder metadata as history UI content — 00_CLAUDE_TASK.md:367 and 02_BACKEND_API.md:157 say reminder must not be a key part of the history UI. remindToReturn / remindBeforeDays stay off the history views.",
+      "Refactoring BookLoan.status from String to an enum — 00_CLAUDE_TASK.md:559 forbids it inside this task. Verified still String at apps/api/prisma/schema.prisma:396.",
+      "Rewriting the gendered Ukrainian copy of the existing active loans pages (loans.pages.borrowed.subtitle 'ти взяла', loans.pages.lent.subtitle 'ти передала', loans.row.personBorrowed). 01_PRODUCT_UX.md:31 and 04_TESTS_ACCEPTANCE.md:305 impose the no-gender rule; it binds the new history keys only. Touching existing keys is the 'unrelated refactor' 00_CLAUDE_TASK.md:605 forbids.",
+      "New EmptyState illustration for history — apps/web/src/lib/empty-states.ts:59-201 has no history illustration and 00_CLAUDE_TASK.md:490 says reuse existing patterns. Reuse illu 'empty-borrowed' (overall empty) and 'empty-search' (filtered empty), as loans-view.tsx:262,271 already does.",
+      "New UiIcon SVGs — 00_CLAUDE_TASK.md:536-537 forbids adding an icon when a semantically fitting one exists. The spec's names history / circle-check / clock-alert / users are not in the registry (apps/web/src/components/icons/ui-icon.tsx:5-113); map onto existing names instead (see D8).",
+      "Fixing the two return paths that leave remindToReturn=true on a completed loan (apps/api/src/modules/books/infrastructure/books.repository.ts:1462-1466 and apps/api/src/modules/books/infrastructure/bulk-books.repository.ts:272-275) — pending on D9. No reminder can actually fire, because reminder-candidates.repository.ts:13-19 requires status='active' AND returnedAt IS NULL."
+    ]
+  },
+  "tasks": [
+    {
+      "id": "S1",
+      "title": "Add history result / result-filter / sort enums to @app/shared",
+      "specRef": "02_BACKEND_API.md §4 (lines 66-92)",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LoanHistoryResultSchema = z.enum([\"on_time\", \"late\", \"no_due_date\"]) plus exported LoanHistoryResult type",
+        "LoanHistoryResultFilterSchema = z.enum([\"all\", \"on_time\", \"late\", \"no_due_date\"]) plus exported type",
+        "LoanHistorySortSchema = z.enum([\"returned_desc\", \"returned_asc\", \"loan_date_desc\", \"duration_desc\", \"title_asc\", \"person_asc\"]) — all six values, no narrowing",
+        "the existing LoanFilterSchema (loans.ts:28) and LoanSortSchema (loans.ts:39) are unchanged, so the active pages keep overdue_first as default"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "S2",
+      "title": "Add LoanHistoryQuerySchema and LoanHistoryOverviewQuerySchema",
+      "specRef": "02_BACKEND_API.md §4 (lines 96-107), §13 (lines 323-335); 00_CLAUDE_TASK.md §5, §14",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": ["S1"],
+      "mandatory": true,
+      "doneWhen": [
+        "LoanHistoryQuerySchema spreads paginationQueryFields({ pageSizeDefault: 10 }) — the same helper LoansQuerySchema uses at loans.ts:52",
+        "fields: type: LoanTypeSchema.optional(), result: LoanHistoryResultFilterSchema.default(\"all\"), person: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(), search: z.string().trim().max(LOAN_SEARCH_MAX).optional(), returnedFrom / returnedTo: z.iso.date().optional(), sort: LoanHistorySortSchema.default(\"returned_desc\")",
+        "returnedFrom/returnedTo use z.iso.date() (the repo's date-only convention, e.g. packages/shared/src/books.ts:464) — the spec's IsoDateSchema does not exist in @app/shared",
+        "a .refine rejects returnedFrom > returnedTo with a field error on returnedTo",
+        "LoanHistoryOverviewQuerySchema carries only type, person, returnedFrom, returnedTo — no search, no result, no sort, no pagination fields"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "S3",
+      "title": "Add LoanHistoryListItemViewSchema and PaginatedLoanHistorySchema",
+      "specRef": "02_BACKEND_API.md §5 (lines 117-139); 00_CLAUDE_TASK.md §9",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": ["S1"],
+      "mandatory": true,
+      "doneWhen": [
+        "LoanHistoryListItemViewSchema fields exactly: id, type (LoanTypeSchema), book (LoanBookPreviewSchema, reused from loans.ts:61), personName, loanDate (nullable), expectedReturnDate (nullable), returnedAt (datetime string), returnedDate (date-only string), historyResult (LoanHistoryResultSchema), durationDays (int nullable), delayDays (int nullable)",
+        "no remindToReturn / remindBeforeDays / loanUiStatus / contact / note on the list item",
+        "PaginatedLoanHistorySchema = createPaginatedSchema(LoanHistoryListItemViewSchema)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "S4",
+      "title": "Add LoanHistoryDetailViewSchema",
+      "specRef": "02_BACKEND_API.md §6 (lines 146-155); 00_CLAUDE_TASK.md §11",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": ["S3"],
+      "mandatory": true,
+      "doneWhen": [
+        "LoanHistoryDetailViewSchema extends LoanHistoryListItemViewSchema and adds contact (nullable), note (nullable), createdAt, updatedAt",
+        "it carries no reminder fields"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "S5",
+      "title": "Add LoanHistoryOverviewViewSchema (summary + topPeople + duration + reliability)",
+      "specRef": "02_BACKEND_API.md §13 (lines 336-380), §14, §15, §16; 00_CLAUDE_TASK.md §8, §13",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": ["S1"],
+      "mandatory": true,
+      "doneWhen": [
+        "summary has totalCompleted, borrowedCount, lentCount, onTimeCount, onTimePercent, lateCount, latePercent, averageDelayDays (nullable), noDueDateCount, averageDurationDays (nullable)",
+        "topPeople is an array of { personName, totalCount, borrowedCount, lentCount }",
+        "duration is { averageDays, longestDays, shortestDays }, all nullable ints",
+        "reliability is { onTimeCount, lateCount, noDueDateCount, onTimePercent }",
+        "percent fields are z.number().int().min(0).max(100) so the frontend can never re-derive a different rounding"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "S6",
+      "title": "Add history people-option contract",
+      "specRef": "02_BACKEND_API.md §17 (lines 446-454); 00_CLAUDE_TASK.md §5 People filter",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LoanHistoryPeopleQuerySchema with an optional trimmed search and a bounded take/limit",
+        "LoanHistoryPersonOptionSchema = { personName, totalCount } and an exported array/response schema",
+        "verified precondition: no existing endpoint returns loan people (grep of apps/api/src/modules/**/api/*.controller.ts found none), so the spec's conditional resolves to mandatory"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "S7",
+      "title": "Add UpdateLoanHistoryInputSchema (restricted correction payload)",
+      "specRef": "02_BACKEND_API.md §19 (lines 474-508); 00_CLAUDE_TASK.md §12",
+      "layer": "shared",
+      "files": ["packages/shared/src/loans.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the schema accepts only returnedDate (notInFutureDate(...), optional) and note (LoanNoteSchema.nullable().optional())",
+        "it is a strict object or is proven by test to drop status / type / personName / contact / loanDate / expectedReturnDate / remindToReturn / remindBeforeDays / userId / bookId",
+        "returnedDate reuses notInFutureDate from packages/shared/src/internal.ts:29, matching CreateLoanInputSchema at books.ts:482",
+        "at least one of the two fields must be present (refine), so an empty PATCH is a 400"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "P1",
+      "title": "Widen the book_loans user index to (userId, status, returnedAt)",
+      "specRef": "00_CLAUDE_TASK.md §19 (line 558); 02_BACKEND_API.md §23 (lines 569-577)",
+      "layer": "prisma",
+      "files": [
+        "apps/api/prisma/schema.prisma",
+        "apps/api/prisma/migrations/<timestamp>_index_loan_history/migration.sql"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "schema.prisma BookLoan carries @@index([userId, status, returnedAt]); per D6 the existing @@index([userId, status]) (schema.prisma:404) is removed rather than kept alongside",
+        "the generated migration.sql was read line by line and every DROP INDEX it contains was checked; only the drop of book_loans_user_id_status_idx remains",
+        "no DROP INDEX on authors_search_text_trgm_idx or publishers_search_text_trgm_idx survives in the file (the two that Prisma's differ reliably re-proposes)",
+        "no DROP INDEX on book_loans_active_book_idx",
+        "apps/api/src/core/database/raw-sql-indexes.test.ts still passes unchanged (all 10 entries at lines 35-44)",
+        "applied with db:migrate:deploy, not db push"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "DOM1",
+      "title": "Pure domain helpers for historyResult, delayDays, durationDays and returnedDate",
+      "specRef": "00_CLAUDE_TASK.md §3, §4; 02_BACKEND_API.md §7-§10, §22 (line 553)",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/loans/domain/loan-history-result.ts"],
+      "dependsOn": ["S1"],
+      "mandatory": true,
+      "doneWhen": [
+        "the module exports pure functions with no Prisma import and no injectable decorator",
+        "returnedDate is derived with toIsoDate from apps/api/src/core/iso-date.ts:35 (UTC calendar day), not with getTime()/raw timestamp comparison",
+        "durationDays and delayDays are computed with daysBetweenIsoDates (iso-date.ts:13) or differenceInCalendarDays from date-fns — no millisecond arithmetic, no hand-rolled 86400000",
+        "historyResult returns \"no_due_date\" when expectedReturnDate is null, \"on_time\" when returnedDate <= expectedReturnDate, \"late\" otherwise",
+        "delayDays is a positive int only for \"late\", null for the other two results",
+        "durationDays is null when loanDate is null, 0 when loanDate equals returnedDate, and never falls back to createdAt"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "DOM2",
+      "title": "Unit tests for the history domain helpers",
+      "specRef": "04_TESTS_ACCEPTANCE.md §1 (lines 5-58), §2 (lines 62-68)",
+      "layer": "test",
+      "files": ["apps/api/src/modules/loans/domain/loan-history-result.test.ts"],
+      "dependsOn": ["DOM1"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases from 04_TESTS_ACCEPTANCE.md §1 are asserted verbatim: expected 2026-08-10 / returned 2026-08-10 -> on_time, delayDays null; returned 2026-08-08 -> on_time; returned 2026-08-13 -> late, delayDays 3; expected null -> no_due_date, delayDays null; loanDate 2026-08-01 + returned 2026-08-13 -> durationDays 12; same day -> 0; loanDate null -> null",
+        "a returnedAt at 2026-08-10T23:59:59Z and one at 2026-08-10T00:00:00Z both resolve to calendar day 2026-08-10 and stay on_time against expected 2026-08-10",
+        "the test file mirrors the style of apps/api/src/modules/loans/domain/loan-ui-status.test.ts"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R1",
+      "title": "History list query — base scope, filters, search, period, sort, pagination in SQL",
+      "specRef": "02_BACKEND_API.md §11 (lines 229-283), §12 (lines 287-317), §23; 00_CLAUDE_TASK.md §6, §7, §19",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["S2", "S3", "P1"],
+      "mandatory": true,
+      "doneWhen": [
+        "base scope is userId = current user AND status = 'returned' AND returned_at IS NOT NULL AND the joined book is not soft-deleted (SOFT_DELETE_SCOPE.active semantics, matching loans.repository.ts:299)",
+        "the result filter is evaluated in SQL by comparing (returned_at AT TIME ZONE 'UTC')::date against expected_return_date — no returned rows are filtered in JS",
+        "search reuses buildBookTextSearchConditions (apps/api/src/modules/books/infrastructure/book-search.ts:50) or an equivalent SQL clause covering title, original_title and author names, plus person_name, contact and note — the same six surfaces as loans.repository.ts:311-319",
+        "returnedFrom / returnedTo filter on the calendar returned date and are inclusive on both ends",
+        "the six sorts produce: returned_desc = returned_at DESC, id ASC; returned_asc = returned_at ASC, id ASC; loan_date_desc = loan_date DESC NULLS LAST, returned_at DESC, id ASC; duration_desc = calendar duration DESC NULLS LAST, returned_at DESC, id ASC; title_asc = book.title ASC, id ASC; person_asc = person_name ASC, returned_at DESC, id ASC",
+        "every sort ends with id as a tie-breaker",
+        "LIMIT/OFFSET are applied in SQL; there is no .slice() and no findMany without take on the history path",
+        "hydration follows the existing ordered-ids pattern (apps/api/src/modules/books/infrastructure/books.repository.ts:930-950): SQL returns ordered ids, one findMany with the book/coverMedia/publisher include re-fetches them, a Map restores the SQL order",
+        "every interpolated value goes through Prisma.sql template parameters — no string concatenation of user input",
+        "the repository returns model rows / primitives, never a ViewModel (CLAUDE.md §5.3)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R2",
+      "title": "History list total count under the same filters",
+      "specRef": "04_TESTS_ACCEPTANCE.md §10 (lines 159-163)",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["R1"],
+      "mandatory": true,
+      "doneWhen": [
+        "the count uses the identical WHERE construction as the page query (one shared clause builder, not a second hand-written copy)",
+        "totalCount is independent of pageNumber/pageSize/sort"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R3",
+      "title": "Overview aggregates — summary counts, percents inputs, duration analytics, reliability",
+      "specRef": "02_BACKEND_API.md §13-§15 (lines 323-425); 00_CLAUDE_TASK.md §8, §13, §14",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["S5", "R1"],
+      "mandatory": true,
+      "doneWhen": [
+        "one aggregate query returns totalCompleted, borrowedCount, lentCount, onTimeCount, lateCount, noDueDateCount, sum/avg of delay days over late rows only, and avg/max/min of duration days over rows with a non-null loan_date",
+        "the aggregate WHERE honours type, person, returnedFrom, returnedTo and ignores search, result, sort and pagination",
+        "the raw row shape is validated with a Zod schema before leaving the repository, following LoanDirectionCountsRowSchema at loans.repository.ts:21-34",
+        "no aggregate is computed from a fetched page of rows"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R4",
+      "title": "Top people over completed loans, with direction breakdown",
+      "specRef": "02_BACKEND_API.md §16 (lines 428-442); 00_CLAUDE_TASK.md §13 Блок 1",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["R3"],
+      "mandatory": true,
+      "doneWhen": [
+        "GROUP BY person_name over the same analytics scope as R3, returning totalCount plus borrowedCount and lentCount per person",
+        "ORDER BY totalCount DESC, person_name ASC, LIMIT 5",
+        "the ordering is deterministic on ties (person_name is the second key; column carries COLLATE uk-UA-x-icu per migration 20260812115219, line 32)",
+        "not derived from the current history page"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R5",
+      "title": "Distinct people options for the person filter",
+      "specRef": "02_BACKEND_API.md §17 (lines 446-454)",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["S6"],
+      "mandatory": true,
+      "doneWhen": [
+        "returns distinct person_name over the user's completed loans only, with a bounded LIMIT",
+        "supports an optional case-insensitive search fragment (D7 decides whether the FE ships the autocomplete or a plain select)",
+        "ordering is person_name ASC (or totalCount DESC then person_name ASC), deterministic",
+        "not scoped to the current page of history"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R6",
+      "title": "History detail lookup by loanId",
+      "specRef": "02_BACKEND_API.md §18 (lines 458-470)",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["S4"],
+      "mandatory": true,
+      "doneWhen": [
+        "the WHERE is id = loanId AND userId = current user AND status = 'returned' — all three, not just id",
+        "the include carries book + coverMedia + publisher so the detail needs no second round trip"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "R7",
+      "title": "Restricted correction write (returnedAt, note)",
+      "specRef": "02_BACKEND_API.md §19 (lines 474-508); 00_CLAUDE_TASK.md §12",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/loans/infrastructure/loan-history.repository.ts"],
+      "dependsOn": ["S7", "R6"],
+      "mandatory": true,
+      "doneWhen": [
+        "the update data object contains at most returnedAt and note — no status, type, personName, contact, loanDate, expectedReturnDate, remindToReturn, remindBeforeDays, userId or bookId key appears in it",
+        "the where clause pins id + userId + status: 'returned', so the call cannot reach an active loan or another user's row",
+        "returnedAt is written as a timestamp derived from the date-only input via parseIsoDate (iso-date.ts:23), keeping the UTC calendar-day contract",
+        "verified precondition: no existing loan mutation can touch a returned loan — books.repository.ts:1308-1312, :505-513, :1462-1466, :1469-1490 and bulk-books.repository.ts:272-275 all scope to status 'active'"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A1",
+      "title": "LoanHistoryService.list — derive view fields and assemble the page",
+      "specRef": "02_BACKEND_API.md §22 (lines 543-557); 00_CLAUDE_TASK.md §4 (line 101)",
+      "layer": "application",
+      "files": ["apps/api/src/modules/loans/application/loan-history.service.ts"],
+      "dependsOn": ["R1", "R2", "DOM1"],
+      "mandatory": true,
+      "doneWhen": [
+        "the service does not inject PrismaService (CLAUDE.md §5.2); it injects the history repository and MediaService",
+        "each list item's historyResult, durationDays, delayDays and returnedDate come from the DOM1 domain helpers, not from inline arithmetic in the service",
+        "book preview is built with mediaService.buildViewOrNull, matching loans.service.ts:147-158",
+        "the page is assembled with buildPaginator + pageSlice from apps/api/src/core/paginator.ts, as loans.service.ts:84-94 does",
+        "search and person are normalized with normalizeSearch from @app/shared before hitting the repository, matching loans.service.ts:69-77"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A2",
+      "title": "LoanHistoryService.overview — percents, averages, top people, duration, reliability",
+      "specRef": "02_BACKEND_API.md §13-§16; 00_CLAUDE_TASK.md §8, §13, §14",
+      "layer": "application",
+      "files": ["apps/api/src/modules/loans/application/loan-history.service.ts"],
+      "dependsOn": ["R3", "R4", "S5"],
+      "mandatory": true,
+      "doneWhen": [
+        "onTimePercent = round(onTimeCount / totalCompleted * 100) and latePercent likewise; both are 0 when totalCompleted is 0 (no NaN, no division by zero)",
+        "averageDelayDays is null when lateCount is 0; its denominator is lateCount, not totalCompleted",
+        "averageDurationDays is null when no record has a non-null loanDate; its denominator is the count of records with a calculable duration",
+        "duration.longestDays / shortestDays are null when no record has a calculable duration",
+        "reliability.onTimePercent equals summary.onTimePercent (one computation, not two)",
+        "the overview ignores search, result, sort and pagination — the service signature accepts LoanHistoryOverviewQuery, which has no such fields"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A3",
+      "title": "LoanHistoryService.detail and .people",
+      "specRef": "02_BACKEND_API.md §17, §18",
+      "layer": "application",
+      "files": ["apps/api/src/modules/loans/application/loan-history.service.ts"],
+      "dependsOn": ["R5", "R6", "S4", "S6"],
+      "mandatory": true,
+      "doneWhen": [
+        "a missing row, another user's row and the user's own active loan all raise NotFoundError from apps/api/src/core/exceptions/errors.ts:59 — the active loan must not produce a 200 or a distinguishable error",
+        "detail adds contact, note, createdAt, updatedAt on top of the list-item fields and carries no reminder field",
+        "people returns distinct completed-history people, not the top-5 analytics list"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A4",
+      "title": "LoanHistoryService.correct — restricted correction with validation",
+      "specRef": "02_BACKEND_API.md §19 (lines 474-508); 00_CLAUDE_TASK.md §12 (lines 388-406)",
+      "layer": "application",
+      "files": ["apps/api/src/modules/loans/application/loan-history.service.ts"],
+      "dependsOn": ["R7", "DOM1"],
+      "mandatory": true,
+      "doneWhen": [
+        "loads the loan through the R6 scope first; a loan that is missing, foreign or still active raises NotFoundError",
+        "when loanDate is non-null and the new returnedDate is earlier than loanDate, it raises ValidationError / BadRequestError with the field path returnedDate — it does not silently clamp",
+        "the response is the recomputed detail view, so historyResult, delayDays and durationDays reflect the new date in the same response",
+        "no derived field is persisted to the row (02_BACKEND_API.md:508)",
+        "the loan's status stays 'returned' after the call — asserted by test, not by reading the code"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C1",
+      "title": "Input and view DTO classes for the history endpoints",
+      "specRef": "02_BACKEND_API.md §25; CLAUDE.md §6 step 6",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/loans/api/input-dto/loan-history-query.input-dto.ts",
+        "apps/api/src/modules/loans/api/input-dto/loan-history-overview-query.input-dto.ts",
+        "apps/api/src/modules/loans/api/input-dto/loan-history-people-query.input-dto.ts",
+        "apps/api/src/modules/loans/api/input-dto/update-loan-history.input-dto.ts",
+        "apps/api/src/modules/loans/api/view-dto/paginated-loan-history.view-dto.ts",
+        "apps/api/src/modules/loans/api/view-dto/loan-history-detail.view-dto.ts",
+        "apps/api/src/modules/loans/api/view-dto/loan-history-overview.view-dto.ts",
+        "apps/api/src/modules/loans/api/view-dto/loan-history-people.view-dto.ts"
+      ],
+      "dependsOn": ["S2", "S3", "S4", "S5", "S6", "S7"],
+      "mandatory": true,
+      "doneWhen": [
+        "every DTO is `export class X extends createZodDto(Schema) {}` with no hand-written field duplication, matching apps/api/src/modules/loans/api/input-dto/loans-query.input-dto.ts:4",
+        "no DTO redeclares a shape that already lives in @app/shared"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C2",
+      "title": "LoanHistoryController with the five endpoints",
+      "specRef": "00_CLAUDE_TASK.md §5 (lines 127-171), §12; 02_BACKEND_API.md §11, §13, §17, §18, §19",
+      "layer": "api",
+      "files": ["apps/api/src/modules/loans/api/loan-history.controller.ts"],
+      "dependsOn": ["C1", "A1", "A2", "A3", "A4"],
+      "mandatory": true,
+      "doneWhen": [
+        "routes: GET /api/loans/history, GET /api/loans/history/overview, GET /api/loans/history/people, GET /api/loans/history/:loanId, PATCH /api/loans/history/:loanId",
+        "the two literal sub-routes (overview, people) are declared before the :loanId route so Nest does not swallow them as ids",
+        ":loanId is validated with ParseUUIDPipe, as book-loan.controller.ts:51 does",
+        "the controller is @JwtProtected() and reads the user via @CurrentUser(), never from req",
+        "query params go through `new ZodQueryPipe(Schema)` and the PATCH body through `new ZodBodyPipe(UpdateLoanHistoryInputSchema)`",
+        "the PATCH carries @Throttle(MUTATION_THROTTLE), matching every mutation in book-loan.controller.ts",
+        "full @Api* decoration: @ApiTags, @ApiOperation, @ApiOkResponse with the DTO type, @ApiNotFoundResponse on the two :loanId routes, @ApiQuery({ required: false }) for each optional query param",
+        "no business calculation and no Prisma call in the controller body"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "C3",
+      "title": "Wire the history slice into LoansModule",
+      "specRef": "CLAUDE.md §6 step 8",
+      "layer": "api",
+      "files": ["apps/api/src/modules/loans/loans.module.ts"],
+      "dependsOn": ["C2"],
+      "mandatory": true,
+      "doneWhen": [
+        "LoanHistoryController is in controllers and LoanHistoryService + LoanHistoryRepository in providers of the existing LoansModule (loans.module.ts:9-13)",
+        "no new top-level module is registered in app.module.ts — the spec says extend the existing loans module (00_CLAUDE_TASK.md:125)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T1",
+      "title": "Integration tests: scope, isolation, filters, search, sort, pagination",
+      "specRef": "04_TESTS_ACCEPTANCE.md §3-§10 (lines 72-163)",
+      "layer": "test",
+      "files": ["apps/api/src/modules/loans/api/loan-history.controller.test.ts"],
+      "dependsOn": ["C3"],
+      "mandatory": true,
+      "doneWhen": [
+        "built on createAuthTestContext + truncateAllTables like loans.controller.test.ts:38-47",
+        "asserts an active loan of the same user never appears in the history list",
+        "asserts another user's returned loan never appears",
+        "asserts a returned loan on a soft-deleted book behaves consistently with the active list rule (book.deletedAt IS NULL)",
+        "direction filter: borrowed only / lent only / all",
+        "result filter: on_time / late / no_due_date each return exactly the matching rows, and totalCount reflects the filter (proving the filter ran before pagination)",
+        "search matches by title, by author name and by personName, case-insensitively, and never crosses users",
+        "period filter is inclusive on both returnedFrom and returnedTo boundary days",
+        "each of the six sorts is asserted, including loan_date_desc placing null loanDate last and duration_desc placing null duration last",
+        "pagination: pageSize 2 over 5 rows gives the right items on page 2 and totalCount 5"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Integration tests: overview analytics, scope and top people",
+      "specRef": "04_TESTS_ACCEPTANCE.md §11-§14 (lines 167-214)",
+      "layer": "test",
+      "files": ["apps/api/src/modules/loans/api/loan-history.controller.test.ts"],
+      "dependsOn": ["C3"],
+      "mandatory": true,
+      "doneWhen": [
+        "asserts totalCompleted, borrowedCount, lentCount, onTimeCount, lateCount, noDueDateCount, onTimePercent, latePercent, averageDelayDays, averageDurationDays on a fixed fixture",
+        "an empty history returns percents 0 and averages null with no NaN anywhere in the JSON",
+        "the same request with ?result=late and with ?search=... returns an identical overview payload (proving overview ignores them)",
+        "the same request with ?type=lent_to_someone returns a different overview payload (proving overview honours type)",
+        "topPeople: counts and direction breakdown correct, capped at 5, deterministic order on a totalCount tie",
+        "duration analytics ignore rows with a null loanDate and return nulls when no row has a calculable duration"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Integration tests: detail endpoint, people endpoint and restricted correction",
+      "specRef": "04_TESTS_ACCEPTANCE.md §15, §16 (lines 218-248)",
+      "layer": "test",
+      "files": ["apps/api/src/modules/loans/api/loan-history.controller.test.ts"],
+      "dependsOn": ["C3"],
+      "mandatory": true,
+      "doneWhen": [
+        "own returned loan -> 200 with the detail shape; own active loan -> 404; another user's loan -> 404; unknown uuid -> 404",
+        "PATCH with a forbidden payload (status, type, personName, contact, loanDate, expectedReturnDate, remindToReturn, remindBeforeDays) leaves those DB columns unchanged — asserted by reading the row back through prisma, not by inspecting the response",
+        "PATCH with returnedDate earlier than loanDate -> 4xx validation error naming returnedDate",
+        "after a valid returnedDate correction, the response's historyResult, delayDays and durationDays reflect the new date, and a follow-up overview call reflects it too",
+        "after any correction the row still has status 'returned' and a non-null returnedAt",
+        "people endpoint returns distinct completed-history people for the caller only"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Integration test: return flow lands in history",
+      "specRef": "04_TESTS_ACCEPTANCE.md §17 (lines 252-263); 01_PRODUCT_UX.md §12",
+      "layer": "test",
+      "files": ["apps/api/src/modules/loans/api/loan-history.controller.test.ts"],
+      "dependsOn": ["C3"],
+      "mandatory": true,
+      "doneWhen": [
+        "the test calls the real return endpoint POST /api/books/:id/loan/return (book-loan.controller.ts:118) rather than writing status directly",
+        "after it: the active loans list no longer contains the book, the history list does, returnedAt is non-null, history overview totalCompleted increased by 1, and the direction is preserved",
+        "asserts the returned loan has remindToReturn false / remindBeforeDays null on this path (books.repository.ts:505-513 already clears them)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "G1",
+      "title": "Regenerate the typed API client",
+      "specRef": "02_BACKEND_API.md §25 (line 593); 05_IMPLEMENTATION_PLAN.md Phase 5; 04_TESTS_ACCEPTANCE.md DoD 'API client regenerated'",
+      "layer": "contract",
+      "files": ["apps/web/src/shared/api/generated/**", "apps/api/openapi.json"],
+      "dependsOn": ["C3"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm gen:api was run and the diff shows apps/web/src/shared/api/generated/endpoints/loans/loans.ts gained loansHistoryController* functions and hooks",
+        "generated model files exist for the new query params and enums (e.g. loanHistoryController*Sort / *Result)",
+        "no file under apps/web/src/shared/api/generated/** was hand-edited"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W1",
+      "title": "Route /loans/history with generateMetadata",
+      "specRef": "00_CLAUDE_TASK.md §1 (lines 44-48); 03_FRONTEND.md §1",
+      "layer": "web",
+      "files": ["apps/web/src/app/[locale]/(app)/loans/history/page.tsx"],
+      "dependsOn": ["G1"],
+      "mandatory": true,
+      "doneWhen": [
+        "the page mirrors apps/web/src/app/[locale]/(app)/loans/borrowed/page.tsx: hasLocale guard + notFound, setRequestLocale, the same <main> wrapper classes, and an async generateMetadata reading loans.pages.history.metaTitle",
+        "it renders a client feature component and does no data fetching itself",
+        "the existing /loans redirect (loans/page.tsx) is not changed to point at history"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W2",
+      "title": "Third sidebar child under «Позичені книги»",
+      "specRef": "00_CLAUDE_TASK.md §1 (lines 38-42); 03_FRONTEND.md §3",
+      "layer": "web",
+      "files": [
+        "apps/web/src/components/app-shell.tsx",
+        "apps/web/src/features/loans/model/loan-pages.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "NAV_ITEMS' loans group (app-shell.tsx:105-111) has a third item { key: \"loansHistory\", to: \"/loans/history\" } after loansLent",
+        "NavKey (app-shell.tsx:70-88) gains \"loansHistory\"",
+        "the icon is an existing lucide import already used by the shell or a newly imported lucide icon — no custom SVG",
+        "no count badge is attached to the history item (03_FRONTEND.md:65)",
+        "LOAN_PAGES (loan-pages.ts:11-22) still maps only the two LoanTypes; history is not forced into that Record"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W3",
+      "title": "History URL query state (nuqs) with page reset",
+      "specRef": "03_FRONTEND.md §5 (lines 94-111); 04_TESTS_ACCEPTANCE.md §19",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/loans/model/loan-history-query.ts",
+        "apps/web/src/features/loans/model/use-loan-history-query.ts"
+      ],
+      "dependsOn": ["G1"],
+      "mandatory": true,
+      "doneWhen": [
+        "parsers cover type, result, person, from, to, sort, search and (per D5) pageNumber, built with parseAsStringLiteral / parseAsString / parseAsInteger imported from \"nuqs/server\" — the module-scope import path that keeps `next build` green on RSC pages",
+        "defaults: result=all, sort=returned_desc, type unset (all directions), period unset (all time)",
+        "an out-of-range or unknown value for result/sort/type falls back to the default instead of reaching the API",
+        "changing search, type, result, person or period resets the page to the first page in the same setState call",
+        "a toLoanHistoryListParams helper drops empty strings instead of sending person=\"\" or search=\"\", as toLoansListParams (loans-query.ts:36-48) does",
+        "the file is separate from loans-query.ts — the active-page parsers keep their overdue_first default untouched"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W4",
+      "title": "History query keys, hooks and mutation invalidation",
+      "specRef": "03_FRONTEND.md §4 (lines 67-88); 01_PRODUCT_UX.md §12",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/loans/api/loan-keys.ts",
+        "apps/web/src/features/loans/api/use-loan-history.ts",
+        "apps/web/src/features/loans/api/use-loan-history-overview.ts",
+        "apps/web/src/features/loans/api/use-loan-history-detail.ts",
+        "apps/web/src/features/loans/api/use-loan-history-people.ts",
+        "apps/web/src/features/loans/api/use-correct-loan-history.ts"
+      ],
+      "dependsOn": ["W3"],
+      "mandatory": true,
+      "doneWhen": [
+        "separate query keys exist for history list, overview, detail and people, and each key embeds the params it depends on",
+        "matchesLoans (loan-keys.ts:13-16) also matches the history roots — verified by a test or by an explicit root list, because today it only matches \"/api/loans\" and \"/api/loans/summary\" while orval keys the new endpoints as [\"/api/loans/history\", ...] (see getLoansControllerSummaryQueryKey at generated/endpoints/loans/loans.ts:82)",
+        "after useReturnLoan succeeds (use-loan-actions.ts:44-56) the history list and history overview are invalidated, in addition to the active list and summary",
+        "the correction mutation invalidates history list, history overview and history detail",
+        "responses are parsed with the @app/shared schemas before use, as use-loans-list.ts:21 and use-loans-summary.ts:7 do"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W5",
+      "title": "Four history stat cards",
+      "specRef": "00_CLAUDE_TASK.md §8 (lines 241-282); 01_PRODUCT_UX.md §3; 03_FRONTEND.md §7",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-summary-cards.tsx"],
+      "dependsOn": ["W4"],
+      "mandatory": true,
+      "doneWhen": [
+        "reuses LibrarySummaryCards / LibrarySummaryCard from apps/web/src/features/books/components/library-summary-cards.tsx:13-23 — no new card primitive",
+        "card 1 value = totalCompleted with microfact 'N передано · M позичено'",
+        "card 2 value = onTimeCount with microfact '{onTimePercent}% усіх завершених' using the backend percent verbatim (no client division)",
+        "card 3 value = lateCount with microfact 'У середньому — на {averageDelayDays} днів', switching to 'Усі позики зі строком повернуто вчасно' when lateCount is 0",
+        "card 4 value = averageDurationDays with the fixed microfact 'Від позики / передачі до повернення'",
+        "the cards are not clickable and carry no filter side effect",
+        "cards are not rendered at all when the user has no completed loans (the page empty state takes over)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W6",
+      "title": "History toolbar — search, direction, result, person, period, sort",
+      "specRef": "00_CLAUDE_TASK.md §6; 01_PRODUCT_UX.md §4; 03_FRONTEND.md §8",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-toolbar.tsx"],
+      "dependsOn": ["W3"],
+      "mandatory": true,
+      "doneWhen": [
+        "controls in order: search, direction, result, person, period, sort",
+        "search uses DebouncedSearchInput with the placeholder key resolving to 'Пошук за книгою або людиною…'",
+        "direction options are Усі напрямки / Позичено в інших / Передано іншим, mapped onto the existing LoanType values",
+        "result options are Усі результати / Повернуто вчасно / Із запізненням / Без визначеного строку",
+        "none of overdue, return_soon, has_reminder, without_reminder or no_return_date from LOANS_FILTER_VALUES (loans-query.ts:14) is offered here",
+        "the sort control reuses the LoansSortSheet mobile pattern (loans-toolbar.tsx:22) or an equivalent already in the repo, with its own history sort labels",
+        "every control has a visible label or an accessible name"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W7",
+      "title": "Period presets mapped to returnedFrom / returnedTo",
+      "specRef": "00_CLAUDE_TASK.md §6 Період (lines 196-205); 03_FRONTEND.md §9",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-period-filter.tsx"],
+      "dependsOn": ["W3"],
+      "mandatory": true,
+      "doneWhen": [
+        "presets: За весь час (both params cleared), Цього року, Минулого року, Власний діапазон",
+        "preset boundaries are computed with date-fns (startOfYear / endOfYear / subYears / format) — no new Date(y, m, d) arithmetic, no getTime()",
+        "the values pushed to the URL are date-only yyyy-MM-dd strings",
+        "the custom range reuses the existing date-picker primitive (apps/web/src/components/ui/date-picker.tsx) — no new picker component",
+        "from > to is prevented in the UI or surfaced as a field error, matching the S2 backend refine"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W8",
+      "title": "History row with 3-step timeline and result badge",
+      "specRef": "00_CLAUDE_TASK.md §9 (lines 286-336); 01_PRODUCT_UX.md §6-§8; 03_FRONTEND.md §10",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-row.tsx"],
+      "dependsOn": ["W4"],
+      "mandatory": true,
+      "doneWhen": [
+        "a component distinct from loan-row.tsx; loan-row.tsx is not modified",
+        "shows cover, title, firstAuthorName, direction badge, personName, a three-node timeline and a result badge with durationDays",
+        "timeline node 1 label is 'Дата позики' for borrowed_from_someone and 'Дата передачі' for lent_to_someone",
+        "timeline node 2 is 'Планове повернення', rendering 'Без визначеного строку' when expectedReturnDate is null",
+        "timeline node 3 is 'Повернено' with the actual date",
+        "result copy: on_time -> 'Повернуто вчасно' with a success tone; late -> 'Із запізненням на N днів' with a warning/amber tone (not text-error); no_due_date -> 'Повернуто · строк не визначено' with a neutral tone",
+        "durationDays and delayDays are read straight from the item — no differenceInCalendarDays call in this component",
+        "none of these appears: return CTA, reminder bell, +7/+14 quick actions, active overdue chip",
+        "the timeline is horizontal at desktop widths and vertical on narrow screens, with no horizontal overflow",
+        "the status is conveyed by text, not colour alone"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W9",
+      "title": "History page shell — list, pagination, empty / loading / error",
+      "specRef": "00_CLAUDE_TASK.md §15 (lines 469-494); 01_PRODUCT_UX.md §2, §11; 03_FRONTEND.md §6, §15",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/loans/components/history/loan-history-view.tsx",
+        "apps/web/src/features/loans/components/history/loan-history-list.tsx",
+        "apps/web/src/features/loans/index.ts"
+      ],
+      "dependsOn": ["W5", "W6", "W7", "W8"],
+      "mandatory": true,
+      "doneWhen": [
+        "header renders the 'Історія позик' title and the non-gendered description from 01_PRODUCT_UX.md:29",
+        "when the user has zero completed loans overall, the page renders only the empty state — no stat cards, no toolbar, no sidebar",
+        "when filters/search return nothing but history exists, the toolbar and analytics stay mounted and a 'За цими умовами нічого не знайдено' state with a 'Очистити фільтри' action is shown",
+        "loading uses the existing skeleton pattern (LoansListSkeleton or an equivalent in the same file family), with an sr-only status message like loans-view.tsx:250-253",
+        "error uses the existing EmptyState error pattern with a retry that calls refetch, as loans-view.tsx:233-245 does",
+        "the page never sorts or slices page.items on the client",
+        "pagination follows D5",
+        "the view is exported from the feature barrel apps/web/src/features/loans/index.ts"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W10",
+      "title": "Analytics sidebar (top people, duration, reliability) + mobile panel",
+      "specRef": "00_CLAUDE_TASK.md §13 (lines 412-446); 01_PRODUCT_UX.md §10; 03_FRONTEND.md §14, §16",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-sidebar.tsx"],
+      "dependsOn": ["W4"],
+      "mandatory": true,
+      "doneWhen": [
+        "three blocks: Найчастіше взаємодієте (up to 5 people with 'N позик' and 'X передано · Y позичено'), Тривалість позик (Середня / Найдовша / Найкоротша), Надійність повернень (% on time plus on_time / late / no_due_date counts)",
+        "clicking a person sets the person filter in the URL and resets the page",
+        "no static 'Порада' card",
+        "every number comes from the overview response; the component contains no arithmetic over list items",
+        "on mobile the sidebar content is surfaced through the existing MobilePageOverviewPanel pattern (apps/web/src/components/ui/mobile-page-overview-panel.tsx), the way loans-view.tsx:129-139 wires LoansOverviewPanel",
+        "the desktop layout reuses the existing xl:flex-row two-column shape from loans-view.tsx:158"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W11",
+      "title": "Detail drawer for a completed loan",
+      "specRef": "00_CLAUDE_TASK.md §10, §11 (lines 340-376); 01_PRODUCT_UX.md §9; 03_FRONTEND.md §11, §12",
+      "layer": "web",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-detail-drawer.tsx"],
+      "dependsOn": ["W4", "W8"],
+      "mandatory": true,
+      "doneWhen": [
+        "built on the existing primitive chosen in D4 — no new drawer/sheet primitive and no edit to apps/web/src/components/ui/**",
+        "a click on the row body opens it; a click on the cover or title navigates to the book and does not open the drawer (stopPropagation asserted by test)",
+        "the kebab menu does not open the drawer",
+        "sections: book (cover, title, author), loan (direction, person, contact), timeline (loan/transfer date, planned return, actual return), outcome (result, delay, duration), note with an empty state",
+        "actions: Перейти до книги, Виправити дату повернення, Редагувати нотатку — and no prominent Delete",
+        "reminder data is not displayed",
+        "closes on Escape and traps focus through the chosen primitive's built-in behaviour"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W12",
+      "title": "Correction dialogs — returned date and note",
+      "specRef": "00_CLAUDE_TASK.md §12; 03_FRONTEND.md §13",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/loans/components/history/loan-history-correction-dialog.tsx"
+      ],
+      "dependsOn": ["W11", "W4"],
+      "mandatory": true,
+      "doneWhen": [
+        "the date dialog exposes exactly one date field plus save/cancel; the full active-loan editor (edit-loan-dialog.tsx) is not reused or opened here",
+        "the note dialog is a textarea + save/cancel following the existing dialog pattern",
+        "both submit through the correction mutation from W4 and send only returnedDate / note",
+        "on success: toast, close, and invalidation of history list + overview + detail",
+        "a backend validation error (returnedDate before loanDate) is surfaced on the field, not swallowed",
+        "forms use react-hook-form + zod + shadcn primitives directly, with no wrapper Form/FormField abstraction"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "W13",
+      "title": "uk and en messages for the history namespace",
+      "specRef": "00_CLAUDE_TASK.md §17 (lines 514-529); 03_FRONTEND.md §17; 04_TESTS_ACCEPTANCE.md §20",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["W2", "W9", "W10", "W11", "W12"],
+      "mandatory": true,
+      "doneWhen": [
+        "every new key exists in both files with an identical key set — uk and en are at 177 loans keys each today and must stay in parity",
+        "nav.loansHistory added to both (uk 'Історія позик', en equivalent alongside the existing 'To return' / 'Lent out')",
+        "counts use ICU plurals with the four Ukrainian categories the file already uses (one/few/many/other), for позика, день and книга",
+        "no new Ukrainian string is gendered — no 'взяла', 'дала', 'передала' in any key under loans.history",
+        "no user-visible string is hardcoded in the history components; every visible label comes from useTranslations",
+        "the copy list at 03_FRONTEND.md:354-371 is covered: Історія позик, Усього завершено, Повернуто вчасно, Із запізненням, Середня тривалість, Позичено в інших, Передано іншим, Дата позики, Дата передачі, Планове повернення, Повернено, Без визначеного строку, Повернуто · строк не визначено, Найчастіше взаємодієте, Тривалість позик, Надійність повернень"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Frontend tests for the history view",
+      "specRef": "04_TESTS_ACCEPTANCE.md §18, §19 (lines 267-296)",
+      "layer": "test",
+      "files": ["apps/web/src/features/loans/components/history/loan-history-view.test.tsx"],
+      "dependsOn": ["W9", "W10", "W11", "W12", "W13"],
+      "mandatory": true,
+      "doneWhen": [
+        "mocks at the fetch boundary and wraps in NuqsTestingAdapter with hasMemory enabled, following loans-view.test.tsx:1-35 — RQ hooks are not mocked",
+        "overall empty: no stat cards rendered and the empty copy is present",
+        "filtered empty: toolbar still rendered and 'Очистити фільтри' resets the URL params",
+        "row click opens the detail drawer; a cover/title click does not; the kebab does not",
+        "a top-person click sets the person URL param and resets the page",
+        "changing a filter resets the page param",
+        "an invalid sort/result URL param falls back to the default without an API error",
+        "error state renders and retry refetches"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "V1",
+      "title": "Run the gates named by the spec's Definition of Done",
+      "specRef": "00_CLAUDE_TASK.md §21 (line 603); 04_TESTS_ACCEPTANCE.md DoD; 05_IMPLEMENTATION_PLAN.md Phase 13; CLAUDE.md §9",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T1", "T2", "T3", "T4", "T5", "G1"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm typecheck green (output captured, not asserted from memory)",
+        "pnpm lint green",
+        "pnpm format:check green on every changed file, docs and tests included",
+        "the new API test file and the new web test file were run individually with pnpm exec vitest run <path>",
+        "/blast-radius was run because packages/shared, a Prisma migration and a repository signature all changed — the existing loans.controller.test.ts, book-loan.controller.test.ts, books.controller.update.test.ts, bulk-books.controller.test.ts and loans-view.test.tsx were run and are green",
+        "apps/api/src/core/database/raw-sql-indexes.test.ts was run after the migration and is green",
+        "the five new endpoints were curled against a running dev:api and their status codes recorded"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "R8",
+      "title": "Clear the reminder fields on the two secondary return paths",
+      "specRef": "openDecision D9; 02_BACKEND_API.md § lifecycle",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/books/infrastructure/books.repository.ts",
+        "apps/api/src/modules/books/infrastructure/bulk-books.repository.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "books.repository.ts (the path around line 1462 that writes only returnedAt + status) also writes remindToReturn: false and remindBeforeDays: null",
+        "bulk-books.repository.ts (the path around line 272) does the same",
+        "a test covers at least one of the two paths and asserts both fields are cleared",
+        "no data backfill migration is added"
+      ],
+      "status": "done"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Person filter matching: case-sensitive exact (current behaviour) or case-insensitive?",
+      "specSays": "02_BACKEND_API.md:272 — 'Case-insensitive exact/normalized match за current project pattern.' It assumes the project already normalizes.",
+      "codeSays": "There is no case-insensitive person pattern. loans.repository.ts:335 does `where.personName = person` (plain equality) and loans.service.ts:72 only collapses whitespace via normalizeSearch. Migration 20260812115219 line 5 states the uk-UA-x-icu collation is deterministic, so equality stays byte-exact. 02_BACKEND_API.md:441 itself admits 'Олена' and 'олена' may stay distinct.",
+      "options": [
+        "Mirror the active pages: exact, case-sensitive equality on personName.",
+        "Case-insensitive: lower(person_name) = lower($1) in the history query only.",
+        "Case-insensitive everywhere (history + active list)."
+      ],
+      "recommendation": "Option 1 for this task. The person value always arrives from a backend-provided option (sidebar top-people or the people endpoint), so it round-trips byte-exact; option 2 would make the history and the active pages disagree on what 'Олена' means, and option 3 is the cross-cutting change the spec's own non-goals rule out.",
+      "blocks": ["R1", "R5"],
+      "answer": "Option 1 — exact, case-sensitive person matching, same as the active loans pages.",
+      "answeredBy": "main-agent"
+    },
+    {
+      "id": "D2",
+      "question": "How much of the history list query goes to raw SQL?",
+      "specSays": "02_BACKEND_API.md:268 and 00_CLAUDE_TASK.md:556 — 'якщо Prisma не виражає column-to-column comparison або duration sort, використати safe parameterized SQL за патернами репозиторію.'",
+      "codeSays": "Confirmed necessary: the result filter needs (returned_at AT TIME ZONE 'UTC')::date vs expected_return_date and duration_desc needs returned_date - loan_date; Prisma expresses neither. The repo already has both halves of the pattern — parameterized Prisma.sql + Zod row parsing in loans.repository.ts:139-181, and ordered-ids-then-hydrate in books.repository.ts:930-950.",
+      "options": [
+        "One raw SQL statement returns the ordered page of ids (plus a window count), then a single Prisma findMany with the book include hydrates them.",
+        "Prisma findMany for the simple sorts, raw SQL only for result-filtered or duration-sorted requests.",
+        "Raw SQL returning full rows, mapping columns by hand."
+      ],
+      "recommendation": "Option 1. It keeps one code path (so a filter bug cannot exist in only half the sorts), keeps the cover/publisher include in Prisma so there is no N+1 and no hand-mapped column list, and matches an existing precedent in this repo. Option 2 doubles the WHERE logic; option 3 loses the include.",
+      "blocks": ["R1", "R2"],
+      "answer": "Option 1 — one raw SQL statement returning ordered ids + count, then one Prisma findMany with the existing include to hydrate.",
+      "answeredBy": "main-agent"
+    },
+    {
+      "id": "D3",
+      "question": "Is a separate GET /api/loans/history/:loanId worth it, or should the list item carry contact and note?",
+      "specSays": "02_BACKEND_API.md §18 mandates the detail endpoint; §5 line 139 says the list must not carry fields only the drawer needs.",
+      "codeSays": "The delta is four fields (contact, note, createdAt, updatedAt). The list already fetches the full BookLoan row and its book include, so the data is in memory either way — the endpoint costs a round trip on drawer open but buys a clean refetch target after a correction.",
+      "options": [
+        "Follow the spec: separate detail endpoint, drawer fetches on open.",
+        "Fatten the list item with contact and note, drop the detail endpoint, drawer renders from the row already in cache."
+      ],
+      "recommendation": "Option 1. The correction flow (A4/W12) needs an authoritative single-loan refetch anyway, and the endpoint is also the security boundary the tests in 04_TESTS_ACCEPTANCE.md §15 assert (own active loan must 404). Option 2 saves one small request and then needs the endpoint back for the correction response.",
+      "blocks": ["R6", "A3", "W11"],
+      "answer": "Option 1 — keep GET /api/loans/history/:loanId as a separate endpoint.",
+      "answeredBy": "main-agent"
+    },
+    {
+      "id": "D4",
+      "question": "Which primitive backs the detail drawer?",
+      "specSays": "03_FRONTEND.md:236 — 'Reuse current drawer/sheet pattern.'",
+      "codeSays": "Two exist. Sheet is the established feature-level drill-down (apps/web/src/features/characters/components/character-details-sheet.tsx, plus six advanced-filter sheets). Drawer (vaul) is used in features only indirectly, through apps/web/src/components/ui/mobile-page-overview-panel.tsx.",
+      "options": [
+        "Sheet — right-side panel on desktop, matching character-details-sheet.",
+        "Drawer — bottom sheet, matching the mobile overview panel.",
+        "Sheet on desktop, Drawer on mobile."
+      ],
+      "recommendation": "Option 1. It is the only primitive used directly for a detail drill-down today, it already handles focus trap and Escape, and it responds well on mobile. Option 3 doubles the component for one screen size with no requirement behind it.",
+      "blocks": ["W11"],
+      "answer": "Option 1 — Sheet.",
+      "answeredBy": "user"
+    },
+    {
+      "id": "D5",
+      "question": "Numbered pagination with pageNumber in the URL, or the 'Показати ще' infinite pattern the loans pages just moved to?",
+      "specSays": "03_FRONTEND.md:104 lists pageNumber among the URL params; 04_TESTS_ACCEPTANCE.md:162 requires 'page reset after filter change'; 01_PRODUCT_UX.md:318 says 'список плоский + pagination'.",
+      "codeSays": "Commit 74ef0b29 deliberately replaced the loans pager with a show-more button: use-loans-list.ts:14 is a useInfiniteQuery and loans-query.ts:17-22 has no pageNumber parser at all. Meanwhile apps/web/src/components/ui/pagination.tsx is alive in quotes, publishers and reading-history.",
+      "options": [
+        "Numbered pagination with pageNumber in the URL, as the spec's params list implies.",
+        "useInfiniteQuery + 'Показати ще', consistent with the two sibling loans pages, no pageNumber param.",
+        "Infinite list for items, but keep pageNumber in the URL as a resume cursor."
+      ],
+      "recommendation": "Option 2. History is a scan-and-scroll list like the active pages, and reintroducing a pager one page over from the button that just replaced it is a visible inconsistency in the same nav group. The backend stays paginated either way, so nothing in the API changes; the 'page reset' acceptance criterion becomes 'the infinite query resets to page 1 on filter change', which useInfiniteQuery does for free when the params-bearing key changes. Choose option 1 only if numbered pages are wanted back across the whole loans group.",
+      "blocks": ["W3", "W9"],
+      "answer": "Option 2 — useInfiniteQuery plus a 'Показати ще' button, no pageNumber in the URL.",
+      "answeredBy": "user (prior instruction: pagination replaced by a show-more button across the loans pages)"
+    },
+    {
+      "id": "D6",
+      "question": "Add @@index([userId, status, returnedAt]) alongside the existing @@index([userId, status]), or replace it?",
+      "specSays": "00_CLAUDE_TASK.md:558 — 'додати/перевірити індекс для userId + status + returnedAt, якщо немає еквівалентного'; 02_BACKEND_API.md:577 — 'Не додавати дублюючий index без потреби.'",
+      "codeSays": "schema.prisma:404 has @@index([userId, status]) (created as book_loans_user_id_status_idx in migration 20260723191344, line 41). It is a strict prefix of the proposed index, so Postgres can serve every query it serves from the wider one. Keeping both means a second index maintained on every loan write for no read benefit.",
+      "options": [
+        "Replace: drop @@index([userId, status]), add @@index([userId, status, returnedAt]).",
+        "Keep both.",
+        "Add nothing — accept a sort on returned_at without index support."
+      ],
+      "recommendation": "Option 1, which is what the spec's own 'no duplicate index' line asks for. The generated migration will contain exactly one legitimate DROP INDEX (book_loans_user_id_status_idx); every other DROP INDEX line in that file must be stripped before deploy per CLAUDE.md §6.",
+      "blocks": ["P1"],
+      "answer": "Option 1 — replace @@index([userId, status]) with @@index([userId, status, returnedAt]); exactly one legitimate DROP INDEX in the migration, every other DROP INDEX line stripped before deploy.",
+      "answeredBy": "main-agent"
+    },
+    {
+      "id": "D7",
+      "question": "Person filter UI: typeahead autocomplete or a plain select of all people?",
+      "specSays": "00_CLAUDE_TASK.md:194 says 'Autocomplete/dropdown'; 02_BACKEND_API.md:452 says search support on the people endpoint is optional ('Можна підтримати').",
+      "codeSays": "The active loans toolbar has no person control at all — person is set only by clicking a sidebar top-person (loans-view.tsx:86). A cmdk Command primitive exists (apps/web/src/components/ui/command.tsx) and the repo has an infinite-scroll-in-cmdk helper, but wiring it is meaningfully more work than a Select.",
+      "options": [
+        "Plain Select fed by the people endpoint (no search param used yet).",
+        "cmdk typeahead against the people endpoint's search param."
+      ],
+      "recommendation": "Option 1 for the first cut, with the backend search param still implemented (R5) so the upgrade is UI-only. A personal library rarely has more than a few dozen lenders, and a Select keeps keyboard access and labelling trivial.",
+      "blocks": ["W6", "R5"],
+      "answer": "Option 1 — plain Select in the UI, backend search param still implemented.",
+      "answeredBy": "user"
+    },
+    {
+      "id": "D8",
+      "question": "The four icon names the spec asks for do not exist in the registry. Map or extend?",
+      "specSays": "00_CLAUDE_TASK.md:539-544 asks for history, circle-check, clock / clock-alert, calendar, users; line 537 forbids new SVGs when a fitting icon exists.",
+      "codeSays": "apps/web/src/components/icons/ui-icon.tsx:5-113 has book-copy, check-circle, clock, calendar, user, alert-triangle, chart. It has no 'history', no 'circle-check' (the name is check-circle), no 'clock-alert', and no plural 'users'.",
+      "options": [
+        "Map onto existing names: history -> book-copy, circle-check -> check-circle, clock-alert -> clock (or alert-triangle for late), users -> user.",
+        "Add history / clock-alert / users to the UiIcon registry from lucide."
+      ],
+      "recommendation": "Option 1. Every requested semantic already has a close match, which is exactly the case line 537 covers. Note that app-shell.tsx imports lucide icons directly for nav, so W2's sidebar icon is unaffected by this choice.",
+      "blocks": ["W5", "W8", "W10", "W2"],
+      "answer": "Option 1 — map onto the existing UiIcon names, no new SVGs.",
+      "answeredBy": "main-agent"
+    },
+    {
+      "id": "D9",
+      "question": "Two return paths leave remindToReturn=true on a completed loan. Fix inside this task?",
+      "specSays": "02_BACKEND_API.md:537 — 'переконайся, що return flow не залишає pending reminder для completed loan'. 00_CLAUDE_TASK.md:605 — 'Не роби unrelated refactor.'",
+      "codeSays": "The primary return path clears them (books.repository.ts:505-513 sets remindBeforeDays: null, remindToReturn: false). The ownership-change path (books.repository.ts:1462-1466) and the bulk path (bulk-books.repository.ts:272-275) set only returnedAt + status. No reminder can actually fire, because reminder-candidates.repository.ts:13-19 requires status='active' AND returnedAt IS NULL — so this is stale data, not a live bug.",
+      "options": [
+        "Leave both as they are; record the inconsistency.",
+        "Add the two-field clear to both paths (about four lines) and cover it with a test.",
+        "Backfill existing rows too, via the P1 migration."
+      ],
+      "recommendation": "Option 2, minus the backfill. The spec asks you to verify this path, the fix is two data fields in files you are already reasoning about, and it stops the history detail from ever reporting a reminder on a closed loan. Option 3 adds a data migration nothing reads.",
+      "blocks": ["T4"],
+      "answer": "Option 2 minus the backfill — fix both return paths in this task, with a test, no data backfill.",
+      "answeredBy": "user"
+    },
+    {
+      "id": "D10",
+      "question": "Timezone basis for the calendar returned date.",
+      "specSays": "00_CLAUDE_TASK.md:119 and 02_BACKEND_API.md:168 — 'Перевикористай чинну date/timezone normalization стратегію проєкту', without naming it.",
+      "codeSays": "The project's strategy is UTC, hardcoded: apps/api/src/core/iso-date.ts:6 sets UTC_TIME_ZONE = 'UTC' and every conversion (toIsoDate:35, parseIsoDate:23, startOfUtcDay:27) goes through it. There is no per-user timezone anywhere in the loans path.",
+      "options": [
+        "UTC, matching iso-date.ts and the existing loan overdue logic.",
+        "A per-user timezone, introducing a new user preference."
+      ],
+      "recommendation": "Option 1, and state the consequence plainly: a book returned at 23:30 Kyiv time on the due date is stored as the next UTC day and will read as 'late by 1 day'. Active-loan overdue already carries the same skew (loan-ui-status.ts:35), so history stays consistent with the pages beside it. Fixing this is a project-wide timezone decision, not a history feature.",
+      "blocks": ["DOM1", "R1"],
+      "answer": "Option 1 — UTC, consistent with core/iso-date.ts and active-loan overdue. Accepted consequence: a return at 23:30 Kyiv on the due date reads as late by one day.",
+      "answeredBy": "user"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "BookLoan already has id, userId, bookId, type, personName, contact, loanDate, expectedReturnDate, note, remindToReturn, status, returnedAt, createdAt, updatedAt",
+      "specRef": "02_BACKEND_API.md §2 (lines 21-37)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:384-399"
+    },
+    {
+      "claim": "Local reminder fields remindBeforeDays and nextReminderAt may already exist and must not be reverted",
+      "specRef": "02_BACKEND_API.md:39; 00_CLAUDE_TASK.md README:35",
+      "verdict": "FALSE",
+      "evidence": "remindBeforeDays exists at apps/api/prisma/schema.prisma:395. nextReminderAt does not exist anywhere: grep for nextReminderAt|next_reminder_at across apps/api, apps/web/src, packages/shared and the migrations returns nothing. The reminder sweep is a query over remindToReturn + expectedReturnDate (apps/api/src/modules/notifications/infrastructure/reminder-candidates.repository.ts:13-19), not a stored due timestamp. Do not add nextReminderAt in this task."
+    },
+    {
+      "claim": "The return flow sets status = returned and records returnedAt",
+      "specRef": "README:50; 00_CLAUDE_TASK.md §2 (lines 58-63)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/api/book-loan.controller.ts:118 (POST :id/loan/return) -> apps/api/src/modules/books/domain/loan-transition.ts:83-90 -> apps/api/src/modules/books/infrastructure/books.repository.ts:505-513"
+    },
+    {
+      "claim": "The return flow leaves no pending reminder on a completed loan",
+      "specRef": "02_BACKEND_API.md §21 (line 537)",
+      "verdict": "MOVED",
+      "evidence": "True on the primary path only. apps/api/src/modules/books/infrastructure/books.repository.ts:506-511 clears remindBeforeDays and remindToReturn; apps/api/src/modules/books/infrastructure/books.repository.ts:1462-1466 and apps/api/src/modules/books/infrastructure/bulk-books.repository.ts:272-275 write only returnedAt + status. Harmless today because reminder-candidates.repository.ts:13-19 filters on status='active' AND returnedAt IS NULL. See D9."
+    },
+    {
+      "claim": "IsoDateSchema is the project's date-only query schema",
+      "specRef": "02_BACKEND_API.md §4 (line 103-104)",
+      "verdict": "FALSE",
+      "evidence": "No IsoDateSchema exists in packages/shared. The convention is z.iso.date() directly (packages/shared/src/books.ts:464) and notInFutureDate() for past-only dates (packages/shared/src/internal.ts:29)."
+    },
+    {
+      "claim": "There is an existing date/timezone normalization strategy to reuse",
+      "specRef": "00_CLAUDE_TASK.md:119; 02_BACKEND_API.md:168",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/iso-date.ts:6,23,35 — UTC-fixed toIsoDate / parseIsoDate / startOfUtcDay / daysBetweenIsoDates, all built on date-fns + date-fns-tz. See D10 for the consequence."
+    },
+    {
+      "claim": "An index equivalent to (userId, status, returnedAt) may already exist",
+      "specRef": "00_CLAUDE_TASK.md:558; 02_BACKEND_API.md §23 (lines 569-577)",
+      "verdict": "MOVED",
+      "evidence": "Only the two-column prefix exists: apps/api/prisma/schema.prisma:404 @@index([userId, status]), created as book_loans_user_id_status_idx in apps/api/prisma/migrations/20260723191344_backend_review_indexes/migration.sql:41. The other book_loans indexes are book_loans_book_id_idx, the partial-unique book_loans_active_book_idx (migration 20260708120000, line 46) and book_loans_status_remind_to_return_returned_at_expected_ret_idx (migration 20260731090620, line 16). None orders by returned_at under a userId scope. See D6."
+    },
+    {
+      "claim": "Raw-SQL partial indexes must survive any generated migration (strip trap)",
+      "specRef": "CLAUDE.md §6 (worktree copy)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/raw-sql-indexes.test.ts:35-44 enumerates ten indexes, including book_loans_active_book_idx at line 38. Note the worktree CLAUDE.md says ten while the main checkout's copy says twelve — on this branch, ten is correct and the test file is the authority."
+    },
+    {
+      "claim": "BookLoan.status is still a String, not an enum",
+      "specRef": "00_CLAUDE_TASK.md:559",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:396 — status String @default(\"active\"); the values are typed only in packages/shared/src/book-enums.ts:140"
+    },
+    {
+      "claim": "The loans module already has a repository/service/controller layering with parameterized raw SQL to follow",
+      "specRef": "02_BACKEND_API.md §22 (lines 543-557)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/loans/infrastructure/loans.repository.ts:139-181 (Prisma.sql + Zod row parse), apps/api/src/modules/loans/application/loans.service.ts:61-95, apps/api/src/modules/loans/api/loans.controller.ts:43-49"
+    },
+    {
+      "claim": "The loans module already goes some way toward a history read-model",
+      "specRef": "README:38-52",
+      "verdict": "FALSE",
+      "evidence": "Nothing in the module reads completed loans. Every query hardcodes the active status: loans.repository.ts:15 LOAN_STATUS_ACTIVE, buildActiveLoansWhere at loans.repository.ts:291-309, and the summary/topPeople raw SQL at loans.repository.ts:177 and :201. The controller exposes only GET /api/loans and GET /api/loans/summary (loans.controller.ts:27,43). The whole history read path is new."
+    },
+    {
+      "claim": "An existing book text search helper can be reused for the history search",
+      "specRef": "02_BACKEND_API.md §11 Search (line 245)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/infrastructure/book-search.ts:50-53 covers title, originalTitle and both author-name tables; loans.repository.ts:311-319 already extends it with personName, contact and note — the exact six surfaces the spec lists."
+    },
+    {
+      "claim": "An endpoint for the person filter may already exist and should be reused",
+      "specRef": "00_CLAUDE_TASK.md §5 People filter (lines 165-171); 02_BACKEND_API.md §17 (line 448)",
+      "verdict": "FALSE",
+      "evidence": "No controller in apps/api/src/modules/**/api/*.controller.ts exposes people/person/suggest/autocomplete. The only people data is LoansSummaryView.*.topPeople (packages/shared/src/loans.ts:118), which is active-loans-only and capped at 5 by SIDEBAR_PEOPLE_LIMIT (loans.service.ts:32). GET /api/loans/history/people is therefore mandatory, not conditional."
+    },
+    {
+      "claim": "No safe existing endpoint can edit a completed loan, so a loanId-scoped mutation is needed",
+      "specRef": "00_CLAUDE_TASK.md §12 (line 381)",
+      "verdict": "CONFIRMED",
+      "evidence": "Every loan mutation is bookId-scoped and pinned to the active loan: books.repository.ts:1308-1312 (edit), :505-513 (create/return), :1462-1466 and :1469-1490 (ownership sync), bulk-books.repository.ts:272-275. Controller surface at apps/api/src/modules/books/api/book-loan.controller.ts:48,66,82,100,118."
+    },
+    {
+      "claim": "The history query should follow the project's soft-delete rules for trashed books",
+      "specRef": "02_BACKEND_API.md §24 (lines 583-585); §11 (line 241)",
+      "verdict": "CONFIRMED",
+      "evidence": "The active loans path scopes the joined book with SOFT_DELETE_SCOPE.active (apps/api/src/modules/loans/infrastructure/loans.repository.ts:299, definition at apps/api/src/core/database/soft-delete.ts:4). The raw SQL summary applies the same rule as book.deleted_at IS NULL (loans.repository.ts:176)."
+    },
+    {
+      "claim": "There is an ordered-ids-then-hydrate precedent for a query Prisma cannot express",
+      "specRef": "02_BACKEND_API.md §12 (line 307)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/infrastructure/books.repository.ts:930-950 — ordered id list, one findMany with include, Map-based reorder"
+    },
+    {
+      "claim": "book_loans.person_name and books.title sort correctly for Ukrainian without extra work",
+      "specRef": "02_BACKEND_API.md §12 title_asc / person_asc (lines 309-315)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/migrations/20260812115219_ukrainian_collation_for_sorted_text/migration.sql:18 (books.title) and :32 (book_loans.person_name) set COLLATE \"uk-UA-x-icu\"; line 5 notes it is deterministic, so equality stays byte-exact — which is also why D1 exists."
+    },
+    {
+      "claim": "The loans nav group has two children and needs a third",
+      "specRef": "00_CLAUDE_TASK.md §1 (lines 38-42); 03_FRONTEND.md §3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/app-shell.tsx:105-111 (loansBorrowed -> /loans/borrowed, loansLent -> /loans/lent) with labels at apps/web/src/messages/uk.json nav.loans / nav.loansBorrowed / nav.loansLent"
+    },
+    {
+      "claim": "Loans query state lives in the URL via nuqs and includes pageNumber",
+      "specRef": "03_FRONTEND.md §5 (lines 94-111)",
+      "verdict": "MOVED",
+      "evidence": "URL state is nuqs (apps/web/src/features/loans/model/loans-query.ts:17-22, consumed at use-loans-query.ts:38) but the parsers are only filter, person, q, sort. There is no pageNumber: the list is a useInfiniteQuery with a show-more button (apps/web/src/features/loans/api/use-loans-list.ts:14, apps/web/src/features/loans/components/loans-view.tsx:165-171). See D5."
+    },
+    {
+      "claim": "A reusable stat-card component exists for the four history cards",
+      "specRef": "03_FRONTEND.md §7 (line 133)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/library-summary-cards.tsx:13-23 — LibrarySummaryCard supports value: number | string, unit, microfact (the third line) and mobileLabels; already consumed by apps/web/src/features/loans/components/loans-summary-cards.tsx:68-74"
+    },
+    {
+      "claim": "A mobile secondary/overview panel pattern exists for the analytics sidebar",
+      "specRef": "00_CLAUDE_TASK.md §16 (line 509); 03_FRONTEND.md §16",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/mobile-page-overview-panel.tsx, wired for loans at apps/web/src/features/loans/components/loans-view.tsx:129-139 via LoansOverviewPanel"
+    },
+    {
+      "claim": "Existing skeleton, empty-state and error patterns can be reused",
+      "specRef": "00_CLAUDE_TASK.md §15 (lines 488-494)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/loans/components/loans-skeleton.tsx:5, EmptyState usage at apps/web/src/features/loans/components/loans-view.tsx:233-245 (error + retry) and :258-297 (empty variants), illustration registry at apps/web/src/lib/empty-states.ts:59-201 (no history illustration — see excluded)"
+    },
+    {
+      "claim": "The loan card is built on the shared BookRow and a distinct history row is needed",
+      "specRef": "00_CLAUDE_TASK.md §9 (line 288); 03_FRONTEND.md §10",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/loans/components/loan-row.tsx:12,44 renders BookRow from apps/web/src/features/books/components/book-row.tsx:68; it hardcodes reminder bell (loan-row.tsx:52-59) and the actions menu, none of which belongs in history"
+    },
+    {
+      "claim": "The UiIcon registry already has the icons the spec names",
+      "specRef": "00_CLAUDE_TASK.md §18 (lines 539-544)",
+      "verdict": "MOVED",
+      "evidence": "apps/web/src/components/icons/ui-icon.tsx:5-113 — book-copy (:19), check-circle (:29), clock (:35), calendar (:24), user (:108) exist; 'history', 'circle-check', 'clock-alert' and 'users' do not. See D8."
+    },
+    {
+      "claim": "A drawer/sheet pattern exists to reuse for the detail panel",
+      "specRef": "03_FRONTEND.md §12 (line 236)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/sheet.tsx with a feature-level detail precedent at apps/web/src/features/characters/components/character-details-sheet.tsx; apps/web/src/components/ui/drawer.tsx is used through mobile-page-overview-panel.tsx. See D4."
+    },
+    {
+      "claim": "A date-range picker component exists for the custom period",
+      "specRef": "03_FRONTEND.md §9 (lines 178-181)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/date-picker.tsx and apps/web/src/components/ui/calendar.tsx exist; the feature-level usage precedent is apps/web/src/features/books/components/book-date-field.tsx"
+    },
+    {
+      "claim": "Invalidating after the return mutation will refresh the history queries",
+      "specRef": "03_FRONTEND.md §4 (lines 76-83); 01_PRODUCT_UX.md §12",
+      "verdict": "FALSE",
+      "evidence": "matchesLoans at apps/web/src/features/loans/api/loan-keys.ts:13-16 matches queryKey[0] only against \"/api/loans\" and \"/api/loans/summary\". Orval keys endpoints by their URL (getLoansControllerSummaryQueryKey at apps/web/src/shared/api/generated/endpoints/loans/loans.ts:82-84), so a history query keyed [\"/api/loans/history\", params] is not matched and useReturnLoan (use-loan-actions.ts:52) would leave it stale. The predicate must be widened — task W4."
+    },
+    {
+      "claim": "uk and en loans namespaces are complete and in parity",
+      "specRef": "00_CLAUDE_TASK.md §17; 04_TESTS_ACCEPTANCE.md §20",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/messages/uk.json and en.json each expose 177 leaf keys under loans, with no key present in one file and missing in the other; plurals already use the one/few/many/other categories (e.g. loans.resultsCount)"
+    },
+    {
+      "claim": "Existing Ukrainian loans copy is non-gendered",
+      "specRef": "01_PRODUCT_UX.md §2 (line 31), §5 (lines 103-106); 04_TESTS_ACCEPTANCE.md:305",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/messages/uk.json loans.pages.borrowed.subtitle reads 'Книги, які ти взяла в інших читачів…' and loans.pages.lent.subtitle 'Книги, які ти передала іншим читачам…'. The rule binds new history keys only; rewriting these is out of scope (see excluded)."
+    },
+    {
+      "claim": "The three loans pages exist as separate routes, so history is a third page and not a tab",
+      "specRef": "README:7-13; 00_CLAUDE_TASK.md §1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/loans/borrowed/page.tsx and .../lent/page.tsx exist; .../loans/page.tsx redirects a legacy ?tab= param onto them. No /loans/history route exists yet."
+    },
+    {
+      "claim": "Pagination UI primitives exist if numbered pagination is chosen",
+      "specRef": "01_PRODUCT_UX.md §13 (line 318)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/pagination.tsx:104, consumed by apps/web/src/features/quotes/components/quotes-pagination.tsx, apps/web/src/features/publishers/components/publisher-pagination.tsx and apps/web/src/features/books/components/reading-history/reading-history-pagination.tsx"
+    },
+    {
+      "claim": "The frontend test harness supports URL-state assertions",
+      "specRef": "04_TESTS_ACCEPTANCE.md §19",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/loans/components/loans-view.test.tsx:11,17 uses NuqsTestingAdapter and renderWithProviders with fetch-boundary mocking"
+    },
+    {
+      "claim": "The backend integration-test harness supports the new endpoints",
+      "specRef": "04_TESTS_ACCEPTANCE.md §3-§17",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/loans/api/loans.controller.test.ts:42-47 builds the app with createAuthTestContext([AuthModule, BooksModule, ListsModule, LoansModule]) and truncateAllTables"
+    }
+  ]
+}

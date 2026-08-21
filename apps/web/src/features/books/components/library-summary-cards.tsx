@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { LibrarySummaryMobile } from "./library-summary-mobile";
 
 export type LibrarySummaryCard = {
+  caption?: ReactNode;
   icon: UiIconName;
   iconSlot?: ReactNode;
   iconTone?: StatCardIconTone;
@@ -91,6 +92,7 @@ function SummaryGrid({
         ? Array.from({ length: columnCount }, (_, index) => <SummaryCardSkeleton key={index} />)
         : cards.map((card) => (
             <StatCard
+              caption={card.caption}
               className="stat-card-branch"
               icon={card.icon}
               iconSlot={card.iconSlot}

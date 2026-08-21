@@ -19,9 +19,23 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  CreateLoanContactInputDto,
+  LoanContactViewDto,
+  LoanContactsControllerDetailByNameParams,
+  LoanContactsControllerListParams,
+  LoanContactsViewDto,
+  LoanHistoryControllerListParams,
+  LoanHistoryControllerOverviewParams,
+  LoanHistoryControllerPeopleParams,
+  LoanHistoryDetailViewDto,
+  LoanHistoryOverviewViewDto,
+  LoanHistoryPeopleViewDto,
   LoansControllerListParams,
   LoansSummaryViewDto,
+  PaginatedLoanHistoryDto,
   PaginatedLoansDto,
+  UpdateLoanContactInputDto,
+  UpdateLoanHistoryInputDto,
 } from "../../model";
 
 import { customInstance } from "../../../mutator";
@@ -343,6 +357,2120 @@ export function useLoansControllerList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getLoansControllerListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanHistoryControllerListResponse200 = {
+  data: PaginatedLoanHistoryDto;
+  status: 200;
+};
+
+export type loanHistoryControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanHistoryControllerListResponseSuccess = loanHistoryControllerListResponse200 & {
+  headers: Headers;
+};
+export type loanHistoryControllerListResponseError = loanHistoryControllerListResponse401 & {
+  headers: Headers;
+};
+
+export type loanHistoryControllerListResponse =
+  loanHistoryControllerListResponseSuccess | loanHistoryControllerListResponseError;
+
+export const getLoanHistoryControllerListUrl = (params?: LoanHistoryControllerListParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/loans/history?${stringifiedParams}`
+    : `/api/loans/history`;
+};
+
+/**
+ * @summary List the current user's completed loans
+ */
+export const loanHistoryControllerList = async (
+  params?: LoanHistoryControllerListParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanHistoryControllerListResponse> => {
+  return customInstance<loanHistoryControllerListResponse>(
+    getLoanHistoryControllerListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanHistoryControllerListQueryKey = (params?: LoanHistoryControllerListParams) => {
+  return [`/api/loans/history`, ...(params ? [params] : [])] as const;
+};
+
+export const getLoanHistoryControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanHistoryControllerList>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanHistoryControllerListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanHistoryControllerList>>> = ({
+    signal,
+  }) => loanHistoryControllerList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loanHistoryControllerList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoanHistoryControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanHistoryControllerList>>
+>;
+export type LoanHistoryControllerListQueryError = void;
+
+export function useLoanHistoryControllerList<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerList>>,
+  TError = void,
+>(
+  params: undefined | LoanHistoryControllerListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerList<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerList>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerList<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerList>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the current user's completed loans
+ */
+
+export function useLoanHistoryControllerList<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerList>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanHistoryControllerListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanHistoryControllerOverviewResponse200 = {
+  data: LoanHistoryOverviewViewDto;
+  status: 200;
+};
+
+export type loanHistoryControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanHistoryControllerOverviewResponseSuccess =
+  loanHistoryControllerOverviewResponse200 & {
+    headers: Headers;
+  };
+export type loanHistoryControllerOverviewResponseError =
+  loanHistoryControllerOverviewResponse401 & {
+    headers: Headers;
+  };
+
+export type loanHistoryControllerOverviewResponse =
+  loanHistoryControllerOverviewResponseSuccess | loanHistoryControllerOverviewResponseError;
+
+export const getLoanHistoryControllerOverviewUrl = (
+  params?: LoanHistoryControllerOverviewParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/loans/history/overview?${stringifiedParams}`
+    : `/api/loans/history/overview`;
+};
+
+/**
+ * @summary Get analytics for the current user's completed loans
+ */
+export const loanHistoryControllerOverview = async (
+  params?: LoanHistoryControllerOverviewParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanHistoryControllerOverviewResponse> => {
+  return customInstance<loanHistoryControllerOverviewResponse>(
+    getLoanHistoryControllerOverviewUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanHistoryControllerOverviewQueryKey = (
+  params?: LoanHistoryControllerOverviewParams,
+) => {
+  return [`/api/loans/history/overview`, ...(params ? [params] : [])] as const;
+};
+
+export const getLoanHistoryControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanHistoryControllerOverviewQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanHistoryControllerOverview>>> = ({
+    signal,
+  }) => loanHistoryControllerOverview(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoanHistoryControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanHistoryControllerOverview>>
+>;
+export type LoanHistoryControllerOverviewQueryError = void;
+
+export function useLoanHistoryControllerOverview<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+  TError = void,
+>(
+  params: undefined | LoanHistoryControllerOverviewParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerOverview<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerOverview<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get analytics for the current user's completed loans
+ */
+
+export function useLoanHistoryControllerOverview<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerOverview>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanHistoryControllerOverviewQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanHistoryControllerPeopleResponse200 = {
+  data: LoanHistoryPeopleViewDto;
+  status: 200;
+};
+
+export type loanHistoryControllerPeopleResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanHistoryControllerPeopleResponseSuccess = loanHistoryControllerPeopleResponse200 & {
+  headers: Headers;
+};
+export type loanHistoryControllerPeopleResponseError = loanHistoryControllerPeopleResponse401 & {
+  headers: Headers;
+};
+
+export type loanHistoryControllerPeopleResponse =
+  loanHistoryControllerPeopleResponseSuccess | loanHistoryControllerPeopleResponseError;
+
+export const getLoanHistoryControllerPeopleUrl = (params?: LoanHistoryControllerPeopleParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/loans/history/people?${stringifiedParams}`
+    : `/api/loans/history/people`;
+};
+
+/**
+ * @summary List the people available for the loan history person filter
+ */
+export const loanHistoryControllerPeople = async (
+  params?: LoanHistoryControllerPeopleParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanHistoryControllerPeopleResponse> => {
+  return customInstance<loanHistoryControllerPeopleResponse>(
+    getLoanHistoryControllerPeopleUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanHistoryControllerPeopleQueryKey = (
+  params?: LoanHistoryControllerPeopleParams,
+) => {
+  return [`/api/loans/history/people`, ...(params ? [params] : [])] as const;
+};
+
+export const getLoanHistoryControllerPeopleQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerPeopleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerPeople>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanHistoryControllerPeopleQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanHistoryControllerPeople>>> = ({
+    signal,
+  }) => loanHistoryControllerPeople(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoanHistoryControllerPeopleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanHistoryControllerPeople>>
+>;
+export type LoanHistoryControllerPeopleQueryError = void;
+
+export function useLoanHistoryControllerPeople<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+  TError = void,
+>(
+  params: undefined | LoanHistoryControllerPeopleParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerPeople>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerPeople>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerPeople<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerPeopleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerPeople>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerPeople>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerPeople<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerPeopleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerPeople>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the people available for the loan history person filter
+ */
+
+export function useLoanHistoryControllerPeople<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerPeople>>,
+  TError = void,
+>(
+  params?: LoanHistoryControllerPeopleParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerPeople>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanHistoryControllerPeopleQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanHistoryControllerDetailResponse200 = {
+  data: LoanHistoryDetailViewDto;
+  status: 200;
+};
+
+export type loanHistoryControllerDetailResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanHistoryControllerDetailResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanHistoryControllerDetailResponseSuccess = loanHistoryControllerDetailResponse200 & {
+  headers: Headers;
+};
+export type loanHistoryControllerDetailResponseError = (
+  loanHistoryControllerDetailResponse401 | loanHistoryControllerDetailResponse404
+) & {
+  headers: Headers;
+};
+
+export type loanHistoryControllerDetailResponse =
+  loanHistoryControllerDetailResponseSuccess | loanHistoryControllerDetailResponseError;
+
+export const getLoanHistoryControllerDetailUrl = (loanId: string) => {
+  return `/api/loans/history/${loanId}`;
+};
+
+/**
+ * @summary Get one completed loan of the current user
+ */
+export const loanHistoryControllerDetail = async (
+  loanId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanHistoryControllerDetailResponse> => {
+  return customInstance<loanHistoryControllerDetailResponse>(
+    getLoanHistoryControllerDetailUrl(loanId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanHistoryControllerDetailQueryKey = (loanId: string) => {
+  return [`/api/loans/history/${loanId}`] as const;
+};
+
+export const getLoanHistoryControllerDetailQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+  TError = void,
+>(
+  loanId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerDetail>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanHistoryControllerDetailQueryKey(loanId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanHistoryControllerDetail>>> = ({
+    signal,
+  }) => loanHistoryControllerDetail(loanId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: loanId !== null && loanId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerDetail>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type LoanHistoryControllerDetailQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanHistoryControllerDetail>>
+>;
+export type LoanHistoryControllerDetailQueryError = void;
+
+export function useLoanHistoryControllerDetail<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+  TError = void,
+>(
+  loanId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerDetail>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerDetail>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerDetail<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+  TError = void,
+>(
+  loanId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerDetail>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerDetail>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerDetail<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+  TError = void,
+>(
+  loanId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerDetail>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get one completed loan of the current user
+ */
+
+export function useLoanHistoryControllerDetail<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerDetail>>,
+  TError = void,
+>(
+  loanId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerDetail>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanHistoryControllerDetailQueryOptions(loanId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanHistoryControllerCorrectResponse200 = {
+  data: LoanHistoryDetailViewDto;
+  status: 200;
+};
+
+export type loanHistoryControllerCorrectResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type loanHistoryControllerCorrectResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanHistoryControllerCorrectResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanHistoryControllerCorrectResponseSuccess =
+  loanHistoryControllerCorrectResponse200 & {
+    headers: Headers;
+  };
+export type loanHistoryControllerCorrectResponseError = (
+  | loanHistoryControllerCorrectResponse400
+  | loanHistoryControllerCorrectResponse401
+  | loanHistoryControllerCorrectResponse404
+) & {
+  headers: Headers;
+};
+
+export type loanHistoryControllerCorrectResponse =
+  loanHistoryControllerCorrectResponseSuccess | loanHistoryControllerCorrectResponseError;
+
+export const getLoanHistoryControllerCorrectUrl = (loanId: string) => {
+  return `/api/loans/history/${loanId}`;
+};
+
+/**
+ * @summary Correct the returned date or the note of a completed loan
+ */
+export const loanHistoryControllerCorrect = async (
+  loanId: string,
+  updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanHistoryControllerCorrectResponse> => {
+  return customInstance<loanHistoryControllerCorrectResponse>(
+    getLoanHistoryControllerCorrectUrl(loanId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateLoanHistoryInputDto),
+    },
+  );
+};
+
+export const getLoanHistoryControllerCorrectQueryKey = (
+  loanId: string,
+  updateLoanHistoryInputDto?: UpdateLoanHistoryInputDto,
+) => {
+  return ["PATCH", `/api/loans/history/${loanId}`, updateLoanHistoryInputDto] as const;
+};
+
+export const getLoanHistoryControllerCorrectQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+  TError = void,
+>(
+  loanId: string,
+  updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getLoanHistoryControllerCorrectQueryKey(loanId, updateLoanHistoryInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>> = ({
+    signal,
+  }) =>
+    loanHistoryControllerCorrect(loanId, updateLoanHistoryInputDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: loanId !== null && loanId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type LoanHistoryControllerCorrectQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanHistoryControllerCorrect>>
+>;
+export type LoanHistoryControllerCorrectQueryError = void;
+
+export function useLoanHistoryControllerCorrect<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+  TError = void,
+>(
+  loanId: string,
+  updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerCorrect>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerCorrect<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+  TError = void,
+>(
+  loanId: string,
+  updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+          TError,
+          Awaited<ReturnType<typeof loanHistoryControllerCorrect>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanHistoryControllerCorrect<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+  TError = void,
+>(
+  loanId: string,
+  updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Correct the returned date or the note of a completed loan
+ */
+
+export function useLoanHistoryControllerCorrect<
+  TData = Awaited<ReturnType<typeof loanHistoryControllerCorrect>>,
+  TError = void,
+>(
+  loanId: string,
+  updateLoanHistoryInputDto: UpdateLoanHistoryInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanHistoryControllerCorrect>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanHistoryControllerCorrectQueryOptions(
+    loanId,
+    updateLoanHistoryInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerListResponse200 = {
+  data: LoanContactsViewDto;
+  status: 200;
+};
+
+export type loanContactsControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerListResponseSuccess = loanContactsControllerListResponse200 & {
+  headers: Headers;
+};
+export type loanContactsControllerListResponseError = loanContactsControllerListResponse401 & {
+  headers: Headers;
+};
+
+export type loanContactsControllerListResponse =
+  loanContactsControllerListResponseSuccess | loanContactsControllerListResponseError;
+
+export const getLoanContactsControllerListUrl = (params?: LoanContactsControllerListParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/loans/contacts?${stringifiedParams}`
+    : `/api/loans/contacts`;
+};
+
+/**
+ * @summary List the loan contacts of the current user
+ */
+export const loanContactsControllerList = async (
+  params?: LoanContactsControllerListParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerListResponse> => {
+  return customInstance<loanContactsControllerListResponse>(
+    getLoanContactsControllerListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanContactsControllerListQueryKey = (
+  params?: LoanContactsControllerListParams,
+) => {
+  return [`/api/loans/contacts`, ...(params ? [params] : [])] as const;
+};
+
+export const getLoanContactsControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerList>>,
+  TError = void,
+>(
+  params?: LoanContactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanContactsControllerListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerList>>> = ({
+    signal,
+  }) => loanContactsControllerList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loanContactsControllerList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoanContactsControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerList>>
+>;
+export type LoanContactsControllerListQueryError = void;
+
+export function useLoanContactsControllerList<
+  TData = Awaited<ReturnType<typeof loanContactsControllerList>>,
+  TError = void,
+>(
+  params: undefined | LoanContactsControllerListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerList<
+  TData = Awaited<ReturnType<typeof loanContactsControllerList>>,
+  TError = void,
+>(
+  params?: LoanContactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerList<
+  TData = Awaited<ReturnType<typeof loanContactsControllerList>>,
+  TError = void,
+>(
+  params?: LoanContactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the loan contacts of the current user
+ */
+
+export function useLoanContactsControllerList<
+  TData = Awaited<ReturnType<typeof loanContactsControllerList>>,
+  TError = void,
+>(
+  params?: LoanContactsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerCreateResponse201 = {
+  data: LoanContactViewDto;
+  status: 201;
+};
+
+export type loanContactsControllerCreateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type loanContactsControllerCreateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerCreateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type loanContactsControllerCreateResponseSuccess =
+  loanContactsControllerCreateResponse201 & {
+    headers: Headers;
+  };
+export type loanContactsControllerCreateResponseError = (
+  | loanContactsControllerCreateResponse400
+  | loanContactsControllerCreateResponse401
+  | loanContactsControllerCreateResponse409
+) & {
+  headers: Headers;
+};
+
+export type loanContactsControllerCreateResponse =
+  loanContactsControllerCreateResponseSuccess | loanContactsControllerCreateResponseError;
+
+export const getLoanContactsControllerCreateUrl = () => {
+  return `/api/loans/contacts`;
+};
+
+/**
+ * @summary Create a loan contact for the current user
+ */
+export const loanContactsControllerCreate = async (
+  createLoanContactInputDto: CreateLoanContactInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerCreateResponse> => {
+  return customInstance<loanContactsControllerCreateResponse>(
+    getLoanContactsControllerCreateUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createLoanContactInputDto),
+    },
+  );
+};
+
+export const getLoanContactsControllerCreateQueryKey = (
+  createLoanContactInputDto?: CreateLoanContactInputDto,
+) => {
+  return ["POST", `/api/loans/contacts`, createLoanContactInputDto] as const;
+};
+
+export const getLoanContactsControllerCreateQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+  TError = void,
+>(
+  createLoanContactInputDto: CreateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getLoanContactsControllerCreateQueryKey(createLoanContactInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerCreate>>> = ({
+    signal,
+  }) => loanContactsControllerCreate(createLoanContactInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoanContactsControllerCreateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerCreate>>
+>;
+export type LoanContactsControllerCreateQueryError = void;
+
+export function useLoanContactsControllerCreate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+  TError = void,
+>(
+  createLoanContactInputDto: CreateLoanContactInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerCreate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+  TError = void,
+>(
+  createLoanContactInputDto: CreateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerCreate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+  TError = void,
+>(
+  createLoanContactInputDto: CreateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Create a loan contact for the current user
+ */
+
+export function useLoanContactsControllerCreate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerCreate>>,
+  TError = void,
+>(
+  createLoanContactInputDto: CreateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerCreateQueryOptions(
+    createLoanContactInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerDetailByNameResponse200 = {
+  data: LoanContactViewDto;
+  status: 200;
+};
+
+export type loanContactsControllerDetailByNameResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerDetailByNameResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanContactsControllerDetailByNameResponseSuccess =
+  loanContactsControllerDetailByNameResponse200 & {
+    headers: Headers;
+  };
+export type loanContactsControllerDetailByNameResponseError = (
+  loanContactsControllerDetailByNameResponse401 | loanContactsControllerDetailByNameResponse404
+) & {
+  headers: Headers;
+};
+
+export type loanContactsControllerDetailByNameResponse =
+  | loanContactsControllerDetailByNameResponseSuccess
+  | loanContactsControllerDetailByNameResponseError;
+
+export const getLoanContactsControllerDetailByNameUrl = (
+  params: LoanContactsControllerDetailByNameParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/loans/contacts/by-name?${stringifiedParams}`
+    : `/api/loans/contacts/by-name`;
+};
+
+/**
+ * @summary Read the loan contact whose normalized name matches, archived ones included
+ */
+export const loanContactsControllerDetailByName = async (
+  params: LoanContactsControllerDetailByNameParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerDetailByNameResponse> => {
+  return customInstance<loanContactsControllerDetailByNameResponse>(
+    getLoanContactsControllerDetailByNameUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanContactsControllerDetailByNameQueryKey = (
+  params?: LoanContactsControllerDetailByNameParams,
+) => {
+  return [`/api/loans/contacts/by-name`, ...(params ? [params] : [])] as const;
+};
+
+export const getLoanContactsControllerDetailByNameQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+  TError = void,
+>(
+  params: LoanContactsControllerDetailByNameParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetailByName>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanContactsControllerDetailByNameQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerDetailByName>>> = ({
+    signal,
+  }) => loanContactsControllerDetailByName(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoanContactsControllerDetailByNameQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerDetailByName>>
+>;
+export type LoanContactsControllerDetailByNameQueryError = void;
+
+export function useLoanContactsControllerDetailByName<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+  TError = void,
+>(
+  params: LoanContactsControllerDetailByNameParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetailByName>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerDetailByName>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerDetailByName<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+  TError = void,
+>(
+  params: LoanContactsControllerDetailByNameParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetailByName>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerDetailByName>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerDetailByName<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+  TError = void,
+>(
+  params: LoanContactsControllerDetailByNameParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetailByName>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the loan contact whose normalized name matches, archived ones included
+ */
+
+export function useLoanContactsControllerDetailByName<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetailByName>>,
+  TError = void,
+>(
+  params: LoanContactsControllerDetailByNameParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetailByName>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerDetailByNameQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerDetailResponse200 = {
+  data: LoanContactViewDto;
+  status: 200;
+};
+
+export type loanContactsControllerDetailResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerDetailResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanContactsControllerDetailResponseSuccess =
+  loanContactsControllerDetailResponse200 & {
+    headers: Headers;
+  };
+export type loanContactsControllerDetailResponseError = (
+  loanContactsControllerDetailResponse401 | loanContactsControllerDetailResponse404
+) & {
+  headers: Headers;
+};
+
+export type loanContactsControllerDetailResponse =
+  loanContactsControllerDetailResponseSuccess | loanContactsControllerDetailResponseError;
+
+export const getLoanContactsControllerDetailUrl = (contactId: string) => {
+  return `/api/loans/contacts/${contactId}`;
+};
+
+/**
+ * @summary Read one loan contact of the current user
+ */
+export const loanContactsControllerDetail = async (
+  contactId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerDetailResponse> => {
+  return customInstance<loanContactsControllerDetailResponse>(
+    getLoanContactsControllerDetailUrl(contactId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoanContactsControllerDetailQueryKey = (contactId: string) => {
+  return [`/api/loans/contacts/${contactId}`] as const;
+};
+
+export const getLoanContactsControllerDetailQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetail>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanContactsControllerDetailQueryKey(contactId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerDetail>>> = ({
+    signal,
+  }) => loanContactsControllerDetail(contactId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: contactId !== null && contactId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetail>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type LoanContactsControllerDetailQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerDetail>>
+>;
+export type LoanContactsControllerDetailQueryError = void;
+
+export function useLoanContactsControllerDetail<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+  TError = void,
+>(
+  contactId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetail>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerDetail>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerDetail<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetail>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerDetail>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerDetail<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetail>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read one loan contact of the current user
+ */
+
+export function useLoanContactsControllerDetail<
+  TData = Awaited<ReturnType<typeof loanContactsControllerDetail>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerDetail>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerDetailQueryOptions(contactId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerUpdateResponse200 = {
+  data: LoanContactViewDto;
+  status: 200;
+};
+
+export type loanContactsControllerUpdateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type loanContactsControllerUpdateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerUpdateResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanContactsControllerUpdateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type loanContactsControllerUpdateResponseSuccess =
+  loanContactsControllerUpdateResponse200 & {
+    headers: Headers;
+  };
+export type loanContactsControllerUpdateResponseError = (
+  | loanContactsControllerUpdateResponse400
+  | loanContactsControllerUpdateResponse401
+  | loanContactsControllerUpdateResponse404
+  | loanContactsControllerUpdateResponse409
+) & {
+  headers: Headers;
+};
+
+export type loanContactsControllerUpdateResponse =
+  loanContactsControllerUpdateResponseSuccess | loanContactsControllerUpdateResponseError;
+
+export const getLoanContactsControllerUpdateUrl = (contactId: string) => {
+  return `/api/loans/contacts/${contactId}`;
+};
+
+/**
+ * @summary Rename a loan contact or change how to reach it
+ */
+export const loanContactsControllerUpdate = async (
+  contactId: string,
+  updateLoanContactInputDto: UpdateLoanContactInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerUpdateResponse> => {
+  return customInstance<loanContactsControllerUpdateResponse>(
+    getLoanContactsControllerUpdateUrl(contactId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateLoanContactInputDto),
+    },
+  );
+};
+
+export const getLoanContactsControllerUpdateQueryKey = (
+  contactId: string,
+  updateLoanContactInputDto?: UpdateLoanContactInputDto,
+) => {
+  return ["PATCH", `/api/loans/contacts/${contactId}`, updateLoanContactInputDto] as const;
+};
+
+export const getLoanContactsControllerUpdateQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+  TError = void,
+>(
+  contactId: string,
+  updateLoanContactInputDto: UpdateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getLoanContactsControllerUpdateQueryKey(contactId, updateLoanContactInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerUpdate>>> = ({
+    signal,
+  }) =>
+    loanContactsControllerUpdate(contactId, updateLoanContactInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: contactId !== null && contactId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerUpdate>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type LoanContactsControllerUpdateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerUpdate>>
+>;
+export type LoanContactsControllerUpdateQueryError = void;
+
+export function useLoanContactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+  TError = void,
+>(
+  contactId: string,
+  updateLoanContactInputDto: UpdateLoanContactInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+  TError = void,
+>(
+  contactId: string,
+  updateLoanContactInputDto: UpdateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+  TError = void,
+>(
+  contactId: string,
+  updateLoanContactInputDto: UpdateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Rename a loan contact or change how to reach it
+ */
+
+export function useLoanContactsControllerUpdate<
+  TData = Awaited<ReturnType<typeof loanContactsControllerUpdate>>,
+  TError = void,
+>(
+  contactId: string,
+  updateLoanContactInputDto: UpdateLoanContactInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerUpdateQueryOptions(
+    contactId,
+    updateLoanContactInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerArchiveResponse200 = {
+  data: LoanContactViewDto;
+  status: 200;
+};
+
+export type loanContactsControllerArchiveResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerArchiveResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanContactsControllerArchiveResponseSuccess =
+  loanContactsControllerArchiveResponse200 & {
+    headers: Headers;
+  };
+export type loanContactsControllerArchiveResponseError = (
+  loanContactsControllerArchiveResponse401 | loanContactsControllerArchiveResponse404
+) & {
+  headers: Headers;
+};
+
+export type loanContactsControllerArchiveResponse =
+  loanContactsControllerArchiveResponseSuccess | loanContactsControllerArchiveResponseError;
+
+export const getLoanContactsControllerArchiveUrl = (contactId: string) => {
+  return `/api/loans/contacts/${contactId}/archive`;
+};
+
+/**
+ * @summary Archive a loan contact so new loans stop offering it
+ */
+export const loanContactsControllerArchive = async (
+  contactId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerArchiveResponse> => {
+  return customInstance<loanContactsControllerArchiveResponse>(
+    getLoanContactsControllerArchiveUrl(contactId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getLoanContactsControllerArchiveQueryKey = (contactId: string) => {
+  return ["POST", `/api/loans/contacts/${contactId}/archive`] as const;
+};
+
+export const getLoanContactsControllerArchiveQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanContactsControllerArchiveQueryKey(contactId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerArchive>>> = ({
+    signal,
+  }) => loanContactsControllerArchive(contactId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: contactId !== null && contactId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerArchive>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type LoanContactsControllerArchiveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerArchive>>
+>;
+export type LoanContactsControllerArchiveQueryError = void;
+
+export function useLoanContactsControllerArchive<
+  TData = Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+  TError = void,
+>(
+  contactId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerArchive>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerArchive>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerArchive<
+  TData = Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerArchive>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerArchive>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerArchive<
+  TData = Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Archive a loan contact so new loans stop offering it
+ */
+
+export function useLoanContactsControllerArchive<
+  TData = Awaited<ReturnType<typeof loanContactsControllerArchive>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerArchiveQueryOptions(contactId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loanContactsControllerRestoreResponse200 = {
+  data: LoanContactViewDto;
+  status: 200;
+};
+
+export type loanContactsControllerRestoreResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loanContactsControllerRestoreResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type loanContactsControllerRestoreResponseSuccess =
+  loanContactsControllerRestoreResponse200 & {
+    headers: Headers;
+  };
+export type loanContactsControllerRestoreResponseError = (
+  loanContactsControllerRestoreResponse401 | loanContactsControllerRestoreResponse404
+) & {
+  headers: Headers;
+};
+
+export type loanContactsControllerRestoreResponse =
+  loanContactsControllerRestoreResponseSuccess | loanContactsControllerRestoreResponseError;
+
+export const getLoanContactsControllerRestoreUrl = (contactId: string) => {
+  return `/api/loans/contacts/${contactId}/restore`;
+};
+
+/**
+ * @summary Restore an archived loan contact
+ */
+export const loanContactsControllerRestore = async (
+  contactId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loanContactsControllerRestoreResponse> => {
+  return customInstance<loanContactsControllerRestoreResponse>(
+    getLoanContactsControllerRestoreUrl(contactId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getLoanContactsControllerRestoreQueryKey = (contactId: string) => {
+  return ["POST", `/api/loans/contacts/${contactId}/restore`] as const;
+};
+
+export const getLoanContactsControllerRestoreQueryOptions = <
+  TData = Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoanContactsControllerRestoreQueryKey(contactId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loanContactsControllerRestore>>> = ({
+    signal,
+  }) => loanContactsControllerRestore(contactId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: contactId !== null && contactId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerRestore>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type LoanContactsControllerRestoreQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loanContactsControllerRestore>>
+>;
+export type LoanContactsControllerRestoreQueryError = void;
+
+export function useLoanContactsControllerRestore<
+  TData = Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+  TError = void,
+>(
+  contactId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerRestore<
+  TData = Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof loanContactsControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoanContactsControllerRestore<
+  TData = Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Restore an archived loan contact
+ */
+
+export function useLoanContactsControllerRestore<
+  TData = Awaited<ReturnType<typeof loanContactsControllerRestore>>,
+  TError = void,
+>(
+  contactId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loanContactsControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoanContactsControllerRestoreQueryOptions(contactId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

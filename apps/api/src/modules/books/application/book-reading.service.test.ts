@@ -9,6 +9,7 @@ import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { fakeOf } from "../../../test/fake.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookReadingService } from "./book-reading.service.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -33,6 +34,7 @@ function buildService(repository: RepositoryMock): BookReadingService {
     fakeOf<BooksRepository>(repository),
     fakeOf<BookViewAssembler>(),
     transactionRunnerMock(),
+    fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
   );
 }
 
@@ -148,6 +150,7 @@ describe("BookReadingService.changeReadingStatus clearEvents", () => {
       fakeOf<BooksRepository>(repository),
       fakeOf<BookViewAssembler>({ loadView: vi.fn().mockResolvedValue({} as BookView) }),
       transactionRunnerMock(),
+      fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
     );
   }
 

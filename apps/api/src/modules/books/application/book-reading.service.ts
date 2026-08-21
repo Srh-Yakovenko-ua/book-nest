@@ -16,6 +16,7 @@ import type { ReadingProgressEventData } from "../infrastructure/books.repositor
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ValidationError } from "../../../core/exceptions/errors.js";
 import { parseIsoDate, toIsoDate } from "../../../core/iso-date.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { toReadingHistoryView } from "../domain/reading-history.mapper.js";
 import { computeReadingProgressChange } from "../domain/reading-progress-transition.js";
 import { computeReadingStatusChange } from "../domain/reading-status-transition.js";
@@ -31,6 +32,7 @@ export class BookReadingService {
     private readonly booksRepository: BooksRepository,
     private readonly viewAssembler: BookViewAssembler,
     private readonly transactionRunner: TransactionRunner,
+    private readonly readingGoalSyncService: ReadingGoalSyncService,
   ) {}
 
   async changeReadingStatus(
@@ -81,6 +83,8 @@ export class BookReadingService {
         },
         tx,
       );
+
+      await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client: tx, userId });
     });
 
     return this.viewAssembler.loadView({ bookId, userId });
@@ -128,6 +132,7 @@ export class BookReadingService {
     });
 
     await this.booksRepository.applyReadingChange(userId, bookId, patch, client);
+    await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client, userId });
   }
 
   async updateReadingProgress(
@@ -166,6 +171,8 @@ export class BookReadingService {
       });
 
       await this.booksRepository.recordReadingProgress({ bookId, event, patch, userId }, tx);
+
+      await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client: tx, userId });
     });
 
     return this.viewAssembler.loadView({ bookId, userId });

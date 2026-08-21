@@ -1,6 +1,11 @@
 import type { BookView } from "@app/shared";
 
-import { CreateLoanInputSchema, UpdateLoanInputSchema } from "@app/shared";
+import {
+  CreateLoanInputSchema,
+  ExtendLoanInputSchema,
+  SetLoanReminderInputSchema,
+  UpdateLoanInputSchema,
+} from "@app/shared";
 import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Patch, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -21,6 +26,8 @@ import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookLoanService } from "../application/book-loan.service.js";
 import { CreateLoanInputDto } from "./input-dto/create-loan.input-dto.js";
+import { ExtendLoanInputDto } from "./input-dto/extend-loan.input-dto.js";
+import { SetLoanReminderInputDto } from "./input-dto/set-loan-reminder.input-dto.js";
 import { UpdateLoanInputDto } from "./input-dto/update-loan.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 
@@ -63,6 +70,42 @@ export class BookLoanController {
   ): Promise<BookView> {
     return this.bookLoanService.editLoan(user.id, id, body);
   }
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: ExtendLoanInputDto })
+  @ApiConflictResponse({ description: "Loan has no return date to extend" })
+  @ApiNotFoundResponse({ description: "Book or active loan not found" })
+  @ApiOkResponse({ description: "The book with the extended return date", type: BookViewDto })
+  @ApiOperation({ summary: "Push the expected return date of an active loan by 7 or 14 days" })
+  @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
+  @Post(":id/loan/extend")
+  @Throttle(MUTATION_THROTTLE)
+  extendLoan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodBodyPipe(ExtendLoanInputSchema)) body: ExtendLoanInputDto,
+  ): Promise<BookView> {
+    return this.bookLoanService.extendLoan(user.id, id, body);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: SetLoanReminderInputDto })
+  @ApiConflictResponse({ description: "Loan has no return date for a reminder" })
+  @ApiNotFoundResponse({ description: "Book or active loan not found" })
+  @ApiOkResponse({ description: "The book with the updated reminder", type: BookViewDto })
+  @ApiOperation({ summary: "Turn the return reminder of an active loan on or off" })
+  @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
+  @Patch(":id/loan/reminder")
+  @Throttle(MUTATION_THROTTLE)
+  setLoanReminder(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodBodyPipe(SetLoanReminderInputSchema)) body: SetLoanReminderInputDto,
+  ): Promise<BookView> {
+    return this.bookLoanService.setLoanReminder(user.id, id, body);
+  }
+
   @ApiConflictResponse({ description: "Book is not currently borrowed or lent" })
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({ description: "The book with the loan cleared", type: BookViewDto })

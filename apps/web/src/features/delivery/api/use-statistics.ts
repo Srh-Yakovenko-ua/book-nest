@@ -1,17 +1,23 @@
-import type { DeliveryStatisticsView } from "@app/shared";
+import type { BookOrderStatisticsView } from "@app/shared";
 
-import { DeliveryStatisticsViewSchema } from "@app/shared";
+import { BookOrderStatisticsViewSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import type { DeliveryControllerStatisticsParams } from "@/shared/api/generated/model";
+import type { BookOrdersControllerStatisticsParams } from "@/shared/api/generated/model";
 
-import { deliveryControllerStatistics } from "@/shared/api/generated/endpoints/delivery/delivery";
+import { bookOrdersControllerStatistics } from "@/shared/api/generated/endpoints/book-orders/book-orders";
 
-export function useStatistics(params: DeliveryControllerStatisticsParams) {
+export const STATISTICS_QUERY_KEY = "/api/delivery/orders/statistics";
+
+export function useStatistics(
+  params: BookOrdersControllerStatisticsParams,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
+    enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<DeliveryStatisticsView> =>
-      DeliveryStatisticsViewSchema.parse(await deliveryControllerStatistics(params)),
-    queryKey: ["/api/delivery/statistics", params],
+    queryFn: async (): Promise<BookOrderStatisticsView> =>
+      BookOrderStatisticsViewSchema.parse(await bookOrdersControllerStatistics(params)),
+    queryKey: [STATISTICS_QUERY_KEY, params],
   });
 }

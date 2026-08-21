@@ -1,13 +1,22 @@
 "use client";
 
-import type { BookView, CreateLoanInput, LoanDirection } from "@app/shared";
+import type {
+  BookView,
+  CreateLoanInput,
+  LoanContactView,
+  LoanDirection,
+  Nullable,
+} from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
+import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,54 +27,61 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError } from "@/lib/http-client";
+import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
 
 import { useCreateLoan } from "../api/use-loan";
+import { toLoanErrorKey } from "../model/loan-error";
 import { ISO_DATE_PATTERN, todayIso } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
+import { BookThumb } from "./book-picker";
+import { LoanBookStep } from "./loan-book-step";
 
-const PERSON_NAME_MIN = 2;
-const PERSON_NAME_MAX = 100;
-const CONTACT_MAX = 100;
 const NOTE_MAX = 300;
 
+export type LoanDialogContext =
+  { book: BookView; kind: "book" } | { contact: LoanContactView; kind: "contact" };
+
 type LoanDialogProps = {
-  book: BookView;
+  context: LoanDialogContext;
   direction: LoanDirection;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
+type LoanFormPerson =
+  { contact: LoanContactView; kind: "fixed"; onBack: () => void } | { kind: "pick" };
+
 type LoanMessages = {
-  contactMax: string;
+  contactRequired: string;
   dateInvalid: string;
   loanDateFuture: string;
   noteMax: string;
-  personNameMax: string;
-  personNameMin: string;
   reminderNeedsDate: string;
   returnBeforeLoan: string;
 };
 
 type LoanValues = {
-  contact: string;
   expectedReturnDate: string;
+  loanContactId: string;
+  loanContactName: string;
   loanDate: string;
   note: string;
-  personName: string;
   remindToReturn: boolean;
 };
 
-export function LoanDialog({ book, direction, onOpenChange, open }: LoanDialogProps) {
+export function LoanDialog({ context, direction, onOpenChange, open }: LoanDialogProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-md">
         {open ? (
-          <LoanForm book={book} direction={direction} onDone={() => onOpenChange(false)} />
+          <LoanDialogBody
+            context={context}
+            direction={direction}
+            onDone={() => onOpenChange(false)}
+          />
         ) : null}
       </DialogContent>
     </Dialog>
@@ -75,14 +91,12 @@ export function LoanDialog({ book, direction, onOpenChange, open }: LoanDialogPr
 function buildPayload(direction: LoanDirection, values: LoanValues): CreateLoanInput {
   const payload: CreateLoanInput = {
     direction,
+    loanContactId: values.loanContactId,
     loanDate: values.loanDate,
-    personName: values.personName.trim(),
   };
-  const contact = values.contact.trim();
   const note = values.note.trim();
 
   if (values.expectedReturnDate.length > 0) payload.expectedReturnDate = values.expectedReturnDate;
-  if (contact.length > 0) payload.contact = contact;
   if (note.length > 0) payload.note = note;
   if (values.remindToReturn) payload.remindToReturn = true;
 
@@ -92,22 +106,19 @@ function buildPayload(direction: LoanDirection, values: LoanValues): CreateLoanI
 function buildSchema(messages: LoanMessages) {
   return z
     .object({
-      contact: z.string().max(CONTACT_MAX, messages.contactMax),
       expectedReturnDate: z
         .string()
         .refine(
           (value) => value.length === 0 || ISO_DATE_PATTERN.test(value),
           messages.dateInvalid,
         ),
+      loanContactId: z.string().min(1, messages.contactRequired),
+      loanContactName: z.string(),
       loanDate: z
         .string()
         .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
         .refine((value) => value.length === 0 || value <= todayIso(), messages.loanDateFuture),
       note: z.string().max(NOTE_MAX, messages.noteMax),
-      personName: z
-        .string()
-        .refine((value) => value.trim().length >= PERSON_NAME_MIN, messages.personNameMin)
-        .refine((value) => value.trim().length <= PERSON_NAME_MAX, messages.personNameMax),
       remindToReturn: z.boolean(),
     })
     .refine(
@@ -122,59 +133,130 @@ function buildSchema(messages: LoanMessages) {
     });
 }
 
+function ContactFirstFlow({
+  contact,
+  direction,
+  onDone,
+}: {
+  contact: LoanContactView;
+  direction: LoanDirection;
+  onDone: () => void;
+}) {
+  const [book, setBook] = useState<Nullable<BookView>>(null);
+  const [search, setSearch] = useState("");
+  const [step, setStep] = useState<"book" | "form">("book");
+
+  if (step === "form" && book !== null) {
+    return (
+      <LoanForm
+        book={book}
+        direction={direction}
+        onDone={onDone}
+        person={{ contact, kind: "fixed", onBack: () => setStep("book") }}
+      />
+    );
+  }
+
+  return (
+    <LoanBookStep
+      direction={direction}
+      onCancel={onDone}
+      onNext={() => setStep("form")}
+      onSearchChange={setSearch}
+      onSelect={setBook}
+      personName={contact.name}
+      search={search}
+      selectedBookId={book?.id ?? null}
+    />
+  );
+}
+
+function LoanDialogBody({
+  context,
+  direction,
+  onDone,
+}: {
+  context: LoanDialogContext;
+  direction: LoanDirection;
+  onDone: () => void;
+}) {
+  if (context.kind === "contact") {
+    return <ContactFirstFlow contact={context.contact} direction={direction} onDone={onDone} />;
+  }
+
+  return (
+    <LoanForm book={context.book} direction={direction} onDone={onDone} person={{ kind: "pick" }} />
+  );
+}
+
 function LoanForm({
   book,
   direction,
   onDone,
+  person,
 }: {
   book: BookView;
   direction: LoanDirection;
   onDone: () => void;
+  person: LoanFormPerson;
 }) {
   const t = useTranslations("books.details.loan");
   const tErrors = useTranslations("books.details.loan.errors");
   const tActions = useTranslations("books.actions");
+  const tContact = useTranslations("loans.contactPicker");
   const createLoan = useCreateLoan();
   const [serverError, setServerError] = useState<null | string>(null);
 
   const variant = direction === "lent" ? "lent" : "borrowed";
+  const fixedContact = person.kind === "fixed" ? person.contact : null;
 
   const {
     control,
     formState: { errors },
     handleSubmit,
-    register,
+    setValue,
   } = useForm<LoanValues>({
     defaultValues: {
-      contact: "",
       expectedReturnDate: "",
+      loanContactId: fixedContact?.id ?? "",
+      loanContactName: fixedContact?.name ?? "",
       loanDate: todayIso(),
       note: "",
-      personName: "",
       remindToReturn: false,
     },
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        contactMax: tErrors("contactMax", { max: CONTACT_MAX }),
+        contactRequired: tContact("required"),
         dateInvalid: tErrors("dateInvalid"),
         loanDateFuture: tErrors("loanDateFuture"),
         noteMax: tErrors("noteMax", { max: NOTE_MAX }),
-        personNameMax: tErrors("personNameMax", { max: PERSON_NAME_MAX }),
-        personNameMin: tErrors("personNameMin", { min: PERSON_NAME_MIN }),
         reminderNeedsDate: tErrors("reminderNeedsDate"),
         returnBeforeLoan: tErrors("returnBeforeLoan"),
       }),
     ),
   });
 
+  const loanContactId = useWatch({ control, name: "loanContactId" });
+  const loanContactName = useWatch({ control, name: "loanContactName" });
+  const contactSelection: LoanContactSelection | null =
+    loanContactId.length > 0
+      ? { contactId: loanContactId, kind: "picked", name: loanContactName }
+      : null;
+
+  function handleContactChange(selection: LoanContactSelection | null) {
+    setValue("loanContactId", selection?.kind === "picked" ? selection.contactId : "", {
+      shouldValidate: true,
+    });
+    setValue("loanContactName", selection?.name ?? "");
+  }
+
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     createLoan.mutate(
       { id: book.id, payload: buildPayload(direction, values) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+        onError: (error) => setServerError(tErrors(toLoanErrorKey(error))),
         onSuccess: onDone,
       },
     );
@@ -183,23 +265,57 @@ function LoanForm({
   return (
     <form className="flex flex-col gap-5" noValidate onSubmit={onSubmit}>
       <DialogHeader>
+        {person.kind === "fixed" ? (
+          <button
+            className="inline-flex w-fit cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={person.onBack}
+            type="button"
+          >
+            <UiIcon aria-hidden name="arrow-left" size={16} />
+            {t("back")}
+          </button>
+        ) : null}
         <DialogTitle>{t(`${variant}.title`)}</DialogTitle>
         <DialogDescription>{t(`${variant}.description`)}</DialogDescription>
       </DialogHeader>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="loan-person-name">{t(`${variant}.personName`)}</Label>
-        <Input
-          aria-describedby={errors.personName ? "loan-person-name-error" : undefined}
-          aria-invalid={errors.personName !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="loan-person-name"
-          placeholder={t(`${variant}.personNamePlaceholder`)}
-          {...register("personName")}
-        />
-        <FieldError error={errors.personName} id="loan-person-name-error" />
-      </div>
+      {fixedContact === null ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="loan-contact-picker">{t(`${variant}.personName`)}</Label>
+          <LoanContactPicker
+            describedBy={errors.loanContactId ? "loan-contact-picker-error" : undefined}
+            id="loan-contact-picker"
+            invalid={errors.loanContactId !== undefined}
+            label={t(`${variant}.personName`)}
+            onChange={handleContactChange}
+            placeholder={t(`${variant}.personNamePlaceholder`)}
+            value={contactSelection}
+          />
+          <FieldError error={errors.loanContactId} id="loan-contact-picker-error" />
+        </div>
+      ) : (
+        <dl className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-muted-foreground">{t(`${variant}.personName`)}</dt>
+            <dd className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+              <UiIcon
+                aria-hidden
+                className="shrink-0 text-muted-foreground"
+                name="user"
+                size={16}
+              />
+              <span className="truncate">{fixedContact.name}</span>
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-xs text-muted-foreground">{t("fields.book")}</dt>
+            <dd className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+              <BookThumb book={book} />
+              <span className="truncate">{book.title}</span>
+            </dd>
+          </div>
+        </dl>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-1 flex-col gap-2">
@@ -242,20 +358,6 @@ function LoanForm({
           />
           <FieldError error={errors.expectedReturnDate} id="loan-return-date-error" />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="loan-contact">{t("fields.contact")}</Label>
-        <Input
-          aria-describedby={errors.contact ? "loan-contact-error" : undefined}
-          aria-invalid={errors.contact !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="loan-contact"
-          placeholder={t("fields.contactPlaceholder")}
-          {...register("contact")}
-        />
-        <FieldError error={errors.contact} id="loan-contact-error" />
       </div>
 
       <div className="flex flex-col gap-2">

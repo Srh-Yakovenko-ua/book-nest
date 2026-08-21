@@ -6,6 +6,8 @@ import type { TransactionRunner } from "../../../core/database/transaction-runne
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
+import { fakeOf } from "../../../test/fake.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookReadingService } from "./book-reading.service.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -36,6 +38,7 @@ function buildService(repository: RepositoryMock, assembler: AssemblerMock): Boo
     repository as unknown as BooksRepository,
     assembler as unknown as BookViewAssembler,
     transactionRunnerMock(),
+    fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
   );
 }
 

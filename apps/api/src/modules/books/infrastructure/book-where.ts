@@ -5,6 +5,7 @@ import type {
   BookType,
   OwnershipStatus,
   PublisherPresence,
+  QueuePriority,
   ReadingStatus,
 } from "@app/shared";
 
@@ -19,6 +20,7 @@ export type LibraryFilter = {
   bookType?: BookType;
   formats?: BookFormat[];
   genreKeys?: string[];
+  hasActiveOrder?: boolean;
   hasCover?: boolean;
   hasDedication?: boolean;
   hasRating?: boolean;
@@ -31,6 +33,7 @@ export type LibraryFilter = {
   pagesMin?: number;
   publisherIds?: string[];
   publisherPresence?: PublisherPresence;
+  queuePriorities?: QueuePriority[];
   ratingMax?: number;
   ratingMin?: number;
   readingStatuses?: ReadingStatus[];
@@ -91,8 +94,17 @@ export function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput 
   if (filter.inQueue === false) {
     where.queuePosition = null;
   }
+  if (filter.queuePriorities !== undefined) {
+    where.queuePriority = { in: filter.queuePriorities };
+  }
   if (filter.notInList !== undefined) {
     where.lists = { none: { listId: filter.notInList } };
+  }
+  if (filter.hasActiveOrder !== undefined) {
+    const activeOrderItem = { cancelledAt: null, receivedAt: null };
+    where.orderItems = filter.hasActiveOrder
+      ? { some: activeOrderItem }
+      : { none: activeOrderItem };
   }
   if (filter.hasCover === true) {
     where.coverMediaId = { not: null };

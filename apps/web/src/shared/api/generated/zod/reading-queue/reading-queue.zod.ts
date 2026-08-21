@@ -10,8 +10,172 @@ import * as zod from "zod";
 /**
  * @summary Get the current user reading queue
  */
+export const readingQueueControllerGetQueueQueryAgeCategoryMax = 100;
+
+export const readingQueueControllerGetQueueQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const readingQueueControllerGetQueueQueryAuthorMax = 100;
+
+export const readingQueueControllerGetQueueQueryFormatMax = 100;
+
+export const readingQueueControllerGetQueueQueryGenreItemMax = 64;
+
+export const readingQueueControllerGetQueueQueryGenreMax = 100;
+
+export const readingQueueControllerGetQueueQueryLanguageMax = 100;
+
+export const readingQueueControllerGetQueueQueryOwnerMax = 100;
+
+export const readingQueueControllerGetQueueQueryPagesMaxMin = 0;
+export const readingQueueControllerGetQueueQueryPagesMaxMax = 9007199254740991;
+
+export const readingQueueControllerGetQueueQueryPagesMinMin = 0;
+export const readingQueueControllerGetQueueQueryPagesMinMax = 9007199254740991;
+
+export const readingQueueControllerGetQueueQueryPriorityMax = 100;
+
+export const readingQueueControllerGetQueueQueryPublisherItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const readingQueueControllerGetQueueQueryPublisherMax = 100;
+
+export const readingQueueControllerGetQueueQueryQMax = 200;
+
+export const readingQueueControllerGetQueueQueryRatingMaxMin = 0.5;
+export const readingQueueControllerGetQueueQueryRatingMaxMax = 10;
+export const readingQueueControllerGetQueueQueryRatingMaxMultipleOf = 0.5;
+
+export const readingQueueControllerGetQueueQueryRatingMinMin = 0.5;
+export const readingQueueControllerGetQueueQueryRatingMinMax = 10;
+export const readingQueueControllerGetQueueQueryRatingMinMultipleOf = 0.5;
+
+export const readingQueueControllerGetQueueQueryStatusMax = 100;
+
+export const readingQueueControllerGetQueueQueryTagItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const readingQueueControllerGetQueueQueryTagMax = 100;
+
+export const readingQueueControllerGetQueueQueryYearMaxMin = -9007199254740991;
+export const readingQueueControllerGetQueueQueryYearMaxMax = 9007199254740991;
+
+export const readingQueueControllerGetQueueQueryYearMinMin = -9007199254740991;
+export const readingQueueControllerGetQueueQueryYearMinMax = 9007199254740991;
+
+export const ReadingQueueControllerGetQueueQueryParams = zod.object({
+  ageCategory: zod
+    .array(
+      zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+    )
+    .max(readingQueueControllerGetQueueQueryAgeCategoryMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(readingQueueControllerGetQueueQueryAuthorItemRegExp))
+    .max(readingQueueControllerGetQueueQueryAuthorMax)
+    .optional(),
+  bookType: zod.enum(["solo", "series_part"]).optional(),
+  format: zod
+    .array(zod.enum(["paper", "ebook", "audiobook"]))
+    .max(readingQueueControllerGetQueueQueryFormatMax)
+    .optional(),
+  genre: zod
+    .array(zod.string().min(1).max(readingQueueControllerGetQueueQueryGenreItemMax))
+    .max(readingQueueControllerGetQueueQueryGenreMax)
+    .optional(),
+  hasCover: zod.string().optional(),
+  language: zod
+    .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
+    .max(readingQueueControllerGetQueueQueryLanguageMax)
+    .optional(),
+  owner: zod
+    .array(
+      zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+    )
+    .max(readingQueueControllerGetQueueQueryOwnerMax)
+    .optional(),
+  pagesMax: zod
+    .int()
+    .min(readingQueueControllerGetQueueQueryPagesMaxMin)
+    .max(readingQueueControllerGetQueueQueryPagesMaxMax)
+    .optional(),
+  pagesMin: zod
+    .int()
+    .min(readingQueueControllerGetQueueQueryPagesMinMin)
+    .max(readingQueueControllerGetQueueQueryPagesMinMax)
+    .optional(),
+  priority: zod
+    .array(zod.enum(["low", "normal", "high"]))
+    .max(readingQueueControllerGetQueueQueryPriorityMax)
+    .optional(),
+  publisher: zod
+    .array(zod.uuid().regex(readingQueueControllerGetQueueQueryPublisherItemRegExp))
+    .max(readingQueueControllerGetQueueQueryPublisherMax)
+    .optional(),
+  q: zod.string().max(readingQueueControllerGetQueueQueryQMax).optional(),
+  ratingMax: zod
+    .number()
+    .min(readingQueueControllerGetQueueQueryRatingMaxMin)
+    .max(readingQueueControllerGetQueueQueryRatingMaxMax)
+    .multipleOf(readingQueueControllerGetQueueQueryRatingMaxMultipleOf)
+    .optional(),
+  ratingMin: zod
+    .number()
+    .min(readingQueueControllerGetQueueQueryRatingMinMin)
+    .max(readingQueueControllerGetQueueQueryRatingMinMax)
+    .multipleOf(readingQueueControllerGetQueueQueryRatingMinMultipleOf)
+    .optional(),
+  status: zod
+    .array(
+      zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+    )
+    .max(readingQueueControllerGetQueueQueryStatusMax)
+    .optional(),
+  tag: zod
+    .array(zod.uuid().regex(readingQueueControllerGetQueueQueryTagItemRegExp))
+    .max(readingQueueControllerGetQueueQueryTagMax)
+    .optional(),
+  yearMax: zod
+    .int()
+    .min(readingQueueControllerGetQueueQueryYearMaxMin)
+    .max(readingQueueControllerGetQueueQueryYearMaxMax)
+    .optional(),
+  yearMin: zod
+    .int()
+    .min(readingQueueControllerGetQueueQueryYearMinMin)
+    .max(readingQueueControllerGetQueueQueryYearMinMax)
+    .optional(),
+});
+
 export const readingQueueControllerGetQueueResponseCountMin = 0;
 export const readingQueueControllerGetQueueResponseCountMax = 9007199254740991;
+
+export const readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const readingQueueControllerGetQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
@@ -38,6 +202,9 @@ export const readingQueueControllerGetQueueResponseItemsItemBookSeriesOwnershipT
 export const readingQueueControllerGetQueueResponseItemsItemBookSeriesTagsDefault = [];
 export const readingQueueControllerGetQueueResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerGetQueueResponseItemsItemPositionMax = 9007199254740991;
+
+export const readingQueueControllerGetQueueResponseTotalCountMin = 0;
+export const readingQueueControllerGetQueueResponseTotalCountMax = 9007199254740991;
 
 export const readingQueueControllerGetQueueResponseTotalPagesCountMin = 0;
 export const readingQueueControllerGetQueueResponseTotalPagesCountMax = 9007199254740991;
@@ -102,6 +269,9 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -136,6 +306,9 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -187,11 +360,17 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin)
+              .max(readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -459,6 +638,10 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
         .max(readingQueueControllerGetQueueResponseItemsItemPositionMax),
     }),
   ),
+  totalCount: zod
+    .int()
+    .min(readingQueueControllerGetQueueResponseTotalCountMin)
+    .max(readingQueueControllerGetQueueResponseTotalCountMax),
   totalPagesCount: zod
     .int()
     .min(readingQueueControllerGetQueueResponseTotalPagesCountMin)
@@ -487,6 +670,10 @@ export const ReadingQueueControllerAddToQueueBody = zod.object({
 export const readingQueueControllerAddToQueueResponseCountMin = 0;
 export const readingQueueControllerAddToQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerAddToQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -512,6 +699,9 @@ export const readingQueueControllerAddToQueueResponseItemsItemBookSeriesOwnershi
 export const readingQueueControllerAddToQueueResponseItemsItemBookSeriesTagsDefault = [];
 export const readingQueueControllerAddToQueueResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerAddToQueueResponseItemsItemPositionMax = 9007199254740991;
+
+export const readingQueueControllerAddToQueueResponseTotalCountMin = 0;
+export const readingQueueControllerAddToQueueResponseTotalCountMax = 9007199254740991;
 
 export const readingQueueControllerAddToQueueResponseTotalPagesCountMin = 0;
 export const readingQueueControllerAddToQueueResponseTotalPagesCountMax = 9007199254740991;
@@ -576,6 +766,9 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -610,6 +803,9 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -661,11 +857,17 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin)
+              .max(readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -935,6 +1137,10 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
         .max(readingQueueControllerAddToQueueResponseItemsItemPositionMax),
     }),
   ),
+  totalCount: zod
+    .int()
+    .min(readingQueueControllerAddToQueueResponseTotalCountMin)
+    .max(readingQueueControllerAddToQueueResponseTotalCountMax),
   totalPagesCount: zod
     .int()
     .min(readingQueueControllerAddToQueueResponseTotalPagesCountMin)
@@ -1172,6 +1378,10 @@ export const ReadingQueueControllerReorderBody = zod.object({
 export const readingQueueControllerReorderResponseCountMin = 0;
 export const readingQueueControllerReorderResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerReorderResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -1196,6 +1406,9 @@ export const readingQueueControllerReorderResponseItemsItemBookSeriesOwnershipTo
 export const readingQueueControllerReorderResponseItemsItemBookSeriesTagsDefault = [];
 export const readingQueueControllerReorderResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerReorderResponseItemsItemPositionMax = 9007199254740991;
+
+export const readingQueueControllerReorderResponseTotalCountMin = 0;
+export const readingQueueControllerReorderResponseTotalCountMax = 9007199254740991;
 
 export const readingQueueControllerReorderResponseTotalPagesCountMin = 0;
 export const readingQueueControllerReorderResponseTotalPagesCountMax = 9007199254740991;
@@ -1260,6 +1473,9 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1294,6 +1510,9 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1345,11 +1564,17 @@ export const ReadingQueueControllerReorderResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMin)
+              .max(readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -1615,6 +1840,10 @@ export const ReadingQueueControllerReorderResponse = zod.object({
         .max(readingQueueControllerReorderResponseItemsItemPositionMax),
     }),
   ),
+  totalCount: zod
+    .int()
+    .min(readingQueueControllerReorderResponseTotalCountMin)
+    .max(readingQueueControllerReorderResponseTotalCountMax),
   totalPagesCount: zod
     .int()
     .min(readingQueueControllerReorderResponseTotalPagesCountMin)
@@ -1634,6 +1863,10 @@ export const ReadingQueueControllerStartReadingBody = zod.object({
 
 export const readingQueueControllerStartReadingResponseCountMin = 0;
 export const readingQueueControllerStartReadingResponseCountMax = 9007199254740991;
+
+export const readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const readingQueueControllerStartReadingResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
@@ -1660,6 +1893,9 @@ export const readingQueueControllerStartReadingResponseItemsItemBookSeriesOwners
 export const readingQueueControllerStartReadingResponseItemsItemBookSeriesTagsDefault = [];
 export const readingQueueControllerStartReadingResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerStartReadingResponseItemsItemPositionMax = 9007199254740991;
+
+export const readingQueueControllerStartReadingResponseTotalCountMin = 0;
+export const readingQueueControllerStartReadingResponseTotalCountMax = 9007199254740991;
 
 export const readingQueueControllerStartReadingResponseTotalPagesCountMin = 0;
 export const readingQueueControllerStartReadingResponseTotalPagesCountMax = 9007199254740991;
@@ -1724,6 +1960,9 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1758,6 +1997,9 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1809,11 +2051,21 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(
+                readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMin,
+              )
+              .max(
+                readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMax,
+              )
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -2089,6 +2341,10 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
         .max(readingQueueControllerStartReadingResponseItemsItemPositionMax),
     }),
   ),
+  totalCount: zod
+    .int()
+    .min(readingQueueControllerStartReadingResponseTotalCountMin)
+    .max(readingQueueControllerStartReadingResponseTotalCountMax),
   totalPagesCount: zod
     .int()
     .min(readingQueueControllerStartReadingResponseTotalPagesCountMin)
@@ -2104,6 +2360,10 @@ export const ReadingQueueControllerRemoveFromQueueParams = zod.object({
 
 export const readingQueueControllerRemoveFromQueueResponseCountMin = 0;
 export const readingQueueControllerRemoveFromQueueResponseCountMax = 9007199254740991;
+
+export const readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const readingQueueControllerRemoveFromQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
@@ -2131,6 +2391,9 @@ export const readingQueueControllerRemoveFromQueueResponseItemsItemBookSeriesOwn
 export const readingQueueControllerRemoveFromQueueResponseItemsItemBookSeriesTagsDefault = [];
 export const readingQueueControllerRemoveFromQueueResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerRemoveFromQueueResponseItemsItemPositionMax = 9007199254740991;
+
+export const readingQueueControllerRemoveFromQueueResponseTotalCountMin = 0;
+export const readingQueueControllerRemoveFromQueueResponseTotalCountMax = 9007199254740991;
 
 export const readingQueueControllerRemoveFromQueueResponseTotalPagesCountMin = 0;
 export const readingQueueControllerRemoveFromQueueResponseTotalPagesCountMax = 9007199254740991;
@@ -2195,6 +2458,9 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -2229,6 +2495,9 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -2280,11 +2549,21 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(
+                readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin,
+              )
+              .max(
+                readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax,
+              )
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -2562,6 +2841,10 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
         .max(readingQueueControllerRemoveFromQueueResponseItemsItemPositionMax),
     }),
   ),
+  totalCount: zod
+    .int()
+    .min(readingQueueControllerRemoveFromQueueResponseTotalCountMin)
+    .max(readingQueueControllerRemoveFromQueueResponseTotalCountMax),
   totalPagesCount: zod
     .int()
     .min(readingQueueControllerRemoveFromQueueResponseTotalPagesCountMin)

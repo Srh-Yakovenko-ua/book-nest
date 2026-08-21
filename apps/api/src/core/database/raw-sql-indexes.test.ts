@@ -34,7 +34,8 @@ const SOFT_DELETE_TABLES = [
 const RAW_SQL_INDEXES = [
   { name: "authors_search_text_trgm_idx", requires: "gin_trgm_ops" },
   { name: "publishers_search_text_trgm_idx", requires: "gin_trgm_ops" },
-  { name: "book_deliveries_active_book_idx", requires: "WHERE" },
+  { name: "book_order_items_active_book_idx", requires: "cancelled_at IS NULL" },
+  { name: "delivery_services_global_provider_key_idx", requires: "user_id IS NULL" },
   { name: "book_loans_active_book_idx", requires: "WHERE" },
   { name: "books_user_queue_position_idx", requires: "deleted_at IS NULL" },
   { name: "books_series_id_part_number_key", requires: "deleted_at IS NULL" },
@@ -42,6 +43,7 @@ const RAW_SQL_INDEXES = [
   { name: "book_lists_user_id_normalized_name_key", requires: "deleted_at IS NULL" },
   { name: "book_timelines_book_id_name_lower_idx", requires: "deleted_at IS NULL" },
   { name: "reading_goals_active_list_idx", requires: "archived_at IS NULL" },
+  { name: "book_budgets_active_currency_idx", requires: "valid_to_month IS NULL" },
 ] as const;
 
 let app: INestApplication;
@@ -118,6 +120,13 @@ describe("check constraints that live only in hand-written migration SQL", () =>
     expect(
       constraints.has(`${table}_purge_at_matches_deleted_at`),
       `${table} lost the constraint that lets isTrashed() narrow both dates at once`,
+    ).toBe(true);
+  });
+
+  it("keeps every budget version pinned to the first day of its month", () => {
+    expect(
+      constraints.has("book_budgets_months_are_first_of_month"),
+      "book_budgets lost the constraint that stops a budget covering half a month",
     ).toBe(true);
   });
 

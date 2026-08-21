@@ -4,6 +4,7 @@ import {
   BookGenresSchema,
   BookLanguageSchema,
   type BookView,
+  computeHasUnreadEarlierParts,
   CurrencySchema,
   type MediaView,
   type Nullable,
@@ -18,14 +19,10 @@ import {
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
-import { toDeliverySummaryView } from "../../delivery/index.js";
+import { toBookDeliverySummaryView } from "../../delivery/index.js";
 import { toBookListView } from "../../lists/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
-import {
-  computeHasUnreadEarlierParts,
-  toSeriesBookPreview,
-  toSeriesView,
-} from "../../series/index.js";
+import { toSeriesBookPreview, toSeriesView } from "../../series/index.js";
 
 export function toBookView({
   book,
@@ -48,7 +45,10 @@ export function toBookView({
     cover,
     createdAt: book.createdAt.toISOString(),
     dedication: book.dedication,
-    delivery: toDeliverySummaryView(book.deliveries),
+    delivery: toBookDeliverySummaryView({
+      items: book.orderItems,
+      totalCount: book._count.orderItems,
+    }),
     description: book.description,
     favoriteAddedAt: toNullableIsoDateTime(book.favoriteAddedAt),
     formats: BookFormatsSchema.parse(book.formats),

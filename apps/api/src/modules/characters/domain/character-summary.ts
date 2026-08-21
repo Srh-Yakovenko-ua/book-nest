@@ -9,6 +9,8 @@ import type {
 
 import { BookCharacterImportanceSchema, CHARACTER_SUMMARY_TOP_LIMIT } from "@app/shared";
 
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+
 const IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
   central: 0,
   episodic: 3,
@@ -127,7 +129,7 @@ function selectTopCharacters(candidates: CharacterSummaryView[]): CharacterSumma
     .sort(
       (left, right) =>
         IMPORTANCE_RANK[left.importance] - IMPORTANCE_RANK[right.importance] ||
-        left.name.localeCompare(right.name),
+        UKRAINIAN_COLLATION.compare(left.name, right.name),
     )
     .slice(0, CHARACTER_SUMMARY_TOP_LIMIT);
 }

@@ -98,12 +98,17 @@ describe("notification digest fast path", () => {
   it("sends a single digest when the worker drains each enqueue as it lands", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
+    const loanContact = await prisma.loanContact.create({
+      data: { name: "Paul Atreides", normalizedName: "paul atreides", userId },
+    });
+
     for (const [index, expectedReturnDate] of DUE_DATES.entries()) {
       const bookId = await createBook({ title: `Dune ${index}`, token: accessToken });
       await prisma.bookLoan.create({
         data: {
           bookId,
           expectedReturnDate,
+          loanContactId: loanContact.id,
           personName: "Paul Atreides",
           remindToReturn: true,
           status: "active",

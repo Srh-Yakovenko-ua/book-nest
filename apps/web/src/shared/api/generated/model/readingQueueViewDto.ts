@@ -18,5 +18,10 @@ export interface ReadingQueueViewDto {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  totalCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   totalPagesCount: number;
 }

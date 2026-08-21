@@ -66,7 +66,7 @@ export class ListOverviewService {
     ]);
 
     const names = await this.genresService.findNamesByKeys({
-      keys: genreRows.slice(0, LIST_OVERVIEW.topGenresLimit).map((row) => row.key),
+      keys: genreRows.map((row) => row.key),
       userId,
     });
     const nameByKey = new Map(names.map((entry) => [entry.key, entry.name]));

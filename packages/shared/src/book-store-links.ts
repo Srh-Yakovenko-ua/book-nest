@@ -136,6 +136,34 @@ export const WishlistViewSchema = z.object({
 
 export type WishlistView = z.infer<typeof WishlistViewSchema>;
 
+export const WishlistStoreFacetSchema = z.object({
+  count: z.number().int().nonnegative(),
+  name: z.string(),
+});
+
+export type WishlistStoreFacet = z.infer<typeof WishlistStoreFacetSchema>;
+
+export const WishlistFacetsViewSchema = z.object({
+  stores: z.array(WishlistStoreFacetSchema),
+});
+
+export type WishlistFacetsView = z.infer<typeof WishlistFacetsViewSchema>;
+
+export const WishlistSortSchema = z.enum([
+  "added_asc",
+  "added_desc",
+  "author_asc",
+  "price_asc",
+  "price_desc",
+  "publisher_asc",
+  "stores_desc",
+  "title_asc",
+]);
+
+export type WishlistSort = z.infer<typeof WishlistSortSchema>;
+
+export const WISHLIST_SORT_DEFAULT: WishlistSort = "added_asc";
+
 export const WishlistLinkFilterSchema = z.enum([
   "has_links",
   "without_links",
@@ -165,6 +193,7 @@ export const WishlistQuerySchema = z
     publisher: queryStringArray(z.uuid()),
     q: z.string().trim().max(LIBRARY_SEARCH_MAX).optional(),
     seriesPlacement: queryStringArray(WishlistSeriesPlacementSchema),
+    sort: WishlistSortSchema.default(WISHLIST_SORT_DEFAULT),
     store: queryStringArray(StoreLinkStoreNameSchema),
     tag: queryStringArray(z.uuid()),
     yearMax: z.coerce.number().int().optional(),

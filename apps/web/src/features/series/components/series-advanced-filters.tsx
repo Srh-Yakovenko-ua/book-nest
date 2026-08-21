@@ -3,13 +3,13 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { FacetMultiselect, type FacetOption } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { FilterSection } from "@/components/ui/filter-panel";
 import { Input } from "@/components/ui/input";
-import { Multiselect } from "@/components/ui/multiselect";
 import {
   Sheet,
   SheetContent,
@@ -20,13 +20,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
-import {
-  LibraryEntityMultiselect,
-  useAuthorOptions,
-  useGenres,
-  useRecentAuthors,
-  useRecentGenres,
-} from "@/features/books";
+import { useBookFacets } from "@/features/books";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +30,6 @@ import type { SeriesAdvancedFilters as SeriesAdvancedFiltersValue } from "../mod
 import {
   countActiveSeriesFilters,
   EMPTY_SERIES_ADVANCED_FILTERS,
-  hasActiveSeriesFilters,
   SERIES_COMPLETENESS_VALUES,
 } from "../model/series-derive";
 
@@ -48,37 +42,31 @@ type SeriesAdvancedFiltersProps = {
 
 const PROGRESS_RANGE = { ceil: 100, floor: 0, step: 5 } as const;
 
+const FACET_SEARCH_DEBOUNCE_MS = 250;
+
 export function SeriesAdvancedFilters({
   filters,
   onApply,
   onRememberAuthor,
-  resolveAuthorName,
+  resolveAuthorName: _resolveAuthorName,
 }: SeriesAdvancedFiltersProps) {
   const t = useTranslations("series.filters");
   const tCompleteness = useTranslations("series.filters.completeness");
-  const tClassification = useTranslations("books.classification");
-  const tAuthor = useTranslations("books.author");
+  const [authorTerm, setAuthorTerm] = useState("");
+  const debouncedAuthorTerm = useDebouncedValue(authorTerm, FACET_SEARCH_DEBOUNCE_MS);
+  const facets = useBookFacets("series", debouncedAuthorTerm);
+  const authorFacetOptions = (facets.data?.authors ?? []).map((author) => ({
+    count: author.count,
+    label: author.name,
+    value: author.id,
+  }));
+  const genreFacetOptions = (facets.data?.genres ?? []).map((genre) => ({
+    count: genre.count,
+    label: genre.name,
+    value: genre.key,
+  }));
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<SeriesAdvancedFiltersValue>(filters);
-
-  const genres = useGenres();
-  const recentGenres = useRecentGenres();
-  const genreList = genres.data ?? [];
-  const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
-  const recentHeading = tClassification("genresRecentHeading");
-  const recentKeys = (recentGenres.data ?? [])
-    .map((genre) => genre.key)
-    .filter((key) => genreNameByKey.has(key));
-  const recentKeySet = new Set(recentKeys);
-  const recentOptions = recentKeys.map((key) => ({
-    group: recentHeading,
-    label: genreNameByKey.get(key) ?? key,
-    value: key,
-  }));
-  const catalogOptions = genreList
-    .filter((genre) => !recentKeySet.has(genre.key))
-    .map((genre) => ({ group: genre.groupName, label: genre.name, value: genre.key }));
-  const genreOptions = [...recentOptions, ...catalogOptions];
 
   const progressLow = draft.progressMin ?? PROGRESS_RANGE.floor;
   const progressHigh = draft.progressMax ?? PROGRESS_RANGE.ceil;
@@ -192,39 +180,36 @@ export function SeriesAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.genre")}>
-            <Multiselect
-              emptyText={t("empty")}
+            <FacetMultiselect
+              emptyText={t("genreEmpty")}
+              label={t("sections.genre")}
               onValueChange={(next) => setDraft((prev) => ({ ...prev, genres: next }))}
-              options={genreOptions}
+              options={genreFacetOptions}
               placeholder={t("genrePlaceholder")}
-              searchPlaceholder={t("searchPlaceholder")}
+              searchPlaceholder={t("genreSearch")}
+              selectedText={(count) => t("genreSelected", { count })}
               value={draft.genres}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.author")}>
-            <LibraryEntityMultiselect
-              allHeading={tAuthor("allHeading")}
-              empty={t("authorEmpty")}
-              icon="user"
-              id="series-filter-author"
-              onAdd={(item) => {
-                onRememberAuthor(item.id, item.name);
-                setDraft((prev) => ({ ...prev, authorIds: [...prev.authorIds, item.id] }));
+            <FacetMultiselect
+              emptyText={t("authorEmpty")}
+              isSearching={facets.isFetching}
+              label={t("sections.author")}
+              onSearchChange={setAuthorTerm}
+              onValueChange={(next) => {
+                rememberFacetNames({
+                  ids: next,
+                  onRemember: onRememberAuthor,
+                  options: authorFacetOptions,
+                });
+                setDraft((prev) => ({ ...prev, authorIds: next }));
               }}
-              onRemove={(id) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  authorIds: prev.authorIds.filter((value) => value !== id),
-                }))
-              }
+              options={authorFacetOptions}
               placeholder={t("authorPlaceholder")}
-              recentHeading={tAuthor("recentHeading")}
-              removeLabel={(name) => t("removeAuthor", { name })}
-              resolveName={resolveAuthorName}
-              searching={t("authorSearching")}
-              useRecent={useRecentAuthors}
-              useSearch={useAuthorOptions}
+              searchPlaceholder={t("authorPlaceholder")}
+              selectedText={(count) => t("authorSelected", { count })}
               value={draft.authorIds}
             />
           </FilterSection>
@@ -232,7 +217,7 @@ export function SeriesAdvancedFilters({
 
         <SheetFooter>
           <Button
-            disabled={!hasActiveSeriesFilters(draft)}
+            disabled={countActiveSeriesFilters(draft) === 0}
             onClick={() => setDraft(EMPTY_SERIES_ADVANCED_FILTERS)}
             type="button"
             variant="ghost"
@@ -258,4 +243,19 @@ function parseCountValue(raw: string): null | number {
   if (raw === "") return null;
   const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function rememberFacetNames({
+  ids,
+  onRemember,
+  options,
+}: {
+  ids: string[];
+  onRemember: (id: string, name: string) => void;
+  options: FacetOption[];
+}): void {
+  for (const id of ids) {
+    const option = options.find((entry) => entry.value === id);
+    if (option !== undefined) onRemember(id, option.label);
+  }
 }

@@ -10,6 +10,11 @@ import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { toDeliveryServiceView } from "../domain/delivery-service.mapper.js";
 import { DeliveryServicesRepository } from "../infrastructure/delivery-services.repository.js";
 
+export type DeliveryServiceRef = {
+  id: string;
+  name: string;
+};
+
 type EnsureCustomForNameInput = {
   name: string;
   userId: string;
@@ -29,16 +34,21 @@ export class DeliveryServicesService {
   async ensureCustomForName(
     { name, userId }: EnsureCustomForNameInput,
     client: Prisma.TransactionClient,
-  ): Promise<void> {
+  ): Promise<DeliveryServiceRef> {
     const normalizedName = normalizeName(name);
     const existing = await this.deliveryServicesRepository.findVisibleByNormalizedName(
       { normalizedName, userId },
       client,
     );
     if (existing !== null) {
-      return;
+      return { id: existing.id, name: existing.name };
     }
-    await this.deliveryServicesRepository.upsertCustom({ name, normalizedName, userId }, client);
+
+    const created = await this.deliveryServicesRepository.upsertCustom(
+      { name, normalizedName, userId },
+      client,
+    );
+    return { id: created.id, name: created.name };
   }
 
   async recent({

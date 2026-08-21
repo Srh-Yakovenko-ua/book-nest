@@ -5,7 +5,7 @@ import type { LoanListItemView, UpdateLoanInput } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -18,20 +18,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { BookDateField } from "@/features/books/components/book-date-field";
+import { toLoanErrorKey } from "@/features/books/model/loan-error";
 import { ISO_DATE_PATTERN, todayIso } from "@/features/books/model/reading-progress";
-import { ApiError } from "@/lib/http-client";
+
+import type { LoanContactSelection } from "../model/loan-contact-selection";
 
 import { useEditLoan } from "../api/use-loan-actions";
 import { restoreLoanTriggerFocus } from "../model/loan-focus";
+import { LoanContactPicker } from "./loan-contact-picker";
 
-const PERSON_NAME_MIN = 2;
-const PERSON_NAME_MAX = 100;
-const CONTACT_MAX = 100;
 const NOTE_MAX = 300;
 
 type EditLoanDialogProps = {
@@ -41,22 +40,20 @@ type EditLoanDialogProps = {
 };
 
 type LoanMessages = {
-  contactMax: string;
+  contactRequired: string;
   dateInvalid: string;
   loanDateFuture: string;
   noteMax: string;
-  personNameMax: string;
-  personNameMin: string;
   reminderNeedsDate: string;
   returnBeforeLoan: string;
 };
 
 type LoanValues = {
-  contact: string;
   expectedReturnDate: string;
+  loanContactId: string;
+  loanContactName: string;
   loanDate: string;
   note: string;
-  personName: string;
   remindToReturn: boolean;
 };
 
@@ -69,7 +66,7 @@ export function EditLoanDialog({ loan, onOpenChange, open }: EditLoanDialogProps
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           requestAnimationFrame(() => {
-            document.getElementById("edit-loan-person-name")?.focus();
+            document.getElementById("edit-loan-contact-picker")?.focus();
           });
         }}
       >
@@ -80,15 +77,13 @@ export function EditLoanDialog({ loan, onOpenChange, open }: EditLoanDialogProps
 }
 
 function buildPayload(values: LoanValues): UpdateLoanInput {
-  const contact = values.contact.trim();
   const note = values.note.trim();
 
   return {
-    contact: contact.length > 0 ? contact : null,
     expectedReturnDate: values.expectedReturnDate.length > 0 ? values.expectedReturnDate : null,
+    loanContactId: values.loanContactId,
     loanDate: values.loanDate.length > 0 ? values.loanDate : null,
     note: note.length > 0 ? note : null,
-    personName: values.personName.trim(),
     remindToReturn: values.remindToReturn,
   };
 }
@@ -96,22 +91,19 @@ function buildPayload(values: LoanValues): UpdateLoanInput {
 function buildSchema(messages: LoanMessages) {
   return z
     .object({
-      contact: z.string().max(CONTACT_MAX, messages.contactMax),
       expectedReturnDate: z
         .string()
         .refine(
           (value) => value.length === 0 || ISO_DATE_PATTERN.test(value),
           messages.dateInvalid,
         ),
+      loanContactId: z.string().min(1, messages.contactRequired),
+      loanContactName: z.string(),
       loanDate: z
         .string()
         .refine((value) => value.length === 0 || ISO_DATE_PATTERN.test(value), messages.dateInvalid)
         .refine((value) => value.length === 0 || value <= todayIso(), messages.loanDateFuture),
       note: z.string().max(NOTE_MAX, messages.noteMax),
-      personName: z
-        .string()
-        .refine((value) => value.trim().length >= PERSON_NAME_MIN, messages.personNameMin)
-        .refine((value) => value.trim().length <= PERSON_NAME_MAX, messages.personNameMax),
       remindToReturn: z.boolean(),
     })
     .refine(
@@ -131,6 +123,7 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
   const tErrors = useTranslations("books.details.loan.errors");
   const tActions = useTranslations("books.actions");
   const tEdit = useTranslations("loans.edit");
+  const tContact = useTranslations("loans.contactPicker");
   const editLoan = useEditLoan();
   const [serverError, setServerError] = useState<null | string>(null);
 
@@ -140,38 +133,49 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
     control,
     formState: { errors },
     handleSubmit,
-    register,
+    setValue,
   } = useForm<LoanValues>({
     defaultValues: {
-      contact: loan.contact ?? "",
       expectedReturnDate: loan.expectedReturnDate ?? "",
+      loanContactId: loan.loanContactId,
+      loanContactName: loan.personName,
       loanDate: loan.loanDate ?? "",
       note: loan.note ?? "",
-      personName: loan.personName,
       remindToReturn: loan.remindToReturn,
     },
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        contactMax: tErrors("contactMax", { max: CONTACT_MAX }),
+        contactRequired: tContact("required"),
         dateInvalid: tErrors("dateInvalid"),
         loanDateFuture: tErrors("loanDateFuture"),
         noteMax: tErrors("noteMax", { max: NOTE_MAX }),
-        personNameMax: tErrors("personNameMax", { max: PERSON_NAME_MAX }),
-        personNameMin: tErrors("personNameMin", { min: PERSON_NAME_MIN }),
         reminderNeedsDate: tErrors("reminderNeedsDate"),
         returnBeforeLoan: tErrors("returnBeforeLoan"),
       }),
     ),
   });
 
+  const loanContactId = useWatch({ control, name: "loanContactId" });
+  const loanContactName = useWatch({ control, name: "loanContactName" });
+  const contactSelection: LoanContactSelection | null =
+    loanContactId.length > 0
+      ? { contactId: loanContactId, kind: "picked", name: loanContactName }
+      : null;
+
+  function handleContactChange(selection: LoanContactSelection | null) {
+    setValue("loanContactId", selection?.kind === "picked" ? selection.contactId : "", {
+      shouldValidate: true,
+    });
+    setValue("loanContactName", selection?.name ?? "");
+  }
+
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     editLoan.mutate(
       { id: loan.book.id, payload: buildPayload(values) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+        onError: (error) => setServerError(tErrors(toLoanErrorKey(error))),
         onSuccess: onDone,
       },
     );
@@ -185,18 +189,17 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
       </DialogHeader>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="edit-loan-person-name">{t(`${variant}.personName`)}</Label>
-        <Input
-          aria-describedby={errors.personName ? "edit-loan-person-name-error" : undefined}
-          aria-invalid={errors.personName !== undefined}
-          aria-required="true"
-          autoComplete="off"
-          className="h-10"
-          id="edit-loan-person-name"
+        <Label htmlFor="edit-loan-contact-picker">{t(`${variant}.personName`)}</Label>
+        <LoanContactPicker
+          describedBy={errors.loanContactId ? "edit-loan-contact-picker-error" : undefined}
+          id="edit-loan-contact-picker"
+          invalid={errors.loanContactId !== undefined}
+          label={t(`${variant}.personName`)}
+          onChange={handleContactChange}
           placeholder={t(`${variant}.personNamePlaceholder`)}
-          {...register("personName")}
+          value={contactSelection}
         />
-        <FieldError error={errors.personName} id="edit-loan-person-name-error" />
+        <FieldError error={errors.loanContactId} id="edit-loan-contact-picker-error" />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -240,20 +243,6 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
           />
           <FieldError error={errors.expectedReturnDate} id="edit-loan-return-date-error" />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="edit-loan-contact">{t("fields.contact")}</Label>
-        <Input
-          aria-describedby={errors.contact ? "edit-loan-contact-error" : undefined}
-          aria-invalid={errors.contact !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="edit-loan-contact"
-          placeholder={t("fields.contactPlaceholder")}
-          {...register("contact")}
-        />
-        <FieldError error={errors.contact} id="edit-loan-contact-error" />
       </div>
 
       <div className="flex flex-col gap-2">

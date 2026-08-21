@@ -289,6 +289,7 @@ describe("WishlistStatusDialog ordered branch", () => {
     await waitFor(() => expect(postCall("/deliveries")).toBeDefined());
     expect(postPayload("/deliveries")).toEqual({
       currency: "UAH",
+      isFree: false,
       orderDate: TODAY_ISO,
       price: 449,
       storeName: "Readeat",

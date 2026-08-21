@@ -1,5 +1,6 @@
 import type { Nullable } from "@app/shared";
 
+import { BOOK_ORDER_LIMITS } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { NotificationDraft } from "../domain/notification-draft.js";
@@ -26,6 +27,8 @@ import { NotificationWriterService } from "./notification-writer.service.js";
 const RECIPIENT_REMINDER_SWEEP = {
   candidatePageSize: 50,
   maxCandidatePages: 20,
+  maxItemsPerShipment: BOOK_ORDER_LIMITS.itemsMax,
+  maxRemindersPerScope: 1000,
 } as const;
 
 const SWEEP_SCOPE = "notifications.recipient-sweeper";
@@ -69,6 +72,7 @@ export class RecipientReminderSweeper {
     const window = deliveryReminderWindow({ today });
     const emailPreferenceEnabled = resolveDeliveryEmailPreference(recipient.settings);
     let outcome = NOTHING_WRITTEN;
+    let visitedItems = 0;
 
     try {
       await scanByKeyset<DeliveryCandidateRow>({
@@ -77,6 +81,7 @@ export class RecipientReminderSweeper {
             afterId,
             dueFrom: parseIsoDate(window.fromIsoDate),
             dueTo: parseIsoDate(window.toIsoDate),
+            itemsPerShipment: RECIPIENT_REMINDER_SWEEP.maxItemsPerShipment,
             limit: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
             userId: recipient.id,
           }),
@@ -86,25 +91,32 @@ export class RecipientReminderSweeper {
         toCursor: (candidate) => candidate.id,
         visitPage: async (candidates) => {
           for (const candidate of candidates) {
-            const candidateOutcome = await this.writeCandidate({
-              buildNotification: () =>
-                buildDeliveryReminder({
-                  candidate: {
-                    bookId: candidate.book.id,
-                    bookTitle: candidate.book.title,
-                    expectedDeliveryDate: candidate.expectedDeliveryDate,
-                    id: candidate.id,
-                    storeName: candidate.storeName,
-                  },
-                  today,
-                }),
-              candidateId: candidate.id,
-              emailPreferenceEnabled,
-              recipient,
-              scope: "deliveries",
-              timezone,
-            });
-            outcome = mergeSweepOutcomes([outcome, candidateOutcome]);
+            for (const item of candidate.items) {
+              if (visitedItems >= RECIPIENT_REMINDER_SWEEP.maxRemindersPerScope) {
+                return;
+              }
+              visitedItems += 1;
+
+              const candidateOutcome = await this.writeCandidate({
+                buildNotification: () =>
+                  buildDeliveryReminder({
+                    candidate: {
+                      bookId: item.book.id,
+                      bookTitle: item.book.title,
+                      expectedDeliveryDate: candidate.expectedDeliveryDate,
+                      shipmentId: candidate.id,
+                      storeName: candidate.order.storeName,
+                    },
+                    today,
+                  }),
+                candidateId: candidate.id,
+                emailPreferenceEnabled,
+                recipient,
+                scope: "deliveries",
+                timezone,
+              });
+              outcome = mergeSweepOutcomes([outcome, candidateOutcome]);
+            }
           }
         },
       });
@@ -112,6 +124,17 @@ export class RecipientReminderSweeper {
       log.error(
         { err: error, scope: "deliveries", timezone, userId: recipient.id },
         "reminder sweep failed for a user",
+      );
+    }
+
+    if (visitedItems >= RECIPIENT_REMINDER_SWEEP.maxRemindersPerScope) {
+      log.error(
+        {
+          cap: RECIPIENT_REMINDER_SWEEP.maxRemindersPerScope,
+          timezone,
+          userId: recipient.id,
+        },
+        "delivery reminder fan-out hit its cap and left work unprocessed in this tick",
       );
     }
 
@@ -153,9 +176,9 @@ export class RecipientReminderSweeper {
                     expectedReturnDate: candidate.expectedReturnDate,
                     id: candidate.id,
                     loanDate: candidate.loanDate,
-                    personName: candidate.personName,
+                    personName: candidate.loanContact.name,
                   },
-                  leadDays,
+                  leadDays: candidate.remindBeforeDays ?? leadDays,
                   today,
                 }),
               candidateId: candidate.id,

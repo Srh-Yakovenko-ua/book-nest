@@ -28,7 +28,7 @@ export function formatDate(iso: string, locale: string): string {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(toLocalDate(iso));
+  }).format(parseIsoDay(iso));
 }
 
 export function formatDateLong(iso: string, locale: string): string {
@@ -36,14 +36,21 @@ export function formatDateLong(iso: string, locale: string): string {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(toLocalDate(iso));
+  }).format(parseIsoDay(iso));
 }
 
 export function formatDateShort(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
-  }).format(toLocalDate(iso));
+  }).format(parseIsoDay(iso));
+}
+
+export function formatDayMonth(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+  }).format(parseIsoDay(iso));
 }
 
 export function formatNumber(
@@ -89,7 +96,7 @@ export function formatTimestamp(iso: string): string {
   return `${date} · ${time}`;
 }
 
-function toLocalDate(iso: string): Date {
+export function parseIsoDay(iso: string): Date {
   const match = DATE_ONLY_PATTERN.exec(iso);
   if (match === null) return new Date(iso);
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));

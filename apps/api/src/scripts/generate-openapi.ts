@@ -29,7 +29,30 @@ const PARAMETER_OBJECT_KEYS = new Set([
   "style",
 ]);
 
+const UNSUPPORTED_SCHEMA_KEYWORDS = ["propertyNames"];
+
 type UnknownRecord = Record<string, unknown>;
+
+function dropUnsupportedKeywords(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      dropUnsupportedKeywords(item);
+    }
+    return;
+  }
+
+  if (!isRecord(node)) {
+    return;
+  }
+
+  for (const keyword of UNSUPPORTED_SCHEMA_KEYWORDS) {
+    delete node[keyword];
+  }
+
+  for (const value of Object.values(node)) {
+    dropUnsupportedKeywords(value);
+  }
+}
 
 async function generateOpenApi(): Promise<void> {
   const app = await NestFactory.create(AppModule, { logger: false });
@@ -38,6 +61,7 @@ async function generateOpenApi(): Promise<void> {
   const document = buildOpenApiDocument(app);
   normalizeParameters(document);
   normalizeExclusiveBounds(document);
+  dropUnsupportedKeywords(document);
   await writeFile(outputPath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
 
   await app.close();

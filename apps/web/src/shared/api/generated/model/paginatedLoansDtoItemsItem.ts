@@ -17,12 +17,19 @@ export type PaginatedLoansDtoItemsItem = {
   /** @nullable */
   expectedReturnDate: string | null;
   id: string;
+  loanContactId: string;
   /** @nullable */
   loanDate: string | null;
   loanUiStatus: PaginatedLoansDtoItemsItemLoanUiStatus;
   /** @nullable */
   note: string | null;
   personName: string;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   * @nullable
+   */
+  remindBeforeDays: number | null;
   remindToReturn: boolean;
   type: PaginatedLoansDtoItemsItemType;
   updatedAt: string;

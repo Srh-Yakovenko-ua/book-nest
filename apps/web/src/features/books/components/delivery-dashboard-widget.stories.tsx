@@ -1,4 +1,4 @@
-import type { DeliveryInTransitSummaryView } from "@app/shared";
+import type { InTransitSummaryView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
@@ -16,6 +16,33 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function makeSummary(overrides: Partial<InTransitSummaryView> = {}): InTransitSummaryView {
+  return {
+    activeBooksCount: 0,
+    activeBooksTotalByCurrency: [],
+    activeOrdersAverageByCurrency: [],
+    activeOrdersCount: 0,
+    activeOrdersTotalByCurrency: [],
+    activeShipmentsCount: 0,
+    arrivingSoonCount: 0,
+    attention: [],
+    delayedCount: 0,
+    expectedThisWeekCount: 0,
+    inTransitCount: 0,
+    nextExpectedDelivery: null,
+    nextExpectedThisWeek: null,
+    nextShipment: null,
+    orderedCount: 0,
+    readyForPickupCount: 0,
+    splitOrdersCount: 0,
+    uniqueStoresCount: 0,
+    withoutExpectedDateCount: 0,
+    withoutPriceCount: 0,
+    withoutTrackingCount: 0,
+    ...overrides,
+  };
+}
+
 function mockFetch(handler: Handler) {
   globalThis.fetch = ((input: RequestInfo | URL) => {
     const path = typeof input === "string" ? input : input.toString();
@@ -23,9 +50,9 @@ function mockFetch(handler: Handler) {
   }) as typeof fetch;
 }
 
-function summaryHandler(summary: DeliveryInTransitSummaryView): Handler {
+function summaryHandler(summary: InTransitSummaryView): Handler {
   return (path) =>
-    path.includes("/api/delivery/in-transit/summary")
+    path.includes("/api/delivery/books/in-transit/summary")
       ? jsonResponse(200, summary)
       : jsonResponse(200, {});
 }
@@ -55,13 +82,15 @@ export const WithActiveDeliveries: Story = {
   beforeEach: () => {
     getQueryClient().clear();
     mockFetch(
-      summaryHandler({
-        activeCount: 5,
-        delayedCount: 1,
-        expectedThisWeek: 2,
-        totalByCurrency: [{ currency: "UAH", total: 1450 }],
-        uniqueStores: 3,
-      }),
+      summaryHandler(
+        makeSummary({
+          activeBooksCount: 5,
+          activeBooksTotalByCurrency: [{ currency: "UAH", total: 1450 }],
+          delayedCount: 1,
+          expectedThisWeekCount: 2,
+          uniqueStoresCount: 3,
+        }),
+      ),
     );
   },
   play: async ({ canvas }) => {
@@ -75,15 +104,7 @@ export const WithActiveDeliveries: Story = {
 export const HiddenWhenEmpty: Story = {
   beforeEach: () => {
     getQueryClient().clear();
-    mockFetch(
-      summaryHandler({
-        activeCount: 0,
-        delayedCount: 0,
-        expectedThisWeek: 0,
-        totalByCurrency: [],
-        uniqueStores: 0,
-      }),
-    );
+    mockFetch(summaryHandler(makeSummary()));
   },
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.queryByText("Доставки в дорозі")).toBeNull());

@@ -20,8 +20,15 @@ import type {
 
 import type {
   CreateReadingGoalInputDto,
+  ReadingGoalActivityResponseDto,
+  ReadingGoalBooksResponseDto,
   ReadingGoalDetailDto,
+  ReadingGoalListResponseDto,
   ReadingGoalViewDto,
+  ReadingGoalsControllerListActivityParams,
+  ReadingGoalsControllerListBooksParams,
+  ReadingGoalsControllerListParams,
+  ReadingGoalsOverviewDto,
   UpdateReadingGoalInputDto,
 } from "../../model";
 
@@ -411,6 +418,333 @@ export function useReadingGoalsControllerFindByList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getReadingGoalsControllerFindByListQueryOptions(listId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type readingGoalsControllerListResponse200 = {
+  data: ReadingGoalListResponseDto;
+  status: 200;
+};
+
+export type readingGoalsControllerListResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type readingGoalsControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type readingGoalsControllerListResponseSuccess = readingGoalsControllerListResponse200 & {
+  headers: Headers;
+};
+export type readingGoalsControllerListResponseError = (
+  readingGoalsControllerListResponse400 | readingGoalsControllerListResponse401
+) & {
+  headers: Headers;
+};
+
+export type readingGoalsControllerListResponse =
+  readingGoalsControllerListResponseSuccess | readingGoalsControllerListResponseError;
+
+export const getReadingGoalsControllerListUrl = (params?: ReadingGoalsControllerListParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/goals?${stringifiedParams}` : `/api/goals`;
+};
+
+/**
+ * @summary List the reading goals of the current user
+ */
+export const readingGoalsControllerList = async (
+  params?: ReadingGoalsControllerListParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<readingGoalsControllerListResponse> => {
+  return customInstance<readingGoalsControllerListResponse>(
+    getReadingGoalsControllerListUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getReadingGoalsControllerListQueryKey = (
+  params?: ReadingGoalsControllerListParams,
+) => {
+  return [`/api/goals`, ...(params ? [params] : [])] as const;
+};
+
+export const getReadingGoalsControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof readingGoalsControllerList>>,
+  TError = void,
+>(
+  params?: ReadingGoalsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getReadingGoalsControllerListQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof readingGoalsControllerList>>> = ({
+    signal,
+  }) => readingGoalsControllerList(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof readingGoalsControllerList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReadingGoalsControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof readingGoalsControllerList>>
+>;
+export type ReadingGoalsControllerListQueryError = void;
+
+export function useReadingGoalsControllerList<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerList>>,
+  TError = void,
+>(
+  params: undefined | ReadingGoalsControllerListParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerList>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerList<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerList>>,
+  TError = void,
+>(
+  params?: ReadingGoalsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerList>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerList<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerList>>,
+  TError = void,
+>(
+  params?: ReadingGoalsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the reading goals of the current user
+ */
+
+export function useReadingGoalsControllerList<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerList>>,
+  TError = void,
+>(
+  params?: ReadingGoalsControllerListParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerList>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getReadingGoalsControllerListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type readingGoalsControllerOverviewResponse200 = {
+  data: ReadingGoalsOverviewDto;
+  status: 200;
+};
+
+export type readingGoalsControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type readingGoalsControllerOverviewResponseSuccess =
+  readingGoalsControllerOverviewResponse200 & {
+    headers: Headers;
+  };
+export type readingGoalsControllerOverviewResponseError =
+  readingGoalsControllerOverviewResponse401 & {
+    headers: Headers;
+  };
+
+export type readingGoalsControllerOverviewResponse =
+  readingGoalsControllerOverviewResponseSuccess | readingGoalsControllerOverviewResponseError;
+
+export const getReadingGoalsControllerOverviewUrl = () => {
+  return `/api/goals/overview`;
+};
+
+/**
+ * @summary Get the reading-goal overview of the current user
+ */
+export const readingGoalsControllerOverview = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<readingGoalsControllerOverviewResponse> => {
+  return customInstance<readingGoalsControllerOverviewResponse>(
+    getReadingGoalsControllerOverviewUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getReadingGoalsControllerOverviewQueryKey = () => {
+  return [`/api/goals/overview`] as const;
+};
+
+export const getReadingGoalsControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getReadingGoalsControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof readingGoalsControllerOverview>>> = ({
+    signal,
+  }) => readingGoalsControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReadingGoalsControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof readingGoalsControllerOverview>>
+>;
+export type ReadingGoalsControllerOverviewQueryError = void;
+
+export function useReadingGoalsControllerOverview<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerOverview<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerOverview<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the reading-goal overview of the current user
+ */
+
+export function useReadingGoalsControllerOverview<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getReadingGoalsControllerOverviewQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -940,6 +1274,411 @@ export function useReadingGoalsControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getReadingGoalsControllerDeleteQueryOptions(goalId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type readingGoalsControllerListBooksResponse200 = {
+  data: ReadingGoalBooksResponseDto;
+  status: 200;
+};
+
+export type readingGoalsControllerListBooksResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type readingGoalsControllerListBooksResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type readingGoalsControllerListBooksResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type readingGoalsControllerListBooksResponseSuccess =
+  readingGoalsControllerListBooksResponse200 & {
+    headers: Headers;
+  };
+export type readingGoalsControllerListBooksResponseError = (
+  | readingGoalsControllerListBooksResponse400
+  | readingGoalsControllerListBooksResponse401
+  | readingGoalsControllerListBooksResponse404
+) & {
+  headers: Headers;
+};
+
+export type readingGoalsControllerListBooksResponse =
+  readingGoalsControllerListBooksResponseSuccess | readingGoalsControllerListBooksResponseError;
+
+export const getReadingGoalsControllerListBooksUrl = (
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/goals/${goalId}/books?${stringifiedParams}`
+    : `/api/goals/${goalId}/books`;
+};
+
+/**
+ * @summary List the books of a reading goal snapshot
+ */
+export const readingGoalsControllerListBooks = async (
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<readingGoalsControllerListBooksResponse> => {
+  return customInstance<readingGoalsControllerListBooksResponse>(
+    getReadingGoalsControllerListBooksUrl(goalId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getReadingGoalsControllerListBooksQueryKey = (
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+) => {
+  return [`/api/goals/${goalId}/books`, ...(params ? [params] : [])] as const;
+};
+
+export const getReadingGoalsControllerListBooksQueryOptions = <
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListBooks>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getReadingGoalsControllerListBooksQueryKey(goalId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof readingGoalsControllerListBooks>>> = ({
+    signal,
+  }) => readingGoalsControllerListBooks(goalId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: goalId !== null && goalId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReadingGoalsControllerListBooksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof readingGoalsControllerListBooks>>
+>;
+export type ReadingGoalsControllerListBooksQueryError = void;
+
+export function useReadingGoalsControllerListBooks<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+  TError = void,
+>(
+  goalId: string,
+  params: undefined | ReadingGoalsControllerListBooksParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListBooks>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerListBooks>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerListBooks<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListBooks>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerListBooks>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerListBooks<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListBooks>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the books of a reading goal snapshot
+ */
+
+export function useReadingGoalsControllerListBooks<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListBooks>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListBooksParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListBooks>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getReadingGoalsControllerListBooksQueryOptions(goalId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type readingGoalsControllerListActivityResponse200 = {
+  data: ReadingGoalActivityResponseDto;
+  status: 200;
+};
+
+export type readingGoalsControllerListActivityResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type readingGoalsControllerListActivityResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type readingGoalsControllerListActivityResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type readingGoalsControllerListActivityResponseSuccess =
+  readingGoalsControllerListActivityResponse200 & {
+    headers: Headers;
+  };
+export type readingGoalsControllerListActivityResponseError = (
+  | readingGoalsControllerListActivityResponse400
+  | readingGoalsControllerListActivityResponse401
+  | readingGoalsControllerListActivityResponse404
+) & {
+  headers: Headers;
+};
+
+export type readingGoalsControllerListActivityResponse =
+  | readingGoalsControllerListActivityResponseSuccess
+  | readingGoalsControllerListActivityResponseError;
+
+export const getReadingGoalsControllerListActivityUrl = (
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/goals/${goalId}/activity?${stringifiedParams}`
+    : `/api/goals/${goalId}/activity`;
+};
+
+/**
+ * @summary List the activity of a reading goal
+ */
+export const readingGoalsControllerListActivity = async (
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<readingGoalsControllerListActivityResponse> => {
+  return customInstance<readingGoalsControllerListActivityResponse>(
+    getReadingGoalsControllerListActivityUrl(goalId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getReadingGoalsControllerListActivityQueryKey = (
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+) => {
+  return [`/api/goals/${goalId}/activity`, ...(params ? [params] : [])] as const;
+};
+
+export const getReadingGoalsControllerListActivityQueryOptions = <
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListActivity>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getReadingGoalsControllerListActivityQueryKey(goalId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof readingGoalsControllerListActivity>>> = ({
+    signal,
+  }) => readingGoalsControllerListActivity(goalId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: goalId !== null && goalId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReadingGoalsControllerListActivityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof readingGoalsControllerListActivity>>
+>;
+export type ReadingGoalsControllerListActivityQueryError = void;
+
+export function useReadingGoalsControllerListActivity<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+  TError = void,
+>(
+  goalId: string,
+  params: undefined | ReadingGoalsControllerListActivityParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListActivity>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerListActivity>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerListActivity<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListActivity>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+          TError,
+          Awaited<ReturnType<typeof readingGoalsControllerListActivity>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingGoalsControllerListActivity<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListActivity>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the activity of a reading goal
+ */
+
+export function useReadingGoalsControllerListActivity<
+  TData = Awaited<ReturnType<typeof readingGoalsControllerListActivity>>,
+  TError = void,
+>(
+  goalId: string,
+  params?: ReadingGoalsControllerListActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingGoalsControllerListActivity>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getReadingGoalsControllerListActivityQueryOptions(goalId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

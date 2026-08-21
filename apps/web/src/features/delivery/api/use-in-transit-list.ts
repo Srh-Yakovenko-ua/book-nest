@@ -1,12 +1,12 @@
-import { PaginatedDeliveriesSchema } from "@app/shared";
+import { PaginatedBookOrderItemRowsSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
-import { deliveryControllerInTransitList } from "@/shared/api/generated/endpoints/delivery/delivery";
+import { deliveryReadControllerInTransitList } from "@/shared/api/generated/endpoints/delivery-read/delivery-read";
 
 import type { DeliveryListParams } from "../model/in-transit-params";
 
-export type DeliveriesPage = z.infer<typeof PaginatedDeliveriesSchema>;
+export type DeliveriesPage = z.infer<typeof PaginatedBookOrderItemRowsSchema>;
 
 const MAX_PAGES = 10;
 
@@ -18,9 +18,12 @@ export function useInTransitList(params: DeliveryListParams) {
     maxPages: MAX_PAGES,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<DeliveriesPage> => {
-      const response = await deliveryControllerInTransitList({ ...params, pageNumber: pageParam });
-      return PaginatedDeliveriesSchema.parse(response);
+      const response = await deliveryReadControllerInTransitList({
+        ...params,
+        pageNumber: pageParam,
+      });
+      return PaginatedBookOrderItemRowsSchema.parse(response);
     },
-    queryKey: ["/api/delivery/in-transit", "list", params],
+    queryKey: ["/api/delivery/books/in-transit", "list", params],
   });
 }

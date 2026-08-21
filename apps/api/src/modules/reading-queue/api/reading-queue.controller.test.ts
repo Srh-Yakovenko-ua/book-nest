@@ -83,9 +83,9 @@ function getBook(accessToken: string, bookId: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
-function getQueue(accessToken: string): request.Test {
+function getQueue(accessToken: string, query = ""): request.Test {
   return request(app.getHttpServer())
-    .get("/api/reading-queue")
+    .get(`/api/reading-queue${query}`)
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
@@ -194,6 +194,99 @@ function updateBook(
     .send(body);
 }
 
+describe("GET /api/reading-queue filters", () => {
+  async function seedQueue(accessToken: string) {
+    await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 100,
+      publicationYear: 1965,
+      title: "Dune",
+    });
+    await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Ursula Le Guin" }],
+      pagesCount: 300,
+      publicationYear: 1969,
+      title: "The Left Hand of Darkness",
+    });
+  }
+
+  it("narrows the queue by search while reporting the untouched total", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedQueue(accessToken);
+
+    const res = await getQueue(accessToken, "?q=Dune");
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(1);
+    expect(res.body.totalCount).toBe(2);
+    expect(res.body.items.map((item: { book: { title: string } }) => item.book.title)).toEqual([
+      "Dune",
+    ]);
+  });
+
+  it("keeps the manual queue order inside a filtered result", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedQueue(accessToken);
+
+    const res = await getQueue(accessToken, "?pagesMin=50");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((item: { position: number }) => item.position)).toEqual([1, 2]);
+  });
+
+  it("filters the queue by publication year range", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedQueue(accessToken);
+
+    const res = await getQueue(accessToken, "?yearMin=1966&yearMax=1970");
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(1);
+    expect(res.body.items[0].book.title).toBe("The Left Hand of Darkness");
+  });
+
+  it("filters the queue by reading status", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedQueue(accessToken);
+
+    const res = await getQueue(accessToken, "?status=not_started");
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(2);
+    expect(res.body.totalCount).toBe(2);
+  });
+
+  it("returns nothing when a filter matches no queued book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedQueue(accessToken);
+
+    const res = await getQueue(accessToken, "?pagesMin=5000");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toEqual([]);
+    expect(res.body.count).toBe(0);
+    expect(res.body.totalCount).toBe(2);
+  });
+
+  it("rejects an inverted range", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getQueue(accessToken, "?pagesMin=500&pagesMax=100");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an unknown filter value", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getQueue(accessToken, "?status=not_a_status");
+
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("GET /api/reading-queue", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer()).get("/api/reading-queue");
@@ -207,7 +300,7 @@ describe("GET /api/reading-queue", () => {
     const res = await getQueue(accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ count: 0, items: [], totalPagesCount: 0 });
+    expect(res.body).toEqual({ count: 0, items: [], totalCount: 0, totalPagesCount: 0 });
   });
 
   it("returns only the queued books ordered by ascending position with count and total pages", async () => {
@@ -548,7 +641,7 @@ describe("DELETE /api/reading-queue/:bookId", () => {
     expect((await removeFromQueue(accessToken, bookC)).status).toBe(200);
     const afterD = await removeFromQueue(accessToken, bookD);
     expect(afterD.status).toBe(200);
-    expect(afterD.body).toEqual({ count: 0, items: [], totalPagesCount: 0 });
+    expect(afterD.body).toEqual({ count: 0, items: [], totalCount: 0, totalPagesCount: 0 });
   });
 
   it("keeps the book in the library with its reading and ownership statuses after queue removal", async () => {
@@ -853,7 +946,7 @@ describe("POST /api/reading-queue/:bookId/start-reading", () => {
     const res = await startReading(accessToken, bookId, { removeFromQueue: true });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ count: 0, items: [], totalPagesCount: 0 });
+    expect(res.body).toEqual({ count: 0, items: [], totalCount: 0, totalPagesCount: 0 });
   });
 
   it("leaves the ownership status unchanged after starting reading", async () => {

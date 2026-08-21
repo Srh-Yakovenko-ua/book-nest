@@ -1,6 +1,5 @@
 import type { Nullable, OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
@@ -10,6 +9,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { BookOrderItemsRepository } from "../../delivery/index.js";
 import { WISHLIST_OWNERSHIP_STATUS } from "../domain/wishlist-added-at.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
@@ -25,6 +25,7 @@ export class BulkBooksRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipRepository: ListMembershipRepository,
+    private readonly bookOrderItemsRepository: BookOrderItemsRepository,
   ) {}
 
   addTags(
@@ -259,18 +260,19 @@ export class BulkBooksRepository {
         return 0;
       }
       if (clearDelivery) {
-        await tx.bookDelivery.updateMany({
-          data: { cancelledAt: now, status: "cancelled" },
-          where: {
-            bookId: { in: bookIds },
-            status: { in: [...DELIVERY_ACTIVE_STATUSES] },
-            userId,
-          },
-        });
+        await this.bookOrderItemsRepository.cancelActiveForBooks(
+          { bookIds, cancelledAt: now, cancelReason: null, userId },
+          tx,
+        );
       }
       if (clearLoan) {
         await tx.bookLoan.updateMany({
-          data: { returnedAt: now, status: "returned" },
+          data: {
+            remindBeforeDays: null,
+            remindToReturn: false,
+            returnedAt: now,
+            status: "returned",
+          },
           where: { bookId: { in: bookIds }, status: "active", userId },
         });
       }

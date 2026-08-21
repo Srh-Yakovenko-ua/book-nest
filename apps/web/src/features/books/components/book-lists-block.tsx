@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
@@ -32,15 +33,15 @@ export function BookListsBlock({ book }: BookListsBlockProps) {
           {book.lists.length === 0 ? null : (
             <div className="flex flex-wrap gap-2">
               {book.lists.map((list) => (
-                <Link
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-secondary/40 px-2.5 py-1 text-sm text-foreground/90 transition-colors outline-none hover:border-primary/40 hover:bg-secondary/70 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  href={`/lists/${list.id}`}
-                  key={list.id}
-                  title={list.name}
-                >
-                  <UiIcon className="shrink-0 text-muted-foreground" name="list" size={14} />
-                  <span className="max-w-[12rem] min-w-0 truncate font-medium">{list.name}</span>
-                </Link>
+                <TooltipHint key={list.id} label={list.name}>
+                  <Link
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-secondary/40 px-2.5 py-1 text-sm text-foreground/90 transition-colors outline-none hover:border-primary/40 hover:bg-secondary/70 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    href={`/lists/${list.id}`}
+                  >
+                    <UiIcon className="shrink-0 text-muted-foreground" name="list" size={14} />
+                    <span className="max-w-[12rem] min-w-0 truncate font-medium">{list.name}</span>
+                  </Link>
+                </TooltipHint>
               ))}
             </div>
           )}

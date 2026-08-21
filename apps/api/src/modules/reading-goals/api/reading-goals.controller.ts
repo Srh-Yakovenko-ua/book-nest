@@ -1,7 +1,21 @@
-import type { Nullable, ReadingGoalDetail, ReadingGoalView } from "@app/shared";
+import type {
+  Nullable,
+  ReadingGoalActivityResponse,
+  ReadingGoalBooksResponse,
+  ReadingGoalDetail,
+  ReadingGoalListResponse,
+  ReadingGoalsOverview,
+  ReadingGoalView,
+} from "@app/shared";
 import type { Response } from "express";
 
-import { CreateReadingGoalInputSchema, UpdateReadingGoalInputSchema } from "@app/shared";
+import {
+  CreateReadingGoalInputSchema,
+  ReadingGoalActivityQuerySchema,
+  ReadingGoalBooksQuerySchema,
+  ReadingGoalsQuerySchema,
+  UpdateReadingGoalInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
@@ -12,6 +26,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Res,
 } from "@nestjs/common";
 import {
@@ -24,6 +39,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
@@ -32,14 +48,26 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { ReadingGoalActivityService } from "../application/reading-goal-activity.service.js";
+import { ReadingGoalBooksService } from "../application/reading-goal-books.service.js";
+import { ReadingGoalCatalogService } from "../application/reading-goal-catalog.service.js";
 import { ReadingGoalDetailAssembler } from "../application/reading-goal-detail.assembler.js";
+import { ReadingGoalOverviewService } from "../application/reading-goal-overview.service.js";
 import { ReadingGoalsService } from "../application/reading-goals.service.js";
 import { CreateReadingGoalInputDto } from "./input-dto/create-reading-goal.input-dto.js";
+import { ReadingGoalActivityQueryDto } from "./input-dto/reading-goal-activity.query.input-dto.js";
+import { ReadingGoalBooksQueryDto } from "./input-dto/reading-goal-books.query.input-dto.js";
+import { ReadingGoalsQueryDto } from "./input-dto/reading-goals.query.input-dto.js";
 import { UpdateReadingGoalInputDto } from "./input-dto/update-reading-goal.input-dto.js";
+import { ReadingGoalActivityResponseDto } from "./view-dto/reading-goal-activity.view-dto.js";
+import { ReadingGoalBooksResponseDto } from "./view-dto/reading-goal-books.view-dto.js";
 import { ReadingGoalDetailDto } from "./view-dto/reading-goal-detail.view-dto.js";
+import { ReadingGoalListResponseDto } from "./view-dto/reading-goal-list.view-dto.js";
 import { ReadingGoalViewDto } from "./view-dto/reading-goal.view-dto.js";
+import { ReadingGoalsOverviewDto } from "./view-dto/reading-goals-overview.view-dto.js";
 
 @ApiTags("reading-goals")
 @Controller("api")
@@ -48,6 +76,10 @@ export class ReadingGoalsController {
   constructor(
     private readonly readingGoalsService: ReadingGoalsService,
     private readonly detailAssembler: ReadingGoalDetailAssembler,
+    private readonly catalogService: ReadingGoalCatalogService,
+    private readonly overviewService: ReadingGoalOverviewService,
+    private readonly goalBooksService: ReadingGoalBooksService,
+    private readonly goalActivityService: ReadingGoalActivityService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -86,9 +118,40 @@ export class ReadingGoalsController {
     return goal;
   }
 
+  @ApiBadRequestResponse({ description: "Invalid query params" })
+  @ApiOkResponse({
+    description: "A page of the reading goals of the current user with their metrics",
+    type: ReadingGoalListResponseDto,
+  })
+  @ApiOperation({ summary: "List the reading goals of the current user" })
+  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ name: "listId", required: false })
+  @ApiQuery({ name: "sort", required: false })
+  @ApiQuery({ name: "status", required: false })
+  @Get("goals")
+  @Throttle(READ_THROTTLE)
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ReadingGoalsQuerySchema)) query: ReadingGoalsQueryDto,
+  ): Promise<ReadingGoalListResponse> {
+    return this.catalogService.list({ query, userId: user.id });
+  }
+
+  @ApiOkResponse({
+    description: "Aggregated reading-goal statistics of the current user",
+    type: ReadingGoalsOverviewDto,
+  })
+  @ApiOperation({ summary: "Get the reading-goal overview of the current user" })
+  @Get("goals/overview")
+  @Throttle(READ_THROTTLE)
+  overview(@CurrentUser() user: AuthenticatedUser): Promise<ReadingGoalsOverview> {
+    return this.overviewService.overview({ userId: user.id });
+  }
+
   @ApiNotFoundResponse({ description: "Reading goal not found" })
   @ApiOkResponse({
-    description: "The reading goal with the books counted towards it",
+    description: "The reading goal with its snapshot books, checkpoints and activity preview",
     type: ReadingGoalDetailDto,
   })
   @ApiOperation({ summary: "Get a reading goal of the current user" })
@@ -100,6 +163,48 @@ export class ReadingGoalsController {
     @Param("goalId", ParseUUIDPipe) goalId: string,
   ): Promise<ReadingGoalDetail> {
     return this.detailAssembler.findDetail({ goalId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Invalid query params" })
+  @ApiNotFoundResponse({ description: "Reading goal not found" })
+  @ApiOkResponse({
+    description: "A page of the books the goal counts over its snapshot",
+    type: ReadingGoalBooksResponseDto,
+  })
+  @ApiOperation({ summary: "List the books of a reading goal snapshot" })
+  @ApiParam({ name: "goalId", required: true })
+  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ name: "scope", required: false })
+  @Get("goals/:goalId/books")
+  @Throttle(READ_THROTTLE)
+  listBooks(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("goalId", ParseUUIDPipe) goalId: string,
+    @Query(new ZodQueryPipe(ReadingGoalBooksQuerySchema)) query: ReadingGoalBooksQueryDto,
+  ): Promise<ReadingGoalBooksResponse> {
+    return this.goalBooksService.list({ goalId, query, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Invalid query params" })
+  @ApiNotFoundResponse({ description: "Reading goal not found" })
+  @ApiOkResponse({
+    description: "A page of the reading goal activity, newest first",
+    type: ReadingGoalActivityResponseDto,
+  })
+  @ApiOperation({ summary: "List the activity of a reading goal" })
+  @ApiParam({ name: "goalId", required: true })
+  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ name: "type", required: false })
+  @Get("goals/:goalId/activity")
+  @Throttle(READ_THROTTLE)
+  listActivity(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("goalId", ParseUUIDPipe) goalId: string,
+    @Query(new ZodQueryPipe(ReadingGoalActivityQuerySchema)) query: ReadingGoalActivityQueryDto,
+  ): Promise<ReadingGoalActivityResponse> {
+    return this.goalActivityService.list({ goalId, query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

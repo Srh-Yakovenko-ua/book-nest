@@ -15,6 +15,11 @@ import { withRelations } from "./books.repository.js";
 
 const DistinctCountRowSchema = z.object({ count: z.number() });
 
+const StructureCountsRowSchema = z.object({
+  seriesCount: z.number().int(),
+  soloCount: z.number().int(),
+});
+
 export type ListPagesAggregate = {
   knownCount: number;
   totalPages: number;
@@ -81,7 +86,7 @@ export class ListOverviewRepository {
     userId,
   }: StatusScope): Promise<Nullable<BookListItemWithBook>> {
     return this.prisma.bookListItem.findFirst({
-      include: { book: { include: withRelations } },
+      include: { book: { include: withRelations(userId) } },
       orderBy: [
         { book: { readingProgress: { lastProgressUpdateAt: { nulls: "last", sort: "desc" } } } },
         { book: { updatedAt: "desc" } },
@@ -129,15 +134,17 @@ export class ListOverviewRepository {
   }
 
   async structureCounts({ listId, userId }: ListScope): Promise<ListStructureCounts> {
-    const [seriesCount, soloCount] = await Promise.all([
-      this.prisma.bookListItem.count({
-        where: listItemWhere({ book: { seriesId: { not: null } }, listId, userId }),
-      }),
-      this.prisma.bookListItem.count({
-        where: listItemWhere({ book: { seriesId: null }, listId, userId }),
-      }),
-    ]);
-    return { seriesCount, soloCount };
+    const result = await this.prisma.$queryRaw(PrismaNamespace.sql`
+      SELECT
+        count(DISTINCT b.series_id)::int AS "seriesCount",
+        count(*) FILTER (WHERE b.series_id IS NULL)::int AS "soloCount"
+      FROM book_list_items i
+      JOIN books b ON b.id = i.book_id AND b.deleted_at IS NULL
+      JOIN book_lists l ON l.id = i.list_id AND l.deleted_at IS NULL AND l.user_id = ${userId}::uuid
+      WHERE i.list_id = ${listId}::uuid AND b.user_id = ${userId}::uuid
+    `);
+    const [row] = z.array(StructureCountsRowSchema).parse(result);
+    return row ?? { seriesCount: 0, soloCount: 0 };
   }
 }
 

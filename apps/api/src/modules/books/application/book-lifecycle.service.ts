@@ -7,12 +7,16 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
+
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { MediaService } from "../../media/index.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { type BookPurgeJob, collectMediaIds } from "../domain/book-purge.js";
 import { toTrashedBookView } from "../domain/trashed-book.mapper.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
@@ -31,6 +35,8 @@ export class BookLifecycleService {
     private readonly viewAssembler: BookViewAssembler,
     private readonly mediaService: MediaService,
     private readonly purgeScheduler: BookPurgeScheduler,
+    private readonly transactionRunner: TransactionRunner,
+    private readonly readingGoalSyncService: ReadingGoalSyncService,
   ) {}
 
   async listTrash({
@@ -82,10 +88,13 @@ export class BookLifecycleService {
   }
 
   async restore({ bookId, userId }: { bookId: string; userId: string }): Promise<BookView> {
-    const restored = await this.restoreRow({ bookId, userId });
-    if (restored === 0) {
-      throw new NotFoundError("Book not found");
-    }
+    await this.transactionRunner.run(async (tx) => {
+      const restored = await this.restoreRow({ bookId, tx, userId });
+      if (restored === 0) {
+        throw new NotFoundError("Book not found");
+      }
+      await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client: tx, userId });
+    });
 
     await this.purgeScheduler.cancel(bookId);
     return this.viewAssembler.loadView({ bookId, userId });
@@ -99,10 +108,13 @@ export class BookLifecycleService {
     userId: string;
   }): Promise<BookDeletionResult> {
     const stamp = TRASH_RETENTION.stamp();
-    const affected = await this.booksRepository.softDelete({ bookId, stamp, userId });
-    if (affected === 0) {
-      throw new NotFoundError("Book not found");
-    }
+    await this.transactionRunner.run(async (tx) => {
+      const affected = await this.booksRepository.softDelete({ bookId, stamp, userId }, tx);
+      if (affected === 0) {
+        throw new NotFoundError("Book not found");
+      }
+      await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client: tx, userId });
+    });
 
     await this.purgeScheduler.schedule({ bookId, userId });
 
@@ -115,13 +127,15 @@ export class BookLifecycleService {
 
   private async restoreRow({
     bookId,
+    tx,
     userId,
   }: {
     bookId: string;
+    tx: Prisma.TransactionClient;
     userId: string;
   }): Promise<number> {
     try {
-      return await this.booksRepository.restore({ bookId, userId });
+      return await this.booksRepository.restore({ bookId, userId }, tx);
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new ConflictError(PART_NUMBER_TAKEN_MESSAGE);

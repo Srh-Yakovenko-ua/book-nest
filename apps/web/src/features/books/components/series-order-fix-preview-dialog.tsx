@@ -13,6 +13,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -282,9 +283,9 @@ function PreviewBody({
                   title={change.title}
                 />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="truncate text-sm font-medium text-ink" title={change.title}>
-                    {change.title}
-                  </p>
+                  <TooltipHint label={change.title}>
+                    <p className="truncate text-sm font-medium text-ink">{change.title}</p>
+                  </TooltipHint>
                   <p className="text-xs text-muted-foreground">{addedMetaLine(change.bookId)}</p>
                   <p className="text-xs font-medium text-success">
                     {t("newPosition", { position: change.toPosition })}
@@ -315,15 +316,16 @@ function PreviewBody({
                         {t("seriesBook", { position: item.seriesPosition })}
                       </span>
                     )}
-                    <span
-                      className={cn(
-                        "min-w-0 flex-1 truncate",
-                        isAdded ? "font-medium text-success" : "text-muted-foreground",
-                      )}
-                      title={item.title}
-                    >
-                      {item.title}
-                    </span>
+                    <TooltipHint label={item.title}>
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate",
+                          isAdded ? "font-medium text-success" : "text-muted-foreground",
+                        )}
+                      >
+                        {item.title}
+                      </span>
+                    </TooltipHint>
                   </div>
                   {index < target.recommendedOrder.length - 1 ? (
                     <UiIcon
@@ -351,9 +353,9 @@ function PreviewBody({
               >
                 <UiIcon aria-hidden name="plus" size={14} />
                 <span className="shrink-0 font-medium tabular-nums">#{change.toPosition}</span>
-                <span className="min-w-0 flex-1 truncate" title={change.title}>
-                  {change.title}
-                </span>
+                <TooltipHint label={change.title}>
+                  <span className="min-w-0 flex-1 truncate">{change.title}</span>
+                </TooltipHint>
                 <span className="shrink-0 text-xs text-success/80">{t("newBook")}</span>
               </li>
             ))}
@@ -374,12 +376,11 @@ function PreviewBody({
                 <span className="shrink-0 font-medium text-foreground tabular-nums">
                   #{change.toPosition}
                 </span>
-                <span
-                  className="min-w-0 flex-1 truncate text-muted-foreground"
-                  title={change.title}
-                >
-                  {change.title}
-                </span>
+                <TooltipHint label={change.title}>
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                    {change.title}
+                  </span>
+                </TooltipHint>
               </li>
             ))}
           </ul>

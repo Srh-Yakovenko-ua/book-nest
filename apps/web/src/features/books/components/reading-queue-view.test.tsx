@@ -9,6 +9,7 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
@@ -18,6 +19,14 @@ import { makeSeriesView } from "../../series/model/series.fixtures";
 import { makeQueueVolumeSummary } from "../model/queue-volume.fixtures";
 import { makeBookView } from "./book-details.fixtures";
 import { ReadingQueueView } from "./reading-queue-view";
+
+function renderQueue(searchParams = "") {
+  return renderWithProviders(
+    <NuqsTestingAdapter searchParams={searchParams}>
+      <ReadingQueueView />
+    </NuqsTestingAdapter>,
+  );
+}
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -29,7 +38,6 @@ vi.mock("@/i18n/navigation", () => ({
 const copy = messages.readingQueue;
 const stats = messages.readingQueue.stats;
 const filters = messages.books.library.filters;
-const priority = messages.books.organization.priority;
 const readingStatus = messages.books.readingStatus.options;
 const volume = messages.readingQueue.volume;
 
@@ -82,11 +90,15 @@ function mockQueue(
   items: ReadingQueueItemView[],
   volume: ReadingQueueVolumeSummaryView = makeQueueVolumeSummary(),
 ) {
-  mockQueueFetch(() => Promise.resolve(jsonResponse(queueView(items))), items, volume);
+  mockQueueFetch(
+    (url) => Promise.resolve(jsonResponse(serverQueueView(items, url))),
+    items,
+    volume,
+  );
 }
 
 function mockQueueFetch(
-  respond: () => Promise<Response>,
+  respond: (url: string) => Promise<Response>,
   items: ReadingQueueItemView[] = [],
   volume: ReadingQueueVolumeSummaryView = makeQueueVolumeSummary(),
 ) {
@@ -103,7 +115,7 @@ function mockQueueFetch(
       if (url.includes("/api/reading-queue/series-order-issues")) {
         return Promise.resolve(jsonResponse(issuesView()));
       }
-      if (url.includes("/api/reading-queue")) return respond();
+      if (url.includes("/api/reading-queue")) return respond(url);
       if (url.includes("/api/genres")) return Promise.resolve(jsonResponse(genresFixture));
       if (url.includes("/recent")) return Promise.resolve(jsonResponse([]));
       if (
@@ -133,8 +145,21 @@ function queueView(items: ReadingQueueItemView[]) {
   return {
     count: items.length,
     items,
+    totalCount: items.length,
     totalPagesCount: items.reduce((sum, item) => sum + (item.book.pagesCount ?? 0), 0),
   };
+}
+
+function serverQueueView(items: ReadingQueueItemView[], url: string) {
+  const params = new URL(url, "http://localhost").searchParams;
+  const search = params.get("q")?.trim().toLowerCase() ?? "";
+  const priorities = params.getAll("priority").flatMap((value) => value.split(","));
+  const matching = items.filter((item) => {
+    if (search !== "" && !item.book.title.toLowerCase().includes(search)) return false;
+    if (priorities.length === 0) return true;
+    return item.book.queuePriority !== null && priorities.includes(item.book.queuePriority);
+  });
+  return { ...queueView(matching), totalCount: items.length };
 }
 
 function statCard(label: string): HTMLElement {
@@ -183,7 +208,7 @@ describe("ReadingQueueView", () => {
   it("shows a busy skeleton while the queue is loading", () => {
     mockQueueFetch(() => new Promise<Response>(() => {}));
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
 
     expect(document.querySelector("[aria-busy]")).toBeInTheDocument();
     expect(screen.queryByText(copy.empty.title)).not.toBeInTheDocument();
@@ -192,7 +217,7 @@ describe("ReadingQueueView", () => {
   it("shows an error state with a retry action when the queue fails to load", async () => {
     mockQueueFetch(() => Promise.resolve(jsonResponse({ message: "boom" }, 500)));
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(copy.error.title);
@@ -202,7 +227,7 @@ describe("ReadingQueueView", () => {
   it("shows the empty-queue state when the queue has no books", async () => {
     mockQueue([]);
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
 
     expect(await screen.findByText(copy.empty.title)).toBeInTheDocument();
     expect(screen.queryByText(copy.noSearchResults.title)).not.toBeInTheDocument();
@@ -211,7 +236,7 @@ describe("ReadingQueueView", () => {
   it("lists the queued books with their positions", async () => {
     mockQueue([queueItem(1, "book-1", "Перша книга"), queueItem(2, "book-2", "Друга книга")]);
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
 
     expect(await screen.findByText("#1")).toBeInTheDocument();
     expect(screen.getByText("#2")).toBeInTheDocument();
@@ -221,14 +246,24 @@ describe("ReadingQueueView", () => {
   it("shows the no-results state instead of the list when a search matches nothing", async () => {
     mockQueue([queueItem(1, "book-1", "Перша книга"), queueItem(2, "book-2", "Друга книга")]);
 
-    renderWithProviders(<ReadingQueueView />);
-    await screen.findByText("#1");
-
-    await userEvent.type(screen.getByRole("textbox", { name: copy.toolbar.searchLabel }), "zzzzzz");
+    renderQueue("?q=zzzzzz");
 
     expect(await screen.findByText(copy.noSearchResults.title)).toBeInTheDocument();
     expect(screen.queryByText("#2")).not.toBeInTheDocument();
     expect(screen.queryByText(copy.empty.title)).not.toBeInTheDocument();
+  });
+
+  it("hands the search to the endpoint instead of narrowing in the browser", async () => {
+    mockQueue([queueItem(1, "book-1", "Перша книга")]);
+
+    renderQueue("?q=перша");
+    await screen.findByText("#1");
+
+    const requested = vi
+      .mocked(fetch)
+      .mock.calls.map(([input]) => String(input))
+      .filter((url) => url.includes("/api/reading-queue?"));
+    expect(requested.some((url) => url.includes("q=%D0%BF%D0%B5%D1%80%D1%88%D0%B0"))).toBe(true);
   });
 
   it("surfaces the reading-now badge after starting a book that stays in the queue", async () => {
@@ -245,6 +280,8 @@ describe("ReadingQueueView", () => {
       title: "Перша книга",
     });
 
+    let started = false;
+
     vi.stubGlobal(
       "fetch",
       vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -252,6 +289,7 @@ describe("ReadingQueueView", () => {
         const method = (init?.method ?? "GET").toUpperCase();
         if (url.includes("/api/genres")) return Promise.resolve(jsonResponse(genresFixture));
         if (url.includes("/start-reading") && method === "POST") {
+          started = true;
           return Promise.resolve(jsonResponse(queueView([{ book: startedBook, position: 1 }])));
         }
         if (url.includes("/api/reading-queue/summary")) {
@@ -261,13 +299,14 @@ describe("ReadingQueueView", () => {
           return Promise.resolve(jsonResponse(issuesView()));
         }
         if (url.includes("/api/reading-queue")) {
-          return Promise.resolve(jsonResponse(queueView([{ book: queuedBook, position: 1 }])));
+          const book = started ? startedBook : queuedBook;
+          return Promise.resolve(jsonResponse(queueView([{ book, position: 1 }])));
         }
         return Promise.reject(new Error(`unexpected ${method} ${url}`));
       }),
     );
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
 
     const article = await screen.findByRole("article");
     expect(within(article).queryByText(copy.item.readingNow)).not.toBeInTheDocument();
@@ -285,32 +324,16 @@ describe("ReadingQueueView", () => {
   it("narrows the queue to matching books when a priority filter is applied", async () => {
     mockQueue(twoPriorityItems());
 
-    renderWithProviders(<ReadingQueueView />);
-    await screen.findByText("Пріоритетна");
-    expect(screen.getByText("Звичайна")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: filters.trigger }));
-    await userEvent.click(await screen.findByRole("button", { name: priority.high.label }));
-    await userEvent.click(screen.getByRole("button", { name: filters.apply }));
+    renderQueue("?priority=high");
 
     expect(await screen.findByText("Пріоритетна")).toBeInTheDocument();
     expect(screen.queryByText("Звичайна")).not.toBeInTheDocument();
   });
 
-  it("restores the full queue after the priority filter is cleared", async () => {
+  it("restores the full queue once the priority filter leaves the url", async () => {
     mockQueue(twoPriorityItems());
 
-    renderWithProviders(<ReadingQueueView />);
-    await screen.findByText("Пріоритетна");
-
-    await userEvent.click(screen.getByRole("button", { name: filters.trigger }));
-    await userEvent.click(await screen.findByRole("button", { name: priority.high.label }));
-    await userEvent.click(screen.getByRole("button", { name: filters.apply }));
-    expect(screen.queryByText("Звичайна")).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
-    await userEvent.click(await screen.findByRole("button", { name: filters.clear }));
-    await userEvent.click(screen.getByRole("button", { name: filters.apply }));
+    renderQueue();
 
     expect(await screen.findByText("Звичайна")).toBeInTheDocument();
     expect(screen.getByText("Пріоритетна")).toBeInTheDocument();
@@ -319,7 +342,7 @@ describe("ReadingQueueView", () => {
   it("omits reading statuses that cannot appear in the queue", async () => {
     mockQueue(twoPriorityItems());
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
     await screen.findByText("Пріоритетна");
 
     await userEvent.click(screen.getByRole("button", { name: filters.trigger }));
@@ -339,16 +362,25 @@ describe("ReadingQueueView", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps the drag handle live while the queue carries no filter", async () => {
+    mockQueue(twoPriorityItems());
+
+    renderQueue();
+    await screen.findByText("Пріоритетна");
+
+    expect(screen.getByText(copy.toolbar.dragHint)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: copy.item.reorderAria.replace("{title}", "Пріоритетна"),
+      }),
+    ).toBeEnabled();
+  });
+
   it("disables the drag handle and shows an info hint while filtering", async () => {
     mockQueue(twoPriorityItems());
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue("?priority=high");
     await screen.findByText("Пріоритетна");
-    expect(screen.getByText(copy.toolbar.dragHint)).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: filters.trigger }));
-    await userEvent.click(await screen.findByRole("button", { name: priority.high.label }));
-    await userEvent.click(screen.getByRole("button", { name: filters.apply }));
 
     expect(await screen.findByText(copy.toolbar.dragDisabledHint)).toBeInTheDocument();
     expect(screen.queryByText(copy.toolbar.dragHint)).not.toBeInTheDocument();
@@ -362,7 +394,7 @@ describe("ReadingQueueView", () => {
   it("shows the aggregated queue metrics above the list", async () => {
     mockQueue(mixedAvailabilityItems());
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
     await screen.findByText("Доступна");
     expect(await screen.findByText(stats.availableNow.label)).toBeInTheDocument();
 
@@ -374,7 +406,7 @@ describe("ReadingQueueView", () => {
   it("leaves the queue unfiltered and draggable while the metrics are shown", async () => {
     mockQueue(mixedAvailabilityItems());
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
     expect(await screen.findByText(stats.unavailable.label)).toBeInTheDocument();
 
     expect(screen.getAllByRole("article")).toHaveLength(3);
@@ -398,7 +430,7 @@ describe("ReadingQueueView", () => {
       }),
     );
 
-    renderWithProviders(<ReadingQueueView />);
+    renderQueue();
 
     const headings = await screen.findAllByRole("heading", { name: volume.title });
     expect(headings).toHaveLength(2);

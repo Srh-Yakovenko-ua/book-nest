@@ -21,6 +21,7 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
   const t = useTranslations("lists.catalog.card");
   const locale = useLocale();
   const isEmpty = list.bookCount === 0;
+  const description = list.description?.trim() ?? "";
 
   return (
     <article className="group/list-card relative flex h-full flex-col gap-3.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
@@ -37,9 +38,11 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
             {list.name}
           </Link>
         </h3>
-        <p className="line-clamp-2 min-h-[2lh] text-[0.8125rem] leading-relaxed text-muted-foreground">
-          {list.description}
-        </p>
+        {description === "" ? null : (
+          <p className="line-clamp-2 text-[0.8125rem] leading-relaxed text-muted-foreground">
+            {description}
+          </p>
+        )}
       </div>
 
       {isEmpty ? (

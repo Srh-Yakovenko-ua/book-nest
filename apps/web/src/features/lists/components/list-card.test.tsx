@@ -39,7 +39,19 @@ describe("ListCard", () => {
   it("shows the description when present", () => {
     renderCard({ description: "Затишні книги для холодних вечорів" });
 
-    expect(screen.getByText("Затишні книги для холодних вечорів")).toBeInTheDocument();
+    expect(screen.getByRole("paragraph")).toHaveTextContent("Затишні книги для холодних вечорів");
+  });
+
+  it("renders no description paragraph when the list has none", () => {
+    renderCard({ description: null });
+
+    expect(screen.queryByRole("paragraph")).not.toBeInTheDocument();
+  });
+
+  it("renders no description paragraph when the description is only whitespace", () => {
+    renderCard({ description: "   " });
+
+    expect(screen.queryByRole("paragraph")).not.toBeInTheDocument();
   });
 
   it("shows the pluralised book count", () => {

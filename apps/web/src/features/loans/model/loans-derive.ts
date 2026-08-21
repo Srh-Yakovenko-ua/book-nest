@@ -1,11 +1,9 @@
-import type { LoanListItemView } from "@app/shared";
+import type { Nullable } from "@app/shared";
 
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
 const DISPLAY_DATE_FORMAT = "dd.MM.yyyy";
-const COMPACT_DATE_FORMAT = "dd.MM";
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const NEAREST_RETURNS_LIMIT = 5;
 
 export type LoanRelative =
   | { days: number; kind: "overdue" }
@@ -13,11 +11,21 @@ export type LoanRelative =
   | { kind: "none" }
   | { kind: "today" };
 
-export type NearestReturn = {
-  date: string;
-  id: string;
-  title: string;
-};
+export type LoanTerm =
+  | { days: number; kind: "inDays" }
+  | { days: number; kind: "overdue" }
+  | { kind: "none" }
+  | { kind: "today" }
+  | { kind: "tomorrow" };
+
+export function daysBetweenLoanDates(
+  fromIso: Nullable<string>,
+  toIso: Nullable<string>,
+): Nullable<number> {
+  if (fromIso === null || toIso === null) return null;
+  if (!ISO_DATE_PATTERN.test(fromIso) || !ISO_DATE_PATTERN.test(toIso)) return null;
+  return differenceInCalendarDays(parseISO(toIso), parseISO(fromIso));
+}
 
 export function formatLoanDate(iso: null | string): null | string {
   if (iso === null || !ISO_DATE_PATTERN.test(iso)) return null;
@@ -35,22 +43,12 @@ export function loanRelative(expectedReturnDate: null | string, today: string): 
   return { days: diff, kind: "soon" };
 }
 
-export function nearestReturns(
-  items: LoanListItemView[],
-  today: string,
-  limit = NEAREST_RETURNS_LIMIT,
-): NearestReturn[] {
-  return items
-    .flatMap((item) =>
-      item.expectedReturnDate !== null && item.expectedReturnDate >= today
-        ? [{ item, returnDate: item.expectedReturnDate }]
-        : [],
-    )
-    .sort((a, b) => a.returnDate.localeCompare(b.returnDate))
-    .slice(0, limit)
-    .map(({ item, returnDate }) => ({
-      date: format(parseISO(returnDate), COMPACT_DATE_FORMAT),
-      id: item.id,
-      title: item.book.title,
-    }));
+export function loanTerm(expectedReturnDate: null | string, today: string): LoanTerm {
+  const relative = loanRelative(expectedReturnDate, today);
+
+  if (relative.kind === "none") return { kind: "none" };
+  if (relative.kind === "today") return { kind: "today" };
+  if (relative.kind === "overdue") return { days: relative.days, kind: "overdue" };
+  if (relative.days === 1) return { kind: "tomorrow" };
+  return { days: relative.days, kind: "inDays" };
 }

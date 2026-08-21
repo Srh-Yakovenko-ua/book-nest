@@ -10,3 +10,4 @@ pnpm-lock.yaml
 .playwright-mcp
 **/generated
 docs/prompts
+docs/booknest-loan-history-spec

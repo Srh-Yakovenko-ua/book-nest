@@ -14,7 +14,7 @@ export function DeliveryDashboardWidget() {
   const locale = useLocale();
   const { data } = useDeliveryInTransitSummary();
 
-  if (data === undefined || data.activeCount === 0) return null;
+  if (data === undefined || data.activeBooksCount === 0) return null;
 
   return (
     <Card className="flex flex-col gap-4 border border-border bg-card p-5 shadow-card max-sm:p-4">
@@ -37,8 +37,12 @@ export function DeliveryDashboardWidget() {
       </div>
 
       <dl className="grid grid-cols-3 gap-3 max-sm:gap-2">
-        <WidgetStat label={t("active")} locale={locale} value={data.activeCount} />
-        <WidgetStat label={t("expectedThisWeek")} locale={locale} value={data.expectedThisWeek} />
+        <WidgetStat label={t("active")} locale={locale} value={data.activeBooksCount} />
+        <WidgetStat
+          label={t("expectedThisWeek")}
+          locale={locale}
+          value={data.expectedThisWeekCount}
+        />
         <WidgetStat
           emphasis={data.delayedCount > 0}
           label={t("delayed")}

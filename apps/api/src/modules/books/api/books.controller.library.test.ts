@@ -178,6 +178,26 @@ function seedNullRatingProgress(bookId: string): Promise<unknown> {
   return prisma.bookReadingProgress.create({ data: { bookId, rating: null } });
 }
 
+function seedOrder(input: {
+  items: { bookId: string; cancelledAt?: Date; receivedAt?: Date }[];
+  userId: string;
+}): Promise<{ id: string }> {
+  return prisma.bookOrder.create({
+    data: {
+      items: {
+        create: input.items.map((item) => ({
+          bookId: item.bookId,
+          cancelledAt: item.cancelledAt ?? null,
+          receivedAt: item.receivedAt ?? null,
+        })),
+      },
+      storeName: "Yakaboo",
+      userId: input.userId,
+    },
+    select: { id: true },
+  });
+}
+
 function seedPublisher(input: {
   name: string;
   names?: SeedAuthorName[];
@@ -823,6 +843,109 @@ describe("GET /api/books inQueue filter", () => {
     expect(queuedIds.filter((id) => looseIds.includes(id))).toEqual([]);
     expect([...queuedIds, ...looseIds].sort()).toEqual([...wholeIds].sort());
     expect(queued.body.totalCount + loose.body.totalCount).toBe(whole.body.totalCount);
+  });
+});
+
+describe("GET /api/books hasActiveOrder filter", () => {
+  async function seedOrderedLibrary(userId: string): Promise<void> {
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const inTransit = await seedBook({ authorId: author.id, title: "StillTravelling", userId });
+    const cancelled = await seedBook({ authorId: author.id, title: "OrderCancelled", userId });
+    const received = await seedBook({ authorId: author.id, title: "AlreadyArrived", userId });
+    await seedBook({ authorId: author.id, title: "NeverOrdered", userId });
+    await seedOrder({
+      items: [
+        { bookId: inTransit.id },
+        { bookId: cancelled.id, cancelledAt: new Date() },
+        { bookId: received.id, receivedAt: new Date() },
+      ],
+      userId,
+    });
+  }
+
+  it("returns only books carried by an open order item when hasActiveOrder is true", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedOrderedLibrary(userId);
+
+    const res = await listBooks(accessToken, "hasActiveOrder=true");
+
+    expect(res.status).toBe(200);
+    expect(titlesOf(res.body)).toEqual(["StillTravelling"]);
+  });
+
+  it("counts a cancelled or received item as free when hasActiveOrder is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedOrderedLibrary(userId);
+
+    const res = await listBooks(accessToken, "hasActiveOrder=false");
+
+    expect(res.status).toBe(200);
+    expect(titlesOf(res.body).sort()).toEqual(["AlreadyArrived", "NeverOrdered", "OrderCancelled"]);
+  });
+
+  it("fills the first page even when the newest books all sit in an open order", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const free = await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      title: "NeverOrdered",
+      userId,
+    });
+    const busy = await Promise.all([
+      seedBook({
+        authorId: author.id,
+        createdAt: new Date("2026-02-01T00:00:00.000Z"),
+        title: "Travelling A",
+        userId,
+      }),
+      seedBook({
+        authorId: author.id,
+        createdAt: new Date("2026-03-01T00:00:00.000Z"),
+        title: "Travelling B",
+        userId,
+      }),
+    ]);
+    await seedOrder({ items: busy.map((book) => ({ bookId: book.id })), userId });
+
+    const res = await listBooks(accessToken, "hasActiveOrder=false&pageSize=2");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((item: { id: string }) => item.id)).toEqual([free.id]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it("applies the ownership filter alongside hasActiveOrder", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const wanted = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      title: "WantedAndFree",
+      userId,
+    });
+    const wantedButOrdered = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      title: "WantedButOrdered",
+      userId,
+    });
+    await seedBook({ authorId: author.id, ownershipStatus: "owned", title: "Owned", userId });
+    await seedOrder({ items: [{ bookId: wantedButOrdered.id }], userId });
+
+    const res = await listBooks(accessToken, "hasActiveOrder=false&owner=want_to_buy");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items.map((item: { id: string }) => item.id)).toEqual([wanted.id]);
+  });
+
+  it("leaves the library untouched when hasActiveOrder is absent", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedOrderedLibrary(userId);
+
+    const res = await listBooks(accessToken);
+
+    expect(res.body.totalCount).toBe(4);
   });
 });
 
@@ -1505,5 +1628,99 @@ describe("GET /api/books pagination", () => {
     ];
     expect(new Set(returnedIds).size).toBe(4);
     expect([...returnedIds].sort()).toEqual(seeded.map((book) => book.id).sort());
+  });
+});
+
+describe("GET /api/books Ukrainian alphabetical sorting", () => {
+  const UKRAINIAN_ALPHABET = {
+    authorsInCodepointOrder: [
+      "Єшкілєв Олег",
+      "Івченко Михайло",
+      "Їжакевич Іван",
+      "Андрухович Юрій",
+      "Багряний Іван",
+      "Гончар Олесь",
+      "Еллан-Блакитний Василь",
+      "Забужко Оксана",
+      "Йогансен Майк",
+      "Яновський Юрій",
+      "Ґжицький Володимир",
+    ],
+    authorsInUkrainianOrder: [
+      "Андрухович Юрій",
+      "Багряний Іван",
+      "Гончар Олесь",
+      "Ґжицький Володимир",
+      "Еллан-Блакитний Василь",
+      "Єшкілєв Олег",
+      "Забужко Оксана",
+      "Івченко Михайло",
+      "Їжакевич Іван",
+      "Йогансен Майк",
+      "Яновський Юрій",
+    ],
+    titlesInCodepointOrder: [
+      "Єва",
+      "Ігри",
+      "Їжак",
+      "Аркан",
+      "Бездоганний",
+      "Гарний",
+      "Едем",
+      "Зима",
+      "Йорж",
+      "Яблуко",
+      "Ґудзик",
+    ],
+    titlesInUkrainianOrder: [
+      "Аркан",
+      "Бездоганний",
+      "Гарний",
+      "Ґудзик",
+      "Едем",
+      "Єва",
+      "Зима",
+      "Ігри",
+      "Їжак",
+      "Йорж",
+      "Яблуко",
+    ],
+  } as const;
+
+  function authorNamesOf(body: {
+    items: { authors: { name: string }[] }[];
+  }): (string | undefined)[] {
+    return body.items.map((item) => item.authors[0]?.name);
+  }
+
+  it("orders titles with Ґ after Г, Є after Е and І between З and Й", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Ліна Костенко", userId });
+    for (const title of UKRAINIAN_ALPHABET.titlesInCodepointOrder) {
+      await seedBook({ authorId: author.id, title, userId });
+    }
+
+    const res = await listBooks(accessToken, "sort=title_asc");
+
+    expect(res.status).toBe(200);
+    expect(titlesOf(res.body)).toEqual(UKRAINIAN_ALPHABET.titlesInUkrainianOrder);
+  });
+
+  it("orders author names with Ґ after Г, Є after Е and І between З and Й", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    for (const [index, name] of UKRAINIAN_ALPHABET.authorsInCodepointOrder.entries()) {
+      const author = await seedAuthor({ name, userId });
+      await seedBook({
+        authorId: author.id,
+        firstAuthorName: name,
+        title: `Book ${index + 1}`,
+        userId,
+      });
+    }
+
+    const res = await listBooks(accessToken, "sort=author_asc");
+
+    expect(res.status).toBe(200);
+    expect(authorNamesOf(res.body)).toEqual(UKRAINIAN_ALPHABET.authorsInUkrainianOrder);
   });
 });

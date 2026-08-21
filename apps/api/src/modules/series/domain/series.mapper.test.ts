@@ -2,16 +2,19 @@ import type { MediaView, Nullable, SeriesBookView, SeriesDetailsView } from "@ap
 
 import { describe, expect, it } from "vitest";
 
-import type { BookDeliveryModel, BookLoanModel } from "../../../generated/prisma/models.js";
+import type { LoanContactModel } from "../../../generated/prisma/models.js";
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
 
 import { fakeOf } from "../../../test/fake.js";
 import { toSeriesDetailsView } from "./series.mapper.js";
 
 type BookAuthorLink = SeriesDetailBook["authors"][number];
+type OrderedBook = SeriesDetailBook["orderItems"][number];
+type OrderedBookShipment = NonNullable<OrderedBook["shipment"]>;
 type SeriesAuthorLink = SeriesWithDetails["authors"][number];
 type SeriesDetailAuthor = SeriesDetailBook["authors"][number]["author"];
 type SeriesDetailBook = SeriesWithDetails["books"][number];
+type SeriesDetailLoan = SeriesDetailBook["loans"][number];
 
 function makeAuthor(id: string, name: string): SeriesDetailAuthor {
   return fakeOf<SeriesDetailAuthor>({ id, name });
@@ -54,13 +57,13 @@ function makeBook(overrides: Partial<SeriesDetailBook> = {}): SeriesDetailBook {
     authors: [makeBookAuthor("author-1", "Author One")],
     coverMedia: null,
     createdAt: BASE_CREATED_AT,
-    deliveries: [],
     formats: [],
     genres: [],
     id: "book-1",
     isFavorite: false,
     language: "ukrainian",
     loans: [],
+    orderItems: [],
     originalTitle: null,
     ownershipStatus: "owned",
     pagesCount: null,
@@ -77,41 +80,23 @@ function makeBook(overrides: Partial<SeriesDetailBook> = {}): SeriesDetailBook {
   });
 }
 
-function makeDelivery(overrides: Partial<BookDeliveryModel> = {}): BookDeliveryModel {
-  return fakeOf<BookDeliveryModel>({
-    bookId: "book-1",
-    cancelledAt: null,
-    cancelReason: null,
-    createdAt: BASE_CREATED_AT,
-    currency: null,
-    deliveryService: null,
-    expectedDeliveryDate: null,
-    id: "delivery-1",
-    note: null,
-    orderDate: null,
-    orderNumber: null,
-    price: null,
-    receivedAt: null,
-    status: "ordered",
-    storeName: null,
-    trackingNumber: null,
-    trackingUrl: null,
-    updatedAt: BASE_CREATED_AT,
-    userId: "user-1",
-    ...overrides,
-  });
-}
-
-function makeLoan(overrides: Partial<BookLoanModel> = {}): BookLoanModel {
-  return fakeOf<BookLoanModel>({
+function makeLoan(overrides: Partial<SeriesDetailLoan> = {}): SeriesDetailLoan {
+  const personName = overrides.personName ?? "Olena";
+  return fakeOf<SeriesDetailLoan>({
     bookId: "book-1",
     contact: null,
     createdAt: BASE_CREATED_AT,
     expectedReturnDate: null,
     id: "loan-1",
+    loanContact: fakeOf<LoanContactModel>({
+      contact: null,
+      id: "contact-1",
+      name: personName,
+    }),
+    loanContactId: "contact-1",
     loanDate: null,
     note: null,
-    personName: "Olena",
+    personName,
     remindToReturn: false,
     returnedAt: null,
     status: "active",
@@ -119,6 +104,50 @@ function makeLoan(overrides: Partial<BookLoanModel> = {}): BookLoanModel {
     updatedAt: BASE_CREATED_AT,
     userId: "user-1",
     ...overrides,
+  });
+}
+
+function makeOrderedBook({
+  item = {},
+  shipment,
+}: {
+  item?: Partial<OrderedBook>;
+  shipment?: Partial<OrderedBookShipment>;
+} = {}): OrderedBook {
+  return fakeOf<OrderedBook>({
+    bookId: "book-1",
+    cancelledAt: null,
+    cancelReason: null,
+    createdAt: BASE_CREATED_AT,
+    id: "order-item-1",
+    order: fakeOf<OrderedBook["order"]>({
+      currency: null,
+      note: null,
+      orderDate: null,
+      orderNumber: null,
+      storeName: "Store",
+      updatedAt: BASE_CREATED_AT,
+    }),
+    orderId: "order-1",
+    price: null,
+    receivedAt: null,
+    shipment:
+      shipment === undefined
+        ? null
+        : fakeOf<OrderedBookShipment>({
+            deliveryService: null,
+            deliveryServiceName: null,
+            expectedDeliveryDate: null,
+            id: "shipment-1",
+            status: "ordered",
+            trackingNumber: null,
+            trackingUrl: null,
+            updatedAt: BASE_CREATED_AT,
+            ...shipment,
+          }),
+    shipmentId: shipment === undefined ? null : "shipment-1",
+    updatedAt: BASE_CREATED_AT,
+    ...item,
   });
 }
 
@@ -229,10 +258,12 @@ describe("toSeriesDetailsView book card fields", () => {
   it("maps an active delivery into activeDelivery", () => {
     const book = mapSingleBook(
       makeBook({
-        deliveries: [
-          makeDelivery({
-            expectedDeliveryDate: new Date("2026-06-10T00:00:00.000Z"),
-            status: "in_transit",
+        orderItems: [
+          makeOrderedBook({
+            shipment: {
+              expectedDeliveryDate: new Date("2026-06-10T00:00:00.000Z"),
+              status: "in_transit",
+            },
           }),
         ],
         ownershipStatus: "in_transit",
@@ -245,7 +276,7 @@ describe("toSeriesDetailsView book card fields", () => {
   });
 
   it("leaves activeDelivery null when there is no delivery", () => {
-    const book = mapSingleBook(makeBook({ deliveries: [] }));
+    const book = mapSingleBook(makeBook({ orderItems: [] }));
 
     expect(book.activeDelivery).toBeNull();
   });
@@ -253,8 +284,11 @@ describe("toSeriesDetailsView book card fields", () => {
   it("does not treat a cancelled delivery as active", () => {
     const book = mapSingleBook(
       makeBook({
-        deliveries: [
-          makeDelivery({ cancelledAt: new Date("2026-05-01T00:00:00.000Z"), status: "cancelled" }),
+        orderItems: [
+          makeOrderedBook({
+            item: { cancelledAt: new Date("2026-05-01T00:00:00.000Z") },
+            shipment: { status: "cancelled" },
+          }),
         ],
       }),
     );

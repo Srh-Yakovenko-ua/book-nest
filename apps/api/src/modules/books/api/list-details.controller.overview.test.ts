@@ -326,19 +326,30 @@ describe("GET /api/lists/:listId/overview counters", () => {
     expect(res.body.totalBooks).toBe(2);
   });
 
-  it("splits the list into series parts and standalone books that add up to the total", async () => {
+  it("counts distinct series, not the books that belong to them", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createList(userId, "Autumn reads");
-    const seriesId = await createSeries(userId, "Dune saga");
-    await addBookToList(listId, 0, { partNumber: 1, seriesId, title: "Dune", userId });
-    await addBookToList(listId, 1, { partNumber: 2, seriesId, title: "Dune Messiah", userId });
-    await addBookToList(listId, 2, { title: "Neuromancer", userId });
-    await addBookToList(listId, 3, { title: "Solaris", userId });
-    await addBookToList(listId, 4, { title: "Roadside Picnic", userId });
+    const duneId = await createSeries(userId, "Dune saga");
+    const cultureId = await createSeries(userId, "Culture");
+    await addBookToList(listId, 0, { partNumber: 1, seriesId: duneId, title: "Dune", userId });
+    await addBookToList(listId, 1, {
+      partNumber: 2,
+      seriesId: duneId,
+      title: "Dune Messiah",
+      userId,
+    });
+    await addBookToList(listId, 2, {
+      partNumber: 1,
+      seriesId: cultureId,
+      title: "Consider Phlebas",
+      userId,
+    });
+    await addBookToList(listId, 3, { title: "Neuromancer", userId });
+    await addBookToList(listId, 4, { title: "Solaris", userId });
 
     const res = await getOverview(accessToken, listId);
 
-    expect(res.body).toMatchObject({ seriesCount: 2, soloCount: 3, totalBooks: 5 });
+    expect(res.body).toMatchObject({ seriesCount: 2, soloCount: 2, totalBooks: 5 });
   });
 
   it("counts owned, borrowed and lent books as physically owned", async () => {
@@ -470,6 +481,7 @@ describe("GET /api/lists/:listId/overview genres", () => {
     await createGenre("fantasy", "Фентезі");
     await createGenre("scifi", "Наукова фантастика");
     await createGenre("history", "Історія");
+    await createGenre("poetry", "Поезія");
     const listId = await createList(userId, "Autumn reads");
     await addBookToList(listId, 0, { genres: ["fantasy", "scifi"], title: "Dune", userId });
     await addBookToList(listId, 1, { genres: ["fantasy", "scifi"], title: "Foundation", userId });
@@ -505,8 +517,23 @@ describe("GET /api/lists/:listId/overview genres", () => {
     const res = await getOverview(accessToken, listId);
 
     expect(res.body.topGenres).toEqual([
-      { count: 1, key: "fantasy", name: "Фентезі" },
       { count: 1, key: "unmapped_key", name: "unmapped_key" },
+      { count: 1, key: "fantasy", name: "Фентезі" },
+    ]);
+  });
+
+  it("breaks a tie on the name the reader sees", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await createGenre("zebra", "Абетка");
+    await createGenre("abetka", "Зебра");
+    const listId = await createList(userId, "Autumn reads");
+    await addBookToList(listId, 0, { genres: ["zebra", "abetka"], title: "Dune", userId });
+
+    const res = await getOverview(accessToken, listId);
+
+    expect(res.body.topGenres.map((genre: { name: string }) => genre.name)).toEqual([
+      "Абетка",
+      "Зебра",
     ]);
   });
 });

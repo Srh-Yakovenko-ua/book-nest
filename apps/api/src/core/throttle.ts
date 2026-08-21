@@ -1,24 +1,25 @@
 import { seconds } from "@nestjs/throttler";
 
 const THROTTLE_WINDOW_SECONDS = 60;
-const GLOBAL_LIMIT = 120;
-const MUTATION_LIMIT = 60;
-const READ_LIMIT = 120;
-const MANUAL_TEST_NOTIFICATION_LIMIT = 3;
 
-export const GLOBAL_THROTTLE = {
-  limit: GLOBAL_LIMIT,
-  ttl: seconds(THROTTLE_WINDOW_SECONDS),
-};
+const THROTTLE_LIMITS = {
+  global: 120,
+  heavyRead: 30,
+  manualTestNotification: 3,
+  mutation: 60,
+  read: 120,
+} as const;
 
-export const MUTATION_THROTTLE = {
-  default: { limit: MUTATION_LIMIT, ttl: seconds(THROTTLE_WINDOW_SECONDS) },
-};
+const perWindow = (limit: number) => ({ limit, ttl: seconds(THROTTLE_WINDOW_SECONDS) });
 
-export const READ_THROTTLE = {
-  default: { limit: READ_LIMIT, ttl: seconds(THROTTLE_WINDOW_SECONDS) },
-};
+export const GLOBAL_THROTTLE = perWindow(THROTTLE_LIMITS.global);
+
+export const MUTATION_THROTTLE = { default: perWindow(THROTTLE_LIMITS.mutation) };
+
+export const READ_THROTTLE = { default: perWindow(THROTTLE_LIMITS.read) };
+
+export const HEAVY_READ_THROTTLE = { default: perWindow(THROTTLE_LIMITS.heavyRead) };
 
 export const MANUAL_TEST_NOTIFICATION_THROTTLE = {
-  default: { limit: MANUAL_TEST_NOTIFICATION_LIMIT, ttl: seconds(THROTTLE_WINDOW_SECONDS) },
+  default: perWindow(THROTTLE_LIMITS.manualTestNotification),
 };

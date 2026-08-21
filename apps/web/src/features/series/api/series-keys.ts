@@ -1,4 +1,6 @@
-export type SeriesListParams = { pageSize: number };
+import type { SeriesControllerSearchParams } from "@/shared/api/generated/model";
+
+export type SeriesListParams = SeriesControllerSearchParams & { pageSize: number };
 
 const SERIES_ROOT = "/api/series";
 

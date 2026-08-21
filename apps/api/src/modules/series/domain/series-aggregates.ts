@@ -15,6 +15,7 @@ import {
   OwnershipStatusSchema,
 } from "@app/shared";
 
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { computeAveragePages, computeAverageRating, computePagesCount } from "./series-stats.js";
 
 export type SeriesAggregateBookRow = {
@@ -89,7 +90,9 @@ function collectTags(books: readonly Pick<SeriesAggregateBookRow, "tags">[]): Ta
     }
   }
 
-  return [...tagsById.values()].sort((first, second) => first.name.localeCompare(second.name));
+  return [...tagsById.values()].sort((first, second) =>
+    UKRAINIAN_COLLATION.compare(first.name, second.name),
+  );
 }
 
 function countOwnership(
