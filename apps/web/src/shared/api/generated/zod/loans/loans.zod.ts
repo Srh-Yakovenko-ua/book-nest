@@ -1102,23 +1102,52 @@ export const LoanHistoryControllerCorrectResponse = zod.object({
 /**
  * @summary List the loan contacts of the current user
  */
-export const loanContactsControllerListQueryLimitDefault = 50;
-export const loanContactsControllerListQueryLimitMax = 200;
+export const loanContactsControllerListQueryPageNumberDefault = 1;
+export const loanContactsControllerListQueryPageNumberMax = 21474836;
+
+export const loanContactsControllerListQueryPageSizeDefault = 20;
+export const loanContactsControllerListQueryPageSizeMax = 100;
 
 export const loanContactsControllerListQuerySearchMax = 100;
 
 export const LoanContactsControllerListQueryParams = zod.object({
-  includeArchived: zod.string().optional(),
-  limit: zod
+  pageNumber: zod
     .int()
     .min(1)
-    .max(loanContactsControllerListQueryLimitMax)
-    .default(loanContactsControllerListQueryLimitDefault),
+    .max(loanContactsControllerListQueryPageNumberMax)
+    .default(loanContactsControllerListQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(loanContactsControllerListQueryPageSizeMax)
+    .default(loanContactsControllerListQueryPageSizeDefault),
   search: zod.string().max(loanContactsControllerListQuerySearchMax).optional(),
+  status: zod.enum(["all", "active", "archived"]).optional(),
 });
 
 export const loanContactsControllerListResponseItemsItemLoanCountMin = 0;
 export const loanContactsControllerListResponseItemsItemLoanCountMax = 9007199254740991;
+
+export const loanContactsControllerListResponsePageMin = -9007199254740991;
+export const loanContactsControllerListResponsePageMax = 9007199254740991;
+
+export const loanContactsControllerListResponsePagesCountMin = -9007199254740991;
+export const loanContactsControllerListResponsePagesCountMax = 9007199254740991;
+
+export const loanContactsControllerListResponsePageSizeMin = -9007199254740991;
+export const loanContactsControllerListResponsePageSizeMax = 9007199254740991;
+
+export const loanContactsControllerListResponseTotalCountMin = -9007199254740991;
+export const loanContactsControllerListResponseTotalCountMax = 9007199254740991;
+
+export const loanContactsControllerListResponseCountsActiveMin = 0;
+export const loanContactsControllerListResponseCountsActiveMax = 9007199254740991;
+
+export const loanContactsControllerListResponseCountsAllMin = 0;
+export const loanContactsControllerListResponseCountsAllMax = 9007199254740991;
+
+export const loanContactsControllerListResponseCountsArchivedMin = 0;
+export const loanContactsControllerListResponseCountsArchivedMax = 9007199254740991;
 
 export const LoanContactsControllerListResponse = zod.object({
   items: zod.array(
@@ -1135,6 +1164,36 @@ export const LoanContactsControllerListResponse = zod.object({
       updatedAt: zod.string(),
     }),
   ),
+  page: zod
+    .int()
+    .min(loanContactsControllerListResponsePageMin)
+    .max(loanContactsControllerListResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(loanContactsControllerListResponsePagesCountMin)
+    .max(loanContactsControllerListResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(loanContactsControllerListResponsePageSizeMin)
+    .max(loanContactsControllerListResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(loanContactsControllerListResponseTotalCountMin)
+    .max(loanContactsControllerListResponseTotalCountMax),
+  counts: zod.object({
+    active: zod
+      .int()
+      .min(loanContactsControllerListResponseCountsActiveMin)
+      .max(loanContactsControllerListResponseCountsActiveMax),
+    all: zod
+      .int()
+      .min(loanContactsControllerListResponseCountsAllMin)
+      .max(loanContactsControllerListResponseCountsAllMax),
+    archived: zod
+      .int()
+      .min(loanContactsControllerListResponseCountsArchivedMin)
+      .max(loanContactsControllerListResponseCountsArchivedMax),
+  }),
 });
 
 /**
@@ -1157,6 +1216,29 @@ export const LoanContactsControllerCreateResponse = zod.object({
     .int()
     .min(loanContactsControllerCreateResponseLoanCountMin)
     .max(loanContactsControllerCreateResponseLoanCountMax),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Read the loan contact whose normalized name matches, archived ones included
+ */
+export const LoanContactsControllerDetailByNameQueryParams = zod.object({
+  name: zod.string(),
+});
+
+export const loanContactsControllerDetailByNameResponseLoanCountMin = 0;
+export const loanContactsControllerDetailByNameResponseLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerDetailByNameResponse = zod.object({
+  archivedAt: zod.string().nullable(),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  id: zod.string(),
+  loanCount: zod
+    .int()
+    .min(loanContactsControllerDetailByNameResponseLoanCountMin)
+    .max(loanContactsControllerDetailByNameResponseLoanCountMax),
   name: zod.string(),
   updatedAt: zod.string(),
 });

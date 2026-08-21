@@ -13,6 +13,7 @@ import { Injectable } from "@nestjs/common";
 import type { LoanContactRename } from "../infrastructure/loan-contacts.repository.js";
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { isRecordNotFoundError, isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toLoanContactView } from "../domain/loan-contact.mapper.js";
 import { LoanContactsRepository } from "../infrastructure/loan-contacts.repository.js";
@@ -86,6 +87,18 @@ export class LoanContactsService {
     return toLoanContactView(contact);
   }
 
+  async detailByName({ name, userId }: { name: string; userId: string }): Promise<LoanContactView> {
+    const contact = await this.loanContactsRepository.findOwnedCardByNormalizedName({
+      normalizedName: normalizeName(name),
+      userId,
+    });
+    if (contact === null) {
+      throw new NotFoundError(LOAN_CONTACT_NOT_FOUND_MESSAGE);
+    }
+
+    return toLoanContactView(contact);
+  }
+
   async list({
     query,
     userId,
@@ -93,13 +106,26 @@ export class LoanContactsService {
     query: LoanContactsQuery;
     userId: string;
   }): Promise<LoanContactsView> {
-    const contacts = await this.loanContactsRepository.listOwned({
-      includeArchived: query.includeArchived,
-      limit: query.limit,
-      search: normalizeSearch(query.search),
-      userId,
-    });
-    return { items: contacts.map(toLoanContactView) };
+    const filter = { search: normalizeSearch(query.search), userId };
+
+    const [contacts, counts] = await Promise.all([
+      this.loanContactsRepository.listOwned({
+        ...filter,
+        status: query.status,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
+      }),
+      this.loanContactsRepository.countOwned(filter),
+    ]);
+
+    return {
+      ...buildPaginator({
+        items: contacts.map(toLoanContactView),
+        pageNumber: query.pageNumber,
+        pageSize: query.pageSize,
+        totalCount: counts[query.status],
+      }),
+      counts,
+    };
   }
 
   async restore({

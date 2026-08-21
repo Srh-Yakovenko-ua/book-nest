@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { collapseSpaces } from "./common.js";
+import { collapseSpaces, createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { NoHtmlString } from "./internal.js";
 
 const LOAN_CONTACT_NAME = {
@@ -12,10 +12,7 @@ const LOAN_CONTACT_CONTACT_MAX = 100;
 
 const LOAN_CONTACT_SEARCH_MAX = 100;
 
-const LOAN_CONTACT_LIST_LIMIT = {
-  default: 50,
-  max: 200,
-} as const;
+const LOAN_CONTACT_PAGE_SIZE_DEFAULT = 20;
 
 const LoanContactNameSchema = z
   .string()
@@ -44,24 +41,35 @@ export const LoanContactViewSchema = z.object({
 
 export type LoanContactView = z.infer<typeof LoanContactViewSchema>;
 
-export const LoanContactsViewSchema = z.object({
-  items: z.array(LoanContactViewSchema),
+export const LoanContactCountsSchema = z.object({
+  active: z.number().int().nonnegative(),
+  all: z.number().int().nonnegative(),
+  archived: z.number().int().nonnegative(),
+});
+
+export type LoanContactCounts = z.infer<typeof LoanContactCountsSchema>;
+
+export const LoanContactsViewSchema = createPaginatedSchema(LoanContactViewSchema).extend({
+  counts: LoanContactCountsSchema,
 });
 
 export type LoanContactsView = z.infer<typeof LoanContactsViewSchema>;
 
+export const LoanContactStatusSchema = z.enum(["all", "active", "archived"]);
+
+export type LoanContactStatus = z.infer<typeof LoanContactStatusSchema>;
+
 export const LoanContactsQuerySchema = z.object({
-  includeArchived: z.stringbool().default(false),
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LOAN_CONTACT_LIST_LIMIT.max)
-    .default(LOAN_CONTACT_LIST_LIMIT.default),
+  ...paginationQueryFields({ pageSizeDefault: LOAN_CONTACT_PAGE_SIZE_DEFAULT }),
   search: z.string().trim().max(LOAN_CONTACT_SEARCH_MAX).optional(),
+  status: LoanContactStatusSchema.default("active"),
 });
 
 export type LoanContactsQuery = z.infer<typeof LoanContactsQuerySchema>;
+
+export const LoanContactByNameQuerySchema = z.object({ name: LoanContactNameSchema });
+
+export type LoanContactByNameQuery = z.infer<typeof LoanContactByNameQuerySchema>;
 
 export const CreateLoanContactInputSchema = z.strictObject({
   contact: LoanContactContactSchema.nullable().optional(),

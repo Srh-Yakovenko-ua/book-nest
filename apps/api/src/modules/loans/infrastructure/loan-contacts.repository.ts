@@ -1,4 +1,4 @@
-import type { Nullable } from "@app/shared";
+import type { LoanContactCounts, LoanContactStatus, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -16,6 +16,11 @@ const ownedLoanContactCardArgs = (userId: string) =>
     },
   }) satisfies Prisma.LoanContactDefaultArgs;
 
+export type CountLoanContactsInput = {
+  search: string | undefined;
+  userId: string;
+};
+
 export type CreateLoanContactData = {
   contact: Nullable<string>;
   name: string;
@@ -23,11 +28,10 @@ export type CreateLoanContactData = {
   userId: string;
 };
 
-export type ListLoanContactsInput = {
-  includeArchived: boolean;
-  limit: number;
-  search: string | undefined;
-  userId: string;
+export type ListLoanContactsInput = CountLoanContactsInput & {
+  skip: number;
+  status: LoanContactStatus;
+  take: number;
 };
 
 export type LoanContactCard = Prisma.LoanContactGetPayload<
@@ -55,6 +59,19 @@ export type UpdateLoanContactData = {
 @Injectable()
 export class LoanContactsRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async countOwned({ search, userId }: CountLoanContactsInput): Promise<LoanContactCounts> {
+    const [all, archived] = await Promise.all([
+      this.prisma.loanContact.count({
+        where: buildLoanContactsWhere({ search, status: "all", userId }),
+      }),
+      this.prisma.loanContact.count({
+        where: buildLoanContactsWhere({ search, status: "archived", userId }),
+      }),
+    ]);
+
+    return { active: all - archived, all, archived };
+  }
 
   create(
     { contact, name, normalizedName, userId }: CreateLoanContactData,
@@ -110,24 +127,31 @@ export class LoanContactsRepository {
     });
   }
 
+  findOwnedCardByNormalizedName({
+    normalizedName,
+    userId,
+  }: {
+    normalizedName: string;
+    userId: string;
+  }): Promise<Nullable<LoanContactCard>> {
+    return this.prisma.loanContact.findUnique({
+      where: { userId_normalizedName: { normalizedName, userId } },
+      ...ownedLoanContactCardArgs(userId),
+    });
+  }
+
   listOwned({
-    includeArchived,
-    limit,
     search,
+    skip,
+    status,
+    take,
     userId,
   }: ListLoanContactsInput): Promise<LoanContactCard[]> {
-    const where: Prisma.LoanContactWhereInput = { userId };
-    if (!includeArchived) {
-      where.archivedAt = null;
-    }
-    if (search !== undefined) {
-      where.name = { contains: escapeLikePattern(search), mode: "insensitive" };
-    }
-
     return this.prisma.loanContact.findMany({
       orderBy: [{ name: "asc" }, { id: "asc" }],
-      take: limit,
-      where,
+      skip,
+      take,
+      where: buildLoanContactsWhere({ search, status, userId }),
       ...ownedLoanContactCardArgs(userId),
     });
   }
@@ -162,4 +186,23 @@ export class LoanContactsRepository {
       ...ownedLoanContactCardArgs(userId),
     });
   }
+}
+
+function buildLoanContactsWhere({
+  search,
+  status,
+  userId,
+}: CountLoanContactsInput & { status: LoanContactStatus }): Prisma.LoanContactWhereInput {
+  const where: Prisma.LoanContactWhereInput = { userId };
+  if (status === "active") {
+    where.archivedAt = null;
+  }
+  if (status === "archived") {
+    where.archivedAt = { not: null };
+  }
+  if (search !== undefined) {
+    where.name = { contains: escapeLikePattern(search), mode: "insensitive" };
+  }
+
+  return where;
 }

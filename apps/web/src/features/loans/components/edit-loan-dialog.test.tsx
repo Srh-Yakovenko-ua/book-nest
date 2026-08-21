@@ -45,6 +45,17 @@ function editCall() {
   ) as [string, RequestInit] | undefined;
 }
 
+function contactsPage(items: LoanContactView[]) {
+  return {
+    counts: { active: items.length, all: items.length, archived: 0 },
+    items,
+    page: 1,
+    pagesCount: items.length === 0 ? 0 : 1,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -90,7 +101,7 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/loans/contacts")) {
-      return Promise.resolve(jsonResponse({ items: searchResults }));
+      return Promise.resolve(jsonResponse(contactsPage(searchResults)));
     }
     if (url.includes(`/api/books/${BOOK_ID}/loan`) && method === "PATCH") {
       return Promise.resolve(jsonResponse(makeBookView({ id: BOOK_ID })));

@@ -2,7 +2,7 @@
 
 import type { LoanContactView } from "@app/shared";
 
-import { LOAN_CONTACT_ERROR_CODES, normalizeName } from "@app/shared";
+import { normalizeName } from "@app/shared";
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -11,14 +11,12 @@ import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { getErrorMessage } from "@/lib/api-errors";
-import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
 import type { LoanContactSelection } from "../model/loan-contact-selection";
 
-import { useCreateLoanContact } from "../api/use-create-loan-contact";
 import { useLoanContacts } from "../api/use-loan-contacts";
+import { CreateLoanContactDialog } from "./contact/create-loan-contact-dialog";
 
 type LoanContactOptionProps = {
   contact: LoanContactView;
@@ -51,10 +49,9 @@ export function LoanContactPicker({
   const [query, setQuery] = useState(selectedName);
   const [trackedName, setTrackedName] = useState(selectedName);
   const [open, setOpen] = useState(false);
-  const [createError, setCreateError] = useState<null | string>(null);
+  const [creatingName, setCreatingName] = useState<null | string>(null);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const { data: contacts = [], isFetching } = useLoanContacts(debouncedQuery);
-  const createContact = useCreateLoanContact();
 
   if (selectedName !== trackedName) {
     setTrackedName(selectedName);
@@ -71,34 +68,13 @@ export function LoanContactPicker({
   const showClear = value !== null || query.length > 0;
 
   function pickContact(contact: LoanContactView) {
-    setCreateError(null);
     onChange({ contactId: contact.id, kind: "picked", name: contact.name });
     setQuery(contact.name);
     setTrackedName(contact.name);
     setOpen(false);
   }
 
-  async function createAndPick() {
-    setCreateError(null);
-    try {
-      pickContact(await createContact.mutateAsync({ name: trimmedQuery }));
-    } catch (error) {
-      setCreateError(toCreateErrorMessage(error));
-    }
-  }
-
-  function toCreateErrorMessage(error: unknown): string {
-    if (error instanceof ApiError && error.code === LOAN_CONTACT_ERROR_CODES.archivedName) {
-      return t("errors.archivedName");
-    }
-    if (error instanceof ApiError && error.code === LOAN_CONTACT_ERROR_CODES.duplicateName) {
-      return t("errors.duplicateName");
-    }
-    return getErrorMessage(error, t("errors.createFailed"));
-  }
-
   function handleClear() {
-    setCreateError(null);
     onChange(null);
     setQuery("");
     setTrackedName("");
@@ -137,7 +113,6 @@ export function LoanContactPicker({
                 onValueChange={(next) => {
                   setQuery(next);
                   setOpen(true);
-                  setCreateError(null);
                   if (value !== null) onChange(null);
                 }}
                 placeholder={placeholder}
@@ -183,19 +158,15 @@ export function LoanContactPicker({
                 <CommandGroup heading={t("createHeading")}>
                   <CommandItem
                     className="cursor-pointer"
-                    disabled={createContact.isPending}
-                    onSelect={() => void createAndPick()}
+                    onSelect={() => {
+                      setOpen(false);
+                      setCreatingName(trimmedQuery);
+                    }}
                     value={`create-${trimmedQuery}`}
                   >
-                    <UiIcon
-                      className={cn("text-primary", createContact.isPending && "animate-spin")}
-                      name={createContact.isPending ? "refresh" : "plus"}
-                      size={16}
-                    />
+                    <UiIcon className="text-primary" name="plus" size={16} />
                     <span className="min-w-0 truncate">
-                      {createContact.isPending
-                        ? t("creating")
-                        : t("createAction", { name: trimmedQuery })}
+                      {t("createAction", { name: trimmedQuery })}
                     </span>
                   </CommandItem>
                 </CommandGroup>
@@ -204,11 +175,19 @@ export function LoanContactPicker({
           </PopoverContent>
         </Popover>
       </CommandPrimitive>
-      {createError === null ? null : (
-        <p className="text-xs text-destructive" role="alert">
-          {createError}
-        </p>
-      )}
+
+      <CreateLoanContactDialog
+        conflictAction="select"
+        initialName={creatingName ?? ""}
+        onOpenChange={(next) => {
+          if (!next) setCreatingName(null);
+        }}
+        onResolved={({ contact }) => {
+          setCreatingName(null);
+          pickContact(contact);
+        }}
+        open={creatingName !== null}
+      />
     </div>
   );
 }

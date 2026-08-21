@@ -30,6 +30,17 @@ function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView 
   };
 }
 
+function contactsPage(items: LoanContactView[]) {
+  return {
+    counts: { active: items.length, all: items.length, archived: 0 },
+    items,
+    page: 1,
+    pagesCount: items.length === 0 ? 0 : 1,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -65,7 +76,7 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/loans/contacts")) {
-      return Promise.resolve(jsonResponse({ items: searchResults }));
+      return Promise.resolve(jsonResponse(contactsPage(searchResults)));
     }
     if (url.includes(`/api/books/${BOOK_ID}/loan`) && method === "POST") {
       return Promise.resolve(
@@ -107,7 +118,7 @@ describe("LoanDialog", () => {
         return Promise.resolve(jsonResponse(created, 201));
       }
       if (url.includes("/api/loans/contacts")) {
-        return Promise.resolve(jsonResponse({ items: searchResults }));
+        return Promise.resolve(jsonResponse(contactsPage(searchResults)));
       }
       if (url.includes(`/api/books/${BOOK_ID}/loan`) && method === "POST") {
         return Promise.resolve(
@@ -123,6 +134,9 @@ describe("LoanDialog", () => {
       "Марта",
     );
     await userEvent.click(await screen.findByText("Створити «Марта»"));
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.loans.contactCreate.submit }),
+    );
     await waitFor(() =>
       expect(screen.getByLabelText(messages.books.details.loan.borrowed.personName)).toHaveValue(
         "Марта",
