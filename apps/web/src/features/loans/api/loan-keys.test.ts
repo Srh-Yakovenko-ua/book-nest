@@ -32,6 +32,11 @@ describe("matchesLoans", () => {
     expect(matchesLoans({ queryKey: loanKeys.history.detail("loan-1") })).toBe(true);
   });
 
+  it("matches the contact keys this feature builds", () => {
+    expect(matchesLoans({ queryKey: loanKeys.contacts.all })).toBe(true);
+    expect(matchesLoans({ queryKey: loanKeys.contacts.search("") })).toBe(true);
+  });
+
   it("ignores keys of other features", () => {
     expect(matchesLoans({ queryKey: ["/api/books", "list"] })).toBe(false);
     expect(matchesLoans({ queryKey: [] })).toBe(false);

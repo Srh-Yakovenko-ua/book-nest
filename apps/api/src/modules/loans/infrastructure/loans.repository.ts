@@ -324,6 +324,7 @@ function buildLoanSearchConditions(search: string): Prisma.BookLoanWhereInput[] 
   return [
     ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
     { loanContact: { name: contains } },
+    { loanContact: { contact: contains } },
     { personName: contains },
     { contact: contains },
     { note: contains },

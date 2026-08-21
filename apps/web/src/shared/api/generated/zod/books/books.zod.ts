@@ -7523,7 +7523,6 @@ export const bookLoanControllerCreateLoanBodyLoanDateRegExp = new RegExp(
 );
 
 export const BookLoanControllerCreateLoanBody = zod.object({
-  contact: zod.string().nullish(),
   direction: zod.enum(["borrowed", "lent"]),
   expectedReturnDate: zod.iso
     .date()
@@ -7921,7 +7920,6 @@ export const bookLoanControllerEditLoanBodyLoanDateRegExp = new RegExp(
 );
 
 export const BookLoanControllerEditLoanBody = zod.object({
-  contact: zod.string().nullish(),
   expectedReturnDate: zod.iso
     .date()
     .regex(bookLoanControllerEditLoanBodyExpectedReturnDateRegExp)

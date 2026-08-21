@@ -404,7 +404,7 @@ describe("loan snapshots", () => {
     expect(await storedLoan(bookId)).toMatchObject({ personName: "Тарас" });
   });
 
-  it("stores no contact override when the request carries no contact detail", async () => {
+  it("copies the contact detail of the person into the snapshot when the loan starts", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const contactId = await savedContact(accessToken, {
       contact: "ihor@example.com",
@@ -414,7 +414,21 @@ describe("loan snapshots", () => {
 
     await createLoan(accessToken, bookId, { loanContactId: contactId });
 
-    expect(await storedLoan(bookId)).toMatchObject({ contact: null });
+    expect(await storedLoan(bookId)).toMatchObject({ contact: "ihor@example.com" });
+  });
+
+  it("keeps the stored contact detail after the person changes theirs", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await savedContact(accessToken, {
+      contact: "ihor@example.com",
+      name: "Ігор",
+    });
+    const bookId = await ownedBook(accessToken);
+    await createLoan(accessToken, bookId, { loanContactId: contactId });
+
+    await updateContact(accessToken, contactId, { contact: "+380001112233" });
+
+    expect(await storedLoan(bookId)).toMatchObject({ contact: "ihor@example.com" });
   });
 
   it("shows the current detail of the contact on the book after it changes", async () => {
@@ -432,18 +446,40 @@ describe("loan snapshots", () => {
     expect(res.body.loanInfo.contact).toBe("+380001112233");
   });
 
-  it("drops the contact override when an edit moves the loan to another contact", async () => {
+  it("retakes the contact snapshot when an edit moves the loan to another contact", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await savedContact(accessToken, {
+      contact: "ihor@example.com",
+      name: "Ігор",
+    });
     const bookId = await ownedBook(accessToken);
-    await createLoan(accessToken, bookId, { contact: "+380001112233", personName: "Ігор" });
-    const nextContactId = await savedContact(accessToken, { name: "Тарас" });
+    await createLoan(accessToken, bookId, { loanContactId: contactId });
+    const nextContactId = await savedContact(accessToken, {
+      contact: "taras@example.com",
+      name: "Тарас",
+    });
 
     await editLoan(accessToken, bookId, { loanContactId: nextContactId });
 
-    expect(await storedLoan(bookId)).toMatchObject({ contact: null });
+    expect(await storedLoan(bookId)).toMatchObject({ contact: "taras@example.com" });
   });
 
-  it("lets an explicit contact detail override the one stored on the contact", async () => {
+  it("keeps the stored contact detail when an edit only touches an unrelated field", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await savedContact(accessToken, {
+      contact: "ihor@example.com",
+      name: "Ігор",
+    });
+    const bookId = await ownedBook(accessToken);
+    await createLoan(accessToken, bookId, { loanContactId: contactId });
+    await updateContact(accessToken, contactId, { contact: "+380001112233" });
+
+    await editLoan(accessToken, bookId, { loanContactId: contactId, note: "still with him" });
+
+    expect(await storedLoan(bookId)).toMatchObject({ contact: "ihor@example.com" });
+  });
+
+  it("ignores a contact detail the loan request tries to carry", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const contactId = await savedContact(accessToken, {
       contact: "ihor@example.com",
@@ -456,10 +492,10 @@ describe("loan snapshots", () => {
       loanContactId: contactId,
     });
 
-    expect(res.body.loanInfo.contact).toBe("+380001112233");
+    expect(res.body.loanInfo.contact).toBe("ihor@example.com");
   });
 
-  it("leaves the contact's own detail alone when the loan overrides it", async () => {
+  it("leaves the contact's own detail alone when a loan request carries one", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const contactId = await savedContact(accessToken, {
       contact: "ihor@example.com",

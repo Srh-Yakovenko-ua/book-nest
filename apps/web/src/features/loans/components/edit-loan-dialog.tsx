@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FieldError } from "@/components/ui/field-error";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +31,6 @@ import { useEditLoan } from "../api/use-loan-actions";
 import { restoreLoanTriggerFocus } from "../model/loan-focus";
 import { LoanContactPicker } from "./loan-contact-picker";
 
-const CONTACT_MAX = 100;
 const NOTE_MAX = 300;
 
 type EditLoanDialogProps = {
@@ -42,7 +40,6 @@ type EditLoanDialogProps = {
 };
 
 type LoanMessages = {
-  contactMax: string;
   contactRequired: string;
   dateInvalid: string;
   loanDateFuture: string;
@@ -52,7 +49,6 @@ type LoanMessages = {
 };
 
 type LoanValues = {
-  contact: string;
   expectedReturnDate: string;
   loanContactId: string;
   loanContactName: string;
@@ -81,11 +77,9 @@ export function EditLoanDialog({ loan, onOpenChange, open }: EditLoanDialogProps
 }
 
 function buildPayload(values: LoanValues): UpdateLoanInput {
-  const contact = values.contact.trim();
   const note = values.note.trim();
 
   return {
-    contact: contact.length > 0 ? contact : null,
     expectedReturnDate: values.expectedReturnDate.length > 0 ? values.expectedReturnDate : null,
     loanContactId: values.loanContactId,
     loanDate: values.loanDate.length > 0 ? values.loanDate : null,
@@ -97,7 +91,6 @@ function buildPayload(values: LoanValues): UpdateLoanInput {
 function buildSchema(messages: LoanMessages) {
   return z
     .object({
-      contact: z.string().max(CONTACT_MAX, messages.contactMax),
       expectedReturnDate: z
         .string()
         .refine(
@@ -140,11 +133,9 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
     control,
     formState: { errors },
     handleSubmit,
-    register,
     setValue,
   } = useForm<LoanValues>({
     defaultValues: {
-      contact: loan.contact ?? "",
       expectedReturnDate: loan.expectedReturnDate ?? "",
       loanContactId: loan.loanContactId,
       loanContactName: loan.personName,
@@ -155,7 +146,6 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        contactMax: tErrors("contactMax", { max: CONTACT_MAX }),
         contactRequired: tContact("required"),
         dateInvalid: tErrors("dateInvalid"),
         loanDateFuture: tErrors("loanDateFuture"),
@@ -254,20 +244,6 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
           />
           <FieldError error={errors.expectedReturnDate} id="edit-loan-return-date-error" />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="edit-loan-contact">{t("fields.contact")}</Label>
-        <Input
-          aria-describedby={errors.contact ? "edit-loan-contact-error" : undefined}
-          aria-invalid={errors.contact !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="edit-loan-contact"
-          placeholder={t("fields.contactPlaceholder")}
-          {...register("contact")}
-        />
-        <FieldError error={errors.contact} id="edit-loan-contact-error" />
       </div>
 
       <div className="flex flex-col gap-2">

@@ -107,12 +107,12 @@ export function buildLoanInfoUpdateData({
   loanInfo,
 }: ResolvedLoanInfo): UpdateLoanInfoData {
   return {
-    contact: loanContact.contact,
+    contact: loanContact.refreshesSnapshot ? loanContact.contact : undefined,
     expectedReturnDate: toUpdateDate(loanInfo.expectedReturnDate),
     loanContactId: loanContact.loanContactId,
     loanDate: toUpdateDate(loanInfo.loanDate),
     note: loanInfo.note,
-    personName: loanContact.refreshesPersonName ? loanContact.personName : undefined,
+    personName: loanContact.refreshesSnapshot ? loanContact.personName : undefined,
   };
 }
 

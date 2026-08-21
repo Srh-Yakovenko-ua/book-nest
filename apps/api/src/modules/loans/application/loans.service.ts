@@ -21,7 +21,7 @@ import { subDays } from "date-fns";
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
-import { resolveLoanPerson } from "../domain/loan-person.js";
+import { resolveActiveLoanPerson } from "../domain/loan-person.js";
 import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
 import {
   type LoanDirectionCounts,
@@ -158,7 +158,7 @@ export class LoansService {
   }
 
   private toListItemView(loan: LoanWithBook, today: Date): LoanListItemView {
-    const person = resolveLoanPerson(loan);
+    const person = resolveActiveLoanPerson(loan);
 
     return {
       book: this.toBookPreview(loan.book),

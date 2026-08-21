@@ -181,15 +181,15 @@ function buildService(
     run: <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(TX),
   };
   const loanContactResolver = {
-    resolve: ({ attached, contact, loanContactId, personName }: ResolveLoanContactInput) => {
+    resolve: ({ attached, loanContactId, personName }: ResolveLoanContactInput) => {
       const targetId = loanContactId ?? attached?.loanContactId ?? LOAN_CONTACT_ID;
       const keptAttachment =
         attached !== null && attached.loanContactId === targetId ? attached : null;
       return Promise.resolve({
-        contact: contact === undefined ? (keptAttachment?.contact ?? null) : contact,
+        contact: keptAttachment?.contact ?? null,
         loanContactId: targetId,
         personName: personName ?? attached?.personName ?? "",
-        refreshesPersonName: keptAttachment === null,
+        refreshesSnapshot: keptAttachment === null,
       });
     },
   };
@@ -1011,7 +1011,7 @@ describe("BooksService.update", () => {
       kind: "upsertActive",
       type: "borrowed_from_someone",
       update: {
-        contact: null,
+        contact: undefined,
         expectedReturnDate: undefined,
         loanContactId: LOAN_CONTACT_ID,
         loanDate: undefined,
@@ -1035,7 +1035,7 @@ describe("BooksService.update", () => {
     expect(data.loanInfo).toMatchObject({ update: { note: null } });
   });
 
-  it("refreshes the person name snapshot and drops the contact override when the loan moves to another contact", async () => {
+  it("retakes the name and contact snapshot when the loan moves to another contact", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
         loans: [loanRow({ contact: "olha@example.com", personName: "Olha" })],

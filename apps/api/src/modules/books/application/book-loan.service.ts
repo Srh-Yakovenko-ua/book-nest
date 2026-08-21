@@ -62,7 +62,6 @@ export class BookLoanService {
         const loanContact = await this.loanContactResolver.resolve(
           {
             attached: null,
-            contact: input.contact,
             loanContactId: input.loanContactId,
             personName: input.personName,
             userId,
@@ -112,7 +111,6 @@ export class BookLoanService {
       const loanContact = await this.loanContactResolver.resolve(
         {
           attached: active,
-          contact: input.contact,
           loanContactId: input.loanContactId,
           personName: input.personName,
           userId,

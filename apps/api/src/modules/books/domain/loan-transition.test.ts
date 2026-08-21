@@ -18,7 +18,7 @@ const LOAN_CONTACT: ResolvedLoanContact = {
   contact: null,
   loanContactId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   personName: "Olha",
-  refreshesPersonName: true,
+  refreshesSnapshot: true,
 };
 
 describe("computeLoanChange create direction mapping", () => {
@@ -89,7 +89,6 @@ describe("computeLoanChange create loan info", () => {
 
   it("carries every provided loan field into the row", () => {
     const fields: CreateLoanInput = {
-      contact: "olha@example.com",
       direction: "lent",
       expectedReturnDate: RETURN_DATE,
       loanDate: LOAN_DATE,

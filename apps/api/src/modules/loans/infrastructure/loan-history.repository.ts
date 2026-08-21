@@ -344,6 +344,7 @@ function buildHistorySearchCondition(search: string): Prisma.Sql {
     book.title ILIKE ${pattern}
     OR book.original_title ILIKE ${pattern}
     OR contact.name ILIKE ${pattern}
+    OR contact.contact ILIKE ${pattern}
     OR loan.person_name ILIKE ${pattern}
     OR loan.contact ILIKE ${pattern}
     OR loan.note ILIKE ${pattern}

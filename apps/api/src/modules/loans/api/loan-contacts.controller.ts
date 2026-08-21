@@ -5,7 +5,18 @@ import {
   LoanContactsQuerySchema,
   UpdateLoanContactInputSchema,
 } from "@app/shared";
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -55,6 +66,18 @@ export class LoanContactsController {
     return this.loanContactsService.list({ query, userId: user.id });
   }
 
+  @ApiNotFoundResponse({ description: "Loan contact not found" })
+  @ApiOkResponse({ description: "The requested loan contact", type: LoanContactViewDto })
+  @ApiOperation({ summary: "Read one loan contact of the current user" })
+  @ApiParam({ name: "contactId" })
+  @Get(":contactId")
+  detail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("contactId", ParseUUIDPipe) contactId: string,
+  ): Promise<LoanContactView> {
+    return this.loanContactsService.detail({ contactId, userId: user.id });
+  }
+
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBody({ type: CreateLoanContactInputDto })
   @ApiConflictResponse({ description: "A contact of the current user already uses this name" })
@@ -84,5 +107,33 @@ export class LoanContactsController {
     @Body(new ZodBodyPipe(UpdateLoanContactInputSchema)) body: UpdateLoanContactInputDto,
   ): Promise<LoanContactView> {
     return this.loanContactsService.update({ contactId, input: body, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Loan contact not found" })
+  @ApiOkResponse({ description: "The archived loan contact", type: LoanContactViewDto })
+  @ApiOperation({ summary: "Archive a loan contact so new loans stop offering it" })
+  @ApiParam({ name: "contactId" })
+  @HttpCode(HttpStatus.OK)
+  @Post(":contactId/archive")
+  @Throttle(MUTATION_THROTTLE)
+  archive(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("contactId", ParseUUIDPipe) contactId: string,
+  ): Promise<LoanContactView> {
+    return this.loanContactsService.archive({ contactId, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Loan contact not found" })
+  @ApiOkResponse({ description: "The restored loan contact", type: LoanContactViewDto })
+  @ApiOperation({ summary: "Restore an archived loan contact" })
+  @ApiParam({ name: "contactId" })
+  @HttpCode(HttpStatus.OK)
+  @Post(":contactId/restore")
+  @Throttle(MUTATION_THROTTLE)
+  restore(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("contactId", ParseUUIDPipe) contactId: string,
+  ): Promise<LoanContactView> {
+    return this.loanContactsService.restore({ contactId, userId: user.id });
   }
 }

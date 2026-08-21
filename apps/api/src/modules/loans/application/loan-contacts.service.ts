@@ -34,6 +34,16 @@ const LOAN_CONTACT_NAME_CONFLICT = {
 export class LoanContactsService {
   constructor(private readonly loanContactsRepository: LoanContactsRepository) {}
 
+  async archive({
+    contactId,
+    userId,
+  }: {
+    contactId: string;
+    userId: string;
+  }): Promise<LoanContactView> {
+    return this.setArchivedAt({ archivedAt: new Date(), contactId, userId });
+  }
+
   async create({
     input,
     userId,
@@ -58,6 +68,24 @@ export class LoanContactsService {
     }
   }
 
+  async detail({
+    contactId,
+    userId,
+  }: {
+    contactId: string;
+    userId: string;
+  }): Promise<LoanContactView> {
+    const contact = await this.loanContactsRepository.findOwnedCardById({
+      id: contactId,
+      userId,
+    });
+    if (contact === null) {
+      throw new NotFoundError(LOAN_CONTACT_NOT_FOUND_MESSAGE);
+    }
+
+    return toLoanContactView(contact);
+  }
+
   async list({
     query,
     userId,
@@ -72,6 +100,16 @@ export class LoanContactsService {
       userId,
     });
     return { items: contacts.map(toLoanContactView) };
+  }
+
+  async restore({
+    contactId,
+    userId,
+  }: {
+    contactId: string;
+    userId: string;
+  }): Promise<LoanContactView> {
+    return this.setArchivedAt({ archivedAt: null, contactId, userId });
   }
 
   async update({
@@ -119,6 +157,27 @@ export class LoanContactsService {
         ? LOAN_CONTACT_NAME_CONFLICT.archived
         : LOAN_CONTACT_NAME_CONFLICT.live;
     return new ConflictError(conflict.message, { code: conflict.code });
+  }
+
+  private async setArchivedAt({
+    archivedAt,
+    contactId,
+    userId,
+  }: {
+    archivedAt: Nullable<Date>;
+    contactId: string;
+    userId: string;
+  }): Promise<LoanContactView> {
+    try {
+      return toLoanContactView(
+        await this.loanContactsRepository.setArchivedAt({ archivedAt, id: contactId, userId }),
+      );
+    } catch (error) {
+      if (isRecordNotFoundError(error)) {
+        throw new NotFoundError(LOAN_CONTACT_NOT_FOUND_MESSAGE);
+      }
+      throw error;
+    }
   }
 }
 

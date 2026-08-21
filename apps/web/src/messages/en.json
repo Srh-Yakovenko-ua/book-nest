@@ -1823,8 +1823,6 @@
         },
         "fields": {
           "returnDate": "Expected return",
-          "contact": "Contact",
-          "contactPlaceholder": "Phone, e-mail or @handle",
           "note": "Note",
           "notePlaceholder": "A few thoughts for yourself…",
           "remindToReturn": "Remind me to return",
@@ -1836,7 +1834,6 @@
           "loanDateFuture": "The date can’t be in the future.",
           "returnBeforeLoan": "Return can’t be before the loan date.",
           "reminderNeedsDate": "Pick a return date for the reminder.",
-          "contactMax": "No more than {max} characters.",
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again."
         }
