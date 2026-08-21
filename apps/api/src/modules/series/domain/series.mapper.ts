@@ -11,6 +11,7 @@ import {
   AgeCategorySchema,
   BookFormatsSchema,
   BookGenresSchema,
+  compareByPartThenCreated,
   OwnershipStatusSchema,
   ReadingStatusSchema,
   SeriesStatusSchema,
@@ -22,11 +23,11 @@ import type { SeriesAggregateBookRow } from "./series-aggregates.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
-import { toDeliverySummaryView } from "../../delivery/index.js";
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+import { toActiveBookDeliveryView } from "../../delivery/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
 import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import {
-  compareByPartThenCreated,
   computeSeriesLastActivityAt,
   summarizeSeriesBooks,
   toSeriesBookPreview,
@@ -155,7 +156,7 @@ function collectSeriesPublishers(
   }
 
   return Array.from(publishersById.values()).sort((first, second) =>
-    first.name.localeCompare(second.name),
+    UKRAINIAN_COLLATION.compare(first.name, second.name),
   );
 }
 
@@ -192,7 +193,7 @@ function toSeriesBookView({
   today: Date;
 }): SeriesBookView {
   return {
-    activeDelivery: toDeliverySummaryView(book.deliveries).active,
+    activeDelivery: toActiveBookDeliveryView(book.orderItems),
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
       id: bookAuthor.author.id,

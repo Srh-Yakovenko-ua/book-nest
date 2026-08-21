@@ -11,7 +11,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -20,7 +19,7 @@ import { Link } from "@/i18n/navigation";
 
 import type { ListBookReorder } from "../model/list-reorder";
 
-import { listBookCta } from "../model/list-book-cta";
+import { listBookReadingAction } from "../model/list-book-reading-action";
 
 type ListBookMenuProps = {
   book: ListBookView;
@@ -43,10 +42,9 @@ export function ListBookMenu({
 }: ListBookMenuProps) {
   const t = useTranslations("lists.details.book");
   const tCta = useTranslations("lists.details.book.cta");
-  const tReorder = useTranslations("lists.details.reorder");
   const [membershipOpen, setMembershipOpen] = useState(false);
 
-  const cta = listBookCta(book.readingStatus);
+  const readingAction = listBookReadingAction(book.readingStatus);
   const isLocked = reorder.kind === "locked";
 
   return (
@@ -64,19 +62,12 @@ export function ListBookMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuItem asChild>
-            <Link href={`/books/${book.id}`}>
-              <UiIcon name="eye" size={16} />
-              {t("view")}
-            </Link>
-          </DropdownMenuItem>
-
-          {cta === "resume" || cta === "start" ? (
+          {readingAction === null ? null : (
             <DropdownMenuItem onSelect={onStartReading}>
               <UiIcon name="book" size={16} />
-              {tCta(cta)}
+              {tCta(readingAction)}
             </DropdownMenuItem>
-          ) : null}
+          )}
 
           {book.isInReadingQueue ? (
             <DropdownMenuItem asChild>
@@ -110,12 +101,6 @@ export function ListBookMenu({
             <UiIcon name="arrow-down" size={16} />
             {t("moveDown")}
           </DropdownMenuItem>
-          {isLocked ? (
-            <DropdownMenuLabel className="pt-0 text-xs font-normal whitespace-normal text-muted-foreground">
-              {tReorder("hint")}
-            </DropdownMenuLabel>
-          ) : null}
-
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onSelect={onRemove} variant="destructive">

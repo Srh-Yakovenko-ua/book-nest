@@ -92,6 +92,7 @@ export function DedicationsToolbar({
           <MobileSortSheet
             className="sm:hidden"
             closeLabel={tSortMobile("close")}
+            description={tSortMobile("description")}
             groups={[
               {
                 key: "sort",

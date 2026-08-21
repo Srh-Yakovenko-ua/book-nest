@@ -837,7 +837,7 @@ describe("POST /api/books", () => {
 
     const res = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
+      deliveryInfo: { currency: "UAH", orderNumber: "TTN-1", price: 350, storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
     });
@@ -882,11 +882,13 @@ describe("POST /api/books", () => {
     expect(res.body.loanInfo).toEqual({
       contact: null,
       expectedReturnDate: null,
+      loanContactId: expect.any(String),
       loanDate: "2026-02-01",
       loanType: "borrowed_from_someone",
       loanUiStatus: "no_return_date",
       note: null,
       personName: "Olha",
+      remindBeforeDays: null,
       remindToReturn: false,
     });
   });
@@ -1438,11 +1440,14 @@ describe("POST /api/books delivery field parity", () => {
       trackingNumber: "TTN-123",
       trackingUrl: "https://track.example.com",
     });
-    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { bookId: res.body.id } });
-    expect(row.deliveryService).toBe("Nova Poshta");
-    expect(row.trackingNumber).toBe("TTN-123");
-    expect(row.trackingUrl).toBe("https://track.example.com");
-    expect(row.currency).toBe("UAH");
+    const row = await prisma.bookOrderItem.findFirstOrThrow({
+      include: { order: true, shipment: true },
+      where: { bookId: res.body.id },
+    });
+    expect(row.shipment?.deliveryServiceName).toBe("Nova Poshta");
+    expect(row.shipment?.trackingNumber).toBe("TTN-123");
+    expect(row.shipment?.trackingUrl).toBe("https://track.example.com");
+    expect(row.order.currency).toBe("UAH");
     expect(row.price?.toString()).toBe("349.5");
   });
 

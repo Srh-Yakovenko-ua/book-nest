@@ -115,10 +115,14 @@ describe("GET /api/series/:id book card fields", () => {
         userId,
       },
     });
+    const loanContact = await prisma.loanContact.create({
+      data: { name: "Olena", normalizedName: "olena", userId },
+    });
     await prisma.bookLoan.create({
       data: {
         bookId: lent.id,
         expectedReturnDate: new Date("2026-07-01T00:00:00.000Z"),
+        loanContactId: loanContact.id,
         personName: "Olena",
         status: "active",
         type: "lent_to_someone",
@@ -135,20 +139,25 @@ describe("GET /api/series/:id book card fields", () => {
         userId,
       },
     });
-    await prisma.bookDelivery.create({
+    const activeOrder = await prisma.bookOrder.create({ data: { storeName: "Yakaboo", userId } });
+    const activeShipment = await prisma.shipment.create({
       data: {
-        bookId: inTransit.id,
         expectedDeliveryDate: new Date("2026-06-10T00:00:00.000Z"),
+        orderId: activeOrder.id,
         status: "in_transit",
-        userId,
       },
     });
-    await prisma.bookDelivery.create({
+    await prisma.bookOrderItem.create({
+      data: { bookId: inTransit.id, orderId: activeOrder.id, shipmentId: activeShipment.id },
+    });
+    const cancelledOrder = await prisma.bookOrder.create({
+      data: { storeName: "Yakaboo", userId },
+    });
+    await prisma.bookOrderItem.create({
       data: {
         bookId: inTransit.id,
         cancelledAt: new Date("2026-05-01T00:00:00.000Z"),
-        status: "cancelled",
-        userId,
+        orderId: cancelledOrder.id,
       },
     });
 

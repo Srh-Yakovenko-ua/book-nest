@@ -11,7 +11,6 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
-import { BookDeliveriesRepository } from "../infrastructure/book-deliveries.repository.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -66,7 +65,7 @@ function createDelivery(
   return request(app.getHttpServer())
     .post(`/api/books/${bookId}/deliveries`)
     .set("Authorization", `Bearer ${accessToken}`)
-    .send(body);
+    .send({ currency: "UAH", price: 350, ...body });
 }
 
 function listDeliveries(accessToken: string, bookId: string): request.Test {
@@ -552,7 +551,7 @@ describe("POST /api/books/:id/deliveries/:deliveryId/receive", () => {
     expect(res.body.ownershipStatus).toBe("owned");
     expect(res.body.delivery.latest).toMatchObject({ id: deliveryId, status: "received" });
     expect(res.body.delivery.latest.receivedAt).toBe("2026-02-10T00:00:00.000Z");
-    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { id: deliveryId } });
+    const row = await prisma.bookOrderItem.findFirstOrThrow({ where: { id: deliveryId } });
     expect(row.receivedAt).toEqual(new Date("2026-02-10T00:00:00.000Z"));
   });
 
@@ -698,7 +697,7 @@ describe("POST /api/books/:id/deliveries/:deliveryId/cancel cancel reason", () =
 
     expect(res.status).toBe(200);
     expect(res.body.delivery.latest.cancelReason).toBe("Out of stock");
-    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { id: deliveryId } });
+    const row = await prisma.bookOrderItem.findFirstOrThrow({ where: { id: deliveryId } });
     expect(row.cancelReason).toBe("Out of stock");
   });
 
@@ -710,7 +709,7 @@ describe("POST /api/books/:id/deliveries/:deliveryId/cancel cancel reason", () =
 
     expect(res.status).toBe(200);
     expect(res.body.delivery.latest.cancelReason).toBeNull();
-    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { id: deliveryId } });
+    const row = await prisma.bookOrderItem.findFirstOrThrow({ where: { id: deliveryId } });
     expect(row.cancelReason).toBeNull();
   });
 
@@ -830,20 +829,22 @@ describe("GET /api/books/:id/deliveries", () => {
   });
 });
 
-describe("book_deliveries active partial unique index", () => {
-  it("rejects a second active delivery row inserted directly for the same book", async () => {
+describe("book_order_items active partial unique index", () => {
+  it("rejects a second active order item inserted directly for the same book", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
-    await prisma.bookDelivery.create({
-      data: { bookId: created.body.id, status: "ordered", storeName: "First", userId },
+    const firstOrder = await prisma.bookOrder.create({ data: { storeName: "First", userId } });
+    const secondOrder = await prisma.bookOrder.create({ data: { storeName: "Second", userId } });
+    await prisma.bookOrderItem.create({
+      data: { bookId: created.body.id, orderId: firstOrder.id },
     });
 
     await expect(
-      prisma.bookDelivery.create({
-        data: { bookId: created.body.id, status: "in_transit", storeName: "Second", userId },
+      prisma.bookOrderItem.create({
+        data: { bookId: created.body.id, orderId: secondOrder.id },
       }),
     ).rejects.toThrow();
   });
@@ -866,45 +867,69 @@ describe("concurrent delivery creation", () => {
   });
 });
 
-describe("applyRecordChange active-status guard", () => {
-  it("reports not-active for a transition on a terminal delivery", async () => {
-    const { accessToken, userId } = await context.registerVerifyAndLogin();
-    const created = await createBook(accessToken, {
+describe("per-book delivery routes across tenants", () => {
+  it("hides another reader's delivery behind every per-book route", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const seeded = await seedBookWithDelivery(owner.accessToken);
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerBook = await createBook(stranger.accessToken, {
       authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
-    const seeded = await prisma.bookDelivery.create({
-      data: {
-        bookId: created.body.id,
-        receivedAt: new Date(),
-        status: "received",
-        storeName: "Store",
-        userId,
-      },
-    });
-    const repository = app.get(BookDeliveriesRepository);
 
-    await expect(
-      repository.applyRecordChange(userId, created.body.id, seeded.id, {
-        book: null,
-        delivery: { note: "guard" },
+    const [patched, received, cancelled, listed, crossPatched] = await Promise.all([
+      updateDelivery(stranger.accessToken, strangerBook.body.id, seeded.deliveryId, {
+        storeName: "Hijacked",
       }),
-    ).resolves.toBe("not-active");
+      receiveDelivery(stranger.accessToken, strangerBook.body.id, seeded.deliveryId, {}),
+      cancelDelivery(stranger.accessToken, strangerBook.body.id, seeded.deliveryId, {
+        keepAsWantToBuy: true,
+      }),
+      listDeliveries(stranger.accessToken, seeded.bookId),
+      updateDelivery(stranger.accessToken, seeded.bookId, seeded.deliveryId, {
+        storeName: "Hijacked",
+      }),
+    ]);
+
+    expect([
+      patched.status,
+      received.status,
+      cancelled.status,
+      listed.status,
+      crossPatched.status,
+    ]).toEqual([404, 404, 404, 404, 404]);
+
+    const untouched = await listDeliveries(owner.accessToken, seeded.bookId);
+    expect(untouched.body).toHaveLength(1);
+    expect(untouched.body[0]).toMatchObject({ status: "ordered", storeName: "Yakaboo" });
   });
 
-  it("reports not-found for a missing delivery", async () => {
-    const { accessToken, userId } = await context.registerVerifyAndLogin();
-    const created = await createBook(accessToken, {
+  it("keeps another reader's order item out of the book payload", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const created = await createBook(owner.accessToken, {
       authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
-    const repository = app.get(BookDeliveriesRepository);
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerOrder = await prisma.bookOrder.create({
+      data: { storeName: "Stranger Store", userId: stranger.userId },
+    });
+    await prisma.bookOrderItem.create({
+      data: { bookId: created.body.id, orderId: strangerOrder.id },
+    });
 
-    await expect(
-      repository.applyRecordChange(userId, created.body.id, MISSING_UUID, {
-        book: null,
-        delivery: { note: "guard" },
-      }),
-    ).resolves.toBe("not-found");
+    const res = await listDeliveries(owner.accessToken, created.body.id);
+    const book = await request(app.getHttpServer())
+      .get(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+
+    expect(res.body).toEqual([]);
+    expect(book.body.delivery).toEqual({ active: null, latest: null, totalCount: 0 });
   });
 });

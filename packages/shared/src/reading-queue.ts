@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-import { BookViewSchema } from "./books.js";
+import {
+  AgeCategorySchema,
+  BookFormatSchema,
+  BookLanguageSchema,
+  BookTypeSchema,
+  OwnershipStatusSchema,
+  QueuePrioritySchema,
+  ReadingStatusSchema,
+} from "./book-enums.js";
+import { BookViewSchema, LIBRARY_SEARCH_MAX } from "./books.js";
+import { GenreKeySchema } from "./genres.js";
+import { queryStringArray, ratingBound } from "./internal.js";
 
 export const ReadingQueueItemViewSchema = z.object({
   book: BookViewSchema,
@@ -14,10 +25,51 @@ export const READING_QUEUE_LIMIT = 500;
 export const ReadingQueueViewSchema = z.object({
   count: z.number().int().nonnegative(),
   items: z.array(ReadingQueueItemViewSchema),
+  totalCount: z.number().int().nonnegative(),
   totalPagesCount: z.number().int().nonnegative(),
 });
 
 export type ReadingQueueView = z.infer<typeof ReadingQueueViewSchema>;
+
+export const ReadingQueueQuerySchema = z
+  .object({
+    ageCategory: queryStringArray(AgeCategorySchema),
+    author: queryStringArray(z.uuid()),
+    bookType: BookTypeSchema.optional(),
+    format: queryStringArray(BookFormatSchema),
+    genre: queryStringArray(GenreKeySchema),
+    hasCover: z.stringbool().optional(),
+    language: queryStringArray(BookLanguageSchema),
+    owner: queryStringArray(OwnershipStatusSchema),
+    pagesMax: z.coerce.number().int().nonnegative().optional(),
+    pagesMin: z.coerce.number().int().nonnegative().optional(),
+    priority: queryStringArray(QueuePrioritySchema),
+    publisher: queryStringArray(z.uuid()),
+    q: z.string().trim().max(LIBRARY_SEARCH_MAX).optional(),
+    ratingMax: ratingBound().optional(),
+    ratingMin: ratingBound().optional(),
+    status: queryStringArray(ReadingStatusSchema),
+    tag: queryStringArray(z.uuid()),
+    yearMax: z.coerce.number().int().optional(),
+    yearMin: z.coerce.number().int().optional(),
+  })
+  .superRefine((value, context) => {
+    const ranges = [
+      { max: value.pagesMax, min: value.pagesMin, name: "pages" },
+      { max: value.ratingMax, min: value.ratingMin, name: "rating" },
+      { max: value.yearMax, min: value.yearMin, name: "year" },
+    ];
+    for (const range of ranges) {
+      if (range.min === undefined || range.max === undefined || range.min <= range.max) continue;
+      context.addIssue({
+        code: "custom",
+        message: `${range.name}Min must not exceed ${range.name}Max`,
+        path: [`${range.name}Min`],
+      });
+    }
+  });
+
+export type ReadingQueueQuery = z.infer<typeof ReadingQueueQuerySchema>;
 
 export const ReadingQueuePlacementSchema = z.enum(["start", "end", "specific"]);
 

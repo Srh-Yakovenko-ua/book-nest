@@ -1,0 +1,102 @@
+{
+  "spec": "docs/specs/create-book-order-financial-modes/spec.md",
+  "generatedAt": "2026-08-16",
+  "scope": {
+    "included": [
+      "Four visual form sections",
+      "Manual-total and per-book financial modes",
+      "Predictable mode switching",
+      "Persistent full-width comment",
+      "Cancel and create footer actions",
+      "Responsive behavior and focused tests"
+    ],
+    "excluded": [
+      "Backend domain or API changes",
+      "Grouped delivery, history or statistics changes",
+      "Edit Order UX",
+      "Book picker and multi-shipment architecture changes"
+    ]
+  },
+  "openDecisions": [],
+  "verifiedAssertions": [
+    {
+      "claim": "The shared resolver distinguishes manual and calculated totals",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/order-financials.ts"
+    },
+    {
+      "claim": "Item prices, total, delivery and discount are accepted by the existing create contract",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts"
+    },
+    {
+      "claim": "The picker already switches within the same stable-width dialog",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/create-book-order-dialog.tsx"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Restructure the form into four sections",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/create-book-order-dialog.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Order contains only store, number and date",
+        "Books contains selection without prices in manual mode",
+        "Cost owns currency and every financial field",
+        "Delivery behavior is unchanged",
+        "Comment is permanently visible after the sections"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Implement exclusive financial entry modes",
+      "layer": "frontend",
+      "files": ["apps/web/src/features/delivery/components/create-book-order-dialog.tsx"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "Manual mode sends no item prices",
+        "Per-book mode sends no manual total",
+        "Per-book submit requires every selected item price",
+        "Calculated summary comes from resolveOrderFinancials",
+        "Switching modes clears hidden mode values"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Localize the new UX",
+      "layer": "frontend",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Both financial modes, helpers, Cost section and awaiting copy are translated",
+        "Locale catalogs remain structurally identical"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Cover form behavior with focused tests",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/components/create-book-order-dialog.test.tsx",
+        "apps/web/src/features/delivery/model/create-book-order-draft.test.ts"
+      ],
+      "dependsOn": ["T1", "T2", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "Manual, per-book, switching, picker state and shipment states are covered",
+        "Payloads preserve existing shared financial semantics",
+        "Typecheck, lint, format and focused tests pass"
+      ],
+      "status": "done"
+    }
+  ]
+}

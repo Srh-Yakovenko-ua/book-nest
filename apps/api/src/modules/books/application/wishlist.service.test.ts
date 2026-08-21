@@ -1,5 +1,6 @@
 import type { BookView, Nullable } from "@app/shared";
 
+import { WISHLIST_SORT_DEFAULT } from "@app/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { BookStoreLinkModel } from "../../../generated/prisma/models.js";
@@ -210,7 +211,7 @@ describe("WishlistService.getWishlist", () => {
     });
     expect(listWishlistBooks).toHaveBeenCalledWith({
       now: expect.any(Date),
-      query: {},
+      query: { sort: WISHLIST_SORT_DEFAULT },
       userId: USER_ID,
     });
   });

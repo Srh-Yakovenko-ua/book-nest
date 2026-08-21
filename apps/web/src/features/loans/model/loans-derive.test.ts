@@ -1,34 +1,6 @@
-import type { LoanListItemView } from "@app/shared";
-
 import { describe, expect, it } from "vitest";
 
-import { formatLoanDate, loanRelative, nearestReturns } from "./loans-derive";
-
-function makeLoan(overrides: Partial<LoanListItemView> = {}): LoanListItemView {
-  return {
-    book: {
-      cover: null,
-      firstAuthorName: "Ребекка Яррос",
-      id: "book-1",
-      originalTitle: null,
-      ownershipStatus: "borrowed_from_someone",
-      publisher: null,
-      title: "Четверте крило",
-    },
-    contact: null,
-    createdAt: "2024-05-12T00:00:00.000Z",
-    expectedReturnDate: null,
-    id: "loan-1",
-    loanDate: "2024-05-12",
-    loanUiStatus: "on_time",
-    note: null,
-    personName: "Олена Коваль",
-    remindToReturn: false,
-    type: "borrowed_from_someone",
-    updatedAt: "2024-05-12T00:00:00.000Z",
-    ...overrides,
-  };
-}
+import { daysBetweenLoanDates, formatLoanDate, loanRelative, loanTerm } from "./loans-derive";
 
 describe("formatLoanDate", () => {
   it("formats an ISO date as dd.MM.yyyy", () => {
@@ -64,27 +36,39 @@ describe("loanRelative", () => {
   });
 });
 
-describe("nearestReturns", () => {
+describe("loanTerm", () => {
   const today = "2024-05-24";
 
-  it("keeps only upcoming returns, soonest first", () => {
-    const items = [
-      makeLoan({ expectedReturnDate: "2024-05-28", id: "b" }),
-      makeLoan({ expectedReturnDate: "2024-05-20", id: "past" }),
-      makeLoan({ expectedReturnDate: "2024-05-24", id: "a" }),
-      makeLoan({ expectedReturnDate: null, id: "none" }),
-    ];
-
-    expect(nearestReturns(items, today).map((entry) => entry.id)).toEqual(["a", "b"]);
+  it("names the day instead of counting to it", () => {
+    expect(loanTerm("2024-05-24", today)).toEqual({ kind: "today" });
+    expect(loanTerm("2024-05-25", today)).toEqual({ kind: "tomorrow" });
   });
 
-  it("formats the date as dd.MM and caps the list to the limit", () => {
-    const items = Array.from({ length: 8 }, (_, index) =>
-      makeLoan({ expectedReturnDate: `2024-06-0${index + 1}`, id: `loan-${index}` }),
-    );
+  it("counts the days left from the day after tomorrow on", () => {
+    expect(loanTerm("2024-05-29", today)).toEqual({ days: 5, kind: "inDays" });
+  });
 
-    const result = nearestReturns(items, today);
-    expect(result).toHaveLength(5);
-    expect(result[0]?.date).toBe("01.06");
+  it("counts how long a return is overdue", () => {
+    expect(loanTerm("2024-05-16", today)).toEqual({ days: 8, kind: "overdue" });
+  });
+
+  it("has no term without a return date", () => {
+    expect(loanTerm(null, today)).toEqual({ kind: "none" });
+  });
+});
+
+describe("daysBetweenLoanDates", () => {
+  it("counts calendar days between two ISO days", () => {
+    expect(daysBetweenLoanDates("2024-05-12", "2024-05-24")).toBe(12);
+  });
+
+  it("returns a negative count when the dates are reversed", () => {
+    expect(daysBetweenLoanDates("2024-05-24", "2024-05-12")).toBe(-12);
+  });
+
+  it("returns null for a missing or malformed date", () => {
+    expect(daysBetweenLoanDates(null, "2024-05-24")).toBeNull();
+    expect(daysBetweenLoanDates("2024-05-12", null)).toBeNull();
+    expect(daysBetweenLoanDates("12.05.2024", "2024-05-24")).toBeNull();
   });
 });

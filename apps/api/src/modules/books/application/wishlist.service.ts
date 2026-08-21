@@ -1,5 +1,12 @@
-import type { Nullable, WishlistBookView, WishlistQuery, WishlistView } from "@app/shared";
+import type {
+  Nullable,
+  WishlistBookView,
+  WishlistFacetsView,
+  WishlistQuery,
+  WishlistView,
+} from "@app/shared";
 
+import { WISHLIST_SORT_DEFAULT } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { SeriesWishlistAnchor } from "../domain/wishlist-counts.js";
@@ -22,8 +29,13 @@ export class WishlistService {
     private readonly bookViewAssembler: BookViewAssembler,
   ) {}
 
+  async getFacets({ userId }: { userId: string }): Promise<WishlistFacetsView> {
+    const stores = await this.booksRepository.listWishlistStoreFacets(userId);
+    return { stores };
+  }
+
   async getWishlist({
-    query = {},
+    query = { sort: WISHLIST_SORT_DEFAULT },
     userId,
   }: {
     query?: WishlistQuery;

@@ -47,8 +47,10 @@ model User {
   bookLists                 BookList[]
   customGenres              Genre[]
   mediaAssets               MediaAsset[]
-  bookDeliveries            BookDelivery[]
+  bookBudgets               BookBudget[]
+  bookOrders                BookOrder[]
   bookLoans                 BookLoan[]
+  loanContacts              LoanContact[]
   bookStoreLinks            BookStoreLink[]
   deliveryServices          DeliveryService[]
   changelogRead             ChangelogRead?
@@ -63,6 +65,7 @@ model User {
   characterGraphLayouts     CharacterGraphLayout[]
   notifications             Notification[]
   readingGoals              ReadingGoal[]
+  readingGoalActivities     ReadingGoalActivity[]
 
   @@map("users")
 }
@@ -256,7 +259,7 @@ model Book {
   readingProgress               BookReadingProgress?
   readingEvents                 BookReadingProgressEvent[]
   purchaseInfo                  BookPurchaseInfo?
-  deliveries                    BookDelivery[]
+  orderItems                    BookOrderItem[]
   loans                         BookLoan[]
   storeLinks                    BookStoreLink[]
   quotes                        Quote[]
@@ -268,6 +271,8 @@ model Book {
   characterGroupMemberships     CharacterGroupMembership[]
   characterTheories             CharacterTheory[]
   characterRelationshipStates   CharacterRelationshipBookState[]
+  readingGoalBooks              ReadingGoalBook[]
+  readingGoalActivities         ReadingGoalActivity[]
 
   @@index([userId, firstAuthorName])
   @@index([userId, createdAt(sort: Desc), id])
@@ -352,57 +357,133 @@ model BookPurchaseInfo {
   @@map("book_purchase_info")
 }
 
-model BookDelivery {
-  id                   String    @id @default(uuid()) @db.Uuid
-  userId               String    @map("user_id") @db.Uuid
-  bookId               String    @map("book_id") @db.Uuid
-  storeName            String?   @map("store_name")
-  orderDate            DateTime? @map("order_date") @db.Date
-  expectedDeliveryDate DateTime? @map("expected_delivery_date") @db.Date
-  orderNumber          String?   @map("order_number")
-  trackingUrl          String?   @map("tracking_url")
-  trackingNumber       String?   @map("tracking_number")
-  deliveryService      String?   @map("delivery_service")
-  price                Decimal?  @db.Decimal(10, 2)
-  currency             String?
-  note                 String?
-  status               String    @default("ordered")
-  cancelReason         String?   @map("cancel_reason")
-  receivedAt           DateTime? @map("received_at") @db.Timestamptz
-  cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz
-  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+model BookBudget {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  currency       String
+  monthlyAmount  Decimal   @map("monthly_amount") @db.Decimal(10, 2)
+  validFromMonth DateTime  @map("valid_from_month") @db.Date
+  validToMonth   DateTime? @map("valid_to_month") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, currency, validFromMonth])
+  @@map("book_budgets")
+}
+
+model BookOrder {
+  id            String          @id @default(uuid()) @db.Uuid
+  userId        String          @map("user_id") @db.Uuid
+  storeName     String          @map("store_name")
+  orderNumber   String?         @map("order_number")
+  orderDate     DateTime?       @map("order_date") @db.Date
+  currency      String?
+  totalAmount   Decimal?        @map("total_amount") @db.Decimal(10, 2)
+  deliveryPrice Decimal?        @map("delivery_price") @db.Decimal(10, 2)
+  discount      Decimal?        @db.Decimal(10, 2)
+  isFree        Boolean         @default(false) @map("is_free")
+  note          String?
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         BookOrderItem[]
+  shipments     Shipment[]
+
+  @@index([userId, orderDate(sort: Desc)])
+  @@index([userId, storeName])
+  @@map("book_orders")
+}
+
+model BookOrderItem {
+  id           String    @id @default(uuid()) @db.Uuid
+  orderId      String    @map("order_id") @db.Uuid
+  bookId       String    @map("book_id") @db.Uuid
+  shipmentId   String?   @map("shipment_id") @db.Uuid
+  price        Decimal?  @db.Decimal(10, 2)
+  receivedAt   DateTime? @map("received_at") @db.Timestamptz
+  cancelledAt  DateTime? @map("cancelled_at") @db.Timestamptz
+  cancelReason String?   @map("cancel_reason")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  order        BookOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  book         Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  shipment     Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
   @@index([bookId])
-  @@index([userId, status])
+  @@index([shipmentId])
+  @@map("book_order_items")
+}
+
+model Shipment {
+  id                   String           @id @default(uuid()) @db.Uuid
+  orderId              String           @map("order_id") @db.Uuid
+  deliveryServiceId    String?          @map("delivery_service_id") @db.Uuid
+  deliveryServiceName  String?          @map("delivery_service_name")
+  trackingNumber       String?          @map("tracking_number")
+  trackingUrl          String?          @map("tracking_url")
+  expectedDeliveryDate DateTime?        @map("expected_delivery_date") @db.Date
+  pickupUntil          DateTime?        @map("pickup_until") @db.Date
+  status               String           @default("ordered")
+  receivedAt           DateTime?        @map("received_at") @db.Timestamptz
+  cancelledAt          DateTime?        @map("cancelled_at") @db.Timestamptz
+  cancelReason         String?          @map("cancel_reason")
+  note                 String?
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  order                BookOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliveryService      DeliveryService? @relation(fields: [deliveryServiceId], references: [id], onDelete: SetNull)
+  items                BookOrderItem[]
+
+  @@index([orderId])
+  @@index([deliveryServiceId])
   @@index([status, expectedDeliveryDate])
-  @@map("book_deliveries")
+  @@map("shipments")
 }
 
 model BookLoan {
-  id                 String    @id @default(uuid()) @db.Uuid
-  userId             String    @map("user_id") @db.Uuid
-  bookId             String    @map("book_id") @db.Uuid
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             String       @map("user_id") @db.Uuid
+  bookId             String       @map("book_id") @db.Uuid
+  loanContactId      String       @map("loan_contact_id") @db.Uuid
   type               String
-  personName         String    @map("person_name")
-  contact            String?   @map("contact")
-  loanDate           DateTime? @map("loan_date") @db.Date
-  expectedReturnDate DateTime? @map("expected_return_date") @db.Date
+  personName         String       @map("person_name")
+  contact            String?      @map("contact")
+  loanDate           DateTime?    @map("loan_date") @db.Date
+  expectedReturnDate DateTime?    @map("expected_return_date") @db.Date
   note               String?
-  remindToReturn     Boolean   @default(false) @map("remind_to_return")
-  status             String    @default("active")
-  returnedAt         DateTime? @map("returned_at") @db.Timestamptz
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book               Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  remindToReturn     Boolean      @default(false) @map("remind_to_return")
+  remindBeforeDays   Int?         @map("remind_before_days")
+  status             String       @default("active")
+  returnedAt         DateTime?    @map("returned_at") @db.Timestamptz
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book               Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  loanContact        LoanContact  @relation(fields: [loanContactId], references: [id], onDelete: Restrict)
 
   @@index([bookId])
-  @@index([userId, status])
+  @@index([userId, status, returnedAt])
   @@index([status, remindToReturn, returnedAt, expectedReturnDate])
+  @@index([loanContactId])
   @@map("book_loans")
+}
+
+model LoanContact {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String     @map("user_id") @db.Uuid
+  name           String
+  normalizedName String     @map("normalized_name")
+  contact        String?
+  archivedAt     DateTime?  @map("archived_at") @db.Timestamptz
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loans          BookLoan[]
+
+  @@unique([userId, normalizedName])
+  @@map("loan_contacts")
 }
 
 model BookStoreLink {
@@ -504,16 +585,19 @@ model Genre {
 }
 
 model DeliveryService {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String?  @map("user_id") @db.Uuid
-  name           String
-  normalizedName String   @map("normalized_name")
-  countryCode    String?  @map("country_code")
-  isDefault      Boolean  @default(false) @map("is_default")
-  sortOrder      Int      @default(0) @map("sort_order")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String     @id @default(uuid()) @db.Uuid
+  userId              String?    @map("user_id") @db.Uuid
+  name                String
+  normalizedName      String     @map("normalized_name")
+  countryCode         String?    @map("country_code")
+  providerKey         String?    @map("provider_key")
+  trackingUrlTemplate String?    @map("tracking_url_template")
+  isDefault           Boolean    @default(false) @map("is_default")
+  sortOrder           Int        @default(0) @map("sort_order")
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  user                User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shipments           Shipment[]
 
   @@unique([userId, normalizedName])
   @@map("delivery_services")
@@ -551,9 +635,50 @@ model ReadingGoal {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   list        BookList? @relation(fields: [listId], references: [id], onDelete: Cascade)
 
+  books      ReadingGoalBook[]
+  activities ReadingGoalActivity[]
+
   @@index([userId, archivedAt])
+  @@index([userId, createdAt])
+  @@index([userId, deadline])
   @@index([listId])
   @@map("reading_goals")
+}
+
+model ReadingGoalBook {
+  goalId              String    @map("goal_id") @db.Uuid
+  bookId              String    @map("book_id") @db.Uuid
+  position            Int       @default(0)
+  qualifiedFinishedAt DateTime? @map("qualified_finished_at") @db.Date
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  goal ReadingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  book Book        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([goalId, bookId])
+  @@index([bookId])
+  @@index([goalId, qualifiedFinishedAt])
+  @@map("reading_goal_books")
+}
+
+model ReadingGoalActivity {
+  id        String   @id @default(uuid()) @db.Uuid
+  goalId    String   @map("goal_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String
+  bookId    String?  @map("book_id") @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  goal ReadingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book?       @relation(fields: [bookId], references: [id], onDelete: SetNull)
+
+  @@index([goalId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([bookId])
+  @@map("reading_goal_activities")
 }
 
 model BookListItem {

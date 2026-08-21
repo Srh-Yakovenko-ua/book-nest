@@ -6,6 +6,7 @@ import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import {
@@ -26,11 +27,13 @@ import type { UseListDetailQueryResult } from "../model/use-list-detail-query";
 
 import { LIST_BOOK_SORT_DEFAULT, LIST_BOOK_SORT_OPTIONS } from "../model/list-book-sort";
 import { ListAdvancedFilters } from "./list-advanced-filters";
+import { ListBookSortSheet } from "./list-book-sort-sheet";
 
 type ListDetailsToolbarProps = {
   chips: ActiveFilterChip[];
   counterLabel: string;
   id: string;
+  isReorderLocked: boolean;
   isSelecting: boolean;
   onClearAll: () => void;
   onSearchChange: (value: string) => void;
@@ -46,6 +49,7 @@ export function ListDetailsToolbar({
   chips,
   counterLabel,
   id,
+  isReorderLocked,
   isSelecting,
   onClearAll,
   onSearchChange,
@@ -57,6 +61,7 @@ export function ListDetailsToolbar({
   state,
 }: ListDetailsToolbarProps) {
   const t = useTranslations("lists.details.toolbar");
+  const tReorder = useTranslations("lists.details.reorder");
   const tSelection = useTranslations("lists.details.selection");
   const tSort = useTranslations("lists.details.toolbar.sort");
   const tView = useTranslations("lists.details.view");
@@ -69,16 +74,23 @@ export function ListDetailsToolbar({
           <DebouncedSearchInput
             clearLabel={tCommon("clear")}
             isCommittable={alwaysCommittable}
-            label={t("search")}
+            label={t("searchLabel")}
             onClear={() => onSearchChange("")}
             onSearch={onSearchChange}
-            placeholder={t("search")}
+            placeholder={t("searchPlaceholder")}
             value={state.q}
           />
         </div>
 
         <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2.5">
-          <div className="min-w-0 flex-1 sm:w-80 sm:flex-none">
+          <ListBookSortSheet
+            className="sm:hidden"
+            label={t("sort.label")}
+            onChange={onSortChange}
+            value={state.sort}
+          />
+
+          <div className="hidden sm:block sm:w-80 sm:flex-none">
             <Select onValueChange={(next) => onSortChange(toSortOption(next))} value={state.sort}>
               <SelectTrigger
                 aria-label={t("sort.label")}
@@ -137,6 +149,16 @@ export function ListDetailsToolbar({
       {quickFilters}
 
       <LibraryActiveFilters chips={chips} onClearAll={onClearAll} />
+
+      {isReorderLocked ? (
+        <div
+          className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
+          role="status"
+        >
+          <UiIcon aria-hidden className="mt-px shrink-0" name="info" size={14} />
+          <span>{tReorder("hint")}</span>
+        </div>
+      ) : null}
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {counterLabel}

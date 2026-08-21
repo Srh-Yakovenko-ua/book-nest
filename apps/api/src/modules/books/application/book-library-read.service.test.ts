@@ -21,6 +21,7 @@ const PUBLISHER_ID = "44444444-4444-4444-8444-444444444444";
 
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
   return {
+    _count: { orderItems: 0 },
     ageCategory: "not_specified",
     authors: [
       {
@@ -34,7 +35,6 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     coverMediaId: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     dedication: null,
-    deliveries: [],
     description: null,
     favoriteAddedAt: null,
     firstAuthorName: "Frank Herbert",
@@ -48,6 +48,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     language: "ukrainian",
     lists: [],
     loans: [],
+    orderItems: [],
     originalTitle: null,
     ownershipStatus: "none",
     pagesCount: null,

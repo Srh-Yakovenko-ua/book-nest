@@ -1,0 +1,1659 @@
+{
+  "spec": "apps/api/md/booknest-order-statistics-spec/",
+  "specFiles": [
+    "README.md",
+    "shared/00_PRODUCT_DECISIONS.md",
+    "shared/01_CURRENT_REPO_CONTEXT.md",
+    "shared/02_CONTRACT_AND_INVARIANTS.md",
+    "shared/03_ACCEPTANCE_CRITERIA.md",
+    "shared/04_PROPOSED_RESPONSE_SHAPES.md",
+    "backend/00_MASTER_PROMPT_BACKEND.md",
+    "backend/01_financial_invariant_and_cancelled_scope.md",
+    "backend/02_statistics_period_and_comparison.md",
+    "backend/03_summary_kpis.md",
+    "backend/04_delivery_cost_and_discounts.md",
+    "backend/05_landed_book_cost.md",
+    "backend/06_lifecycle_status_distribution.md",
+    "backend/07_store_analytics.md",
+    "backend/08_top_orders_by_currency.md",
+    "backend/09_spending_pulse.md",
+    "backend/10_active_money_age_buckets.md",
+    "backend/11_purchase_calendar.md",
+    "backend/12_purchase_records.md",
+    "backend/13_budget_persistence_and_api.md",
+    "backend/14_drilldown_in_transit_age_filter.md",
+    "backend/15_truncation_meta_and_performance.md",
+    "backend/16_shared_contracts_and_openapi.md",
+    "backend/17_tests_quality_and_execution_order.md"
+  ],
+  "generatedAt": "2026-08-20T15:49:31Z",
+  "branch": "dev",
+  "baseCommit": "dd144d45",
+  "scope": {
+    "included": [
+      "backend/01 canonical order effective-total helper + cancelled item scope (the helper the spec names does not exist yet; this creates it)",
+      "backend/02 period normalization, previous_period / same_period_last_year windows, reusable numeric+money delta helper",
+      "backend/03 summary KPI extension + current-snapshot separation + per-KPI comparison",
+      "backend/04 delivery cost and discount analytics per currency",
+      "backend/05 landed/real book cost allocation in minor units + dashboard and per-store coverage aggregates",
+      "backend/06 lifecycle distribution in orders mode and books mode",
+      "backend/07 enriched store scorecard + best-value store per currency + per-store comparison",
+      "backend/08 currency-safe top orders",
+      "backend/09 deterministic Spending Pulse insight union",
+      "backend/10 active-money age buckets snapshot",
+      "backend/11 purchase calendar daily aggregation",
+      "backend/12 purchase records",
+      "backend/13 monthly budget persistence (new Prisma model + migration), read, upsert, current-month progress and forecast",
+      "backend/14 in-transit ageBucket list filter (API + shared contract only)",
+      "backend/15 truncation meta + cap detection + query/index audit",
+      "backend/16 shared Zod contracts, Swagger DTOs, contract parse tests",
+      "backend/17 domain unit specs, integration specs, fixtures, execution order",
+      "pnpm gen:api regeneration of apps/web/src/shared/api/generated/** (codegen output, 1719 tracked files, not hand-written FE code)"
+    ],
+    "excluded": [
+      "Every file under apps/web/src/** that is hand-written. Caller scoped this pass to apps/api + packages/shared + prisma + codegen. Consequences: (a) apps/web/src/features/delivery/model/statistics-view-model.ts:129-135 keeps drawing the store progress bar from ordersCount/totalOrders while the row renders spending (shared/01_CURRENT_REPO_CONTEXT.md:127-129 issue 3) — that is a pure FE bug, no backend field fixes it; (b) statistics-view-model.ts:97,103,109 keeps mixing units (books, books, orders) in the three status cards (issue 4) even after T31-T33 ship the lifecycle block; (c) delivery-monthly-chart.tsx:39-60 keeps one BarChart per currency plus a separate orders chart (issue 5); (d) nothing consumes topOrdersByCurrency, meta, costs, landed, lifecycle, pulse, daily, records, activeAge or budgets until an FE pass runs.",
+      "All of frontend/00..18. Read only, to establish what the backend must supply.",
+      "backend/05_landed_book_cost.md:51 per-top-order / per-order-detail landed breakdown — the spec itself defers it (\"do not bloat this task\").",
+      "backend/13_budget_persistence_and_api.md:78-79 specific-month budget override on top of the recurring baseline — the spec marks it \"Optional future enhancement, NOT required V1\".",
+      "shared/02_CONTRACT_AND_INVARIANTS.md:22 isFree invariant. No isFree column exists (apps/api/prisma/schema.prisma:358-378) and no code, DTO or FE field references one. Resolution deferred to openDecision D2; if the answer is \"add the column\" this excluded entry becomes tasks, if it is \"drop it\" the free-order case is already expressible as an explicit totalAmount of 0 (OwnershipPriceSchema allows 0, packages/shared/src/internal.ts:123-126).",
+      "backend/01_financial_invariant_and_cancelled_scope.md:14,78 \"remove the old mismatch validation\". There is no mismatch validation to remove: CreateBookOrderInputSchema (packages/shared/src/orders.ts:194-209) has four refinements, none comparing totalAmount to the item subtotal, and UpdateBookOrderInputSchema (:213-222) has none. The requirement is vacuous against this tree; T11 turns it into an assertion instead of an edit.",
+      "frontend/15_drilldowns_navigation.md URL wiring, chip labels and next-intl keys for the age bucket. Backend side is T67-T69 only.",
+      "Repo-wide gates (pnpm typecheck / lint / format:check / targeted vitest / curl) named in backend/17_tests_quality_and_execution_order.md:64-72. They are the Definition of Done for the whole pass, verified in MODE VERIFY, not a numbered task."
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Create packages/shared/src/order-statistics.ts with period, compare and delta primitives",
+      "specRef": "backend/02_statistics_period_and_comparison.md:45-64; backend/16_shared_contracts_and_openapi.md:9-24; shared/04_PROPOSED_RESPONSE_SHAPES.md:28-55,131-142",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts", "packages/shared/src/index.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "packages/shared/src/order-statistics.ts exists and packages/shared/src/index.ts has an `export * from \"./order-statistics.js\"` line placed alphabetically",
+        "BookOrderStatisticsCompareModeSchema = z.enum([\"previous_period\", \"same_period_last_year\"]) with exported type",
+        "StatisticsPeriodSchema = { from: z.iso.date().nullable(), to: z.iso.date().nullable() }",
+        "StatisticsComparisonPeriodSchema = { mode: BookOrderStatisticsCompareModeSchema, from: z.iso.date(), to: z.iso.date() } — from/to NOT nullable, because a comparison window only exists when it is computable",
+        "NumericDeltaSchema = { current, previous, absoluteDelta, percentDelta } with every field z.number().nullable()",
+        "CurrencyDeltaSchema = NumericDeltaSchema.extend({ currency: CurrencySchema }) — money deltas are per currency, never a bare number (shared/02_CONTRACT_AND_INVARIANTS.md:12-16)",
+        "no schema in this file re-declares Currency; it imports CurrencySchema from ./book-enums.js"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Add compare (and the resolved period-preset field) to BookOrderStatisticsQuerySchema additively",
+      "specRef": "shared/04_PROPOSED_RESPONSE_SHAPES.md:11-24; backend/02_statistics_period_and_comparison.md:35-38",
+      "layer": "shared",
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsQuerySchema keeps all six existing keys unchanged (currency, from, includeCancelled, status, store, to — orders.ts:505-512) so apps/web/src/features/delivery/model/statistics-params.ts:47-59 still compiles",
+        "the new key is `compare: BookOrderStatisticsCompareModeSchema.optional()` — optional, never defaulted, so \"do not send compare when disabled\" (shared/04:24) is the wire default",
+        "whatever D3 resolves for period presets is present or absent here, not invented: if D3 says \"raw from/to only\", no preset field is added and equal-duration fallback is the only rule implemented in T12",
+        "@ApiQuery({ name: \"compare\", required: false }) added in apps/api/src/modules/delivery/api/book-orders.controller.ts next to the six existing ones (:69-74)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Add a minor-units money helper to the delivery domain",
+      "specRef": "backend/05_landed_book_cost.md:24-29; shared/02_CONTRACT_AND_INVARIANTS.md:64-68",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/money-minor-units.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the file exports pure functions converting a major-unit number to an integer minor-unit amount and back, plus a largest-remainder distributor that takes a total in minor units and a weight list and returns integers summing exactly to the total",
+        "no helper exists anywhere else in the repo doing the same job — verified before writing: rg for \"minorUnits|toMinor|roundMoney\" over apps/api/src and packages/shared/src returned zero matches at baseCommit dd144d45",
+        "all money constants (scale, rounding mode) live in one frozen object per CLAUDE.md §8.10, not scattered consts",
+        "the module is placed in modules/delivery/domain (not core/), because its three consumers (T28 landed cost, T24 costs, T60 budget forecast) are all inside this module"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Unit-test the minor-units helper",
+      "specRef": "backend/05_landed_book_cost.md:26-29,70,75",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/money-minor-units.test.ts"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "a test asserts fractional-cent input rounds to an exact integer minor amount",
+        "a test asserts the distributor over weights [1,1,1] and a total of 100 minor units returns integers summing to exactly 100 with the residual assigned by largest remainder then stable index",
+        "a test covers very small values (1 minor unit split across 3 weights)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Add OrderTotalSource to the shared statistics contract",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:50-56",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "OrderTotalSourceSchema = z.enum([\"free\", \"manual\", \"calculated\", \"unknown\"]) with exported type OrderTotalSource",
+        "the literal strings appear exactly once in the repo — grep for \"calculated\" under packages/shared/src returns only this declaration"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Create the canonical order effective-total resolver in the delivery domain",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:7-24,50-58; shared/02_CONTRACT_AND_INVARIANTS.md:18-34",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/order-financials.ts"],
+      "dependsOn": ["T3", "T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "one exported pure function takes { countedItems, deliveryPrice, discount, totalAmount } and returns { effectiveTotalAmount, source, componentSubtotal, reconciliationAdjustment }",
+        "explicit totalAmount (including 0) wins and yields source \"manual\" — an explicit 0 is the free-order representation unless D2 says otherwise",
+        "with totalAmount null and every counted item price known, the result is componentSubtotal + (deliveryPrice ?? 0) - (discount ?? 0) with source \"calculated\"",
+        "with totalAmount null and any counted item price null, effectiveTotalAmount is null and source is \"unknown\"",
+        "componentSubtotal is null when any counted item price is null, so callers cannot silently treat a partial subtotal as complete",
+        "reconciliationAdjustment = effectiveTotalAmount - (componentSubtotal + delivery - discount), and is null whenever either operand is null",
+        "the function throws no validation error for a manual total that differs from the component sum (backend/01:14)",
+        "all arithmetic goes through the T3 minor-unit helper, so 0.1 + 0.2 never leaks into a total",
+        "the function is pure: no Prisma import, no Date, no logger"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Unit-test order-financials against all eleven spec edge cases",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:60-73,81",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/order-financials.test.ts"],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "one test per case listed at backend/01:62-73: explicit total + all prices exact match; explicit total + all prices mismatch; explicit total + incomplete prices; no explicit total + all prices; no explicit total + incomplete prices; free order; delivery only; discount > 0; partial cancelled + calculated total; partial cancelled + manual total; fully cancelled included and excluded",
+        "the partial-cancelled + manual-total test carries an assertion comment-free name that states the limitation the spec demands be documented (backend/01:34,81): a manual total is order-level truth and no refund is inferred",
+        "the mismatch test asserts reconciliationAdjustment is the non-zero difference, and that no error is thrown"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Select deliveryPrice, discount and item id in the statistics repository read",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:11; backend/04_delivery_cost_and_discounts.md:7-16; backend/05_landed_book_cost.md:27",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts",
+        "apps/api/src/modules/delivery/domain/order-statistics.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "orderStatisticsSelect (delivery-statistics.repository.ts:21-47) adds deliveryPrice and discount to the order select, and adds id to the item select",
+        "OrderStatisticsItemRecord (order-statistics.ts:34-41) gains `id: string`; OrderStatisticsRecord (:43-52) gains deliveryPrice and discount as Nullable<number>",
+        "toOrderStatisticsRecord (:140-163) converts both Decimals with .toNumber() guarded by a null check, matching the existing totalAmount line (:161)",
+        "the item id is required because T28 allocates rounding residuals by stable item id order (backend/05:27)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "Route order classification through the canonical resolver and delete the private resolveOrderAmount",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:26-34,58,77",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/order-statistics.ts"],
+      "dependsOn": ["T6", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "the private function resolveOrderAmount (order-statistics.ts:411-424) no longer exists; grep for \"resolveOrderAmount\" over apps/api/src returns zero matches",
+        "classifyOrder (:340-363) calls the T6 resolver with countedItems, record.deliveryPrice and record.discount and stores both the amount and the source on ClassifiedOrder",
+        "counted-item scoping is preserved: with includeCancelled=false the resolver still receives only items whose cancelledAt is null (:351-353), and a test proves a cancelled item's price stops contributing to a calculated total",
+        "every order amount in the file (summary, monthly, byStore, topOrders) comes from that single resolved value — one financial invariant across the module (backend/01:77)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Extend order-statistics.test.ts for the delivery/discount-aware effective total",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:62-73; shared/03_ACCEPTANCE_CRITERIA.md:11-13",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/order-statistics.test.ts"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "the existing 441-line spec still passes with its current assertions or with assertions updated only where deliveryPrice/discount legitimately change a total",
+        "a new case asserts an order with items 300 + 500, deliveryPrice 100 and discount 80 and no explicit totalAmount produces an effective total of 820, where the pre-change code produced 800",
+        "a new case asserts includeCancelled=false with one cancelled priced item excludes that price from the calculated total"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Assert the single-invariant blast radius instead of editing a validation that does not exist",
+      "specRef": "backend/00_MASTER_PROMPT_BACKEND.md:18-23; backend/01_financial_invariant_and_cancelled_scope.md:36-48,77-80",
+      "layer": "contract",
+      "files": [
+        "apps/api/src/modules/delivery/application/book-order.service.test.ts",
+        "apps/api/src/modules/delivery/api/book-orders.controller.test.ts"
+      ],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "an existing or new create-order test asserts that a manual totalAmount differing from the item subtotal is accepted with 201 and stored verbatim — proving the invariant the spec wants is already the tree's behaviour, since CreateBookOrderInputSchema (packages/shared/src/orders.ts:194-209) carries no subtotal refinement",
+        "grep for \"resolveOrderFinancials|validateOrderFinancials|OrderTotalSource\" over apps/api/src, packages/shared/src and apps/web/src returns matches only in files this plan creates",
+        "no create/update DTO, import/export path or FE form was changed by this task — it is verification, not an edit"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "Implement the period-normalization domain module",
+      "specRef": "backend/02_statistics_period_and_comparison.md:6-42,79-83",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-period.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "one exported pure function takes { compare, from, to, now } and returns { currentPeriod, comparisonPeriod } where comparisonPeriod is null when compare is undefined",
+        "previous_period over a partial current month (2026-08-01..2026-08-20) yields 2026-07-01..2026-07-20, not \"minus 20 days\" (backend/02:14-18)",
+        "previous_period over a full calendar month yields the full preceding calendar month",
+        "previous_period over an arbitrary raw range yields the immediately preceding range with an equal inclusive day count (backend/02:33,36)",
+        "same_period_last_year shifts the calendar year preserving month/day, with an explicit rule for 29 Feb",
+        "an open-ended period (from or to undefined) resolves against `now` before any comparison window is derived, and the resolved bounds are what the response meta reports",
+        "every date operation uses date-fns / date-fns-tz (CLAUDE.md §8.11) and the module reuses apps/api/src/core/iso-date.ts helpers (parseIsoDate, toIsoDate) rather than re-deriving UTC day boundaries",
+        "no getTime() arithmetic, no millisecond literals, no in-place Date mutators anywhere in the file"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "Implement the reusable numeric and money delta helper",
+      "specRef": "backend/02_statistics_period_and_comparison.md:52-64; shared/02_CONTRACT_AND_INVARIANTS.md:87-100",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-delta.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "one exported pure function maps { current, previous } to NumericDelta with absoluteDelta null when either side is null",
+        "percentDelta is null when previous is 0 or null — never Infinity, never a fabricated 100 (backend/02:60, shared/02:100)",
+        "a second exported function maps two CurrencyTotal arrays to CurrencyDelta[] pairing strictly by currency, emitting a row for a currency present on only one side with the missing side null",
+        "no cross-currency sum, average or ranking appears in the file"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "Unit-test statistics-period across all ten spec cases",
+      "specRef": "backend/02_statistics_period_and_comparison.md:66-77",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-period.test.ts"],
+      "dependsOn": ["T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: Aug 1-20 vs Jul 1-20; full month; rolling 30 days; rolling 3 months; YTD; custom 5-20 Aug; same period previous year; leap year (29 Feb source and 29 Feb target); previous window empty; no compare",
+        "the clock is injected, not read from the process — every case passes a fixed `now`"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "Unit-test the delta helper",
+      "specRef": "backend/02_statistics_period_and_comparison.md:52-64,76",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-delta.test.ts"],
+      "dependsOn": ["T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "a test asserts percentDelta is null when previous is 0",
+        "a test asserts percentDelta is null when previous is null",
+        "a test asserts a currency present only in the current period yields a row with previous null and percentDelta null"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "Detect and report repository truncation instead of only logging it",
+      "specRef": "backend/15_truncation_meta_and_performance.md:6-24,46-51; shared/01_CURRENT_REPO_CONTEXT.md:135-137",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "listOrderRecords takes STATISTICS_MAX_ORDERS + 1 rows, trims to the cap, and returns { records, isTruncated, loadedOrdersCount, maxOrders } instead of a bare array (today it returns rows.map(...) at :78 and only warns at :71-76)",
+        "isTruncated is true only when the extra row came back — the current `rows.length === STATISTICS_MAX_ORDERS` check (:71) cannot tell exactly-max from more and is replaced",
+        "no separate COUNT query is added (backend/15:24)",
+        "STATISTICS_MAX_ORDERS and the fetch overshoot live in one frozen constants object per CLAUDE.md §8.10",
+        "the existing log.warn is kept or moved, but it is no longer the only signal"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "Split statistics orchestration out of DeliveryReadService into its own application service",
+      "specRef": "backend/00_MASTER_PROMPT_BACKEND.md:29-42; shared/01_CURRENT_REPO_CONTEXT.md:148-149",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/delivery/application/delivery-statistics.service.ts",
+        "apps/api/src/modules/delivery/application/delivery-read.service.ts",
+        "apps/api/src/modules/delivery/api/book-orders.controller.ts",
+        "apps/api/src/modules/delivery/delivery.module.ts"
+      ],
+      "dependsOn": ["T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "DeliveryReadService.statistics (delivery-read.service.ts:140-161) is gone and the class no longer injects DeliveryStatisticsRepository (:37)",
+        "a new DeliveryStatisticsService owns the statistics read, is registered in delivery.module.ts providers, and is what BookOrdersController injects for the statistics route (book-orders.controller.ts:77-82)",
+        "delivery-read.service.ts stays under 200 lines and the new service starts under 200 lines; both stay orchestration-only with all math in domain/ (CLAUDE.md §5.2)",
+        "apps/api/src/modules/delivery/application/delivery-read.service.test.ts still passes, or its statistics cases move to a new delivery-statistics.service.test.ts"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "title": "Add the response meta block to the shared statistics view",
+      "specRef": "backend/15_truncation_meta_and_performance.md:6-16; shared/00_PRODUCT_DECISIONS.md:227-236; shared/04_PROPOSED_RESPONSE_SHAPES.md:30-40",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts", "packages/shared/src/orders.ts"],
+      "dependsOn": ["T1", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsMetaSchema = { isTruncated: z.boolean(), loadedOrdersCount: CountSchema, maxOrders: z.number().int().positive().nullable(), currentPeriod: StatisticsPeriodSchema, comparisonPeriod: StatisticsComparisonPeriodSchema.nullable() }",
+        "BookOrderStatisticsViewSchema (orders.ts:567-572) gains the meta key with the optionality D1 resolves — if D1 says additive-only, meta is .optional() and apps/web/src/features/delivery/components/delivery-history.fixtures.ts:123 still typechecks unchanged",
+        "the four existing keys byStore, monthly, summary, topOrders are still present and unchanged in shape",
+        "root `pnpm typecheck` is green with zero edits under apps/web/src — the binding constraint is delivery-history.fixtures.ts:123, an explicitly typed `BookOrderStatisticsView` object literal that must keep satisfying the type"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "title": "Test truncation detection at max-1, max and max+1",
+      "specRef": "backend/15_truncation_meta_and_performance.md:46-51",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/application/delivery-statistics.service.test.ts"],
+      "dependsOn": ["T17", "T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "three cases drive the repository through a stub or a lowered cap: max-1 rows produce isTruncated false and loadedOrdersCount = max-1; exactly max rows produce isTruncated false and loadedOrdersCount = max; max+1 rows produce isTruncated true and loadedOrdersCount = max",
+        "a case asserts meta.maxOrders equals the configured cap in all three"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "title": "Extend the shared summary KPI contract and add the current-snapshot structure",
+      "specRef": "backend/03_summary_kpis.md:7-36; shared/00_PRODUCT_DECISIONS.md:3-26",
+      "layer": "shared",
+      "files": ["packages/shared/src/orders.ts", "packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1", "T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "all thirteen existing BookOrderStatisticsSummarySchema keys (orders.ts:516-530) are still declared and unchanged, so statistics-view-model.ts:97-113 and delivery-statistics.tsx:54-82 keep compiling",
+        "the summary gains averageBooksPerOrder (z.number().nullable(), null when counted orders is 0 — backend/03:52)",
+        "a separate BookOrderStatisticsSnapshotSchema carries activeTotalsByCurrency, activeBooksCount, activeShipmentsCount and activeOrdersCount, and is documented as ignoring the historical period (backend/03:27)",
+        "a BookOrderStatisticsComparisonSchema exposes, per historical KPI, the T1 NumericDelta or CurrencyDelta shape — not a duplicate of the whole summary object (shared/04:57)",
+        "no comparison structure is emitted for the snapshot (backend/03:36)",
+        "the secondary strip of shared/00:22-26 (orders, books, shipments, received counts) resolves entirely from keys already present"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "title": "Compute the summary, snapshot and comparison in the domain",
+      "specRef": "backend/03_summary_kpis.md:7-52; backend/02_statistics_period_and_comparison.md:82",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/delivery/domain/order-statistics.ts",
+        "apps/api/src/modules/delivery/domain/statistics-snapshot.ts"
+      ],
+      "dependsOn": ["T9", "T13", "T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "buildOrderSummary (order-statistics.ts:257-302) emits averageBooksPerOrder = counted books / counted orders with a null result at zero orders, never NaN",
+        "averageBookPriceByCurrency still counts only known item prices in the non-cancelled scope (addItemPrices, :124-137) and averageOrderAmountByCurrency still counts only orders with a known effective total (addOrderAmount, :139-150)",
+        "the snapshot builder is a separate exported function taking the active-order dataset and never reads the from/to filter",
+        "the comparison is computed by calling the T13 delta helper over the current and previous aggregate — no second implementation of percent math (backend/02:82)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T22",
+      "title": "Test summary KPI, snapshot independence and comparison",
+      "specRef": "backend/03_summary_kpis.md:53-61",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/order-statistics.test.ts"],
+      "dependsOn": ["T21"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: empty dataset; one order; mixed currencies; unknown prices; includeCancelled on and off; compare on; snapshot versus historical period",
+        "the snapshot case asserts a from/to window that excludes every active order still returns non-zero active totals"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T23",
+      "title": "Add the cost-composition contract to shared",
+      "specRef": "backend/04_delivery_cost_and_discounts.md:7-19; shared/00_PRODUCT_DECISIONS.md:61-71",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsCostsSchema is an array of per-currency rows carrying currency, deliveryTotal, discountTotal, ordersWithDeliveryCount, ordersWithDiscountCount, deliveryCostPerBook (nullable), deliveryShareOfSpendPercent (nullable)",
+        "deliveryShareOfSpendPercent and deliveryCostPerBook are nullable, not optional — a null means \"denominator was zero or unknown\" and is a value, not an absence (backend/16:32)",
+        "no key named anything like budget appears here — budget share lives only on the budget response (backend/04:24-27)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T24",
+      "title": "Compute delivery and discount analytics per currency",
+      "specRef": "backend/04_delivery_cost_and_discounts.md:7-39,42-48",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-costs.ts"],
+      "dependsOn": ["T9", "T23", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "deliveryTotal and discountTotal sum only over the same included-order and counted-item scope classifyOrder produces, so includeCancelled changes them consistently with every other metric (backend/04:31)",
+        "ordersWithDeliveryCount counts orders whose deliveryPrice is non-null and greater than zero; ordersWithDiscountCount likewise for discount",
+        "deliveryCostPerBook = deliveryTotal / counted books in that currency, null when counted books is 0",
+        "deliveryShareOfSpendPercent = deliveryTotal / effective spend * 100, null when spend <= 0 (backend/04:19-21)",
+        "a negative or otherwise anomalous stored value does not throw; the module returns a safe value and a test pins the behaviour (backend/04:34-39)",
+        "the five UI strings of backend/04:44-48 are each satisfiable from a returned field with no frontend arithmetic"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T25",
+      "title": "Unit-test cost analytics",
+      "specRef": "backend/04_delivery_cost_and_discounts.md:50-57",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-costs.test.ts"],
+      "dependsOn": ["T24"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: zero delivery; free shipping (delivery 0 explicitly stored); discounts only; mixed currencies; order with no effective total; zero counted books; cancelled included and excluded"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T26",
+      "title": "Add discountShareOfRawSubtotalPercent",
+      "specRef": "backend/04_delivery_cost_and_discounts.md:15",
+      "layer": "domain",
+      "files": [
+        "packages/shared/src/order-statistics.ts",
+        "apps/api/src/modules/delivery/domain/statistics-costs.ts"
+      ],
+      "dependsOn": ["T24"],
+      "mandatory": false,
+      "doneWhen": [
+        "the field is nullable and null when the raw subtotal in that currency is 0 or unknown",
+        "spec marks it \"optionally\" at backend/04:15 — this is the only reason mandatory is false"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T27",
+      "title": "Add the landed-cost contract to shared",
+      "specRef": "backend/05_landed_book_cost.md:38-50; shared/00_PRODUCT_DECISIONS.md:73-86",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsLandedSchema is an array of per-currency rows carrying currency, averageLandedBookCost (nullable), eligibleBooksCount, countedBooksCount, coveragePercent, differenceVsAverageRawBookPrice (nullable)",
+        "coveragePercent is a number in 0..100 and is 0, not null, when countedBooksCount is 0 with eligibleBooksCount 0 — pinned by a test either way, no ambiguity (backend/16:32)",
+        "no per-item landed value is exposed in the dashboard contract; realCost is derived analytics and is not stored or returned per BookOrderItem (backend/05:7-9)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T28",
+      "title": "Implement the landed-cost allocation algorithm",
+      "specRef": "backend/05_landed_book_cost.md:12-36,53-62; shared/02_CONTRACT_AND_INVARIANTS.md:46-75",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/landed-cost.ts"],
+      "dependsOn": ["T6", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "one exported pure function takes an order's counted items plus its resolved financials and returns either an allocation array or an explicit ineligible result",
+        "each allocation row exposes rawPrice, discountShare, deliveryShare, adjustmentShare and realCost, all in minor units (backend/05:53-61)",
+        "discountShare is proportional to raw item price; deliveryShare is delivery / N equally per counted book; adjustmentShare is proportional to raw item price where adjustment = effectiveTotal - (subtotal + delivery - discount)",
+        "sum(realCost) === effectiveTotal in minor units for every eligible order — asserted, not assumed (backend/05:29)",
+        "residual minor units are assigned by largest remainder then ascending item id, so the same input always produces the same output",
+        "eligibility: exactly one counted book with a known effective total is eligible even when its item price is null, and the whole total belongs to that book; more than one counted book with any null price is ineligible; a null effective total is ineligible; a free order (effective total 0) allocates 0 to each counted book",
+        "the module is pure — no Prisma, no Date, no logger"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T29",
+      "title": "Aggregate landed cost per currency and per store",
+      "specRef": "backend/05_landed_book_cost.md:38-50",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/landed-cost.ts"],
+      "dependsOn": ["T27", "T28"],
+      "mandatory": true,
+      "doneWhen": [
+        "a dashboard aggregate emits, per currency, averageLandedBookCost over eligible books only, eligibleBooksCount, countedBooksCount, coveragePercent and differenceVsAverageRawBookPrice",
+        "a per-store aggregate emits averageLandedBookCost, eligibleBooksCount and coverage per currency, consumed by T36",
+        "an ineligible order contributes to countedBooksCount but never to eligibleBooksCount or the average — coverage is explicit (backend/05:81)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T30",
+      "title": "Unit-test landed-cost allocation and reconciliation",
+      "specRef": "backend/05_landed_book_cost.md:64-75; shared/03_ACCEPTANCE_CRITERIA.md:13-14",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/landed-cost.test.ts"],
+      "dependsOn": ["T29"],
+      "mandatory": true,
+      "doneWhen": [
+        "the worked example of backend/05:66 is a test: items 300 and 500, delivery 100, discount 80, with the expected per-item allocation asserted field by field",
+        "cases present: mismatching explicit total producing a non-zero adjustment; fractional cents; three items; zero subtotal edge; one unknown price among several producing an ineligible result; a single item with unknown price receiving the whole total; partial cancelled; free order; very small values",
+        "every eligible case asserts sum(realCost) === effectiveTotal in minor units"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T31",
+      "title": "Add the lifecycle distribution contract to shared",
+      "specRef": "backend/06_lifecycle_status_distribution.md:36-46; shared/00_PRODUCT_DECISIONS.md:28-35",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsLifecycleSchema = { orders: <stage counts>, books: <stage counts> } with a total on each side",
+        "the stage keys are the ones D4 resolves. They are NOT the five names suggested at backend/06:26-30 unless D4 says so: the canonical helper computeBookOrderDerivedStatus (apps/api/src/modules/delivery/domain/order-derived-status.ts:18-52) returns active | partially_shipped | shipped | partially_received | received | cancelled (packages/shared/src/orders.ts:59-66), which is a different six-value set from the spec's ordered/in_transit/ready_for_pickup/received/cancelled",
+        "orders-mode counts and books-mode counts are separate objects, so a consumer can never render a mixed-unit view (backend/06:70)",
+        "no new status enum is introduced that duplicates BookOrderDerivedStatusSchema or ShipmentStatusSchema (README.md:31)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T32",
+      "title": "Compute lifecycle distribution in orders mode and books mode",
+      "specRef": "backend/06_lifecycle_status_distribution.md:6-34,48-52",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-lifecycle.ts"],
+      "dependsOn": ["T9", "T31"],
+      "mandatory": true,
+      "doneWhen": [
+        "orders mode reuses computeBookOrderDerivedStatus via the derivedStatus already on ClassifiedOrder (order-statistics.ts:347-350) — no new precedence rule is invented",
+        "books mode derives each counted item's stage from that item's own cancelledAt / receivedAt / shipment status, reusing isActiveItem and isReceivedItem semantics (order-statistics.ts:403-409) rather than the order-level status",
+        "cancelled is a side branch, reported separately from the linear stages",
+        "when includeCancelled is false the cancelled count is 0 and a test pins that choice (backend/06:50-53)",
+        "orders.total equals the number of included orders and books.total equals the number of counted books — a test asserts each side sums to its own total"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T33",
+      "title": "Unit-test lifecycle distribution",
+      "specRef": "backend/06_lifecycle_status_distribution.md:59-66",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-lifecycle.test.ts"],
+      "dependsOn": ["T32"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: mixed statuses; a multi-shipment order; a partially received order; a cancelled item inside a live order; a cancelled shipment and a fully cancelled order; an empty dataset",
+        "a test asserts orders mode and books mode never share a counter"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T34",
+      "title": "Add a compact lifecycle comparison",
+      "specRef": "backend/06_lifecycle_status_distribution.md:55-57",
+      "layer": "domain",
+      "files": [
+        "packages/shared/src/order-statistics.ts",
+        "apps/api/src/modules/delivery/domain/statistics-lifecycle.ts"
+      ],
+      "dependsOn": ["T32", "T13"],
+      "mandatory": false,
+      "doneWhen": [
+        "per-stage previous count and delta are exposed only when compare is enabled",
+        "spec says \"Optional compact comparison ... do not block MVP\" at backend/06:57 — this is the only reason mandatory is false"
+      ],
+      "status": "done",
+      "note": "lifecycle.comparison carries each stage's previous count and signed delta; null unless compare is set. Unit tests in statistics-lifecycle.test.ts, endpoint cases in book-orders.controller.test.ts, verified live: July vs June, orders delta {active: -1, partially_shipped: +1}."
+    },
+    {
+      "id": "T35",
+      "title": "Extend the shared store contract with landed, cost and best-value data",
+      "specRef": "backend/07_store_analytics.md:7-24,32-39; shared/00_PRODUCT_DECISIONS.md:37-51",
+      "layer": "shared",
+      "files": ["packages/shared/src/orders.ts", "packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T27", "T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "the six existing BookOrderStatisticsStoreSchema keys (orders.ts:534-541) are unchanged, so statistics-view-model.ts:128-136 and delivery-history.fixtures.ts:124-135 keep compiling",
+        "the store row gains averageLandedBookCostByCurrency, landedEligibleBooksCountByCurrency, landedCoverageByCurrency, deliveryTotalByCurrency and discountTotalByCurrency, each an array keyed by currency",
+        "a BestValueStoreByCurrency structure is added at the response root, not on the row, since it is a single winner per currency",
+        "the optionality of the new store keys follows the D1 decision, same as T18"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T36",
+      "title": "Build the store scorecard and best-value winner",
+      "specRef": "backend/07_store_analytics.md:26-47,60-66",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-stores.ts"],
+      "dependsOn": ["T29", "T24", "T35", "T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "the existing store bucketing (order-statistics.ts:190-226 buildOrderByStore) is moved or reused, keeping the case-insensitive key, the collapseSpaces normalisation and the UKRAINIAN_COLLATION tie-break (:197,222-225)",
+        "bestValueStore is computed per currency, requires at least 2 landed-eligible books, picks the lowest average landed cost, and tie-breaks by more eligible books then by store name under UKRAINIAN_COLLATION",
+        "a store with exactly 1 eligible book is never returned as best value (backend/07:39)",
+        "there is no cross-currency best-store computation anywhere in the file",
+        "when compare is enabled each row carries previous spend, orders, books and average landed cost plus their deltas from the T13 helper, as a concise comparison object rather than a duplicated store row (backend/07:49)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T37",
+      "title": "Unit-test store analytics",
+      "specRef": "backend/07_store_analytics.md:51-58",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-stores.test.ts"],
+      "dependsOn": ["T36"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: a store with a single eligible book excluded from best value; one store holding orders in two currencies; unknown prices; an exact tie resolved deterministically; compare enabled; a store with zero spend"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T38",
+      "title": "Add per-store average books per order",
+      "specRef": "backend/07_store_analytics.md:23",
+      "layer": "domain",
+      "files": [
+        "packages/shared/src/orders.ts",
+        "apps/api/src/modules/delivery/domain/statistics-stores.ts"
+      ],
+      "dependsOn": ["T36"],
+      "mandatory": false,
+      "doneWhen": [
+        "the store row carries averageBooksPerOrder, null when ordersCount is 0",
+        "spec marks it \"optional average books/order\" at backend/07:23 — this is the only reason mandatory is false"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T39",
+      "title": "Add the currency-grouped top-orders contract",
+      "specRef": "backend/08_top_orders_by_currency.md:6-19,36-46; shared/00_PRODUCT_DECISIONS.md:53-59",
+      "layer": "shared",
+      "files": ["packages/shared/src/orders.ts", "packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "topOrdersByCurrency is an array of { currency, orders: BookOrderStatisticsTopOrder[] } added to BookOrderStatisticsViewSchema",
+        "the per-order shape reuses BookOrderStatisticsTopOrderSchema (orders.ts:554-563) unchanged, since it already carries every field backend/08:38-46 asks for",
+        "whether the flat topOrders key survives is exactly what D1 resolves; if it survives, its declaration at orders.ts:571 is untouched and apps/web/src/features/delivery/model/statistics-view-model.ts:142 keeps compiling"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T40",
+      "title": "Rank top orders inside each currency",
+      "specRef": "backend/08_top_orders_by_currency.md:21-34,48-50; shared/01_CURRENT_REPO_CONTEXT.md:123-125",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/order-statistics.ts"],
+      "dependsOn": ["T9", "T39"],
+      "mandatory": true,
+      "doneWhen": [
+        "buildTopBookOrders (order-statistics.ts:304-328) no longer sorts one flat priced list and slices it (:315-317); orders are bucketed by currency first, then each bucket is sorted and sliced independently",
+        "compareTopBookOrders (:365-375) is either scoped inside a currency bucket or replaced — a global numeric comparison of amounts across currencies no longer exists",
+        "the tie-break stays effective total DESC, then orderDate DESC, then id ascending",
+        "orders with a null effective total are dropped before ranking and never compared (backend/08:27-29)",
+        "the per-currency limit is ORDER_STATISTICS_TOP_LIMIT (:28, currently 10), applied per currency rather than globally"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T41",
+      "title": "Test that top orders are never ranked across currencies",
+      "specRef": "backend/08_top_orders_by_currency.md:52-57; shared/03_ACCEPTANCE_CRITERIA.md:9",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/order-statistics.test.ts"],
+      "dependsOn": ["T40"],
+      "mandatory": true,
+      "doneWhen": [
+        "a test with one 100 USD order and one 9000 UAH order asserts the USD order is rank 1 of the USD group and is absent from the UAH group",
+        "a test asserts each currency group is sorted independently",
+        "a test asserts an order with a null effective total appears in no group"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T42",
+      "title": "Add the Spending Pulse discriminated union to shared",
+      "specRef": "backend/09_spending_pulse.md:17-58; shared/02_CONTRACT_AND_INVARIANTS.md:102-111; shared/04_PROPOSED_RESPONSE_SHAPES.md:111-129; backend/16_shared_contracts_and_openapi.md:28",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "a z.discriminatedUnion on `code` with exactly the seven members spend_change, avg_book_price_change, avg_landed_cost_change, record_month, store_growth, delivery_share, discount_savings — not a freeform Record (backend/16:28, shared/04:129)",
+        "each member declares its own typed params; no member uses z.record or z.any",
+        "every member carries tone: z.enum([\"neutral\", \"positive\", \"attention\"])",
+        "no member carries a Ukrainian or English sentence, only codes and numbers (shared/02:104-111)",
+        "record_month carries a scope field so the frontend can say \"in the selected period\" instead of \"of all time\" when the query is filtered or the data is truncated (backend/09:36-39)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T43",
+      "title": "Implement the pure pulse insight selector",
+      "specRef": "backend/09_spending_pulse.md:6-16,17-68,81-83",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-pulse.ts"],
+      "dependsOn": ["T42", "T21", "T24", "T29", "T36", "T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "the selector takes already-computed aggregates and comparison values — it recomputes no financial math and imports no repository (backend/09:10-11)",
+        "it returns at most 4 insights (backend/09:12)",
+        "significance gates are implemented as declared: spend_change at abs percent >= 10 with a usable denominator; avg_book_price_change at >= 8; avg_landed_cost_change requires sufficient landed coverage plus a meaningful delta; delivery_share at >= 10; discount_savings requires discountTotal > 0 and a meaningful ratio",
+        "ranking follows backend/09:61-67: big spend change, then unusual cost/landed change, then store shift, then record, then delivery/discount",
+        "two insights conveying the same fact are never both emitted (backend/09:68)",
+        "with compare disabled, no comparison-derived insight is emitted",
+        "with meta.isTruncated true, record_month carries the truncated scope rather than an all-time claim (backend/15:31)",
+        "all thresholds live in one frozen constants object (CLAUDE.md §8.10)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T44",
+      "title": "Unit-test the pulse selector",
+      "specRef": "backend/09_spending_pulse.md:70-79",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-pulse.test.ts"],
+      "dependsOn": ["T43"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: no compare; previous zero; changes below every threshold producing zero insights; multiple currencies; high delivery share; discount present; truncated meta changing record_month scope; more candidates than the cap producing exactly the cap in priority order"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T45",
+      "title": "Add the active-age bucket contract and the single canonical boundary mapping",
+      "specRef": "backend/10_active_money_age_buckets.md:16-29,34-39,50-51; backend/14_drilldown_in_transit_age_filter.md:9-14; shared/04_PROPOSED_RESPONSE_SHAPES.md:74-86",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "ActiveMoneyAgeBucketSchema = z.enum([\"0_7\", \"8_14\", \"15_30\", \"31_plus\", \"unknown_date\"])",
+        "one exported frozen object declares each bucket's inclusive day boundaries (0-7, 8-14, 15-30, 31+) exactly once, so T47 and T68 share it and neither re-derives a boundary (backend/14:14)",
+        "ActiveMoneyAgeResponseSchema = { asOf: z.iso.datetime(), buckets: array of { key, ordersCount, booksCount, totalsByCurrency } }",
+        "no bucket key or label is named delayed, and DeliveryUiStatusSchema \"delayed\" (packages/shared/src/book-enums.ts:97) is not reused here (shared/00:148)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T46",
+      "title": "Add the active-order snapshot read to the statistics repository",
+      "specRef": "backend/10_active_money_age_buckets.md:8-15,44-47; backend/15_truncation_meta_and_performance.md:36-42",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "a second method loads only orders carrying at least one active item, with no orderDate bound in the WHERE clause — a test proves passing from/to leaves the result identical (backend/10:47)",
+        "it accepts optional store and currency filters and reuses the existing currencyWhere helper (delivery-statistics.repository.ts:111-116) rather than writing a second currency rule",
+        "active is expressed through the canonical set: item cancelledAt null and receivedAt null, matching isActiveItem (order-statistics.ts:403-405) and isActiveShipmentStatus (packages/shared/src/book-enums.ts:93-95)",
+        "the query issues one round trip; no per-bucket or per-store query loop exists (backend/15:40-41)",
+        "it reuses the existing @@index([userId, orderDate(sort: Desc)]) on book_orders (apps/api/prisma/schema.prisma:375) — a new index is added only if T74 measures a need"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T47",
+      "title": "Bucket active money by age from orderDate",
+      "specRef": "backend/10_active_money_age_buckets.md:8-42",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/active-age.ts"],
+      "dependsOn": ["T45", "T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "the function takes an explicit `now` and never calls new Date() internally, so tests can pin the clock (backend/10:55)",
+        "age is measured from orderDate with date-fns differenceInCalendarDays against the UTC day, reusing apps/api/src/core/iso-date.ts startOfUtcDay",
+        "boundaries come from the T45 frozen object: 0..7, 8..14, 15..30, >=31; an order with a null orderDate lands in unknown_date",
+        "an orderDate in the future does not silently produce a negative bucket; the handling chosen is pinned by a test (backend/10:30-32). Note the create/update contract already forbids future order dates (notInFutureDate, packages/shared/src/orders.ts:163,218), so this is defence against legacy rows only",
+        "bucket totals use the T6 effective total and never sum across currencies",
+        "asOf is the injected now serialised as an ISO datetime"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T48",
+      "title": "Expose the active-age snapshot endpoint",
+      "specRef": "backend/10_active_money_age_buckets.md:44-51; shared/04_PROPOSED_RESPONSE_SHAPES.md:59-88",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/delivery/api/book-orders.controller.ts",
+        "apps/api/src/modules/delivery/api/input-dto/active-money-age-query.input-dto.ts",
+        "apps/api/src/modules/delivery/api/view-dto/active-money-age.view-dto.ts",
+        "apps/api/src/modules/delivery/application/delivery-statistics.service.ts"
+      ],
+      "dependsOn": ["T46", "T47", "T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "the shape of this task follows D5. If D5 says separate endpoint: GET /api/delivery/orders/statistics/active-age is registered on BookOrdersController with @JwtProtected inherited from the class (:39), @Throttle(HEAVY_READ_THROTTLE) matching the sibling statistics route (:76), full @ApiOkResponse/@ApiOperation/@ApiQuery, a createZodDto input DTO and a createZodDto view DTO in the existing input-dto/ and view-dto/ folders",
+        "if D5 says inline instead, the substructure is present in the statistics response and a test proves from/to do not affect it",
+        "the controller contains no date math and no business logic (CLAUDE.md §5.1)",
+        "apps/api/src/modules/delivery/api/book-order.fixtures.ts gains the route constant next to `statistics` (:31)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T49",
+      "title": "Test active-age bucketing on a fixed clock",
+      "specRef": "backend/10_active_money_age_buckets.md:53-60",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/delivery/domain/active-age.test.ts",
+        "apps/api/src/modules/delivery/api/delivery-read.controller.test.ts"
+      ],
+      "dependsOn": ["T48"],
+      "mandatory": true,
+      "doneWhen": [
+        "boundary cases at exactly 7, 8, 14, 15, 30 and 31 days each land in the documented bucket",
+        "an active order with a null orderDate lands in unknown_date",
+        "a received order and a cancelled order are excluded",
+        "currency and store filters narrow the result",
+        "an endpoint test passes from and to and asserts the response is byte-identical to the call without them"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T50",
+      "title": "Add shipmentsCount per age bucket",
+      "specRef": "backend/10_active_money_age_buckets.md:39",
+      "layer": "domain",
+      "files": [
+        "packages/shared/src/order-statistics.ts",
+        "apps/api/src/modules/delivery/domain/active-age.ts"
+      ],
+      "dependsOn": ["T47"],
+      "mandatory": false,
+      "doneWhen": [
+        "each bucket carries shipmentsCount counting only active shipments that carry an active item, reusing the countActiveShipments rule (order-statistics.ts:377-387)",
+        "spec marks it \"optional shipmentsCount\" at backend/10:39 — this is the only reason mandatory is false"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T51",
+      "title": "Add the purchase-calendar contract to shared",
+      "specRef": "backend/11_purchase_calendar.md:6-21; shared/00_PRODUCT_DECISIONS.md:150-156",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsDailySchema is an array of { date: z.iso.date(), ordersCount, booksCount, totalsByCurrency }",
+        "the array is sparse: only days with activity appear, and that choice is stated in the schema's shape rather than being ambiguous (backend/11:21)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T52",
+      "title": "Aggregate orders per calendar day",
+      "specRef": "backend/11_purchase_calendar.md:6-29,39-41",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-calendar.ts"],
+      "dependsOn": ["T9", "T51"],
+      "mandatory": true,
+      "doneWhen": [
+        "days are keyed by the UTC calendar day of orderDate via apps/api/src/core/iso-date.ts toIsoDate, the same helper buildOrderMonthly already uses to slice a month key (order-statistics.ts:235)",
+        "orders with a null orderDate are skipped, matching buildOrderMonthly (:232-234)",
+        "counted-item and includeCancelled rules are the same ones classifyOrder applies — no second scoping rule (backend/11:25)",
+        "totals are per currency with no conversion",
+        "the result is sorted ascending by date"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T53",
+      "title": "Unit-test the purchase calendar",
+      "specRef": "backend/11_purchase_calendar.md:31-37",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-calendar.test.ts"],
+      "dependsOn": ["T52"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: several orders on one day merged into one row; mixed currencies on one day; days with no activity absent from the array; a date at the UTC day boundary landing on the expected day; cancelled included and excluded"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T54",
+      "title": "Add the purchase-records contract to shared",
+      "specRef": "backend/12_purchase_records.md:6-33; shared/00_PRODUCT_DECISIONS.md:158-166",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts"],
+      "dependsOn": ["T39", "T27"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsRecordsSchema declares recordMonthByCurrency, largestOrderByCurrency, mostBooksInOrder, mostActiveStore and bestValueStoreByCurrency",
+        "mostActiveStore is one structured value covering both the by-orders and by-books modes rather than two loose fields (backend/12:19-21)",
+        "a scope field states whether each record is bounded by the selected period and whether the dataset was truncated, so the frontend can never print \"of all time\" over a filtered query (backend/12:26-33)",
+        "largestOrderByCurrency reuses the BookOrderStatisticsTopOrder shape rather than declaring a parallel order summary (backend/12:44)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T55",
+      "title": "Compute purchase records deterministically",
+      "specRef": "backend/12_purchase_records.md:6-44",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-records.ts"],
+      "dependsOn": ["T54", "T40", "T29", "T52"],
+      "mandatory": true,
+      "doneWhen": [
+        "recordMonthByCurrency is the highest monthly effective spend per currency, derived from the same monthly buckets as buildOrderMonthly, never across currencies",
+        "largestOrderByCurrency reuses the T40 per-currency ranking output — the ranking is not reimplemented (backend/12:44)",
+        "bestValueStoreByCurrency reuses the T36 best-value rule including the minimum of 2 eligible books",
+        "every record has an explicit tie-break chain: primary metric, then larger sample or more recent date where relevant, then id or name as final fallback (backend/12:35-40)",
+        "the scope field is populated from meta.isTruncated and from whether any filter was applied"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T56",
+      "title": "Unit-test purchase records",
+      "specRef": "backend/12_purchase_records.md:46-52",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-records.test.ts"],
+      "dependsOn": ["T55"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: an exact tie resolved deterministically; mixed currencies never compared; a single-store dataset; zero landed coverage producing a null best-value store; truncated data reflected in the scope field"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T57",
+      "title": "Add the monthly budget Prisma model and its reviewed migration",
+      "specRef": "backend/13_budget_persistence_and_api.md:16-32; CLAUDE.md §6",
+      "layer": "prisma",
+      "files": [
+        "apps/api/prisma/schema.prisma",
+        "apps/api/prisma/migrations/<timestamp>_<name>/migration.sql",
+        "apps/api/src/core/database/raw-sql-indexes.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a model with id (uuid), userId, currency, monthlyAmount Decimal(10,2), validFromMonth @db.Date, validToMonth @db.Date nullable and exclusive, createdAt, updatedAt, and a User relation with onDelete: Cascade",
+        "column names are snake_case via @map and the table via @@map, matching every neighbouring model (schema.prisma:660-683)",
+        "@@unique([userId, currency, validFromMonth]) is declared in the model (backend/13:30-31)",
+        "the index count decision is D6. If a partial-unique \"one open version per user and currency\" (WHERE valid_to_month IS NULL) is chosen, it is hand-written SQL in the migration AND registered in apps/api/src/core/database/raw-sql-indexes.test.ts, whose list currently holds exactly 11 entries (:35-45) and would become 12",
+        "the migration was created with `pnpm --filter @app/api db:migrate --name <snake_case>` (create-only), every DROP INDEX line in the generated SQL was read, and any DROP of the eleven raw-SQL indexes was stripped before `db:migrate:deploy` (CLAUDE.md §6 raw-SQL-index trap)",
+        "the migration adds no data backfill and rewrites no existing row"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T58",
+      "title": "Add the budget contracts to shared",
+      "specRef": "backend/13_budget_persistence_and_api.md:44-60,86-90; shared/04_PROPOSED_RESPONSE_SHAPES.md:90-109",
+      "layer": "shared",
+      "files": ["packages/shared/src/book-budgets.ts", "packages/shared/src/index.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "a new file plus an alphabetically placed barrel export line",
+        "the upsert input carries currency (CurrencySchema), monthlyAmount (OwnershipPriceSchema-equivalent bound, positive) and effectiveFromMonth as a first-of-month ISO date, refined to reject any month earlier than the current one (backend/13:36)",
+        "the read response carries, per configured currency: the effective budget for the current month, and any future scheduled version",
+        "the current-month progress response carries budget, spentToDate, remaining, usedPercent, forecast (nullable) and projectedOverage (nullable) per currency (backend/13:52-59)",
+        "forecast is nullable, and null is the documented \"insufficient data\" value for the first two days of a month (backend/13:72-73)",
+        "a currency with no configured budget is absent from the response rather than present with null amounts (memory rule: no all-null rows)",
+        "deliveryShareOfBudgetPercent lives here, on the budget response, and nowhere in the generic statistics contract (backend/04:24-27)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T59",
+      "title": "Add the budget repository",
+      "specRef": "backend/13_budget_persistence_and_api.md:34-42,92-93; CLAUDE.md §5.3",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/delivery/infrastructure/book-budgets.repository.ts"],
+      "dependsOn": ["T57"],
+      "mandatory": true,
+      "doneWhen": [
+        "the class injects PrismaService and is the only new file touching Prisma for budgets",
+        "every method takes an optional trailing `client: Prisma.TransactionClient = this.prisma` so a service-owned transaction threads through (CLAUDE.md §5.3)",
+        "every query is scoped by userId — no method can read or write another user's budget (backend/13:92-93)",
+        "methods return model rows or primitives, never a ViewModel",
+        "closing a preceding version (setting validToMonth) and inserting the new version are two calls the service composes inside one transaction, not one repository method doing business logic"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T60",
+      "title": "Implement the deterministic budget forecast in the domain",
+      "specRef": "backend/13_budget_persistence_and_api.md:52-84",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/delivery/domain/budget-forecast.ts"],
+      "dependsOn": ["T3", "T58"],
+      "mandatory": true,
+      "doneWhen": [
+        "forecast = spentToDate / elapsedCalendarDays * daysInMonth, computed with date-fns getDaysInMonth and differenceInCalendarDays against an injected `now`",
+        "forecast is null when elapsedCalendarDays < 3 (backend/13:72)",
+        "forecast is 0, not null, when elapsed days >= 3 and spentToDate is 0 (backend/13:73)",
+        "remaining = max(budget - spentToDate, 0) and the raw signed difference is also exposed so the UI can show an overage (backend/13:56)",
+        "usedPercent has a defined value when budget is 0 or absent — pinned by a test, never Infinity",
+        "projectedOverage = max(forecast - budget, 0), null when forecast is null",
+        "rounding goes through the T3 minor-unit helper",
+        "the module is pure and contains no reference to prediction, AI or machine learning (backend/13:75)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T61",
+      "title": "Implement the budget application service",
+      "specRef": "backend/13_budget_persistence_and_api.md:34-43,61-66,81-84,92-93",
+      "layer": "application",
+      "files": ["apps/api/src/modules/delivery/application/book-budget.service.ts"],
+      "dependsOn": ["T59", "T60", "T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "an upsert rejects an effectiveFromMonth earlier than the current calendar month with an HttpError subclass from apps/api/src/core/exceptions (CLAUDE.md §5.7), not a bare throw",
+        "setting a budget for the current month replaces the version starting this month without touching any version whose validFromMonth is earlier — a test asserts a prior month's row is byte-identical after the write (backend/13:38-39,102-103)",
+        "closing the preceding version and inserting the new one happen inside a single TransactionRunner.run (CLAUDE.md §5.2, apps/api/src/core/database/transaction-runner.ts:23-35)",
+        "current-month spend counts orders whose orderDate falls in the current calendar month, includes active and received, excludes cancelled, and uses the T6 effective total (backend/13:61-66)",
+        "the service never injects PrismaService and never sees req/res",
+        "the service stays under 200 lines; if progress computation pushes past that, it splits by responsibility (memory rule on service size)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T62",
+      "title": "Expose the budget endpoints and wire the module",
+      "specRef": "backend/13_budget_persistence_and_api.md:86-93; shared/04_PROPOSED_RESPONSE_SHAPES.md:90-109; CLAUDE.md §6.7-6.8",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/delivery/api/book-budgets.controller.ts",
+        "apps/api/src/modules/delivery/api/input-dto/upsert-book-budget.input-dto.ts",
+        "apps/api/src/modules/delivery/api/view-dto/book-budget.view-dto.ts",
+        "apps/api/src/modules/delivery/delivery.module.ts",
+        "apps/api/src/modules/delivery/api/book-order.fixtures.ts"
+      ],
+      "dependsOn": ["T61", "T58"],
+      "mandatory": true,
+      "doneWhen": [
+        "a read route and an upsert route exist, both @JwtProtected, both resolving the user from @CurrentUser and never from a body or query field",
+        "input and view DTOs are createZodDto wrappers over the T58 schemas, placed in the existing input-dto/ and view-dto/ folders",
+        "the read route carries @Throttle(READ_THROTTLE) and the write route @Throttle(MUTATION_THROTTLE), matching the module's existing choices (book-orders.controller.ts:56,76)",
+        "full @ApiOkResponse / @ApiOperation / @ApiBadRequestResponse Swagger decoration",
+        "the controller, service and repository are registered in delivery.module.ts (:24-52)",
+        "route constants are added to book-order.fixtures.ts:19-33"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T63",
+      "title": "Unit-test the budget forecast",
+      "specRef": "backend/13_budget_persistence_and_api.md:95-106",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/budget-forecast.test.ts"],
+      "dependsOn": ["T60"],
+      "mandatory": true,
+      "doneWhen": [
+        "forecast on day 1, day 2, day 3 and the last day of a month each assert the documented value, with day 1 and day 2 producing null",
+        "a case asserts usedPercent when budget is 0",
+        "a case asserts projectedOverage is null while forecast is null"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T64",
+      "title": "Integration-test the budget endpoints",
+      "specRef": "backend/13_budget_persistence_and_api.md:95-106; backend/17_tests_quality_and_execution_order.md:40-47",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/api/book-budgets.controller.test.ts"],
+      "dependsOn": ["T62"],
+      "mandatory": true,
+      "doneWhen": [
+        "cases present: separate currencies configured independently; no budget configured returning an empty set rather than null rows; creating a current-month budget; scheduling a future version; rejecting a backdated effectiveFromMonth; a new version closing the preceding one; a prior month's row unchanged after a write; cancelled spend excluded from spentToDate; mixed currencies",
+        "a cross-user case asserts user B cannot read or overwrite user A's budget, following the existing tenancy pattern in apps/api/src/modules/delivery/infrastructure/delivery-tenancy.test.ts",
+        "the suite builds its app through createTestApp and addresses it with testAppPort(app), never binding a fresh port per request"
+      ],
+      "status": "done",
+      "note": "apps/api/src/modules/delivery/api/book-budgets.controller.test.ts — 19 cases: empty set, separate currencies, current month, future version, backdate 400, version close, prior month untouched, mid-schedule insert, cancelled spend excluded, four cross-user cases."
+    },
+    {
+      "id": "T65",
+      "title": "Allow deleting a future scheduled budget version",
+      "specRef": "shared/04_PROPOSED_RESPONSE_SHAPES.md:97; frontend/13_budget_ui.md:65-68",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/delivery/api/book-budgets.controller.ts",
+        "apps/api/src/modules/delivery/application/book-budget.service.ts"
+      ],
+      "dependsOn": ["T62"],
+      "mandatory": false,
+      "doneWhen": [
+        "only a version whose validFromMonth is strictly after the current month can be deleted; deleting a current or past version returns a 4xx",
+        "deleting a future version reopens the preceding version by clearing its validToMonth inside one transaction",
+        "spec marks it \"optionally delete future scheduled version\" at shared/04:97 — this is the only reason mandatory is false"
+      ],
+      "status": "done",
+      "note": "DELETE /api/delivery/budgets/:currency/scheduled. Only a version starting after the current month is reachable, so a current or past one cannot be addressed; missing schedule returns 404. Deleting reopens the preceding version, or hands it to the next scheduled one, inside one transaction."
+    },
+    {
+      "id": "T66",
+      "title": "Return deliveryShareOfBudgetPercent on the budget response",
+      "specRef": "backend/13_budget_persistence_and_api.md:81-84; backend/04_delivery_cost_and_discounts.md:24-27; shared/00_PRODUCT_DECISIONS.md:67,71",
+      "layer": "application",
+      "files": ["apps/api/src/modules/delivery/application/book-budget.service.ts"],
+      "dependsOn": ["T61", "T24"],
+      "mandatory": true,
+      "doneWhen": [
+        "the value is current-month delivery spend / current-month budget * 100, per currency",
+        "it is null when no budget is configured for that currency",
+        "it appears only on the budget response; the generic statistics response has no budget-percent field, so the frontend can never label a selected-period metric \"% of budget\" (backend/04:27)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T67",
+      "title": "Add ageBucket to the in-transit query contract",
+      "specRef": "backend/14_drilldown_in_transit_age_filter.md:6-20,28-36",
+      "layer": "shared",
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T45"],
+      "mandatory": true,
+      "doneWhen": [
+        "InTransitQuerySchema (orders.ts:373-381) gains `ageBucket: ActiveMoneyAgeBucketSchema.optional()` as a separate key",
+        "InTransitFilterSchema (:318-333) is NOT extended with bucket values — it is a single-choice enum, so folding buckets into it would make an age filter mutually exclusive with `ordered` / `in_transit`, which contradicts backend/14:43 (\"combines with store/currency/search\")",
+        "the sixteen existing InTransitFilter values and the nine InTransitSort values are unchanged, so apps/web/src/features/delivery/model/in-transit-params.ts:14-33 keeps compiling",
+        "no new sort is introduced: `oldest_orders` already exists (orders.ts:340) and maps to `book_order.order_date ASC NULLS LAST` (apps/api/src/modules/delivery/infrastructure/in-transit-sql.ts:70), satisfying backend/14:25-26",
+        "the bucket day boundaries are the T45 frozen object, imported, not restated"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T68",
+      "title": "Implement the ageBucket SQL predicate on the in-transit list",
+      "specRef": "backend/14_drilldown_in_transit_age_filter.md:16-22",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/delivery/infrastructure/in-transit-sql.ts",
+        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts",
+        "apps/api/src/modules/delivery/application/delivery-read.service.ts",
+        "apps/api/src/modules/delivery/api/delivery-read.controller.ts"
+      ],
+      "dependsOn": ["T67"],
+      "mandatory": true,
+      "doneWhen": [
+        "buildInTransitConditions (in-transit-sql.ts:111-150) pushes one more optional condition, in the same style as store, service and currency (:125-135) — the filter switch at :236-275 is untouched",
+        "the predicate compares book_order.order_date against parameterised date bounds derived from the T45 boundaries; no day arithmetic is written inline in SQL",
+        "unknown_date maps to `book_order.order_date IS NULL`",
+        "the predicate never references shipment.expected_delivery_date and never reuses the `delayed` category SQL (:170) — the two concepts stay separate (backend/14:22)",
+        "both listInTransit and countInTransit receive the new filter, so the total count matches the page",
+        "the service passes query.ageBucket through and @ApiQuery({ name: \"ageBucket\", required: false }) is added on the in-transit route (delivery-read.controller.ts:52-59)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T69",
+      "title": "Test the ageBucket in-transit filter",
+      "specRef": "backend/14_drilldown_in_transit_age_filter.md:41-47",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/api/delivery-read.controller.test.ts"],
+      "dependsOn": ["T68"],
+      "mandatory": true,
+      "doneWhen": [
+        "each of the five bucket values returns exactly the orders whose age falls inside its boundaries, tested at the 7/8, 14/15 and 30/31 edges",
+        "a case combines ageBucket with store, currency and search and asserts the intersection",
+        "a case combines ageBucket with sort=oldest_orders and asserts ascending order date",
+        "a case asserts omitting ageBucket returns the unfiltered page, so the parameter is genuinely optional",
+        "a case asserts the paginator totalCount respects the filter"
+      ],
+      "status": "done",
+      "note": "ageBucket cases in delivery-read.controller.test.ts — all five buckets at the 7/8, 14/15 and 30/31 edges, intersection with store+currency+search, sort=oldest_orders, omitted parameter, totalCount, and a 400 on an unknown bucket."
+    },
+    {
+      "id": "T70",
+      "title": "Assemble the full statistics response and its Swagger DTOs",
+      "specRef": "backend/16_shared_contracts_and_openapi.md:6-32,42-47; shared/04_PROPOSED_RESPONSE_SHAPES.md:26-55",
+      "layer": "api",
+      "files": [
+        "packages/shared/src/orders.ts",
+        "apps/api/src/modules/delivery/application/delivery-statistics.service.ts",
+        "apps/api/src/modules/delivery/api/view-dto/book-order-statistics.view-dto.ts"
+      ],
+      "dependsOn": [
+        "T18",
+        "T20",
+        "T23",
+        "T27",
+        "T31",
+        "T35",
+        "T39",
+        "T42",
+        "T51",
+        "T54",
+        "T21",
+        "T24",
+        "T29",
+        "T32",
+        "T36",
+        "T40",
+        "T43",
+        "T52",
+        "T55"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderStatisticsViewSchema carries meta, summary, comparison, monthly, lifecycle, costs, landedCost, byStore, topOrdersByCurrency, pulse, daily and records, plus whatever D1 preserves of byStore/monthly/summary/topOrders",
+        "the four keys apps/web reads today still resolve: byStore, monthly, summary and topOrders (orders.ts:567-572), or D1 explicitly authorised removing topOrders and the FE files that read it were listed as follow-up work",
+        "the service composes domain functions and does no arithmetic itself — grep the service for `*`, `/` and `reduce` returns only iteration, not financial math (CLAUDE.md §5.2)",
+        "the existing BookOrderStatisticsViewDto (book-order-statistics.view-dto.ts:4) still wraps the schema through createZodDto with no hand-written property",
+        "root `pnpm typecheck` is green with zero hand edits under apps/web/src"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T71",
+      "title": "Contract-parse representative statistics responses",
+      "specRef": "backend/16_shared_contracts_and_openapi.md:49-56",
+      "layer": "contract",
+      "files": ["apps/api/src/modules/delivery/api/book-orders.controller.test.ts"],
+      "dependsOn": ["T70"],
+      "mandatory": true,
+      "doneWhen": [
+        "five endpoint responses are parsed through BookOrderStatisticsViewSchema with .parse (which throws on a shape mismatch): default query, compare enabled, empty dataset, mixed currencies, truncated dataset",
+        "the empty-dataset case asserts arrays are empty arrays and nullable scalars are null — no undefined, no {} placeholder rows",
+        "the parse uses the shared schema, so a drift between the runtime response and the contract fails the test rather than silently stripping keys, the way apps/web/src/features/delivery/api/use-statistics.ts:14 would strip them in the browser"
+      ],
+      "status": "done",
+      "note": "Four endpoint responses parsed through BookOrderStatisticsViewSchema in book-orders.controller.test.ts (default, compare, empty, mixed currencies); the truncated case is parsed in delivery-statistics.service.test.ts, where the 5000-order cap is reachable without seeding 5001 orders."
+    },
+    {
+      "id": "T72",
+      "title": "Regenerate the OpenAPI document and the typed frontend client",
+      "specRef": "backend/16_shared_contracts_and_openapi.md:42-47; README.md:32-33; CLAUDE.md §2, §6.10",
+      "layer": "contract",
+      "files": ["apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T70", "T62", "T68", "T48"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm --filter @app/api generate:openapi` then `pnpm gen:api` were run and the resulting diff under apps/web/src/shared/api/generated/** is committed",
+        "no file under apps/web/src/shared/api/generated/** was hand-edited — the diff is entirely tool output",
+        "the generated model exports BookOrdersControllerStatisticsCurrency and BookOrdersControllerStatisticsStatus still exist with the same members, since apps/web/src/features/delivery/model/statistics-params.ts:11-19 reads them by name",
+        "BookOrdersControllerStatisticsParams gained `compare` as an optional member, so statistics-params.ts:47-59 still satisfies the type",
+        "the new endpoints appear as generated hooks and their query-param keywords survived the generator (reference: a JSON-schema keyword on a query param has broken orval before; generate-openapi.ts hoists it into parameter.schema)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T73",
+      "title": "Integration-test the statistics endpoint across the full filter matrix",
+      "specRef": "backend/17_tests_quality_and_execution_order.md:40-62; backend/00_MASTER_PROMPT_BACKEND.md:65-74",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/delivery/api/book-orders.controller.test.ts",
+        "apps/api/src/modules/delivery/api/book-order.fixtures.ts"
+      ],
+      "dependsOn": ["T70", "T72"],
+      "mandatory": true,
+      "doneWhen": [
+        "a fixture builder produces the realistic dataset of backend/17:50-62: UAH plus EUR plus USD with no conversion, several stores, multi-item orders, multi-shipment orders, a partially cancelled order, an order whose manual total mismatches its items, an order with an unknown price, a free order, orders with delivery and discount, and old active orders",
+        "cases cover: default; each currency; compare=previous_period; compare=same_period_last_year; store filter; includeCancelled true and false",
+        "an authenticated-isolation case asserts user B's orders never appear in user A's statistics",
+        "the suite reuses createTestApp and testAppPort rather than binding a port per request"
+      ],
+      "status": "done",
+      "note": "seedStatisticsFixture in book-order.fixtures.ts builds the backend/17 dataset (UAH+EUR+USD, five stores, multi-item, multi-shipment, partial cancel, manual mismatch, unknown price, free, delivery+discount, old active). Cases cover default, each currency, both compare modes, store filter, includeCancelled both ways, and reader isolation."
+    },
+    {
+      "id": "T74",
+      "title": "Audit statistics query shape and index coverage",
+      "specRef": "backend/15_truncation_meta_and_performance.md:33-44",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts",
+        "apps/api/prisma/schema.prisma"
+      ],
+      "dependsOn": ["T46", "T70"],
+      "mandatory": true,
+      "doneWhen": [
+        "the Prisma select still lists explicit fields only — no `include` of a whole relation was added while wiring the new analytics (current select at delivery-statistics.repository.ts:21-47)",
+        "the statistics read is still one findMany plus, at most, the T46 snapshot read; a test or an assertion proves no per-store or per-bucket query loop exists (backend/15:40-41)",
+        "the userId/orderDate and userId/storeName indexes on book_orders (schema.prisma:375-376) are stated to be the ones serving the filter, and any additional index is justified by a measurement rather than added speculatively (CLAUDE.md §8.6)",
+        "the budget table's index set is exactly what T57/D6 decided, with no unused index added"
+      ],
+      "status": "done",
+      "note": "The Prisma select still lists explicit fields only. Two tests in delivery-statistics.service.test.ts assert listOrderRecords runs once, and exactly twice when a comparison period is asked for, so no per-store or per-bucket loop exists. The filters ride the existing book_orders (userId, orderDate) and (userId, storeName) indexes; book_budgets keeps only the T57/D6 index set."
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Does the statistics contract evolve additively (every new key optional, flat topOrders kept), or does it break, forcing hand edits in apps/web?",
+      "specOffers": "backend/08_top_orders_by_currency.md:9 says \"Replace/deprecate global topOrders\". backend/16_shared_contracts_and_openapi.md:36-40 leaves the choice open between evolving the existing schema directly and introducing a v2 shape, and says direct evolution is acceptable \"if all callers migrate in same change\".",
+      "codebaseMakesCheaper": "Additive is dramatically cheaper. Three hand-written apps/web files consume the contract by type: apps/web/src/features/delivery/model/statistics-view-model.ts:1-7 imports BookOrderStatisticsView and BookOrderStatisticsTopOrder straight from @app/shared and reads view.topOrders at :142; apps/web/src/features/delivery/components/delivery-history.fixtures.ts:123 declares `export const statisticsViewFixture: BookOrderStatisticsView = {...}` as an explicitly typed object literal, so ANY new required key breaks root pnpm typecheck there; apps/web/src/features/delivery/api/use-statistics.ts:14 runs BookOrderStatisticsViewSchema.parse at runtime, so extra keys the FE does not declare are silently stripped rather than crashing. The pre-push hook runs pnpm typecheck across all packages, so a breaking change cannot be pushed without FE edits that are outside the stated scope.",
+      "options": [
+        "A. Fully additive: every new top-level key (meta, comparison, lifecycle, costs, landedCost, topOrdersByCurrency, pulse, daily, records) is .optional() in BookOrderStatisticsViewSchema, and the flat topOrders array stays as a deprecated alias populated from the UAH-or-first-currency group. Zero apps/web edits. Cost: nine optional keys the backend always populates, which is exactly the nullable/optional ambiguity backend/16:32 warns against.",
+        "B. Additive-required with one FE fixture edit: new keys are required, topOrders is kept, and delivery-history.fixtures.ts is extended with the new keys. That is one hand-written apps/web file, ~80 lines of fixture data, and nothing else breaks.",
+        "C. Breaking: topOrders is removed and replaced by topOrdersByCurrency. Breaks statistics-view-model.ts:142, delivery-stat-breakdowns.tsx:87-137 and the fixture, i.e. a real FE slice, which the caller excluded from this pass."
+      ],
+      "recommendation": "B. Required keys keep the contract honest (backend/16:32) and the only casualty is one fixture file whose entire purpose is to satisfy the type. If the caller wants literally zero apps/web edits, take A and open a follow-up to tighten the keys during the FE pass. C should be rejected for this pass: the spec's own compatibility rule (backend/16:40) permits direct evolution only when all callers migrate in the same change, and the FE is explicitly not migrating here.",
+      "specRef": "backend/08:9; backend/16:36-40",
+      "blocks": ["T18", "T20", "T35", "T39", "T70"],
+      "answer": "ANSWERED 2026-08-20 (user): option B. New keys are REQUIRED, flat topOrders stays for now, and apps/web/src/features/delivery/components/delivery-history.fixtures.ts is extended so root pnpm typecheck stays green. No other apps/web file is touched. Removing topOrders is deferred to the frontend pass.",
+      "status": "answered"
+    },
+    {
+      "id": "D2",
+      "question": "Does BookOrder gain an isFree column, or is the free-order invariant dropped in favour of an explicit totalAmount of 0?",
+      "specOffers": "shared/02_CONTRACT_AND_INVARIANTS.md:22 and backend/01_financial_invariant_and_cancelled_scope.md:13 both state `isFree === true -> effective total = 0` as a mandatory rule, and backend/01:53-55 wants the canonical helper to return source \"free\".",
+      "codebaseMakesCheaper": "Dropping it is free. There is no isFree column: apps/api/prisma/schema.prisma:358-378 lists id, userId, storeName, orderNumber, orderDate, currency, totalAmount, deliveryPrice, discount, note, createdAt, updatedAt and nothing else. Grep for \"isFree\" across apps/api/src, packages/shared/src and apps/web/src returns zero matches at dd144d45. Meanwhile a free order is already representable: OwnershipPriceSchema allows 0 (packages/shared/src/internal.ts:123-126, min OWNERSHIP_PRICE_MIN = 0), and the current resolver already returns an explicit 0 rather than falling through to item sums (order-statistics.ts:418-420). Adding the column costs a migration, two shared input schemas, a create path, an update path, a FE form field that is out of scope, and a codegen round.",
+      "options": [
+        "A. Drop isFree. The canonical helper's source enum keeps \"free\" but derives it from an effective total that resolves to exactly 0, or drops \"free\" entirely and reports \"manual\".",
+        "B. Add isFree Boolean @default(false) to BookOrder with a migration, extend CreateBookOrderInputSchema and UpdateBookOrderInputSchema, and leave the FE form without the toggle until the FE pass."
+      ],
+      "recommendation": "A. The invariant's product intent (a free order contributes 0, not an unknown) is already satisfied by an explicit total of 0, and B ships a column no UI can set in this pass.",
+      "specRef": "shared/02:22; backend/01:13,53-55",
+      "blocks": ["T5", "T6", "T7"],
+      "answer": "ANSWERED 2026-08-20 (user): drop isFree from the invariant. No column, no migration. A free order is an explicit totalAmount of 0; the resolver returns source 'manual' with effectiveTotal 0.",
+      "status": "answered"
+    },
+    {
+      "id": "D3",
+      "question": "Does the query gain a period-preset field, or does previous_period only ever mean \"equal-duration preceding range\"?",
+      "specOffers": "backend/02_statistics_period_and_comparison.md:14-33 defines distinct previous_period semantics for partial current month, full previous month, rolling N days, rolling N months and YTD. :35-38 then concedes that if the query carries only raw from/to, the implementation must support a mathematically equal-duration previous interval and \"не вигадуй preset із недостатніх даних\".",
+      "codebaseMakesCheaper": "The query carries only raw from/to today (packages/shared/src/orders.ts:507,511; both isoDay().optional()), and the FE sends them as free-text ISO strings from two nuqs string parsers (apps/web/src/features/delivery/model/statistics-params.ts:23,27,57-58) with no preset concept anywhere. Equal-duration-only is therefore implementable with zero contract additions. Detecting a full calendar month from raw bounds is cheap and unambiguous (from is the 1st and to is the last day); detecting \"partial current month\" is also cheap (from is the 1st of the current month and to is today or later). Detecting \"rolling 30 days\" versus \"custom 30-day range\" from raw bounds is impossible.",
+      "options": [
+        "A. Raw bounds only, with two safe inferences: a full calendar month maps to the full preceding month, a month-to-date window maps to the same day-range of the preceding month, and everything else maps to the equal-duration preceding range. No new query field.",
+        "B. Add an optional `periodPreset` enum to the query now, and have the backend honour it when present and fall back to A when absent. Costs one shared enum plus a codegen round; the FE cannot send it until the FE pass, so it is dead weight for now.",
+        "C. Full preset support with the preset as a required companion of compare. Rejected on sight: it would break the existing FE call at statistics-params.ts:47-59."
+      ],
+      "recommendation": "A. It covers the two calendar cases the spec names most emphatically (backend/02:14-25) with no contract surface, and backend/02:38 explicitly forbids inventing the rest. Revisit B during the FE pass when a preset toolbar actually exists.",
+      "specRef": "backend/02:14-38",
+      "blocks": ["T2", "T12", "T14"],
+      "answer": "ANSWERED 2026-08-20 (agent recommendation accepted): no new preset field. previous_period is derived from the raw from/to bounds, with full-calendar-month and month-to-date inferred from those bounds; rolling-N-days is not distinguishable from a custom range and is not faked.",
+      "status": "answered"
+    },
+    {
+      "id": "D4",
+      "question": "Which stage names does the lifecycle block use?",
+      "specOffers": "backend/06_lifecycle_status_distribution.md:26-30 suggests ordered / in_transit / ready_for_pickup / received / cancelled, and :41-43 sketches a response with ordered, inTransit, readyForPickup, received, cancelled, total. But :25 says \"Adapt exact labels to canonical current domain\" and :33 says \"use existing computeBookOrderDerivedStatus for order mode\". The two halves of the same file disagree.",
+      "codebaseMakesCheaper": "Reusing the canonical helper is cheaper and is what README.md:31 demands. computeBookOrderDerivedStatus (apps/api/src/modules/delivery/domain/order-derived-status.ts:18-52) returns BookOrderDerivedStatus, whose six values are active, partially_shipped, shipped, partially_received, received, cancelled (packages/shared/src/orders.ts:59-66). The spec's five names are the ShipmentStatus enum instead (packages/shared/src/book-enums.ts:75-81: ordered, in_transit, ready_for_pickup, received, cancelled), which describes a shipment, not an order. The FE already renders badges for all six derived values (apps/web/src/features/delivery/model/statistics-view-model.ts:21-28).",
+      "options": [
+        "A. Orders mode uses the six BookOrderDerivedStatus values verbatim; books mode uses an item-level set derived from the same vocabulary. Cancelled is the side branch in both.",
+        "B. Orders mode collapses the six derived values onto the spec's five funnel stages (active -> ordered, partially_shipped and shipped -> in_transit, partially_received and received -> received, plus ready_for_pickup pulled from the item's shipment status). A funnel reads better, but the collapse is a new precedence rule, which backend/06:34 forbids without extending the canonical helper.",
+        "C. Return both: the six raw counts plus a documented funnel projection over them."
+      ],
+      "recommendation": "A. It satisfies the spec's own binding instruction (:25, :33-34) and never invents a precedence. If the funnel visual needs five bars, the collapse is presentation and belongs in the FE view-model, where reversing it later is a one-file change.",
+      "specRef": "backend/06:25-34,41-43",
+      "blocks": ["T31", "T32"],
+      "answer": "ANSWERED 2026-08-20 (agent recommendation accepted): the six canonical BookOrderDerivedStatus values (active, partially_shipped, shipped, partially_received, received, cancelled). The five shipment-flavoured names in backend/06:26-30 are ShipmentStatus and are not used. Collapsing to a five-bar funnel is a frontend view-model concern.",
+      "status": "answered"
+    },
+    {
+      "id": "D5",
+      "question": "Do active-money age and monthly budget get their own endpoints, or ride inside the statistics response?",
+      "specOffers": "backend/10_active_money_age_buckets.md:46 says \"Prefer separate read endpoint\", with a fallback of keeping it inline if the API architecture prefers one endpoint. shared/04_PROPOSED_RESPONSE_SHAPES.md:59-88 sketches GET /api/delivery/orders/statistics/active-age. backend/13:86-89 says budget needs read plus upsert and to follow current route conventions. shared/04:7 separately says to prefer extending the existing statistics endpoint over many tiny per-widget endpoints.",
+      "codebaseMakesCheaper": "Separate for both. The historical statistics read is date-bounded and capped (delivery-statistics.repository.ts:64-79); the age snapshot needs a different WHERE with no date bound, so inlining it means running two unrelated queries behind one route and then documenting that half the response ignores half the query — exactly the \"misleading historical active money\" backend/03:27 warns about. Budget has writes, so it cannot live inside a GET at all. The module already hosts four controllers (delivery.module.ts:25-30), so adding routes is mechanical. The route prefix is already right: BookOrdersController is @Controller(\"api/delivery/orders\") (book-orders.controller.ts:38), so a @Get(\"statistics/active-age\") sits next to the existing @Get(\"statistics\") (:75).",
+      "options": [
+        "A. Age snapshot as GET /api/delivery/orders/statistics/active-age on BookOrdersController; budget as its own BookBudgetsController with a read and an upsert.",
+        "B. Age snapshot inline in the statistics response, with a test proving from/to do not affect it; budget separate regardless.",
+        "C. Both inline where possible, with budget writes on a separate controller."
+      ],
+      "recommendation": "A. Cleaner cache semantics, cheaper query, and it keeps the one place the spec explicitly fears (a snapshot silently reinterpreted as period data) impossible by construction.",
+      "specRef": "backend/10:44-47; backend/13:86-89; shared/04:7,59-88",
+      "blocks": ["T48", "T62"],
+      "answer": "ANSWERED 2026-08-20 (agent recommendation accepted): separate endpoints. GET /api/delivery/orders/statistics/active-age for the snapshot, and its own budget routes.",
+      "status": "answered"
+    },
+    {
+      "id": "D6",
+      "question": "Does the budget table reuse an existing settings model, and how many indexes does the migration add?",
+      "specOffers": "backend/13_budget_persistence_and_api.md:16-32 sketches a dedicated model with a unique on userId + currency + validFromMonth and \"no overlapping active intervals per user/currency\". :42 says to reuse a generic user-settings model only if the semantics fit cleanly. backend/15:38 asks to check budget indexes.",
+      "codebaseMakesCheaper": "A new table. The only per-user settings model is UserProfileSettings (apps/api/prisma/schema.prisma:660-683): one row per user (userId is @unique at :662) holding seventeen flat scalar preference columns. It cannot express a per-currency versioned history without either a JSON blob or three more nullable columns plus month bounds, which is precisely the overloading :42 forbids. On indexes, @@unique([userId, currency, validFromMonth]) is expressible in Prisma and its leading columns already serve every read, so no extra plain index is warranted. The open question is only whether to also enforce \"at most one open version per user and currency\" in the database.",
+      "options": [
+        "A. New table, one Prisma @@unique, no raw SQL. The one-open-version rule is enforced only by the service inside its transaction (T61). Simplest migration; a concurrent double-write could in principle leave two open versions.",
+        "B. New table, one Prisma @@unique plus a hand-written partial unique index (WHERE valid_to_month IS NULL). Makes the invariant a database fact. Costs a raw SQL block in the migration and a twelfth entry in apps/api/src/core/database/raw-sql-indexes.test.ts, whose list currently holds exactly eleven (:35-45), and permanently enlarges the CLAUDE.md §6 strip-trap surface.",
+        "C. Overload UserProfileSettings with budget columns. Rejected."
+      ],
+      "recommendation": "B. This repo already treats one-active-X as a database invariant in five places (book_order_items_active_book_idx, book_loans_active_book_idx, reading_goals_active_list_idx and two more), and a budget row is money. The cost is one guard-test line. Choose A only if you want the migration to stay pure Prisma output.",
+      "specRef": "backend/13:16-32,42; backend/15:38",
+      "blocks": ["T57", "T59", "T74"],
+      "answer": "ANSWERED 2026-08-20 (user): new dedicated table (UserProfileSettings cannot hold versioned per-currency money). Composite unique (userId, currency, validFromMonth) via Prisma PLUS a raw-SQL partial unique index WHERE valid_to_month IS NULL enforcing one open version per user+currency, registered as the 12th entry in apps/api/src/core/database/raw-sql-indexes.test.ts.",
+      "status": "answered"
+    },
+    {
+      "id": "D7",
+      "question": "Does the effective-total invariant change any create or update validation that exists today?",
+      "specOffers": "shared/02_CONTRACT_AND_INVARIANTS.md:32-34 calls this \"a deliberate domain-contract change\" and demands an audit of all create/update forms, DTOs, tests, statistics and imports/exports. backend/01:78 requires \"the old mismatch invariant removed/adapted everywhere\".",
+      "codebaseMakesCheaper": "Nothing to change. CreateBookOrderInputSchema (packages/shared/src/orders.ts:194-209) carries four refinements — unique ordered books, shipments only carry ordered books, each book ships once, expected delivery not before order date — and none compares totalAmount to the item subtotal. UpdateBookOrderInputSchema (:213-222) carries no refinement at all. The named symbols resolveOrderFinancials, validateOrderFinancials and OrderTotalSource do not exist anywhere in the repo. The only effective-total logic is the private resolveOrderAmount (apps/api/src/modules/delivery/domain/order-statistics.ts:411-424), which is statistics-only and throws nothing.",
+      "options": [
+        "A. Treat the removal requirement as already satisfied and spend the budget on a regression test proving a mismatched manual total is accepted (T11).",
+        "B. Search harder for a hidden mismatch rule before implementing, on the assumption the spec author saw one on a different branch."
+      ],
+      "recommendation": "A, with one caveat the caller should confirm: the spec was written against something. If it was written against an unmerged branch or a planned design rather than dev, the real risk is not a removal we skipped but a create/update behaviour the author intends to ADD (delivery and discount participating in a validated total). Confirm whether the spec author expected order creation to start validating totals; if yes, that is new work with no task here.",
+      "specRef": "shared/02:32-34; backend/01:36-48,77-80",
+      "blocks": ["T11"],
+      "answer": "ANSWERED 2026-08-20 (user): nothing changes on the write path. Order create/update keep accepting totalAmount as given. The invariant lives on the read path only; the difference between the explicit total and subtotal + delivery - discount surfaces as a derived reconciliation adjustment used by landed-cost allocation.",
+      "status": "answered"
+    },
+    {
+      "id": "D8",
+      "question": "Where do the new shared statistics contracts live?",
+      "specOffers": "backend/16_shared_contracts_and_openapi.md:6 says consolidate all new shapes in packages/shared; shared/04:1-3 says these are semantic shapes, not permission to bypass existing naming conventions.",
+      "codebaseMakesCheaper": "Splitting. packages/shared/src/orders.ts is already 574 lines and holds the whole delivery contract; this spec adds roughly a dozen more schema families. The barrel (packages/shared/src/index.ts) re-exports every file with `export * from`, so a consumer's `import { X } from \"@app/shared\"` is unaffected by which file X lives in — moving or adding a file is invisible to all 1719 generated FE files and to every hand-written import.",
+      "options": [
+        "A. New file packages/shared/src/order-statistics.ts for everything new, leaving the four existing statistics schemas where they are in orders.ts. Two files describe statistics.",
+        "B. New file plus move the four existing statistics schemas into it. One concern per file (CLAUDE.md §8.10), invisible to consumers thanks to the barrel, but the diff touches lines apps/web reads and makes D1's blast radius harder to eyeball in review.",
+        "C. Everything into orders.ts, taking it past 900 lines."
+      ],
+      "recommendation": "A for this pass, B as a follow-up once the contract has settled. Keeping the moved-code diff out of the same commit as the contract change is what makes the D1 review tractable.",
+      "specRef": "backend/16:6; shared/04:1-3",
+      "blocks": ["T1", "T39", "T54"],
+      "answer": "ANSWERED 2026-08-20 (agent recommendation accepted): new schemas go in packages/shared/src/order-statistics.ts. The four existing statistics schemas stay in orders.ts this pass.",
+      "status": "answered"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "resolveOrderFinancials / validateOrderFinancials / OrderTotalSource exist and carry the current financial invariant",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:29,38-41,58; shared/02_CONTRACT_AND_INVARIANTS.md:34; README.md:57",
+      "verdict": "FALSE",
+      "evidence": "rg over apps/api/src, packages/shared/src and apps/web/src at dd144d45 returns zero matches for all three names. The only effective-total logic is the private resolveOrderAmount at apps/api/src/modules/delivery/domain/order-statistics.ts:411-424, which ignores deliveryPrice and discount entirely and throws nothing."
+    },
+    {
+      "claim": "packages/shared/src/order-financials.ts is a relevant current file",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:50",
+      "verdict": "FALSE",
+      "evidence": "packages/shared/src contains 38 files (index.ts barrel lists them all); order-financials.ts is not among them. Nearest neighbour is packages/shared/src/orders.ts:1-574."
+    },
+    {
+      "claim": "BookOrder carries an isFree flag driving a zero effective total",
+      "specRef": "shared/02_CONTRACT_AND_INVARIANTS.md:22; backend/01_financial_invariant_and_cancelled_scope.md:13",
+      "verdict": "FALSE",
+      "evidence": "apps/api/prisma/schema.prisma:358-378 lists every BookOrder column; there is no isFree. Grep for \"isFree\" over apps/api/src, packages/shared/src and apps/web/src returns zero matches."
+    },
+    {
+      "claim": "Partial-cancel scope bug: countedItems is filtered but all item prices are passed into the financial resolver",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:120-122; backend/01_financial_invariant_and_cancelled_scope.md:28-33",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/modules/delivery/domain/order-statistics.ts:351-356 — classifyOrder filters countedItems by cancelledAt === null and then passes that same countedItems array into resolveOrderAmount, which reads prices only from it (:422). The inconsistency the spec describes does not exist in this tree. What IS wrong is different: the resolver never reads deliveryPrice or discount, so a calculated total is a bare item subtotal (T8, T9 fix that)."
+    },
+    {
+      "claim": "Top orders mix currencies in one global numeric sort",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:123-125; backend/08_top_orders_by_currency.md:6",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/delivery/domain/order-statistics.ts:315-317 sorts one flat pricedOrders list and slices topLimit from it; compareTopBookOrders at :365-367 subtracts raw totalAmount values with no currency check. The currency is only attached afterwards at :321."
+    },
+    {
+      "claim": "Status cards mix units: active and received are book-based, cancelled is order-based",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:129-131",
+      "verdict": "CONFIRMED",
+      "evidence": "Backend side, apps/api/src/modules/delivery/domain/order-statistics.ts:284,290-291,294 — activeBooksCount and receivedBooksCount count items, cancelledOrdersCount counts orders. Frontend side, apps/web/src/features/delivery/model/statistics-view-model.ts:97,103,109 feeds exactly those three into one three-card row."
+    },
+    {
+      "claim": "Store progress bar width comes from ordersCount / totalOrders while the card presents spending",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:126-128",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/model/statistics-view-model.ts:129-132 computes share as store.ordersCount / totalOrders; apps/web/src/features/delivery/components/delivery-stat-breakdowns.tsx:72 uses that share for the bar width while :65 renders formatCurrencyTotals in the same row. Frontend-only; excluded from this pass."
+    },
+    {
+      "claim": "Huge monthly charts: one chart per currency plus a separate order chart",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:132-134",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-monthly-chart.tsx:39-55 maps one BarChart per currency, and :58-60 renders a further BarChart for orders. Frontend-only; excluded from this pass."
+    },
+    {
+      "claim": "STATISTICS_MAX_ORDERS = 5000 with a log warning only",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:135-137; backend/15_truncation_meta_and_performance.md:6-24",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts:15 declares the constant, :67 passes it as take, :71-76 logs a warning when rows.length equals it, and :78 returns the mapped rows with no truncation signal. The equality check also cannot distinguish exactly-max from more, which is the ambiguity backend/15:20-22 names."
+    },
+    {
+      "claim": "The statistics controller lives at apps/api/src/modules/delivery/api/book-orders.controller.ts",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:54",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/delivery/api/book-orders.controller.ts:75-82 — @Get(\"statistics\") on @Controller(\"api/delivery/orders\") (:38), delegating to DeliveryReadService.statistics. The route is /api/delivery/orders/statistics, matching apps/api/src/modules/delivery/api/book-order.fixtures.ts:31."
+    },
+    {
+      "claim": "delivery-read.service.ts, order-statistics.ts and delivery-statistics.repository.ts are the relevant backend files",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:55-57",
+      "verdict": "CONFIRMED",
+      "evidence": "All three exist: apps/api/src/modules/delivery/application/delivery-read.service.ts:140-161 (statistics method), apps/api/src/modules/delivery/domain/order-statistics.ts:91-109 (computeBookOrderStatistics), apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts:64-79 (listOrderRecords)."
+    },
+    {
+      "claim": "packages/shared/src/orders.ts and packages/shared/src/book-enums.ts are the relevant shared files",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:49,51",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:1-574 holds every delivery schema including BookOrderStatisticsViewSchema:567-572; packages/shared/src/book-enums.ts:37 holds CurrencySchema and :75-81 ShipmentStatusSchema."
+    },
+    {
+      "claim": "The eleven listed frontend statistics and in-transit files exist",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:59-73",
+      "verdict": "CONFIRMED",
+      "evidence": "A directory listing of apps/web/src/features/delivery shows all of delivery-statistics-view.tsx, delivery-statistics.tsx, delivery-summary-cards.tsx, delivery-monthly-chart.tsx, delivery-stat-breakdowns.tsx, delivery-statistics-filters.tsx, model/statistics-params.ts, model/statistics-view-model.ts, model/use-statistics-params.ts and model/in-transit-params.ts."
+    },
+    {
+      "claim": "The statistics query currently includes currency, from, to, includeCancelled, status and store",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:77-83",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:505-512 — exactly those six keys, with includeCancelled as QueryBooleanWithDefaultSchema (a \"true\"/\"false\" string transform declared at packages/shared/src/internal.ts:81-84) and from/to as isoDay()."
+    },
+    {
+      "claim": "The summary currently includes the listed thirteen values",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:85-94",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:516-530 declares exactly activeBooksCount, activeShipmentsCount, activeTotalsByCurrency, averageBookPriceByCurrency, averageOrderAmountByCurrency, booksCount, cancelledOrdersCount, cancelledTotalsByCurrency, ordersCount, receivedBooksCount, receivedTotalsByCurrency, shipmentsCount, totalsByCurrency."
+    },
+    {
+      "claim": "Store stats include avg book price, avg order amount, books count, orders count and totals",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:96-101",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:534-541, which additionally carries the store name field the spec omitted from its list."
+    },
+    {
+      "claim": "Monthly includes month, books count, orders count and totals",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:103-107",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:545-550."
+    },
+    {
+      "claim": "Top order includes books count, currency, derived status, id, orderDate, orderNumber, storeName and totalAmount",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:109-117",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:554-563, with currency nullable and totalAmount non-nullable."
+    },
+    {
+      "claim": "nuqs is used for URL query state in the Delivery lists",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:19",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/model/in-transit-params.ts:1 imports parseAsString and parseAsStringLiteral from \"nuqs/server\" and builds deliveryQueryParsers at :29-33; apps/web/src/features/delivery/model/statistics-params.ts:1-6 does the same for the statistics page and builds deliveryStatisticsParsers at :21-28."
+    },
+    {
+      "claim": "A canonical derived-status helper exists, with the stages the lifecycle block should reuse",
+      "specRef": "backend/06_lifecycle_status_distribution.md:11,25-34",
+      "verdict": "MOVED",
+      "evidence": "The helper exists at apps/api/src/modules/delivery/domain/order-derived-status.ts:18-52 (computeBookOrderDerivedStatus), but its stage set is not the one the spec suggests. It returns BookOrderDerivedStatus = active | partially_shipped | shipped | partially_received | received | cancelled (packages/shared/src/orders.ts:59-66). The spec's ordered / in_transit / ready_for_pickup / received / cancelled is ShipmentStatusSchema instead (packages/shared/src/book-enums.ts:75-81), which describes a shipment, not an order. See D4."
+    },
+    {
+      "claim": "deliveryPrice and discount are persisted and something reads them today",
+      "specRef": "backend/01_financial_invariant_and_cancelled_scope.md:11; backend/04_delivery_cost_and_discounts.md:7-16",
+      "verdict": "MOVED",
+      "evidence": "Persisted: apps/api/prisma/schema.prisma:366-367, both Decimal(10,2) nullable. Exposed: packages/shared/src/orders.ts:112,114 on BookOrderViewSchema, :159-160 on create, :215-216 on update. Written: apps/api/src/modules/delivery/application/book-order.service.ts:200-201,231-232. Mapped: apps/api/src/modules/delivery/domain/order.mapper.ts:44,46. But NOTHING computes with them — the statistics select never fetches them (delivery-statistics.repository.ts:21-47) and rg over apps/web/src finds zero hand-written reads of order.deliveryPrice or order.discount. They are write-only fields today."
+    },
+    {
+      "claim": "An in-transit list filter architecture exists that an ageBucket filter must slot into",
+      "specRef": "backend/14_drilldown_in_transit_age_filter.md:12-14,41-47",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:318-333 declares InTransitFilterSchema as a single-choice enum of sixteen values, :337-347 InTransitSortSchema with nine, :373-381 InTransitQuerySchema combining filter, sort, store, service, currency, search and pagination. The SQL side composes independent predicates into a conditions array at apps/api/src/modules/delivery/infrastructure/in-transit-sql.ts:111-150, with the single-choice filter resolved separately at :236-275. A new optional ageBucket key therefore composes cleanly, whereas folding buckets into InTransitFilterSchema would make an age filter mutually exclusive with `ordered` and `in_transit`. See T67."
+    },
+    {
+      "claim": "An oldest-first sort already exists for the in-transit list, so the drill-down need not invent one",
+      "specRef": "backend/14_drilldown_in_transit_age_filter.md:24-26",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/orders.ts:340 declares \"oldest_orders\" and apps/api/src/modules/delivery/infrastructure/in-transit-sql.ts:70 maps it to `book_order.order_date ASC NULLS LAST`. Age is measured from order_date, so the existing sort is exactly the oldest-first the drill-down wants."
+    },
+    {
+      "claim": "A per-user settings model exists that versioned budget persistence could reuse",
+      "specRef": "backend/13_budget_persistence_and_api.md:42",
+      "verdict": "MOVED",
+      "evidence": "UserProfileSettings exists at apps/api/prisma/schema.prisma:660-683, but it is one row per user (userId @unique at :662) holding seventeen flat scalar preference columns and no money, no currency and no validity window. It cannot express per-currency versioned history without exactly the overloading the spec forbids. A dedicated table is required; see D6."
+    },
+    {
+      "claim": "A money / minor-unit policy already exists to reuse for landed-cost rounding",
+      "specRef": "backend/05_landed_book_cost.md:26; shared/02_CONTRACT_AND_INVARIANTS.md:64-65",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/core contains 21 modules (assert-never, iso-date, paginator, ukrainian-collation, database/, exceptions/, pipes/, queue/ and so on) and none is money-related; rg for \"minorUnits|toMinor|roundMoney|MONEY_\" over apps/api/src and packages/shared/src returns zero matches. Money is stored as Prisma Decimal(10,2) and converted to a JS number with .toNumber() (delivery-statistics.repository.ts:148,161). The helper must be built; see T3."
+    },
+    {
+      "claim": "Order create/update currently rejects a manual total that mismatches the item subtotal",
+      "specRef": "shared/02_CONTRACT_AND_INVARIANTS.md:28,32; backend/01_financial_invariant_and_cancelled_scope.md:14,78",
+      "verdict": "FALSE",
+      "evidence": "CreateBookOrderInputSchema at packages/shared/src/orders.ts:194-209 carries four refinements — hasUniqueOrderedBooks, shipsOnlyOrderedBooks, shipsEachBookOnce, expectsDeliveryNotBeforeOrderDate — and none touches totalAmount. UpdateBookOrderInputSchema at :213-222 is a plain object with no refinement. There is no mismatch validation to remove. See D7."
+    },
+    {
+      "claim": "Order date can be in the future, so the age bucketer must handle negative ages",
+      "specRef": "backend/10_active_money_age_buckets.md:30-32",
+      "verdict": "MOVED",
+      "evidence": "The contract already forbids it on write: packages/shared/src/orders.ts:163 and :218 both use notInFutureDate(\"Order date must not be in the future\") (declared at packages/shared/src/internal.ts:43). A future orderDate can therefore only reach the bucketer as a legacy or externally written row, which narrows the requirement from \"handle a normal case\" to \"do not crash on bad data\". Kept as a doneWhen on T47 rather than dropped."
+    },
+    {
+      "claim": "Contracts must start in packages/shared and flow through pnpm gen:api to a generated frontend client",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:36-42; README.md:32-33",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/index.ts is a pure barrel of 38 `export * from` lines; apps/api/src/modules/delivery/api/view-dto/book-order-statistics.view-dto.ts:1-4 wraps the shared schema with createZodDto; git ls-files counts 1719 tracked files under apps/web/src/shared/api/generated, and openapi.json is untracked (regenerated, not committed)."
+    },
+    {
+      "claim": "The repository is the only layer touching Prisma and services never inject PrismaService",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:146-147; CLAUDE.md §5",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts:62 injects PrismaService; apps/api/src/modules/delivery/application/delivery-read.service.ts:35-39 injects only two repositories and MediaService; apps/api/src/modules/delivery/api/book-orders.controller.ts:41-44 injects only services. TransactionRunner is available at apps/api/src/core/database/transaction-runner.ts:23-35 for the budget writes."
+    },
+    {
+      "claim": "Eleven raw-SQL indexes are guarded by a test that a new migration must not break",
+      "specRef": "CLAUDE.md §6; backend/15_truncation_meta_and_performance.md:38",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/raw-sql-indexes.test.ts:35-45 lists exactly eleven index names with their required predicates. A budget partial-unique index would make it twelve; see D6 and T57."
+    },
+    {
+      "claim": "The frontend validates the statistics response with the shared Zod schema at runtime",
+      "specRef": "shared/01_CURRENT_REPO_CONTEXT.md:36-42 (contract-flow assumption)",
+      "verdict": "MOVED",
+      "evidence": "apps/web/src/features/delivery/api/use-statistics.ts:14 calls BookOrderStatisticsViewSchema.parse on the generated client's response — the FE parses with the shared schema, not the generated zod. Consequence for D1: a new REQUIRED key does not break the browser (the backend supplies it), it breaks pnpm typecheck at apps/web/src/features/delivery/components/delivery-history.fixtures.ts:123, an explicitly typed BookOrderStatisticsView literal. Conversely a key the shared schema does not declare is silently stripped from the FE's copy of the response."
+    }
+  ],
+  "decisionsAnsweredAt": "2026-08-20"
+}

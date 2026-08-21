@@ -2,6 +2,8 @@ import { normalizeSearch } from "@app/shared";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
+import { escapeLikePattern } from "../../../core/database/like-pattern.js";
+
 const MIN_SEARCH_LENGTH = 2;
 const ISBN_FRAGMENT_PATTERN = /^\d+$/;
 
@@ -48,7 +50,7 @@ export function buildBookSearchConditions({
 }
 
 export function buildBookTextSearchConditions(search: string): Prisma.BookWhereInput[] {
-  const contains = { contains: search, mode: "insensitive" } as const;
+  const contains = { contains: escapeLikePattern(search), mode: "insensitive" } as const;
   return [{ title: contains }, { originalTitle: contains }, ...buildAuthorSearchConditions(search)];
 }
 
@@ -64,7 +66,7 @@ export function normalizeSearchQuery(value: string | undefined): string | undefi
 }
 
 function buildAuthorSearchConditions(search: string): Prisma.BookWhereInput[] {
-  const contains = { contains: search, mode: "insensitive" } as const;
+  const contains = { contains: escapeLikePattern(search), mode: "insensitive" } as const;
   return [
     { authors: { some: { author: { name: contains } } } },
     { authors: { some: { author: { names: { some: { name: contains } } } } } },

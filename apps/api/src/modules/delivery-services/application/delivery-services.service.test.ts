@@ -1,3 +1,4 @@
+import { TRACKING_URL_TEMPLATE_PLACEHOLDER } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -12,6 +13,8 @@ const GLOBAL_ID = "22222222-2222-4222-8222-222222222222";
 const CUSTOM_ID = "33333333-3333-4333-8333-333333333333";
 const EXTRA_ID = "44444444-4444-4444-8444-444444444444";
 const TX = {} as unknown as Prisma.TransactionClient;
+
+const NOVA_POSHTA_TRACKING_TEMPLATE = `https://novaposhta.ua/tracking/index/cargo_number/${TRACKING_URL_TEMPLATE_PLACEHOLDER}/no_redirect/1`;
 
 function buildService(): {
   repository: {
@@ -46,7 +49,9 @@ function deliveryService(overrides: Partial<DeliveryServiceModel> = {}): Deliver
     isDefault: true,
     name: "Нова Пошта",
     normalizedName: "нова пошта",
+    providerKey: null,
     sortOrder: 0,
+    trackingUrlTemplate: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: null,
     ...overrides,
@@ -68,10 +73,16 @@ describe("DeliveryServicesService.search", () => {
     expect(repository.count).toHaveBeenCalledWith({ query: "пошта", userId: USER_ID });
   });
 
-  it("maps a global row to isCustom false and an own custom row to isCustom true", async () => {
+  it("maps isCustom from ownership and hands the curated tracking template through", async () => {
     const { repository, service } = buildService();
     repository.search.mockResolvedValue([
-      deliveryService({ id: GLOBAL_ID, name: "Нова Пошта", userId: null }),
+      deliveryService({
+        id: GLOBAL_ID,
+        name: "Нова Пошта",
+        providerKey: "nova_poshta",
+        trackingUrlTemplate: NOVA_POSHTA_TRACKING_TEMPLATE,
+        userId: null,
+      }),
       deliveryService({ id: CUSTOM_ID, name: "My Courier", userId: USER_ID }),
     ]);
     repository.count.mockResolvedValue(2);
@@ -83,8 +94,22 @@ describe("DeliveryServicesService.search", () => {
     });
 
     expect(result.items).toEqual([
-      { countryCode: null, id: GLOBAL_ID, isCustom: false, name: "Нова Пошта" },
-      { countryCode: null, id: CUSTOM_ID, isCustom: true, name: "My Courier" },
+      {
+        countryCode: null,
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Нова Пошта",
+        providerKey: "nova_poshta",
+        trackingUrlTemplate: NOVA_POSHTA_TRACKING_TEMPLATE,
+      },
+      {
+        countryCode: null,
+        id: CUSTOM_ID,
+        isCustom: true,
+        name: "My Courier",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
     ]);
   });
 
@@ -256,7 +281,14 @@ describe("DeliveryServicesService.recent", () => {
     const result = await service.recent({ limit: 8, userId: USER_ID });
 
     expect(result).toEqual([
-      { countryCode: null, id: GLOBAL_ID, isCustom: false, name: "Нова Пошта" },
+      {
+        countryCode: null,
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Нова Пошта",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
     ]);
   });
 
@@ -275,7 +307,14 @@ describe("DeliveryServicesService.recent", () => {
     const result = await service.recent({ limit: 8, userId: USER_ID });
 
     expect(result).toEqual([
-      { countryCode: "UA", id: GLOBAL_ID, isCustom: false, name: "Нова Пошта" },
+      {
+        countryCode: "UA",
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Нова Пошта",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
     ]);
   });
 });

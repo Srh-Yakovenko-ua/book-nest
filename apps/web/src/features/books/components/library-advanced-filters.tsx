@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { FacetMultiselect, type FacetOption } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,18 +29,16 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { YearPicker } from "@/components/ui/year-picker";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
-import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 import type { LibraryQueryState, LibraryScope } from "../model/library-query";
 import type { UseLibraryQueryResult } from "../model/use-library-query";
 
-import { useAuthorOptions } from "../api/use-author-options";
-import { useGenres } from "../api/use-genres";
+import { useBookFacets } from "../api/use-book-facets";
 import { usePublishersSearch } from "../api/use-publishers-search";
-import { useRecentAuthors } from "../api/use-recent-authors";
-import { useRecentGenres } from "../api/use-recent-genres";
 import { useRecentPublishers } from "../api/use-recent-publishers";
 import {
   hasActiveLibraryFilters,
@@ -51,6 +50,7 @@ import {
   libraryRangeFlags,
   scopedOwnerValues,
 } from "../model/library-query";
+import { BookFormatFilter } from "./book-format-filter";
 import { LibraryEntityMultiselect } from "./library-entity-multiselect";
 import { LibraryTagFilter } from "./library-tag-filter";
 
@@ -104,6 +104,8 @@ type LibraryAdvancedFiltersProps = {
   state: LibraryQueryState;
 };
 
+const FACET_SEARCH_DEBOUNCE_MS = 250;
+
 export function LibraryAdvancedFilters({
   activeCount,
   onRememberEntity,
@@ -113,35 +115,28 @@ export function LibraryAdvancedFilters({
   state,
 }: LibraryAdvancedFiltersProps) {
   const t = useTranslations("books.library.filters");
-  const tAuthor = useTranslations("books.author");
   const tPublisher = useTranslations("books.publisher");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwner = useTranslations("books.ownershipStatus.options");
-  const tFormat = useTranslations("books.format.options");
   const tAge = useTranslations("books.classification.ageCategoryLabels");
   const tLanguage = useTranslations("books.classification.languageLabels");
   const tClassification = useTranslations("books.classification");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<LibraryFiltersDraft>(() => draftFromState(state));
-  const genres = useGenres();
-  const recentGenres = useRecentGenres();
 
-  const genreList = genres.data ?? [];
-  const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
-  const recentHeading = tClassification("genresRecentHeading");
-  const recentKeys = (recentGenres.data ?? [])
-    .map((genre) => genre.key)
-    .filter((key) => genreNameByKey.has(key));
-  const recentKeySet = new Set(recentKeys);
-  const recentOptions = recentKeys.map((key) => ({
-    group: recentHeading,
-    label: genreNameByKey.get(key) ?? key,
-    value: key,
+  const [authorTerm, setAuthorTerm] = useState("");
+  const debouncedAuthorTerm = useDebouncedValue(authorTerm, FACET_SEARCH_DEBOUNCE_MS);
+  const facets = useBookFacets(scope === "favorites" ? "favorites" : scope, debouncedAuthorTerm);
+  const authorFacetOptions = (facets.data?.authors ?? []).map((author) => ({
+    count: author.count,
+    label: author.name,
+    value: author.id,
   }));
-  const catalogOptions = genreList
-    .filter((genre) => !recentKeySet.has(genre.key))
-    .map((genre) => ({ group: genre.groupName, label: genre.name, value: genre.key }));
-  const genreOptions = [...recentOptions, ...catalogOptions];
+  const genreFacetOptions = (facets.data?.genres ?? []).map((genre) => ({
+    count: genre.count,
+    label: genre.name,
+    value: genre.key,
+  }));
 
   const ownerValues = scopedOwnerValues(scope);
   const coverValue = draft.hasCover === null ? "all" : draft.hasCover ? "with" : "without";
@@ -231,36 +226,21 @@ export function LibraryAdvancedFilters({
             />
           </FilterSection>
 
-          <FilterSection title={t("sections.format")}>
-            <ChipGroup
-              label={t("sections.format")}
-              mode="multi"
-              onValueChange={(next) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  format: LIBRARY_FORMAT_VALUES.filter((v) => next.includes(v)),
-                }))
-              }
-              options={LIBRARY_FORMAT_VALUES.map((value) => {
-                const entry = bookFormats.find((item) => item.value === value);
-                return {
-                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
-                  label: tFormat(value),
-                  value,
-                };
-              })}
-              size="sm"
-              value={draft.format}
-            />
-          </FilterSection>
+          <BookFormatFilter
+            onValueChange={(format) => setDraft((prev) => ({ ...prev, format }))}
+            options={LIBRARY_FORMAT_VALUES}
+            value={draft.format}
+          />
 
           <FilterSection title={t("sections.genre")}>
-            <Multiselect
+            <FacetMultiselect
               emptyText={t("genreEmpty")}
+              label={t("sections.genre")}
               onValueChange={(next) => setDraft((prev) => ({ ...prev, genre: next }))}
-              options={genreOptions}
+              options={genreFacetOptions}
               placeholder={t("genrePlaceholder")}
               searchPlaceholder={t("genreSearch")}
+              selectedText={(count) => t("genreSelected", { count })}
               value={draft.genre}
             />
           </FilterSection>
@@ -325,25 +305,20 @@ export function LibraryAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.author")}>
-            <LibraryEntityMultiselect
-              allHeading={tAuthor("allHeading")}
-              empty={t("authorEmpty")}
-              icon="user"
-              id="library-filter-author"
-              onAdd={(item) => {
-                onRememberEntity(item.id, item.name);
-                setDraft((prev) => ({ ...prev, author: [...prev.author, item.id] }));
+            <FacetMultiselect
+              emptyText={t("authorEmpty")}
+              isSearching={facets.isFetching}
+              label={t("sections.author")}
+              onSearchChange={setAuthorTerm}
+              onValueChange={(next) => {
+                rememberFacetNames({ ids: next, onRememberEntity, options: authorFacetOptions });
+                setDraft((prev) => ({ ...prev, author: next }));
               }}
-              onRemove={(id) =>
-                setDraft((prev) => ({ ...prev, author: prev.author.filter((v) => v !== id) }))
-              }
+              options={authorFacetOptions}
               placeholder={t("authorPlaceholder")}
-              recentHeading={tAuthor("recentHeading")}
-              removeLabel={(name) => t("removeAuthor", { name })}
-              resolveName={resolveEntityName}
-              searching={t("authorSearching")}
-              useRecent={useRecentAuthors}
-              useSearch={useAuthorOptions}
+              searchingText={t("authorSearching")}
+              searchPlaceholder={t("authorPlaceholder")}
+              selectedText={(count) => t("authorSelected", { count })}
               value={draft.author}
             />
           </FilterSection>
@@ -560,6 +535,21 @@ function parseRangeValue(raw: string): null | number {
   if (raw === "") return null;
   const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function rememberFacetNames({
+  ids,
+  onRememberEntity,
+  options,
+}: {
+  ids: string[];
+  onRememberEntity: (id: string, name: string) => void;
+  options: FacetOption[];
+}): void {
+  for (const id of ids) {
+    const option = options.find((entry) => entry.value === id);
+    if (option !== undefined) onRememberEntity(id, option.label);
+  }
 }
 
 function toCommitPatch(draft: LibraryFiltersDraft) {

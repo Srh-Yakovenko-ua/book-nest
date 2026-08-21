@@ -21,7 +21,7 @@ const copy = messages.readingQueue;
 const fetchMock = vi.fn();
 
 function emptyQueue() {
-  return { count: 0, items: [], totalPagesCount: 0 };
+  return { count: 0, items: [], totalCount: 0, totalPagesCount: 0 };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

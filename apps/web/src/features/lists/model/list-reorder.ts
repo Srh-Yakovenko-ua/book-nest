@@ -1,10 +1,8 @@
-import { ListDetailsControllerDetailTab } from "@/shared/api/generated/model";
-
 import type { ListDetailQueryState } from "./list-detail-query";
 
 import { LIST_BOOK_SORT_DEFAULT } from "./list-book-sort";
 import { hasActiveListDetailFilters, hasActiveListDetailSearch } from "./list-detail-query";
-import { activeListDetailTab } from "./list-detail-tabs";
+import { activeListQuickFilter } from "./list-quick-filters";
 
 export type ListBookReorder =
   { canMoveDown: boolean; canMoveUp: boolean; kind: "movable" } | { kind: "locked" };
@@ -16,11 +14,14 @@ export function canReorderListDetail({
   isFetching: boolean;
   state: ListDetailQueryState;
 }): boolean {
+  return isListDetailOrderView(state) && !isFetching;
+}
+
+export function isListDetailOrderView(state: ListDetailQueryState): boolean {
   if (state.sort !== LIST_BOOK_SORT_DEFAULT) return false;
   if (hasActiveListDetailSearch(state)) return false;
   if (hasActiveListDetailFilters(state)) return false;
-  if (activeListDetailTab(state) !== ListDetailsControllerDetailTab.all) return false;
-  return !isFetching;
+  return activeListQuickFilter(state) === "all";
 }
 
 export function listBookReorder({

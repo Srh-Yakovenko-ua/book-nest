@@ -8,6 +8,9 @@ import {
   TransactionRunner,
 } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { SingleBookOrderService } from "../../delivery/index.js";
+import { LoanContactResolver } from "../../loans/index.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import {
   buildDeliveryInfoData,
   buildLoanInfoData,
@@ -32,7 +35,7 @@ import {
 } from "../domain/book-update-fields.js";
 import {
   assertCurrentPageWithinPages,
-  assertLoanPersonNamePresent,
+  assertLoanPersonPresent,
 } from "../domain/book-update-guards.js";
 import { resolveFavoriteChange } from "../domain/favorite.js";
 import { resolveWishlistAddedAtChange } from "../domain/wishlist-added-at.js";
@@ -48,7 +51,10 @@ export class BooksService {
     private readonly relationsResolver: BookRelationsResolver,
     private readonly viewAssembler: BookViewAssembler,
     private readonly coverCleanup: BookCoverCleanup,
+    private readonly singleBookOrderService: SingleBookOrderService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly readingGoalSyncService: ReadingGoalSyncService,
+    private readonly loanContactResolver: LoanContactResolver,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
@@ -60,13 +66,13 @@ export class BooksService {
       now,
     });
 
-    const deliveryInfo =
+    const deliveryDraft =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
         ? buildDeliveryInfoData(input.deliveryInfo)
         : null;
-    const loanInfo =
+    const loanInfoInput =
       ownershipStatusUsesLoan(input.ownershipStatus) && input.loanInfo !== undefined
-        ? buildLoanInfoData(input.loanInfo)
+        ? input.loanInfo
         : null;
     const purchaseInfo =
       ownershipStatusKeepsPurchase(input.ownershipStatus) && input.purchaseInfo !== undefined
@@ -94,14 +100,29 @@ export class BooksService {
         );
         placement = { partNumber: resolved.partNumber, seriesId: resolved.seriesId };
 
-        return this.booksRepository.create(
+        const loanInfo =
+          loanInfoInput === null
+            ? null
+            : buildLoanInfoData({
+                loanContact: await this.loanContactResolver.resolve(
+                  {
+                    attached: null,
+                    loanContactId: loanInfoInput.loanContactId,
+                    personName: loanInfoInput.personName,
+                    userId,
+                  },
+                  client,
+                ),
+                loanInfo: loanInfoInput,
+              });
+
+        const created = await this.booksRepository.create(
           userId,
           {
             ageCategory: input.ageCategory,
             authorIds: resolved.authorIds,
             coverMediaId: input.coverMediaId ?? null,
             dedication: normalizeDedication(input.dedication ?? null),
-            deliveryInfo,
             description: input.description ?? null,
             favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
             firstAuthorName: resolved.firstAuthorName,
@@ -136,6 +157,15 @@ export class BooksService {
           now,
           client,
         );
+        if (deliveryDraft === null) {
+          return created;
+        }
+
+        await this.singleBookOrderService.create(
+          { bookId: created.id, draft: deliveryDraft, userId },
+          client,
+        );
+        return this.booksRepository.findOwnedByIdOrThrow(userId, created.id, client);
       }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
@@ -169,7 +199,7 @@ export class BooksService {
       input.ownershipStatus ?? OwnershipStatusSchema.parse(current.ownershipStatus);
 
     assertCurrentPageWithinPages({ current, input, readingStatus });
-    assertLoanPersonNamePresent({ current, input, ownershipStatus });
+    assertLoanPersonPresent({ current, input, ownershipStatus });
 
     const now = new Date();
 
@@ -179,6 +209,12 @@ export class BooksService {
         : await this.relationsResolver.resolveAuthors({ references: input.authors, userId });
 
     await this.relationsResolver.assertUpdatableRelations({ input, userId });
+
+    const deliveryBlock = resolveDeliveryBlock({
+      deliveryInfo: input.deliveryInfo,
+      now,
+      ownershipStatus,
+    });
 
     let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
@@ -197,19 +233,39 @@ export class BooksService {
         applyDedicationFields({ current, fields, input });
         applyWishlistFields({ current, fields, input, now });
 
-        return this.booksRepository.updateOwned(
+        await this.singleBookOrderService.applyBlock(
+          { bookId, change: deliveryBlock, userId },
+          client,
+        );
+
+        const loanInfoInput =
+          ownershipStatusUsesLoan(ownershipStatus) && input.loanInfo !== undefined
+            ? input.loanInfo
+            : null;
+        const resolvedLoanInfo =
+          loanInfoInput === null
+            ? null
+            : {
+                loanContact: await this.loanContactResolver.resolve(
+                  {
+                    attached: current.loans[0] ?? null,
+                    loanContactId: loanInfoInput.loanContactId,
+                    personName: loanInfoInput.personName,
+                    userId,
+                  },
+                  client,
+                ),
+                loanInfo: loanInfoInput,
+              };
+
+        const updated = await this.booksRepository.updateOwned(
           userId,
           bookId,
           {
             authorIds: resolved.authorIds,
-            deliveryInfo: resolveDeliveryBlock({
-              deliveryInfo: input.deliveryInfo,
-              now,
-              ownershipStatus,
-            }),
             fields,
             listIds: resolved.listIds,
-            loanInfo: resolveLoanBlock({ loanInfo: input.loanInfo, now, ownershipStatus }),
+            loanInfo: resolveLoanBlock({ now, ownershipStatus, resolvedLoanInfo }),
             purchaseInfo: resolvePurchaseBlock({
               ownershipStatus,
               purchaseInfo: input.purchaseInfo,
@@ -224,6 +280,10 @@ export class BooksService {
           now,
           client,
         );
+
+        await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client, userId });
+
+        return updated;
       }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({

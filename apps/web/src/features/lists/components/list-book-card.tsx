@@ -1,25 +1,17 @@
 "use client";
 
-import type { ListBookView } from "@app/shared";
-
 import { useTranslations } from "next-intl";
-import Image from "next/image";
-
-import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { RatingScore } from "@/components/ui/rating-score";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { BookCard } from "@/components/ui/book-card";
+import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { toLibraryBook } from "@/features/books/model/library-book";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
-import type { ListBookCta } from "../model/list-book-cta";
 import type { ListBookItemProps } from "../model/list-book-item";
 
-import { listBookCta } from "../model/list-book-cta";
 import {
   ListBookDragHandle,
   ListBookFavoriteButton,
@@ -27,12 +19,8 @@ import {
 } from "./list-book-controls";
 import { ListBookMenu } from "./list-book-menu";
 
-const CTA_APPEARANCE = {
-  continue: { icon: "book", target: "book" },
-  resume: { icon: "book", target: "reading" },
-  start: { icon: "book", target: "reading" },
-  view: { icon: "eye", target: "book" },
-} as const satisfies Record<ListBookCta, { icon: UiIconName; target: "book" | "reading" }>;
+const POSITION_PILL =
+  "inline-flex h-7 items-center gap-1.5 rounded-full border border-[color:var(--book-overlay-badge-border)] bg-[color-mix(in_srgb,var(--book-overlay-badge-surface)_78%,transparent)] px-2.5 text-xs font-medium text-[color:var(--book-overlay-badge-foreground)] tabular-nums shadow-sm backdrop-blur-[6px]";
 
 export function ListBookCard({
   book,
@@ -49,180 +37,93 @@ export function ListBookCard({
   showPosition,
 }: ListBookItemProps) {
   const t = useTranslations("lists.details.book");
+  const tReorder = useTranslations("lists.details.reorder");
   const libraryBook = toLibraryBook(book, labels);
-  const authors = libraryBook.authors.join(", ");
-  const cover = book.cover ?? null;
+  const authors = libraryBook.authors.length === 0 ? [t("unknownAuthor")] : libraryBook.authors;
 
   return (
-    <article
-      className={cn(
-        "group/list-book relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-card transition-[box-shadow,border-color,opacity] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none",
-        selection?.isSelected === true && "border-primary shadow-[0_0_0_1px_var(--primary)]",
-        drag?.isDropTarget === true && "border-primary ring-3 ring-ring/50",
-        drag?.isDragged === true && "opacity-50",
-        isPending && "opacity-60",
-      )}
-      data-slot="list-book-card"
-      {...drag?.containerProps}
-    >
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-accent">
-        {cover === null ? (
-          <span className="grid size-full place-items-center text-accent-foreground/70">
-            <UiIcon name="book" size={48} />
-          </span>
-        ) : (
-          <Image
-            alt={book.title}
-            className="object-cover"
-            fill
-            sizes="(min-width:1280px) 19rem, (min-width:640px) 45vw, 90vw"
-            src={cover.urls.card}
-            unoptimized
-          />
+    <div className="group/list-book relative grid">
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 empty:hidden">
+        {selection === undefined ? null : (
+          <ListBookSelectionCheckbox selection={selection} title={book.title} />
         )}
-
-        <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim)]" />
-
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-          {selection === undefined ? null : (
-            <ListBookSelectionCheckbox selection={selection} title={book.title} />
-          )}
-          <ListBookDragHandle drag={drag} onMove={onMove} reorder={reorder} title={book.title} />
-        </div>
-
-        <div className="absolute top-3 right-3 z-10">
-          <ListBookFavoriteButton isFavorite={book.isFavorite} onToggle={onToggleFavorite} />
-        </div>
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
-        <h3
-          className="line-clamp-2 font-heading text-[1.0625rem] leading-tight font-bold text-ink"
-          title={book.title}
-        >
-          <Link
-            className="font-bold text-ink no-underline transition-colors group-hover/list-book:text-primary after:absolute after:inset-0"
-            href={libraryBook.href}
-          >
-            {book.title}
-          </Link>
-        </h3>
-
-        <p
-          className="line-clamp-1 text-[0.8125rem] text-muted-foreground"
-          title={authors === "" ? t("unknownAuthor") : authors}
-        >
-          {authors === "" ? t("unknownAuthor") : authors}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          <StatusBadge entry={libraryBook.status} />
-          {libraryBook.ownership === undefined ? null : (
-            <StatusBadge entry={libraryBook.ownership} />
-          )}
-        </div>
-
-        <ListBookMeta book={book} labels={labels} showPosition={showPosition} />
-
-        <div className="relative z-10 mt-auto flex items-center gap-2 pt-2">
-          <ListBookCtaButton
-            book={book}
-            href={libraryBook.href}
-            isPending={isPending}
-            onStartReading={onStartReading}
-          />
-          <ListBookMenu
-            book={book}
-            disabled={isPending}
-            onAddToQueue={onAddToQueue}
+        {reorder.kind === "movable" ? (
+          <ListBookDragHandle
+            className={POSITION_PILL}
+            drag={drag}
+            label={
+              showPosition
+                ? tReorder("handlePosition", { n: book.position, title: book.title })
+                : undefined
+            }
             onMove={onMove}
-            onRemove={onRemove}
-            onStartReading={onStartReading}
             reorder={reorder}
-          />
-        </div>
+            title={book.title}
+          >
+            {showPosition ? t("position", { n: book.position }) : null}
+          </ListBookDragHandle>
+        ) : showPosition ? (
+          <span aria-label={t("positionLabel", { n: book.position })} className={POSITION_PILL}>
+            {t("position", { n: book.position })}
+          </span>
+        ) : null}
       </div>
-    </article>
-  );
-}
 
-function ListBookCtaButton({
-  book,
-  href,
-  isPending,
-  onStartReading,
-}: {
-  book: ListBookView;
-  href: string;
-  isPending: boolean;
-  onStartReading: () => void;
-}) {
-  const t = useTranslations("lists.details.book.cta");
-  const cta = listBookCta(book.readingStatus);
-  const appearance = CTA_APPEARANCE[cta];
-
-  if (appearance.target === "book") {
-    return (
-      <Button asChild className="flex-1" size="sm" variant="secondary">
-        <Link href={href}>
-          <UiIcon name={appearance.icon} size={16} />
-          {t(cta)}
-        </Link>
-      </Button>
-    );
-  }
-
-  return (
-    <Button
-      className="flex-1"
-      disabled={isPending}
-      loading={isPending}
-      onClick={onStartReading}
-      size="sm"
-    >
-      <UiIcon name={appearance.icon} size={16} />
-      {t(cta)}
-    </Button>
-  );
-}
-
-function ListBookMeta({
-  book,
-  labels,
-  showPosition,
-}: {
-  book: ListBookView;
-  labels: ListBookItemProps["labels"];
-  showPosition: boolean;
-}) {
-  const t = useTranslations("lists.details.book");
-  const rating = book.readingProgress?.rating ?? null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-      {book.pagesCount === null ? null : (
-        <span className="inline-flex items-center gap-1.5">
-          <UiIcon aria-hidden className="shrink-0 text-icon" name="pages" size={14} />
-          {labels.pagesText(book.pagesCount)}
-        </span>
-      )}
-
-      {rating === null ? null : (
-        <RatingScore className="text-xs" label={labels.ratingLabel(rating)} value={rating} />
-      )}
-
-      {showPosition ? (
-        <Badge className="tabular-nums" variant="secondary">
-          {t("position", { n: book.position })}
-        </Badge>
-      ) : null}
-
-      {book.isInReadingQueue ? (
-        <Badge variant="primary">
-          <UiIcon name="bookmark" size={12} />
-          {t("inQueue")}
-        </Badge>
-      ) : null}
+      <BookCard
+        authors={authors}
+        className={cn(
+          drag?.isDropTarget === true && "border-primary ring-3 ring-ring/50",
+          drag?.isDragged === true && "opacity-50",
+          isPending && "opacity-60",
+        )}
+        cover={libraryBook.cover}
+        data-slot="list-book-card"
+        formats={libraryBook.formats}
+        genres={libraryBook.genres}
+        href={libraryBook.href}
+        kebab={
+          <div className="flex items-center gap-0.5">
+            <ListBookFavoriteButton isFavorite={book.isFavorite} onToggle={onToggleFavorite} />
+            <ListBookMenu
+              book={book}
+              disabled={isPending}
+              onAddToQueue={onAddToQueue}
+              onMove={onMove}
+              onRemove={onRemove}
+              onStartReading={onStartReading}
+              reorder={reorder}
+            />
+          </div>
+        }
+        linkComponent={Link}
+        mobileCompact
+        note={
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StatusBadge entry={libraryBook.status} />
+            {libraryBook.ageBadge === undefined ? null : (
+              <span className={statusBadgeVariants({ tone: "danger" })}>
+                {libraryBook.ageBadge}
+              </span>
+            )}
+            {book.isInReadingQueue ? (
+              <Badge variant="primary">
+                <UiIcon name="bookmark" size={12} />
+                {t("inQueue")}
+              </Badge>
+            ) : null}
+          </div>
+        }
+        ownership={libraryBook.ownership}
+        ownershipTooltip={libraryBook.loan?.text}
+        publisher={libraryBook.publisher}
+        rating={libraryBook.rating}
+        ratingLabel={libraryBook.ratingLabel}
+        selected={selection?.isSelected}
+        series={libraryBook.series}
+        tags={libraryBook.tags}
+        title={book.title}
+        {...drag?.containerProps}
+      />
     </div>
   );
 }

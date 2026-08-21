@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { LOAN_ERROR_CODES } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -254,6 +255,7 @@ describe("POST /api/books/:id/loan preconditions", () => {
     });
 
     expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.borrowRequiresFreeBook);
   });
 
   it("borrows a book that is currently marked want_to_buy", async () => {
@@ -288,6 +290,7 @@ describe("POST /api/books/:id/loan preconditions", () => {
     });
 
     expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.lendRequiresOwned);
   });
 });
 
@@ -344,7 +347,6 @@ describe("POST /api/books/:id/loan side effects", () => {
     });
 
     const res = await createLoan(accessToken, created.body.id, {
-      contact: "olha@example.com",
       direction: "lent",
       expectedReturnDate: "2026-03-01",
       loanDate: "2026-01-20",
@@ -356,7 +358,6 @@ describe("POST /api/books/:id/loan side effects", () => {
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("lent_to_someone");
     expect(res.body.loanInfo).toMatchObject({
-      contact: "olha@example.com",
       expectedReturnDate: "2026-03-01",
       loanDate: "2026-01-20",
       loanType: "lent_to_someone",
@@ -374,7 +375,6 @@ describe("POST /api/books/:id/loan side effects", () => {
       title: "Dune",
     });
     await createLoan(accessToken, created.body.id, {
-      contact: "olha@example.com",
       direction: "lent",
       loanDate: TODAY,
       note: "first loan",
@@ -452,6 +452,7 @@ describe("POST /api/books/:id/loan/return", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.message).toBe("Book must be borrowed or lent to be returned");
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.returnRequiresLoan);
   });
 
   it("leaves reading status and favorite untouched when returning a loan", async () => {
@@ -510,6 +511,7 @@ describe("PATCH /api/books/:id/loan", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Loan not found");
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.loanNotFound);
   });
 
   it("returns 404 when the book belongs to another user", async () => {
@@ -537,7 +539,6 @@ describe("PATCH /api/books/:id/loan", () => {
     });
 
     const res = await editLoan(accessToken, created.body.id, {
-      contact: "olha@example.com",
       expectedReturnDate: TODAY,
       note: "hardcover copy",
       personName: "Olha K.",
@@ -546,7 +547,6 @@ describe("PATCH /api/books/:id/loan", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.loanInfo).toMatchObject({
-      contact: "olha@example.com",
       expectedReturnDate: TODAY,
       note: "hardcover copy",
       personName: "Olha K.",
@@ -640,26 +640,6 @@ describe("PATCH /api/books/:id/loan", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when the contact exceeds 100 characters", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const created = await createBook(accessToken, {
-      authors: [{ name: "Frank Herbert" }],
-      loanInfo: { personName: "Olha" },
-      ownershipStatus: "borrowed_from_someone",
-      title: "Dune",
-    });
-
-    const res = await editLoan(accessToken, created.body.id, {
-      contact: "a".repeat(101),
-      personName: "Olha",
-    });
-
-    expect(res.status).toBe(400);
-    expect(res.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "contact" })]),
-    );
-  });
-
   it("accepts a loan note up to 500 characters", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
@@ -706,7 +686,6 @@ describe("PATCH /api/books/:id/loan", () => {
       title: "Dune",
     });
     await createLoan(accessToken, created.body.id, {
-      contact: "olha@example.com",
       direction: "lent",
       loanDate: TODAY,
       note: "hardcover copy",

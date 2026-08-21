@@ -37,6 +37,12 @@ Audit date: 2026-07-08.
 - **Filter / count** — `modules/loans/infrastructure/loans.repository.ts:119-132`
   (`has_reminder` → `where.remindToReturn = true`) and `loans.repository.ts:72`
   (summary count of active loans with a reminder).
+- **What `without_reminder` means** — a loan that has an `expectedReturnDate` and
+  `remindToReturn = false`. A loan with no return date is excluded, because the contract already
+  forbids a reminder without a date, so every dateless loan would otherwise show up here and
+  duplicate the `no_return_date` filter. The `noReminderWithDateCount` field of the loans summary
+  counts exactly the same set, which is what the "without a reminder" row of the sidebar attention
+  block reports.
 
 ### Frontend (`apps/web/src`)
 

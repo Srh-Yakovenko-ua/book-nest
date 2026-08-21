@@ -10,7 +10,8 @@ import type {
   SeriesOrderRelatedProblem,
 } from "@app/shared";
 
-import { compareByPartThenCreated } from "../../series/index.js";
+import { compareByPartThenCreated } from "@app/shared";
+
 import {
   type SeriesOrderConflict,
   type SeriesOrderDetectedIssue,

@@ -1,10 +1,12 @@
 "use client";
 
+import type { WishlistSort } from "@app/shared";
+import type { ReactNode } from "react";
+
 import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
-import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
@@ -15,123 +17,131 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type {
-  WishlistFilterOptions,
-  WishlistFilters,
-  WishlistSort,
-  WishlistViewMode,
-} from "../model/books-to-buy-derive";
+import type { WishlistFilterOption, WishlistViewMode } from "../model/books-to-buy-derive";
+import type { UseWishlistQueryResult } from "../model/use-wishlist-query";
+import type { WishlistQueryState } from "../model/wishlist-query";
 
-import { WISHLIST_SORT_DEFAULT, WISHLIST_SORT_OPTIONS } from "../model/books-to-buy-derive";
+import { WISHLIST_SORT_DEFAULT, WISHLIST_SORT_VALUES } from "../model/wishlist-query";
 import { WishlistAdvancedFilters } from "./wishlist-advanced-filters";
+import { WishlistSortSheet } from "./wishlist-sort-sheet";
 
 type BooksToBuyToolbarProps = {
+  activeFilterCount: number;
+  activeFilters?: ReactNode;
   counterLabel: string;
-  filters: WishlistFilters;
-  onFiltersChange: (filters: WishlistFilters) => void;
+  onRememberEntity: (id: string, name: string) => void;
+  onSearchChange: (value: string) => void;
   onSortChange: (sort: WishlistSort) => void;
   onViewChange: (view: WishlistViewMode) => void;
-  options: WishlistFilterOptions;
+  resolveEntityName: (id: string) => string | undefined;
+  setState: UseWishlistQueryResult["setState"];
   sort: WishlistSort;
+  state: WishlistQueryState;
+  storeOptions: WishlistFilterOption[];
   view: WishlistViewMode;
 };
 
 export function BooksToBuyToolbar({
+  activeFilterCount,
+  activeFilters,
   counterLabel,
-  filters,
-  onFiltersChange,
+  onRememberEntity,
+  onSearchChange,
   onSortChange,
   onViewChange,
-  options,
+  resolveEntityName,
+  setState,
   sort,
+  state,
+  storeOptions,
   view,
 }: BooksToBuyToolbarProps) {
   const t = useTranslations("booksToBuy.toolbar");
   const tCommon = useTranslations("common");
   const tSort = useTranslations("booksToBuy.sort");
-  const tSortMobile = useTranslations("booksToBuy.sortMobile");
   const tView = useTranslations("books.library.view");
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-1.5 lg:flex-row lg:items-center lg:gap-3">
-        <div className="min-w-0 flex-1">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="lg:flex-1">
           <DebouncedSearchInput
             clearLabel={t("searchClear")}
             isCommittable={alwaysCommittable}
             label={t("searchLabel")}
-            onClear={() => onFiltersChange({ ...filters, search: "" })}
-            onSearch={(value) => onFiltersChange({ ...filters, search: value })}
+            onClear={() => onSearchChange("")}
+            onSearch={onSearchChange}
             placeholder={t("searchPlaceholder")}
-            value={filters.search}
+            value={state.q}
           />
         </div>
 
-        <MobileSortSheet
-          className="max-w-[9.5rem] sm:hidden"
-          closeLabel={tSortMobile("close")}
-          groups={[
-            {
-              key: "sort",
-              options: WISHLIST_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
-            },
-          ]}
-          id="books-to-buy-sort"
-          label={t("sortLabel")}
-          onChange={onSortChange}
-          title={tSortMobile("title")}
-          triggerLabel={tSortMobile(`trigger.${sort}`)}
-          value={sort}
-        />
-
-        <div className="hidden sm:block sm:w-80">
-          <Select
-            onValueChange={(next) => {
-              const match = WISHLIST_SORT_OPTIONS.find((option) => option === next);
-              if (match !== undefined) onSortChange(match);
-            }}
+        <div className="flex flex-wrap items-center gap-2.5 max-sm:flex-nowrap max-sm:gap-1.5">
+          <WishlistSortSheet
+            className="sm:hidden"
+            label={t("sortLabel")}
+            onChange={onSortChange}
             value={sort}
-          >
-            <SelectTrigger
-              aria-label={t("sortLabel")}
-              className="w-full data-[size=default]:h-10"
-              clearLabel={tCommon("clear")}
-              isClearable={sort !== WISHLIST_SORT_DEFAULT}
-              onClear={() => onSortChange(WISHLIST_SORT_DEFAULT)}
+          />
+
+          <div className="hidden sm:block sm:w-80">
+            <Select
+              onValueChange={(next) => {
+                const match = WISHLIST_SORT_VALUES.find((option) => option === next);
+                if (match !== undefined) onSortChange(match);
+              }}
+              value={sort}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {WISHLIST_SORT_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {tSort(option)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                aria-label={t("sortLabel")}
+                className="w-full data-[size=default]:h-10"
+                clearLabel={tCommon("clear")}
+                isClearable={sort !== WISHLIST_SORT_DEFAULT}
+                onClear={() => onSortChange(WISHLIST_SORT_DEFAULT)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WISHLIST_SORT_VALUES.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {tSort(option)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <WishlistAdvancedFilters
+            activeCount={activeFilterCount}
+            onRememberEntity={onRememberEntity}
+            resolveEntityName={resolveEntityName}
+            setState={setState}
+            state={state}
+            storeOptions={storeOptions}
+          />
+
+          <Segmented
+            className="ml-auto h-10 shrink-0 items-stretch [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+            label={tView("label")}
+            onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
+            options={[
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{tView("grid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{tView("list")}</span>,
+                value: "list",
+              },
+            ]}
+            value={view}
+          />
         </div>
-
-        <WishlistAdvancedFilters filters={filters} onApply={onFiltersChange} options={options} />
-
-        <Segmented
-          className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
-          label={tView("label")}
-          onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
-          options={[
-            {
-              icon: <LayoutGrid />,
-              label: <span className="max-sm:sr-only">{tView("grid")}</span>,
-              value: "grid",
-            },
-            {
-              icon: <List />,
-              label: <span className="max-sm:sr-only">{tView("list")}</span>,
-              value: "list",
-            },
-          ]}
-          value={view}
-        />
       </div>
+
+      {activeFilters}
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {counterLabel}
@@ -142,11 +152,14 @@ export function BooksToBuyToolbar({
 
 export function BooksToBuyToolbarSkeleton() {
   return (
-    <div aria-busy className="flex flex-col gap-3">
+    <div aria-busy className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Skeleton className="h-10 w-full rounded-md lg:flex-1" />
-        <Skeleton className="h-10 w-full rounded-md lg:w-80" />
-        <Skeleton className="h-10 w-20 shrink-0 rounded-full" />
+        <div className="flex items-center gap-2.5 max-sm:gap-1.5">
+          <Skeleton className="h-10 min-w-0 flex-1 rounded-md sm:w-80 sm:flex-none" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
+          <Skeleton className="ml-auto h-10 w-20 shrink-0 rounded-full" />
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: 4 }, (_, index) => (

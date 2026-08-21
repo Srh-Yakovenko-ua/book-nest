@@ -1,0 +1,52 @@
+{
+  "spec": "docs/specs/create-book-order-item-prices-ux/spec.md",
+  "generatedAt": "2026-08-16",
+  "openDecisions": [],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add dynamic item-price status",
+      "mandatory": true,
+      "doneWhen": [
+        "status follows the custom-list reorder info pattern",
+        "zero, partial and complete price states have distinct localized copy",
+        "only one price-completion message is shown"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Align per-book inputs and cost fields",
+      "mandatory": true,
+      "doneWhen": [
+        "price controls stay in one right-aligned desktop column",
+        "price inputs keep equal width and row height",
+        "currency, delivery and discount retain their semantics and labels"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Unify calculated and incomplete summaries",
+      "mandatory": true,
+      "doneWhen": [
+        "complete summary uses the manual summary container style",
+        "delivery and discount rows are conditional",
+        "calculated total is emphasized and comes from the shared resolver",
+        "incomplete state never displays a partial total"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Localize and verify",
+      "mandatory": true,
+      "doneWhen": [
+        "Ukrainian and English catalogs remain in parity",
+        "focused tests cover zero, partial and complete states",
+        "typecheck, lint and formatting pass"
+      ],
+      "status": "done"
+    }
+  ]
+}

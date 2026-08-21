@@ -10,11 +10,10 @@ export type LoansControllerListSort =
   (typeof LoansControllerListSort)[keyof typeof LoansControllerListSort];
 
 export const LoansControllerListSort = {
+  overdue_first: "overdue_first",
   return_date: "return_date",
   loan_date: "loan_date",
   title: "title",
   author: "author",
   person: "person",
-  overdue_first: "overdue_first",
-  return_soonest: "return_soonest",
 } as const;

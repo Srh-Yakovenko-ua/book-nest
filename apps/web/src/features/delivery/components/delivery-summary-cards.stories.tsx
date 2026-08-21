@@ -12,6 +12,10 @@ const cards = [
   { icon: "store" as const, label: "Магазини", value: "3" },
 ];
 
+function shownCount(elements: HTMLElement[]): number {
+  return elements.filter((element) => element.checkVisibility()).length;
+}
+
 const meta = {
   args: { cards, isLoading: false },
   component: DeliverySummaryCards,
@@ -26,8 +30,9 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Усього в дорозі")).toBeVisible());
-    await expect(canvas.getByText("1 555 UAH")).toBeVisible();
+    await waitFor(() => expect(shownCount(canvas.getAllByText("Усього в дорозі"))).toBe(1));
+    await expect(shownCount(canvas.getAllByText("1 555 UAH"))).toBe(1);
+    await expect(shownCount(canvas.getAllByText("Магазини"))).toBe(1);
   },
 };
 
@@ -42,7 +47,7 @@ export const NoPriceData: Story = {
     ],
   },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("—")).toBeVisible());
+    await waitFor(() => expect(shownCount(canvas.getAllByText("—"))).toBe(1));
   },
 };
 

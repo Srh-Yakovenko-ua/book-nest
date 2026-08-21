@@ -2,7 +2,7 @@ import type { CustomListBooksQuery } from "@app/shared";
 
 import type { LibraryFilter } from "../infrastructure/book-where.js";
 
-import { resolveListBookStatuses } from "./list-status-counts.js";
+import { resolveListBookStatuses } from "./list-quick-counts.js";
 
 type ListBookFilterInput = {
   query: CustomListBooksQuery;
@@ -10,6 +10,10 @@ type ListBookFilterInput = {
   searchGenreKeys: string[] | undefined;
   userId: string;
 };
+
+const QUICK_FILTER_AXES = ["bookType", "inQueue", "isFavorite", "readingStatuses"] as const;
+
+export type QuickFilterAxis = (typeof QUICK_FILTER_AXES)[number];
 
 export function buildListBookFilter({
   query,
@@ -35,4 +39,16 @@ export function buildListBookFilter({
     searchGenreKeys,
     userId,
   };
+}
+
+export function clearQuickFilterAxes(filter: LibraryFilter): LibraryFilter {
+  const cleared: LibraryFilter = { ...filter };
+  for (const axis of QUICK_FILTER_AXES) {
+    delete cleared[axis];
+  }
+  return cleared;
+}
+
+export function hasQuickFilterAxis(filter: LibraryFilter): boolean {
+  return QUICK_FILTER_AXES.some((axis) => filter[axis] !== undefined);
 }

@@ -9,7 +9,7 @@ import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
+import type { BookRowBook, LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
 
 import { BookLoanNote } from "./book-loan-note";
 
@@ -18,13 +18,15 @@ type BookRowCoverAspect = "portrait" | "stretch";
 type BookRowProps = {
   accent?: boolean;
   actionsSlot?: React.ReactNode;
-  book: LibraryBook;
+  book: BookRowBook;
   coverAspect?: BookRowCoverAspect;
+  detailsSlot?: React.ReactNode;
   kebab?: React.ReactNode;
   leading?: React.ReactNode;
   linkComponent?: LibraryBookLinkComponent;
   mobileCompact?: boolean;
   note?: React.ReactNode;
+  rowLink?: boolean;
   selected?: boolean;
   selectionControl?: React.ReactNode;
   statusPlacement?: "column" | "note";
@@ -68,11 +70,13 @@ export function BookRow({
   actionsSlot,
   book,
   coverAspect = "stretch",
+  detailsSlot,
   kebab,
   leading,
   linkComponent,
   mobileCompact,
   note,
+  rowLink = true,
   selected,
   selectionControl,
   statusPlacement = "column",
@@ -116,7 +120,15 @@ export function BookRow({
           metaIconClassName={compact?.metaIcon}
           mobileKebab={compact === null ? undefined : kebab}
           note={note}
+          rowLink={rowLink}
         />
+
+        {detailsSlot === undefined ? null : (
+          <>
+            <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
+            {detailsSlot}
+          </>
+        )}
 
         {statusPlacement === "column" ? (
           <>
@@ -266,15 +278,17 @@ function BookRowMeta({
   metaIconClassName,
   mobileKebab,
   note,
+  rowLink,
 }: {
   ageBadgeClassName?: string;
-  book: LibraryBook;
+  book: BookRowBook;
   formatsClassName?: string;
   LinkComp: RowLinkComponent;
   metaClassName?: string;
   metaIconClassName?: string;
   mobileKebab?: React.ReactNode;
   note?: React.ReactNode;
+  rowLink: boolean;
 }) {
   const headingLayout = mobileKebab === undefined ? "contents" : "flex items-start gap-2";
   const headingTextLayout =
@@ -286,7 +300,10 @@ function BookRowMeta({
         <div className={cn(headingTextLayout, "sm:contents")}>
           <h3 className="line-clamp-2 font-heading text-sm leading-tight font-bold text-ink">
             <LinkComp
-              className="text-ink no-underline transition-colors group-hover/book-row:text-primary after:absolute after:inset-0"
+              className={cn(
+                "text-ink no-underline transition-colors group-hover/book-row:text-primary",
+                rowLink && "after:absolute after:inset-0",
+              )}
               href={book.href}
             >
               {book.title}
@@ -441,12 +458,14 @@ function BookRowStatuses({
   book,
   compact,
 }: {
-  book: LibraryBook;
+  book: BookRowBook;
   compact?: null | typeof MOBILE_COMPACT;
 }) {
   return (
     <div className={cn("flex shrink-0 flex-col gap-1 @xl/book-row:w-40", compact?.statusGroup)}>
-      <StatusBadge className={compact?.statusBadge} entry={book.status} />
+      {book.status === undefined ? null : (
+        <StatusBadge className={compact?.statusBadge} entry={book.status} />
+      )}
 
       {book.ownership === undefined ? null : (
         <StatusBadge className={compact?.statusBadge} entry={book.ownership} />

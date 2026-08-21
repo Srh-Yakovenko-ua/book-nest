@@ -1,8 +1,12 @@
 import type { LoanFilter, LoanSort, LoanType } from "@app/shared";
 
+import { LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+
+import { escapeLikePattern } from "../../../core/database/like-pattern.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { toIsoDate } from "../../../core/iso-date.js";
@@ -10,47 +14,57 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 
 const LOAN_STATUS_ACTIVE = "active";
-const LOAN_TYPE_BORROWED = "borrowed_from_someone";
-const LOAN_TYPE_LENT = "lent_to_someone";
 
-const LoanSummaryCountsRowSchema = z.object({
-  borrowedCount: z.number(),
-  lentCount: z.number(),
+const PERSON_COVERS_LIMIT = 3;
+
+const PERSON_COVERS_SLICE = Prisma.raw(`[1:${PERSON_COVERS_LIMIT}]`);
+
+const LoanDirectionCountsRowSchema = z.object({
+  earliestLoanDate: z.string().nullable(),
+  longHeldCount: z.number(),
+  nearestReturnDate: z.string().nullable(),
+  noReminderWithDateCount: z.number(),
+  noReturnDateCount: z.number(),
+  noReturnDatePeopleCount: z.number(),
+  oldestOverdueReturnDate: z.string().nullable(),
   overdueCount: z.number(),
-  returnThisWeek: z.number(),
-  withoutReturnDate: z.number(),
-  withReminder: z.number(),
+  peopleCount: z.number(),
+  returningSoonCount: z.number(),
+  totalCount: z.number(),
+  type: LoanTypeSchema,
 });
 
-const EMPTY_LOAN_COUNTS: z.infer<typeof LoanSummaryCountsRowSchema> = {
-  borrowedCount: 0,
-  lentCount: 0,
-  overdueCount: 0,
-  returnThisWeek: 0,
-  withoutReturnDate: 0,
-  withReminder: 0,
-};
+const LoanPersonCountsRowSchema = z.object({
+  bookCount: z.number(),
+  contactId: z.uuid(),
+  coverMediaIds: z.array(z.uuid()).nullable(),
+  personName: z.string(),
+  type: LoanTypeSchema,
+});
+
+const loanContactSelect = {
+  select: { contact: true, id: true, name: true },
+} satisfies Prisma.LoanContactDefaultArgs;
 
 const loanBookInclude = {
-  include: { book: { include: { coverMedia: true, publisher: true } } },
+  include: {
+    book: { include: { coverMedia: true, publisher: true } },
+    loanContact: loanContactSelect,
+  },
 } satisfies Prisma.BookLoanDefaultArgs;
 
+export type LoanDirectionCounts = z.infer<typeof LoanDirectionCountsRowSchema>;
+
+export type LoanPersonCounts = z.infer<typeof LoanPersonCountsRowSchema>;
+
 export type LoansFilterInput = {
+  contactId: string | undefined;
   filter: LoanFilter;
   search: string | undefined;
   soonEnd: Date;
   today: Date;
   type: LoanType | undefined;
   userId: string;
-};
-
-export type LoanSummaryCounts = {
-  borrowedCount: number;
-  lentCount: number;
-  overdueCount: number;
-  returnThisWeek: number;
-  withoutReturnDate: number;
-  withReminder: number;
 };
 
 export type LoanWithBook = Prisma.BookLoanGetPayload<typeof loanBookInclude>;
@@ -61,11 +75,30 @@ type ListLoansInput = LoansFilterInput & {
   take: number;
 };
 
+type LongHeldLoansInput = {
+  loanedBefore: Date;
+  take: number;
+  type: LoanType;
+  userId: string;
+};
+
 type SummaryInput = {
+  longHeldBefore: Date;
+  soonEnd: Date;
   today: Date;
   userId: string;
-  weekEnd: Date;
-  weekStart: Date;
+};
+
+type TopPeopleInput = {
+  take: number;
+  userId: string;
+};
+
+type UpcomingReturnsInput = {
+  take: number;
+  today: Date;
+  type: LoanType;
+  userId: string;
 };
 
 @Injectable()
@@ -74,6 +107,10 @@ export class LoansRepository {
 
   countLoans(input: LoansFilterInput): Promise<number> {
     return this.prisma.bookLoan.count({ where: buildLoansWhere(input) });
+  }
+
+  coverAssets(ids: string[]): Promise<MediaAssetModel[]> {
+    return this.prisma.mediaAsset.findMany({ where: { id: { in: ids } } });
   }
 
   listLoans({ skip, sort, take, ...filter }: ListLoansInput): Promise<LoanWithBook[]> {
@@ -86,34 +123,123 @@ export class LoansRepository {
     });
   }
 
-  async summary({ today, userId, weekEnd, weekStart }: SummaryInput): Promise<LoanSummaryCounts> {
+  longHeldLoans({ loanedBefore, take, type, userId }: LongHeldLoansInput): Promise<LoanWithBook[]> {
+    return this.prisma.bookLoan.findMany({
+      orderBy: LOAN_DATE_ASC_ORDER,
+      take,
+      where: {
+        ...buildActiveLoansWhere({ type, userId }),
+        loanDate: { lte: loanedBefore },
+      },
+      ...loanBookInclude,
+    });
+  }
+
+  async summary({
+    longHeldBefore,
+    soonEnd,
+    today,
+    userId,
+  }: SummaryInput): Promise<LoanDirectionCounts[]> {
     const todayIso = toIsoDate(today);
-    const weekStartIso = toIsoDate(weekStart);
-    const weekEndIso = toIsoDate(weekEnd);
+    const soonEndIso = toIsoDate(soonEnd);
+    const longHeldBeforeIso = toIsoDate(longHeldBefore);
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
-        (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}))::int AS "borrowedCount",
-        (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_LENT}))::int AS "lentCount",
-        (count(*) FILTER (WHERE loan.expected_return_date < ${todayIso}::date))::int AS "overdueCount",
+        loan.type AS "type",
+        (count(*))::int AS "totalCount",
+        (count(DISTINCT loan.loan_contact_id))::int AS "peopleCount",
         (count(*) FILTER (
-          WHERE loan.expected_return_date >= ${weekStartIso}::date
-            AND loan.expected_return_date <= ${weekEndIso}::date
-        ))::int AS "returnThisWeek",
-        (count(*) FILTER (WHERE loan.remind_to_return = true))::int AS "withReminder",
-        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "withoutReturnDate"
+          WHERE loan.expected_return_date >= ${todayIso}::date
+            AND loan.expected_return_date <= ${soonEndIso}::date
+        ))::int AS "returningSoonCount",
+        to_char(
+          min(loan.expected_return_date) FILTER (
+            WHERE loan.expected_return_date >= ${todayIso}::date
+          ),
+          'YYYY-MM-DD'
+        ) AS "nearestReturnDate",
+        (count(*) FILTER (WHERE loan.expected_return_date < ${todayIso}::date))::int AS "overdueCount",
+        to_char(
+          min(loan.expected_return_date) FILTER (
+            WHERE loan.expected_return_date < ${todayIso}::date
+          ),
+          'YYYY-MM-DD'
+        ) AS "oldestOverdueReturnDate",
+        (count(*) FILTER (
+          WHERE loan.loan_date <= ${longHeldBeforeIso}::date
+        ))::int AS "longHeldCount",
+        to_char(min(loan.loan_date), 'YYYY-MM-DD') AS "earliestLoanDate",
+        (count(*) FILTER (
+          WHERE loan.expected_return_date IS NOT NULL
+            AND loan.remind_to_return = false
+        ))::int AS "noReminderWithDateCount",
+        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "noReturnDateCount",
+        (count(DISTINCT loan.loan_contact_id) FILTER (
+          WHERE loan.expected_return_date IS NULL
+        ))::int AS "noReturnDatePeopleCount"
       FROM book_loans loan
       JOIN books book ON book.id = loan.book_id
       WHERE loan.user_id = ${userId}::uuid
         AND book.deleted_at IS NULL
         AND loan.status = ${LOAN_STATUS_ACTIVE}
+      GROUP BY loan.type
     `);
 
-    return z.array(LoanSummaryCountsRowSchema).parse(rows)[0] ?? EMPTY_LOAN_COUNTS;
+    return z.array(LoanDirectionCountsRowSchema).parse(rows);
+  }
+
+  async topPeople({ take, userId }: TopPeopleInput): Promise<LoanPersonCounts[]> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      WITH ranked AS (
+        SELECT
+          loan.type AS "type",
+          contact.id AS "contactId",
+          contact.name AS "personName",
+          (count(*))::int AS "bookCount",
+          (array_agg(book.cover_media_id ORDER BY loan.loan_date DESC NULLS LAST, loan.id)
+            FILTER (WHERE book.cover_media_id IS NOT NULL))${PERSON_COVERS_SLICE} AS "coverMediaIds",
+          row_number() OVER (
+            PARTITION BY loan.type
+            ORDER BY count(*) DESC, contact.name ASC
+          ) AS "rank"
+        FROM book_loans loan
+        JOIN books book ON book.id = loan.book_id
+        JOIN loan_contacts contact ON contact.id = loan.loan_contact_id
+        WHERE loan.user_id = ${userId}::uuid
+          AND book.deleted_at IS NULL
+          AND loan.status = ${LOAN_STATUS_ACTIVE}
+        GROUP BY loan.type, contact.id
+      )
+      SELECT "type", "contactId", "personName", "bookCount", "coverMediaIds"
+      FROM ranked
+      WHERE "rank" <= ${take}
+      ORDER BY "type", "rank"
+    `);
+
+    return z.array(LoanPersonCountsRowSchema).parse(rows);
+  }
+
+  upcomingReturns({ take, today, type, userId }: UpcomingReturnsInput): Promise<LoanWithBook[]> {
+    return this.prisma.bookLoan.findMany({
+      orderBy: LOAN_SORT_ORDER_BY.return_date,
+      take,
+      where: {
+        ...buildActiveLoansWhere({ type, userId }),
+        expectedReturnDate: { gte: today },
+      },
+      ...loanBookInclude,
+    });
   }
 }
 
 const ID_TIEBREAKER: Prisma.BookLoanOrderByWithRelationInput = { id: "asc" };
+
+const LOAN_DATE_ASC_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
+  { loanDate: { nulls: "last", sort: "asc" } },
+  ID_TIEBREAKER,
+];
 
 const RETURN_DATE_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
   { expectedReturnDate: { nulls: "last", sort: "asc" } },
@@ -121,13 +247,18 @@ const RETURN_DATE_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
   ID_TIEBREAKER,
 ];
 
+const URGENCY_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
+  { expectedReturnDate: { nulls: "last", sort: "asc" } },
+  { loanDate: { nulls: "last", sort: "asc" } },
+  ID_TIEBREAKER,
+];
+
 const LOAN_SORT_ORDER_BY: Record<LoanSort, Prisma.BookLoanOrderByWithRelationInput[]> = {
   author: [{ book: { firstAuthorName: "asc" } }, ID_TIEBREAKER],
   loan_date: [{ loanDate: { nulls: "last", sort: "desc" } }, ID_TIEBREAKER],
-  overdue_first: RETURN_DATE_ORDER,
-  person: [{ personName: "asc" }, ID_TIEBREAKER],
+  overdue_first: URGENCY_ORDER,
+  person: [{ loanContact: { name: "asc" } }, ID_TIEBREAKER],
   return_date: RETURN_DATE_ORDER,
-  return_soonest: RETURN_DATE_ORDER,
   title: [{ book: { title: "asc" } }, ID_TIEBREAKER],
 };
 
@@ -158,6 +289,7 @@ function applyLoanFilter({
       where.expectedReturnDate = { gte: today, lte: soonEnd };
       return;
     case "without_reminder":
+      where.expectedReturnDate = { not: null };
       where.remindToReturn = false;
       return;
     default: {
@@ -167,27 +299,16 @@ function applyLoanFilter({
   }
 }
 
-function buildLoanSearchConditions(search: string): Prisma.BookLoanWhereInput[] {
-  const contains = { contains: search, mode: "insensitive" } as const;
-  return [
-    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
-    { personName: contains },
-    { contact: contains },
-    { note: contains },
-  ];
-}
-
-function buildLoansWhere({
-  filter,
-  search,
-  soonEnd,
-  today,
+function buildActiveLoansWhere({
   type,
   userId,
-}: LoansFilterInput): Prisma.BookLoanWhereInput {
+}: {
+  type: LoanType | undefined;
+  userId: string;
+}): Prisma.BookLoanWhereInput {
   const where: Prisma.BookLoanWhereInput = {
     book: SOFT_DELETE_SCOPE.active,
-    status: "active",
+    status: LOAN_STATUS_ACTIVE,
     userId,
   };
 
@@ -195,7 +316,37 @@ function buildLoansWhere({
     where.type = type;
   }
 
+  return where;
+}
+
+function buildLoanSearchConditions(search: string): Prisma.BookLoanWhereInput[] {
+  const contains = { contains: escapeLikePattern(search), mode: "insensitive" } as const;
+  return [
+    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
+    { loanContact: { name: contains } },
+    { loanContact: { contact: contains } },
+    { personName: contains },
+    { contact: contains },
+    { note: contains },
+  ];
+}
+
+function buildLoansWhere({
+  contactId,
+  filter,
+  search,
+  soonEnd,
+  today,
+  type,
+  userId,
+}: LoansFilterInput): Prisma.BookLoanWhereInput {
+  const where = buildActiveLoansWhere({ type, userId });
+
   applyLoanFilter({ filter, soonEnd, today, where });
+
+  if (contactId !== undefined) {
+    where.loanContactId = contactId;
+  }
 
   if (search !== undefined) {
     where.OR = buildLoanSearchConditions(search);

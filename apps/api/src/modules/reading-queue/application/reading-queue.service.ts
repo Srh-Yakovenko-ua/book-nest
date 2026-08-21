@@ -1,6 +1,7 @@
 import type {
   AddToReadingQueueInput,
   ReadingQueueItemView,
+  ReadingQueueQuery,
   ReadingQueueSummaryView,
   ReadingQueueView,
   ReadingQueueVolumeSummaryView,
@@ -69,8 +70,11 @@ export class ReadingQueueService {
     return this.getQueue(userId);
   }
 
-  async getQueue(userId: string): Promise<ReadingQueueView> {
-    const books = await this.readingQueueRepository.listQueue(userId);
+  async getQueue(userId: string, query?: ReadingQueueQuery): Promise<ReadingQueueView> {
+    const [books, totalCount] = await Promise.all([
+      this.readingQueueRepository.listQueue(userId, query),
+      this.readingQueueRepository.count(userId),
+    ]);
     const items = books.flatMap<ReadingQueueItemView>((book) => {
       if (book.queuePosition === null) {
         return [];
@@ -79,7 +83,7 @@ export class ReadingQueueService {
     });
     const totalPagesCount = items.reduce((total, item) => total + (item.book.pagesCount ?? 0), 0);
 
-    return { count: items.length, items, totalPagesCount };
+    return { count: items.length, items, totalCount, totalPagesCount };
   }
 
   async removeFromQueue(userId: string, bookId: string): Promise<ReadingQueueView> {

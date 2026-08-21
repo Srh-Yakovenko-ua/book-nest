@@ -9,8 +9,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type DeliveryLoadingDialogProps = {
+  className?: string;
   description: string;
   errorText: string;
   isError: boolean;
@@ -20,6 +22,7 @@ type DeliveryLoadingDialogProps = {
 };
 
 export function DeliveryLoadingDialog({
+  className,
   description,
   errorText,
   isError,
@@ -29,7 +32,7 @@ export function DeliveryLoadingDialog({
 }: DeliveryLoadingDialogProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={cn("sm:max-w-md", className)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

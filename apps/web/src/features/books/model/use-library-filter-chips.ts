@@ -6,6 +6,8 @@ import type { ActiveFilterChip } from "../components/library-active-filters";
 import type { LibraryQueryState } from "./library-query";
 import type { UseLibraryQueryResult } from "./use-library-query";
 
+import { rangeLabel } from "./filter-chips";
+
 type UseLibraryFilterChipsOptions = {
   genreName: (key: string) => string;
   resolveEntityName: (id: string) => string | undefined;
@@ -190,23 +192,4 @@ export function useLibraryFilterChips({
   }
 
   return chips;
-}
-
-function rangeLabel({
-  from,
-  max,
-  min,
-  range,
-  to,
-}: {
-  from: (value: number) => string;
-  max: null | number;
-  min: null | number;
-  range: (min: number, max: number) => string;
-  to: (value: number) => string;
-}): null | string {
-  if (min !== null && max !== null) return range(min, max);
-  if (min !== null) return from(min);
-  if (max !== null) return to(max);
-  return null;
 }

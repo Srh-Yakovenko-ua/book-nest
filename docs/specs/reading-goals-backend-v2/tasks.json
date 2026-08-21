@@ -1,0 +1,1731 @@
+{
+  "spec": "apps/api/md/booknest-reading-goals-backend-spec/",
+  "specFiles": [
+    "00_README.md",
+    "01_GET_GOALS.md",
+    "02_GOALS_OVERVIEW.md",
+    "03_HARD_DEADLINE.md",
+    "04_GOAL_BOOKS_SNAPSHOT.md",
+    "05_PACE.md",
+    "06_DERIVED_METRICS_AND_RISKS.md",
+    "07_GOAL_DETAILS_BOOKS.md",
+    "08_CHECKPOINTS.md",
+    "09_PROJECTION.md",
+    "10_GOAL_ACTIVITY.md",
+    "11_SHARED_CONTRACTS.md",
+    "12_TESTS_AND_ACCEPTANCE.md"
+  ],
+  "generatedAt": "2026-08-13T09:39:08Z",
+  "branch": "dev",
+  "baseCommit": "427a2370",
+  "scope": {
+    "included": [
+      "00_README all 10 mandatory points, backend side",
+      "01 GET /api/goals — catalog endpoint, filters, sorts, cursor pagination, indexes",
+      "02 GET /api/goals/overview — aggregates, attention, bestResult",
+      "03 Hard deadline — qualification upper bound, lifecycle, completedAt, daysLeft, deadline-change resync",
+      "04 ReadingGoalBook snapshot model, creation snapshot, qualifiedFinishedAt maintenance, reading-progress sync, backfill migration",
+      "05 Pace enum + formulas + thresholds as domain constants",
+      "06 ReadingGoalMetrics, required/actual pace, lastCountedAt, risk reasons + riskLevel, rounding contract",
+      "07 Detail extension (snapshot-based) + GET /api/goals/:goalId/books",
+      "08 Derived checkpoints",
+      "09 projectedCompletionDate / projectedDaysDelta / projectionConfidence",
+      "10 ReadingGoalActivity model, 8 event types, generation rules, daily expiration job, GET /api/goals/:goalId/activity",
+      "11 Shared Zod contracts + Swagger for every new endpoint",
+      "12 Unit / integration / endpoint tests + Definition-of-Done field list",
+      "pnpm gen:api regeneration of apps/web/src/shared/api/generated/** (codegen output, not hand-written FE code)"
+    ],
+    "excluded": [
+      "Any hand-written change under apps/web/**. Caller scoped this pass to apps/api + packages/shared. Consequence recorded in D1/D2: the shipped FE slice apps/web/src/features/reading-goals/** reads goal.listBookCount (goal-details-view.tsx:173) and renders 'N days overdue' from a negative goal.daysLeft (goal-details-view.tsx:62-65, list-goal-card.tsx:187-188). Both are affected by this spec and neither is fixed here.",
+      "Reminder / notification wiring named as a calculator consumer in 05_PACE.md:158 and 09_PROJECTION.md:119. No reading-goal reminder feature exists: packages/shared/src/profile.ts:217 declares readingGoalReminders and :303 defaults it to false, and apps/api/src/modules/notifications/application/notification-reminder.sweeper.ts:74-86 only builds loan and delivery windows. There is nothing to wire the calculator into; the reuse requirement is satisfied by keeping the calculator a pure exported domain function.",
+      "'Майбутні звіти' (00_README.md:85) — no reporting feature exists in the repo.",
+      "Historical user reading speed as a projection input — 09_PROJECTION.md:111 explicitly puts it outside this scope.",
+      "Resyncing ReadingGoalBook.position when a book is reordered inside the custom list — 04_GOAL_BOOKS_SNAPSHOT.md:78 says 'Необов'язково'. Snapshot position is frozen at creation and used only as a sort key.",
+      "A checkpoints table — 08_CHECKPOINTS.md:11 explicitly says v1 must not store them.",
+      "Running EXPLAIN / manual index-usage inspection as an automated gate (12_TESTS_AND_ACCEPTANCE.md:153). Reduced to two checkable proxies that ARE tasks: T11 (index existence in schema + migration) and T38 (query-count assertion proving no per-goal query).",
+      "goal_renamed activity type is NOT excluded — it is T26b with mandatory:false, the only optional item the spec itself marks optional (10_GOAL_ACTIVITY.md:59-63)."
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add reading-goal enums and threshold constants to @app/shared",
+      "specRef": "05_PACE.md:5-13; 06_DERIVED_METRICS_AND_RISKS.md:41,56-59,143-149; 01_GET_GOALS.md:96,106,110; 10_GOAL_ACTIVITY.md:45-63; 11_SHARED_CONTRACTS.md:13-26,49-53",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalPaceSchema = z.enum([\"ahead\", \"on_track\", \"behind\", \"critical\"]) with exported type ReadingGoalPace",
+        "ReadingGoalRiskLevelSchema = z.enum([\"none\", \"low\", \"medium\", \"high\", \"critical\"])",
+        "ReadingGoalRiskReasonSchema = z.enum([\"behind_schedule\", \"deadline_soon\", \"no_recent_progress\", \"required_pace_high\"])",
+        "ReadingGoalProjectionConfidenceSchema = z.enum([\"none\", \"low\", \"medium\", \"high\"])",
+        "ReadingGoalResultSchema = z.enum([\"completed\", \"expired\"]) — used nullable at every call site",
+        "ReadingGoalActivityTypeSchema lists all 8 mandatory types plus goal_renamed",
+        "ReadingGoalSortSchema lists exactly the 7 values of 01_GET_GOALS.md:44-52",
+        "ReadingGoalBookScopeSchema = z.enum([\"counted\", \"remaining\", \"all\"])",
+        "every literal above appears exactly once in the repo — grep for \"on_track\" and \"required_pace_high\" returns only packages/shared/src/reading-goals.ts and the domain constants file of T13"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Add ReadingGoalMetricsSchema to @app/shared",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:27-60,239-248",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalMetricsSchema declares all 22 keys of 06:28-60 with no additions and no omissions: completedCount, remainingCount, progressPercent, totalDays, elapsedDays, elapsedPercent, daysLeft, expectedCompletedCount, pace, paceDeltaBooks, paceDeltaPercent, requiredBooksPerDay, requiredDaysPerBook, actualBooksPerDay, averageDaysPerBook, lastCountedAt, daysSinceLastCounted, projectedCompletionDate, projectedDaysDelta, projectionConfidence, riskLevel, riskReasons",
+        "daysLeft, pace, paceDeltaBooks, paceDeltaPercent, requiredBooksPerDay, requiredDaysPerBook, actualBooksPerDay, averageDaysPerBook, lastCountedAt, daysSinceLastCounted, projectedCompletionDate, projectedDaysDelta are .nullable()",
+        "lastCountedAt and projectedCompletionDate are z.iso.date().nullable() (calendar date, per 11_SHARED_CONTRACTS.md:34-38), not z.iso.datetime()",
+        "riskReasons is z.array(ReadingGoalRiskReasonSchema) — never nullable, empty array when there are none"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Extend ReadingGoalViewSchema into ReadingGoalListItemSchema and add the catalog query/response",
+      "specRef": "01_GET_GOALS.md:69-119,121-131; 11_SHARED_CONTRACTS.md:28-31",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalViewSchema gains archivedAt (z.iso.datetime().nullable()) and result (ReadingGoalResultSchema.nullable())",
+        "ReadingGoalListItemSchema is built by .extend()/.merge() from ReadingGoalViewSchema plus ReadingGoalMetricsSchema — no field name is written twice across the two schemas (11_SHARED_CONTRACTS.md:30)",
+        "every field of 01_GET_GOALS.md:79-118 resolves through ReadingGoalListItemSchema",
+        "ReadingGoalsQuerySchema has status (ReadingGoalStatusSchema.optional()), listId (z.uuid().optional()), sort (ReadingGoalSortSchema.default(\"created_desc\")), cursor (z.string().optional()), limit (z.coerce.number().int().min(1).max(100).default(20)) — mirroring packages/shared/src/notifications.ts:133-142",
+        "READING_GOAL_PAGE_SIZE constants live in one frozen object, not scattered top-level consts (CLAUDE.md §8.10)",
+        "ReadingGoalListResponseSchema = { items: array(ReadingGoalListItemSchema), nextCursor: z.string().nullable() }"
+      ],
+      "status": "done",
+      "resolutionNote": "Landed, with one doneWhen re-routed. archivedAt and result went onto ReadingGoalListItemSchema, not ReadingGoalViewSchema: ReadingGoalView is the live response of five shipped endpoints and its only producer is toReadingGoalView (reading-goal.mapper.ts:14-27); result has no honest source until T20 derives it, and computing it inline would duplicate the rule 06_DERIVED_METRICS_AND_RISKS.md:5-12 forbids. The spec text never names ReadingGoalView; 01_GET_GOALS.md:79-118 puts both fields on ReadingGoalListItem. Moving them up onto the view is a two-line change once T20 lands - tracked as a doneWhen on T20."
+    },
+    {
+      "id": "T4",
+      "title": "Add ReadingGoalCheckpointSchema to @app/shared",
+      "specRef": "08_CHECKPOINTS.md:83-97",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalCheckpointSchema = { targetCount: int positive, dueDate: z.iso.date(), status: z.enum([\"achieved\", \"upcoming\", \"missed\"]), achievedAt: z.iso.date().nullable(), currentCompletedCount: int nonnegative }"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Add ReadingGoalBookViewSchema and the goal-books query/response to @app/shared",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:54-85,126-128; 11_SHARED_CONTRACTS.md:22",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalBookViewSchema reuses BookAuthorRefSchema (packages/shared/src/authors.ts, already imported at reading-goals.ts:3), MediaViewSchema (already imported at :6), ReadingStatusSchema and OwnershipStatusSchema from ./book-enums.js — no re-declared author/cover/status shapes (07:85)",
+        "reading sub-object is ReadingProgressViewSchema.pick or an explicit subset naming exactly status, currentPage, pagesCount, startedAt, finishedAt — resolved by D-note in the file header if a subset is chosen",
+        "fields snapshotPosition (int), qualifies (boolean), countedFinishedAt (z.iso.date().nullable()) present",
+        "existing ReadingGoalBookSchema (reading-goals.ts:63-71) is either replaced by ReadingGoalBookViewSchema or kept only if some caller still needs it — a grep for ReadingGoalBookSchema after the change returns zero orphan definitions",
+        "ReadingGoalBooksQuerySchema = { scope: ReadingGoalBookScopeSchema.default(\"all\"), cursor, limit max 100 default 20 }",
+        "ReadingGoalBooksResponseSchema = { items, nextCursor }"
+      ],
+      "status": "done",
+      "resolutionNote": "Two choices recorded here rather than as a code comment (CLAUDE.md 8.1 forbids comments). (1) reading sub-object uses ReadingProgressViewSchema.pick({currentPage, finishedAt, startedAt}) plus locally declared pagesCount and status, because pagesCount and readingStatus live on the Book row, not on the progress row (books.ts:940-950). The three picked keys are the same knowledge as the canonical progress view, so their types cannot drift. (2) the cover key is named `cover`, not the spec's `coverMedia` (07_GOAL_DETAILS_BOOKS.md:66): ten sibling views in packages/shared use `cover: MediaViewSchema` and 07:85 itself asks to reuse existing shared book views."
+    },
+    {
+      "id": "T6",
+      "title": "Add activity contracts to @app/shared",
+      "specRef": "10_GOAL_ACTIVITY.md:218-251; 11_SHARED_CONTRACTS.md:23-25,63",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalActivityViewSchema = { id, type: ReadingGoalActivityTypeSchema, createdAt: z.iso.datetime(), book: {id,title}.nullable(), metadata: z.record(z.string(), z.unknown()).nullable() }",
+        "ReadingGoalActivityQuerySchema validates cursor, limit (max 100, default 20) and type (ReadingGoalActivityTypeSchema.optional())",
+        "ReadingGoalActivityResponseSchema = { items, nextCursor }",
+        "book_uncounted reason values finished_date_removed | finished_date_changed | deadline_changed are a shared enum, not string literals in the service (10:100-106)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Add overview contracts and extend ReadingGoalDetailSchema in @app/shared",
+      "specRef": "02_GOALS_OVERVIEW.md:15-48,121-136; 07_GOAL_DETAILS_BOOKS.md:21-32; 11_SHARED_CONTRACTS.md:13-26",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T3", "T4", "T5", "T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoalsOverviewSchema declares active{total,onTrack,needsAttention}, completed{total,completedOnOrBeforeDeadline}, booksCounted{currentYear}, success{finishedGoals,successfulGoals,successRatePercent}, attention[], bestResult|null with all 6 keys of 02:41-47",
+        "ReadingGoalAttentionItemSchema.severity = z.enum([\"medium\",\"high\",\"critical\"]) (NOT the 5-value risk level) and reason = ReadingGoalRiskReasonSchema",
+        "messageData is z.record(z.string(), z.union([z.number(), z.string()])) — structured, never a localized string (02:139)",
+        "ReadingGoalDetailSchema = ReadingGoalListItemSchema.extend({ snapshotBookCount, countedBooks: ReadingGoalBookViewSchema[], remainingBooks: ReadingGoalBookViewSchema[], checkpoints: ReadingGoalCheckpointSchema[], activityPreview: ReadingGoalActivityViewSchema[] })",
+        "listBookCount resolution follows decision D2 and is recorded in the same commit"
+      ],
+      "status": "done",
+      "resolutionNote": "Overview contracts landed. The ReadingGoalDetailSchema rebase did NOT - every field it needs (22 metrics, checkpoints, activityPreview, remainingBooks, snapshotBookCount) is produced by slices 3, 4 and 6, so shipping the shape in slice 1 would either lie with placeholder zeros or redden the root typecheck until slice 6. Re-homed to T31b."
+    },
+    {
+      "id": "T8",
+      "title": "Add ReadingGoalBook model to prisma schema",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:13-41",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "model ReadingGoalBook exists with goalId/bookId @db.Uuid, position Int @default(0), qualifiedFinishedAt DateTime? @db.Date, createdAt/updatedAt @db.Timestamptz, @@id([goalId, bookId]), @@index([bookId]), @@index([goalId, qualifiedFinishedAt]), @@map(\"reading_goal_books\")",
+        "qualifiedFinishedAt is @db.Date — matches BookReadingProgress.finishedAt at prisma/schema.prisma:312, so no cross-type comparison is needed",
+        "ReadingGoal (schema.prisma:541-557) gains `books ReadingGoalBook[]`",
+        "Book (schema.prisma:212-282) gains `readingGoalBooks ReadingGoalBook[]` with onDelete: Cascade on the FK, so a hard purge of a book drops its snapshot rows",
+        "column names are snake_case via @map, matching every neighbouring model"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "Add ReadingGoalActivity model to prisma schema",
+      "specRef": "10_GOAL_ACTIVITY.md:13-39",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "model ReadingGoalActivity with id @default(uuid()) @db.Uuid, goalId/userId @db.Uuid, type String, bookId String? @db.Uuid, metadata Json?, createdAt @db.Timestamptz",
+        "relations: goal onDelete Cascade, user onDelete Cascade, book onDelete SetNull",
+        "@@index([goalId, createdAt(sort: Desc)]), @@index([userId, createdAt(sort: Desc)]), @@index([bookId]), @@map(\"reading_goal_activities\")",
+        "User (schema.prisma:20-68) gains readingGoalActivities ReadingGoalActivity[]; ReadingGoal gains activities ReadingGoalActivity[]; Book gains readingGoalActivities ReadingGoalActivity[]"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Add the two missing ReadingGoal catalog indexes",
+      "specRef": "01_GET_GOALS.md:142-149",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingGoal gains @@index([userId, createdAt]) and @@index([userId, deadline])",
+        "the two indexes the spec also asks for already exist and are left untouched: @@index([userId, archivedAt]) at schema.prisma:554 and @@index([listId]) at :555"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Create and review the migration for T8/T9/T10 plus the snapshot backfill",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:111-122; CLAUDE.md §6 step 3 (strip trap)",
+      "layer": "migration",
+      "files": [
+        "apps/api/prisma/migrations/<ts>_add_reading_goal_snapshot_and_activity/migration.sql"
+      ],
+      "dependsOn": ["T8", "T9", "T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "migration created via `pnpm --filter @app/api db:migrate --name add_reading_goal_snapshot_and_activity` (create-only), never db push",
+        "every DROP INDEX line in the generated SQL is read and any not asked for by T8/T9/T10 is stripped before deploy — in practice authors_search_text_trgm_idx and publishers_search_text_trgm_idx are the two that come back",
+        "reading_goals_active_list_idx (migrations/20260808120255_add_reading_goals/migration.sql:26) is still present after the migration; apps/api/src/core/database/raw-sql-indexes.test.ts:44 stays green",
+        "backfill sets qualified_finished_at = book_reading_progress.finished_at only where finished_at >= date(reading_goals.created_at) AND finished_at <= reading_goals.deadline (04:116-119)",
+        "backfill sets position from book_list_items.position",
+        "backfill does not write reading_goals.target_count (04:119)",
+        "goals with list_id IS NULL produce zero snapshot rows and the migration does not fail on them",
+        "the migration is idempotent under `db:migrate:deploy` re-run (INSERT ... ON CONFLICT DO NOTHING on the composite PK)",
+        "CORRECTED after migration-reviewer: books.deleted_at IS NULL belongs in the CASE that computes qualified_finished_at, NOT in the JOIN. A trashed book still gets a snapshot row, with qualified_finished_at = NULL. The original wording contradicted decision D3 and would have made a restore-from-trash a permanent no-op, because nothing outside goal creation ever inserts snapshot rows.",
+        "backfill joins books on user_id = reading_goals.user_id, matching countedBookWhere (reading-goals.repository.ts:147-154), the runtime query this backfill freezes",
+        "the backfill lives in its own migration folder 20260813101420_backfill_reading_goal_snapshot, so the FK ShareRowExclusiveLock on books and users is released before the INSERT runs - the house pattern set by 20260812115220_analyze_collated_tables",
+        "the backfill is exercised against a SEEDED goal, not an empty table: six cases asserted (finished in window -> date; after deadline -> NULL; before creation day -> NULL; no progress row -> NULL; trashed book -> ROW PRESENT with NULL; foreign-user book planted in the list -> no row), plus count(reading_goal_books) >= max(target_count) per goal"
+      ],
+      "status": "done",
+      "reviewFindings": {
+        "F1": "medium, fixed - trashed books were dropped from the snapshot entirely",
+        "F2": "medium, fixed - missing books.user_id predicate; the author's stated reason for omitting it was factually wrong (buildListItemWhere already filters by owner via book-where.ts:48)",
+        "F3": "low, fixed - backfill split into its own migration so it does not run under the FK locks",
+        "F4": "info, fixed - the original local verification ran against reading_goals = 0, so every join node was (never executed)"
+      }
+    },
+    {
+      "id": "T12",
+      "title": "Assert the new indexes and the surviving raw-SQL indexes after the migration",
+      "specRef": "01_GET_GOALS.md:142-149; 12_TESTS_AND_ACCEPTANCE.md:148-155",
+      "layer": "test",
+      "files": ["apps/api/src/core/database/raw-sql-indexes.test.ts"],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "the existing 10 entries in raw-sql-indexes.test.ts are unchanged and the file still asserts reading_goals_active_list_idx with predicate archived_at IS NULL",
+        "no new partial/raw index is introduced by T8-T10, so the list stays at 10 — if one is introduced, it is added here with its predicate"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "Create the reading-goal domain constants object (thresholds + rounding)",
+      "specRef": "05_PACE.md:101-112; 06_DERIVED_METRICS_AND_RISKS.md:153,228-237; 09_PROJECTION.md:88-97; 08_CHECKPOINTS.md:24-45",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/reading-goals/domain/reading-goal.constants.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "one frozen READING_GOAL_PACE object holds aheadBooks 0.5, behindBooks -0.5, criticalElapsedPercent 80, criticalProgressGapPercent 20, criticalDaysLeft 7, criticalRemainingBooks 2 (05:105-112)",
+        "one frozen READING_GOAL_RISK object holds deadlineSoonDays 7, noRecentProgressElapsedDays 14, noRecentProgressDays 14, requiredPaceMultiplier 1.5, requiredPaceZeroElapsedPercent 50, lowRiskProjectedDeltaMax 3 (06:155-226)",
+        "one frozen READING_GOAL_PROJECTION object holds the confidence thresholds low 1, medium 2, high 4 (09:92-97)",
+        "one frozen READING_GOAL_CHECKPOINTS object holds maxCount 5 and fractions [0.2,0.4,0.6,0.8,1] (08:36-45)",
+        "one frozen READING_GOAL_ROUNDING object holds percent 1, booksDelta 2, perDayRate 3, daysPerBook 1 (06:230-236) and a single roundTo helper consumes it — no Math.round(x*10)/10 written inline anywhere in the module",
+        "zero magic numbers matching any of the above remain in reading-goals/**, verified by grep for \"0.5\", \"1.5\", \"80\", \"14\" outside the constants file",
+        "existing exports ACTIVE_LIST_GOAL_INDEX, READING_GOAL_MESSAGE, READING_GOAL_LIMITS are preserved"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "Enforce the hard deadline in qualification, status, completedAt and daysLeft",
+      "specRef": "03_HARD_DEADLINE.md:11-18,22-45,48-62,64-76",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-progress.test.ts"
+      ],
+      "dependsOn": ["T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "qualification is a named exported predicate taking { deadline, finishedAt, goalStartDate } and returning finishedAt !== null && finishedAt >= goalStartDate && finishedAt <= deadline",
+        "the lifecycle order at reading-goal-progress.ts:61-70 is unchanged (archived -> completed -> expired -> active) — it already matches 03:26-35, do not rewrite it",
+        "completedAt is finishedDates[targetCount-1] over dates sorted finishedAt ASC then bookId ASC (03:53-56) — the bookId tie-breaker is a NEW requirement, the current code at :40 sorts by date only",
+        "daysLeft returns max(0, differenceInCalendarDays(deadline, startOfUtcDay(now))) for status active and null for completed / expired / archived (03:64-76). This CHANGES two existing assertions: reading-goal-progress.test.ts:189-199 expects -3 for expired and must be rewritten to expect null",
+        "boundary tests exist and are named for the 6 cases of 03:87-96: finishedAt === createdAt date counted, finishedAt === deadline counted, finishedAt === deadline+1 not counted, target reached exactly at deadline -> completed, target unreached at deadline -> expired next day, finishing after deadline leaves expired unchanged"
+      ],
+      "status": "done",
+      "resolutionNote": "Two deliberate calls beyond the literal wording. (1) The domain now owns the finishedAt ASC, bookId ASC sort: calculateReadingGoalProgress takes ReadingGoalCandidateBook[] instead of a bare Date[], because the spec states the tie-break as part of the completion rule (03:53-56), T18 needs the identical ordering for achievedAt, and a rule that holds only because one repository method happens to ORDER BY correctly is invisible to the next reader. (2) qualifiesForReadingGoal compares UTC calendar days via startOfUtcDay, not raw instants - deadline is @db.Date at 00:00Z, so a literal finishedAt <= deadline would reject a book finished at 18:00 on the deadline day and contradict the spec's own boundary case 2."
+    },
+    {
+      "id": "T15",
+      "title": "Implement the pace calculation",
+      "specRef": "05_PACE.md:22-97,99-148",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-pace.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-pace.test.ts"
+      ],
+      "dependsOn": ["T13", "T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "totalDays = max(1, differenceInCalendarDays(deadline, goalStartDate) + 1)",
+        "elapsedDays = clamp(differenceInCalendarDays(min(today, deadline), goalStartDate) + 1, 0, totalDays)",
+        "elapsedPercent = round1(elapsedDays / totalDays * 100) clamped to 0..100",
+        "expectedCompletedCount keeps full float precision internally and is rounded only at the response boundary (05:71-77)",
+        "progressPercent = round1(min(completedCount / targetCount * 100, 100))",
+        "paceDeltaBooks = round2(completedCount - expectedCompletedCount); paceDeltaPercent = round1(progressPercent - elapsedPercent)",
+        "critical is evaluated FIRST: (daysLeft <= 7 AND remainingCount >= 2) OR (elapsedPercent >= 80 AND progressPercent <= elapsedPercent - 20)",
+        "ahead when not critical AND paceDeltaBooks >= 0.5; behind when not critical AND paceDeltaBooks <= -0.5; on_track otherwise",
+        "pace is null for every non-active status (05:15-19)",
+        "every date operation goes through date-fns (CLAUDE.md §8.11) — no getTime() arithmetic, no ms literals",
+        "unit tests cover the 7 cases of 05:165-173"
+      ],
+      "status": "done",
+      "resolutionNote": "Pace classifies against paceDeltaBooks already rounded to 2 decimals, not the raw difference: the granularity is 100x finer than the 0.5 threshold, it stops a float tail like 0.4999999999999996 dropping a goal a class, and it makes the returned number and the returned class agree - the FE can never see +0.5 next to on_track. expectedCompletedCount itself stays full-precision internally (05:71-77); rounding it to an integer flips a 10-book/20-day/7-elapsed/4-read goal from ahead to on_track."
+    },
+    {
+      "id": "T16",
+      "title": "Implement the projection calculation",
+      "specRef": "09_PROJECTION.md:17-97",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-projection.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-projection.test.ts"
+      ],
+      "dependsOn": ["T13", "T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "active with 0 counted -> { projectedCompletionDate: null, projectedDaysDelta: null, projectionConfidence: \"none\" } (09:20-27)",
+        "active with counted -> projectedCompletionDate = addDays(today, ceil(remainingCount / actualBooksPerDay)) where actualBooksPerDay = completedCount / max(1, elapsedDays)",
+        "projectedDaysDelta = differenceInCalendarDays(deadline, projectedCompletionDate) — positive means earlier than the deadline (09:52-69)",
+        "completed -> projectedCompletionDate = completedAt, delta from completedAt, confidence \"high\" (09:71-77)",
+        "expired with target unmet -> both null (09:79-86)",
+        "confidence buckets: 0 none, 1 low, 2-3 medium, 4+ high (09:92-97)",
+        "no Math.random, no locale-dependent date construction — every date via date-fns and startOfUtcDay (09:101-107)",
+        "unit tests cover the 6 cases of 12_TESTS_AND_ACCEPTANCE.md:43-49"
+      ],
+      "status": "done",
+      "resolutionNote": "projectedCompletionDate uses ceil(remainingCount * elapsedDays / completedCount) instead of the spec's literal ceil(remainingCount / actualBooksPerDay). Algebraically identical, but the literal form loses a day to floating point - 49.00000000000001 ceils to 50. A sweep of 1.4M combinations found 4924 such off-by-ones."
+    },
+    {
+      "id": "T17",
+      "title": "Implement risk reasons and riskLevel",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:143-226",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-risk.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-risk.test.ts"
+      ],
+      "dependsOn": ["T13", "T15", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "behind_schedule iff pace === \"behind\"",
+        "deadline_soon iff active AND daysLeft <= 7 AND remainingCount > 0",
+        "no_recent_progress iff active AND elapsedDays >= 14 AND daysSinceLastCounted >= 14 AND remainingCount > 0",
+        "required_pace_high iff (actualBooksPerDay > 0 AND requiredBooksPerDay >= actualBooksPerDay * 1.5) OR (actualBooksPerDay === 0 AND elapsedPercent >= 50 AND remainingCount > 0)",
+        "riskLevel critical iff pace === \"critical\" OR (deadline_soon AND behind_schedule both present)",
+        "riskLevel high iff exactly-or-more-than 2 reasons and not critical; medium iff 1 reason; low iff 0 reasons AND active AND pace === \"on_track\" AND projectedDaysDelta between 0 and 3 inclusive; none otherwise",
+        "riskReasons order is deterministic (declaration order of the enum), so list responses do not shuffle between requests",
+        "unit tests cover the 6 cases of 12_TESTS_AND_ACCEPTANCE.md:33-40"
+      ],
+      "status": "done",
+      "resolutionNote": "required_pace_high is gated on status === active, deviating from the literal spec text (06:178-192), which omits the guard the three sibling reasons carry. Reason: 01_GET_GOALS.md:44-52 defines a risk_desc sort, and an expired goal with zero books read would otherwise carry riskLevel medium and sort ABOVE a live on_track goal - the catalog would surface dead goals over ones the user can still act on. requiredBooksPerDay is already null outside active, so only the zero-rate branch could fire, and 'the required pace is too high' is meaningless for a goal with no time left. riskLevel is now none for every non-active status, pinned by an it.each over archived/completed/expired at worst-case inputs."
+    },
+    {
+      "id": "T18",
+      "title": "Implement derived checkpoints",
+      "specRef": "08_CHECKPOINTS.md:22-128",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-checkpoints.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-checkpoints.test.ts"
+      ],
+      "dependsOn": ["T13", "T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "targetCount <= 5 produces one checkpoint per book: targets 1..targetCount (08:24-33)",
+        "targetCount > 5 produces at most 5 checkpoints at ceil(targetCount * f) for f in 0.2/0.4/0.6/0.8/1.0 with duplicates removed (08:35-60); target 12 -> [3,5,8,10,12]",
+        "dueDate = addDays(goalStartDate, round(totalDays * fraction) - 1) (08:66-72)",
+        "the last checkpoint always has dueDate === deadline and targetCount === goal.targetCount (08:74-79)",
+        "achievedAt = the qualifiedFinishedAt of the checkpoint-target-th qualifying book, sorted finishedAt ASC then bookId ASC",
+        "status achieved iff achievedAt !== null AND achievedAt <= dueDate — a checkpoint reached after its dueDate is NOT achieved (08:105-112)",
+        "status missed iff today > dueDate AND the target was not reached by dueDate; upcoming otherwise",
+        "currentCompletedCount is the count of qualifying books as of today, not as of dueDate",
+        "the function takes the qualifiedFinishedAt list, never the bare completedCount (08:126-127)",
+        "unit tests cover the 8 cases of 12_TESTS_AND_ACCEPTANCE.md:51-60"
+      ],
+      "status": "done",
+      "resolutionNote": "Two branches, not one pipeline. targetCount <= 5 uses fraction = i / targetCount (the spec's 'розподілити рівномірно', 08:64); targetCount > 5 uses the READING_GOAL_CHECKPOINTS.fractions grid with ceil + dedupe. The first draft unified both onto the grid, which produced 20/40/60/100 percent for a 4-book goal instead of 25/50/75/100 - a 40 percent calendar gap the spec forbids. Affected targetCount 2, 3 and 4. Dedupe stays in the pipeline but is provably unreachable above the cap (step 0.2n > 1), so it is now pinned by a direct unit test on the exported dedupeCheckpointTargets plus an exhaustive no-repeat assertion over targetCount 6..1000, rather than left as silently dead code."
+    },
+    {
+      "id": "T19",
+      "title": "Implement the single ReadingGoalMetricsCalculator that composes T14-T18",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:7-24,63-141,239-248; 00_README.md:78-85",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-metrics.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-metrics.test.ts"
+      ],
+      "dependsOn": ["T2", "T14", "T15", "T16", "T17", "T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "one exported pure function taking { goal, snapshotBooks, now } and returning ReadingGoalMetrics (06:15-24) — no PrismaService, no HTTP, no async",
+        "remainingCount = max(0, targetCount - completedCount)",
+        "requiredBooksPerDay = round3(remainingCount / max(1, daysLeft + 1)) only for active with remainingCount > 0, else null",
+        "requiredDaysPerBook = round1(1 / requiredBooksPerDay), null when remainingCount === 0",
+        "actualBooksPerDay = completedCount / max(1, elapsedDays) for active, 0 when completedCount === 0",
+        "averageDaysPerBook = null when completedCount === 0, else round1(elapsedDays / completedCount)",
+        "lastCountedAt = max qualifiedFinishedAt across snapshotBooks, null when none",
+        "daysSinceLastCounted = calendarDays(lastCountedAt ?? goalStartDate, today); behaviour for completed/archived follows decision D5 and is identical in every caller (06:139)",
+        "the calculator is exported from the module domain and is the ONLY place these formulas exist — grep for progressPercent / paceDeltaBooks / riskLevel outside domain/ returns only mappers reading the metrics object",
+        "unit tests cover the 4 progress cases of 12_TESTS_AND_ACCEPTANCE.md:11-16 including progress capped at 100"
+      ],
+      "status": "done",
+      "resolutionNote": "Returns ReadingGoalCalculation = { metrics: ReadingGoalMetrics; progress: ReadingGoalProgress }, not a bare ReadingGoalMetrics. ReadingGoalView needs status, result and completedAt, none of which is a member of ReadingGoalMetricsSchema, and completedAt is not recoverable from metrics (lastCountedAt diverges from it the moment a goal overshoots its target). Returning metrics alone would force every view caller to call calculateReadingGoalProgress a second time - the exact two-computations-that-can-disagree hazard the single-calculator requirement exists to prevent. metrics is still the exact 22-key shared object, proven by a ReadingGoalMetricsSchema.parse round-trip to strict equality."
+    },
+    {
+      "id": "T20",
+      "title": "Derive result (completed | expired | null) for archived and finished goals",
+      "specRef": "01_GET_GOALS.md:121-131; 02_GOALS_OVERVIEW.md:85-105",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal-progress.test.ts",
+        "packages/shared/src/reading-goals.ts",
+        "apps/api/src/modules/reading-goals/domain/reading-goal.mapper.ts"
+      ],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "result === \"completed\" when the qualifying count reached targetCount, regardless of archivedAt",
+        "result === \"expired\" when the target was not reached and the deadline had passed at the reference instant chosen in decision D4",
+        "result === null for an active goal and for a goal archived incomplete before its deadline",
+        "a test asserts an archived-but-completed goal returns status \"archived\" AND result \"completed\" (01:123-131)",
+        "once result is computable here, ReadingGoalViewSchema in packages/shared/src/reading-goals.ts gains archivedAt and result, and toReadingGoalView (apps/api/src/modules/reading-goals/domain/reading-goal.mapper.ts:14-27) fills them - the half of T3 deferred out of slice 1"
+      ],
+      "status": "done",
+      "resolutionNote": "toReadingGoalView keeps its signature. result is a lifecycle derivation over the qualifying count that calculateReadingGoalProgress already holds, so it became a field on ReadingGoalProgress and the mapper forwards it. D4 is one expression: resolveReadingGoalResult judges against archivedAt ?? now, shared with resolveReadingGoalStatus through a private hasDeadlinePassed helper."
+    },
+    {
+      "id": "T21",
+      "title": "Map the goal + snapshot + metrics into ReadingGoalView / ReadingGoalListItem",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:239-248; 11_SHARED_CONTRACTS.md:32-46",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/reading-goals/domain/reading-goal.mapper.ts"],
+      "dependsOn": ["T3", "T19", "T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "toReadingGoalListItem returns every key of ReadingGoalListItemSchema and parses clean against it in a test",
+        "deadline, completedAt, lastCountedAt, projectedCompletionDate go through toIsoDate/toNullableIsoDate (calendar dates); createdAt and archivedAt go through toISOString (timestamps) — matching 11:34-45",
+        "the existing toReadingGoalView (reading-goal.mapper.ts:8-28) is either extended or replaced, and no second mapper reproduces the same fields"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T22",
+      "title": "Add the snapshot repository",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:43-56,82-96",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/reading-goals/infrastructure/reading-goal-books.repository.ts"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "createMany takes { goalId, rows } and writes reading_goal_books in one createMany call, not a loop",
+        "findSnapshotBookIdsForBook({ bookId, userId }) returns the goals whose snapshot contains a book, joined to the goal, in ONE query",
+        "findByGoal({ goalId }) returns rows ordered by qualifiedFinishedAt ASC then bookId ASC",
+        "updateQualifiedFinishedAt({ bookId, goalId, qualifiedFinishedAt }) exists and returns the previous value or the affected count so the caller can detect a transition",
+        "every method takes an optional trailing `client: Prisma.TransactionClient = this.prisma` (CLAUDE.md §5.3)",
+        "the repository returns row shapes / primitives, never a ViewModel",
+        "it is the only new file touching prisma.readingGoalBook"
+      ],
+      "status": "done",
+      "resolutionNote": "updateQualifiedFinishedAt takes an extra previousQualifiedFinishedAt key and does a GUARDED updateMany (where qualifiedFinishedAt is null / is not null, matching what the caller observed), returning the affected count. The doneWhen allowed 'previous value OR affected count'; the count is only meaningful with the guard. The sync service already holds the previous value because findSnapshotBookIdsForBook returns it in the same round trip, so this is not an extra read - and under READ COMMITTED a blocked UPDATE re-evaluates its WHERE against the freshly committed row and skips it, so two concurrent progress writes produce ONE book_counted, not two. findSnapshotBookIdsForBook is raw SQL, not a Prisma nested select: with relationJoins off, the nested form issues TWO statements (filter compiles to a JOIN, selected relation columns come from a second SELECT ... IN). Probed and confirmed 1 statement for the raw version. It is the hot path of the sync service, firing on every reading-progress write across six call sites."
+    },
+    {
+      "id": "T23",
+      "title": "Add the activity repository",
+      "specRef": "10_GOAL_ACTIVITY.md:163-208,218-236",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/reading-goals/infrastructure/reading-goal-activity.repository.ts"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "createMany({ rows }) writes reading_goal_activities in one call",
+        "findPage({ cursor, goalId, limit, type }) orders by createdAt DESC then id DESC and applies the composite keyset predicate, mirroring apps/api/src/modules/notifications/infrastructure/notifications.repository.ts:160-165",
+        "findLatest({ goalId, limit }) backs activityPreview",
+        "existsOfType({ goalId, type }) backs the expiration job idempotency check (10:204-208)",
+        "optional trailing transaction client on every method"
+      ],
+      "status": "done",
+      "resolutionNote": "findPage mirrors notifications.repository.ts:160-165 verbatim: { createdAt: { lte: cursor.createdAt }, OR: [{ createdAt: { lt } }, { id: { lt } }] } with order [createdAt desc, id desc]. Verified against the exact failure mode: three activity rows written by one createMany landed on the same millisecond, and paging at limit 2 returned 2 then 1 with 3 distinct ids, zero repeats, zero drops. CONSTRAINT ON SLICE 6: the cursor must decode to { createdAt: Date; id: string } - both components, createdAt as a real Date. A createdAt-only cursor is unusable. findLatest delegates to findPage so the ordering is not written twice."
+    },
+    {
+      "id": "T24",
+      "title": "Write the snapshot and its activity inside the goal-creation transaction",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:43-56; 10_GOAL_ACTIVITY.md:165-171",
+      "layer": "service",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goals.service.ts",
+        "apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts"
+      ],
+      "dependsOn": ["T22", "T23", "T19"],
+      "mandatory": true,
+      "doneWhen": [
+        "the create transaction at reading-goals.service.ts:60-72 keeps acquireCreateLock as its first statement and gains, in order: read active BookListItem rows, validate targetCount <= snapshotBookCount, create ReadingGoal, bulk-create ReadingGoalBook, set qualifiedFinishedAt for books that already qualify, insert goal_created, insert book_counted per already-qualifying book, insert goal_completed when the target is already met (04:45-56 + 10:165-171)",
+        "assertTargetWithinList (reading-goals.service.ts:132-146) now validates against the snapshot row count read INSIDE the transaction, not against listsService.countActiveBooks read outside it — the current pre-transaction read at :139 can disagree with what the snapshot captures",
+        "goal_created metadata = { targetCount, deadline, snapshotBookCount } (10:71-77)",
+        "book_counted metadata = { finishedAt, completedCount, targetCount } and bookId is populated (10:79-89)",
+        "a goal created over a list with listId === null produces zero snapshot rows and does not throw",
+        "the existing ConflictError path for isUniqueConstraintErrorOn(ACTIVE_LIST_GOAL_INDEX) at :187 still fires",
+        "integration test: after create, count(ReadingGoalBook) === count of active books in the list (12_TESTS_AND_ACCEPTANCE.md:62-66)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T25",
+      "title": "Resync qualification and emit activity on PATCH /api/goals/:goalId",
+      "specRef": "03_HARD_DEADLINE.md:78-85; 10_GOAL_ACTIVITY.md:184-189",
+      "layer": "service",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goals.service.ts"],
+      "dependsOn": ["T24"],
+      "mandatory": true,
+      "doneWhen": [
+        "update() runs inside TransactionRunner.run — today it does not (reading-goals.service.ts:84-96 issues a bare repository.update)",
+        "a deadline change recomputes qualifiedFinishedAt for every snapshot row and emits deadline_changed { from, to }",
+        "a book that stops qualifying because the deadline moved earlier emits book_uncounted { previousFinishedAt, reason: \"deadline_changed\" } (10:100-106)",
+        "a targetCount change emits target_changed { from, to }",
+        "a lifecycle transition caused by the patch emits goal_completed or goal_expired exactly once",
+        "the archivedIsReadOnly guard at :87-89 is preserved"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T26",
+      "title": "Emit goal_archived on archive",
+      "specRef": "10_GOAL_ACTIVITY.md:191-194,147-161",
+      "layer": "service",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goals.service.ts"],
+      "dependsOn": ["T20", "T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "archive() emits goal_archived with metadata { result } where result is the T20 value (10:149-161)",
+        "archiving an already-archived goal (the early return at reading-goals.service.ts:46-48) emits nothing — no duplicate event",
+        "archiveSuperseded (:98-120), which archives a stale goal during creation of a new one, also emits goal_archived"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T26b",
+      "title": "Emit goal_renamed on a name change",
+      "specRef": "10_GOAL_ACTIVITY.md:57-63",
+      "layer": "service",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goals.service.ts"],
+      "dependsOn": ["T25"],
+      "mandatory": false,
+      "mandatoryNote": "The only optional item in the spec: 10_GOAL_ACTIVITY.md:63 says 'але це не обов'язково'.",
+      "doneWhen": [
+        "a name change in PATCH emits goal_renamed { from, to }",
+        "goal_renamed is already in ReadingGoalActivityTypeSchema from T1 whether or not this task ships"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T27",
+      "title": "Add the centralised ReadingGoalSyncService",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:98-109; 10_GOAL_ACTIVITY.md:173-182",
+      "layer": "service",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-sync.service.ts",
+        "apps/api/src/modules/reading-goals/index.ts",
+        "apps/api/src/modules/reading-goals/reading-goals.module.ts"
+      ],
+      "dependsOn": ["T22", "T23", "T19"],
+      "mandatory": true,
+      "doneWhen": [
+        "one public method syncBooks({ bookIds, client, userId }) — plural, so the bulk path of T29 is one call, not N",
+        "it loads every non-archived goal whose snapshot contains any of the books in ONE query (04:100-103)",
+        "for each (goal, book) it recomputes qualifiedFinishedAt under the hard-deadline rule and writes it",
+        "null -> date emits book_counted; date -> null emits book_uncounted with reason finished_date_removed or finished_date_changed; date A -> date B where the book still qualifies emits NEITHER (10:176-180)",
+        "after the per-book pass it re-evaluates the goal lifecycle and emits goal_completed only on the FIRST transition (guarded by activityRepository.existsOfType) (10:181-182)",
+        "the service accepts an optional Prisma.TransactionClient so callers inside a transaction thread it through",
+        "ReadingGoalsModule exports ReadingGoalSyncService and reading-goals/index.ts re-exports it — mirroring how ListsModule exports ListsService (lists/index.ts:1, lists.module.ts:17)",
+        "no formula lives here: it calls the T19 calculator",
+        "zero copies of this logic exist in apps/api/src/modules/books/** (04:109)"
+      ],
+      "status": "done",
+      "resolutionNote": "syncBooks({ bookIds, client, userId }). The plural goal lookup is a new raw-SQL sibling in the books repository, findSnapshotEntriesForBooks, using book_id = ANY($1::uuid[]) - ONE query for N books, filtering goal.archived_at IS NULL and scoping by goal.user_id. It also reads the book's CURRENT finished_at in the same statement, through the passed client, and gates it with CASE WHEN book.deleted_at IS NULL THEN progress.finished_at END - so decision D3 (a trashed book stops counting) is implemented in SQL, in one place, rather than as a service-side check. Activity rows are gated on updateQualifiedFinishedAt returning 1, so a concurrent writer that already moved the row and already emitted the event cannot produce a duplicate. goal_completed is additionally guarded by existsOfType, so it fires on the first transition only. Module registration and the barrel re-export were finished by hand after the agent stalled."
+    },
+    {
+      "id": "T28",
+      "title": "Fire the sync from every single-book reading-progress write path",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:98-109",
+      "layer": "service",
+      "files": [
+        "apps/api/src/modules/books/application/book-reading.service.ts",
+        "apps/api/src/modules/books/application/books.service.ts",
+        "apps/api/src/modules/books/books.module.ts"
+      ],
+      "dependsOn": ["T27"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookReadingService.changeReadingStatus calls syncBooks inside the tx it already opens (call site follows book-reading.service.ts:74-83)",
+        "BookReadingService.updateReadingProgress calls syncBooks inside its tx (book-reading.service.ts:168)",
+        "BookReadingService.startReading calls syncBooks — it nulls finishedAt via computeReadingStatusChange targetStatus \"reading\" (reading-status-transition.ts:83) and is reached from ReadingQueueService.startReading (reading-queue.service.ts:144)",
+        "BooksService.update calls syncBooks inside its HEAVY transaction — resolveReadingProgressBlock at books.service.ts:218 reaches applyBlockUpsert(tx.bookReadingProgress, ...) at books.repository.ts:1127 and can set or clear finishedAt",
+        "BooksService.create does NOT call syncBooks, with a one-line justification in the PR: a book created at books.service.ts:97 cannot yet be in any snapshot",
+        "BooksModule imports ReadingGoalsModule; ReadingGoalsModule still imports only AuthModule, ListsModule, MediaModule (reading-goals.module.ts:14) so the graph stays acyclic",
+        "no Prisma call is added to any service (CLAUDE.md §5.3)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T29",
+      "title": "Fire the sync from the bulk reading-status path",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:98-109; 12_TESTS_AND_ACCEPTANCE.md:80-86",
+      "layer": "service",
+      "files": [
+        "apps/api/src/modules/books/application/bulk-books.service.ts",
+        "apps/api/src/modules/books/infrastructure/bulk-books.repository.ts"
+      ],
+      "dependsOn": ["T27"],
+      "mandatory": true,
+      "doneWhen": [
+        "BulkBooksService.setReadingStatus (bulk-books.service.ts:172-186) wraps the repository call and the sync in one TransactionRunner.run — today it calls the repository with no transaction at all",
+        "the repository's clearProgress branch, which deletes the whole BookReadingProgress row at bulk-books.repository.ts:327-329, is followed by exactly one syncBooks call carrying all affected bookIds",
+        "an integration test asserts a bulk move to want_to_read uncounts the affected books from their goals and writes one book_uncounted per (goal, book)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T30",
+      "title": "Reading-progress sync integration tests",
+      "specRef": "12_TESTS_AND_ACCEPTANCE.md:62-86,128-146",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goal-sync.service.test.ts"],
+      "dependsOn": ["T28", "T29"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: null -> valid finishedAt makes the book counted and writes book_counted",
+        "test: valid -> null uncounts and writes book_uncounted with reason finished_date_removed",
+        "test: valid -> a date after the deadline uncounts with reason finished_date_changed",
+        "test: a date after the deadline -> a valid date re-counts",
+        "test: a book outside the snapshot never touches the goal",
+        "test: adding a book to the custom list after creation does not change snapshotBookCount, completedCount or the eligible book list (04:126, 12:68-78)",
+        "test: removing a book from the custom list after creation does not change them either",
+        "test: repeating the same sync twice writes no duplicate goal_completed (12:142-144)"
+      ],
+      "status": "done",
+      "resolutionNote": "Covered by reading-goal-sync.service.test.ts: all eight doneWhen cases already had a named test from slice 5a. No new file needed."
+    },
+    {
+      "id": "T31",
+      "title": "Rewrite the detail assembler onto the snapshot",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:11-19,86-122; 08_CHECKPOINTS.md:150-152; 10_GOAL_ACTIVITY.md:253-255",
+      "layer": "service",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-detail.assembler.ts",
+        "apps/api/src/modules/reading-goals/application/reading-goal-view.builder.ts",
+        "apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts"
+      ],
+      "dependsOn": ["T7", "T19", "T21", "T22", "T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "countedBookWhere (reading-goals.repository.ts:147-154) no longer drives the detail — its `lists: { some: { listId } }` current-membership clause is gone from the counted path, replaced by a join on reading_goal_books",
+        "ReadingGoalViewBuilder.countedFinishedDates (reading-goal-view.builder.ts:43-58) reads qualifiedFinishedAt from the snapshot instead of re-querying books by list membership",
+        "countedBooks = snapshot rows with qualifiedFinishedAt !== null sorted qualifiedFinishedAt ASC then bookId ASC (07:86-100)",
+        "remainingBooks = snapshot rows with qualifiedFinishedAt === null sorted reading_status = reading first, then snapshot position, then title (07:102-117)",
+        "snapshotBookCount is the row count of the snapshot, not listsService.countActiveBooks",
+        "checkpoints comes from T18 and activityPreview is the latest 5 activity rows (10:255)",
+        "a goal whose book was removed from the custom list still lists that book in remainingBooks (07:118-122)",
+        "goal.listId === null returns empty arrays and snapshotBookCount 0 without throwing (today reading-goal-detail.assembler.ts:54-56 short-circuits — keep an equivalent guard)",
+        "the truncation warning at reading-goal-detail.assembler.ts:66-71 is preserved or replaced by the D6 cap decision",
+        "the detail assembler passes the goal's archivedAt through to buildReadingGoalCheckpoints (CheckpointsInput gains the field, the call site passes it). Today checkpoints resolve their counting end from the bare deadline, so an archived goal's checkpoint can read 'achieved' off a book its own metrics no longer count - the two would disagree inside one response. Left out of slice 3 rather than editing 17 fixtures in a file no defect touched."
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T31b",
+      "title": "Rebase ReadingGoalDetailSchema onto ReadingGoalListItemSchema in @app/shared",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:21-32; 11_SHARED_CONTRACTS.md:28-31",
+      "layer": "shared",
+      "files": ["packages/shared/src/reading-goals.ts"],
+      "dependsOn": ["T31"],
+      "mandatory": true,
+      "origin": "re-homed from T7 bullet 4 after slice 1 - see T7.resolutionNote",
+      "doneWhen": [
+        "ReadingGoalDetailSchema is built from ReadingGoalListItemSchema plus snapshotBookCount, countedBooks, remainingBooks, checkpoints, activityPreview",
+        "countedBooks and remainingBooks are ReadingGoalBookViewSchema arrays",
+        "listBookCount is still present (decision D2)",
+        "ReadingGoalBookSchema is deleted, and its three former consumers (reading-goal-detail.assembler.ts:1,79; apps/web goal-counted-books.tsx:3,14,50,75; apps/web reading-goals.fixtures.ts:3) no longer reference it",
+        "grep for ReadingGoalBookSchema across the repo returns zero hits",
+        "the last remaining .extend() in packages/shared/src/reading-goals.ts is rewritten to the object-spread form the rest of the file uses, so the file stops mixing both",
+        "READING_GOAL_LIMITS.countedBooks (apps/api/.../domain/reading-goal.constants.ts:11-13, detail truncation cap) and READING_GOAL_PAGE_SIZE.max (cursor page cap) are reconciled: state which governs the detail preview under decision D6 and which governs /books pagination, so the same number 100 does not mean two things by accident"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T32",
+      "title": "Add GET /api/goals/:goalId/books",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:40-52,124-128; 11_SHARED_CONTRACTS.md:74",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/api/reading-goals.controller.ts",
+        "apps/api/src/modules/reading-goals/api/input-dto/reading-goal-books.query.input-dto.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goal-books.view-dto.ts",
+        "apps/api/src/modules/reading-goals/application/reading-goal-books.service.ts"
+      ],
+      "dependsOn": ["T5", "T31"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\"goals/:goalId/books\") with @Query(new ZodQueryPipe(ReadingGoalBooksQuerySchema)) — the pipe pattern of notifications.controller.ts:53",
+        "scope=counted returns only qualifying rows, scope=remaining only non-qualifying, scope=all both",
+        "limit defaults to 20 and rejects > 100 with 400",
+        "cursor is a keyset over (sort key, bookId), not an offset",
+        "a foreign user's goalId returns 404, not 403 or an empty page",
+        "full @Api* Swagger: @ApiOperation, @ApiParam, @ApiOkResponse with a createZodDto view-dto, @ApiNotFoundResponse",
+        "@Throttle(READ_THROTTLE) applied, matching every other read route in this controller"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T33",
+      "title": "Add GET /api/goals/:goalId/activity",
+      "specRef": "10_GOAL_ACTIVITY.md:210-251; 11_SHARED_CONTRACTS.md:75",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/api/reading-goals.controller.ts",
+        "apps/api/src/modules/reading-goals/api/input-dto/reading-goal-activity.query.input-dto.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goal-activity.view-dto.ts",
+        "apps/api/src/modules/reading-goals/application/reading-goal-activity.service.ts"
+      ],
+      "dependsOn": ["T6", "T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\"goals/:goalId/activity\") with cursor / limit (default 20, max 100) / type filter",
+        "items are ordered newest first and nextCursor is null on the last page",
+        "backend returns type + raw metadata only — no localized string appears in any activity response (10:257-271)",
+        "ownership: another user's goalId returns 404",
+        "full @Api* Swagger + @Throttle(READ_THROTTLE)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T34",
+      "title": "Add the catalog repository query for GET /api/goals",
+      "specRef": "01_GET_GOALS.md:11-66,133-149",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts"],
+      "dependsOn": ["T11", "T22"],
+      "mandatory": true,
+      "doneWhen": [
+        "one method returns the user's goals with their list and their snapshot qualification data in a bounded number of queries — never one query per goal (01:137)",
+        "the listId filter is a SQL predicate, not a post-filter",
+        "created_desc / created_asc / deadline_asc / deadline_desc are ORDER BY clauses using the T10 indexes",
+        "progress_* and risk_desc follow decision D7",
+        "every ordering ends with a tie-breaking id so pagination is deterministic (01:140)",
+        "the method returns rows, never a ViewModel"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T35",
+      "title": "Add the GET /api/goals service and controller route",
+      "specRef": "01_GET_GOALS.md:1-10,67-119,151-158; 11_SHARED_CONTRACTS.md:72",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-catalog.service.ts",
+        "apps/api/src/modules/reading-goals/api/reading-goals.controller.ts",
+        "apps/api/src/modules/reading-goals/api/input-dto/reading-goals.query.input-dto.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goal-list.view-dto.ts"
+      ],
+      "dependsOn": ["T3", "T19", "T21", "T34"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\"goals\") is declared BEFORE @Get(\"goals/:goalId\") (currently reading-goals.controller.ts:96) so Nest does not route it into the ParseUUIDPipe — the precedent is books.controller.ts:113-249 where every static route precedes @Get(\":id\")",
+        "status filter accepts active|completed|expired|archived and omitting it returns all four",
+        "each item carries the full metrics block from T19 — no field of 01:79-118 is missing",
+        "users see only their own goals; a listId belonging to another user yields an empty page, not another user's goals",
+        "full @Api* Swagger + @Throttle(READ_THROTTLE)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T36",
+      "title": "Add GET /api/goals/overview",
+      "specRef": "02_GOALS_OVERVIEW.md:1-160; 11_SHARED_CONTRACTS.md:73",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-overview.service.ts",
+        "apps/api/src/modules/reading-goals/api/reading-goals.controller.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goals-overview.view-dto.ts",
+        "apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts"
+      ],
+      "dependsOn": ["T7", "T19", "T20", "T34"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\"goals/overview\") declared BEFORE @Get(\"goals/:goalId\") — otherwise the ParseUUIDPipe at reading-goals.controller.ts:100 turns it into a 400",
+        "active.onTrack counts active goals with pace ahead|on_track; active.needsAttention counts active goals with pace behind|critical OR riskLevel high|critical, and no goal is counted in both (02:53-75)",
+        "booksCounted.currentYear counts DISTINCT bookId across all of the user's goals whose qualifiedFinishedAt falls in the current calendar year (02:77-83, decision D13)",
+        "success.finishedGoals = successfulGoals + expiredGoals over goals whose T20 result is non-null; successRatePercent = 0 when finishedGoals === 0, else round(successful/finished*100) (02:85-105)",
+        "bestResult picks the completed goal with the largest differenceInCalendarDays(deadline, completedAt) among those with daysBeforeDeadline >= 0, and is null when none qualifies (02:107-115)",
+        "attention returns at most 5 items sorted critical > high > medium, then ascending daysLeft, then largest shortfall, then oldest lastCountedAt (02:117-151)",
+        "the whole response is produced without a per-goal query — asserted by T38",
+        "full @Api* Swagger + @Throttle(READ_THROTTLE)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T37",
+      "title": "Endpoint tests for the four new/changed read endpoints",
+      "specRef": "12_TESTS_AND_ACCEPTANCE.md:88-126",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/api/reading-goals.controller.test.ts"],
+      "dependsOn": ["T31", "T32", "T33", "T35", "T36"],
+      "mandatory": true,
+      "doneWhen": [
+        "GET /api/goals: 401 unauthenticated, ownership isolation, status filter, list filter, each of the 7 sorts, cursor pagination across at least 3 pages, derived metrics present on every item (12:90-98)",
+        "GET /api/goals/overview: every aggregate asserted against a fixed control set of goals (12:100-102)",
+        "GET /api/goals/:goalId: metrics + countedBooks + remainingBooks + checkpoints + activityPreview all present (12:104-112)",
+        "GET /api/goals/:goalId/books: counted, remaining, all, pagination (12:114-119)",
+        "GET /api/goals/:goalId/activity: pagination, type filter, ownership (12:121-126)",
+        "the existing 706-line suite still passes, with the assertions changed by T14 (daysLeft) and D2 (listBookCount) updated rather than deleted",
+        "tests use createAuthTestContext + truncateAllTables as the current file does at reading-goals.controller.test.ts:32-46, and testAppPort — never a per-request supertest bind"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T38",
+      "title": "Assert no per-goal query on the two catalog endpoints",
+      "specRef": "01_GET_GOALS.md:137; 12_TESTS_AND_ACCEPTANCE.md:148-155",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/api/reading-goals.controller.test.ts"],
+      "dependsOn": ["T35", "T36"],
+      "mandatory": true,
+      "doneWhen": [
+        "a test seeds N goals (N >= 10) and asserts the query count for GET /api/goals and GET /api/goals/overview does not grow with N — via a Prisma $on(\"query\") counter or an equivalent spy",
+        "the assertion is on a constant bound, not on 'fewer than N' — a vacuous bound is not acceptable"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T39",
+      "title": "Add the daily goal-expiration reconciler",
+      "specRef": "10_GOAL_ACTIVITY.md:196-208,285",
+      "layer": "job",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-expiration.reconciler.ts",
+        "apps/api/src/modules/reading-goals/reading-goals.module.ts"
+      ],
+      "dependsOn": ["T20", "T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "a @Cron-decorated class in application/, registered as a provider in ReadingGoalsModule, following the shape of apps/api/src/modules/lists/application/list-purge.reconciler.ts:11-26",
+        "cadence per decision D10; ScheduleModule.forRoot() already runs at app.module.ts:44 so no module wiring beyond the provider",
+        "it selects non-archived goals with deadline < today whose target is unmet and which have no goal_expired activity yet (10:200-204)",
+        "goal_expired metadata = { deadline, completedCount, targetCount, remainingCount } (10:136-145)",
+        "it wraps its body in createExclusiveTask (core/exclusive-task.ts:5) so overlapping ticks skip, matching notification-reminder.sweeper.ts:44-47",
+        "it pages with scanByKeyset (core/keyset-scan.ts:10) rather than loading every goal",
+        "goal status remains derived — the job writes activity only, never a status column (10:206)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T40",
+      "title": "Expiration job idempotency test",
+      "specRef": "10_GOAL_ACTIVITY.md:204,208; 12_TESTS_AND_ACCEPTANCE.md:140-146,285",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/reading-goals/application/reading-goal-expiration.reconciler.test.ts"
+      ],
+      "dependsOn": ["T39"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: a goal past its deadline with an unmet target gets exactly one goal_expired after two consecutive runs (12:146)",
+        "test: a goal past its deadline with a met target gets no goal_expired",
+        "test: an archived goal past its deadline gets no goal_expired",
+        "test: the event appears without any GET request to the goal (10:285)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T41",
+      "title": "Activity generation tests for all 8 mandatory event types",
+      "specRef": "10_GOAL_ACTIVITY.md:273-283; 12_TESTS_AND_ACCEPTANCE.md:128-146",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goals.service.test.ts"],
+      "dependsOn": ["T24", "T25", "T26", "T30", "T40"],
+      "mandatory": true,
+      "doneWhen": [
+        "one named test per type: goal_created, book_counted, book_uncounted, target_changed, deadline_changed, goal_completed, goal_expired, goal_archived",
+        "each test asserts the metadata shape of 10_GOAL_ACTIVITY.md:69-161, not just the type string",
+        "a test asserts no duplicate final transition is written when the same sync runs twice"
+      ],
+      "status": "done",
+      "resolutionNote": "Covered across reading-goal-activity.recorder.test.ts (goal_created, book_counted, book_uncounted, target_changed, deadline_changed, goal_renamed, goal_completed, goal_archived, goal_expired-on-patch) and reading-goal-expiration.reconciler.test.ts (goal_expired from the sweep). Each asserts the metadata object, not the type string."
+    },
+    {
+      "id": "T42",
+      "title": "Wire every new provider into ReadingGoalsModule",
+      "specRef": "CLAUDE.md §6 step 8",
+      "layer": "module",
+      "files": ["apps/api/src/modules/reading-goals/reading-goals.module.ts"],
+      "dependsOn": ["T27", "T31", "T32", "T33", "T35", "T36", "T39"],
+      "mandatory": true,
+      "doneWhen": [
+        "every new service, repository and reconciler appears in providers",
+        "ReadingGoalSyncService appears in exports (consumed by BooksModule in T28)",
+        "the module still imports only AuthModule, ListsModule, MediaModule — adding BooksModule here would create the cycle T28 avoids",
+        "`pnpm dev:api` starts clean and `curl -i http://localhost:4000/api/health` returns 200 with x-request-id"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T43",
+      "title": "Regenerate the OpenAPI document and the typed client",
+      "specRef": "11_SHARED_CONTRACTS.md:67-84; CLAUDE.md §6 step 10",
+      "layer": "codegen",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T32", "T33", "T35", "T36", "T37"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm --filter @app/api generate:openapi` then `pnpm gen:api` run clean",
+        "openapi.json contains GET /api/goals, /api/goals/overview, /api/goals/{goalId}/books, /api/goals/{goalId}/activity and the updated GET /api/goals/{goalId} response",
+        "no query parameter carries a JSON-schema keyword outside parameter.schema — apps/api/src/scripts/generate-openapi.ts hoists it, and orval breaks if it does not",
+        "the diff under apps/web/src/shared/api/generated/** is generator output only, with zero hand edits",
+        "root `pnpm typecheck` is green, including apps/web — the shared-type rule (a packages/shared edit needs the ROOT typecheck, not a filtered one)",
+        "pnpm gen:api is run EARLY in slice 6, not at the end: ReadingGoalActivityViewSchema.metadata is the first z.record(z.string(), z.unknown()) in packages/shared, and the OpenAPI -> orval path for an unknown-valued record is unproven in this repo (trash.ts:49 is enum-keyed with a number value). Expect additionalProperties: {} -> {[key: string]: unknown}; if orval renders something else, fix it before eight endpoints depend on it"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T44",
+      "title": "Verify the Definition-of-Done field list is served, not computed on the client",
+      "specRef": "12_TESTS_AND_ACCEPTANCE.md:157-187; 00_README.md:53-85,128-130",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/api/reading-goals.controller.test.ts"],
+      "dependsOn": ["T37", "T43"],
+      "mandatory": true,
+      "doneWhen": [
+        "a single test parses a real GET /api/goals/:goalId response through ReadingGoalDetailSchema and asserts all 23 names of 12_TESTS_AND_ACCEPTANCE.md:161-184 are present: status, result, completedCount, remainingCount, progressPercent, daysLeft, elapsedPercent, expectedCompletedCount, pace, paceDeltaBooks, paceDeltaPercent, requiredBooksPerDay, requiredDaysPerBook, actualBooksPerDay, averageDaysPerBook, lastCountedAt, daysSinceLastCounted, projectedCompletionDate, projectedDaysDelta, projectionConfidence, riskLevel, riskReasons, checkpoints",
+        "the same 23 names are present on a GET /api/goals item (minus checkpoints, which 01 does not list)",
+        "a grep of apps/web/src/features/reading-goals/** shows no arithmetic reproducing any of these — recorded as a finding for the FE pass, not fixed here"
+      ],
+      "status": "done"
+    }
+  ],
+  "sliceSequence": [
+    {
+      "slice": 1,
+      "name": "Shared contracts",
+      "tasks": ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+      "green": "root pnpm typecheck passes; nothing consumes the new schemas yet"
+    },
+    {
+      "slice": 2,
+      "name": "Prisma + migration + backfill",
+      "tasks": ["T8", "T9", "T10", "T11", "T12"],
+      "green": "db:migrate:deploy applies; raw-sql-indexes.test.ts green; no code reads the new tables yet"
+    },
+    {
+      "slice": 3,
+      "name": "Domain calculator",
+      "tasks": ["T13", "T14", "T15", "T16", "T17", "T18", "T19", "T20", "T21"],
+      "green": "pure-function unit tests green; existing daysLeft assertions rewritten in the same slice"
+    },
+    {
+      "slice": 4,
+      "name": "Snapshot write path",
+      "tasks": ["T22", "T23", "T24", "T25", "T26", "T26b"],
+      "green": "create/patch/archive write snapshot + activity; reads still on the old path"
+    },
+    {
+      "slice": 5,
+      "name": "Progress sync",
+      "tasks": ["T27", "T28", "T29", "T30"],
+      "green": "qualifiedFinishedAt tracks reading progress across all six write paths"
+    },
+    {
+      "slice": 6,
+      "name": "Read endpoints",
+      "tasks": ["T31", "T31b", "T32", "T33", "T34", "T35", "T36", "T37", "T38"],
+      "green": "all five endpoints serve the full contract"
+    },
+    {
+      "slice": 7,
+      "name": "Expiration job",
+      "tasks": ["T39", "T40", "T41"],
+      "green": "goal_expired appears without a request"
+    },
+    {
+      "slice": 8,
+      "name": "Swagger + codegen + DoD",
+      "tasks": ["T42", "T43", "T44"],
+      "green": "root typecheck + generated client + DoD field assertion"
+    }
+  ],
+  "sequencingDeviation": {
+    "specOrder": "00_README.md:115-126 puts shared contracts at step 9 and tests at step 10.",
+    "planOrder": "Shared contracts are slice 1 and each test lands with the slice it covers.",
+    "reason": "CLAUDE.md §6 makes the packages/shared Zod schema step 1 of adding an endpoint, and the T19 calculator's return type IS ReadingGoalMetrics — writing the calculator first would mean typing it twice. Deferring tests to a final slice also contradicts CLAUDE.md §9, where a contract change must ship with the tests of the callers it breaks. Every other step keeps the spec's own order: migration, hard deadline, sync, metrics, catalog, overview, detail, activity."
+  },
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "daysLeft for expired goals: follow 03_HARD_DEADLINE.md exactly and return null, knowing it silently degrades a shipped FE screen?",
+      "specSays": "03_HARD_DEADLINE.md:64-76 — active gets max(0, differenceInCalendarDays(deadline, today)), completed/expired/archived get null.",
+      "codeSays": "apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts:42 returns an UNCLAMPED difference for both active and expired (isCounting excludes only completed and archived). apps/api/src/modules/reading-goals/domain/reading-goal-progress.test.ts:189-199 asserts -3 for an expired goal. The shipped FE reads that negative value: apps/web/src/features/reading-goals/components/goal-details-view.tsx:62-65 renders 'N days overdue' from Math.abs(goal.daysLeft), and apps/web/src/features/reading-goals/components/list-goal-card.tsx:187-188 does the same. Under the spec both fall through to the plain 'expired' copy. This is a behaviour regression, not a typecheck break — null is already in the type.",
+      "options": [
+        "Follow the spec exactly: null for expired. FE loses the overdue-day count until the FE pass.",
+        "Follow the spec and additionally expose daysOverdue in ReadingGoalMetrics so the FE keeps the information without computing it.",
+        "Keep the current negative daysLeft for expired, contradicting the spec."
+      ],
+      "recommendation": "Option 1. The spec is explicit and 12_TESTS_AND_ACCEPTANCE.md:170 lists daysLeft in the Definition of Done. Option 2 invents a field the spec never asks for; if the FE genuinely needs the overdue count it should come back as an amendment. Record the FE regression as a known follow-up in the PR body.",
+      "specRef": "03_HARD_DEADLINE.md:64-76",
+      "blocks": ["T14", "T37"],
+      "answer": "FOLLOW THE SPEC. daysLeft = max(0, differenceInCalendarDays(deadline, today)) for active, null for completed/expired/archived. reading-goal-progress.test.ts:189-199 (the -3 assertion) is rewritten in the same slice. The shipped FE 'overdue by N days' copy in list-goal-card.tsx:187-188 and goal-details-view.tsx:62-65 degrades to rendering nothing; the field is already typed nullable so nothing crashes. Recorded as a known FE follow-up, out of scope for this backend pass.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D2",
+      "question": "Keep or drop ReadingGoalDetail.listBookCount?",
+      "specSays": "07_GOAL_DETAILS_BOOKS.md:21-32 defines ReadingGoalDetail with snapshotBookCount and does not mention listBookCount.",
+      "codeSays": "packages/shared/src/reading-goals.ts:73-76 declares it, apps/api/src/modules/reading-goals/application/reading-goal-detail.assembler.ts:64 fills it from listsService.countActiveBooks, and apps/web/src/features/reading-goals/components/goal-details-view.tsx:173 reads goal.listBookCount. Removing it makes the ROOT pnpm typecheck fail in apps/web, which this pass is not allowed to edit.",
+      "options": [
+        "Keep listBookCount alongside snapshotBookCount for this pass; drop it in the FE pass.",
+        "Remove it now and accept a red root typecheck until the FE pass.",
+        "Remove it now and make the one FE line a permitted exception."
+      ],
+      "recommendation": "Option 1. Backend-only scope plus 'never report done with a failing gate' makes a knowingly red root typecheck unacceptable, and one extra number on a detail response costs nothing. Add a doneWhen on the FE pass to delete it.",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:21-32",
+      "blocks": ["T7", "T31", "T37"],
+      "answer": "KEEP listBookCount on ReadingGoalDetail. goal-details-view.tsx:173 reads it; removing it reddens the root typecheck for no spec-mandated gain. snapshotBookCount is added alongside it, not instead of it.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D3",
+      "question": "Does a soft-deleted (trashed) book stay counted towards its goal?",
+      "specSays": "Nothing. 04_GOAL_BOOKS_SNAPSHOT.md never mentions the trash, and 04:60-62 only says the snapshot stores membership while the book entity is read live.",
+      "codeSays": "The current qualification filters trashed books out: apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts:149 spreads SOFT_DELETE_SCOPE.active into countedBookWhere. So today, trashing a finished book silently drops a goal from completed back to active. The snapshot rewrite has to decide this deliberately because the filter moves.",
+      "options": [
+        "Keep today's behaviour: a trashed book stops qualifying. Requires syncBooks calls from BookLifecycleService.softDelete and .restore (apps/api/src/modules/books/application/book-lifecycle.service.ts:84,94), which is one more call site than T28 lists.",
+        "Snapshot ignores deletedAt: a trashed book keeps its qualifiedFinishedAt and stays counted until it is hard-purged (the ReadingGoalBook FK cascade removes it then).",
+        "Snapshot ignores deletedAt for counting but the book is hidden from countedBooks/remainingBooks."
+      ],
+      "recommendation": "Option 1, plus the two extra sync call sites. It preserves the shipped behaviour, and it matches the hard-deadline spirit: a goal's progress should reflect the library as it stands. Option 2 would be a silent behaviour change nobody asked for.",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:60-62",
+      "blocks": ["T27", "T28", "T31"],
+      "answer": "A trashed book stops counting. Preserve the current SOFT_DELETE_SCOPE.active filter. Confirmed by the user's scope answer: the sync fires from book-lifecycle.service.ts:84 and :94 as well, so trashing and restoring a book move qualifiedFinishedAt and emit book_uncounted / book_counted.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D4",
+      "question": "For an archived goal, is result evaluated against today or frozen at archivedAt?",
+      "specSays": "01_GET_GOALS.md:121-131 requires result = completed | expired | null for archived goals so history and success-rate survive archiving, but never says which instant decides 'expired'. 02_GOALS_OVERVIEW.md:85-94 puts archived goals into the success denominator through result.",
+      "codeSays": "apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts:61-70 short-circuits on archivedAt and never evaluates the deadline for an archived goal, so today there is no answer to freeze or not freeze.",
+      "options": [
+        "Freeze: expired iff the target was unmet AND the deadline had already passed at archivedAt. A goal archived early and incomplete stays result = null forever.",
+        "Evaluate against today: the same goal flips from null to expired the day its deadline passes, changing a historical success rate without any user action."
+      ],
+      "recommendation": "Option 1. An archived goal is a closed record; a success rate that moves on its own is a bug report waiting to happen. Option 2 also makes 02's bestResult and successRatePercent non-reproducible across days for an unchanged dataset.",
+      "specRef": "01_GET_GOALS.md:121-131",
+      "blocks": ["T20", "T26", "T36"],
+      "answer": "Freeze result at archivedAt. The archived goal's result is whatever the lifecycle said at the moment of archiving, persisted, not recomputed against today. Otherwise the success rate on the overview drifts with no user action.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D5",
+      "question": "daysSinceLastCounted for completed and archived goals: a number or null?",
+      "specSays": "06_DERIVED_METRICS_AND_RISKS.md:139 leaves it explicitly open — 'для completed/archived можна повернути null, якщо це спрощує contract. Важливо мати однакову поведінку всюди.'",
+      "codeSays": "No precedent; the field does not exist yet.",
+      "options": [
+        "null for every non-active status, consistent with pace (05:15-19) and daysLeft (03:71-76).",
+        "Always a number, computed from lastCountedAt or goalStartDate."
+      ],
+      "recommendation": "Option 1. It puts every non-active goal on one rule — pace, daysLeft, requiredBooksPerDay and daysSinceLastCounted are all null — which is exactly the 'однакова поведінка всюди' the spec asks for, and it stops the FE rendering 'no progress for 400 days' on a goal finished last year.",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:122-139",
+      "blocks": ["T19"],
+      "answer": "null for completed and archived, matching pace and daysLeft. Same rule everywhere; no endpoint-local variation.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D6",
+      "question": "Does GET /api/goals/:goalId return full countedBooks/remainingBooks or capped previews?",
+      "specSays": "07_GOAL_DETAILS_BOOKS.md:34-44 allows either: 'Якщо список може бути великим — допускається у detail повертати preview; full data віддавати окремим paginated endpoint', and calls GET /goals/:goalId/books the recommended production variant.",
+      "codeSays": "The detail already caps counted books at READING_GOAL_LIMITS.countedBooks = 100 (apps/api/src/modules/reading-goals/domain/reading-goal.constants.ts:11-13) and logs a warning when it truncates (reading-goal-detail.assembler.ts:66-71). A goal's snapshot is bounded by its list, which has no size limit.",
+      "options": [
+        "Detail returns a capped preview of each array (reuse the existing 100, or a smaller preview like 20) and /books serves the full paginated data.",
+        "Detail returns everything, /books exists only for convenience."
+      ],
+      "recommendation": "Option 1 with the existing 100 kept as the cap for both arrays, so the response stays bounded and the truncation warning already in place keeps working. /books is mandatory either way (11_SHARED_CONTRACTS.md:74 requires its Swagger, 12:114 requires its tests).",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:34-52",
+      "blocks": ["T31", "T32"],
+      "answer": "Capped previews. GET /api/goals/:goalId returns countedBooks and remainingBooks capped at 100 each (the repo's existing max page size) plus snapshotBookCount for the true total; GET /api/goals/:goalId/books serves the full paginated set.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D7",
+      "question": "How do progress_desc / progress_asc / risk_desc sort and paginate, given they order by values no column holds?",
+      "specSays": "01_GET_GOALS.md:44-52 requires all 7 sorts; :139-140 requires them to be stable and the cursor to carry enough for deterministic pagination; :137 forbids N+1.",
+      "codeSays": "progressPercent and riskLevel are derived from the snapshot and the clock — no reading_goals column holds them, so a SQL ORDER BY is impossible without materialising a counter column (which 04 does not ask for). The repo already has a precedent for the in-memory answer: apps/api/src/modules/series/application/series.service.ts:147-158 loads all continuation candidates, sorts them in memory, slices to query.limit and returns nextCursor: null. The keyset precedent for real columns is apps/api/src/modules/notifications/infrastructure/notifications.repository.ts:160-165.",
+      "options": [
+        "Column sorts (created_*, deadline_*) use a real keyset cursor; derived sorts (progress_*, risk_desc) load the user's goals up to a hard cap, compute metrics, sort in memory, and page by an opaque offset cursor. status filtering for active/completed/expired also happens in that pass.",
+        "Add materialised counter columns (e.g. reading_goals.qualified_count) maintained by the sync service so every sort and the status filter become SQL. More correct at scale, adds a column the spec never asked for and a new class of drift bug.",
+        "Support only the column sorts now and return 400 for progress_*/risk_desc."
+      ],
+      "recommendation": "Option 1 with an explicit cap constant and a logged warning when a user exceeds it, mirroring the existing truncation warning. Goals per user are bounded by lists, the calculator stays the single source of truth, and it satisfies 'no query per goal' since the whole page is one query plus one snapshot query. Option 3 fails an explicit spec requirement. Option 2 is the right move only if a real user ever crosses the cap.",
+      "specRef": "01_GET_GOALS.md:40-66,133-140",
+      "blocks": ["T34", "T35", "T36"],
+      "answer": "Keyset cursor for the column sorts (created_asc/desc, deadline_asc/desc). For the derived sorts (progress_asc/desc, risk_desc) load the user's goals up to a hard cap, compute metrics in memory, sort, and encode the position in the cursor. Precedent: series.service.ts:147-158. Rejected the materialised counter column - denormalised state that can drift from the truth.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D8",
+      "question": "How does the books module reach the reading-goals sync — direct module import or an inverted port?",
+      "specSays": "04_GOAL_BOOKS_SNAPSHOT.md:109 — 'Ця логіка повинна бути централізована в reading-goals application/domain service, а не дублюватися у book service.' It does not say how the call is made.",
+      "codeSays": "There is no event bus in apps/api — grep for EventEmitter/@OnEvent returns nothing. The only inversion pattern is an abstract-class port with a DI token: apps/api/src/modules/mail/domain/mail.port.ts:9, apps/api/src/modules/realtime/domain/realtime.port.ts:8, each with exactly one adapter. Direct cross-module service injection is the common case: ReadingGoalsModule already injects ListsService (reading-goals.module.ts:14, lists/index.ts:1). ReadingGoalsModule imports only Auth/Lists/Media, so a BooksModule -> ReadingGoalsModule import is acyclic today.",
+      "options": [
+        "BooksModule imports ReadingGoalsModule; each write path calls ReadingGoalSyncService.syncBooks(...).",
+        "Declare an abstract ReadingGoalSyncPort under books/domain, implemented by reading-goals, so the dependency arrow points from goals to books."
+      ],
+      "recommendation": "Option 1. The ports in this repo exist to swap an infrastructure adapter (SMTP, socket.io, S3, sharp); there is no second implementation of goal sync and no plan for one. Option 2 buys an indirection with no consumer and hides the call graph. Revisit only if reading-goals ever needs to import books.",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:98-109",
+      "blocks": ["T27", "T28"],
+      "answer": "Direct BooksModule -> ReadingGoalsModule import. The dependency is acyclic today, there is no event bus in the repo, and every existing port has exactly one adapter and exists to swap infrastructure. A port here would buy indirection with no second implementation. CLAUDE.md rule 15: no preemptive scaffolding.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D9",
+      "question": "Does the bulk reading-status path get wrapped in a transaction so the sync is atomic with it?",
+      "specSays": "Nothing — 04 assumes a single-book finishedAt change (04:100).",
+      "codeSays": "apps/api/src/modules/books/application/bulk-books.service.ts:172-186 calls bulkBooksRepository.setReadingStatus with NO transaction, and the repository deletes whole BookReadingProgress rows for N books at apps/api/src/modules/books/infrastructure/bulk-books.repository.ts:327-329. Adding the sync after that call, outside a transaction, means a crash between the two leaves goals counting books that no longer have a finishedAt.",
+      "options": [
+        "Wrap the repository call and syncBooks in one TransactionRunner.run.",
+        "Call syncBooks after the repository returns, best-effort, and let the daily job or the next single-book change repair the drift."
+      ],
+      "recommendation": "Option 1. The transaction runner is already injected in that service for updatePagesCount, and a bulk status change of N books is exactly when partial failure is most visible. Option 2 has no repair job for qualification drift — the T39 reconciler only writes expiration activity.",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:98-109",
+      "blocks": ["T29"],
+      "answer": "Yes. bulk-books.service.ts:172-186 gets wrapped in TransactionRunner.run so the progress delete and the goal sync commit together. Confirmed by the user: fix all eight call sites.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D10",
+      "question": "Cadence for the expiration job: daily at a fixed hour, or hourly with an existence guard?",
+      "specSays": "10_GOAL_ACTIVITY.md:199 — 'Реалізувати scheduled backend job мінімум 1 раз на добу', and :204 requires idempotency.",
+      "codeSays": "Every scheduled task in this repo is @Cron(CronExpression.EVERY_HOUR): list-purge.reconciler.ts:24, book-purge.reconciler.ts:24, series/lists/quotes/notes/characters/timeline reconcilers, notification-purge.reconciler.ts:33 and notification-reminder.sweeper.ts:60. There is no daily cron precedent.",
+      "options": [
+        "EVERY_HOUR with the 'no goal_expired activity yet' guard, matching every neighbour.",
+        "EVERY_DAY_AT_MIDNIGHT, literally one run a day."
+      ],
+      "recommendation": "Option 1. It satisfies 'at least once a day' with margin, matches the only pattern in the codebase, and closes the window where a user in a far timezone sees the event up to 24 h late. The idempotency guard is required by the spec regardless of cadence, so hourly costs one indexed existence query per overdue goal per hour.",
+      "specRef": "10_GOAL_ACTIVITY.md:196-208",
+      "blocks": ["T39"],
+      "answer": "Hourly, with an existence guard on the goal_expired event, following every other reconciler in the repo (list-purge.reconciler.ts:11-26). The spec's floor is once a day; hourly satisfies it and matches the local convention. Idempotency comes from the guard, not from the cadence.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D11",
+      "question": "Where does the rounding helper live: a new core/rounding.ts or a reading-goals-local one?",
+      "specSays": "06_DERIVED_METRICS_AND_RISKS.md:228-237 asks for one rule (percent 1, books delta 2, per-day 3, days/book 1) and no unstable floating-point tails.",
+      "codeSays": "There is no rounding helper anywhere in apps/api/src/core. Three modules each roll their own: apps/api/src/modules/books/domain/reading-history.mapper.ts:400 roundToOneDecimal, apps/api/src/modules/genres/domain/genre-stats.mapper.ts:35 roundRating, apps/api/src/modules/publishers/domain/publisher-library.mapper.ts:125 roundRating. Three real uses is exactly the threshold CLAUDE.md §8.7 names for extraction.",
+      "options": [
+        "A frozen READING_GOAL_ROUNDING object plus a local roundTo in reading-goals/domain, leaving the three existing copies alone.",
+        "Create core/rounding.ts and migrate all three existing call sites in the same PR."
+      ],
+      "recommendation": "Option 1 for this pass. Option 2 drags three unrelated modules and their tests into a spec-scoped PR, and the three existing helpers round different things (ratings vs pages/day) with different factors, so the shared abstraction is not obviously the same knowledge. Flag core/rounding.ts as a standalone refactor.",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:228-237",
+      "blocks": ["T13"],
+      "answer": "Reading-goals-local rounding helper in the module's domain layer. Three module-local copies already exist elsewhere (reading-history.mapper.ts:400, genre-stats.mapper.ts:35, publisher-library.mapper.ts:125); a shared core/rounding.ts is a separate refactor on its own evidence, not a rider on this spec.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D12",
+      "question": "How many decimals for expectedCompletedCount in the response?",
+      "specSays": "Contradiction between two files. 05_PACE.md:71-77 says do not round internally and '2 decimals дозволено' in the response. 06_DERIVED_METRICS_AND_RISKS.md:230-236 defines four rounding buckets — percentages 1, books delta 2, per-day 3, days/book 1 — and expectedCompletedCount fits none of them by name.",
+      "codeSays": "The field does not exist yet.",
+      "options": [
+        "round2, treating it as a books quantity in the same bucket as paceDeltaBooks.",
+        "Return the raw float, honouring 05:71 literally.",
+        "round1."
+      ],
+      "recommendation": "Option 1. It is a book count, paceDeltaBooks is derived from it and is round2, so any other choice makes completedCount - expectedCompletedCount disagree with the returned paceDeltaBooks by a visible amount. Option 2 violates 06:237 'не віддавати нестабільні floating-point хвости'.",
+      "specRef": "05_PACE.md:69-77 vs 06_DERIVED_METRICS_AND_RISKS.md:228-237",
+      "blocks": ["T15", "T19"],
+      "answer": "round2, the same bucket as paceDeltaBooks. This resolves the direct contradiction between 05_PACE.md:71-77 (which allows 2 decimals) and 06_DERIVED_METRICS_AND_RISKS.md:230-236 (whose rounding table has no bucket for it). Internal math stays unrounded; only the response value is rounded.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D13",
+      "question": "booksCounted.currentYear — does the calendar year filter the qualifying date or the goal?",
+      "specSays": "02_GOALS_OVERVIEW.md:77-83 — unique books counted towards any goal 'протягом поточного календарного року', not counted twice within one goal, and one bookId across two goals counts once.",
+      "codeSays": "The field does not exist. The snapshot gives qualifiedFinishedAt per (goal, book), which is the only date available to filter on.",
+      "options": [
+        "COUNT(DISTINCT book_id) over the user's reading_goal_books where qualified_finished_at is inside the current calendar year, regardless of when the goal was created.",
+        "Restrict to goals created in the current year.",
+        "Restrict to goals whose deadline falls in the current year."
+      ],
+      "recommendation": "Option 1. It is the only reading under which 'не рахувати одну й ту саму книгу двічі' and 'один bookId для статистики' are meaningful, and it is the metric a 'Read for goals this year' card actually wants. Options 2 and 3 would drop a book finished in January for a goal created last December.",
+      "specRef": "02_GOALS_OVERVIEW.md:77-83",
+      "blocks": ["T36"],
+      "answer": "COUNT(DISTINCT book_id) over reading_goal_books where qualified_finished_at falls in the current calendar year and the goal belongs to the user. The year filters the qualifying date, not the goal's createdAt or deadline, so a goal spanning a year boundary contributes to both years.",
+      "answeredBy": "user, 2026-08-13, stage 3",
+      "status": "resolved"
+    },
+    {
+      "id": "D14",
+      "status": "resolved",
+      "answeredBy": "assistant, slice 3c",
+      "question": "Is actualBooksPerDay a number for every status, or null outside active?",
+      "answer": "A number for every status. The spec (06:92-104) defines it 'for an active goal' and leaves the rest open; the schema allows a number. An achieved rate is a fact about a finished goal, not a projection about a live one, so it does not belong in the same nullable group as pace and daysLeft. averageDaysPerBook is likewise ungated."
+    },
+    {
+      "id": "D15",
+      "status": "resolved",
+      "answeredBy": "assistant, slice 3c",
+      "question": "Does the metrics calculator trust reading_goal_books.qualifiedFinishedAt, or re-qualify at read time?",
+      "answer": "Re-qualify. qualifiedFinishedAt is a write-time denormalisation and the read is the only place that can notice it lying. A PATCH moving the deadline invalidates every row's qualification; a resync that fails halfway, or a future write path that forgets to call it, yields a wrong completedCount with no error anywhere. Re-qualifying costs one comparison per row on data already in memory and makes the cache an optimisation rather than a correctness dependency. Consequence: metrics.completedCount may legitimately disagree with a stale table, and metrics is the correct side."
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Six endpoints already exist: POST/GET /api/lists/:listId/goal, GET/PATCH /api/goals/:goalId, POST /api/goals/:goalId/archive, DELETE /api/goals/:goalId",
+      "specRef": "00_README.md:18-25",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/reading-goals/api/reading-goals.controller.ts:60 (POST lists/:listId/goal), :75 (GET lists/:listId/goal), :96 (GET goals/:goalId), :111 (PATCH goals/:goalId), :126 (POST goals/:goalId/archive), :139 (DELETE goals/:goalId). Controller prefix is @Controller(\"api\") at :45."
+    },
+    {
+      "claim": "The create flow uses an advisory lock and it must be preserved",
+      "specRef": "00_README.md:27",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/reading-goals/application/reading-goals.service.ts:61 calls acquireCreateLock as the first statement inside TransactionRunner.run; apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts:42-47 uses ADVISORY_LOCK_CLASS.readingGoals = 14 (apps/api/src/core/database/advisory-lock.ts:12)."
+    },
+    {
+      "claim": "Books are counted with finishedAt >= goal.createdAt and no upper bound, so an expired goal can still become completed",
+      "specRef": "03_HARD_DEADLINE.md:3-7",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts:147-154 — countedBookWhere sets readingProgress: { finishedAt: { gte: since, not: null } } with no lte; `since` comes from apps/api/src/modules/reading-goals/application/reading-goal-view.builder.ts:39-41 (startOfUtcDay(goal.createdAt))."
+    },
+    {
+      "claim": "Goal progress today depends on CURRENT custom-list membership, which is what the snapshot must replace",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:5-7,124-126",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts:150 — `lists: { some: { listId } }`. Adding or removing a book from the list changes completedCount today."
+    },
+    {
+      "claim": "The lifecycle order archived -> completed -> expired -> active must be implemented",
+      "specRef": "03_HARD_DEADLINE.md:24-35",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts:61-70 implements exactly that order. Removes work: T14 must not rewrite it, only feed it a hard-deadline-qualified count."
+    },
+    {
+      "claim": "completedAt = finishedAt of the targetCount-th qualifying book",
+      "specRef": "03_HARD_DEADLINE.md:48-62",
+      "verdict": "MOVED",
+      "evidence": "Partially present at apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts:40 (finishedDates[targetCount-1]) and the dates arrive sorted from reading-goals.repository.ts:109 (orderBy finishedAt asc, id asc). The bookId ASC tie-breaker the spec demands is therefore already in the ORDER BY but is NOT expressed in the domain function, which receives a bare Date[]. Real gap: the domain layer cannot enforce the tie-break itself."
+    },
+    {
+      "claim": "daysLeft = max(0, differenceInCalendarDays(deadline, today)) for active, null otherwise",
+      "specRef": "03_HARD_DEADLINE.md:64-76",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts:42 — daysLeft is UNCLAMPED and is returned for expired goals too (isCounting excludes only completed and archived). apps/api/src/modules/reading-goals/domain/reading-goal-progress.test.ts:189-199 pins the negative value at -3. Changing this is a contract behaviour change with a live FE consumer; see D1."
+    },
+    {
+      "claim": "qualifiedFinishedAt should be DateTime? @db.Date",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:20",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:312 — BookReadingProgress.finishedAt is DateTime? @map(\"finished_at\") @db.Date. Same type, no cast needed on comparison, and ReadingGoal.deadline is also @db.Date (schema.prisma:547)."
+    },
+    {
+      "claim": "The Prisma snippets' conventions (@db.Uuid, @db.Timestamptz, @map, snake_case @@map) match this repo",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:13-32; 10_GOAL_ACTIVITY.md:13-37",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:559-570 (BookListItem) is the exact same shape: composite @@id, @db.Uuid FKs, @map columns, @@map table. ReadingGoal at :541-557 uses @db.Timestamptz for archivedAt/createdAt/updatedAt."
+    },
+    {
+      "claim": "Book and User can take the new relations",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:41; 10_GOAL_ACTIVITY.md:28-30",
+      "verdict": "CONFIRMED",
+      "evidence": "Book already carries 21 relation fields (apps/api/prisma/schema.prisma:249-270) including lists BookListItem[]; User already carries readingGoals ReadingGoal[] at :65. Adding readingGoalBooks / readingGoalActivities is mechanical."
+    },
+    {
+      "claim": "Indexes on userId+archivedAt and listId exist; userId+createdAt and userId+deadline are asked for",
+      "specRef": "01_GET_GOALS.md:142-149",
+      "verdict": "MOVED",
+      "evidence": "apps/api/prisma/schema.prisma:554 (@@index([userId, archivedAt])) and :555 (@@index([listId])) exist. userId+createdAt and userId+deadline do NOT — grep of the ReadingGoal block returns only those two. Half the requirement is already done, half is T10."
+    },
+    {
+      "claim": "reading_goals_active_list_idx is a hand-written partial index that a generated migration can silently drop",
+      "specRef": "CLAUDE.md §6 strip trap (spec is silent)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/migrations/20260808120255_add_reading_goals/migration.sql:26 creates it with WHERE archived_at IS NULL AND list_id IS NOT NULL; apps/api/src/core/database/raw-sql-indexes.test.ts:44 asserts it survives. T11 must read every DROP INDEX line before deploy."
+    },
+    {
+      "claim": "Every derived value must be computed once in one backend domain layer",
+      "specRef": "00_README.md:53-85; 06_DERIVED_METRICS_AND_RISKS.md:239-248",
+      "verdict": "MOVED",
+      "evidence": "A partial single source already exists: apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts:23-46 (calculateReadingGoalProgress) is called from application/reading-goal-view.builder.ts:29 and covers 5 of the 23 DoD fields. The remaining 18 have no home. T19 extends this seam rather than opening a new one."
+    },
+    {
+      "claim": "BookReadingProgress.finishedAt is mutated in the books module and needs a centralised sync hook",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:98-109",
+      "verdict": "CONFIRMED",
+      "evidence": "Six write paths, all verified this run: (1) apps/api/src/modules/books/application/books.service.ts:75-78 create -> buildReadingProgressData (domain/book-blocks.ts:120-134) -> books.repository.ts:621; (2) books.service.ts:218 update -> resolveReadingProgressBlock -> books.repository.ts:1099 updateOwned -> :1127 applyBlockUpsert(tx.bookReadingProgress); (3) book-reading.service.ts:74 changeReadingStatus -> books.repository.ts:1011 recordReadingStatusChange (sets finishedAt for 'finished' at domain/reading-status-transition.ts:40, nulls it at :32,:58,:72,:83); (4) book-reading.service.ts:168 updateReadingProgress -> books.repository.ts:986 recordReadingProgress (domain/reading-progress-transition.ts:46 sets finishedAt on markAsFinished); (5) book-reading.service.ts:130 startReading -> books.repository.ts:537 applyReadingChange, reached from reading-queue.service.ts:144; (6) bulk-books.service.ts:181 -> bulk-books.repository.ts:307 setReadingStatus, which DELETES the whole progress row at :327-329."
+    },
+    {
+      "claim": "An existing domain-event or port pattern exists that the sync should ride on",
+      "specRef": "inferred from 04_GOAL_BOOKS_SNAPSHOT.md:109",
+      "verdict": "FALSE",
+      "evidence": "There is no event bus: grep for EventEmitter and @OnEvent across apps/api/src returns zero non-test hits. The only inversion primitive is the abstract-class port with a DI token — apps/api/src/modules/mail/domain/mail.port.ts:9, apps/api/src/modules/realtime/domain/realtime.port.ts:8, apps/api/src/modules/media/domain/storage.port.ts:7 — each with exactly one adapter, used for infrastructure swaps, not for domain notifications. The reading-history events at apps/api/src/modules/books/domain/reading-history.mapper.ts are a persisted BookReadingProgressEvent audit log written by the same repository call, not a dispatch mechanism. See D8."
+    },
+    {
+      "claim": "A cursor-pagination convention exists that GET /api/goals should follow",
+      "specRef": "01_GET_GOALS.md:60-74; 11_SHARED_CONTRACTS.md:55-65",
+      "verdict": "CONFIRMED",
+      "evidence": "Shared shape: packages/shared/src/notifications.ts:133-142 (NotificationListQuerySchema: cursor z.uuid().optional(), limit z.coerce.number().int().min(1).max(N).default(20)) and :146-150 (items + nextCursor). Same shape at packages/shared/src/changelog.ts:25-38. Service side: apps/api/src/modules/notifications/application/notifications.service.ts:70-95 takes limit+1, slices, returns lastRow.id as nextCursor, and resolves the cursor into an anchor row at :130-146 throwing NotFoundError on an unknown cursor. Repository side: apps/api/src/modules/notifications/infrastructure/notifications.repository.ts:83-95 with the composite keyset predicate at :160-165. There is also an in-memory precedent for derived sorts at apps/api/src/modules/series/application/series.service.ts:147-158 (nextCursor: null). apps/api/src/core/paginator.ts:10-30 is OFFSET pagination and is the wrong tool here."
+    },
+    {
+      "claim": "Scheduled-job infrastructure exists for the daily expiration job",
+      "specRef": "10_GOAL_ACTIVITY.md:196-208",
+      "verdict": "CONFIRMED",
+      "evidence": "ScheduleModule.forRoot() at apps/api/src/app.module.ts:44. Registration pattern: apps/api/src/modules/lists/application/list-purge.reconciler.ts:11-26 — @Injectable class in application/, @Cron(CronExpression.EVERY_HOUR) at :24, provider in the feature module. Overlap guard: apps/api/src/core/exclusive-task.ts:5-25 (createExclusiveTask), used at apps/api/src/modules/notifications/application/notification-reminder.sweeper.ts:44-47. Paging: apps/api/src/core/keyset-scan.ts:10-49 (scanByKeyset), used at notification-reminder.sweeper.ts:127-134. BullMQ (apps/api/src/core/queue/queue.module.ts) is used for purge work queues; a cron reconciler is the closer fit and needs no queue."
+    },
+    {
+      "claim": "A rounding/number helper exists in core/** for the 1/2/3-decimal contract",
+      "specRef": "06_DERIVED_METRICS_AND_RISKS.md:228-237",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/core contains no rounding module (full listing: assert-never, assert-not-stale, bounded-semaphore, database, exceptions, exclusive-task, http-status, iso-date, keyset-scan, logger, middleware, openapi, paginator, pipes, prisma-errors, purge-reconciler, throttle, tracing, trash-retention, ukrainian-collation, zod-error). Three module-local copies exist instead: apps/api/src/modules/books/domain/reading-history.mapper.ts:400-402, apps/api/src/modules/genres/domain/genre-stats.mapper.ts:35-38, apps/api/src/modules/publishers/domain/publisher-library.mapper.ts:125-128. See D11."
+    },
+    {
+      "claim": "Existing shared book view types should be reused for ReadingGoalBookView instead of duplicating",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:56-85",
+      "verdict": "CONFIRMED",
+      "evidence": "Reusable pieces all exist: BookAuthorRefSchema (already imported at packages/shared/src/reading-goals.ts:3), MediaViewSchema (:6), ReadingProgressViewSchema at packages/shared/src/books.ts:940-950 (has currentPage, finishedAt, startedAt but NOT pagesCount or readingStatus, which live on the book), ReadingStatusSchema and OwnershipStatusSchema from packages/shared/src/book-enums.ts. The nearest existing card is SeriesBookViewSchema at packages/shared/src/series.ts:222-247 (authors + cover + currentPage + finishedAt + startedAt + readingStatus + ownershipStatus + pagesCount) — a superset of what 07:57-82 asks for, but carrying 10 series-specific fields. BookViewSchema at books.ts:1089-1132 is 43 fields and far too heavy. Recommendation is a new lean ReadingGoalBookView composed from the shared primitives, not an extend of either."
+    },
+    {
+      "claim": "The existing detail response already returns counted books",
+      "specRef": "07_GOAL_DETAILS_BOOKS.md:11-19",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/reading-goals/application/reading-goal-detail.assembler.ts:57-76 returns countedBooks (capped at READING_GOAL_LIMITS.countedBooks = 100, domain/reading-goal.constants.ts:11-13) plus listBookCount, mapped by toCountedBook at :79-93 into the 5-field ReadingGoalBookSchema (packages/shared/src/reading-goals.ts:63-71). It is driven by current list membership, not by a snapshot, and it lacks snapshotPosition, qualifies, countedFinishedAt, reading and ownershipStatus."
+    },
+    {
+      "claim": "Backend must not localize activity text",
+      "specRef": "10_GOAL_ACTIVITY.md:257-271",
+      "verdict": "CONFIRMED",
+      "evidence": "Consistent with the repo: the notification payload contract at packages/shared/src/notifications.ts:79-113 is a discriminated union of structured data with zero strings for display, and localization lives in apps/web/src/messages/*.json. No change of direction needed."
+    },
+    {
+      "claim": "The route GET /api/goals/overview can be added without colliding with GET /api/goals/:goalId",
+      "specRef": "02_GOALS_OVERVIEW.md:7-9 (spec is silent on the collision)",
+      "verdict": "CONFIRMED",
+      "evidence": "Declaration order decides it in Nest, and the repo already relies on that: apps/api/src/modules/books/api/books.controller.ts declares @Get(\"overview\") :133, @Get(\"purchase-stores\") :147, @Get(\"dedications\") :211, @Get(\"trash\") :236 all BEFORE @Get(\":id\") at :249. perfectionist/sort-classes is off (eslint.config.mjs:151), so no lint rule will reorder the methods back. Without that ordering the ParseUUIDPipe at reading-goals.controller.ts:100 turns /api/goals/overview into a 400."
+    },
+    {
+      "claim": "ZodQueryPipe exists for validating the new query params",
+      "specRef": "11_SHARED_CONTRACTS.md:55-65",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/pipes/zod-query.pipe.ts, used at apps/api/src/modules/notifications/api/notifications.controller.ts:21,53. The reading-goals controller currently only uses ZodBodyPipe (reading-goals.controller.ts:34)."
+    },
+    {
+      "claim": "targetCount is validated against the list size at creation, which the snapshot must take over",
+      "specRef": "04_GOAL_BOOKS_SNAPSHOT.md:45-49 step 4",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/reading-goals/application/reading-goals.service.ts:132-146 assertTargetWithinList calls listsService.countActiveBooks OUTSIDE the transaction (invoked at :58, before the runner opens at :60). The spec puts the check inside the transaction against the snapshot count. Real behaviour gap, folded into T24."
+    },
+    {
+      "claim": "A frontend already consumes the reading-goals API, so contract changes have blast radius",
+      "specRef": "not in the spec — the spec assumes a future page",
+      "verdict": "FALSE",
+      "evidence": "The spec's premise ('майбутня сторінка Цілі читання', 00_README.md:5) is out of date. A shipped slice exists: apps/web/src/features/reading-goals/api/{use-goal-detail,use-list-goal,use-create-goal,use-update-goal,use-archive-goal,use-delete-goal}.ts plus components/{goal-details-view,goal-counted-books,list-goal-card}.tsx. goal-details-view.tsx:173 reads listBookCount, :62-65 reads a negative daysLeft, list-goal-card.tsx:187-188 does the same. Generated models already exist under apps/web/src/shared/api/generated/model/readingGoalDetailDto.ts. This drives D1 and D2."
+    },
+    {
+      "claim": "The readingGoalReminders setting exists, so reminder wiring is in reach",
+      "specRef": "05_PACE.md:158 and 09_PROJECTION.md:119 name reminders as a calculator consumer",
+      "verdict": "STALE",
+      "evidence": "packages/shared/src/profile.ts:217 declares readingGoalReminders and :303 defaults it to false, but apps/api/src/modules/notifications/application/notification-reminder.sweeper.ts:74-86 builds only loanReminderWindow and deliveryReminderWindow — no goal branch exists. The flag has been inert since the goals feature shipped. Nothing to wire; recorded under excluded."
+    }
+  ],
+  "stage3": {
+    "askedAt": "2026-08-13",
+    "userDecided": ["D1", "D7", "D9"],
+    "assistantDecidedAndStated": ["D2", "D3", "D4", "D5", "D6", "D8", "D10", "D11", "D12", "D13"],
+    "knownFollowUps": [
+      "FE: list-goal-card.tsx:187-188 and goal-details-view.tsx:62-65 lose the \"overdue by N days\" copy once daysLeft is null for expired goals. Backend-only pass; fix belongs to the frontend slice."
+    ]
+  },
+  "sliceLog": [
+    {
+      "slice": 1,
+      "name": "Shared contracts",
+      "completedAt": "2026-08-13",
+      "diff": "packages/shared/src/reading-goals.ts 78 -> 347 lines",
+      "gates": {
+        "shared build": "clean",
+        "root typecheck": "green (3/3 tasks)",
+        "lint": "0 errors, 6 pre-existing apps/web warnings",
+        "format:check": "green after adding apps/api/md/booknest-reading-goals-backend-spec to .prettierignore and formatting tasks.json",
+        "knip": "clean",
+        "apps/web reading-goals vitest": "19 tests passed"
+      },
+      "deviations": [
+        "object-spread of .shape instead of .extend()/.merge() - Zod 4 deprecates .merge() and names destructuring the best-tsc-performance equivalent",
+        "cover key named cover, not the spec's coverMedia (07:66), matching the nine sibling book views in shared",
+        "three extra enums centralised that the spec left as inline literals: checkpoint status, attention severity, uncounted reason"
+      ],
+      "openItems": [
+        "READING_GOAL_NAME_MAX / READING_GOAL_TARGET_MAX stay scattered top-level consts; grouping them renames symbols read by apps/web goal-form.ts:8 and reading-goals.service.ts:3",
+        "attention array has no .max(5); 02_GOALS_OVERVIEW.md:119 caps it as a slice-6 service rule"
+      ],
+      "review": {
+        "agent": "code-reviewer",
+        "verdict": "APPROVED WITH NITS",
+        "critical": 0,
+        "appliedInSlice": [
+          "cursor is now bounded: z.string().max(READING_GOAL_PAGE_SIZE.cursorMaxLength) - it will be the first attacker-controlled opaque value in this module, and slice 6 must decode it THROUGH Zod (base64 -> JSON -> schema), never trust the string"
+        ],
+        "recordedNotFixed": [
+          "S1 (date-contract seam)",
+          "T5 resolutionNote",
+          "T31b .extend() and constant-collision items",
+          "codegen ordering on T43"
+        ],
+        "carriedToRelease": "the shipped FE loses its 'overdue by N days' copy once T14 makes daysLeft null for expired goals (goal-details-view.tsx:62-65, list-goal-card.tsx:187-188) - the FE fix must ship in the same release"
+      }
+    },
+    {
+      "slice": 2,
+      "name": "Prisma + migration + backfill",
+      "completedAt": "2026-08-13",
+      "migrations": [
+        "20260813101419_add_reading_goal_snapshot_and_activity (DDL only)",
+        "20260813101420_backfill_reading_goal_snapshot (data)"
+      ],
+      "gates": {
+        "prisma validate": "valid",
+        "db:migrate:deploy": "both applied",
+        "db:generate": "Prisma Client 7.9.1",
+        "raw-sql-indexes.test.ts": "22 passed",
+        "root typecheck": "3 successful",
+        "db:migrate:status": "up to date"
+      },
+      "review": {
+        "agent": "migration-reviewer",
+        "verdict": "DEPLOY AFTER THESE EDITS -> all edits applied",
+        "destructiveStatements": 0,
+        "findings": "F1 trashed books dropped from snapshot (fixed), F2 missing books.user_id predicate (fixed), F3 backfill ran under FK locks (split into its own migration), F4 local verification was vacuous against reading_goals=0 (re-run on seeded data under Pacific/Kiritimati)"
+      },
+      "verifiedAfterDeploy": {
+        "raw_sql_indexes_alive": 10,
+        "authors_search_text_trgm_idx": "present, gin_trgm_ops",
+        "publishers_search_text_trgm_idx": "present, gin_trgm_ops",
+        "reading_goals_active_list_idx": "present, WHERE archived_at IS NULL AND list_id IS NOT NULL"
+      },
+      "localDbRepair": "_prisma_migrations checksum for 20260812115219_ukrainian_collation_for_sorted_text realigned to the committed file's sha256 after verifying all 17 columns really carry uk-UA-x-icu. Local :5432 only. Reviewer confirmed this beats `migrate reset`, which would have dropped 292 books and 198 users to fix a bookkeeping row, and confirmed CI and both servers cannot drift because they apply migrations from committed files."
+    },
+    {
+      "slice": "3a",
+      "name": "Constants, hard deadline, result",
+      "completedAt": "2026-08-13",
+      "tasks": ["T13", "T14", "T20"],
+      "gates": {
+        "shared build": "clean",
+        "root typecheck": "3 successful",
+        "lint": "0 errors, 6 pre-existing apps/web warnings",
+        "format:check": "clean",
+        "api reading-goals vitest": "3 files, 92 passed",
+        "web reading-goals vitest": "3 files, 19 passed"
+      },
+      "blastRadius": [
+        "packages/shared/src/reading-goals.ts - ReadingGoalViewSchema gained archivedAt + result; the duplicated declarations were removed from ReadingGoalListItemSchema, which inherits them through the View spread",
+        "reading-goal.mapper.ts - fills both new fields",
+        "reading-goal-view.builder.ts - feeds books + goalStartDate instead of finishedDates",
+        "reading-goals.repository.ts - findCountedFinishedDates renamed to findCountedFinishedBooks, select gains id. countedBookWhere itself untouched, still owned by slice 4",
+        "reading-goals.service.test.ts, reading-goal-progress.test.ts, apps/web reading-goals.fixtures.ts - fixtures and assertions"
+      ],
+      "notes": [
+        "reading-goals.controller.test.ts:597 stopped being vacuous - it compared undefined to undefined before archivedAt existed on the view, and now compares real timestamps",
+        "pnpm knip is RED until slice 3b lands: the six T13 constants exports have no consumer yet. knip is CI-blocking (ci.yml:60), so slice 3a must not be pushed on its own",
+        "OpenAPI + orval client are stale for ReadingGoalView (missing archivedAt, result). Typecheck stays green because the FE hooks parse with @app/shared directly. T43 regenerates"
+      ]
+    },
+    {
+      "slice": "3b",
+      "name": "Pace, projection, risk, checkpoints",
+      "completedAt": "2026-08-13",
+      "tasks": ["T15", "T16", "T17", "T18"],
+      "gates": {
+        "root typecheck": "3 successful",
+        "lint": "0 errors, 6 pre-existing apps/web warnings",
+        "format:check": "clean",
+        "reading-goals domain vitest": "5 files, 146 passed"
+      },
+      "notes": [
+        "knip not run this round: the four new calculate*/build* exports have no consumer until T19 composes them, exactly the same structural gap as slice 3a's constants. Run knip after T19/T21.",
+        "calculateReadingGoalPace returns pace, paceDeltaBooks and paceDeltaPercent as null together for any non-active status. The spec (05:15-19) only names pace, but those three are the only nullable members of the pace group in ReadingGoalMetricsSchema, so it is the only self-consistent reading.",
+        "behind_schedule carries no explicit active guard because it is unreachable outside active by construction - pace is null there. An explicit guard would be dead code; the it.each pins the combination instead."
+      ]
+    },
+    {
+      "slice": "3c",
+      "name": "Metrics calculator + mapper",
+      "completedAt": "2026-08-13",
+      "tasks": ["T19", "T21"],
+      "gates": {
+        "reading-goals vitest": "9 files, 230 passed",
+        "root typecheck": "3 successful",
+        "lint": "0 errors, 6 pre-existing apps/web warnings",
+        "format:check": "clean",
+        "knip": "exit 0"
+      },
+      "notes": [
+        "toReadingGoalListItem spreads toReadingGoalView plus calculation.metrics; it restates no view field. It takes the whole ReadingGoalCalculation rather than loose metrics + progress so one goal's metrics can never be paired with another's progress.",
+        "reading-goal-view.builder.ts deliberately NOT rewired onto the calculator - it still reads books from the live list query rather than the snapshot, and T31 rewrites it. Wiring it now would compute pace, projection and risk for a response carrying none of them.",
+        "daysSinceLastCounted is clamped at 0 because notInFutureDate (packages/shared/src/internal.ts:24-29) accepts finishedAt up to today + skewToleranceDays 1, so a stored date can legitimately sit one UTC day ahead of now.",
+        "toReadingGoalListItem currently passes knip on test usage alone; its production consumer arrives with T35."
+      ]
+    },
+    {
+      "slice": "4a",
+      "name": "Snapshot + activity repositories",
+      "completedAt": "2026-08-13",
+      "tasks": ["T22", "T23"],
+      "gates": {
+        "eslint infrastructure": "exit 0",
+        "prettier": "clean",
+        "tsc --noEmit @app/api": "exit 0"
+      },
+      "notes": [
+        "No repository unit test added: confirmed by looking that no repository class in this codebase has one - the four *.test.ts under infrastructure/ all cover HTTP clients or pure helpers. Coverage comes from the slice-4b service integration tests.",
+        "findByGoal is uncapped. Sibling read paths that can grow unbounded cap themselves (LIST_POSITION_RANK.maxRows, LIST_STATUS_SORT.maxRows) and warn on truncation. Silent truncation is a service-level decision - slice 4b or 6 must page it or choose a cap.",
+        "existsOfType is one query per goal, so the expiration job issues N of them for N due goals. If that job ever scans many goals it wants a bulk findGoalIdsWithType({ goalIds, type }); not added speculatively.",
+        "findPage / findLatest / findByGoal / existsOfType are goal-scoped, not user-scoped. The ownership boundary is ReadingGoalsRepository.findOwnedById({ goalId, userId }), which slice 6 MUST call before any of them. findSnapshotBookIdsForBook is the only entry point starting from a bookId, and it scopes through goal.user_id.",
+        "metadata: null maps to Prisma.DbNull (SQL NULL), verified to read back as null rather than a JSON null literal."
+      ]
+    },
+    {
+      "slice": "3-review-fix",
+      "name": "Domain review findings",
+      "completedAt": "2026-08-13",
+      "reviewVerdict": "NEEDS CHANGES -> all three critical defects closed, 8 nits taken",
+      "defects": {
+        "1 DST": "reading-goal-projection.ts used bare addDays on a UTC-midnight Date. addDays preserves local wall-clock time, so crossing a spring-forward transition lost a calendar day and the emitted date disagreed with its own projectedDaysDelta. Invisible in CI (TZ=UTC) and live on the dev machine (EEST +0300). Now routed through core/iso-date.ts; differenceInCalendarDays and addDays are gone from that file, so date and delta are computed in the same space by construction.",
+        "2 D4 half-done": "archivedAt gated the expired branch but not the completed branch, and the qualification window never knew about archivedAt - so an archived incomplete goal could be finished retroactively and flip to completed, drifting the overview success rate with no user action.",
+        "3 elapsedDays drift": "elapsedDays kept growing after a goal finished, so a completed goal's actualBooksPerDay and averageDaysPerBook changed every day - a 5-book goal finished in 5 days reported 1.0 books/day on day 5 and 0.25 on day 20. Contradicted D14's own justification for the field being non-nullable."
+      },
+      "fix": "One new domain file reading-goal-window.ts holding two named readings of one concept: resolveReadingGoalCountingEnd({ archivedAt, deadline }) = the last day a finish can still count, and resolveReadingGoalObservationEnd({ archivedAt, completedAt, deadline, now, status }) = the last day that counts as elapsed, built on the first. Defects 2 and 3 are the same statement seen twice - 'for this goal, time stopped here' - and it is now written once. The switch is exhaustive via assertNever. qualifiesForReadingGoal and selectQualifyingReadingGoalBooks now take countingEndsAt rather than deadline, so a caller must say which boundary it means.",
+      "falsificationCheck": "Both fixes and the projection were temporarily reverted and the suite re-run: 16 tests failed, including both DST rows, both archived-window progress tests, all three window-freeze pace tests and both metrics freeze tests. No new test is vacuous.",
+      "gates": {
+        "reading-goals vitest": "10 files, 258 passed (was 230)",
+        "root typecheck": "3 successful",
+        "lint": "0 errors, 6 pre-existing apps/web warnings",
+        "format:check": "clean"
+      },
+      "nitsTaken": [
+        "critical progress gap pinned at the exact boundary - criticalProgressGapPercent can no longer be 25/30/35/40 with tests green",
+        "tautological spread-order mapper test deleted",
+        "no_recent_progress goal-age conjunct pinned as deliberate (daysSinceLastCounted 20, elapsedDays 10)",
+        "hasLowRisk active guard pinned",
+        "the unreachable Math.max(0, ...) on daysLeft is now an assertion rather than an accident",
+        "INCLUSIVE_DAY declared once; RISK_LEVEL_MINIMUM_REASONS folded into READING_GOAL_RISK.levelMinimumReasons"
+      ],
+      "invariantCorrection": "The 'every threshold comparison uses raw values, one recorded exception' invariant is wrong: there are three. elapsedPercent reaches risk pre-rounded (S3), paceDeltaBooks is compared rounded (T15 resolutionNote), and pace compares rounded elapsedPercent/progressPercent (spec-literal, unreachable for a flip below ~1000 totalDays).",
+      "environmentNote": "A red typecheck surfaced as three errors in apps/api/src/modules/loans/** - 'no exported member LOAN_STATS_WINDOWS' - with the symbol present at HEAD. Cause was a stale packages/shared/dist built from an older tree; pnpm --filter @app/shared build fixed it with no code change. Concurrent agents running builds can reintroduce it, and it surfaces in a module nobody is editing."
+    },
+    {
+      "slice": "4b",
+      "name": "Snapshot write path + activity",
+      "completedAt": "2026-08-13",
+      "tasks": ["T24", "T25", "T26", "T26b"],
+      "serviceSplit": "reading-goals.service.ts stayed at 202 lines and now only orchestrates. Three application collaborators were extracted: reading-goal-activity.recorder.ts (375 lines, owns every activity metadata shape in one place - they are read by the frontend, so they are knowledge, not formatting), reading-goal-snapshot.service.ts (122, seed + resync), reading-goal-input.validator.ts (78).",
+      "raceClosed": "assertTargetWithinList used to read listsService.countActiveBooks BEFORE TransactionRunner.run opened. A book leaving the list in that window persisted a goal whose targetCount exceeded its own snapshot - permanently uncompletable, and rejected by every later PATCH once validation counts snapshot rows. The advisory lock does not help: it is keyed on goal creation for the list, not on list membership. The count now comes from findActiveListBooks inside the transaction, derived from the same rows that are about to be inserted, so the check is a statement about the data actually written rather than about a snapshot taken a moment earlier.",
+      "alsoFixed": "update() now runs inside TransactionRunner.run; resync fires only on a real deadline shift (date-fns isEqual).",
+      "gates": {
+        "root typecheck": "3 successful",
+        "lint": "0 errors after lint:fix (6 pre-existing apps/web warnings)",
+        "format:check": "clean after prettier --write",
+        "knip": "clean",
+        "reading-goals vitest": "12 files, 312 passed"
+      },
+      "processNote": "The agent hit the 600s stream watchdog TWICE - once entering the integration tests, once while writing its report. Both times the work itself was intact and complete; only the narration died. Verified independently: tsc exit 0, 312/312, and all seven required integration assertions present with concrete metadata values rather than shape checks. Its gates had not run, so lint (6 perfectionist/sort errors) and prettier (3 files) were left red and fixed here. Lesson applied to slice 5: three chunks instead of one."
+    },
+    {
+      "slice": "5a",
+      "name": "ReadingGoalSyncService",
+      "completedAt": "2026-08-13",
+      "tasks": ["T27"],
+      "gates": {
+        "tsc --noEmit @app/api": "exit 0",
+        "eslint reading-goals": "clean",
+        "prettier": "clean"
+      }
+    },
+    {
+      "slice": "5b-8",
+      "name": "Progress sync wiring, read endpoints, expiration job, codegen",
+      "completedAt": "2026-08-13",
+      "tasks": [
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T31b",
+        "T32",
+        "T33",
+        "T34",
+        "T35",
+        "T36",
+        "T37",
+        "T38",
+        "T39",
+        "T40",
+        "T41",
+        "T42",
+        "T43",
+        "T44"
+      ],
+      "startedFrom": "The working tree already held T28/T29 and most of slice 6 (books + activity services, view-dtos, controller routes) from the previous session, but the build was RED: reading-goals.module.ts and the controller imported reading-goal-catalog.service.js and reading-goal-overview.service.js, which did not exist, and the reconciler called a repository method that did not exist.",
+      "written": [
+        "reading-goal-catalog.service.ts - GET /api/goals. Two queries regardless of goal count: findCatalogPage (ORDER BY the column sorts, capped at READING_GOAL_LIMITS.catalogScan) plus one findSnapshotQualifications for every goal at once. Status is derived, so it is filtered in memory; progress_*/risk_desc are sorted in memory per decision D7. Cursor is {goalId, index} decoded THROUGH Zod, resuming after the goal id and falling back to the index when the row is gone.",
+        "reading-goal-overview.service.ts - three queries total: the goal page, the snapshot qualifications, and one COUNT(DISTINCT book_id) for booksCounted.currentYear. needsAttention wins over onTrack so no goal is counted twice (02:75 leaves the tie unstated; a goal at high risk is not on track).",
+        "reading-goal-attention.ts (domain) - severity, reason and messageData mapping plus the 02:141-151 ordering, kept pure so the service stays thin. messageData drops any null-valued key rather than emitting null, which the Record<string, number|string> contract would reject.",
+        "ReadingGoalsRepository.findCatalogPage / findExpirationCandidates / countBooksQualifiedBetween; ReadingGoalBooksRepository.findSnapshotQualifications; ReadingGoalViewBuilder.calculateAll / buildListItemFrom.",
+        "reading-goal-detail.assembler.ts rewritten onto the snapshot: countedBooks/remainingBooks/snapshotBookCount from ReadingGoalBooksService.preview, checkpoints from the same snapshot rows, activityPreview from ReadingGoalActivityService.preview. One snapshot query feeds both the metrics and the book lists, so the response cannot disagree with itself.",
+        "buildReadingGoalCheckpoints gained archivedAt and now resolves its counting end through resolveReadingGoalCountingEnd, so an archived goal cannot show a checkpoint achieved off a book its own metrics no longer count.",
+        "reading-goal-expiration.reconciler.test.ts (new) and the five new endpoint describes in reading-goals.controller.test.ts."
+      ],
+      "removed": [
+        "ReadingGoalsRepository.findCountedBooks, findCountedFinishedBooks, countedBookWhere, CountedBookRow and ReadingGoalViewBuilder.countedSince - the live list-membership read path the snapshot replaced."
+      ],
+      "behaviourChanges": [
+        "reading-goals.controller.test.ts \"lowers completedCount when a counted book leaves the list\" now asserts the opposite and is renamed: under the snapshot a book that leaves the list keeps counting (04:126). This is the spec, not a regression.",
+        "Two other tests in that describe wrote BookReadingProgress / the trash stamp straight through Prisma, behind the service that owns the sync. They now fire ReadingGoalSyncService the way the books module does, because qualification is written on the write path, not recomputed on read."
+      ],
+      "codegenTrap": "T43 predicted the risk and it landed: ReadingGoalActivityView.metadata is z.record(z.string(), z.unknown()), which Zod 4 emits as JSON-Schema propertyNames. OpenAPI 3.0 rejects that keyword and orval refused the whole spec. generate-openapi.ts now strips propertyNames alongside its existing parameter-keyword hoist and exclusive-bound normalisation. Orval renders the field as { [key: string]: unknown } | null, as expected.",
+      "frontendTouched": "Only what the shared contract forced: ReadingGoalBookSchema was deleted in T31b, so goal-counted-books.tsx moved to ReadingGoalBookView (countedFinishedAt is nullable, so the finished-on line is now conditional) and reading-goals.fixtures.ts gained the metrics/checkpoints/activityPreview fields ReadingGoalDetail now requires. Backend-only pass otherwise.",
+      "gates": {
+        "root typecheck": "3 successful",
+        "lint": "0 errors, 21 pre-existing apps/web warnings",
+        "format:check": "clean",
+        "knip": "clean",
+        "api reading-goals vitest": "14 files, 357 passed",
+        "api books vitest (blast radius)": "63 files, 1354 passed",
+        "web reading-goals vitest": "3 files, 19 passed",
+        "dev:api + curl /api/health": "200 with x-request-id; all five goal routes registered and answering 401 unauthenticated",
+        "api reading-goals + books vitest (post-fix)": "77 files, 1716 passed"
+      },
+      "review": {
+        "agent": "code-reviewer",
+        "verdict": "NEEDS CHANGES -> all four fixed and pinned by tests",
+        "fixed": [
+          "BulkBooksService.delete trashed books without firing ReadingGoalSyncService, so bulk-trashing every book of a completed goal left it reporting completedCount 5 while trashing the same books one at a time dropped it to 0. The two trash paths gave two answers. It now runs inside TransactionRunner.run and syncs the ids the repository actually soft-deleted.",
+          "PATCH /api/goals/:goalId validated targetCount against live list membership (listsService.countActiveBooks), which is exactly the coupling the snapshot removes. Removing books from the list made a legal target unpatchable; adding books let a target through that the snapshot could never reach. It now counts snapshot rows, inside the update transaction, and ReadingGoalInputValidator no longer depends on ListsService.",
+          "Archiving narrows the counting window to min(archivedAt, deadline) on every read but never rewrote the stored qualifiedFinishedAt, so a book finished after the archive stayed in countedBooks with qualifies true while completedCount excluded it - one response disagreeing with itself. archive() and archiveSuperseded() now resync the snapshot inside their transaction and recordArchive emits the resulting book_uncounted rows. Migration 20260813180000_clamp_archived_goal_snapshot clears the rows the backfill wrote for already-archived goals; the applied backfill file was left untouched.",
+          "The catalog cursor stored {goalId, index} and fell back to the raw index when the anchor was gone. Every item behind the anchor had shifted left by one, so archiving or deleting the last item of a page silently skipped the first item of the next one. The cursor now carries the whole sort key (createdAt, deadline, progressPercent, riskRank, daysLeft, id) and resumes with the comparator, the same shape ReadingGoalBooksService already used. All seven sorts now have an explicit in-memory comparator rather than leaning on the SQL order."
+        ],
+        "alsoTaken": "findExpirationCandidates now also excludes goals carrying goal_completed. A goal that met its target before its deadline never earns a goal_expired row, so it stayed a candidate on every hourly tick and permanently consumed part of the 5000-row sweep budget.",
+        "recordedNotFixed": [
+          "remainingBooks ties break on bookId rather than the spec title (07:102-117). Snapshot position is already unique per goal, so the tiebreak is unreachable in practice, and adding a title to the keyset cursor risks the 512-character cursor cap.",
+          "goal_completed is written after a non-atomic existsOfType check, so two concurrent finishes can each see the pre-increment count and neither writes the row. Status and result are derived, so the API stays correct; only the activity log loses an entry.",
+          "GET /api/goals/:goalId loads the snapshot with its author and cover joins twice, once for the book lists and once to map bookId to title for the activity preview.",
+          "overview.completed.completedOnOrBeforeDeadline is structurally equal to completed.total, because a book finished after the deadline can never qualify. Correct by construction, but the FE card will always read 100 percent."
+        ],
+        "cleared": "attention comparator transitivity and null handling, messageData never carrying a null, the activity keyset, the books cursor, nextCursorFor last-page semantics, overview onTrack/needsAttention double counting, countBooksQualifiedBetween timezone safety, findExpirationCandidates scoping, layering, date-fns usage, and the migration pair."
+      }
+    }
+  ],
+  "knownSeams": [
+    {
+      "id": "S1",
+      "found": "code-reviewer, slice 1",
+      "summary": "Two date contracts inside one payload in ReadingGoalBookViewSchema.",
+      "detail": "The picked startedAt/finishedAt inherit bare z.string().nullable() from ReadingProgressViewSchema (books.ts:940-950), while the sibling countedFinishedAt is z.iso.date().nullable() - both ultimately the same book_reading_progress.finished_at column. Runtime agrees today because book.mapper.ts:129 emits toNullableIsoDate. Nothing type-checks a future switch to toNullableIsoDateTime (already used at reading-history.mapper.ts:111), which would ship timestamps where the FE parses YYYY-MM-DD, with no reading-goals test going red. 11_SHARED_CONTRACTS.md:34-46 asks for a single date contract.",
+      "why not fixed here": "tightening ReadingProgressViewSchema has blast radius over every book view in the repo; it is its own pass, not a rider on this spec."
+    },
+    {
+      "id": "S2",
+      "found": "migration-reviewer, slice 2",
+      "summary": "reading_goal_books.book_id is ON DELETE CASCADE, so the 90-day trash purge silently shrinks a frozen snapshot.",
+      "detail": "Intended per T8 and the spec's model block, but asymmetric with reading_goal_activities.book_id, which is SET NULL - activity history survives a purge, membership does not. Ninety days after a book is trashed, snapshotBookCount drops by one with no activity row explaining it, landing in the same targetCount > snapshotBookCount state as F1, just delayed.",
+      "why not fixed here": "it is the spec's own model definition; changing it is a product decision, not a migration fix."
+    },
+    {
+      "id": "S3",
+      "found": "slice 3c",
+      "summary": "elapsedPercent reaches the risk stage already rounded to 1 decimal.",
+      "detail": "calculateReadingGoalPace exposes no raw variant and compares the rounded value internally in hasCriticalPace. It feeds only the zero-rate branch of required_pace_high (elapsedPercent >= 50), so the worst case is a goal at a true 49.96 percent elapsed being treated as 50. Every other cross-stage value passes raw.",
+      "why not fixed here": "widening T15's return type after it was finished and tested, for a sub-0.05 percent effect on one branch."
+    },
+    {
+      "id": "S4",
+      "found": "code-reviewer, slice 3",
+      "summary": "apps/api/vitest.config.ts does not pin TZ, so date-sensitive suites behave differently locally (EEST +0300) than in CI (UTC).",
+      "detail": "That asymmetry is what let a live DST bug in reading-goal-projection.ts sit next to three 'UTC day boundary' tests that are no-ops under TZ=UTC. It is repo-wide, not reading-goals-specific: pinning TZ could redden unrelated suites, which is the point, but is a scope expansion this spec should not carry.",
+      "why not fixed here": "repo-wide test-config change mid-feature; the reading-goals fix makes the code itself TZ-independent and pins the DST cases directly."
+    }
+  ],
+  "releaseNotes": [
+    "daysLeft becomes null for expired goals (decision D1). The shipped FE loses its 'overdue by N days' line until the frontend pass lands.",
+    "Goals can move from completed back to active or expired. v2 adds the hard-deadline upper bound finished_at <= deadline; the current runtime (countedBookWhere) has only the lower bound, so a book finished after the deadline stops counting. Spec-mandated by 03_HARD_DEADLINE.md, and user-visible."
+  ]
+}

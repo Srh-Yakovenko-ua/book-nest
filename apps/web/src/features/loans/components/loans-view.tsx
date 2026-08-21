@@ -1,31 +1,32 @@
 "use client";
 
-import type { LoanListItemView } from "@app/shared";
+import type { LoanListItemView, LoanType, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import type { PageTabsItem } from "@/components/page-tabs";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
-import { UiIcon } from "@/components/icons";
-import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
-import { LoansControllerListType } from "@/shared/api/generated/model";
+
+import type { LoanDirection } from "../model/loan-pages";
+import type { LoansAttention, LoansPeople } from "./loans-sidebar";
 
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
-import { nearestReturns } from "../model/loans-derive";
-import { LOANS_TAB_VALUES } from "../model/loans-query";
+import { LOAN_PAGES } from "../model/loan-pages";
+import { loansQuickFilterCounts } from "../model/loans-quick-filters";
+import { useLoanContactDrawer } from "../model/use-loan-contact-drawer";
 import { useLoansQuery } from "../model/use-loans-query";
+import { LoanContactDrawer } from "./contact/loan-contact-drawer";
 import { EditLoanDialog } from "./edit-loan-dialog";
 import { LoanRow } from "./loan-row";
 import { LoansOverviewPanel } from "./loans-overview-panel";
+import { LoansQuickFilters } from "./loans-quick-filters";
 import { LoansSidebar } from "./loans-sidebar";
 import { LoansListSkeleton } from "./loans-skeleton";
 import { LoansSummaryCards, useLoansSummaryCards } from "./loans-summary-cards";
@@ -33,6 +34,7 @@ import { LoansToolbar } from "./loans-toolbar";
 import { ReturnLoanDialog } from "./return-loan-dialog";
 
 type LoansContentProps = {
+  direction: LoanDirection;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   isError: boolean;
@@ -41,53 +43,60 @@ type LoansContentProps = {
   onAddBook: () => void;
   onClearFilters: () => void;
   onEdit: (loan: LoanListItemView) => void;
+  onOpenContact: (loan: LoanListItemView) => void;
   onOpenLibrary: () => void;
+  onOpenOtherPage: () => void;
   onRetry: () => void;
   onReturn: (loan: LoanListItemView) => void;
-  onSwitchTab: (value: LoansControllerListType) => void;
-  tab: LoansControllerListType;
+  otherTypeCount: number;
   today: string;
-  totalActive: number;
 };
 
-export function LoansView() {
+export function LoansView({ type }: { type: LoanType }) {
+  const page = LOAN_PAGES[type];
   const t = useTranslations("loans");
   const router = useRouter();
-  const query = useLoansQuery();
+  const query = useLoansQuery(type);
   const summary = useLoansSummary();
   const list = useLoansList(query.listParams);
 
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
+  const contactDrawer = useLoanContactDrawer();
 
-  const page = list.data;
-  const items = page?.items ?? [];
+  const loadedPages = list.data?.pages ?? [];
+  const items = loadedPages.flatMap((loadedPage) => loadedPage.items);
+  const totalCount = loadedPages[0]?.totalCount ?? items.length;
   const today = todayIso();
-  const nearest = nearestReturns(items, today);
 
-  const summaryCards = useLoansSummaryCards(summary.data);
+  const summaryCards = useLoansSummaryCards(summary.data, type);
+  const directionSummary = summary.data?.[page.direction];
 
-  const borrowedCount = summary.data?.borrowedCount ?? 0;
-  const lentCount = summary.data?.lentCount ?? 0;
-  const totalActive = borrowedCount + lentCount;
-  const hasAnyLoans = totalActive > 0 || items.length > 0;
+  const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
+  const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
+  const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
+  const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
 
-  const tabItems: PageTabsItem[] = [
-    {
-      badge: <Badge variant="secondary">{borrowedCount}</Badge>,
-      label: t("tabs.borrowed"),
-      value: LoansControllerListType.borrowed_from_someone,
-    },
-    {
-      badge: <Badge variant="secondary">{lentCount}</Badge>,
-      label: t("tabs.lent"),
-      value: LoansControllerListType.lent_to_someone,
-    },
-  ];
+  const attention: Nullable<LoansAttention> = summary.isError
+    ? null
+    : {
+        activeFilter: query.filter,
+        onFilterSelect: query.setFilter,
+        stats: directionSummary ?? null,
+      };
+
+  const people: LoansPeople = {
+    activeContactId: query.contactId,
+    items: summary.isError ? [] : (directionSummary?.topPeople ?? []),
+    onPersonOpen: contactDrawer.openContact,
+    onPersonSelect: (contactId) =>
+      query.setContactId(contactId === query.contactId ? "" : contactId),
+  };
 
   const loansContent = (
     <LoansContent
+      direction={page.direction}
       hasActiveFilters={query.hasActiveFilters}
       hasActiveSearch={query.hasActiveSearch}
       isError={list.isError}
@@ -96,13 +105,13 @@ export function LoansView() {
       onAddBook={() => router.push("/books/new")}
       onClearFilters={query.clearFilters}
       onEdit={setEditTarget}
+      onOpenContact={(loan) => contactDrawer.openContact(loan.loanContactId)}
       onOpenLibrary={() => router.push("/books")}
+      onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
       onRetry={() => void list.refetch()}
       onReturn={setReturnTarget}
-      onSwitchTab={query.setTab}
-      tab={query.tab}
+      otherTypeCount={activeOfOtherType}
       today={today}
-      totalActive={totalActive}
     />
   );
 
@@ -112,42 +121,40 @@ export function LoansView() {
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
-              {t("title")}
+              {t(`pages.${page.direction}.title`)}
             </h1>
             <TitleLeaf />
           </div>
-          <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t("subtitle")}</p>
+          <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
+            {t(`pages.${page.direction}.subtitle`)}
+          </p>
         </div>
 
-        <LoansSummaryCards
-          cards={summaryCards}
-          isError={summary.isError}
-          isLoading={summary.isPending}
-          mobileAction={
-            <LoansOverviewPanel
-              isLoading={list.isPending}
-              nearest={nearest}
-              onAddBook={() => router.push("/books/new")}
-              summaryCards={summaryCards}
-            />
-          }
-          onRetry={() => void summary.refetch()}
-        />
+        {showSummaryCards ? (
+          <LoansSummaryCards
+            cards={summaryCards}
+            isError={summary.isError}
+            isLoading={summary.isPending}
+            mobileAction={
+              <LoansOverviewPanel
+                attention={attention}
+                direction={page.direction}
+                isLoading={summary.isPending}
+                longHeldLoans={directionSummary?.longHeldLoans ?? []}
+                people={people}
+                summaryCards={summaryCards}
+                upcomingReturns={directionSummary?.upcomingReturns ?? []}
+              />
+            }
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null}
       </header>
 
       {showChrome ? (
-        <PageTabs
-          className="gap-4"
-          items={tabItems}
-          onValueChange={(value) => {
-            const match = LOANS_TAB_VALUES.find((item) => item === value);
-            if (match !== undefined) query.setTab(match);
-          }}
-          value={query.tab}
-        >
+        <div className="flex flex-col gap-4">
           <LoansToolbar
-            filter={query.filter}
-            onFilterChange={query.setFilter}
+            direction={page.direction}
             onSearchChange={query.setSearch}
             onSearchClear={() => query.setSearch("")}
             onSortChange={query.setSort}
@@ -155,34 +162,44 @@ export function LoansView() {
             sort={query.sort}
           />
 
+          <LoansQuickFilters
+            counts={
+              directionSummary === undefined ? undefined : loansQuickFilterCounts(directionSummary)
+            }
+            direction={page.direction}
+            onSelect={query.setFilter}
+            value={query.filter}
+          />
+
+          <p className="text-sm text-muted-foreground" role="status">
+            {list.isPending || directionSummary === undefined
+              ? ""
+              : t("shownCount", { shown: totalCount, total: directionSummary.totalCount })}
+          </p>
+
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <PageTabsPanel className="flex flex-col gap-6" value={query.tab}>
-                <p className="sr-only" role="status">
-                  {list.isPending
-                    ? ""
-                    : t("resultsCount", { count: page?.totalCount ?? items.length })}
-                </p>
-                {loansContent}
-              </PageTabsPanel>
+              {loansContent}
 
-              {page && items.length > 0 && page.pagesCount > 1 ? (
-                <LoansPager
-                  currentPage={page.page}
-                  isFetching={list.isFetching}
-                  onPageChange={query.setPage}
-                  pagesCount={page.pagesCount}
+              {items.length > 0 && list.hasNextPage ? (
+                <LoansLoadMore
+                  isFetchingNextPage={list.isFetchingNextPage}
+                  isLoadMoreError={list.isFetchNextPageError}
+                  onLoadMore={() => void list.fetchNextPage()}
                 />
               ) : null}
             </div>
 
             <LoansSidebar
-              isLoading={list.isPending}
-              nearest={nearest}
-              onAddBook={() => router.push("/books/new")}
+              attention={attention}
+              direction={page.direction}
+              isLoading={summary.isPending}
+              longHeldLoans={directionSummary?.longHeldLoans ?? []}
+              people={people}
+              upcomingReturns={directionSummary?.upcomingReturns ?? []}
             />
           </div>
-        </PageTabs>
+        </div>
       ) : (
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-6">{loansContent}</div>
@@ -199,6 +216,8 @@ export function LoansView() {
         />
       ) : null}
 
+      <LoanContactDrawer {...contactDrawer.drawerProps} />
+
       {returnTarget ? (
         <ReturnLoanDialog
           loan={returnTarget}
@@ -213,6 +232,7 @@ export function LoansView() {
 }
 
 function LoansContent({
+  direction,
   hasActiveFilters,
   hasActiveSearch,
   isError,
@@ -221,13 +241,13 @@ function LoansContent({
   onAddBook,
   onClearFilters,
   onEdit,
+  onOpenContact,
   onOpenLibrary,
+  onOpenOtherPage,
   onRetry,
   onReturn,
-  onSwitchTab,
-  tab,
+  otherTypeCount,
   today,
-  totalActive,
 }: LoansContentProps) {
   const t = useTranslations("loans.states");
   const tLoans = useTranslations("loans");
@@ -268,42 +288,47 @@ function LoansContent({
       return <EmptyState onPrimary={onClearFilters} state={noResults} />;
     }
 
-    if (totalActive === 0) {
-      const emptyState: EmptyStateEntry = {
-        desc: t("empty.description"),
-        illu: "empty-borrowed",
-        primary: { icon: "plus", label: t("empty.cta") },
-        secondary: { icon: "book", label: t("empty.secondary") },
-        title: t("empty.title"),
-      };
-      return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;
+    const typeEmpty: EmptyStateEntry = {
+      desc: t(`typeEmpty.${direction}.description`),
+      illu: "empty-borrowed",
+      title: t(`typeEmpty.${direction}.title`),
+    };
+
+    if (otherTypeCount === 0) {
+      return (
+        <EmptyState
+          onPrimary={onAddBook}
+          onSecondary={onOpenLibrary}
+          state={{
+            ...typeEmpty,
+            primary: { icon: "plus", label: t("empty.cta") },
+            secondary: { icon: "book", label: t("empty.secondary") },
+          }}
+        />
+      );
     }
 
-    const isBorrowed = tab === LoansControllerListType.borrowed_from_someone;
-    const otherTab = isBorrowed
-      ? LoansControllerListType.lent_to_someone
-      : LoansControllerListType.borrowed_from_someone;
-    const tabEmpty: EmptyStateEntry = {
-      desc: t("tabEmpty.description"),
-      illu: "empty-borrowed",
-      primary: {
-        icon: "swap",
-        label: isBorrowed ? t("tabEmpty.switchToLent") : t("tabEmpty.switchToBorrowed"),
-      },
-      title: isBorrowed ? t("tabEmpty.titleBorrowed") : t("tabEmpty.titleLent"),
-    };
-    return <EmptyState onPrimary={() => onSwitchTab(otherTab)} state={tabEmpty} />;
+    return (
+      <EmptyState
+        onPrimary={onOpenOtherPage}
+        state={{
+          ...typeEmpty,
+          primary: { icon: "swap", label: t(`typeEmpty.${direction}.openOther`) },
+        }}
+      />
+    );
   }
 
   return (
     <>
-      <h2 className="sr-only">{tLoans("listHeading")}</h2>
+      <h2 className="sr-only">{tLoans(`pages.${direction}.listHeading`)}</h2>
       <ul className="flex flex-col gap-3">
         {items.map((loan) => (
           <li key={loan.id}>
             <LoanRow
               loan={loan}
               onEdit={() => onEdit(loan)}
+              onOpenContact={() => onOpenContact(loan)}
               onReturn={() => onReturn(loan)}
               today={today}
             />
@@ -314,41 +339,31 @@ function LoansContent({
   );
 }
 
-function LoansPager({
-  currentPage,
-  isFetching,
-  onPageChange,
-  pagesCount,
+function LoansLoadMore({
+  isFetchingNextPage,
+  isLoadMoreError,
+  onLoadMore,
 }: {
-  currentPage: number;
-  isFetching: boolean;
-  onPageChange: (value: number) => void;
-  pagesCount: number;
+  isFetchingNextPage: boolean;
+  isLoadMoreError: boolean;
+  onLoadMore: () => void;
 }) {
-  const t = useTranslations("loans.pagination");
+  const t = useTranslations("loans");
 
   return (
-    <div className="flex items-center justify-center gap-3">
+    <div className="flex flex-col items-center gap-2">
+      {isLoadMoreError ? (
+        <p className="text-sm text-error" role="alert">
+          {t("loadMoreError")}
+        </p>
+      ) : null}
       <Button
-        disabled={currentPage <= 1 || isFetching}
-        onClick={() => onPageChange(currentPage - 1)}
-        size="sm"
+        disabled={isFetchingNextPage}
+        loading={isFetchingNextPage}
+        onClick={onLoadMore}
         variant="secondary"
       >
-        <UiIcon name="chevron-left" size={16} />
-        {t("previous")}
-      </Button>
-      <span className="text-sm text-muted-foreground tabular-nums">
-        {t("status", { page: currentPage, total: pagesCount })}
-      </span>
-      <Button
-        disabled={currentPage >= pagesCount || isFetching}
-        onClick={() => onPageChange(currentPage + 1)}
-        size="sm"
-        variant="secondary"
-      >
-        {t("next")}
-        <UiIcon name="chevron-right" size={16} />
+        {t("loadMore")}
       </Button>
     </div>
   );

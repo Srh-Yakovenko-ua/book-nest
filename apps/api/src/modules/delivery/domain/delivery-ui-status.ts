@@ -1,27 +1,48 @@
-import type { DeliveryUiStatus, Nullable } from "@app/shared";
+import type { DeliveryUiStatus, Nullable, ShipmentStatus } from "@app/shared";
 
-import { addDays, differenceInCalendarDays } from "date-fns";
+import {
+  DeliveryUiStatusSchema,
+  IN_TRANSIT_ATTENTION_THRESHOLDS,
+  ShipmentStatusSchema,
+} from "@app/shared";
+import { addDays, differenceInCalendarDays, subDays } from "date-fns";
 
+import { assertNever } from "../../../core/assert-never.js";
 import { startOfUtcDay } from "../../../core/iso-date.js";
 
 const ARRIVING_SOON_DAYS = 7;
 const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
 
+const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+const UI_STATUS = DeliveryUiStatusSchema.enum;
+
 export type DeliveryDateBounds = {
+  dispatchCutoff: Date;
+  pickupDeadline: Date;
   soonEnd: Date;
   today: Date;
   weekEnd: Date;
-  weekStart: Date;
+};
+
+export type ShipmentUiStatusSource = {
+  expectedDeliveryDate: Nullable<Date>;
+  pickupUntil: Nullable<Date>;
+  status: ShipmentStatus;
 };
 
 export function deliveryDateBounds(now: Date): DeliveryDateBounds {
   const today = startOfUtcDay(now);
   const soonEnd = addDays(today, ARRIVING_SOON_DAYS);
   const mondayOffset = (today.getUTCDay() + 6) % 7;
-  const weekStart = addDays(today, -mondayOffset);
-  const weekEnd = addDays(weekStart, DAYS_FROM_MONDAY_TO_SUNDAY);
+  const weekEnd = addDays(today, DAYS_FROM_MONDAY_TO_SUNDAY - mondayOffset);
 
-  return { soonEnd, today, weekEnd, weekStart };
+  return {
+    dispatchCutoff: subDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.awaitingDispatchDays),
+    pickupDeadline: addDays(today, IN_TRANSIT_ATTENTION_THRESHOLDS.pickupExpiringDays),
+    soonEnd,
+    today,
+    weekEnd,
+  };
 }
 
 export function getDeliveryUiStatus({
@@ -31,16 +52,55 @@ export function getDeliveryUiStatus({
   expectedDeliveryDate: Nullable<Date>;
   today: Date;
 }): Nullable<DeliveryUiStatus> {
-  if (expectedDeliveryDate === null) {
-    return "no_delivery_date";
+  return uiStatusFromDueDate({ dueDate: expectedDeliveryDate, today });
+}
+
+export function getShipmentUiStatus({
+  shipment,
+  today,
+}: {
+  shipment: Nullable<ShipmentUiStatusSource>;
+  today: Date;
+}): Nullable<DeliveryUiStatus> {
+  if (shipment === null) {
+    return UI_STATUS.no_delivery_date;
   }
 
-  const daysUntilDelivery = differenceInCalendarDays(expectedDeliveryDate, today);
-  if (daysUntilDelivery < 0) {
-    return "delayed";
+  switch (shipment.status) {
+    case SHIPMENT_STATUS.cancelled:
+    case SHIPMENT_STATUS.received:
+      return null;
+    case SHIPMENT_STATUS.in_transit:
+    case SHIPMENT_STATUS.ordered:
+      return uiStatusFromDueDate({ dueDate: shipment.expectedDeliveryDate, today });
+    case SHIPMENT_STATUS.ready_for_pickup:
+      return uiStatusFromDueDate({
+        dueDate: shipment.pickupUntil ?? shipment.expectedDeliveryDate,
+        today,
+      });
+    default:
+      return assertNever(shipment.status);
   }
-  if (daysUntilDelivery <= ARRIVING_SOON_DAYS) {
-    return "arriving_soon";
+}
+
+function uiStatusFromDueDate({
+  dueDate,
+  today,
+}: {
+  dueDate: Nullable<Date>;
+  today: Date;
+}): Nullable<DeliveryUiStatus> {
+  if (dueDate === null) {
+    return UI_STATUS.no_delivery_date;
   }
+
+  const daysUntilDue = differenceInCalendarDays(dueDate, today);
+  if (daysUntilDue < 0) {
+    return UI_STATUS.delayed;
+  }
+  if (daysUntilDue <= ARRIVING_SOON_DAYS) {
+    return UI_STATUS.arriving_soon;
+  }
+
   return null;
 }

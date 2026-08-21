@@ -16,6 +16,7 @@ const activeDeliveryFixture: DeliveryView = {
   deliveryService: null,
   expectedDeliveryDate: null,
   id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  isFree: false,
   note: null,
   orderDate: null,
   orderNumber: "100200300",

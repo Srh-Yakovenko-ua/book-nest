@@ -195,9 +195,7 @@ describe("BooksToBuyRow", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "2 магазини · ціни не вказані" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2 магазини ціни не вказані" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Yakaboo/ })).not.toBeInTheDocument();
   });
 
@@ -214,7 +212,7 @@ describe("BooksToBuyRow", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "ще 1 магазин · інші валюти" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ще 1 магазин інші валюти" })).toBeInTheDocument();
   });
 
   it("keeps the row free of per-link menus", () => {

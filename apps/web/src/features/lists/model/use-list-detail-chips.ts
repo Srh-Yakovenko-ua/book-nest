@@ -85,7 +85,7 @@ export function useListDetailChips({
   if (state.bookType !== null) {
     chips.push({
       key: "bookType",
-      label: tFilters(`series.${state.bookType}`),
+      label: tFilters(`bookType.${state.bookType}`),
       onRemove: () => void setState({ bookType: null }),
     });
   }
@@ -98,10 +98,10 @@ export function useListDetailChips({
     });
   }
 
-  if (state.isFavorite === true) {
+  if (state.isFavorite !== null) {
     chips.push({
       key: "isFavorite",
-      label: t("favorite"),
+      label: state.isFavorite ? t("favorite") : tFilters("favorite.without"),
       onRemove: () => void setState({ isFavorite: null }),
     });
   }

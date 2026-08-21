@@ -9,7 +9,8 @@ import {
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "22222222-2222-4222-8222-222222222222";
 const LOAN_ID = "33333333-3333-4333-8333-333333333333";
-const DELIVERY_ID = "44444444-4444-4444-8444-444444444444";
+const SHIPMENT_ID = "44444444-4444-4444-8444-444444444444";
+const BOOK_ID = "55555555-5555-4555-8555-555555555555";
 
 describe("buildLoanDedupeKey", () => {
   it("is stable for the same stage and differs across stages", () => {
@@ -41,15 +42,15 @@ describe("buildLoanDedupeKey", () => {
 
 describe("buildDeliveryDedupeKey", () => {
   it("is stable for the same stage and differs across stages", () => {
-    expect(buildDeliveryDedupeKey({ deliveryId: DELIVERY_ID, stage: "arriving_soon" })).toBe(
-      `delivery:${DELIVERY_ID}:arriving_soon`,
-    );
-    expect(buildDeliveryDedupeKey({ deliveryId: DELIVERY_ID, stage: "arriving_today" })).toBe(
-      `delivery:${DELIVERY_ID}:arriving_today`,
-    );
-    expect(buildDeliveryDedupeKey({ deliveryId: DELIVERY_ID, stage: "delayed" })).toBe(
-      `delivery:${DELIVERY_ID}:delayed`,
-    );
+    expect(
+      buildDeliveryDedupeKey({ bookId: BOOK_ID, shipmentId: SHIPMENT_ID, stage: "arriving_soon" }),
+    ).toBe(`delivery:${SHIPMENT_ID}:${BOOK_ID}:arriving_soon`);
+    expect(
+      buildDeliveryDedupeKey({ bookId: BOOK_ID, shipmentId: SHIPMENT_ID, stage: "arriving_today" }),
+    ).toBe(`delivery:${SHIPMENT_ID}:${BOOK_ID}:arriving_today`);
+    expect(
+      buildDeliveryDedupeKey({ bookId: BOOK_ID, shipmentId: SHIPMENT_ID, stage: "delayed" }),
+    ).toBe(`delivery:${SHIPMENT_ID}:${BOOK_ID}:delayed`);
   });
 });
 

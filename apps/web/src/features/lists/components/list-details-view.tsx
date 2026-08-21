@@ -18,8 +18,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 import type { ListBookItemProps } from "../model/list-book-item";
-import type { ListDetailEmptyReason } from "../model/list-detail-query";
-import type { ListDetailTab } from "../model/list-detail-tabs";
+import type { ListDetailEmptyReason, ListDetailQueryState } from "../model/list-detail-query";
 
 import { useDeleteList } from "../api/use-delete-list";
 import { useDuplicateList } from "../api/use-duplicate-list";
@@ -38,7 +37,11 @@ import {
 import { useListOverview } from "../api/use-list-overview";
 import { useListRelated } from "../api/use-list-related";
 import { LIST_BOOK_SORT_DEFAULT } from "../model/list-book-sort";
-import { canReorderListDetail, listBookReorder } from "../model/list-reorder";
+import {
+  canReorderListDetail,
+  isListDetailOrderView,
+  listBookReorder,
+} from "../model/list-reorder";
 import { useListSelectionStore } from "../model/list-selection-store";
 import { useListBookDrag } from "../model/use-list-book-drag";
 import { useListDetailChips } from "../model/use-list-detail-chips";
@@ -46,17 +49,18 @@ import { useListDetailQuery } from "../model/use-list-detail-query";
 import { AddBooksToListDialog } from "./add-books-to-list-dialog";
 import { DeleteListDialog } from "./delete-list-dialog";
 import { EditListDialog } from "./edit-list-dialog";
-import { ListAboutCard, ListAboutCollapsible } from "./list-about-card";
+import { ListAboutCard } from "./list-about-card";
 import { ListBookCard } from "./list-book-card";
 import { ListBookRow } from "./list-book-row";
 import { ListBulkActions } from "./list-bulk-actions";
 import { ListCurrentlyReadingCard } from "./list-currently-reading-card";
 import { ListDetailsHeader } from "./list-details-header";
+import { ListDetailsOverviewPanel } from "./list-details-overview-panel";
 import { ListDetailsToolbar } from "./list-details-toolbar";
-import { ListQuickTabs } from "./list-quick-tabs";
-import { ListRelatedCard, ListRelatedCollapsible } from "./list-related-card";
+import { ListQuickFilters } from "./list-quick-filters";
+import { ListRelatedCard } from "./list-related-card";
 import { ListSidebar } from "./list-sidebar";
-import { ListStatsCards } from "./list-stats-cards";
+import { ListStatsCards, useListSummaryCards } from "./list-stats-cards";
 
 type ListDetailsViewProps = {
   hasNextPage: boolean;
@@ -72,7 +76,7 @@ type NoResultsProps = {
   onClearFilters: () => void;
   onClearSearch: () => void;
   reason: ListDetailEmptyReason;
-  tab: ListDetailTab;
+  tab: ListDetailQueryState["tab"];
 };
 
 export function ListDetailsView({
@@ -99,6 +103,7 @@ export function ListDetailsView({
   const relatedQuery = useListRelated(id);
   const overview = overviewQuery.data ?? null;
   const relatedLists = relatedQuery.data?.lists ?? [];
+  const summaryCards = useListSummaryCards(overview);
   const authorNameById = new Map((facets.data?.authors ?? []).map((item) => [item.id, item.name]));
   const facetGenreNameByKey = new Map(
     (facets.data?.genres ?? []).map((item) => [item.key, item.name]),
@@ -154,6 +159,7 @@ export function ListDetailsView({
     setMoveAnnouncement(
       t("reorder.announced", { n: position, title: book.title, total: bookCount }),
     );
+    toast.success(t("toast.moved", { position, title: book.title }));
   }
 
   const buildDrag = useListBookDrag({
@@ -332,10 +338,10 @@ export function ListDetailsView({
 
         <div
           className={cn(
-            "grid gap-5",
+            "grid gap-5 max-sm:gap-3",
             isListView
               ? "grid-cols-1"
-              : "grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
+              : "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
           )}
         >
           {books.map((book) =>
@@ -366,7 +372,6 @@ export function ListDetailsView({
   return (
     <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2 lg:gap-8">
       <ListDetailsHeader
-        bookCount={bookCount}
         description={firstPage.description}
         isDuplicating={duplicateList.isPending}
         name={firstPage.name}
@@ -380,11 +385,21 @@ export function ListDetailsView({
 
       {isListEmpty ? null : (
         <>
-          <div className="lg:hidden">
-            <ListCurrentlyReadingCard overview={overview} />
-          </div>
-
-          <ListStatsCards isPending={overviewQuery.isPending} overview={overview} />
+          <ListStatsCards
+            isPending={overviewQuery.isPending}
+            mobileAction={
+              <ListDetailsOverviewPanel
+                bookCount={bookCount}
+                isLoading={overviewQuery.isPending}
+                listId={id}
+                listName={firstPage.name}
+                overview={overview}
+                relatedLists={relatedLists}
+                summaryCards={summaryCards}
+              />
+            }
+            overview={overview}
+          />
 
           <ListDetailsToolbar
             chips={chips}
@@ -393,6 +408,7 @@ export function ListDetailsView({
               total: firstPage.books.totalCount,
             })}
             id={id}
+            isReorderLocked={!isListDetailOrderView(listQuery.state)}
             isSelecting={selectionMode}
             onClearAll={listQuery.clearAll}
             onSearchChange={listQuery.setSearch}
@@ -400,10 +416,10 @@ export function ListDetailsView({
             onToggleSelecting={selectionMode ? exitSelection : enterSelection}
             onViewChange={listQuery.setView}
             quickFilters={
-              <ListQuickTabs
-                counts={firstPage.statusCounts}
-                onSelect={listQuery.selectTab}
-                value={listQuery.tab}
+              <ListQuickFilters
+                counts={firstPage.quickCounts}
+                onSelect={listQuery.selectQuickFilter}
+                value={listQuery.quickFilter}
               />
             }
             setState={listQuery.setState}
@@ -420,17 +436,11 @@ export function ListDetailsView({
         </section>
 
         <ListSidebar>
+          <ListAboutCard overview={overview} />
           <ListGoalCard bookCount={bookCount} listId={id} listName={firstPage.name} />
           <ListCurrentlyReadingCard overview={overview} />
-          <ListAboutCard overview={overview} />
           <ListRelatedCard lists={relatedLists} />
         </ListSidebar>
-      </div>
-
-      <div className="flex flex-col gap-6 lg:hidden">
-        <ListGoalCard bookCount={bookCount} listId={id} listName={firstPage.name} />
-        <ListAboutCollapsible overview={overview} />
-        <ListRelatedCollapsible lists={relatedLists} />
       </div>
 
       <AddBooksToListDialog listId={id} onOpenChange={setAddBooksOpen} open={addBooksOpen} />

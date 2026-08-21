@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,40 +13,59 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ApiError } from "@/lib/http-client";
+import { useDeliveryErrorText } from "@/features/books/hooks/use-delivery-error-text";
 
-import { useBulkReceive } from "../api/use-bulk-receive";
+import { useReceiveShipment, useReceiveShipments } from "../api/use-order-shipment-actions";
+
+export type DeliveryReceiveTarget =
+  | { bookCount: number; kind: "shipment"; shipmentId: string }
+  | { bookCount: number; kind: "shipments"; shipmentIds: string[] };
 
 type DeliveryReceiveDialogProps = {
-  bookIds: string[];
   onOpenChange: (open: boolean) => void;
   onReceived?: () => void;
   open: boolean;
+  target: DeliveryReceiveTarget;
 };
 
 export function DeliveryReceiveDialog({
-  bookIds,
   onOpenChange,
   onReceived,
   open,
+  target,
 }: DeliveryReceiveDialogProps) {
   const t = useTranslations("delivery.receiveDialog");
   const tToast = useTranslations("delivery.toast");
+  const deliveryErrorText = useDeliveryErrorText();
   const tActions = useTranslations("books.actions");
-  const bulkReceive = useBulkReceive();
+  const receiveShipment = useReceiveShipment();
+  const receiveShipments = useReceiveShipments();
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
-  const count = bookIds.length;
+  const count = target.bookCount;
 
   function onConfirm() {
-    bulkReceive.mutate(bookIds, {
-      onError: (error) => toast.error(error instanceof ApiError ? error.message : tToast("error")),
+    if (target.kind === "shipment") {
+      receiveShipment.mutate(target.shipmentId, {
+        onError: (error) => toast.error(deliveryErrorText(error)),
+        onSuccess: () => {
+          toast.success(tToast("receivedBulk", { count }));
+          onReceived?.();
+          onOpenChange(false);
+        },
+      });
+      return;
+    }
+
+    receiveShipments.mutate(target.shipmentIds, {
+      onError: (error) => toast.error(deliveryErrorText(error)),
       onSuccess: (result) => {
-        const received = result.receivedBookIds.length;
+        const received = result.receivedShipmentIds.length;
         const skipped = result.skipped.length;
         if (skipped > 0) {
-          toast.warning(tToast("receivedPartial", { received, skipped }));
+          toast.warning(tToast("receivedShipmentsPartial", { received, skipped }));
         } else {
-          toast.success(tToast("receivedBulk", { count: received }));
+          toast.success(tToast("receivedShipments", { count: received }));
         }
         onReceived?.();
         onOpenChange(false);
@@ -53,9 +73,17 @@ export function DeliveryReceiveDialog({
     });
   }
 
+  const isPending = receiveShipment.isPending || receiveShipments.isPending;
+
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          confirmButtonRef.current?.focus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description", { count })}</DialogDescription>
@@ -66,9 +94,10 @@ export function DeliveryReceiveDialog({
             {tActions("cancel")}
           </Button>
           <Button
-            disabled={bulkReceive.isPending}
-            loading={bulkReceive.isPending}
+            disabled={isPending}
+            loading={isPending}
             onClick={onConfirm}
+            ref={confirmButtonRef}
             type="button"
           >
             {t("confirm")}

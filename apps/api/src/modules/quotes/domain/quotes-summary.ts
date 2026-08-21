@@ -5,6 +5,8 @@ import type {
   QuotesSummaryView,
 } from "@app/shared";
 
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+
 export type QuoteBookCount = {
   bookId: string;
   count: number;
@@ -67,5 +69,5 @@ function wins(count: number, label: string, bestCount: number, bestLabel: string
   if (count !== bestCount) {
     return count > bestCount;
   }
-  return label.localeCompare(bestLabel) < 0;
+  return UKRAINIAN_COLLATION.compare(label, bestLabel) < 0;
 }

@@ -105,7 +105,7 @@ describe("AddBooksToListDialog", () => {
     expect(screen.getByText("Вибрано книг: 2")).toBeInTheDocument();
   });
 
-  it("adds the selected books, confirms with a toast and stays open", async () => {
+  it("adds the selected books, confirms with a toast and closes", async () => {
     const onOpenChange = vi.fn();
     renderDialog(onOpenChange);
     await screen.findByText("Вільна книга");
@@ -117,8 +117,20 @@ describe("AddBooksToListDialog", () => {
     expect(String(addCall()?.[0])).toContain("/api/lists/list-1/books");
     expect(JSON.parse(String(addCall()?.[1].body))).toEqual({ bookIds: ["book-free"] });
     expect(toast.success).toHaveBeenCalledWith("1 книгу додано до списку");
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  it("keeps the dialog open when the add fails", async () => {
+    const onOpenChange = vi.fn();
+    respondToAdd = () => jsonResponse({ message: "boom" }, 500);
+    renderDialog(onOpenChange);
+    await screen.findByText("Вільна книга");
+
+    await userEvent.click(checkboxAt(1));
+    await userEvent.click(screen.getByRole("button", { name: "Додати до списку" }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
     expect(onOpenChange).not.toHaveBeenCalled();
-    expect(await screen.findByText("Вибрано книг: 0")).toBeInTheDocument();
   });
 
   it("shows an empty state when the library search returns nothing", async () => {

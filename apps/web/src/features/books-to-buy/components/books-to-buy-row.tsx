@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import type { LibraryBook } from "@/features/books";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,21 +79,22 @@ export function BooksToBuyRow({
   const favoriteLabel = isFavorite ? tLibrary("actions.unfavorite") : tLibrary("actions.favorite");
   const cardActions = (
     <div className="flex items-center gap-0.5">
-      <Button
-        aria-label={favoriteLabel}
-        aria-pressed={isFavorite}
-        className={`size-8 rounded-lg border backdrop-blur-md transition-all duration-[180ms] ease-out max-sm:size-6 ${
-          isFavorite
-            ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
-            : "border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] hover:border-brand hover:text-brand"
-        }`}
-        onClick={toggleFavorite}
-        size="icon-sm"
-        title={favoriteLabel}
-        variant="ghost"
-      >
-        <UiIcon className="max-sm:size-4" name={isFavorite ? "heart-fill" : "heart"} size={18} />
-      </Button>
+      <TooltipHint label={favoriteLabel}>
+        <Button
+          aria-label={favoriteLabel}
+          aria-pressed={isFavorite}
+          className={`size-8 rounded-lg border backdrop-blur-md transition-all duration-[180ms] ease-out max-sm:size-6 ${
+            isFavorite
+              ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
+              : "border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] hover:border-brand hover:text-brand"
+          }`}
+          onClick={toggleFavorite}
+          size="icon-sm"
+          variant="ghost"
+        >
+          <UiIcon className="max-sm:size-4" name={isFavorite ? "heart-fill" : "heart"} size={18} />
+        </Button>
+      </TooltipHint>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

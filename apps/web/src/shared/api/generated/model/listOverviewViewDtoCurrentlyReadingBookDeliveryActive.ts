@@ -24,6 +24,8 @@ export type ListOverviewViewDtoCurrentlyReadingBookDeliveryActive = {
   /** @nullable */
   expectedDeliveryDate: string | null;
   id: string;
+  /** The order this book arrived in was received for free. */
+  isFree: boolean;
   /** @nullable */
   note: string | null;
   /** @nullable */

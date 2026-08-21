@@ -13,6 +13,7 @@ import type { BooksControllerWishlistLanguageItem } from "./booksControllerWishl
 import type { BooksControllerWishlistLink } from "./booksControllerWishlistLink";
 import type { BooksControllerWishlistPriceCurrency } from "./booksControllerWishlistPriceCurrency";
 import type { BooksControllerWishlistSeriesPlacementItem } from "./booksControllerWishlistSeriesPlacementItem";
+import type { BooksControllerWishlistSort } from "./booksControllerWishlistSort";
 
 export type BooksControllerWishlistParams = {
   /**
@@ -77,11 +78,12 @@ export type BooksControllerWishlistParams = {
   /**
    * @maxItems 100
    */
-  store?: string[];
+  seriesPlacement?: BooksControllerWishlistSeriesPlacementItem[];
+  sort?: BooksControllerWishlistSort;
   /**
    * @maxItems 100
    */
-  seriesPlacement?: BooksControllerWishlistSeriesPlacementItem[];
+  store?: string[];
   /**
    * @maxItems 100
    * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$

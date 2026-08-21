@@ -7,7 +7,9 @@ import type {
 import type { QueryClient } from "@tanstack/react-query";
 
 import { ReadingQueueSummaryViewSchema, ReadingQueueViewSchema } from "@app/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import type { ReadingQueueControllerGetQueueParams } from "@/shared/api/generated/model";
 
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
@@ -23,6 +25,7 @@ import {
 } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
 import { bookKeys } from "./book-keys";
+import { matchesReadingQueueKey } from "./reading-queue-keys";
 
 const selectReadingQueueView = (data: unknown) => ReadingQueueViewSchema.parse(data);
 
@@ -36,16 +39,17 @@ export function useAddToReadingQueue() {
   });
 }
 
-export function useReadingQueue() {
-  return useReadingQueueControllerGetQueue({
+export function useReadingQueue(params?: ReadingQueueControllerGetQueueParams) {
+  return useReadingQueueControllerGetQueue(params, {
     query: {
+      placeholderData: keepPreviousData,
       select: selectReadingQueueView,
     },
   });
 }
 
 export function useReadingQueuePosition(book: Pick<BookView, "id" | "isInReadingQueue">) {
-  const query = useReadingQueueControllerGetQueue({
+  const query = useReadingQueueControllerGetQueue(undefined, {
     query: {
       enabled: book.isInReadingQueue,
       select: selectReadingQueueView,
@@ -73,9 +77,9 @@ export function useRemoveFromQueue() {
   });
 }
 
-export function useReorderReadingQueue() {
+export function useReorderReadingQueue(params?: ReadingQueueControllerGetQueueParams) {
   const queryClient = useQueryClient();
-  const queueKey = getReadingQueueControllerGetQueueQueryKey();
+  const queueKey = getReadingQueueControllerGetQueueQueryKey(params);
 
   return useMutation<ReadingQueueView, Error, string[], { previous: ReadingQueueView | undefined }>(
     {
@@ -124,6 +128,7 @@ export function useStartReadingFromQueue() {
 
 function applyReadingQueueView(queryClient: QueryClient, view: ReadingQueueView) {
   queryClient.setQueryData(getReadingQueueControllerGetQueueQueryKey(), view);
+  void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
   void queryClient.invalidateQueries({ queryKey: bookKeys.root });
   void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
   void queryClient.invalidateQueries({

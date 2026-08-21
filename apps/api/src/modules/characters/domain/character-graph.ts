@@ -33,6 +33,7 @@ import { createHash } from "node:crypto";
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
 import type { ReadingPositionGate } from "./reading-position.js";
 
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { isMembershipVisibleInContext } from "./character-group-visibility.js";
 import { pickEffectiveBookState } from "./character-relationship.mapper.js";
 import { isHiddenByReadingPosition } from "./reading-position.js";
@@ -187,7 +188,7 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     .sort(
       (left, right) =>
         right.degree - left.degree ||
-        left.name.localeCompare(right.name) ||
+        UKRAINIAN_COLLATION.compare(left.name, right.name) ||
         left.id.localeCompare(right.id),
     );
   const { clusterIdByNodeId, clusters } = computeClusters({

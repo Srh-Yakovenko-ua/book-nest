@@ -589,6 +589,10 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
     .default(listDetailsControllerDetailQueryTabDefault),
 });
 
+export const listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const listDetailsControllerDetailResponseBooksItemsItemQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -623,17 +627,26 @@ export const listDetailsControllerDetailResponseBooksPageSizeMax = 9007199254740
 export const listDetailsControllerDetailResponseBooksTotalCountMin = -9007199254740991;
 export const listDetailsControllerDetailResponseBooksTotalCountMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsAllMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsAllMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsAllMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsAllMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsFinishedMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsFinishedMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsFavoritesMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsFavoritesMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsNotStartedMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsNotStartedMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsFinishedMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsFinishedMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsReadingMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsReadingMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsInQueueMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsInQueueMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseQuickCountsNotStartedMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsNotStartedMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseQuickCountsReadingMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsReadingMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseQuickCountsSeriesMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsSeriesMax = 9007199254740991;
 
 export const ListDetailsControllerDetailResponse = zod.object({
   bookCount: zod.number(),
@@ -692,6 +705,9 @@ export const ListDetailsControllerDetailResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -726,6 +742,9 @@ export const ListDetailsControllerDetailResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -777,11 +796,17 @@ export const ListDetailsControllerDetailResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMin)
+              .max(listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -1079,23 +1104,35 @@ export const ListDetailsControllerDetailResponse = zod.object({
       width: zod.number(),
     }),
   ),
-  statusCounts: zod.object({
+  quickCounts: zod.object({
     all: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsAllMin)
-      .max(listDetailsControllerDetailResponseStatusCountsAllMax),
+      .min(listDetailsControllerDetailResponseQuickCountsAllMin)
+      .max(listDetailsControllerDetailResponseQuickCountsAllMax),
+    favorites: zod
+      .int()
+      .min(listDetailsControllerDetailResponseQuickCountsFavoritesMin)
+      .max(listDetailsControllerDetailResponseQuickCountsFavoritesMax),
     finished: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsFinishedMin)
-      .max(listDetailsControllerDetailResponseStatusCountsFinishedMax),
+      .min(listDetailsControllerDetailResponseQuickCountsFinishedMin)
+      .max(listDetailsControllerDetailResponseQuickCountsFinishedMax),
+    in_queue: zod
+      .int()
+      .min(listDetailsControllerDetailResponseQuickCountsInQueueMin)
+      .max(listDetailsControllerDetailResponseQuickCountsInQueueMax),
     not_started: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsNotStartedMin)
-      .max(listDetailsControllerDetailResponseStatusCountsNotStartedMax),
+      .min(listDetailsControllerDetailResponseQuickCountsNotStartedMin)
+      .max(listDetailsControllerDetailResponseQuickCountsNotStartedMax),
     reading: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsReadingMin)
-      .max(listDetailsControllerDetailResponseStatusCountsReadingMax),
+      .min(listDetailsControllerDetailResponseQuickCountsReadingMin)
+      .max(listDetailsControllerDetailResponseQuickCountsReadingMax),
+    series: zod
+      .int()
+      .min(listDetailsControllerDetailResponseQuickCountsSeriesMin)
+      .max(listDetailsControllerDetailResponseQuickCountsSeriesMax),
   }),
   updatedAt: zod.string(),
 });
@@ -1142,6 +1179,10 @@ export const ListDetailsControllerFacetsResponse = zod.object({
 export const ListDetailsControllerOverviewParams = zod.object({
   listId: zod.string(),
 });
+
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const listDetailsControllerOverviewResponseCurrentlyReadingBookQueuePriorityTargetDateRegExp =
   new RegExp(
@@ -1259,6 +1300,9 @@ export const ListDetailsControllerOverviewResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1293,6 +1337,9 @@ export const ListDetailsControllerOverviewResponse = zod.object({
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
+              isFree: zod
+                .boolean()
+                .describe("The order this book arrived in was received for free."),
               note: zod.string().nullable(),
               orderDate: zod.string().nullable(),
               orderNumber: zod.string().nullable(),
@@ -1344,11 +1391,21 @@ export const ListDetailsControllerOverviewResponse = zod.object({
           .object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
+            loanContactId: zod.string(),
             loanDate: zod.string().nullable(),
             loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(
+                listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMin,
+              )
+              .max(
+                listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMax,
+              )
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),

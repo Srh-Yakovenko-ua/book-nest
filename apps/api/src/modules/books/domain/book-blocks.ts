@@ -1,7 +1,8 @@
 import type {
+  ActiveShipmentStatus,
   DeliveryInfoInput,
-  DeliveryStatus,
   LoanInfoInput,
+  Nullable,
   OwnershipStatus,
   PurchaseInfoInput,
   ReadingProgressInput,
@@ -11,13 +12,17 @@ import type {
 
 import { LoanTypeSchema, ownershipStatusKeepsPurchase, ownershipStatusUsesLoan } from "@app/shared";
 
-import type { CreateDeliveryData, UpdateDeliveryData } from "../../delivery/index.js";
+import type {
+  NewSingleBookOrder,
+  SingleBookOrderBlockChange,
+  SingleBookOrderPatch,
+} from "../../delivery/index.js";
+import type { ResolvedLoanContact } from "../../loans/index.js";
 import type {
   BlockUpsert,
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
-  DeliveryBlockChange,
   LoanBlockChange,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
@@ -26,8 +31,12 @@ import type {
 
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
 
+export type ResolvedLoanInfo = {
+  loanContact: ResolvedLoanContact;
+  loanInfo: NonNullable<LoanInfoInput>;
+};
+
 type DefinedDeliveryInfo = NonNullable<DeliveryInfoInput>;
-type DefinedLoanInfo = NonNullable<LoanInfoInput>;
 type DefinedPurchaseInfo = NonNullable<PurchaseInfoInput>;
 type DefinedReadingProgress = NonNullable<ReadingProgressInput>;
 
@@ -41,13 +50,15 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 
 const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
-const DEFAULT_DELIVERY_STATUS: DeliveryStatus = "ordered";
+const DEFAULT_DELIVERY_STATUS: ActiveShipmentStatus = "ordered";
 
-export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
+export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): NewSingleBookOrder {
   return {
     currency: deliveryInfo.currency ?? null,
     deliveryService: deliveryInfo.deliveryService ?? null,
     expectedDeliveryDate: toCreateDate(deliveryInfo.expectedDeliveryDate),
+    hasShipment: deliveryInfo.isShipped ?? true,
+    isFree: deliveryInfo.isFree ?? false,
     note: deliveryInfo.note ?? null,
     orderDate: toCreateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber ?? null,
@@ -59,11 +70,14 @@ export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): Create
   };
 }
 
-export function buildDeliveryInfoUpdateData(deliveryInfo: DefinedDeliveryInfo): UpdateDeliveryData {
+export function buildDeliveryInfoUpdateData(
+  deliveryInfo: DefinedDeliveryInfo,
+): SingleBookOrderPatch {
   return {
     currency: deliveryInfo.currency,
     deliveryService: deliveryInfo.deliveryService,
     expectedDeliveryDate: toUpdateDate(deliveryInfo.expectedDeliveryDate),
+    isFree: deliveryInfo.isFree,
     note: deliveryInfo.note,
     orderDate: toUpdateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber,
@@ -75,23 +89,30 @@ export function buildDeliveryInfoUpdateData(deliveryInfo: DefinedDeliveryInfo): 
   };
 }
 
-export function buildLoanInfoData(loanInfo: DefinedLoanInfo): CreateLoanInfoData {
+export function buildLoanInfoData({ loanContact, loanInfo }: ResolvedLoanInfo): CreateLoanInfoData {
   return {
-    contact: null,
+    contact: loanContact.contact,
     expectedReturnDate: toCreateDate(loanInfo.expectedReturnDate),
+    loanContactId: loanContact.loanContactId,
     loanDate: toCreateDate(loanInfo.loanDate),
     note: loanInfo.note ?? null,
-    personName: loanInfo.personName ?? "",
+    personName: loanContact.personName,
+    remindBeforeDays: null,
     remindToReturn: false,
   };
 }
 
-export function buildLoanInfoUpdateData(loanInfo: DefinedLoanInfo): UpdateLoanInfoData {
+export function buildLoanInfoUpdateData({
+  loanContact,
+  loanInfo,
+}: ResolvedLoanInfo): UpdateLoanInfoData {
   return {
+    contact: loanContact.refreshesSnapshot ? loanContact.contact : undefined,
     expectedReturnDate: toUpdateDate(loanInfo.expectedReturnDate),
+    loanContactId: loanContact.loanContactId,
     loanDate: toUpdateDate(loanInfo.loanDate),
     note: loanInfo.note,
-    personName: loanInfo.personName,
+    personName: loanContact.refreshesSnapshot ? loanContact.personName : undefined,
   };
 }
 
@@ -164,7 +185,7 @@ export function resolveDeliveryBlock({
   deliveryInfo: UpdateBookInput["deliveryInfo"];
   now: Date;
   ownershipStatus: OwnershipStatus;
-}): DeliveryBlockChange {
+}): SingleBookOrderBlockChange {
   if (!ownershipStatusUsesDelivery(ownershipStatus)) {
     return { cancelledAt: now, kind: "cancel" };
   }
@@ -179,26 +200,26 @@ export function resolveDeliveryBlock({
 }
 
 export function resolveLoanBlock({
-  loanInfo,
   now,
   ownershipStatus,
+  resolvedLoanInfo,
 }: {
-  loanInfo: UpdateBookInput["loanInfo"];
   now: Date;
   ownershipStatus: OwnershipStatus;
+  resolvedLoanInfo: Nullable<ResolvedLoanInfo>;
 }): LoanBlockChange {
   if (!ownershipStatusUsesLoan(ownershipStatus)) {
     return { kind: "return", returnedAt: now };
   }
   const type = LoanTypeSchema.parse(ownershipStatus);
-  if (loanInfo === undefined) {
+  if (resolvedLoanInfo === null) {
     return { kind: "syncType", type };
   }
   return {
-    create: buildLoanInfoData(loanInfo),
+    create: buildLoanInfoData(resolvedLoanInfo),
     kind: "upsertActive",
     type,
-    update: buildLoanInfoUpdateData(loanInfo),
+    update: buildLoanInfoUpdateData(resolvedLoanInfo),
   };
 }
 

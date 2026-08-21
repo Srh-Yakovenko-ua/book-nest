@@ -19,6 +19,7 @@ export function makeDelivery(overrides: Partial<DeliveryView> = {}): DeliveryVie
     deliveryService: null,
     expectedDeliveryDate: null,
     id: "delivery-1",
+    isFree: false,
     note: null,
     orderDate: null,
     orderNumber: null,
@@ -37,11 +38,13 @@ export function makeLoanInfo(overrides: Partial<LoanInfoView> = {}): LoanInfoVie
   return {
     contact: null,
     expectedReturnDate: null,
+    loanContactId: "55555555-5555-4555-8555-555555555555",
     loanDate: null,
     loanType: "lent_to_someone",
     loanUiStatus: "no_return_date",
     note: null,
     personName: "Олена",
+    remindBeforeDays: null,
     remindToReturn: false,
     ...overrides,
   };
@@ -149,6 +152,15 @@ export function makeSeriesOverview(
   overrides: Partial<SeriesOverviewView> = {},
 ): SeriesOverviewView {
   return {
+    almostRead: [],
+    attentionCounts: {
+      empty: 0,
+      incomplete_data: 0,
+      incomplete_set: 0,
+      missing_parts: 0,
+      next_unavailable: 0,
+      unknown_status: 0,
+    },
     booksInSeries: 14,
     fullyReadSeries: 2,
     statusCounts: { completed: 3, ongoing: 4, unknown: 1 },

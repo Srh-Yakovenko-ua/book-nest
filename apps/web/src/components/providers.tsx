@@ -3,6 +3,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, type ReactNode, Suspense, useEffect } from "react";
 
+import { TOOLTIP_DELAY_MS } from "@/components/tooltip-hint";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MaintenanceGate } from "@/features/maintenance";
@@ -36,7 +37,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={TOOLTIP_DELAY_MS}>
         {children}
         <MaintenanceGate />
         <Toaster closeButton richColors />

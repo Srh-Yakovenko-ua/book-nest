@@ -1,5 +1,7 @@
 "use client";
 
+import type { LoanListItemView, Nullable } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
@@ -12,22 +14,29 @@ import {
 } from "@/components/ui/mobile-page-overview-panel";
 import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
-import type { NearestReturn } from "../model/loans-derive";
+import type { LoanDirection } from "../model/loan-pages";
+import type { LoansAttention, LoansPeople } from "./loans-sidebar";
 
 import { LoansSidebarSections } from "./loans-sidebar";
 
 type LoansOverviewPanelProps = {
+  attention: Nullable<LoansAttention>;
+  direction: LoanDirection;
   isLoading: boolean;
-  nearest: NearestReturn[];
-  onAddBook: () => void;
+  longHeldLoans: LoanListItemView[];
+  people: LoansPeople;
   summaryCards: LibrarySummaryCard[];
+  upcomingReturns: LoanListItemView[];
 };
 
 export function LoansOverviewPanel({
+  attention,
+  direction,
   isLoading,
-  nearest,
-  onAddBook,
+  longHeldLoans,
+  people,
   summaryCards,
+  upcomingReturns,
 }: LoansOverviewPanelProps) {
   const t = useTranslations("loans.overviewPanel");
   const tDetails = useTranslations("loans.summary.mobile");
@@ -43,9 +52,25 @@ export function LoansOverviewPanel({
       content: (
         <div className="flex flex-col gap-4">
           <LoansSidebarSections
+            attention={
+              attention === null
+                ? null
+                : {
+                    ...attention,
+                    onFilterSelect: (filter) =>
+                      panel.closeThen(() => attention.onFilterSelect(filter)),
+                  }
+            }
+            direction={direction}
             isLoading={isLoading}
-            nearest={nearest}
-            onAddBook={() => panel.closeThen(onAddBook)}
+            longHeldLoans={longHeldLoans}
+            people={{
+              ...people,
+              onPersonOpen: (contactId) => panel.closeThen(() => people.onPersonOpen(contactId)),
+              onPersonSelect: (personName) =>
+                panel.closeThen(() => people.onPersonSelect(personName)),
+            }}
+            upcomingReturns={upcomingReturns}
           />
         </div>
       ),

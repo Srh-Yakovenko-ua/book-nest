@@ -7,7 +7,7 @@
  */
 import type { CustomListDetailDtoBooks } from "./customListDetailDtoBooks";
 import type { CustomListDetailDtoPreviewCoversItem } from "./customListDetailDtoPreviewCoversItem";
-import type { CustomListDetailDtoStatusCounts } from "./customListDetailDtoStatusCounts";
+import type { CustomListDetailDtoQuickCounts } from "./customListDetailDtoQuickCounts";
 
 export interface CustomListDetailDto {
   bookCount: number;
@@ -18,6 +18,6 @@ export interface CustomListDetailDto {
   id: string;
   name: string;
   previewCovers: CustomListDetailDtoPreviewCoversItem[];
-  statusCounts: CustomListDetailDtoStatusCounts;
+  quickCounts: CustomListDetailDtoQuickCounts;
   updatedAt: string;
 }

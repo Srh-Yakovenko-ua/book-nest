@@ -1,19 +1,20 @@
 import type { CreateReadingGoalInput, ReadingGoalView, UpdateReadingGoalInput } from "@app/shared";
 
-import { READING_GOAL_TARGET_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
-import { isAfter } from "date-fns";
+import { isEqual } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ReadingGoalWithList } from "../infrastructure/reading-goals.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { parseIsoDate, startOfUtcDay } from "../../../core/iso-date.js";
 import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
 import { ListsService } from "../../lists/index.js";
 import { ACTIVE_LIST_GOAL_INDEX, READING_GOAL_MESSAGE } from "../domain/reading-goal.constants.js";
 import { ReadingGoalsRepository } from "../infrastructure/reading-goals.repository.js";
+import { ReadingGoalActivityRecorder } from "./reading-goal-activity.recorder.js";
+import { ReadingGoalInputValidator } from "./reading-goal-input.validator.js";
+import { ReadingGoalSnapshotService } from "./reading-goal-snapshot.service.js";
 import { ReadingGoalViewBuilder } from "./reading-goal-view.builder.js";
 
 type CreateInput = {
@@ -38,6 +39,9 @@ export class ReadingGoalsService {
     private readonly listsService: ListsService,
     private readonly viewBuilder: ReadingGoalViewBuilder,
     private readonly transactionRunner: TransactionRunner,
+    private readonly inputValidator: ReadingGoalInputValidator,
+    private readonly snapshotService: ReadingGoalSnapshotService,
+    private readonly activityRecorder: ReadingGoalActivityRecorder,
   ) {}
 
   async archive({ goalId, userId }: GoalCommand): Promise<ReadingGoalView> {
@@ -46,16 +50,27 @@ export class ReadingGoalsService {
     if (goal.archivedAt !== null) {
       return this.viewBuilder.build({ goal, now });
     }
-    await this.readingGoalsRepository.archive({ archivedAt: now, goalId, userId });
-    const archived = await this.findOwnedOrThrow({ goalId, userId });
+
+    const archived = await this.transactionRunner.run(async (tx) => {
+      const stamped = await this.readingGoalsRepository.archive(
+        { archivedAt: now, goalId, userId },
+        tx,
+      );
+      const current = await this.findOwnedOrThrow({ goalId, userId }, tx);
+      if (stamped === 1) {
+        const changes = await this.snapshotService.resync({ goal: current, tx });
+        await this.activityRecorder.recordArchive({ changes, goal: current, now, tx });
+      }
+      return current;
+    });
+
     return this.viewBuilder.build({ goal: archived, now });
   }
 
   async create({ input, listId, userId }: CreateInput): Promise<ReadingGoalView> {
     const now = new Date();
     await this.listsService.assertOwned({ listId, userId });
-    const deadline = this.assertFutureDeadline({ deadline: input.deadline, now });
-    await this.assertTargetWithinList({ listId, targetCount: input.targetCount });
+    const deadline = this.inputValidator.assertFutureDeadline({ deadline: input.deadline, now });
 
     const created = await this.transactionRunner.run(async (tx) => {
       await this.readingGoalsRepository.acquireCreateLock(listId, tx);
@@ -63,12 +78,23 @@ export class ReadingGoalsService {
       if (existing !== null) {
         await this.archiveSuperseded({ existing, now, tx, userId });
       }
-      return this.createGoal({
+      const candidates = await this.readingGoalsRepository.findActiveListBooks(
+        { listId, userId },
+        tx,
+      );
+      this.inputValidator.assertTargetWithinBooks({
+        bookCount: candidates.length,
+        targetCount: input.targetCount,
+      });
+      const goal = await this.createGoal({
         data: { deadline, name: input.name ?? null, targetCount: input.targetCount },
         listId,
         tx,
         userId,
       });
+      await this.snapshotService.seed({ candidates, goal, tx });
+      await this.activityRecorder.recordCreation({ goal, now, tx });
+      return goal;
     });
 
     return this.viewBuilder.build({ goal: created, now });
@@ -83,15 +109,23 @@ export class ReadingGoalsService {
 
   async update({ goalId, input, userId }: UpdateInput): Promise<ReadingGoalView> {
     const now = new Date();
-    const goal = await this.findOwnedOrThrow({ goalId, userId });
-    if (goal.archivedAt !== null) {
+    const previous = await this.findOwnedOrThrow({ goalId, userId });
+    if (previous.archivedAt !== null) {
       throw new BadRequestError(READING_GOAL_MESSAGE.archivedIsReadOnly);
     }
-    const data = await this.buildUpdateData({ goal, input, now });
-    const updated = await this.readingGoalsRepository.update({ data, goalId, userId });
-    if (updated === null) {
-      throw new NotFoundError(READING_GOAL_MESSAGE.notFound);
-    }
+    const updated = await this.transactionRunner.run(async (tx) => {
+      const data = await this.inputValidator.buildUpdateData({ goal: previous, input, now, tx });
+      const goal = await this.readingGoalsRepository.update({ data, goalId, userId }, tx);
+      if (goal === null) {
+        throw new NotFoundError(READING_GOAL_MESSAGE.notFound);
+      }
+      const changes = deadlineChanged({ goal, previous })
+        ? await this.snapshotService.resync({ goal, tx })
+        : [];
+      await this.activityRecorder.recordUpdate({ changes, goal, now, previous, tx });
+      return goal;
+    });
+
     return this.viewBuilder.build({ goal: updated, now });
   }
 
@@ -117,57 +151,9 @@ export class ReadingGoalsService {
     if (archived === 0) {
       throw new ConflictError(READING_GOAL_MESSAGE.activeGoalExists);
     }
-  }
-
-  private assertFutureDeadline({ deadline, now }: { deadline: string; now: Date }): Date {
-    const parsed = parseIsoDate(deadline);
-    if (!isAfter(parsed, startOfUtcDay(now))) {
-      throw new BadRequestError(READING_GOAL_MESSAGE.deadlineNotInFuture, {
-        fields: [{ field: "deadline", message: READING_GOAL_MESSAGE.deadlineNotInFuture }],
-      });
-    }
-    return parsed;
-  }
-
-  private async assertTargetWithinList({
-    listId,
-    targetCount,
-  }: {
-    listId: string;
-    targetCount: number;
-  }): Promise<void> {
-    const listBookCount = await this.listsService.countActiveBooks({ listId });
-    const maxTarget = Math.min(READING_GOAL_TARGET_MAX, listBookCount);
-    if (targetCount > maxTarget) {
-      throw new BadRequestError(READING_GOAL_MESSAGE.targetAboveListSize, {
-        fields: [{ field: "targetCount", message: READING_GOAL_MESSAGE.targetAboveListSize }],
-      });
-    }
-  }
-
-  private async buildUpdateData({
-    goal,
-    input,
-    now,
-  }: {
-    goal: ReadingGoalWithList;
-    input: UpdateReadingGoalInput;
-    now: Date;
-  }): Promise<Prisma.ReadingGoalUpdateManyMutationInput> {
-    const data: Prisma.ReadingGoalUpdateManyMutationInput = {};
-    if (input.deadline !== undefined) {
-      data.deadline = this.assertFutureDeadline({ deadline: input.deadline, now });
-    }
-    if (input.name !== undefined) {
-      data.name = input.name;
-    }
-    if (input.targetCount !== undefined) {
-      if (goal.listId !== null) {
-        await this.assertTargetWithinList({ listId: goal.listId, targetCount: input.targetCount });
-      }
-      data.targetCount = input.targetCount;
-    }
-    return data;
+    const archivedGoal = { ...existing, archivedAt: now };
+    const changes = await this.snapshotService.resync({ goal: archivedGoal, tx });
+    await this.activityRecorder.recordArchive({ changes, goal: archivedGoal, now, tx });
   }
 
   private async createGoal({
@@ -191,11 +177,24 @@ export class ReadingGoalsService {
     }
   }
 
-  private async findOwnedOrThrow({ goalId, userId }: GoalCommand): Promise<ReadingGoalWithList> {
-    const goal = await this.readingGoalsRepository.findOwnedById({ goalId, userId });
+  private async findOwnedOrThrow(
+    { goalId, userId }: GoalCommand,
+    client?: Prisma.TransactionClient,
+  ): Promise<ReadingGoalWithList> {
+    const goal = await this.readingGoalsRepository.findOwnedById({ goalId, userId }, client);
     if (goal === null) {
       throw new NotFoundError(READING_GOAL_MESSAGE.notFound);
     }
     return goal;
   }
+}
+
+function deadlineChanged({
+  goal,
+  previous,
+}: {
+  goal: ReadingGoalWithList;
+  previous: ReadingGoalWithList;
+}): boolean {
+  return !isEqual(previous.deadline, goal.deadline);
 }

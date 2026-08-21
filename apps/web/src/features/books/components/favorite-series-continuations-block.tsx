@@ -334,7 +334,7 @@ function resolveCta(
     case "in_transit":
       return { href: "/delivery/in-transit", kind: "navigation", labelKey: "actions.openOrder" };
     case "lent":
-      return { href: "/loans", kind: "navigation", labelKey: "actions.openLoan" };
+      return { href: "/loans/lent", kind: "navigation", labelKey: "actions.openLoan" };
     case "not_owned":
       return { kind: "want-to-buy" };
     case "paused":

@@ -37,6 +37,10 @@ let respondToOverview: () => Response;
 let respondToRelated: () => Response;
 let respondToMove: () => Response;
 
+type RenderQuickFilterListOptions = RenderViewOptions & {
+  counts?: Partial<CustomListDetail["quickCounts"]>;
+};
+
 type RenderViewOptions = {
   hasMemory?: boolean;
   onUrlUpdate?: OnUrlUpdateFunction;
@@ -59,6 +63,21 @@ function lastSearchParams(events: UrlUpdateEvent[]): URLSearchParams {
   return last.searchParams;
 }
 
+function quickCounts(
+  overrides: Partial<CustomListDetail["quickCounts"]> = {},
+): CustomListDetail["quickCounts"] {
+  return {
+    all: 0,
+    favorites: 0,
+    finished: 0,
+    in_queue: 0,
+    not_started: 0,
+    reading: 0,
+    series: 0,
+    ...overrides,
+  };
+}
+
 function renderPopulatedList(options: RenderViewOptions = {}) {
   return renderView(
     [
@@ -68,7 +87,30 @@ function renderPopulatedList(options: RenderViewOptions = {}) {
           items: [makeListBookView({ id: "b1", position: 1, title: "Перша" })],
           totalCount: 20,
         },
-        statusCounts: { all: 20, finished: 4, not_started: 13, reading: 3 },
+        quickCounts: quickCounts({ all: 20, finished: 4, not_started: 13, reading: 3 }),
+      }),
+    ],
+    options,
+  );
+}
+
+function renderQuickFilterList({ counts, ...options }: RenderQuickFilterListOptions = {}) {
+  return renderView(
+    [
+      makeCustomListDetail({
+        bookCount: 100,
+        books: { items: [makeListBookView({ id: "b1", position: 1, title: "Перша" })] },
+        quickCounts: quickCounts(
+          counts ?? {
+            all: 100,
+            favorites: 9,
+            finished: 28,
+            in_queue: 7,
+            not_started: 62,
+            reading: 4,
+            series: 5,
+          },
+        ),
       }),
     ],
     options,
@@ -87,7 +129,7 @@ function renderTwoBookList(options: RenderViewOptions = {}) {
           ],
           totalCount: 2,
         },
-        statusCounts: { all: 2, finished: 0, not_started: 2, reading: 0 },
+        quickCounts: quickCounts({ all: 2, finished: 1, not_started: 1 }),
       }),
     ],
     options,
@@ -117,6 +159,14 @@ function renderView(pages: CustomListDetail[], options: RenderViewOptions = {}) 
 
 function sidebar() {
   return within(screen.getByRole("complementary", { name: "Більше про добірку" }));
+}
+
+function stubMobileViewport() {
+  vi.stubGlobal("matchMedia", () => ({
+    addEventListener: vi.fn(),
+    matches: false,
+    removeEventListener: vi.fn(),
+  }));
 }
 
 function trackUrl() {
@@ -169,8 +219,8 @@ describe("ListDetailsView", () => {
     ]);
 
     expect(screen.getByRole("heading", { level: 1, name: "Мій список" })).toBeInTheDocument();
-    expect(screen.getByText("Позиція 1")).toBeInTheDocument();
-    expect(screen.getByText("Позиція 2")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.getByText("#2")).toBeInTheDocument();
   });
 
   it("shows the empty state when the list has no books", () => {
@@ -198,56 +248,79 @@ describe("ListDetailsView", () => {
     );
   });
 
-  it("renders quick tab counts from statusCounts instead of the loaded books", () => {
-    renderView([
-      makeCustomListDetail({
-        bookCount: 100,
-        books: { items: [makeListBookView({ id: "b1", position: 1, title: "Перша" })] },
-        statusCounts: { all: 100, finished: 28, not_started: 62, reading: 4 },
-      }),
-    ]);
+  it("renders quick filter counts from quickCounts instead of the loaded books", () => {
+    renderQuickFilterList();
 
-    expect(screen.getByRole("button", { name: "Усі 100" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Не розпочаті 62" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Читаю 4" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Прочитані 28" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Усі 100" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Не розпочаті 62" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Читаю 4" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Прочитані 28" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Улюблені 9" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "У черзі 7" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Частина серії 5" })).toBeInTheDocument();
   });
 
-  it("selects a quick tab and clears the explicit statuses", async () => {
+  it("disables an empty quick filter but never the all chip", () => {
+    renderQuickFilterList({ counts: { all: 12, finished: 3 } });
+
+    expect(screen.getByRole("radio", { name: "Усі 12" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "Прочитані 3" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "Улюблені 0" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "У черзі 0" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Частина серії 0" })).toBeDisabled();
+  });
+
+  it("keeps the active quick filter clickable even once it counts nothing", () => {
+    renderQuickFilterList({ counts: { all: 12 }, searchParams: { isFavorite: "true" } });
+
+    expect(screen.getByRole("radio", { name: "Улюблені 0" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "У черзі 0" })).toBeDisabled();
+  });
+
+  it("selects a quick filter and clears the explicit statuses", async () => {
     const { events, onUrlUpdate } = trackUrl();
-    renderView(
-      [
-        makeCustomListDetail({
-          bookCount: 100,
-          books: { items: [makeListBookView({ id: "b1", position: 1, title: "Перша" })] },
-          statusCounts: { all: 100, finished: 28, not_started: 62, reading: 4 },
-        }),
-      ],
-      { onUrlUpdate, searchParams: { status: "reading" } },
-    );
+    renderQuickFilterList({ onUrlUpdate, searchParams: { status: "reading" } });
 
-    const finishedTab = screen.getByRole("button", { name: "Прочитані 28" });
-    expect(finishedTab).toHaveAttribute("aria-pressed", "false");
+    const finished = screen.getByRole("radio", { name: "Прочитані 28" });
+    expect(finished).toHaveAttribute("aria-checked", "false");
 
-    await userEvent.click(finishedTab);
+    await userEvent.click(finished);
 
     const params = lastSearchParams(events);
     expect(params.get("tab")).toBe("finished");
     expect(params.getAll("status")).toEqual([]);
   });
 
-  it("returns the quick tab to all when explicit statuses are applied", async () => {
+  it("swaps one quick filter axis for another instead of stacking them", async () => {
     const { events, onUrlUpdate } = trackUrl();
-    renderView(
-      [
-        makeCustomListDetail({
-          bookCount: 100,
-          books: { items: [makeListBookView({ id: "b1", position: 1, title: "Перша" })] },
-          statusCounts: { all: 100, finished: 28, not_started: 62, reading: 4 },
-        }),
-      ],
-      { onUrlUpdate, searchParams: { tab: "reading" } },
-    );
+    renderQuickFilterList({ hasMemory: true, onUrlUpdate, searchParams: { tab: "reading" } });
+
+    await userEvent.click(screen.getByRole("radio", { name: "Улюблені 9" }));
+    expect(lastSearchParams(events).get("isFavorite")).toBe("true");
+    expect(lastSearchParams(events).get("tab")).toBeNull();
+
+    await userEvent.click(screen.getByRole("radio", { name: "У черзі 7" }));
+    expect(lastSearchParams(events).get("inQueue")).toBe("true");
+    expect(lastSearchParams(events).get("isFavorite")).toBeNull();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Частина серії 5" }));
+    expect(lastSearchParams(events).get("bookType")).toBe("series_part");
+    expect(lastSearchParams(events).get("inQueue")).toBeNull();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Усі 100" }));
+    expect(lastSearchParams(events).get("bookType")).toBeNull();
+  });
+
+  it("highlights the reading chip for the statuses the filters sheet writes", () => {
+    renderQuickFilterList({ searchParams: { status: "reading,rereading" } });
+
+    expect(screen.getByRole("radio", { name: "Читаю 4" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Усі 100" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("returns the quick filter to all when explicit statuses are applied", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+    renderQuickFilterList({ onUrlUpdate, searchParams: { tab: "reading" } });
 
     await userEvent.click(screen.getByRole("button", { name: "Фільтри" }));
     await userEvent.click(screen.getByRole("button", { name: "Прочитано" }));
@@ -264,7 +337,7 @@ describe("ListDetailsView", () => {
         makeCustomListDetail({
           bookCount: 12,
           books: { items: [], totalCount: 0 },
-          statusCounts: { all: 12, finished: 3, not_started: 8, reading: 1 },
+          quickCounts: quickCounts({ all: 12, finished: 3, not_started: 8, reading: 1 }),
         }),
       ],
       { searchParams: { genre: "fantasy", q: "толкін" } },
@@ -280,7 +353,7 @@ describe("ListDetailsView", () => {
         makeCustomListDetail({
           bookCount: 12,
           books: { items: [], totalCount: 0 },
-          statusCounts: { all: 12, finished: 3, not_started: 8, reading: 1 },
+          quickCounts: quickCounts({ all: 12, finished: 3, not_started: 8, reading: 1 }),
         }),
       ],
       { searchParams: { q: "толкін" } },
@@ -351,6 +424,36 @@ describe("ListDetailsView statistics cards", () => {
     expect(screen.queryByText("У черзі читання")).not.toBeInTheDocument();
     expect(screen.queryByText("Є у власності")).not.toBeInTheDocument();
     expect(screen.queryByText("Ще жодної прочитаної книги")).not.toBeInTheDocument();
+  });
+});
+
+describe("ListDetailsView mobile overview", () => {
+  it("condenses the statistics into compact tiles next to the overview trigger", async () => {
+    renderPopulatedList();
+
+    expect(await screen.findByText("Книг")).toBeInTheDocument();
+    expect(screen.getByText("Є вдома")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Огляд добірки" })).toBeInTheDocument();
+  });
+
+  it("moves the sidebar blocks into the overview panel", async () => {
+    stubMobileViewport();
+    respondToRelated = () =>
+      jsonResponse({
+        lists: [makeRelatedListView({ id: "33333333-3333-4333-8333-333333333331", name: "Осінь" })],
+      });
+    renderPopulatedList();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Огляд добірки" }));
+
+    const panel = within(await screen.findByRole("dialog", { name: "Огляд добірки" }));
+
+    expect(panel.getByText("Детальна статистика")).toBeInTheDocument();
+    expect(panel.getByText("Про добірку")).toBeInTheDocument();
+
+    await userEvent.click(panel.getByRole("radio", { name: "Схожі 1" }));
+
+    expect(panel.getByRole("link", { name: /Осінь/ })).toBeInTheDocument();
   });
 });
 
@@ -501,7 +604,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList();
 
     expect(
-      screen.getByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.getByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -514,7 +617,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList({ searchParams: { q: "толкін" } });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).not.toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -527,7 +630,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList({ searchParams: { genre: "fantasy" } });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).not.toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -540,7 +643,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList({ searchParams: { sort: "title_asc" } });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).not.toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -578,7 +681,7 @@ describe("ListDetailsView bulk selection", () => {
             ],
             totalCount: 20,
           },
-          statusCounts: { all: 20, finished: 0, not_started: 20, reading: 0 },
+          quickCounts: quickCounts({ all: 20, not_started: 20 }),
         }),
       ],
       { hasMemory: true },
@@ -602,7 +705,7 @@ describe("ListDetailsView bulk selection", () => {
 
     expect(screen.getByText("Вибрано 1 із 2 завантажених")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Прочитані 0" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Прочитані 1" }));
 
     await waitFor(() =>
       expect(screen.queryByText("Вибрано 1 із 2 завантажених")).not.toBeInTheDocument(),

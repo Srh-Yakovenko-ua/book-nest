@@ -4,7 +4,6 @@ import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
-import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
@@ -21,6 +20,7 @@ import type { UseListsQueryResult } from "../model/use-lists-query";
 import { LIST_SORT_DEFAULT, LIST_SORT_OPTIONS } from "../model/lists-query";
 import { useListsFilterChips } from "../model/use-lists-filter-chips";
 import { ListsAdvancedFilters } from "./lists-advanced-filters";
+import { ListsSortSheet } from "./lists-sort-sheet";
 
 type ListsToolbarProps = {
   counter?: string;
@@ -44,7 +44,6 @@ export function ListsToolbar({
   const chips = useListsFilterChips({ setState, state });
   const t = useTranslations("lists.catalog");
   const tSort = useTranslations("lists.catalog.sort");
-  const tSortMobile = useTranslations("lists.catalog.sort.mobile");
   const tView = useTranslations("lists.catalog.view");
   const tCommon = useTranslations("common");
 
@@ -63,20 +62,10 @@ export function ListsToolbar({
         </div>
 
         <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2.5">
-          <MobileSortSheet
+          <ListsSortSheet
             className="sm:hidden"
-            closeLabel={tSortMobile("close")}
-            groups={[
-              {
-                key: "sort",
-                options: LIST_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
-              },
-            ]}
-            id="lists-sort"
             label={t("sort.label")}
             onChange={onSortChange}
-            title={tSortMobile("title")}
-            triggerLabel={tSortMobile(`trigger.${state.sort}`)}
             value={state.sort}
           />
 

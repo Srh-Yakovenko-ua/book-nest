@@ -5,6 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { SeriesControllerSearchAttention } from "./seriesControllerSearchAttention";
+import type { SeriesControllerSearchCompletenessItem } from "./seriesControllerSearchCompletenessItem";
+import type { SeriesControllerSearchReading } from "./seriesControllerSearchReading";
+import type { SeriesControllerSearchSort } from "./seriesControllerSearchSort";
+import type { SeriesControllerSearchStatus } from "./seriesControllerSearchStatus";
+import type { SeriesControllerSearchTab } from "./seriesControllerSearchTab";
 
 export type SeriesControllerSearchParams = {
   /**
@@ -21,9 +27,42 @@ export type SeriesControllerSearchParams = {
    * @maxLength 100
    */
   search?: string;
+  attention?: (typeof SeriesControllerSearchAttention)[keyof typeof SeriesControllerSearchAttention];
   /**
    * @maxItems 100
    * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
   authorIds?: string[];
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  booksMax?: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  booksMin?: number;
+  /**
+   * @maxItems 100
+   */
+  completeness?: SeriesControllerSearchCompletenessItem[];
+  /**
+   * @maxItems 100
+   */
+  genres?: string[];
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  progressMax?: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  progressMin?: number;
+  reading?: SeriesControllerSearchReading;
+  sort?: SeriesControllerSearchSort;
+  status?: SeriesControllerSearchStatus;
+  tab?: SeriesControllerSearchTab;
 };

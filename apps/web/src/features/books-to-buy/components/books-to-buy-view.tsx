@@ -1,87 +1,72 @@
 "use client";
 
-import type { Nullable, WishlistCurrencyEstimate, WishlistSummaryView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
-import type { BooksControllerWishlistParams } from "@/shared/api/generated/model";
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
-import { useGenres } from "@/features/books";
+import { LibraryActiveFilters, useGenres } from "@/features/books";
+import { useTagsSearch } from "@/features/books/api/use-tags-search";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { useRouter } from "@/i18n/navigation";
 
-import type { WishlistFilters, WishlistSort, WishlistViewMode } from "../model/books-to-buy-derive";
-
 import { useWishlist } from "../api/use-wishlist";
-import {
-  buildWishlistFilterOptions,
-  deriveWishlistBestOffers,
-  deriveWishlistBooks,
-  WISHLIST_FILTERS_DEFAULT,
-  WISHLIST_SORT_DEFAULT,
-} from "../model/books-to-buy-derive";
-import { formatStorePrice } from "../model/format-store-price";
+import { useWishlistFacets } from "../api/use-wishlist-facets";
+import { deriveWishlistBestOffers } from "../model/books-to-buy-derive";
+import { useWishlistFilterChips } from "../model/use-wishlist-filter-chips";
+import { useWishlistQuery } from "../model/use-wishlist-query";
 import { BooksToBuyContent } from "./books-to-buy-content";
 import { BooksToBuyOverviewPanel } from "./books-to-buy-overview-panel";
 import { BooksToBuySidebar } from "./books-to-buy-sidebar";
 import { BooksToBuyToolbar, BooksToBuyToolbarSkeleton } from "./books-to-buy-toolbar";
 
-const WISHLIST_MOBILE_TILE_COUNT = 3;
-
-type WishlistSummaryKey =
-  | "average"
-  | "best"
-  | "books"
-  | "missingFromSeries"
-  | "nextInSeries"
-  | "stores"
-  | "total"
-  | "waitingLong";
+type WishlistSummaryKey = "books" | "missingFromSeries" | "nextInSeries" | "waitingLong";
 
 export function BooksToBuyView() {
   const t = useTranslations("booksToBuy");
   const tUnit = useTranslations("books.library.summary");
-  const locale = useLocale();
   const router = useRouter();
-  const [filters, setFilters] = useState<WishlistFilters>(WISHLIST_FILTERS_DEFAULT);
-  const [filterOptions, setFilterOptions] = useState(() =>
-    buildWishlistFilterOptions({ books: [], genreNameByKey: new Map(), locale }),
-  );
-  const [sort, setSort] = useState<WishlistSort>(WISHLIST_SORT_DEFAULT);
-  const [view, setView] = useState<WishlistViewMode>("grid");
-  const { data, isError, isPending, refetch } = useWishlist(toWishlistParams(filters));
+  const wishlist = useWishlistQuery();
+  const { data, isError, isPending, refetch } = useWishlist(wishlist.listParams);
+  const facets = useWishlistFacets();
   const genres = useGenres();
+  const tags = useTagsSearch("");
+  const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
 
   const allBooks = data?.books ?? [];
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const responseFilterOptions = buildWishlistFilterOptions({
-    books: allBooks,
-    genreNameByKey,
-    locale,
-  });
-  useEffect(() => {
-    setFilterOptions((current) => mergeFilterOptions(current, responseFilterOptions, locale));
-  }, [data, genres.data, locale]);
-  const { visibleBooks } = deriveWishlistBooks({
-    books: allBooks,
-    filters,
-    genreNameByKey,
-    locale,
-    sort,
+  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
+
+  function rememberEntity(id: string, name: string) {
+    setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
+  }
+
+  function resolveEntityName(id: string): string | undefined {
+    return entityLabels[id] ?? tagNameById.get(id);
+  }
+
+  const storeOptions = (facets.data?.stores ?? []).map((store) => ({
+    label: store.name,
+    value: store.name,
+  }));
+  const filterChips = useWishlistFilterChips({
+    genreName: (key) => genreNameByKey.get(key) ?? key,
+    resolveEntityName,
+    setState: wishlist.setState,
+    state: wishlist.state,
   });
 
   const onAddBook = () => router.push("/books/new");
   const showOverview = !isError && (isPending || allBooks.length > 0);
+  const hasAnyBooks = allBooks.length > 0 || wishlist.hasActiveFilters || wishlist.hasActiveSearch;
 
   const bestOffers = deriveWishlistBestOffers(allBooks);
   const summary = data?.summary;
-  const estimate = primaryEstimate(summary);
   const summaryLabels = (key: WishlistSummaryKey) => ({
     label: t(`summary.mobile.detailed.${key}`),
     mobileLabels: {
@@ -89,17 +74,6 @@ export function BooksToBuyView() {
       detailed: t(`summary.mobile.detailed.${key}`),
     },
   });
-  const estimateMicrofact =
-    estimate === null || !spansSeveralCurrencies({ estimate, summary })
-      ? undefined
-      : t("sidebar.stats.currencyGroup", {
-          count: estimate.booksCount,
-          currency: estimate.currency,
-        });
-  const price = (pick: (estimate: WishlistCurrencyEstimate) => number) =>
-    estimate === null
-      ? t("summary.empty")
-      : formatStorePrice({ currency: estimate.currency, locale, price: pick(estimate) });
 
   const counts = summary?.counts;
   const bookUnit = (count: number) => tUnit("unitBook", { count });
@@ -148,36 +122,6 @@ export function BooksToBuyView() {
     },
   ];
 
-  const priceCards: LibrarySummaryCard[] = [
-    {
-      ...summaryLabels("stores"),
-      icon: "store",
-      iconTone: "info",
-      value: summary?.trackedStoresCount ?? 0,
-    },
-    {
-      ...summaryLabels("best"),
-      icon: "tag",
-      iconTone: "success",
-      microfact: estimateMicrofact,
-      value: price((current) => current.best),
-    },
-    {
-      ...summaryLabels("average"),
-      icon: "chart",
-      iconTone: "genre",
-      microfact: estimateMicrofact,
-      value: price((current) => Math.round(current.average)),
-    },
-    {
-      ...summaryLabels("total"),
-      icon: "wallet",
-      iconTone: "ink",
-      microfact: estimateMicrofact,
-      value: price((current) => current.total),
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-4 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1 sm:flex-row sm:items-end sm:justify-between">
@@ -206,32 +150,37 @@ export function BooksToBuyView() {
             <BooksToBuyOverviewPanel
               bestOffers={bestOffers}
               isLoading={isPending}
-              onShowBestOffers={() => setSort("price_asc")}
-              summaryCards={[...countCards, ...priceCards]}
+              summaryCards={countCards}
             />
           }
-          mobileCards={countCards.slice(0, WISHLIST_MOBILE_TILE_COUNT)}
           mobileLayout="compact"
         />
       ) : null}
 
       <ToolbarSlot
-        hasAnyBooks={allBooks.length > 0 || hasActiveWishlistFilters(filters)}
+        hasAnyBooks={hasAnyBooks}
         isError={isError}
         isPending={isPending}
         toolbar={
           <BooksToBuyToolbar
+            activeFilterCount={wishlist.activeFilterCount}
+            activeFilters={
+              <LibraryActiveFilters chips={filterChips} onClearAll={wishlist.clearAll} />
+            }
             counterLabel={t("counter", {
-              shown: visibleBooks.length,
-              total: data?.totalBooksCount ?? visibleBooks.length,
+              shown: allBooks.length,
+              total: data?.totalBooksCount ?? allBooks.length,
             })}
-            filters={filters}
-            onFiltersChange={setFilters}
-            onSortChange={setSort}
-            onViewChange={setView}
-            options={filterOptions}
-            sort={sort}
-            view={view}
+            onRememberEntity={rememberEntity}
+            onSearchChange={wishlist.setSearch}
+            onSortChange={wishlist.setSort}
+            onViewChange={wishlist.setView}
+            resolveEntityName={resolveEntityName}
+            setState={wishlist.setState}
+            sort={wishlist.sort}
+            state={wishlist.state}
+            storeOptions={storeOptions}
+            view={wishlist.view}
           />
         }
       />
@@ -239,77 +188,21 @@ export function BooksToBuyView() {
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <BooksToBuyContent
-            books={visibleBooks}
-            hasAnyBooks={allBooks.length > 0 || hasActiveWishlistFilters(filters)}
+            books={allBooks}
+            hasAnyBooks={hasAnyBooks}
             isError={isError}
             isPending={isPending}
             onAddBook={onAddBook}
-            onClearFilters={() => setFilters(WISHLIST_FILTERS_DEFAULT)}
+            onClearFilters={wishlist.clearAll}
             onOpenLibrary={() => router.push("/books")}
             onRetry={() => void refetch()}
-            view={view}
+            view={wishlist.view}
           />
         </div>
-        {showOverview ? (
-          <BooksToBuySidebar
-            bestOffers={bestOffers}
-            isLoading={isPending}
-            onShowBestOffers={() => setSort("price_asc")}
-          />
-        ) : null}
+        {showOverview ? <BooksToBuySidebar bestOffers={bestOffers} isLoading={isPending} /> : null}
       </div>
     </div>
   );
-}
-
-function hasActiveWishlistFilters(filters: WishlistFilters): boolean {
-  return (
-    filters.search.trim() !== "" ||
-    filters.link !== "all" ||
-    filters.storeName !== null ||
-    filters.publisherId !== null ||
-    filters.genreKey !== null ||
-    filters.tagId !== null
-  );
-}
-
-function mergeFilterOptions(
-  current: ReturnType<typeof buildWishlistFilterOptions>,
-  next: ReturnType<typeof buildWishlistFilterOptions>,
-  locale: string,
-): ReturnType<typeof buildWishlistFilterOptions> {
-  const merge = (left: typeof current.genres, right: typeof current.genres) =>
-    [...new Map([...left, ...right].map((option) => [option.value, option])).values()].sort(
-      (a, b) => a.label.localeCompare(b.label, locale),
-    );
-  return {
-    genres: merge(current.genres, next.genres),
-    publishers: merge(current.publishers, next.publishers),
-    stores: merge(current.stores, next.stores),
-    tags: merge(current.tags, next.tags),
-  };
-}
-
-function primaryEstimate(
-  summary: undefined | WishlistSummaryView,
-): Nullable<WishlistCurrencyEstimate> {
-  const [first, ...rest] = summary?.estimates ?? [];
-  if (first === undefined) return null;
-  return rest.reduce(
-    (leader, candidate) => (candidate.booksCount > leader.booksCount ? candidate : leader),
-    first,
-  );
-}
-
-function spansSeveralCurrencies({
-  estimate,
-  summary,
-}: {
-  estimate: WishlistCurrencyEstimate;
-  summary: undefined | WishlistSummaryView;
-}): boolean {
-  if (summary === undefined) return false;
-  return summary.estimates.length > 1 || estimate.booksCount < summary.booksCount;
 }
 
 function ToolbarSlot({
@@ -327,15 +220,4 @@ function ToolbarSlot({
   if (isPending) return <BooksToBuyToolbarSkeleton />;
   if (!hasAnyBooks) return null;
   return toolbar;
-}
-
-function toWishlistParams(filters: WishlistFilters): BooksControllerWishlistParams {
-  return {
-    genre: filters.genreKey === null ? undefined : [filters.genreKey],
-    link: filters.link === "all" ? undefined : filters.link,
-    publisher: filters.publisherId === null ? undefined : [filters.publisherId],
-    q: filters.search.trim() || undefined,
-    store: filters.storeName === null ? undefined : [filters.storeName],
-    tag: filters.tagId === null ? undefined : [filters.tagId],
-  };
 }

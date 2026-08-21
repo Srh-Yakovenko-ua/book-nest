@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { subMilliseconds } from "date-fns";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -834,7 +834,7 @@ describe("POST /api/auth/forgot-password", () => {
       cooldownSeconds: env.resendCooldownSeconds,
       status: "reset_email_sent",
     });
-    expect(sentVerifications).toHaveLength(1);
+    await vi.waitFor(() => expect(sentVerifications).toHaveLength(1));
     expect(sentVerifications.at(-1)?.to).toBe(validBody.email);
     expect(sentResets).toHaveLength(0);
     expect(resetTokenCount).toBe(0);

@@ -11,7 +11,7 @@ import type {
   ListDetailQueryState,
   ListDetailViewMode,
 } from "./list-detail-query";
-import type { ListDetailTab } from "./list-detail-tabs";
+import type { ListQuickFilterKey } from "./list-quick-filters";
 
 import {
   hasActiveListDetailFilters,
@@ -21,7 +21,7 @@ import {
   listDetailQueryParsers,
   toListDetailParams,
 } from "./list-detail-query";
-import { activeListDetailTab, listDetailTabPatch } from "./list-detail-tabs";
+import { activeListQuickFilter, listQuickFilterPatch } from "./list-quick-filters";
 
 export type UseListDetailQueryResult = {
   clearAll: () => void;
@@ -31,13 +31,13 @@ export type UseListDetailQueryResult = {
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   params: ListDetailBooksParams;
-  selectTab: (tab: ListDetailTab) => void;
+  quickFilter: Nullable<ListQuickFilterKey>;
+  selectQuickFilter: (key: ListQuickFilterKey) => void;
   setSearch: (value: string) => void;
   setSort: (value: ListBookSortOption) => void;
   setState: ReturnType<typeof useQueryStates<typeof listDetailQueryParsers>>[1];
   setView: (value: ListDetailViewMode) => void;
   state: ListDetailQueryState;
-  tab: Nullable<ListDetailTab>;
 };
 
 export function useListDetailQuery(): UseListDetailQueryResult {
@@ -51,12 +51,12 @@ export function useListDetailQuery(): UseListDetailQueryResult {
     hasActiveFilters: hasActiveListDetailFilters(state),
     hasActiveSearch: hasActiveListDetailSearch(state),
     params: toListDetailParams(state),
-    selectTab: (tab) => void setState(listDetailTabPatch(tab)),
+    quickFilter: activeListQuickFilter(state),
+    selectQuickFilter: (key) => void setState(listQuickFilterPatch(key)),
     setSearch: (value) => void setState({ q: value === "" ? null : value }),
     setSort: (value) => void setState({ sort: value }),
     setState,
     setView: (value) => void setState({ view: value }),
     state,
-    tab: activeListDetailTab(state),
   };
 }

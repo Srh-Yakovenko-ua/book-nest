@@ -1,6 +1,7 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, SeriesSearchQuery } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -11,6 +12,8 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BOOK_DELIVERY_SUMMARY } from "../../delivery/index.js";
+import { buildSeriesCountQuery, buildSeriesPageQuery } from "./series-search-sql.js";
 
 export type CreateSeriesData = {
   description: Nullable<string>;
@@ -64,28 +67,40 @@ const seriesWithBookCountArgs = {
 
 export type SeriesWithBookCount = Prisma.SeriesGetPayload<typeof seriesWithBookCountArgs>;
 
-const seriesDetailsArgs = {
-  include: {
-    _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
-    authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
-    books: {
-      include: {
-        authors: { include: { author: true }, orderBy: { position: "asc" } },
-        coverMedia: true,
-        deliveries: { orderBy: { createdAt: "desc" } },
-        loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
-        publisher: true,
-        readingProgress: {
-          select: { currentPage: true, finishedAt: true, rating: true, startedAt: true },
-        },
-        tags: { include: { tag: true } },
-      },
-      where: SOFT_DELETE_SCOPE.active,
-    },
-  },
-} satisfies Prisma.SeriesDefaultArgs;
+export type SeriesWithDetails = Prisma.SeriesGetPayload<ReturnType<typeof seriesDetailsArgs>>;
 
-export type SeriesWithDetails = Prisma.SeriesGetPayload<typeof seriesDetailsArgs>;
+function seriesDetailsArgs(userId: string) {
+  return {
+    include: {
+      _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
+      authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
+      books: {
+        include: {
+          authors: { include: { author: true }, orderBy: { position: "asc" } },
+          coverMedia: true,
+          loans: {
+            include: { loanContact: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            where: { status: "active" },
+          },
+          orderItems: {
+            include: { order: true, shipment: { include: { deliveryService: true } } },
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: BOOK_DELIVERY_SUMMARY.itemsTake,
+            where: { order: { userId } },
+          },
+          publisher: true,
+          readingProgress: {
+            select: { currentPage: true, finishedAt: true, rating: true, startedAt: true },
+          },
+          tags: { include: { tag: true } },
+        },
+        where: SOFT_DELETE_SCOPE.active,
+      },
+    },
+  } satisfies Prisma.SeriesDefaultArgs;
+}
 
 const favoriteContinuationBookArgs = {
   select: {
@@ -112,23 +127,13 @@ export type FavoriteContinuationBookRow = Prisma.BookGetPayload<
 >;
 
 type CountSeriesInput = {
-  authorIds: string[] | undefined;
-  query: string | undefined;
+  query: SeriesSearchQuery;
   userId: string;
 };
 
-type OwnedWhereInput = {
-  authorIds: string[] | undefined;
-  query: string | undefined;
-  userId: string;
-};
-
-type SearchSeriesInput = {
-  authorIds: string[] | undefined;
-  query: string | undefined;
+type SearchSeriesInput = CountSeriesInput & {
   skip: number;
   take: number;
-  userId: string;
 };
 
 const trashedSeriesSelect = {
@@ -160,8 +165,10 @@ export class SeriesRepository {
     });
   }
 
-  countOwned({ authorIds, query, userId }: CountSeriesInput): Promise<number> {
-    return this.prisma.series.count({ where: buildOwnedWhere({ authorIds, query, userId }) });
+  async countOwned({ query, userId }: CountSeriesInput): Promise<number> {
+    const rows = await this.prisma.$queryRaw(buildSeriesCountQuery({ query, userId }));
+    const [row] = z.array(z.object({ total: z.number().int() })).parse(rows);
+    return row?.total ?? 0;
   }
 
   countTrashed({ userId }: { userId: string }): Promise<number> {
@@ -249,7 +256,7 @@ export class SeriesRepository {
   findOwnedDetailsById(userId: string, id: string): Promise<Nullable<SeriesWithDetails>> {
     return this.prisma.series.findFirst({
       where: { ...SOFT_DELETE_SCOPE.active, id, userId },
-      ...seriesDetailsArgs,
+      ...seriesDetailsArgs(userId),
     });
   }
 
@@ -325,19 +332,30 @@ export class SeriesRepository {
     return restored.count;
   }
 
-  searchOwned({
-    authorIds,
+  async searchOwned({
     query,
     skip,
     take,
     userId,
   }: SearchSeriesInput): Promise<SeriesWithBookCount[]> {
-    return this.prisma.series.findMany({
-      orderBy: { name: "asc" },
-      skip,
-      take,
-      where: buildOwnedWhere({ authorIds, query, userId }),
+    const rows = await this.prisma.$queryRaw(buildSeriesPageQuery({ query, skip, take, userId }));
+    const orderedIds = z
+      .array(z.object({ id: z.uuid() }))
+      .parse(rows)
+      .map((row) => row.id);
+    if (orderedIds.length === 0) {
+      return [];
+    }
+
+    const series = await this.prisma.series.findMany({
+      where: { id: { in: orderedIds } },
       ...seriesWithBookCountArgs,
+    });
+    const seriesById = new Map(series.map((row) => [row.id, row]));
+
+    return orderedIds.flatMap((id) => {
+      const row = seriesById.get(id);
+      return row === undefined ? [] : [row];
     });
   }
 
@@ -387,28 +405,4 @@ export class SeriesRepository {
       });
     });
   }
-}
-
-function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.SeriesWhereInput {
-  const where: Prisma.SeriesWhereInput = { ...SOFT_DELETE_SCOPE.active, userId };
-
-  if (query !== undefined && query.length > 0) {
-    where.name = { contains: query, mode: "insensitive" };
-  }
-
-  if (authorIds !== undefined && authorIds.length > 0) {
-    where.OR = [
-      {
-        books: {
-          some: { ...SOFT_DELETE_SCOPE.active, authors: { some: { authorId: { in: authorIds } } } },
-        },
-      },
-      {
-        authors: { some: { authorId: { in: authorIds } } },
-        books: { none: SOFT_DELETE_SCOPE.active },
-      },
-    ];
-  }
-
-  return where;
 }
