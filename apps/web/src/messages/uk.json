@@ -4894,7 +4894,8 @@
       },
       "people": {
         "title": "У кого найбільше книг",
-        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "filter": "Показати книги: {name}"
       },
       "upcoming": {
         "title": "Найближчі повернення",

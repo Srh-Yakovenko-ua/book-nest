@@ -66,6 +66,7 @@ export function LoansOverviewPanel({
             longHeldLoans={longHeldLoans}
             people={{
               ...people,
+              onPersonOpen: (contactId) => panel.closeThen(() => people.onPersonOpen(contactId)),
               onPersonSelect: (personName) =>
                 panel.closeThen(() => people.onPersonSelect(personName)),
             }}

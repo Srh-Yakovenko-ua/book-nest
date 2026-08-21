@@ -17,6 +17,7 @@ import type { LoanTerm } from "../model/loans-derive";
 
 import { toLoanRowBook } from "../model/loan-library-book";
 import { formatLoanDate, loanTerm } from "../model/loans-derive";
+import { LoanContactNameButton } from "./contact/loan-contact-name-button";
 import { LoanActionsMenu } from "./loan-actions-menu";
 import { LoanStatusBadge } from "./loan-status-badge";
 
@@ -98,21 +99,12 @@ function LoanPeopleZone({
   onOpenContact: () => void;
 }) {
   const tRow = useTranslations("loans.row");
-  const tContact = useTranslations("loans.contactDrawer");
   const loanDate = formatLoanDate(loan.loanDate);
 
   return (
     <div className="flex shrink-0 flex-col gap-1 @xl/book-row:w-40">
       <InfoLine label={isBorrowed ? tRow("personBorrowed") : tRow("personLent")}>
-        <button
-          aria-label={tContact("openContact", { name: loan.personName })}
-          className="max-w-full cursor-pointer truncate rounded-sm text-left underline-offset-4 transition-colors outline-none hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-          data-loan-contact-trigger={loan.id}
-          onClick={onOpenContact}
-          type="button"
-        >
-          {loan.personName}
-        </button>
+        <LoanContactNameButton name={loan.personName} onOpen={onOpenContact} />
       </InfoLine>
       {loan.contact === null ? null : <InfoLine label={tRow("contact")}>{loan.contact}</InfoLine>}
       {loanDate === null ? null : (

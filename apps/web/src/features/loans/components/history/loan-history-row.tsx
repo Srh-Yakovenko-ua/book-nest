@@ -21,11 +21,13 @@ import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 import { formatLoanDate } from "../../model/loans-derive";
+import { LoanContactNameButton } from "../contact/loan-contact-name-button";
 
 type LoanHistoryRowProps = {
   loan: LoanHistoryListItemView;
   onCorrectDate: () => void;
   onEditNote: () => void;
+  onOpenContact: () => void;
   onOpenDetails: () => void;
 };
 
@@ -52,6 +54,7 @@ export function LoanHistoryRow({
   loan,
   onCorrectDate,
   onEditNote,
+  onOpenContact,
   onOpenDetails,
 }: LoanHistoryRowProps) {
   const t = useTranslations("loans.history");
@@ -108,7 +111,11 @@ export function LoanHistoryRow({
             <span className="shrink-0 text-muted-foreground">
               {t(isBorrowed ? "row.personBorrowed" : "row.personLent")}
             </span>
-            <span className="truncate font-medium text-foreground/90">{loan.personName}</span>
+            <LoanContactNameButton
+              className="relative z-10 font-medium text-foreground/90"
+              name={loan.personName}
+              onOpen={onOpenContact}
+            />
           </p>
         </div>
 

@@ -111,11 +111,7 @@ describe("LoansView", () => {
     renderLoans("lent_to_someone");
 
     const card = await findLoanCard("Дюна");
-    await userEvent.click(
-      within(card).getByRole("button", {
-        name: contactDrawer.openContact.replace("{name}", "Оля"),
-      }),
-    );
+    await userEvent.click(within(card).getByRole("button", { name: openContactLabel("Оля") }));
 
     const drawer = await screen.findByRole("dialog");
     expect(await within(drawer).findByRole("heading", { name: "Оля" })).toBeInTheDocument();
@@ -789,7 +785,7 @@ describe("LoansView", () => {
     renderLoans("lent_to_someone");
 
     const block = await findSidebarBlock(people.title);
-    const rows = within(block).getAllByRole("button");
+    const rows = within(block).getAllByRole("listitem");
 
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent("Олена");
@@ -798,6 +794,34 @@ describe("LoansView", () => {
     expect(rows[1]).toHaveTextContent("2 книги");
     expect(rows[2]).toHaveTextContent("Ірина");
     expect(rows[2]).toHaveTextContent("1 книга");
+    expect(
+      within(block).getByRole("button", { name: openContactLabel("Олена") }),
+    ).toBeInTheDocument();
+    expect(
+      within(block).getByRole("button", { name: personFilterLabel("Олена") }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the person card from the name in the people block", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        topPeople: [{ bookCount: 3, contactId: CONTACT_IDS.olya, covers: [], personName: "Оля" }],
+        totalCount: 3,
+      },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const block = await findSidebarBlock(people.title);
+    const filterToggle = within(block).getByRole("button", { name: personFilterLabel("Оля") });
+
+    await userEvent.click(within(block).getByRole("button", { name: openContactLabel("Оля") }));
+
+    const drawer = await screen.findByRole("dialog");
+    expect(await within(drawer).findByRole("heading", { name: "Оля" })).toBeInTheDocument();
+    expect(requestedUrls).toContain(`/api/loans/contacts/${CONTACT_IDS.olya}`);
+    expect(filterToggle).toHaveAttribute("aria-pressed", "false");
   });
 
   it("filters the list by a person when the row is clicked, and clears it on a second click", async () => {
@@ -814,22 +838,22 @@ describe("LoansView", () => {
     renderLoans("lent_to_someone");
 
     const block = await findSidebarBlock(people.title);
-    const row = within(block).getByRole("button", { name: /Олена/ });
+    const filterToggle = within(block).getByRole("button", { name: personFilterLabel("Олена") });
 
-    await userEvent.click(row);
+    await userEvent.click(filterToggle);
     await waitFor(() => {
       expect(requestedUrls.some((url) => url.includes(`contactId=${CONTACT_IDS.olena}`))).toBe(
         true,
       );
     });
     await waitFor(() => {
-      expect(row).toHaveAttribute("aria-pressed", "true");
+      expect(filterToggle).toHaveAttribute("aria-pressed", "true");
     });
 
     requestedUrls.length = 0;
-    await userEvent.click(row);
+    await userEvent.click(filterToggle);
     await waitFor(() => {
-      expect(row).toHaveAttribute("aria-pressed", "false");
+      expect(filterToggle).toHaveAttribute("aria-pressed", "false");
     });
     expect(requestedUrls.every((url) => !url.includes("contactId="))).toBe(true);
   });
@@ -852,7 +876,7 @@ describe("LoansView", () => {
     expect(listUrl()).not.toContain("contactId=");
 
     const block = await findSidebarBlock(people.title);
-    expect(within(block).getByRole("button", { name: /Олена/ })).toHaveAttribute(
+    expect(within(block).getByRole("button", { name: personFilterLabel("Олена") })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -1149,10 +1173,18 @@ function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSu
   );
 }
 
+function openContactLabel(name: string): string {
+  return contactDrawer.openContact.replace("{name}", name);
+}
+
 async function openLoanMenu(title: string): Promise<void> {
   const card = await findLoanCard(title);
   const [trigger] = within(card).getAllByRole("button", { name: messages.loans.actions.menu });
   await userEvent.click(trigger ?? card);
+}
+
+function personFilterLabel(name: string): string {
+  return people.filter.replace("{name}", name);
 }
 
 function renderLoans(type: LoanType, searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {

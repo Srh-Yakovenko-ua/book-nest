@@ -19,6 +19,7 @@ type LoanHistoryListProps = {
   onClearFilters: () => void;
   onCorrectDate: (loanId: string) => void;
   onEditNote: (loanId: string) => void;
+  onOpenContact: (contactId: string) => void;
   onOpenDetails: (loanId: string) => void;
   onRetry: () => void;
 };
@@ -31,6 +32,7 @@ export function LoanHistoryList({
   onClearFilters,
   onCorrectDate,
   onEditNote,
+  onOpenContact,
   onOpenDetails,
   onRetry,
 }: LoanHistoryListProps) {
@@ -94,6 +96,7 @@ export function LoanHistoryList({
               loan={loan}
               onCorrectDate={() => onCorrectDate(loan.id)}
               onEditNote={() => onEditNote(loan.id)}
+              onOpenContact={() => onOpenContact(loan.loanContactId)}
               onOpenDetails={() => onOpenDetails(loan.id)}
             />
           </li>

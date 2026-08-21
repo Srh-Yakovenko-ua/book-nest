@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { LoanHistoryDetailView, LoanHistoryOverviewView, Nullable } from "@app/shared";
+import type {
+  LoanContactView,
+  LoanHistoryDetailView,
+  LoanHistoryOverviewView,
+  Nullable,
+} from "@app/shared";
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
@@ -34,6 +39,7 @@ const CONTACT_IDS = {
 const TODAY = new Date(2026, 7, 14, 9, 0, 0);
 
 const copy = messages.loans.history;
+const contactDrawer = messages.loans.contactDrawer;
 
 const requests: RecordedRequest[] = [];
 
@@ -538,6 +544,21 @@ describe("LoanHistoryView detail sheet", () => {
     expect(lastDetailUrl()).toBe("/api/loans/history/loan-dune");
   });
 
+  it("opens the person card from the name in a row, leaving the details closed", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    await userEvent.click(within(row).getByRole("button", { name: openContactLabel("Олена") }));
+
+    expect(await screen.findByRole("dialog", { name: "Олена" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+    expect(requests.some((entry) => entry.url === `/api/loans/contacts/${CONTACT_IDS.olena}`)).toBe(
+      true,
+    );
+  });
+
   it("leaves the details closed when the reader follows the book title", async () => {
     mockHistory([historyItem()]);
 
@@ -671,11 +692,31 @@ describe("LoanHistoryView analytics sidebar", () => {
     renderHistory();
 
     const block = await findSidebarBlock(copy.sidebar.people.title);
-    const rows = within(block).getAllByRole("button");
+    const rows = within(block).getAllByRole("listitem");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("Олена");
     expect(rows[0]).toHaveTextContent("8 позик");
     expect(rows[0]).toHaveTextContent("5 передано · 3 позичено");
+    expect(
+      within(block).getByRole("button", { name: openContactLabel("Олена") }),
+    ).toBeInTheDocument();
+    expect(
+      within(block).getByRole("button", { name: personFilterLabel("Олена") }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the person card from the people block instead of filtering", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.people.title);
+    const filterToggle = within(block).getByRole("button", { name: personFilterLabel("Олена") });
+
+    await userEvent.click(within(block).getByRole("button", { name: openContactLabel("Олена") }));
+
+    expect(await screen.findByRole("dialog", { name: "Олена" })).toBeInTheDocument();
+    expect(filterToggle).toHaveAttribute("aria-pressed", "false");
   });
 
   it("filters the list by the person the reader clicks", async () => {
@@ -877,6 +918,18 @@ function bookCover(): NonNullable<HistoryFixture["book"]["cover"]> {
   };
 }
 
+function contactView(): LoanContactView {
+  return {
+    archivedAt: null,
+    contact: null,
+    createdAt: "2026-01-01T10:00:00.000Z",
+    id: CONTACT_IDS.olena,
+    loanCount: 8,
+    name: "Олена",
+    updatedAt: "2026-01-01T10:00:00.000Z",
+  };
+}
+
 async function correctReturnedDate(): Promise<void> {
   await openCorrectionDialog(copy.actions.correctDate);
   const dialog = await screen.findByRole("dialog", { name: copy.correctDate.title });
@@ -1006,6 +1059,10 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
         return Promise.resolve(jsonResponse(defaultUserProfileSettings));
       }
 
+      if (url.includes("/api/loans/contacts/")) {
+        return Promise.resolve(jsonResponse(contactView()));
+      }
+
       if (url.includes("/api/loans/history/overview")) {
         return Promise.resolve(jsonResponse(options.overview ?? OVERVIEW));
       }
@@ -1041,6 +1098,12 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
         );
       }
 
+      if (url.split("?")[0] === "/api/loans") {
+        return Promise.resolve(
+          jsonResponse({ items: [], page: 1, pagesCount: 1, pageSize, totalCount: 0 }),
+        );
+      }
+
       if (method === "PATCH" && server.correctionError !== null) {
         return Promise.resolve(
           jsonResponse(server.correctionError.body, server.correctionError.status),
@@ -1052,6 +1115,10 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
       return Promise.resolve(jsonResponse(loan));
     }),
   );
+}
+
+function openContactLabel(name: string): string {
+  return contactDrawer.openContact.replace("{name}", name);
 }
 
 async function openCorrectionDialog(action: string) {

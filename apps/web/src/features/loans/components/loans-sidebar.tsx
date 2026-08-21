@@ -17,6 +17,7 @@ import type { UiIconName } from "@/components/icons";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { todayIso } from "@/features/books/model/reading-progress";
@@ -44,6 +45,7 @@ export type LoansAttention = {
 export type LoansPeople = {
   activeContactId: string;
   items: LoanPersonSummary[];
+  onPersonOpen: (contactId: string) => void;
   onPersonSelect: (contactId: string) => void;
 };
 
@@ -267,9 +269,11 @@ function LoansPeopleBlock({
   activeContactId,
   isLoading,
   items,
+  onPersonOpen,
   onPersonSelect,
 }: LoansPeople & { isLoading: boolean }) {
   const t = useTranslations("loans.sidebar.people");
+  const tContact = useTranslations("loans.contactDrawer");
 
   if (isLoading) {
     return (
@@ -284,29 +288,47 @@ function LoansPeopleBlock({
   return (
     <SidebarBlock title={t("title")}>
       <ul className="-mx-1.5 flex flex-col gap-0.5">
-        {items.map((person) => (
-          <li key={person.contactId}>
-            <button
-              aria-pressed={person.contactId === activeContactId}
-              className={cn(
-                "group/person flex w-full cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
-                person.contactId === activeContactId && "bg-secondary",
-              )}
-              onClick={() => onPersonSelect(person.contactId)}
-              type="button"
-            >
-              <PersonCovers covers={person.covers} />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm font-medium text-ink transition-colors group-hover/person:text-primary">
-                  {person.personName}
-                </span>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {t("books", { count: person.bookCount })}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
+        {items.map((person) => {
+          const isActive = person.contactId === activeContactId;
+
+          return (
+            <li key={person.contactId}>
+              <div
+                className={cn(
+                  "flex items-center gap-0.5 rounded-md transition-colors",
+                  isActive && "bg-secondary",
+                )}
+              >
+                <button
+                  aria-label={tContact("openContact", { name: person.personName })}
+                  className="group/person flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
+                  onClick={() => onPersonOpen(person.contactId)}
+                  type="button"
+                >
+                  <PersonCovers covers={person.covers} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium text-ink transition-colors group-hover/person:text-primary">
+                      {person.personName}
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {t("books", { count: person.bookCount })}
+                    </span>
+                  </span>
+                </button>
+                <Button
+                  aria-label={t("filter", { name: person.personName })}
+                  aria-pressed={isActive}
+                  className="size-7 shrink-0 text-muted-foreground"
+                  onClick={() => onPersonSelect(person.contactId)}
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  <UiIcon name="funnel" size={16} />
+                </Button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </SidebarBlock>
   );
