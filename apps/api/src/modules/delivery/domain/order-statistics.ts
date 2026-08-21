@@ -1,73 +1,57 @@
 import type {
   BookOrderDerivedStatus,
+  BookOrderStatisticsComparison,
+  BookOrderStatisticsLanded,
   BookOrderStatisticsMonth,
-  BookOrderStatisticsStore,
+  BookOrderStatisticsRecordScope,
+  BookOrderStatisticsSnapshot,
   BookOrderStatisticsSummary,
   BookOrderStatisticsTopOrder,
+  BookOrderStatisticsTopOrdersByCurrency,
   BookOrderStatisticsView,
   Currency,
   CurrencyAverage,
+  CurrencyDelta,
   CurrencyTotal,
   Nullable,
-  ShipmentStatus,
 } from "@app/shared";
 
-import {
-  BookOrderDerivedStatusSchema,
-  collapseSpaces,
-  CurrencySchema,
-  DEFAULT_CURRENCY,
-  isActiveShipmentStatus,
-} from "@app/shared";
+import { CurrencySchema } from "@app/shared";
+
+import type {
+  AmountAccumulator,
+  ClassifiedOrder,
+  OrderStatisticsRecord,
+} from "./statistics-scope.js";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
-import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
-import { computeBookOrderDerivedStatus } from "./order-derived-status.js";
+import { buildLandedCostSummary } from "./landed-cost.js";
+import { buildOrderDaily } from "./statistics-calendar.js";
+import { computeStatisticsCosts } from "./statistics-costs.js";
+import { toCurrencyDeltas, toNumericDelta } from "./statistics-delta.js";
+import { computeBookOrderLifecycle } from "./statistics-lifecycle.js";
+import { buildSpendingPulse } from "./statistics-pulse.js";
+import { buildPurchaseRecords } from "./statistics-records.js";
+import {
+  addItemPrices,
+  addOrderAmount,
+  averagesFromAmounts,
+  classifyOrder,
+  countActiveShipments,
+  countItems,
+  isActiveItem,
+  isReceivedItem,
+  ORDER_ENUMS,
+  totalsFromAmounts,
+} from "./statistics-scope.js";
+import { buildStoreScorecards, buildStoreSpendGrowth } from "./statistics-stores.js";
 
 export const ORDER_STATISTICS_TOP_LIMIT = 10;
 
 const MONTH_KEY_LENGTH = 7;
-const CURRENCY_ORDER: readonly Currency[] = CurrencySchema.options;
-const DERIVED_STATUS = BookOrderDerivedStatusSchema.enum;
 
-export type OrderStatisticsItemRecord = {
-  bookId: string;
-  bookTitle: string;
-  cancelledAt: Nullable<Date>;
-  price: Nullable<number>;
-  receivedAt: Nullable<Date>;
-  shipmentId: Nullable<string>;
-};
-
-export type OrderStatisticsRecord = {
-  currency: Nullable<Currency>;
-  id: string;
-  items: OrderStatisticsItemRecord[];
-  orderDate: Nullable<Date>;
-  orderNumber: Nullable<string>;
-  shipments: OrderStatisticsShipmentRecord[];
-  storeName: string;
-  totalAmount: Nullable<number>;
-};
-
-export type OrderStatisticsShipmentRecord = {
-  cancelledAt: Nullable<Date>;
-  id: string;
-  receivedAt: Nullable<Date>;
-  status: ShipmentStatus;
-};
-
-type AmountAccumulator = Map<Currency, { count: number; sum: number }>;
-
-type ClassifiedOrder = {
-  amount: Nullable<number>;
-  countedItems: OrderStatisticsItemRecord[];
-  currency: Currency;
-  derivedStatus: BookOrderDerivedStatus;
-  isIncluded: boolean;
-  record: OrderStatisticsRecord;
-};
+type BookOrderStatisticsAggregates = Omit<BookOrderStatisticsView, "meta">;
 
 type MonthBucket = {
   booksCount: number;
@@ -80,73 +64,73 @@ type PricedOrder = {
   totalAmount: number;
 };
 
-type StoreBucket = {
-  booksCount: number;
-  itemPrices: AmountAccumulator;
-  orderAmounts: AmountAccumulator;
-  ordersCount: number;
-  store: string;
-};
-
 export function computeBookOrderStatistics({
   includeCancelled,
+  previousRecords,
   records,
+  scope,
   topLimit,
 }: {
   includeCancelled: boolean;
+  previousRecords: Nullable<OrderStatisticsRecord[]>;
   records: OrderStatisticsRecord[];
+  scope: BookOrderStatisticsRecordScope;
   topLimit: number;
-}): BookOrderStatisticsView {
+}): BookOrderStatisticsAggregates {
   const orders = records.map((record) => classifyOrder({ includeCancelled, record }));
   const includedOrders = orders.filter((order) => order.isIncluded);
+  const previousOrders =
+    previousRecords === null
+      ? null
+      : previousRecords.map((record) => classifyOrder({ includeCancelled, record }));
+  const previousIncludedOrders =
+    previousOrders === null ? [] : previousOrders.filter((order) => order.isIncluded);
+  const summary = buildOrderSummary({ includedOrders, orders });
+  const monthly = buildOrderMonthly(includedOrders);
+  const byStore = buildStoreScorecards(includedOrders);
+  const costs = computeStatisticsCosts(includedOrders);
+  const landedCost = buildLandedCostSummary(includedOrders);
+  const topOrdersByCurrency = buildTopBookOrdersByCurrency({ includedOrders, topLimit });
+  const comparison = buildComparison({ previousIncludedOrders, previousOrders, summary });
+  const purchaseRecords = buildPurchaseRecords({
+    byStore,
+    includedOrders,
+    monthly,
+    scope,
+    topOrdersByCurrency,
+  });
 
   return {
-    byStore: buildOrderByStore(includedOrders),
-    monthly: buildOrderMonthly(includedOrders),
-    summary: buildOrderSummary({ includedOrders, orders }),
-    topOrders: buildTopBookOrders({ includedOrders, topLimit }),
+    bestValueStoreByCurrency: purchaseRecords.bestValueStoreByCurrency,
+    byStore,
+    comparison,
+    costs,
+    daily: buildOrderDaily(includedOrders),
+    landedCost,
+    lifecycle: computeBookOrderLifecycle({ includeCancelled, orders, previousOrders }),
+    monthly,
+    pulse: buildSpendingPulse({
+      comparison,
+      costs,
+      landedCostDeltas: comparisonLandedDeltas({
+        landedCost,
+        previousIncludedOrders,
+        previousOrders,
+      }),
+      landedCoverage: landedCost,
+      recordMonthByCurrency: purchaseRecords.recordMonthByCurrency,
+      scope,
+      storeGrowth:
+        previousOrders === null
+          ? []
+          : buildStoreSpendGrowth({ current: includedOrders, previous: previousIncludedOrders }),
+    }),
+    records: purchaseRecords,
+    snapshot: buildSnapshot(includedOrders),
+    summary,
+    topOrders: topOrdersByCurrency.flatMap((group) => group.orders),
+    topOrdersByCurrency,
   };
-}
-
-function addAmount({
-  accumulator,
-  amount,
-  currency,
-}: {
-  accumulator: AmountAccumulator;
-  amount: number;
-  currency: Currency;
-}): void {
-  const current = accumulator.get(currency) ?? { count: 0, sum: 0 };
-  accumulator.set(currency, { count: current.count + 1, sum: current.sum + amount });
-}
-
-function addItemPrices({
-  accumulator,
-  order,
-}: {
-  accumulator: AmountAccumulator;
-  order: ClassifiedOrder;
-}): void {
-  for (const item of order.countedItems) {
-    if (item.price === null) {
-      continue;
-    }
-    addAmount({ accumulator, amount: item.price, currency: order.currency });
-  }
-}
-
-function addOrderAmount({
-  accumulator,
-  order,
-}: {
-  accumulator: AmountAccumulator;
-  order: ClassifiedOrder;
-}): void {
-  if (order.amount === null) {
-    return;
-  }
-  addAmount({ accumulator, amount: order.amount, currency: order.currency });
 }
 
 function amountsForDerivedStatus({
@@ -161,68 +145,74 @@ function amountsForDerivedStatus({
   status: BookOrderDerivedStatus;
 }): AmountAccumulator {
   switch (status) {
-    case DERIVED_STATUS.active:
-    case DERIVED_STATUS.partially_received:
-    case DERIVED_STATUS.partially_shipped:
-    case DERIVED_STATUS.shipped:
+    case ORDER_ENUMS.derivedStatus.active:
+    case ORDER_ENUMS.derivedStatus.partially_received:
+    case ORDER_ENUMS.derivedStatus.partially_shipped:
+    case ORDER_ENUMS.derivedStatus.shipped:
       return active;
-    case DERIVED_STATUS.cancelled:
+    case ORDER_ENUMS.derivedStatus.cancelled:
       return cancelled;
-    case DERIVED_STATUS.received:
+    case ORDER_ENUMS.derivedStatus.received:
       return received;
     default:
       return assertNever(status);
   }
 }
 
-function averagesFromAmounts(accumulator: AmountAccumulator): CurrencyAverage[] {
-  const result: CurrencyAverage[] = [];
-  for (const currency of CURRENCY_ORDER) {
-    const amounts = accumulator.get(currency);
-    if (amounts === undefined) {
-      continue;
-    }
-    result.push({ average: amounts.sum / amounts.count, currency });
+function averageBooksPerOrder(includedOrders: ClassifiedOrder[]): Nullable<number> {
+  if (includedOrders.length === 0) {
+    return null;
   }
-  return result;
+  const books = includedOrders.reduce((count, order) => count + order.countedItems.length, 0);
+  return books / includedOrders.length;
 }
 
-function buildOrderByStore(orders: ClassifiedOrder[]): BookOrderStatisticsStore[] {
-  const buckets = new Map<string, StoreBucket>();
-  for (const order of orders) {
-    const store = collapseSpaces(order.record.storeName);
-    if (store.length === 0) {
-      continue;
-    }
-    const key = store.toLowerCase();
-    const bucket = buckets.get(key) ?? {
-      booksCount: 0,
-      itemPrices: new Map(),
-      orderAmounts: new Map(),
-      ordersCount: 0,
-      store,
-    };
-    bucket.booksCount += order.countedItems.length;
-    bucket.ordersCount += 1;
-    addOrderAmount({ accumulator: bucket.orderAmounts, order });
-    addItemPrices({ accumulator: bucket.itemPrices, order });
-    buckets.set(key, bucket);
+function buildComparison({
+  previousIncludedOrders,
+  previousOrders,
+  summary,
+}: {
+  previousIncludedOrders: ClassifiedOrder[];
+  previousOrders: Nullable<ClassifiedOrder[]>;
+  summary: BookOrderStatisticsSummary;
+}): Nullable<BookOrderStatisticsComparison> {
+  if (previousOrders === null) {
+    return null;
   }
 
-  return [...buckets.values()]
-    .map((bucket) => ({
-      averageBookPriceByCurrency: averagesFromAmounts(bucket.itemPrices),
-      averageOrderAmountByCurrency: averagesFromAmounts(bucket.orderAmounts),
-      booksCount: bucket.booksCount,
-      ordersCount: bucket.ordersCount,
-      store: bucket.store,
-      totalsByCurrency: totalsFromAmounts(bucket.orderAmounts),
-    }))
-    .sort(
-      (left, right) =>
-        right.ordersCount - left.ordersCount ||
-        UKRAINIAN_COLLATION.compare(left.store, right.store),
-    );
+  const previous = buildOrderSummary({
+    includedOrders: previousIncludedOrders,
+    orders: previousOrders,
+  });
+
+  return {
+    averageBookPriceByCurrency: toCurrencyDeltas({
+      current: toTotals(summary.averageBookPriceByCurrency),
+      previous: toTotals(previous.averageBookPriceByCurrency),
+    }),
+    averageBooksPerOrder: toNumericDelta({
+      current: summary.averageBooksPerOrder,
+      previous: previous.averageBooksPerOrder,
+    }),
+    averageOrderAmountByCurrency: toCurrencyDeltas({
+      current: toTotals(summary.averageOrderAmountByCurrency),
+      previous: toTotals(previous.averageOrderAmountByCurrency),
+    }),
+    booksCount: toNumericDelta({ current: summary.booksCount, previous: previous.booksCount }),
+    ordersCount: toNumericDelta({ current: summary.ordersCount, previous: previous.ordersCount }),
+    receivedBooksCount: toNumericDelta({
+      current: summary.receivedBooksCount,
+      previous: previous.receivedBooksCount,
+    }),
+    shipmentsCount: toNumericDelta({
+      current: summary.shipmentsCount,
+      previous: previous.shipmentsCount,
+    }),
+    totalsByCurrency: toCurrencyDeltas({
+      current: summary.totalsByCurrency,
+      previous: previous.totalsByCurrency,
+    }),
+  };
 }
 
 function buildOrderMonthly(orders: ClassifiedOrder[]): BookOrderStatisticsMonth[] {
@@ -285,10 +275,12 @@ function buildOrderSummary({
     activeShipmentsCount: countActiveShipments(includedOrders),
     activeTotalsByCurrency: totalsFromAmounts(active),
     averageBookPriceByCurrency: averagesFromAmounts(bookPrices),
+    averageBooksPerOrder: averageBooksPerOrder(includedOrders),
     averageOrderAmountByCurrency: averagesFromAmounts(orderAmounts),
     booksCount: includedOrders.reduce((count, order) => count + order.countedItems.length, 0),
-    cancelledOrdersCount: orders.filter((order) => order.derivedStatus === DERIVED_STATUS.cancelled)
-      .length,
+    cancelledOrdersCount: orders.filter(
+      (order) => order.derivedStatus === ORDER_ENUMS.derivedStatus.cancelled,
+    ).length,
     cancelledTotalsByCurrency: totalsFromAmounts(cancelled),
     ordersCount: includedOrders.length,
     receivedBooksCount: countItems({ orders: includedOrders, predicate: isReceivedItem }),
@@ -301,65 +293,52 @@ function buildOrderSummary({
   };
 }
 
-function buildTopBookOrders({
+function buildSnapshot(includedOrders: ClassifiedOrder[]): BookOrderStatisticsSnapshot {
+  const activeAmounts: AmountAccumulator = new Map();
+  const activeOrders = includedOrders.filter((order) =>
+    order.countedItems.some((item) => isActiveItem(item)),
+  );
+  for (const order of activeOrders) {
+    addOrderAmount({ accumulator: activeAmounts, order });
+  }
+
+  return {
+    activeBooksCount: countItems({ orders: includedOrders, predicate: isActiveItem }),
+    activeOrdersCount: activeOrders.length,
+    activeShipmentsCount: countActiveShipments(includedOrders),
+    activeTotalsByCurrency: totalsFromAmounts(activeAmounts),
+  };
+}
+
+function buildTopBookOrdersByCurrency({
   includedOrders,
   topLimit,
 }: {
   includedOrders: ClassifiedOrder[];
   topLimit: number;
-}): BookOrderStatisticsTopOrder[] {
-  const pricedOrders = includedOrders.flatMap((order) =>
-    order.amount === null ? [] : [{ order, totalAmount: order.amount }],
-  );
+}): BookOrderStatisticsTopOrdersByCurrency {
+  const buckets = new Map<Currency, PricedOrder[]>();
+  for (const order of includedOrders) {
+    if (order.amount === null) {
+      continue;
+    }
+    const bucket = buckets.get(order.currency) ?? [];
+    bucket.push({ order, totalAmount: order.amount });
+    buckets.set(order.currency, bucket);
+  }
 
-  return pricedOrders
-    .sort(compareTopBookOrders)
-    .slice(0, topLimit)
-    .map(({ order, totalAmount }) => ({
-      booksCount: order.countedItems.length,
-      currency: order.currency,
-      derivedStatus: order.derivedStatus,
-      id: order.record.id,
-      orderDate: toNullableIsoDate(order.record.orderDate),
-      orderNumber: order.record.orderNumber,
-      storeName: order.record.storeName,
-      totalAmount,
-    }));
-}
-
-function carriesActiveItem({
-  order,
-  shipment,
-}: {
-  order: ClassifiedOrder;
-  shipment: OrderStatisticsShipmentRecord;
-}): boolean {
-  return order.record.items.some((item) => item.shipmentId === shipment.id && isActiveItem(item));
-}
-
-function classifyOrder({
-  includeCancelled,
-  record,
-}: {
-  includeCancelled: boolean;
-  record: OrderStatisticsRecord;
-}): ClassifiedOrder {
-  const derivedStatus = computeBookOrderDerivedStatus({
-    items: record.items,
-    shipments: record.shipments,
+  return CurrencySchema.options.flatMap((currency) => {
+    const bucket = buckets.get(currency);
+    if (bucket === undefined) {
+      return [];
+    }
+    return [
+      {
+        currency,
+        orders: bucket.sort(compareTopBookOrders).slice(0, topLimit).map(toTopBookOrder),
+      },
+    ];
   });
-  const countedItems = includeCancelled
-    ? record.items
-    : record.items.filter((item) => item.cancelledAt === null);
-
-  return {
-    amount: resolveOrderAmount({ countedItems, totalAmount: record.totalAmount }),
-    countedItems,
-    currency: effectiveCurrency(record.currency),
-    derivedStatus,
-    isIncluded: includeCancelled || derivedStatus !== DERIVED_STATUS.cancelled,
-    record,
-  };
 }
 
 function compareTopBookOrders(left: PricedOrder, right: PricedOrder): number {
@@ -374,63 +353,48 @@ function compareTopBookOrders(left: PricedOrder, right: PricedOrder): number {
   return left.order.record.id.localeCompare(right.order.record.id);
 }
 
-function countActiveShipments(orders: ClassifiedOrder[]): number {
-  return orders.reduce(
-    (count, order) =>
-      count +
-      order.record.shipments.filter(
-        (shipment) =>
-          isActiveShipmentStatus(shipment.status) && carriesActiveItem({ order, shipment }),
-      ).length,
-    0,
+function comparisonLandedDeltas({
+  landedCost,
+  previousIncludedOrders,
+  previousOrders,
+}: {
+  landedCost: BookOrderStatisticsLanded;
+  previousIncludedOrders: ClassifiedOrder[];
+  previousOrders: Nullable<ClassifiedOrder[]>;
+}): CurrencyDelta[] {
+  if (previousOrders === null) {
+    return [];
+  }
+
+  const previous = buildLandedCostSummary(previousIncludedOrders);
+
+  return toCurrencyDeltas({
+    current: toLandedTotals(landedCost),
+    previous: toLandedTotals(previous),
+  });
+}
+
+function toLandedTotals(landed: BookOrderStatisticsLanded): CurrencyTotal[] {
+  return landed.flatMap((row) =>
+    row.averageLandedBookCost === null
+      ? []
+      : [{ currency: row.currency, total: row.averageLandedBookCost }],
   );
 }
 
-function countItems({
-  orders,
-  predicate,
-}: {
-  orders: ClassifiedOrder[];
-  predicate: (item: OrderStatisticsItemRecord) => boolean;
-}): number {
-  return orders.reduce((count, order) => count + order.countedItems.filter(predicate).length, 0);
+function toTopBookOrder({ order, totalAmount }: PricedOrder): BookOrderStatisticsTopOrder {
+  return {
+    booksCount: order.countedItems.length,
+    currency: order.currency,
+    derivedStatus: order.derivedStatus,
+    id: order.record.id,
+    orderDate: toNullableIsoDate(order.record.orderDate),
+    orderNumber: order.record.orderNumber,
+    storeName: order.record.storeName,
+    totalAmount,
+  };
 }
 
-function effectiveCurrency(currency: Nullable<Currency>): Currency {
-  return currency ?? DEFAULT_CURRENCY;
-}
-
-function isActiveItem(item: OrderStatisticsItemRecord): boolean {
-  return item.cancelledAt === null && item.receivedAt === null;
-}
-
-function isReceivedItem(item: OrderStatisticsItemRecord): boolean {
-  return item.receivedAt !== null;
-}
-
-function resolveOrderAmount({
-  countedItems,
-  totalAmount,
-}: {
-  countedItems: OrderStatisticsItemRecord[];
-  totalAmount: Nullable<number>;
-}): Nullable<number> {
-  if (totalAmount !== null) {
-    return totalAmount;
-  }
-
-  const prices = countedItems.flatMap((item) => (item.price === null ? [] : [item.price]));
-  return prices.length === 0 ? null : prices.reduce((sum, price) => sum + price, 0);
-}
-
-function totalsFromAmounts(accumulator: AmountAccumulator): CurrencyTotal[] {
-  const result: CurrencyTotal[] = [];
-  for (const currency of CURRENCY_ORDER) {
-    const amounts = accumulator.get(currency);
-    if (amounts === undefined) {
-      continue;
-    }
-    result.push({ currency, total: amounts.sum });
-  }
-  return result;
+function toTotals(averages: readonly CurrencyAverage[]): CurrencyTotal[] {
+  return averages.map((row) => ({ currency: row.currency, total: row.average }));
 }

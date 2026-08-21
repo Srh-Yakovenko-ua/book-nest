@@ -1,6 +1,13 @@
-import type { Currency, InTransitFilter, InTransitSort, Nullable } from "@app/shared";
+import type {
+  ActiveMoneyAgeBucket,
+  Currency,
+  InTransitFilter,
+  InTransitSort,
+  Nullable,
+} from "@app/shared";
 
 import {
+  ACTIVE_MONEY_AGE_BUCKET_DAYS,
   DEFAULT_CURRENCY,
   IN_TRANSIT_EXPECTED_DATE_ORDER,
   ShipmentStatusSchema,
@@ -10,7 +17,7 @@ import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
-import { toIsoDate } from "../../../core/iso-date.js";
+import { addDaysToIsoDate, toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { IN_TRANSIT_ATTENTION_CATEGORIES } from "../domain/delivery-summary.js";
 
@@ -46,6 +53,7 @@ export type InTransitCategorySql = {
 };
 
 export type InTransitFilterInput = {
+  ageBucket: ActiveMoneyAgeBucket | undefined;
   bounds: DeliveryDateBounds;
   currency: Currency | undefined;
   filter: InTransitFilter;
@@ -61,6 +69,13 @@ export type IsoDateBounds = {
   weekEndIso: string;
   weekStartIso: string;
 };
+
+type AgeBucketOrderDateBounds = {
+  newestOrderDateIso: string;
+  oldestOrderDateIso: Nullable<string>;
+};
+
+type DatedActiveMoneyAgeBucket = keyof typeof ACTIVE_MONEY_AGE_BUCKET_DAYS;
 
 type ExpectedDateSort = keyof typeof IN_TRANSIT_EXPECTED_DATE_ORDER;
 
@@ -109,6 +124,7 @@ export function attentionSql(categories: InTransitCategorySql): Prisma.Sql {
 }
 
 export function buildInTransitConditions({
+  ageBucket,
   bounds,
   currency,
   filter,
@@ -117,6 +133,7 @@ export function buildInTransitConditions({
   store,
   userId,
 }: InTransitFilterInput): Prisma.Sql {
+  const isoBounds = toIsoBounds(bounds);
   const conditions: Prisma.Sql[] = [
     Prisma.sql`book_order.user_id = ${userId}::uuid`,
     ACTIVE_ITEM_SQL,
@@ -134,8 +151,12 @@ export function buildInTransitConditions({
     conditions.push(currencySql(currency));
   }
 
+  if (ageBucket !== undefined) {
+    conditions.push(ageBucketSql({ ageBucket, todayIso: isoBounds.todayIso }));
+  }
+
   const filterCondition = inTransitFilterSql({
-    categories: inTransitCategorySql(toIsoBounds(bounds)),
+    categories: inTransitCategorySql(isoBounds),
     filter,
   });
   if (filterCondition !== null) {
@@ -233,6 +254,44 @@ export function toIsoBounds({
   };
 }
 
+function ageBucketOrderDateBounds({
+  ageBucket,
+  todayIso,
+}: {
+  ageBucket: DatedActiveMoneyAgeBucket;
+  todayIso: string;
+}): AgeBucketOrderDateBounds {
+  const { maxDays, minDays } = ACTIVE_MONEY_AGE_BUCKET_DAYS[ageBucket];
+
+  return {
+    newestOrderDateIso: isoDateDaysAgo({ days: minDays, todayIso }),
+    oldestOrderDateIso: maxDays === null ? null : isoDateDaysAgo({ days: maxDays, todayIso }),
+  };
+}
+
+function ageBucketSql({
+  ageBucket,
+  todayIso,
+}: {
+  ageBucket: ActiveMoneyAgeBucket;
+  todayIso: string;
+}): Prisma.Sql {
+  if (!isDatedAgeBucket(ageBucket)) {
+    return Prisma.sql`book_order.order_date IS NULL`;
+  }
+
+  const { newestOrderDateIso, oldestOrderDateIso } = ageBucketOrderDateBounds({
+    ageBucket,
+    todayIso,
+  });
+
+  if (oldestOrderDateIso === null) {
+    return Prisma.sql`book_order.order_date <= ${newestOrderDateIso}::date`;
+  }
+
+  return Prisma.sql`book_order.order_date BETWEEN ${oldestOrderDateIso}::date AND ${newestOrderDateIso}::date`;
+}
+
 function inTransitFilterSql({
   categories,
   filter,
@@ -274,8 +333,16 @@ function inTransitFilterSql({
   }
 }
 
+function isDatedAgeBucket(ageBucket: ActiveMoneyAgeBucket): ageBucket is DatedActiveMoneyAgeBucket {
+  return Object.hasOwn(ACTIVE_MONEY_AGE_BUCKET_DAYS, ageBucket);
+}
+
 function isExpectedDateSort(sort: InTransitSort): sort is ExpectedDateSort {
   return Object.hasOwn(IN_TRANSIT_EXPECTED_DATE_ORDER, sort);
+}
+
+function isoDateDaysAgo({ days, todayIso }: { days: number; todayIso: string }): string {
+  return addDaysToIsoDate(todayIso, -days);
 }
 
 function plainInTransitOrderSql(sort: Exclude<InTransitSort, ExpectedDateSort>): Prisma.Sql {

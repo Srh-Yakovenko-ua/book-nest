@@ -4,7 +4,7 @@ import type {
   OrderStatisticsItemRecord,
   OrderStatisticsRecord,
   OrderStatisticsShipmentRecord,
-} from "./order-statistics.js";
+} from "./statistics-scope.js";
 
 import { computeBookOrderStatistics, ORDER_STATISTICS_TOP_LIMIT } from "./order-statistics.js";
 
@@ -13,10 +13,12 @@ const APRIL_ORDER_DATE = new Date("2026-04-11T00:00:00.000Z");
 const CANCELLED_AT = new Date("2026-03-06T09:00:00.000Z");
 
 function makeItem(overrides: Partial<OrderStatisticsItemRecord> = {}): OrderStatisticsItemRecord {
+  const bookId = overrides.bookId ?? "book-1";
   return {
-    bookId: "book-1",
+    bookId,
     bookTitle: "Book 1",
     cancelledAt: null,
+    id: `item-${bookId}`,
     price: null,
     receivedAt: null,
     shipmentId: null,
@@ -27,6 +29,8 @@ function makeItem(overrides: Partial<OrderStatisticsItemRecord> = {}): OrderStat
 function makeOrder(overrides: Partial<OrderStatisticsRecord> = {}): OrderStatisticsRecord {
   return {
     currency: "UAH",
+    deliveryPrice: null,
+    discount: null,
     id: "order-1",
     items: [],
     orderDate: MARCH_ORDER_DATE,
@@ -59,7 +63,13 @@ function statisticsOf({
 }): ReturnType<typeof computeBookOrderStatistics> {
   return computeBookOrderStatistics({
     includeCancelled,
+    previousRecords: null,
     records,
+    scope: {
+      isPeriodFiltered: false,
+      isTruncated: false,
+      period: { from: null, to: null },
+    },
     topLimit: ORDER_STATISTICS_TOP_LIMIT,
   });
 }
@@ -227,8 +237,21 @@ describe("computeBookOrderStatistics by store", () => {
     expect(byStore).toEqual([
       {
         averageBookPriceByCurrency: [],
+        averageBooksPerOrder: 2,
+        averageLandedBookCostByCurrency: [],
         averageOrderAmountByCurrency: [],
         booksCount: 2,
+        deliveryTotalByCurrency: [{ currency: "UAH", total: 0 }],
+        discountTotalByCurrency: [{ currency: "UAH", total: 0 }],
+        landedCoverageByCurrency: [
+          {
+            countedBooksCount: 2,
+            coveragePercent: 0,
+            currency: "UAH",
+            eligibleBooksCount: 0,
+          },
+        ],
+        landedEligibleBooksCountByCurrency: [{ count: 0, currency: "UAH" }],
         ordersCount: 1,
         store: "Книгарня Є",
         totalsByCurrency: [],
@@ -364,6 +387,62 @@ describe("computeBookOrderStatistics top orders", () => {
 
     expect(topOrders.map((order) => order.id)).toEqual(["order-large", "order-small"]);
   });
+
+  it("never ranks a smaller USD order against a larger UAH one", () => {
+    const { topOrdersByCurrency } = statisticsOf({
+      records: [
+        makeOrder({ currency: "UAH", id: "order-uah", items: [makeItem()], totalAmount: 9000 }),
+        makeOrder({
+          currency: "USD",
+          id: "order-usd",
+          items: [makeItem({ bookId: "book-2" })],
+          totalAmount: 100,
+        }),
+      ],
+    });
+
+    expect(
+      topOrdersByCurrency.map((group) => ({
+        currency: group.currency,
+        ids: group.orders.map((order) => order.id),
+      })),
+    ).toEqual([
+      { currency: "UAH", ids: ["order-uah"] },
+      { currency: "USD", ids: ["order-usd"] },
+    ]);
+  });
+
+  it("sorts each currency group on its own scale", () => {
+    const { topOrdersByCurrency } = statisticsOf({
+      records: [
+        makeOrder({ currency: "UAH", id: "uah-small", items: [makeItem()], totalAmount: 300 }),
+        makeOrder({ currency: "UAH", id: "uah-big", items: [makeItem()], totalAmount: 8000 }),
+        makeOrder({ currency: "USD", id: "usd-small", items: [makeItem()], totalAmount: 40 }),
+        makeOrder({ currency: "USD", id: "usd-big", items: [makeItem()], totalAmount: 250 }),
+      ],
+    });
+
+    expect(topOrdersByCurrency.map((group) => group.orders.map((order) => order.id))).toEqual([
+      ["uah-big", "uah-small"],
+      ["usd-big", "usd-small"],
+    ]);
+  });
+
+  it("keeps an order with no effective total out of every currency group", () => {
+    const { topOrdersByCurrency } = statisticsOf({
+      records: [
+        makeOrder({ currency: "USD", id: "usd-priced", items: [makeItem()], totalAmount: 40 }),
+        makeOrder({ currency: "USD", id: "usd-priceless", items: [makeItem()] }),
+      ],
+    });
+
+    expect(topOrdersByCurrency).toEqual([
+      {
+        currency: "USD",
+        orders: [expect.objectContaining({ id: "usd-priced" })],
+      },
+    ]);
+  });
 });
 
 describe("computeBookOrderStatistics falls back to book prices when an order has no total", () => {
@@ -436,6 +515,160 @@ describe("computeBookOrderStatistics falls back to book prices when an order has
     }).toEqual({
       excluded: [{ currency: "UAH", total: 320 }],
       included: [{ currency: "UAH", total: 500 }],
+    });
+  });
+});
+
+describe("computeBookOrderStatistics counts delivery price and discount into the total", () => {
+  it("adds the delivery price and takes the discount off the sum of the book prices", () => {
+    const { summary } = statisticsOf({
+      records: [
+        makeOrder({
+          deliveryPrice: 100,
+          discount: 80,
+          id: "order-with-delivery",
+          items: [
+            makeItem({ bookId: "book-a", price: 300 }),
+            makeItem({ bookId: "book-b", price: 500 }),
+          ],
+        }),
+      ],
+    });
+
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 820 }]);
+  });
+
+  it("carries the delivery price and the discount into the store, month and top breakdowns", () => {
+    const { byStore, monthly, topOrders } = statisticsOf({
+      records: [
+        makeOrder({
+          deliveryPrice: 100,
+          discount: 80,
+          id: "order-with-delivery",
+          items: [
+            makeItem({ bookId: "book-a", price: 300 }),
+            makeItem({ bookId: "book-b", price: 500 }),
+          ],
+        }),
+      ],
+    });
+
+    expect({
+      month: monthly.map((bucket) => bucket.totalsByCurrency),
+      store: byStore.map((bucket) => bucket.totalsByCurrency),
+      top: topOrders.map((order) => order.totalAmount),
+    }).toEqual({
+      month: [[{ currency: "UAH", total: 820 }]],
+      store: [[{ currency: "UAH", total: 820 }]],
+      top: [820],
+    });
+  });
+
+  it("leaves a cancelled book out of the priced part while still charging delivery", () => {
+    const records = [
+      makeOrder({
+        deliveryPrice: 100,
+        discount: 80,
+        id: "order-part-cancelled-with-delivery",
+        items: [
+          makeItem({ bookId: "book-a", price: 300 }),
+          makeItem({ bookId: "book-b", cancelledAt: CANCELLED_AT, price: 500 }),
+        ],
+        shipments: [makeShipment({ id: "s-1" })],
+      }),
+    ];
+
+    expect({
+      excluded: statisticsOf({ records }).summary.totalsByCurrency,
+      included: statisticsOf({ includeCancelled: true, records }).summary.totalsByCurrency,
+    }).toEqual({
+      excluded: [{ currency: "UAH", total: 320 }],
+      included: [{ currency: "UAH", total: 820 }],
+    });
+  });
+
+  it("keeps the explicit order total, delivery and discount included", () => {
+    const { summary } = statisticsOf({
+      records: [
+        makeOrder({
+          deliveryPrice: 100,
+          discount: 80,
+          id: "order-with-explicit-total",
+          items: [makeItem({ bookId: "book-a", price: 300 })],
+          totalAmount: 900,
+        }),
+      ],
+    });
+
+    expect(summary.totalsByCurrency).toEqual([{ currency: "UAH", total: 900 }]);
+  });
+
+  it("refuses to invent a total when only some of the books carry a price", () => {
+    const { summary, topOrders } = statisticsOf({
+      records: [
+        makeOrder({
+          deliveryPrice: 100,
+          id: "order-half-priced",
+          items: [makeItem({ bookId: "book-a", price: 300 }), makeItem({ bookId: "book-b" })],
+        }),
+      ],
+    });
+
+    expect({ ids: topOrders.map((order) => order.id), totals: summary.totalsByCurrency }).toEqual({
+      ids: [],
+      totals: [],
+    });
+  });
+});
+
+describe("computeBookOrderStatistics with no book left in scope", () => {
+  it("keeps an order with no book out of every total, its delivery price and all", () => {
+    const { byStore, summary, topOrders } = statisticsOf({
+      records: [
+        makeOrder({ deliveryPrice: 100, id: "order-empty", items: [] }),
+        makeOrder({ id: "order-real", items: [makeItem({ bookId: "book-a", price: 200 })] }),
+      ],
+    });
+
+    expect({
+      averages: summary.averageOrderAmountByCurrency,
+      ids: topOrders.map((order) => order.id),
+      store: byStore.map((bucket) => bucket.totalsByCurrency),
+      totals: summary.totalsByCurrency,
+    }).toEqual({
+      averages: [{ average: 200, currency: "UAH" }],
+      ids: ["order-real"],
+      store: [[{ currency: "UAH", total: 200 }]],
+      totals: [{ currency: "UAH", total: 200 }],
+    });
+  });
+
+  it("leaves an order whose every book is cancelled out of the totals and the ranking", () => {
+    const { summary, topOrders } = statisticsOf({
+      records: [
+        makeOrder({
+          deliveryPrice: 100,
+          id: "order-all-cancelled",
+          items: [makeItem({ bookId: "book-a", cancelledAt: CANCELLED_AT, price: 500 })],
+          shipments: [makeShipment({ cancelledAt: CANCELLED_AT, id: "s-1", status: "cancelled" })],
+        }),
+      ],
+    });
+
+    expect({ ids: topOrders.map((order) => order.id), totals: summary.totalsByCurrency }).toEqual({
+      ids: [],
+      totals: [],
+    });
+  });
+
+  it("still honours the explicit total of an order left with no book in scope", () => {
+    const { summary, topOrders } = statisticsOf({
+      records: [makeOrder({ deliveryPrice: 100, id: "order-empty", items: [], totalAmount: 400 })],
+    });
+
+    expect({ ids: topOrders.map((order) => order.id), totals: summary.totalsByCurrency }).toEqual({
+      ids: ["order-empty"],
+      totals: [{ currency: "UAH", total: 400 }],
     });
   });
 });

@@ -50,6 +50,7 @@ export class DeliveryReadController {
   })
   @ApiOperation({ summary: "List the books the current user has on their way" })
   @ApiQuery({ name: "filter", required: false })
+  @ApiQuery({ name: "ageBucket", required: false })
   @ApiQuery({ name: "store", required: false })
   @ApiQuery({ name: "service", required: false })
   @ApiQuery({ name: "currency", required: false })

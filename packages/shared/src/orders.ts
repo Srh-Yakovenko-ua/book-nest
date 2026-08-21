@@ -17,6 +17,7 @@ import {
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import {
   CancelReasonSchema,
+  CountSchema,
   EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
   isExpectedNotBeforeOrder,
   isoDay,
@@ -30,6 +31,21 @@ import {
   QueryBooleanWithDefaultSchema,
   TrackingNumberSchema,
 } from "./internal.js";
+import {
+  ActiveMoneyAgeBucketSchema,
+  BookOrderStatisticsBestValueStoreByCurrencySchema,
+  BookOrderStatisticsCompareModeSchema,
+  BookOrderStatisticsComparisonSchema,
+  BookOrderStatisticsCostsSchema,
+  BookOrderStatisticsDailySchema,
+  BookOrderStatisticsLandedCoverageSchema,
+  BookOrderStatisticsLandedSchema,
+  BookOrderStatisticsMetaSchema,
+  BookOrderStatisticsPulseSchema,
+  BookOrderStatisticsRecordScopeSchema,
+  BookOrderStatisticsSnapshotSchema,
+  CurrencyCountSchema,
+} from "./order-statistics.js";
 
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
@@ -50,8 +66,6 @@ const BOOK_ORDER_MESSAGES = {
   shipmentBookReused: "A book cannot be placed in two shipments",
   storeNameRequired: "Store name is required",
 } as const;
-
-const CountSchema = z.number().int().nonnegative();
 
 const hasUniqueValues = (values: readonly string[]): boolean =>
   new Set(values).size === values.length;
@@ -371,6 +385,7 @@ export const IN_TRANSIT_EXPECTED_DATE_ORDER = {
 } as const satisfies Record<ExpectedDateSort, ExpectedDateOrder>;
 
 export const InTransitQuerySchema = z.object({
+  ageBucket: ActiveMoneyAgeBucketSchema.optional(),
   currency: CurrencySchema.optional(),
   filter: InTransitFilterSchema.default("all"),
   ...paginationQueryFields({ pageSizeDefault: BOOK_ORDER_LIMITS.pageSizeDefault }),
@@ -503,6 +518,7 @@ export const InTransitSummaryViewSchema = z.object({
 export type InTransitSummaryView = z.infer<typeof InTransitSummaryViewSchema>;
 
 export const BookOrderStatisticsQuerySchema = z.object({
+  compare: BookOrderStatisticsCompareModeSchema.optional(),
   currency: CurrencySchema.optional(),
   from: isoDay().optional(),
   includeCancelled: QueryBooleanWithDefaultSchema,
@@ -518,6 +534,7 @@ export const BookOrderStatisticsSummarySchema = z.object({
   activeShipmentsCount: CountSchema,
   activeTotalsByCurrency: z.array(CurrencyTotalSchema),
   averageBookPriceByCurrency: z.array(CurrencyAverageSchema),
+  averageBooksPerOrder: z.number().nullable(),
   averageOrderAmountByCurrency: z.array(CurrencyAverageSchema),
   booksCount: CountSchema,
   cancelledOrdersCount: CountSchema,
@@ -533,8 +550,14 @@ export type BookOrderStatisticsSummary = z.infer<typeof BookOrderStatisticsSumma
 
 export const BookOrderStatisticsStoreSchema = z.object({
   averageBookPriceByCurrency: z.array(CurrencyAverageSchema),
+  averageBooksPerOrder: z.number().nullable(),
+  averageLandedBookCostByCurrency: z.array(CurrencyAverageSchema),
   averageOrderAmountByCurrency: z.array(CurrencyAverageSchema),
   booksCount: CountSchema,
+  deliveryTotalByCurrency: z.array(CurrencyTotalSchema),
+  discountTotalByCurrency: z.array(CurrencyTotalSchema),
+  landedCoverageByCurrency: z.array(BookOrderStatisticsLandedCoverageSchema),
+  landedEligibleBooksCountByCurrency: z.array(CurrencyCountSchema),
   ordersCount: CountSchema,
   store: z.string(),
   totalsByCurrency: z.array(CurrencyTotalSchema),
@@ -564,11 +587,153 @@ export const BookOrderStatisticsTopOrderSchema = z.object({
 
 export type BookOrderStatisticsTopOrder = z.infer<typeof BookOrderStatisticsTopOrderSchema>;
 
+export const BookOrderStatisticsCurrencyTopOrdersSchema = z.object({
+  currency: CurrencySchema,
+  orders: z.array(BookOrderStatisticsTopOrderSchema),
+});
+
+export type BookOrderStatisticsCurrencyTopOrders = z.infer<
+  typeof BookOrderStatisticsCurrencyTopOrdersSchema
+>;
+
+export const BookOrderStatisticsTopOrdersByCurrencySchema = z.array(
+  BookOrderStatisticsCurrencyTopOrdersSchema,
+);
+
+export type BookOrderStatisticsTopOrdersByCurrency = z.infer<
+  typeof BookOrderStatisticsTopOrdersByCurrencySchema
+>;
+
+const lifecycleStageCountFields: { [Stage in BookOrderDerivedStatus]: typeof CountSchema } = {
+  active: CountSchema,
+  cancelled: CountSchema,
+  partially_received: CountSchema,
+  partially_shipped: CountSchema,
+  received: CountSchema,
+  shipped: CountSchema,
+};
+
+export const BookOrderStatisticsLifecycleStageCountsSchema = z.object({
+  ...lifecycleStageCountFields,
+  total: CountSchema,
+});
+
+export type BookOrderStatisticsLifecycleStageCounts = z.infer<
+  typeof BookOrderStatisticsLifecycleStageCountsSchema
+>;
+
+const lifecycleStageDeltaFields: { [Stage in BookOrderDerivedStatus]: z.ZodNumber } = {
+  active: z.number().int(),
+  cancelled: z.number().int(),
+  partially_received: z.number().int(),
+  partially_shipped: z.number().int(),
+  received: z.number().int(),
+  shipped: z.number().int(),
+};
+
+export const BookOrderStatisticsLifecycleStageDeltasSchema = z
+  .object({ ...lifecycleStageDeltaFields, total: z.number().int() })
+  .describe("Current stage count minus the comparison period's, so a decline reads as negative.");
+
+export type BookOrderStatisticsLifecycleStageDeltas = z.infer<
+  typeof BookOrderStatisticsLifecycleStageDeltasSchema
+>;
+
+export const BookOrderStatisticsLifecycleStageComparisonSchema = z.object({
+  delta: BookOrderStatisticsLifecycleStageDeltasSchema,
+  previous: BookOrderStatisticsLifecycleStageCountsSchema,
+});
+
+export type BookOrderStatisticsLifecycleStageComparison = z.infer<
+  typeof BookOrderStatisticsLifecycleStageComparisonSchema
+>;
+
+export const BookOrderStatisticsLifecycleComparisonSchema = z.object({
+  books: BookOrderStatisticsLifecycleStageComparisonSchema,
+  orders: BookOrderStatisticsLifecycleStageComparisonSchema,
+});
+
+export type BookOrderStatisticsLifecycleComparison = z.infer<
+  typeof BookOrderStatisticsLifecycleComparisonSchema
+>;
+
+export const BookOrderStatisticsLifecycleSchema = z
+  .object({
+    books: BookOrderStatisticsLifecycleStageCountsSchema,
+    comparison: BookOrderStatisticsLifecycleComparisonSchema.nullable().describe(
+      "Per-stage previous count and signed delta. Null unless the request asked for a comparison period.",
+    ),
+    orders: BookOrderStatisticsLifecycleStageCountsSchema,
+  })
+  .describe(
+    "Distribution over the canonical derived order statuses. Orders mode and books mode stay separate objects so a consumer can never render a mixed-unit view.",
+  );
+
+export type BookOrderStatisticsLifecycle = z.infer<typeof BookOrderStatisticsLifecycleSchema>;
+
+export const BookOrderStatisticsRecordMonthSchema = z.object({
+  booksCount: CountSchema,
+  currency: CurrencySchema,
+  month: z.string(),
+  ordersCount: CountSchema,
+  total: z.number(),
+});
+
+export type BookOrderStatisticsRecordMonth = z.infer<typeof BookOrderStatisticsRecordMonthSchema>;
+
+export const BookOrderStatisticsCurrencyLargestOrderSchema = z.object({
+  currency: CurrencySchema,
+  order: BookOrderStatisticsTopOrderSchema,
+});
+
+export type BookOrderStatisticsCurrencyLargestOrder = z.infer<
+  typeof BookOrderStatisticsCurrencyLargestOrderSchema
+>;
+
+export const BookOrderStatisticsStoreLeaderSchema = z.object({
+  booksCount: CountSchema,
+  ordersCount: CountSchema,
+  store: z.string(),
+});
+
+export type BookOrderStatisticsStoreLeader = z.infer<typeof BookOrderStatisticsStoreLeaderSchema>;
+
+export const BookOrderStatisticsMostActiveStoreSchema = z.object({
+  byBooks: BookOrderStatisticsStoreLeaderSchema.nullable(),
+  byOrders: BookOrderStatisticsStoreLeaderSchema.nullable(),
+});
+
+export type BookOrderStatisticsMostActiveStore = z.infer<
+  typeof BookOrderStatisticsMostActiveStoreSchema
+>;
+
+export const BookOrderStatisticsRecordsSchema = z.object({
+  bestValueStoreByCurrency: BookOrderStatisticsBestValueStoreByCurrencySchema,
+  largestOrderByCurrency: z.array(BookOrderStatisticsCurrencyLargestOrderSchema),
+  mostActiveStore: BookOrderStatisticsMostActiveStoreSchema,
+  mostBooksInOrder: BookOrderStatisticsTopOrderSchema.nullable(),
+  recordMonthByCurrency: z.array(BookOrderStatisticsRecordMonthSchema),
+  scope: BookOrderStatisticsRecordScopeSchema,
+});
+
+export type BookOrderStatisticsRecords = z.infer<typeof BookOrderStatisticsRecordsSchema>;
+
 export const BookOrderStatisticsViewSchema = z.object({
+  bestValueStoreByCurrency: BookOrderStatisticsBestValueStoreByCurrencySchema,
   byStore: z.array(BookOrderStatisticsStoreSchema),
+  comparison: BookOrderStatisticsComparisonSchema.nullable(),
+  costs: BookOrderStatisticsCostsSchema,
+  daily: BookOrderStatisticsDailySchema,
+  landedCost: BookOrderStatisticsLandedSchema,
+  lifecycle: BookOrderStatisticsLifecycleSchema,
+  meta: BookOrderStatisticsMetaSchema,
   monthly: z.array(BookOrderStatisticsMonthSchema),
+  pulse: BookOrderStatisticsPulseSchema,
+  records: BookOrderStatisticsRecordsSchema,
+  snapshot: BookOrderStatisticsSnapshotSchema,
   summary: BookOrderStatisticsSummarySchema,
   topOrders: z.array(BookOrderStatisticsTopOrderSchema),
+  topOrdersByCurrency: BookOrderStatisticsTopOrdersByCurrencySchema,
 });
 
 export type BookOrderStatisticsView = z.infer<typeof BookOrderStatisticsViewSchema>;

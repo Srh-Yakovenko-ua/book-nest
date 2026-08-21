@@ -43,6 +43,7 @@ const RAW_SQL_INDEXES = [
   { name: "book_lists_user_id_normalized_name_key", requires: "deleted_at IS NULL" },
   { name: "book_timelines_book_id_name_lower_idx", requires: "deleted_at IS NULL" },
   { name: "reading_goals_active_list_idx", requires: "archived_at IS NULL" },
+  { name: "book_budgets_active_currency_idx", requires: "valid_to_month IS NULL" },
 ] as const;
 
 let app: INestApplication;
@@ -119,6 +120,13 @@ describe("check constraints that live only in hand-written migration SQL", () =>
     expect(
       constraints.has(`${table}_purge_at_matches_deleted_at`),
       `${table} lost the constraint that lets isTrashed() narrow both dates at once`,
+    ).toBe(true);
+  });
+
+  it("keeps every budget version pinned to the first day of its month", () => {
+    expect(
+      constraints.has("book_budgets_months_are_first_of_month"),
+      "book_budgets lost the constraint that stops a budget covering half a month",
     ).toBe(true);
   });
 

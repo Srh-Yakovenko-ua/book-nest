@@ -5,11 +5,13 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { DeliveryReadControllerInTransitListAgeBucket } from "./deliveryReadControllerInTransitListAgeBucket";
 import type { DeliveryReadControllerInTransitListCurrency } from "./deliveryReadControllerInTransitListCurrency";
 import type { DeliveryReadControllerInTransitListFilter } from "./deliveryReadControllerInTransitListFilter";
 import type { DeliveryReadControllerInTransitListSort } from "./deliveryReadControllerInTransitListSort";
 
 export type DeliveryReadControllerInTransitListParams = {
+  ageBucket?: DeliveryReadControllerInTransitListAgeBucket;
   currency?: DeliveryReadControllerInTransitListCurrency;
   filter?: DeliveryReadControllerInTransitListFilter;
   /**

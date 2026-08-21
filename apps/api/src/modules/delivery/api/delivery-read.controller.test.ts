@@ -3,6 +3,7 @@ import type {
   BookOrderStatisticsView,
   BookOrderView,
   InTransitSummaryView,
+  Paginator,
 } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
@@ -28,6 +29,27 @@ import {
   previousMonthKey,
   shipmentOf,
 } from "./book-order.fixtures.js";
+
+type InTransitTestQuery = {
+  ageBucket?: string;
+  currency?: string;
+  filter?: string;
+  search?: string;
+  sort?: string;
+  store?: string;
+};
+
+const AGE_BOOKS = {
+  depotTen: "Age Depot Ten",
+  eight: "Age Eight",
+  fifteen: "Age Fifteen",
+  fourteen: "Age Fourteen",
+  seven: "Age Seven",
+  thirty: "Age Thirty",
+  thirtyOne: "Age ThirtyOne",
+  today: "Age Today",
+  unknown: "Age Unknown",
+} as const;
 
 const LIST_BOOKS = {
   noDate: "No Date",
@@ -58,6 +80,25 @@ afterAll(async () => {
   await context.close();
 });
 
+async function inTransitPage(
+  query: InTransitTestQuery = {},
+): Promise<Paginator<BookOrderItemRowView>> {
+  const params = new URLSearchParams(
+    Object.entries(query).flatMap<[string, string]>(([key, value]) =>
+      value === undefined ? [] : [[key, value]],
+    ),
+  );
+  const res = await getJson({
+    accessToken: reader.accessToken,
+    app,
+    path: `${ORDER_ROUTES.inTransit}?${params.toString()}`,
+  });
+  if (res.status !== 200) {
+    throw new Error(`in-transit read failed with ${res.status}: ${JSON.stringify(res.body)}`);
+  }
+  return res.body;
+}
+
 async function inTransitSummary(): Promise<InTransitSummaryView> {
   const res = await getJson({
     accessToken: reader.accessToken,
@@ -67,26 +108,53 @@ async function inTransitSummary(): Promise<InTransitSummaryView> {
   return res.body;
 }
 
-async function inTransitTitles({
-  filter,
-  sort,
-}: {
-  filter?: string;
-  sort?: string;
-}): Promise<string[]> {
-  const query = new URLSearchParams({
-    ...(filter === undefined ? {} : { filter }),
-    ...(sort === undefined ? {} : { sort }),
-  });
-  const res = await getJson({
-    accessToken: reader.accessToken,
-    app,
-    path: `${ORDER_ROUTES.inTransit}?${query.toString()}`,
-  });
-  if (res.status !== 200) {
-    throw new Error(`in-transit read failed with ${res.status}: ${JSON.stringify(res.body)}`);
+async function inTransitTitles(query: InTransitTestQuery = {}): Promise<string[]> {
+  const page = await inTransitPage(query);
+  return page.items.map((row) => row.book.title);
+}
+
+async function inTransitTitlesSorted(query: InTransitTestQuery = {}): Promise<string[]> {
+  return (await inTransitTitles(query)).sort();
+}
+
+async function seedAgeFixture(): Promise<void> {
+  const authed = { accessToken: reader.accessToken, app };
+  const dated: { ageInDays: null | number; title: string }[] = [
+    { ageInDays: 0, title: AGE_BOOKS.today },
+    { ageInDays: 7, title: AGE_BOOKS.seven },
+    { ageInDays: 8, title: AGE_BOOKS.eight },
+    { ageInDays: 14, title: AGE_BOOKS.fourteen },
+    { ageInDays: 15, title: AGE_BOOKS.fifteen },
+    { ageInDays: 30, title: AGE_BOOKS.thirty },
+    { ageInDays: 31, title: AGE_BOOKS.thirtyOne },
+    { ageInDays: null, title: AGE_BOOKS.unknown },
+  ];
+
+  for (const { ageInDays, title } of dated) {
+    const bookId = await createBook({ ...authed, title });
+    await createOrder({
+      ...authed,
+      input: {
+        currency: "UAH",
+        items: [{ bookId, price: 100 }],
+        ...(ageInDays === null ? {} : { orderDate: isoDay(-ageInDays) }),
+        shipments: [{ bookIds: [bookId] }],
+        storeName: "Yakaboo",
+      },
+    });
   }
-  return res.body.items.map((row: BookOrderItemRowView) => row.book.title);
+
+  const depotBookId = await createBook({ ...authed, title: AGE_BOOKS.depotTen });
+  await createOrder({
+    ...authed,
+    input: {
+      currency: "USD",
+      items: [{ bookId: depotBookId, price: 40 }],
+      orderDate: isoDay(-10),
+      shipments: [{ bookIds: [depotBookId] }],
+      storeName: "Book Depot",
+    },
+  });
 }
 
 async function seedListFixture(): Promise<BookOrderView> {
@@ -336,16 +404,32 @@ describe("GET /api/delivery/orders/statistics", () => {
     expect(byStore).toEqual([
       {
         averageBookPriceByCurrency: [{ average: 500, currency: "UAH" }],
+        averageBooksPerOrder: 1,
+        averageLandedBookCostByCurrency: [{ average: 540, currency: "UAH" }],
         averageOrderAmountByCurrency: [{ average: 540, currency: "UAH" }],
         booksCount: 1,
+        deliveryTotalByCurrency: [{ currency: "UAH", total: 0 }],
+        discountTotalByCurrency: [{ currency: "UAH", total: 0 }],
+        landedCoverageByCurrency: [
+          { countedBooksCount: 1, coveragePercent: 100, currency: "UAH", eligibleBooksCount: 1 },
+        ],
+        landedEligibleBooksCountByCurrency: [{ count: 1, currency: "UAH" }],
         ordersCount: 1,
         store: "Book Depot",
         totalsByCurrency: [{ currency: "UAH", total: 540 }],
       },
       {
         averageBookPriceByCurrency: [{ average: 100, currency: "UAH" }],
+        averageBooksPerOrder: 3,
+        averageLandedBookCostByCurrency: [{ average: 120, currency: "UAH" }],
         averageOrderAmountByCurrency: [{ average: 360, currency: "UAH" }],
         booksCount: 3,
+        deliveryTotalByCurrency: [{ currency: "UAH", total: 0 }],
+        discountTotalByCurrency: [{ currency: "UAH", total: 0 }],
+        landedCoverageByCurrency: [
+          { countedBooksCount: 3, coveragePercent: 100, currency: "UAH", eligibleBooksCount: 3 },
+        ],
+        landedEligibleBooksCountByCurrency: [{ count: 3, currency: "UAH" }],
         ordersCount: 1,
         store: "Yakaboo",
         totalsByCurrency: [{ currency: "UAH", total: 360 }],
@@ -421,5 +505,100 @@ describe("GET /api/delivery/orders/statistics", () => {
     const { summary } = await statistics();
 
     expect(summary).toMatchObject({ booksCount: 0, ordersCount: 0, shipmentsCount: 0 });
+  });
+});
+
+describe("GET /api/delivery/books/in-transit ageBucket", () => {
+  it("keeps a week-old order in the first bucket and pushes the next day out of it", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitlesSorted({ ageBucket: "0_7" })).resolves.toEqual([
+      AGE_BOOKS.seven,
+      AGE_BOOKS.today,
+    ]);
+  });
+
+  it("opens the second bucket exactly one day after the first one closes", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitlesSorted({ ageBucket: "8_14" })).resolves.toEqual([
+      AGE_BOOKS.depotTen,
+      AGE_BOOKS.eight,
+      AGE_BOOKS.fourteen,
+    ]);
+  });
+
+  it("hands the fifteenth day to the third bucket and keeps the thirtieth there", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitlesSorted({ ageBucket: "15_30" })).resolves.toEqual([
+      AGE_BOOKS.fifteen,
+      AGE_BOOKS.thirty,
+    ]);
+  });
+
+  it("leaves the last bucket open ended from the thirty-first day on", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitles({ ageBucket: "31_plus" })).resolves.toEqual([AGE_BOOKS.thirtyOne]);
+  });
+
+  it("collects the orders that never got a date into their own bucket", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitles({ ageBucket: "unknown_date" })).resolves.toEqual([
+      AGE_BOOKS.unknown,
+    ]);
+  });
+
+  it("returns every waiting book when no bucket is asked for", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitles()).resolves.toHaveLength(Object.keys(AGE_BOOKS).length);
+  });
+
+  it("narrows a bucket down to the intersection with store, currency and search", async () => {
+    await seedAgeFixture();
+
+    await expect(
+      inTransitTitles({ ageBucket: "8_14", currency: "USD", search: "Depot", store: "Book Depot" }),
+    ).resolves.toEqual([AGE_BOOKS.depotTen]);
+  });
+
+  it("finds nothing when the bucket and the store point at different books", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitles({ ageBucket: "0_7", store: "Book Depot" })).resolves.toEqual([]);
+  });
+
+  it("orders a bucket by the oldest order first when asked to", async () => {
+    await seedAgeFixture();
+
+    await expect(inTransitTitles({ ageBucket: "15_30", sort: "oldest_orders" })).resolves.toEqual([
+      AGE_BOOKS.thirty,
+      AGE_BOOKS.fifteen,
+    ]);
+  });
+
+  it("counts the page against the bucket, not against the whole list", async () => {
+    await seedAgeFixture();
+
+    const bucket = await inTransitPage({ ageBucket: "8_14" });
+    const everything = await inTransitPage();
+
+    expect({ bucket: bucket.totalCount, everything: everything.totalCount }).toEqual({
+      bucket: 3,
+      everything: Object.keys(AGE_BOOKS).length,
+    });
+  });
+
+  it("refuses a bucket name that is not one of the five", async () => {
+    const res = await getJson({
+      accessToken: reader.accessToken,
+      app,
+      path: `${ORDER_ROUTES.inTransit}?ageBucket=last_year`,
+    });
+
+    expect(res.status).toBe(400);
   });
 });

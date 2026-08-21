@@ -133,6 +133,7 @@ export const deliveryReadControllerInTransitListQuerySortDefault = `closest_deli
 export const deliveryReadControllerInTransitListQueryStoreMax = 200;
 
 export const DeliveryReadControllerInTransitListQueryParams = zod.object({
+  ageBucket: zod.enum(["0_7", "8_14", "15_30", "31_plus", "unknown_date"]).optional(),
   currency: zod.enum(["UAH", "EUR", "USD"]).optional(),
   filter: zod
     .enum([

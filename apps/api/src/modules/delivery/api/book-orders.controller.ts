@@ -1,6 +1,7 @@
-import type { BookOrderStatisticsView, BookOrderView } from "@app/shared";
+import type { ActiveMoneyAgeResponse, BookOrderStatisticsView, BookOrderView } from "@app/shared";
 
 import {
+  ActiveMoneyAgeQuerySchema,
   BookOrderStatisticsQuerySchema,
   CreateBookOrderInputSchema,
   UpdateBookOrderInputSchema,
@@ -27,10 +28,12 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { HEAVY_READ_THROTTLE, MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookOrderService } from "../application/book-order.service.js";
-import { DeliveryReadService } from "../application/delivery-read.service.js";
+import { DeliveryStatisticsService } from "../application/delivery-statistics.service.js";
+import { ActiveMoneyAgeQueryDto } from "./input-dto/active-money-age-query.input-dto.js";
 import { BookOrderStatisticsQueryDto } from "./input-dto/book-order-statistics-query.input-dto.js";
 import { CreateBookOrderInputDto } from "./input-dto/create-book-order.input-dto.js";
 import { UpdateBookOrderInputDto } from "./input-dto/update-book-order.input-dto.js";
+import { ActiveMoneyAgeViewDto } from "./view-dto/active-money-age.view-dto.js";
 import { BookOrderStatisticsViewDto } from "./view-dto/book-order-statistics.view-dto.js";
 import { BookOrderViewDto } from "./view-dto/book-order.view-dto.js";
 
@@ -40,7 +43,7 @@ import { BookOrderViewDto } from "./view-dto/book-order.view-dto.js";
 export class BookOrdersController {
   constructor(
     private readonly bookOrderService: BookOrderService,
-    private readonly deliveryReadService: DeliveryReadService,
+    private readonly deliveryStatisticsService: DeliveryStatisticsService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -62,6 +65,24 @@ export class BookOrdersController {
   }
 
   @ApiOkResponse({
+    description: "Age of money committed to the current user's still-active book orders",
+    type: ActiveMoneyAgeViewDto,
+  })
+  @ApiOperation({
+    summary: "Get a current snapshot of how long money has sat in active book orders",
+  })
+  @ApiQuery({ name: "currency", required: false })
+  @ApiQuery({ name: "store", required: false })
+  @Get("statistics/active-age")
+  @Throttle(HEAVY_READ_THROTTLE)
+  activeMoneyAge(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ActiveMoneyAgeQuerySchema)) query: ActiveMoneyAgeQueryDto,
+  ): Promise<ActiveMoneyAgeResponse> {
+    return this.deliveryStatisticsService.activeMoneyAge({ query, userId: user.id });
+  }
+
+  @ApiOkResponse({
     description: "Expense statistics for the current user's book orders",
     type: BookOrderStatisticsViewDto,
   })
@@ -72,13 +93,14 @@ export class BookOrdersController {
   @ApiQuery({ name: "status", required: false })
   @ApiQuery({ name: "store", required: false })
   @ApiQuery({ name: "includeCancelled", required: false })
+  @ApiQuery({ name: "compare", required: false })
   @Get("statistics")
   @Throttle(HEAVY_READ_THROTTLE)
   statistics(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(BookOrderStatisticsQuerySchema)) query: BookOrderStatisticsQueryDto,
   ): Promise<BookOrderStatisticsView> {
-    return this.deliveryReadService.statistics({ query, userId: user.id });
+    return this.deliveryStatisticsService.statistics({ query, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Order not found" })

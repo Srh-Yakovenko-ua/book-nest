@@ -47,6 +47,7 @@ model User {
   bookLists                 BookList[]
   customGenres              Genre[]
   mediaAssets               MediaAsset[]
+  bookBudgets               BookBudget[]
   bookOrders                BookOrder[]
   bookLoans                 BookLoan[]
   bookStoreLinks            BookStoreLink[]
@@ -353,6 +354,21 @@ model BookPurchaseInfo {
   book          Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@map("book_purchase_info")
+}
+
+model BookBudget {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  currency       String
+  monthlyAmount  Decimal   @map("monthly_amount") @db.Decimal(10, 2)
+  validFromMonth DateTime  @map("valid_from_month") @db.Date
+  validToMonth   DateTime? @map("valid_to_month") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, currency, validFromMonth])
+  @@map("book_budgets")
 }
 
 model BookOrder {

@@ -25,6 +25,8 @@ export type BookOrderStatisticsViewDtoSummary = {
   activeShipmentsCount: number;
   activeTotalsByCurrency: BookOrderStatisticsViewDtoSummaryActiveTotalsByCurrencyItem[];
   averageBookPriceByCurrency: BookOrderStatisticsViewDtoSummaryAverageBookPriceByCurrencyItem[];
+  /** @nullable */
+  averageBooksPerOrder: number | null;
   averageOrderAmountByCurrency: BookOrderStatisticsViewDtoSummaryAverageOrderAmountByCurrencyItem[];
   /**
    * @minimum 0

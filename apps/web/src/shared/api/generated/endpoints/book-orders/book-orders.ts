@@ -19,8 +19,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ActiveMoneyAgeViewDto,
   BookOrderStatisticsViewDto,
   BookOrderViewDto,
+  BookOrdersControllerActiveMoneyAgeParams,
   BookOrdersControllerStatisticsParams,
   CreateBookOrderInputDto,
   UpdateBookOrderInputDto,
@@ -216,6 +218,182 @@ export function useBookOrdersControllerCreate<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBookOrdersControllerCreateQueryOptions(createBookOrderInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type bookOrdersControllerActiveMoneyAgeResponse200 = {
+  data: ActiveMoneyAgeViewDto;
+  status: 200;
+};
+
+export type bookOrdersControllerActiveMoneyAgeResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookOrdersControllerActiveMoneyAgeResponseSuccess =
+  bookOrdersControllerActiveMoneyAgeResponse200 & {
+    headers: Headers;
+  };
+export type bookOrdersControllerActiveMoneyAgeResponseError =
+  bookOrdersControllerActiveMoneyAgeResponse401 & {
+    headers: Headers;
+  };
+
+export type bookOrdersControllerActiveMoneyAgeResponse =
+  | bookOrdersControllerActiveMoneyAgeResponseSuccess
+  | bookOrdersControllerActiveMoneyAgeResponseError;
+
+export const getBookOrdersControllerActiveMoneyAgeUrl = (
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/delivery/orders/statistics/active-age?${stringifiedParams}`
+    : `/api/delivery/orders/statistics/active-age`;
+};
+
+/**
+ * @summary Get a current snapshot of how long money has sat in active book orders
+ */
+export const bookOrdersControllerActiveMoneyAge = async (
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<bookOrdersControllerActiveMoneyAgeResponse> => {
+  return customInstance<bookOrdersControllerActiveMoneyAgeResponse>(
+    getBookOrdersControllerActiveMoneyAgeUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBookOrdersControllerActiveMoneyAgeQueryKey = (
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+) => {
+  return [`/api/delivery/orders/statistics/active-age`, ...(params ? [params] : [])] as const;
+};
+
+export const getBookOrdersControllerActiveMoneyAgeQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+  TError = void,
+>(
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBookOrdersControllerActiveMoneyAgeQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>> = ({
+    signal,
+  }) => bookOrdersControllerActiveMoneyAge(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookOrdersControllerActiveMoneyAgeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>
+>;
+export type BookOrdersControllerActiveMoneyAgeQueryError = void;
+
+export function useBookOrdersControllerActiveMoneyAge<
+  TData = Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+  TError = void,
+>(
+  params: undefined | BookOrdersControllerActiveMoneyAgeParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+          TError,
+          Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookOrdersControllerActiveMoneyAge<
+  TData = Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+  TError = void,
+>(
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+          TError,
+          Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookOrdersControllerActiveMoneyAge<
+  TData = Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+  TError = void,
+>(
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get a current snapshot of how long money has sat in active book orders
+ */
+
+export function useBookOrdersControllerActiveMoneyAge<
+  TData = Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>,
+  TError = void,
+>(
+  params?: BookOrdersControllerActiveMoneyAgeParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookOrdersControllerActiveMoneyAge>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookOrdersControllerActiveMoneyAgeQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

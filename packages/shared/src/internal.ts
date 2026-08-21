@@ -11,6 +11,8 @@ import {
 
 export const NoHtmlString = z.string().refine(noHtmlTags, "HTML tags are not allowed");
 
+export const CountSchema = z.number().int().nonnegative();
+
 export const BOOK_RATING = {
   max: 10,
   min: 0.5,

@@ -6,17 +6,29 @@
  * OpenAPI spec version: 1.0
  */
 import type { BookOrderStatisticsViewDtoByStoreItemAverageBookPriceByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemAverageBookPriceByCurrencyItem";
+import type { BookOrderStatisticsViewDtoByStoreItemAverageLandedBookCostByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemAverageLandedBookCostByCurrencyItem";
 import type { BookOrderStatisticsViewDtoByStoreItemAverageOrderAmountByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemAverageOrderAmountByCurrencyItem";
+import type { BookOrderStatisticsViewDtoByStoreItemDeliveryTotalByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemDeliveryTotalByCurrencyItem";
+import type { BookOrderStatisticsViewDtoByStoreItemDiscountTotalByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemDiscountTotalByCurrencyItem";
+import type { BookOrderStatisticsViewDtoByStoreItemLandedCoverageByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemLandedCoverageByCurrencyItem";
+import type { BookOrderStatisticsViewDtoByStoreItemLandedEligibleBooksCountByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemLandedEligibleBooksCountByCurrencyItem";
 import type { BookOrderStatisticsViewDtoByStoreItemTotalsByCurrencyItem } from "./bookOrderStatisticsViewDtoByStoreItemTotalsByCurrencyItem";
 
 export type BookOrderStatisticsViewDtoByStoreItem = {
   averageBookPriceByCurrency: BookOrderStatisticsViewDtoByStoreItemAverageBookPriceByCurrencyItem[];
+  /** @nullable */
+  averageBooksPerOrder: number | null;
+  averageLandedBookCostByCurrency: BookOrderStatisticsViewDtoByStoreItemAverageLandedBookCostByCurrencyItem[];
   averageOrderAmountByCurrency: BookOrderStatisticsViewDtoByStoreItemAverageOrderAmountByCurrencyItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   booksCount: number;
+  deliveryTotalByCurrency: BookOrderStatisticsViewDtoByStoreItemDeliveryTotalByCurrencyItem[];
+  discountTotalByCurrency: BookOrderStatisticsViewDtoByStoreItemDiscountTotalByCurrencyItem[];
+  landedCoverageByCurrency: BookOrderStatisticsViewDtoByStoreItemLandedCoverageByCurrencyItem[];
+  landedEligibleBooksCountByCurrency: BookOrderStatisticsViewDtoByStoreItemLandedEligibleBooksCountByCurrencyItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991

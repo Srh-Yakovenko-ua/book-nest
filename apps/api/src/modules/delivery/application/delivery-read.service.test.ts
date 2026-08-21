@@ -1,10 +1,9 @@
-import type { BookOrderHistoryQuery, BookOrderStatisticsQuery, InTransitQuery } from "@app/shared";
+import type { BookOrderHistoryQuery, InTransitQuery } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
 import type { MediaService } from "../../media/index.js";
 import type { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
-import type { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
 
 import { Prisma } from "../../../generated/prisma/client.js";
 import { DeliveryReadService } from "./delivery-read.service.js";
@@ -36,10 +35,7 @@ const orderRow = {
   storeName: "Bookstore",
 };
 
-function buildService(overrides: {
-  reads?: Partial<DeliveryReadRepository>;
-  statistics?: Partial<DeliveryStatisticsRepository>;
-}) {
+function buildService(overrides: { reads?: Partial<DeliveryReadRepository> }) {
   const reads = {
     countHistory: vi.fn().mockResolvedValue(0),
     countInTransit: vi.fn().mockResolvedValue(0),
@@ -49,16 +45,8 @@ function buildService(overrides: {
     listInTransit: vi.fn().mockResolvedValue([]),
     ...overrides.reads,
   } as unknown as DeliveryReadRepository;
-  const statistics = {
-    listOrderRecords: vi.fn().mockResolvedValue([]),
-    ...overrides.statistics,
-  } as unknown as DeliveryStatisticsRepository;
 
-  return {
-    reads,
-    service: new DeliveryReadService(reads, statistics, mediaStub),
-    statistics,
-  };
+  return { reads, service: new DeliveryReadService(reads, mediaStub) };
 }
 
 function historyQuery(overrides: Partial<BookOrderHistoryQuery> = {}): BookOrderHistoryQuery {
@@ -128,12 +116,6 @@ function itemRow({
     shipmentId: "shipment-1",
     updatedAt: new Date("2026-08-01T00:00:00.000Z"),
   };
-}
-
-function statisticsQuery(
-  overrides: Partial<BookOrderStatisticsQuery> = {},
-): BookOrderStatisticsQuery {
-  return { includeCancelled: false, ...overrides };
 }
 
 describe("DeliveryReadService.inTransitList", () => {
@@ -343,57 +325,5 @@ describe("DeliveryReadService.inTransitSummary", () => {
     expect(summary.activeOrdersCount).toBe(2);
     expect(summary.activeShipmentsCount).toBe(3);
     expect(summary.activeBooksTotalByCurrency).toEqual([{ currency: "UAH", total: 100 }]);
-  });
-});
-
-describe("DeliveryReadService.statistics", () => {
-  it("parses the query dates and counts in orders, not in book rows", async () => {
-    const { service, statistics } = buildService({
-      statistics: {
-        listOrderRecords: vi.fn().mockResolvedValue([
-          {
-            currency: "UAH",
-            id: "order-1",
-            items: [
-              {
-                bookId: "book-a",
-                bookTitle: "Alpha",
-                cancelledAt: null,
-                price: 100,
-                receivedAt: null,
-                shipmentId: "shipment-1",
-              },
-              {
-                bookId: "book-b",
-                bookTitle: "Beta",
-                cancelledAt: null,
-                price: 50,
-                receivedAt: null,
-                shipmentId: "shipment-1",
-              },
-            ],
-            orderDate: new Date("2026-08-01T00:00:00.000Z"),
-            orderNumber: "A-1",
-            shipments: [
-              { cancelledAt: null, id: "shipment-1", receivedAt: null, status: "in_transit" },
-            ],
-            storeName: "Bookstore",
-            totalAmount: 150,
-          },
-        ]),
-      },
-    });
-
-    const result = await service.statistics({
-      query: statisticsQuery({ from: "2026-07-01" }),
-      userId: USER,
-    });
-
-    expect(vi.mocked(statistics.listOrderRecords).mock.calls[0]?.[0]).toEqual(
-      expect.objectContaining({ from: new Date("2026-07-01T00:00:00.000Z"), userId: USER }),
-    );
-    expect(result.summary.ordersCount).toBe(1);
-    expect(result.summary.booksCount).toBe(2);
-    expect(result.summary.shipmentsCount).toBe(1);
   });
 });

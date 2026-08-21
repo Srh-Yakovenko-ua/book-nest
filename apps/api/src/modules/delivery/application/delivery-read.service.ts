@@ -3,8 +3,6 @@ import type {
   BookOrderHistorySummaryQuery,
   BookOrderHistorySummaryView,
   BookOrderItemRowView,
-  BookOrderStatisticsQuery,
-  BookOrderStatisticsView,
   BookPreview,
   InTransitQuery,
   InTransitSummaryView,
@@ -23,18 +21,12 @@ import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
 import { buildOrderHistorySummaryView } from "../domain/order-history-summary.js";
 import { toBookOrderItemRowView } from "../domain/order-item-row.mapper.js";
-import {
-  computeBookOrderStatistics,
-  ORDER_STATISTICS_TOP_LIMIT,
-} from "../domain/order-statistics.js";
 import { DeliveryReadRepository } from "../infrastructure/delivery-read.repository.js";
-import { DeliveryStatisticsRepository } from "../infrastructure/delivery-statistics.repository.js";
 
 @Injectable()
 export class DeliveryReadService {
   constructor(
     private readonly deliveryReadRepository: DeliveryReadRepository,
-    private readonly deliveryStatisticsRepository: DeliveryStatisticsRepository,
     private readonly mediaService: MediaService,
   ) {}
 
@@ -102,6 +94,7 @@ export class DeliveryReadService {
   }): Promise<Paginator<BookOrderItemRowView>> {
     const bounds = deliveryDateBounds(new Date());
     const filter = {
+      ageBucket: query.ageBucket,
       bounds,
       currency: query.currency,
       filter: query.filter,
@@ -135,29 +128,6 @@ export class DeliveryReadService {
     });
 
     return buildInTransitSummaryView(data);
-  }
-
-  async statistics({
-    query,
-    userId,
-  }: {
-    query: BookOrderStatisticsQuery;
-    userId: string;
-  }): Promise<BookOrderStatisticsView> {
-    const records = await this.deliveryStatisticsRepository.listOrderRecords({
-      currency: query.currency,
-      from: query.from === undefined ? undefined : parseIsoDate(query.from),
-      status: query.status,
-      store: query.store,
-      to: query.to === undefined ? undefined : parseIsoDate(query.to),
-      userId,
-    });
-
-    return computeBookOrderStatistics({
-      includeCancelled: query.includeCancelled,
-      records,
-      topLimit: ORDER_STATISTICS_TOP_LIMIT,
-    });
   }
 
   private toBookPreview(book: BookOrderItemRow["book"]): BookPreview {
