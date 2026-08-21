@@ -17,6 +17,17 @@ const fetchMock = vi.fn();
 
 let searchResults: LoanContactView[] = [];
 
+function contactsPage(items: LoanContactView[]) {
+  return {
+    counts: { active: items.length, all: items.length, archived: 0 },
+    items,
+    page: 1,
+    pagesCount: items.length === 0 ? 0 : 1,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
 function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
   return {
     archivedAt: null,
@@ -27,17 +38,6 @@ function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView 
     name: "Ігор",
     updatedAt: "2026-01-10T10:00:00.000Z",
     ...overrides,
-  };
-}
-
-function contactsPage(items: LoanContactView[]) {
-  return {
-    counts: { active: items.length, all: items.length, archived: 0 },
-    items,
-    page: 1,
-    pagesCount: items.length === 0 ? 0 : 1,
-    pageSize: 20,
-    totalCount: items.length,
   };
 }
 

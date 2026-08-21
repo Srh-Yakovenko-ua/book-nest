@@ -2,7 +2,6 @@ import "@testing-library/jest-dom/vitest";
 
 import type { LoanContactView } from "@app/shared";
 import type { ReactNode } from "react";
-
 import type { Mock } from "vitest";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -34,14 +33,14 @@ const CONTACT_IDS = {
 
 const COUNTS = { active: 2, all: 3, archived: 1 } as const;
 
-type FetchMock = Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
-
 type ContactsStub = {
   counts?: { active: number; all: number; archived: number };
   items: LoanContactView[];
   pagesCount?: number;
   totalCount?: number;
 };
+
+type FetchMock = Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
 
 afterEach(() => {
   vi.unstubAllGlobals();

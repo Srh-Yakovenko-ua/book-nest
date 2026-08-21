@@ -27,6 +27,17 @@ let searchResults: LoanContactView[] = [];
 let respondToCreate: () => Response;
 let respondToLookup: () => Response;
 
+function contactsPage(items: LoanContactView[]) {
+  return {
+    counts: { active: items.length, all: items.length, archived: 0 },
+    items,
+    page: 1,
+    pagesCount: items.length === 0 ? 0 : 1,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
 function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
   return {
     archivedAt: null,
@@ -40,28 +51,12 @@ function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView 
   };
 }
 
-function contactsPage(items: LoanContactView[]) {
-  return {
-    counts: { active: items.length, all: items.length, archived: 0 },
-    items,
-    page: 1,
-    pagesCount: items.length === 0 ? 0 : 1,
-    pageSize: 20,
-    totalCount: items.length,
-  };
-}
-
 function createCall() {
   return fetchMock.mock.calls.find(
     ([url, init]) =>
       String(url).endsWith("/api/loans/contacts") &&
       (init?.method ?? "GET").toUpperCase() === "POST",
   ) as [string, RequestInit] | undefined;
-}
-
-function restoreCall() {
-  return fetchMock.mock.calls.find(([url]) => String(url).includes("/restore")) as
-    [string, RequestInit] | undefined;
 }
 
 function Harness({ onChange }: { onChange: (selection: LoanContactSelection | null) => void }) {
@@ -96,6 +91,11 @@ function renderPicker() {
   const onChange = vi.fn<(selection: LoanContactSelection | null) => void>();
   renderWithProviders(<Harness onChange={onChange} />);
   return { input: screen.getByLabelText(PICKER_LABEL), onChange };
+}
+
+function restoreCall() {
+  return fetchMock.mock.calls.find(([url]) => String(url).includes("/restore")) as
+    [string, RequestInit] | undefined;
 }
 
 beforeEach(() => {

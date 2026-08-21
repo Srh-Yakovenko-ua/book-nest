@@ -24,6 +24,17 @@ function contactPicker() {
   return screen.getByLabelText(messages.books.details.loan.lent.personName);
 }
 
+function contactsPage(items: LoanContactView[]) {
+  return {
+    counts: { active: items.length, all: items.length, archived: 0 },
+    items,
+    page: 1,
+    pagesCount: items.length === 0 ? 0 : 1,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
 function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
   return {
     archivedAt: null,
@@ -43,17 +54,6 @@ function editCall() {
       String(url).includes(`/api/books/${BOOK_ID}/loan`) &&
       (init?.method ?? "GET").toUpperCase() === "PATCH",
   ) as [string, RequestInit] | undefined;
-}
-
-function contactsPage(items: LoanContactView[]) {
-  return {
-    counts: { active: items.length, all: items.length, archived: 0 },
-    items,
-    page: 1,
-    pagesCount: items.length === 0 ? 0 : 1,
-    pageSize: 20,
-    totalCount: items.length,
-  };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
