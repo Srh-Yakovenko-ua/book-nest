@@ -1,7 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 
 import type {
+  LoanContactView,
   LoanDirectionSummary,
+  LoanHistoryOverviewView,
   LoanListItemView,
   LoansSummaryView,
   LoanType,
@@ -43,6 +45,7 @@ const CONTACT_IDS = {
 
 const copy = messages.loans;
 const actions = messages.loans.actions;
+const contactDrawer = messages.loans.contactDrawer;
 const stats = messages.loans.stats;
 const attention = messages.loans.sidebar.attention;
 const longHeld = messages.loans.sidebar.longHeld;
@@ -100,6 +103,23 @@ describe("LoansView", () => {
     ).toBeInTheDocument();
     expect(await screen.findByText("Дюна")).toBeInTheDocument();
     expect(listUrl()).toContain("type=lent_to_someone");
+  });
+
+  it("opens the person card from the name in a row", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    await userEvent.click(
+      within(card).getByRole("button", {
+        name: contactDrawer.openContact.replace("{name}", "Оля"),
+      }),
+    );
+
+    const drawer = await screen.findByRole("dialog");
+    expect(await within(drawer).findByRole("heading", { name: "Оля" })).toBeInTheDocument();
+    expect(requestedUrls).toContain(`/api/loans/contacts/${CONTACT_IDS.olya}`);
   });
 
   it("renders no tab switcher", async () => {
@@ -943,6 +963,18 @@ function chipName(label: string): (name: string) => boolean {
   return (name) => name.startsWith(label);
 }
 
+function contactView(): LoanContactView {
+  return {
+    archivedAt: null,
+    contact: null,
+    createdAt: "2026-01-01T10:00:00.000Z",
+    id: CONTACT_IDS.olya,
+    loanCount: 1,
+    name: "Оля",
+    updatedAt: "2026-01-01T10:00:00.000Z",
+  };
+}
+
 function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionSummary {
   return {
     ...EMPTY_DIRECTION_SUMMARY,
@@ -998,6 +1030,26 @@ function findStatCard(label: string): Promise<HTMLElement> {
     if (card === undefined) throw new Error(`Stat card not found: ${label}`);
     return card;
   });
+}
+
+function historyOverview(): LoanHistoryOverviewView {
+  return {
+    duration: { averageDays: null, longestDays: null, shortestDays: null },
+    reliability: { lateCount: 0, noDueDateCount: 0, onTimeCount: 0, onTimePercent: 0 },
+    summary: {
+      averageDelayDays: null,
+      averageDurationDays: null,
+      borrowedCount: 0,
+      lateCount: 0,
+      latePercent: 0,
+      lentCount: 0,
+      noDueDateCount: 0,
+      onTimeCount: 0,
+      onTimePercent: 0,
+      totalCompleted: 0,
+    },
+    topPeople: [],
+  };
 }
 
 function isoDaysFromToday(offset: number): string {
@@ -1082,6 +1134,12 @@ function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSu
       const url = String(input);
       requestedUrls.push(url);
       if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
+      if (url.includes("/api/loans/contacts/")) {
+        return Promise.resolve(jsonResponse(contactView()));
+      }
+      if (url.includes("/api/loans/history/overview")) {
+        return Promise.resolve(jsonResponse(historyOverview()));
+      }
       if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
       if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
         return Promise.resolve(jsonResponse(extendedBookView()));

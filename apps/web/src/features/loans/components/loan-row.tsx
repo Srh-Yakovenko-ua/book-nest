@@ -31,11 +31,12 @@ const LOAN_TERM_LOOK = {
 type LoanRowProps = {
   loan: LoanListItemView;
   onEdit: () => void;
+  onOpenContact: () => void;
   onReturn: () => void;
   today: string;
 };
 
-export function LoanRow({ loan, onEdit, onReturn, today }: LoanRowProps) {
+export function LoanRow({ loan, onEdit, onOpenContact, onReturn, today }: LoanRowProps) {
   const tRow = useTranslations("loans.row");
 
   const isBorrowed = loan.type === "borrowed_from_someone";
@@ -44,7 +45,9 @@ export function LoanRow({ loan, onEdit, onReturn, today }: LoanRowProps) {
     <BookRow
       book={toLoanRowBook(loan)}
       coverAspect="portrait"
-      detailsSlot={<LoanPeopleZone isBorrowed={isBorrowed} loan={loan} />}
+      detailsSlot={
+        <LoanPeopleZone isBorrowed={isBorrowed} loan={loan} onOpenContact={onOpenContact} />
+      }
       kebab={
         <div className="flex w-[3.25rem] items-center justify-end gap-1">
           {loan.remindToReturn ? (
@@ -85,14 +88,31 @@ function InfoLine({ children, label }: { children: ReactNode; label: string }) {
   );
 }
 
-function LoanPeopleZone({ isBorrowed, loan }: { isBorrowed: boolean; loan: LoanListItemView }) {
+function LoanPeopleZone({
+  isBorrowed,
+  loan,
+  onOpenContact,
+}: {
+  isBorrowed: boolean;
+  loan: LoanListItemView;
+  onOpenContact: () => void;
+}) {
   const tRow = useTranslations("loans.row");
+  const tContact = useTranslations("loans.contactDrawer");
   const loanDate = formatLoanDate(loan.loanDate);
 
   return (
     <div className="flex shrink-0 flex-col gap-1 @xl/book-row:w-40">
       <InfoLine label={isBorrowed ? tRow("personBorrowed") : tRow("personLent")}>
-        {loan.personName}
+        <button
+          aria-label={tContact("openContact", { name: loan.personName })}
+          className="max-w-full cursor-pointer truncate rounded-sm text-left underline-offset-4 transition-colors outline-none hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+          data-loan-contact-trigger={loan.id}
+          onClick={onOpenContact}
+          type="button"
+        >
+          {loan.personName}
+        </button>
       </InfoLine>
       {loan.contact === null ? null : <InfoLine label={tRow("contact")}>{loan.contact}</InfoLine>}
       {loanDate === null ? null : (
