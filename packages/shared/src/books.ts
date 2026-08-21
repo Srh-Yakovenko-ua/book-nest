@@ -25,6 +25,7 @@ import {
   LIST_PAGE_SIZE_MAX,
   type Nullable,
   paginationQueryFields,
+  type ValueOf,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { DeliverySummaryViewSchema } from "./delivery-view.js";
@@ -483,6 +484,19 @@ export const UpdateLoanInputSchema = z
   );
 
 export type UpdateLoanInput = z.infer<typeof UpdateLoanInputSchema>;
+
+export const LOAN_ERROR_CODES = {
+  activeLoanExists: "LOAN_ACTIVE_EXISTS",
+  bookNotFound: "LOAN_BOOK_NOT_FOUND",
+  borrowRequiresFreeBook: "LOAN_BORROW_REQUIRES_FREE_BOOK",
+  extendRequiresReturnDate: "LOAN_EXTEND_REQUIRES_RETURN_DATE",
+  lendRequiresOwned: "LOAN_LEND_REQUIRES_OWNED",
+  loanNotFound: "LOAN_NOT_FOUND",
+  reminderRequiresReturnDate: "LOAN_REMINDER_REQUIRES_RETURN_DATE",
+  returnRequiresLoan: "LOAN_RETURN_REQUIRES_LOAN",
+} as const;
+
+export type LoanErrorCode = ValueOf<typeof LOAN_ERROR_CODES>;
 
 export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
   "Part number can't be greater than the total books in the series";

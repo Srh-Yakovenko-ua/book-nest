@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import type {
+  BookView,
   LoanContactView,
   LoanHistoryListItemView,
   LoanHistoryOverviewView,
@@ -36,6 +37,7 @@ type FetchCall = { init?: RequestInit; url: string };
 type MockOptions = {
   archiveStatus?: number;
   borrowed?: LoanListItemView[];
+  candidateBooks?: BookView[];
   contact?: Partial<LoanContactView>;
   contactStatus?: number;
   history?: LoanHistoryListItemView[];
@@ -235,6 +237,47 @@ describe("LoanContactDrawer", () => {
     expect(screen.queryByRole("button", { name: copy.actions.archive })).not.toBeInTheDocument();
   });
 
+  it("offers lending and borrowing straight from an active contact", async () => {
+    mockApi();
+
+    renderDrawer();
+
+    expect(await screen.findByRole("button", { name: copy.actions.lend })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: copy.actions.borrow })).toBeInTheDocument();
+  });
+
+  it("withholds both loan actions while the contact is archived", async () => {
+    mockApi({ contact: { archivedAt: "2026-08-01T10:00:00.000Z" } });
+
+    renderDrawer();
+
+    await screen.findByText(copy.archivedBadge);
+    expect(screen.queryByRole("button", { name: copy.actions.lend })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: copy.actions.borrow })).not.toBeInTheDocument();
+  });
+
+  it("brings the loan actions back once the contact is restored", async () => {
+    mockApi({ contact: { archivedAt: "2026-08-01T10:00:00.000Z" } });
+
+    renderDrawer();
+    await userEvent.click(await screen.findByRole("button", { name: copy.actions.restore }));
+
+    expect(await screen.findByRole("button", { name: copy.actions.lend })).toBeInTheDocument();
+  });
+
+  it("starts the lending flow on the book step without losing the drawer", async () => {
+    mockApi();
+
+    renderDrawer();
+    await userEvent.click(await screen.findByRole("button", { name: copy.actions.lend }));
+
+    const bookStep = messages.books.details.loan.bookStep;
+    expect(await screen.findByRole("heading", { name: bookStep.lent.title })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { hidden: true, name: copy.active.lent.title }),
+    ).toBeInTheDocument();
+  });
+
   it("restores an archived contact without asking", async () => {
     mockApi({ contact: { archivedAt: "2026-08-01T10:00:00.000Z" } });
 
@@ -390,6 +433,9 @@ function mockApi(options: MockOptions = {}) {
       }
       if (url.includes("/api/loans/history")) {
         return Promise.resolve(jsonResponse(page(options.history ?? [])));
+      }
+      if (url.startsWith("/api/books?")) {
+        return Promise.resolve(jsonResponse(page(options.candidateBooks ?? [])));
       }
       if (url.startsWith("/api/loans?")) {
         const isLent = url.includes("type=lent_to_someone");

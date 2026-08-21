@@ -22,8 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { BookDateField } from "@/features/books/components/book-date-field";
+import { toLoanErrorKey } from "@/features/books/model/loan-error";
 import { ISO_DATE_PATTERN, todayIso } from "@/features/books/model/reading-progress";
-import { ApiError } from "@/lib/http-client";
 
 import type { LoanContactSelection } from "../model/loan-contact-selection";
 
@@ -175,8 +175,7 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
     editLoan.mutate(
       { id: loan.book.id, payload: buildPayload(values) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
+        onError: (error) => setServerError(tErrors(toLoanErrorKey(error))),
         onSuccess: onDone,
       },
     );

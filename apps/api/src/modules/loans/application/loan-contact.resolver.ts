@@ -1,6 +1,6 @@
 import type { Nullable } from "@app/shared";
 
-import { LOAN_PERSON_REQUIRED_MESSAGE, normalizeName } from "@app/shared";
+import { LOAN_CONTACT_ERROR_CODES, LOAN_PERSON_REQUIRED_MESSAGE, normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -32,7 +32,7 @@ type AttachedLoanContact = {
 const LOAN_CONTACT_NOT_FOUND_MESSAGE = "Loan contact not found";
 
 const LOAN_CONTACT_ARCHIVED = {
-  code: "LOAN_CONTACT_ARCHIVED",
+  code: LOAN_CONTACT_ERROR_CODES.archived,
   message: "This contact is archived; restore it or choose another person",
 } as const;
 
@@ -83,7 +83,9 @@ export class LoanContactResolver {
         client,
       );
       if (owned === null) {
-        throw new NotFoundError(LOAN_CONTACT_NOT_FOUND_MESSAGE);
+        throw new NotFoundError(LOAN_CONTACT_NOT_FOUND_MESSAGE, {
+          code: LOAN_CONTACT_ERROR_CODES.notFound,
+        });
       }
       return owned;
     }
