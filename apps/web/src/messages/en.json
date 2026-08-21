@@ -4543,6 +4543,75 @@
         "createFailed": "Couldn’t create the contact. Please try again."
       }
     },
+    "contactDrawer": {
+      "title": "Person card",
+      "loading": "Loading the person card…",
+      "error": "Could not load the person card",
+      "retry": "Try again",
+      "contactEmpty": "No contact details",
+      "archivedBadge": "Archived",
+      "totalLoans": "{count, plural, one {# loan} other {# loans}} in total",
+      "openContact": "Open the card of {name}",
+      "actions": {
+        "edit": "Edit",
+        "archive": "Archive",
+        "restore": "Restore"
+      },
+      "active": {
+        "lent": {
+          "title": "This person has right now",
+          "empty": "This person has none of your books right now."
+        },
+        "borrowed": {
+          "title": "You owe this person",
+          "empty": "You have borrowed nothing from this person."
+        },
+        "viewAll": "View all",
+        "noReturnDate": "No return date"
+      },
+      "history": {
+        "title": "History",
+        "empty": "No completed loans yet.",
+        "completed": "Completed",
+        "onTime": "On time",
+        "late": "Late",
+        "averageDuration": "Average duration",
+        "durationUnknown": "—",
+        "recentTitle": "Latest completed",
+        "returnedOn": "Returned on {date}"
+      },
+      "edit": {
+        "title": "Edit contact",
+        "description": "Change the person's name or how to reach them. Loan records stay as they are.",
+        "name": "Name",
+        "namePlaceholder": "For example, Olya",
+        "contact": "Contact",
+        "contactPlaceholder": "Phone, email or handle",
+        "optional": "optional",
+        "submit": "Save",
+        "cancel": "Cancel",
+        "success": "Contact updated",
+        "errors": {
+          "nameInvalid": "Enter a name of up to 100 characters.",
+          "contactInvalid": "Contact must be at most 100 characters long.",
+          "duplicateName": "A contact with this name already exists.",
+          "archivedName": "An archived contact already uses this name. Pick another name.",
+          "generic": "Could not save the contact. Please try again."
+        }
+      },
+      "archive": {
+        "title": "Archive the contact “{name}”?",
+        "description": "Active loans and history stay untouched. The person simply stops showing up when you create a new loan.",
+        "confirm": "Archive",
+        "archiving": "Archiving…",
+        "success": "Contact archived",
+        "error": "Could not archive the contact"
+      },
+      "restore": {
+        "success": "Contact restored",
+        "error": "Could not restore the contact"
+      }
+    },
     "pages": {
       "borrowed": {
         "metaTitle": "To return",
