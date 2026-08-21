@@ -1,4 +1,4 @@
-import type { LoanContactView } from "@app/shared";
+import type { LoanContactCounts, LoanContactsView, LoanContactView } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { LOAN_CONTACT_ERROR_CODES, LoanContactsViewSchema } from "@app/shared";
@@ -70,12 +70,21 @@ function archiveContactRequest(accessToken: string, contactId: string): request.
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function contactCounts(res: Response): LoanContactCounts {
+  return LoanContactsViewSchema.parse(res.body).counts;
+}
+
 function contactItems(res: Response): LoanContactView[] {
   return LoanContactsViewSchema.parse(res.body).items;
 }
 
 function contactNames(res: Response): string[] {
   return contactItems(res).map((item) => item.name);
+}
+
+function contactPage(res: Response): Omit<LoanContactsView, "counts" | "items"> {
+  const { counts: _counts, items: _items, ...page } = LoanContactsViewSchema.parse(res.body);
+  return page;
 }
 
 function createBook(accessToken: string, title: string): request.Test {
@@ -134,6 +143,12 @@ function listContacts(accessToken: string, queryString = ""): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function lookupContactByName(accessToken: string, name: string): request.Test {
+  return request(app.getHttpServer())
+    .get(`/api/loans/contacts/by-name?name=${encodeURIComponent(name)}`)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function restoreContactRequest(accessToken: string, contactId: string): request.Test {
   return request(app.getHttpServer())
     .post(`/api/loans/contacts/${contactId}/restore`)
@@ -177,6 +192,12 @@ describe("loan contacts authorization", () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/loans/contacts/${MISSING_CONTACT_ID}`)
       .send({ name: "Ігор" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for a contact lookup by name without an Authorization header", async () => {
+    const res = await request(app.getHttpServer()).get("/api/loans/contacts/by-name?name=Ihor");
 
     expect(res.status).toBe(401);
   });
@@ -265,23 +286,55 @@ describe("GET /api/loans/contacts", () => {
     expect(contactNames(res)).toEqual(["Ihor 100%"]);
   });
 
-  it("caps the list at the requested limit", async () => {
+  it("caps the list at the requested page size", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     for (const name of ["Charlie", "Bravo", "Alpha"]) {
       await createNamedContact(accessToken, name);
     }
 
-    const res = await listContacts(accessToken, "?limit=2");
+    const res = await listContacts(accessToken, "?pageSize=2");
 
     expect(contactNames(res)).toEqual(["Alpha", "Bravo"]);
   });
 
-  it("returns 400 when the limit exceeds the maximum", async () => {
+  it("returns 400 when the page size exceeds the maximum", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await listContacts(accessToken, "?limit=201");
+    const res = await listContacts(accessToken, "?pageSize=101");
 
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for a status the list does not know", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listContacts(accessToken, "?status=deleted");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("serves the rest of the contacts on the next page", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const name of ["Charlie", "Bravo", "Alpha"]) {
+      await createNamedContact(accessToken, name);
+    }
+
+    const res = await listContacts(accessToken, "?pageSize=2&pageNumber=2");
+
+    expect(contactNames(res)).toEqual(["Charlie"]);
+    expect(contactPage(res)).toEqual(
+      expect.objectContaining({ page: 2, pagesCount: 2, pageSize: 2, totalCount: 3 }),
+    );
+  });
+
+  it("lists only the archived contacts when asked for them alone", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+    await archiveContact(await createNamedContact(accessToken, "Ivan"));
+
+    const res = await listContacts(accessToken, "?status=archived");
+
+    expect(contactNames(res)).toEqual(["Ivan"]);
   });
 
   it("leaves archived contacts out by default", async () => {
@@ -299,7 +352,7 @@ describe("GET /api/loans/contacts", () => {
     await createNamedContact(accessToken, "Ihor");
     await archiveContact(await createNamedContact(accessToken, "Ivan"));
 
-    const res = await listContacts(accessToken, "?includeArchived=true");
+    const res = await listContacts(accessToken, "?status=all");
 
     expect(contactNames(res)).toEqual(["Ihor", "Ivan"]);
   });
@@ -308,11 +361,74 @@ describe("GET /api/loans/contacts", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await archiveContact(await createNamedContact(accessToken, "Ivan"));
 
-    const res = await listContacts(accessToken, "?includeArchived=true");
+    const res = await listContacts(accessToken, "?status=all");
 
     expect(contactItems(res)).toEqual([
       expect.objectContaining({ archivedAt: expect.any(String), name: "Ivan" }),
     ]);
+  });
+});
+
+describe("GET /api/loans/contacts counts", () => {
+  it("splits the contacts of the user into all, active and archived", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+    await createNamedContact(accessToken, "Olha");
+    await archiveContact(await createNamedContact(accessToken, "Ivan"));
+
+    const res = await listContacts(accessToken);
+
+    expect(contactCounts(res)).toEqual({ active: 2, all: 3, archived: 1 });
+  });
+
+  it("keeps the counts the same whichever status the list is filtered by", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+    await archiveContact(await createNamedContact(accessToken, "Ivan"));
+
+    const [active, archived, all] = await Promise.all([
+      listContacts(accessToken, "?status=active"),
+      listContacts(accessToken, "?status=archived"),
+      listContacts(accessToken, "?status=all"),
+    ]);
+
+    const expected = { active: 1, all: 2, archived: 1 };
+    expect(contactCounts(active)).toEqual(expected);
+    expect(contactCounts(archived)).toEqual(expected);
+    expect(contactCounts(all)).toEqual(expected);
+  });
+
+  it("narrows the counts to the contacts the search matches", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Olha Melnyk");
+    await archiveContact(await createNamedContact(accessToken, "Olha Kravets"));
+    await createNamedContact(accessToken, "Ivan Petrenko");
+
+    const res = await listContacts(accessToken, "?search=Olha&status=all");
+
+    expect(contactCounts(res)).toEqual({ active: 1, all: 2, archived: 1 });
+  });
+
+  it("leaves the counts untouched by pagination", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const name of ["Charlie", "Bravo", "Alpha"]) {
+      await createNamedContact(accessToken, name);
+    }
+
+    const res = await listContacts(accessToken, "?pageSize=1&pageNumber=2");
+
+    expect(contactNames(res)).toEqual(["Bravo"]);
+    expect(contactCounts(res)).toEqual({ active: 3, all: 3, archived: 0 });
+  });
+
+  it("counts the contacts of the current user only", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await createNamedContact(owner.accessToken, "Ihor");
+    const stranger = await context.registerVerifyAndLogin(STRANGER);
+
+    const res = await listContacts(stranger.accessToken);
+
+    expect(contactCounts(res)).toEqual({ active: 0, all: 0, archived: 0 });
   });
 });
 
@@ -654,6 +770,89 @@ describe("GET /api/loans/contacts/:contactId", () => {
   });
 });
 
+describe("GET /api/loans/contacts/by-name", () => {
+  it("finds the contact that holds the name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Олена");
+
+    const res = await lookupContactByName(accessToken, "Олена");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(expect.objectContaining({ id: contactId, name: "Олена" }));
+  });
+
+  it("finds an archived contact too, because it still holds the name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Олена");
+    await archiveContactRequest(accessToken, contactId);
+
+    const res = await lookupContactByName(accessToken, "Олена");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(
+      expect.objectContaining({ archivedAt: expect.any(String), id: contactId }),
+    );
+  });
+
+  it("normalizes the name the same way creation does", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Олена");
+
+    for (const name of ["  Олена  ", "олена", "ОЛЕНА", "Олена   "]) {
+      const res = await lookupContactByName(accessToken, name);
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(contactId);
+    }
+  });
+
+  it("matches the whole name, never a fragment of it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Оленка");
+
+    const res = await lookupContactByName(accessToken, "Олена");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("reports the loan count of the contact it found", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Олена");
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Dune" });
+
+    const res = await lookupContactByName(accessToken, "Олена");
+
+    expect(res.body.loanCount).toBe(1);
+  });
+
+  it("returns 404 when nobody holds the name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await lookupContactByName(accessToken, "Олена");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 for an empty name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await lookupContactByName(accessToken, "   ");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("answers the contact of another user exactly like a missing one", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await createNamedContact(owner.accessToken, "Олена");
+    const stranger = await context.registerVerifyAndLogin(STRANGER);
+
+    const foreign = await lookupContactByName(stranger.accessToken, "Олена");
+    const missing = await lookupContactByName(stranger.accessToken, "Тарас");
+
+    expect(foreign.status).toBe(404);
+    expect(foreign.body.message).toBe(missing.body.message);
+  });
+});
+
 describe("POST /api/loans/contacts/:contactId/archive", () => {
   it("stamps the moment the contact was archived", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
@@ -689,9 +888,7 @@ describe("POST /api/loans/contacts/:contactId/archive", () => {
 
     await archiveContactRequest(accessToken, contactId);
 
-    expect(contactNames(await listContacts(accessToken, "?includeArchived=true"))).toEqual([
-      "Ігор",
-    ]);
+    expect(contactNames(await listContacts(accessToken, "?status=all"))).toEqual(["Ігор"]);
   });
 
   it("leaves the active loans of the contact untouched", async () => {

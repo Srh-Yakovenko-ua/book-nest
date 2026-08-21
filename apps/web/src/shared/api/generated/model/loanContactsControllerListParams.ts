@@ -5,16 +5,22 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { LoanContactsControllerListStatus } from "./loanContactsControllerListStatus";
 
 export type LoanContactsControllerListParams = {
-  includeArchived?: string;
   /**
    * @minimum 1
-   * @maximum 200
+   * @maximum 21474836
    */
-  limit?: number;
+  pageNumber?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  pageSize?: number;
   /**
    * @maxLength 100
    */
   search?: string;
+  status?: LoanContactsControllerListStatus;
 };

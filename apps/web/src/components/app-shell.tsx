@@ -27,6 +27,7 @@ import {
   ShoppingBag,
   Tags,
   Truck,
+  Users,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
@@ -94,6 +95,7 @@ type NavMessageKey =
   | "delivery.subnav.statistics"
   | "nav.loans"
   | "nav.loansBorrowed"
+  | "nav.loansContacts"
   | "nav.loansHistory"
   | "nav.loansLent";
 
@@ -130,6 +132,7 @@ const NAV_ITEMS = [
       { icon: CircleArrowDown, labelKey: "nav.loansBorrowed", to: "/loans/borrowed" },
       { icon: ArrowUpRight, labelKey: "nav.loansLent", to: "/loans/lent" },
       { icon: History, labelKey: "nav.loansHistory", to: "/loans/history" },
+      { icon: Users, labelKey: "nav.loansContacts", to: "/loans/contacts" },
     ],
     icon: HandHelping,
     key: "loans",

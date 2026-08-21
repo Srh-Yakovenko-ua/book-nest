@@ -4,10 +4,11 @@ import { LoanContactsViewSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { loanContactsControllerList } from "@/shared/api/generated/endpoints/loans/loans";
+import { LoanContactsControllerListStatus } from "@/shared/api/generated/model";
 
 import { loanKeys } from "./loan-keys";
 
-const LOAN_CONTACTS_SEARCH_LIMIT = 20;
+const LOAN_CONTACTS_SEARCH_PAGE_SIZE = 20;
 
 export function useLoanContacts(search: string) {
   const trimmed = search.trim();
@@ -16,8 +17,9 @@ export function useLoanContacts(search: string) {
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<LoanContactView[]> => {
       const response = await loanContactsControllerList({
-        limit: LOAN_CONTACTS_SEARCH_LIMIT,
+        pageSize: LOAN_CONTACTS_SEARCH_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
+        status: LoanContactsControllerListStatus.active,
       });
       return LoanContactsViewSchema.parse(response).items;
     },

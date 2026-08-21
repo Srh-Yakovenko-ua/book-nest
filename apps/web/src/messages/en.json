@@ -28,7 +28,8 @@
     "dedications": "Dedications",
     "quotes": "Quotes",
     "publishers": "Publishers",
-    "settings": "Settings"
+    "settings": "Settings",
+    "loansContacts": "Contacts"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -4541,6 +4542,76 @@
         "archivedName": "An archived contact already uses this name. Pick a different name.",
         "duplicateName": "A contact with this name already exists. Pick it from the list.",
         "createFailed": "Couldn’t create the contact. Please try again."
+      }
+    },
+    "contactCreate": {
+      "title": "New contact",
+      "description": "Add a person you lend books to or borrow them from.",
+      "name": "Name",
+      "namePlaceholder": "For example, Olya",
+      "contact": "Contact",
+      "contactPlaceholder": "Phone, email or handle",
+      "optional": "optional",
+      "submit": "Create",
+      "cancel": "Cancel",
+      "conflict": {
+        "duplicate": "The contact “{name}” already exists",
+        "archived": "The contact “{name}” is in the archive",
+        "select": "Pick {name}",
+        "open": "Open contact",
+        "restore": "Restore {name}"
+      },
+      "errors": {
+        "nameInvalid": "Enter a name of up to 100 characters.",
+        "contactInvalid": "Contact must be at most 100 characters long.",
+        "duplicateName": "A contact with this name already exists.",
+        "archivedName": "An archived contact already uses this name. Pick another name.",
+        "restoreFailed": "Could not restore the contact. Please try again.",
+        "generic": "Could not create the contact. Please try again."
+      }
+    },
+    "contactsPage": {
+      "metaTitle": "Contacts",
+      "title": "Contacts",
+      "subtitle": "The people you lend books to and borrow them from.",
+      "loadMore": "Show more",
+      "loadMoreError": "Could not load the next page.",
+      "create": {
+        "cta": "Add contact",
+        "success": "Contact created",
+        "restored": "Contact restored"
+      },
+      "toolbar": {
+        "searchLabel": "Search contacts",
+        "searchPlaceholder": "Name or how to reach them",
+        "searchClear": "Clear search",
+        "statusLabel": "Contact state",
+        "status": {
+          "all": "All",
+          "active": "Active",
+          "archived": "Archived"
+        }
+      },
+      "row": {
+        "loanCount": "{count, plural, one {# loan} other {# loans}}"
+      },
+      "states": {
+        "loading": "Loading contacts…",
+        "empty": {
+          "title": "No contacts yet",
+          "description": "Add the first person and they will show up in your loans.",
+          "cta": "Add contact"
+        },
+        "noResults": {
+          "title": "Nothing found",
+          "description": "Try changing your query or clearing the filters.",
+          "clear": "Clear filters"
+        },
+        "error": {
+          "title": "Could not load your contacts",
+          "description": "Try refreshing the page or repeating the request.",
+          "retry": "Try again"
+        }
       }
     },
     "contactDrawer": {

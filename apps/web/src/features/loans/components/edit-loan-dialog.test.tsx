@@ -24,6 +24,17 @@ function contactPicker() {
   return screen.getByLabelText(messages.books.details.loan.lent.personName);
 }
 
+function contactsPage(items: LoanContactView[]) {
+  return {
+    counts: { active: items.length, all: items.length, archived: 0 },
+    items,
+    page: 1,
+    pagesCount: items.length === 0 ? 0 : 1,
+    pageSize: 20,
+    totalCount: items.length,
+  };
+}
+
 function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
   return {
     archivedAt: null,
@@ -90,7 +101,7 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/loans/contacts")) {
-      return Promise.resolve(jsonResponse({ items: searchResults }));
+      return Promise.resolve(jsonResponse(contactsPage(searchResults)));
     }
     if (url.includes(`/api/books/${BOOK_ID}/loan`) && method === "PATCH") {
       return Promise.resolve(jsonResponse(makeBookView({ id: BOOK_ID })));

@@ -2,6 +2,7 @@ import type { LoanContactsView, LoanContactView } from "@app/shared";
 
 import {
   CreateLoanContactInputSchema,
+  LoanContactByNameQuerySchema,
   LoanContactsQuerySchema,
   UpdateLoanContactInputSchema,
 } from "@app/shared";
@@ -39,6 +40,7 @@ import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { LoanContactsService } from "../application/loan-contacts.service.js";
 import { CreateLoanContactInputDto } from "./input-dto/create-loan-contact.input-dto.js";
+import { LoanContactByNameQueryDto } from "./input-dto/loan-contact-by-name.input-dto.js";
 import { LoanContactsQueryDto } from "./input-dto/loan-contacts-query.input-dto.js";
 import { UpdateLoanContactInputDto } from "./input-dto/update-loan-contact.input-dto.js";
 import { LoanContactViewDto } from "./view-dto/loan-contact.view-dto.js";
@@ -56,14 +58,29 @@ export class LoanContactsController {
   })
   @ApiOperation({ summary: "List the loan contacts of the current user" })
   @ApiQuery({ name: "search", required: false })
-  @ApiQuery({ name: "limit", required: false })
-  @ApiQuery({ name: "includeArchived", required: false })
+  @ApiQuery({ enum: ["all", "active", "archived"], name: "status", required: false })
+  @ApiQuery({ name: "pageNumber", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(LoanContactsQuerySchema)) query: LoanContactsQueryDto,
   ): Promise<LoanContactsView> {
     return this.loanContactsService.list({ query, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "No contact of the current user uses this name" })
+  @ApiOkResponse({ description: "The loan contact that holds this name", type: LoanContactViewDto })
+  @ApiOperation({
+    summary: "Read the loan contact whose normalized name matches, archived ones included",
+  })
+  @ApiQuery({ name: "name", required: true })
+  @Get("by-name")
+  detailByName(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LoanContactByNameQuerySchema)) query: LoanContactByNameQueryDto,
+  ): Promise<LoanContactView> {
+    return this.loanContactsService.detailByName({ name: query.name, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Loan contact not found" })
