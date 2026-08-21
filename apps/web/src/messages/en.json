@@ -2718,21 +2718,22 @@
       }
     },
     "activeFilters": {
+      "ageBucket": "Age: {value}",
       "attention": "Attention: {label}",
-      "store": "Store: {value}",
-      "service": "Service: {value}",
-      "orderedRange": "Ordered: {from} – {to}",
-      "orderedFrom": "Ordered from {value}",
-      "orderedTo": "Ordered until {value}",
-      "expectedRange": "Expected: {from} – {to}",
-      "expectedFrom": "Expected from {value}",
-      "expectedTo": "Expected until {value}",
-      "booksRange": "Books: {min}–{max}",
       "booksFrom": "Books: from {min}",
+      "booksRange": "Books: {min}–{max}",
       "booksTo": "Books: up to {max}",
-      "priceRange": "Total: {min}–{max} {currency}",
+      "expectedFrom": "Expected from {value}",
+      "expectedRange": "Expected: {from} – {to}",
+      "expectedTo": "Expected until {value}",
+      "orderedFrom": "Ordered from {value}",
+      "orderedRange": "Ordered: {from} – {to}",
+      "orderedTo": "Ordered until {value}",
       "priceFrom": "Total: from {min} {currency}",
+      "priceRange": "Total: {min}–{max} {currency}",
       "priceTo": "Total: up to {max} {currency}",
+      "service": "Service: {value}",
+      "store": "Store: {value}",
       "totalKnown": "Total recorded",
       "totalUnknown": "Total missing"
     },
@@ -3333,39 +3334,35 @@
       }
     },
     "statistics": {
-      "metaTitle": "Expense statistics",
-      "title": "Expense statistics",
-      "subtitle": "How much you spend on book deliveries — by month, store and currency.",
-      "summary": {
-        "total": "Total amount",
-        "active": "Active orders",
-        "received": "Received orders",
-        "cancelled": "Cancelled orders",
-        "average": "Average price",
-        "orders": "Orders",
-        "mobile": {
-          "title": "Detailed stats",
-          "compact": {
-            "total": "Amount",
-            "active": "Active",
-            "received": "Received",
-            "cancelled": "Cancelled",
-            "average": "Average",
-            "orders": "Orders"
-          },
-          "detailed": {
-            "total": "Total amount",
-            "active": "Active orders",
-            "received": "Received orders",
-            "cancelled": "Cancelled orders",
-            "average": "Average price",
-            "orders": "Orders"
-          }
+      "metaTitle": "Spending statistics",
+      "title": "Spending statistics",
+      "subtitle": "What you spend on books, where you get the better deal, and how much money is on its way right now.",
+      "controls": {
+        "toolbarLabel": "Period and filters",
+        "includeCancelled": "Include cancelled orders",
+        "resetFilters": "Reset filters",
+        "compare": "Compare",
+        "compareMode": "Compare with",
+        "compareModes": {
+          "previous_period": "Previous period",
+          "same_period_last_year": "Same period last year"
         }
       },
-      "controls": {
-        "includeCancelled": "Include cancelled orders",
-        "resetFilters": "Reset filters"
+      "period": {
+        "label": "Period",
+        "this_month": "This month",
+        "last_month": "Last month",
+        "last_30_days": "Last 30 days",
+        "last_3_months": "Last 3 months",
+        "last_12_months": "Last 12 months",
+        "this_year": "This year",
+        "all_time": "All time",
+        "custom": "Custom range",
+        "from": "From",
+        "to": "To",
+        "caption": "Period: {range}",
+        "comparisonCaption": "Compared with: {range}",
+        "allTimeCaption": "Period: all time"
       },
       "filters": {
         "label": "Filters",
@@ -3373,32 +3370,131 @@
         "status": "Status",
         "store": "Store",
         "storePlaceholder": "Exact store name",
-        "from": "Period from",
-        "to": "Period to",
         "any": "Any",
         "apply": "Apply",
         "reset": "Reset"
       },
-      "monthly": {
-        "title": "Monthly spending",
-        "subtitle": "Grouped by order date. Currencies are shown separately, without conversion.",
-        "spendingIn": "Spending, {currency}",
-        "spendingAria": "Chart of spending in {currency} by month",
-        "ordersTitle": "Orders per month",
-        "ordersValueLabel": "Orders",
-        "ordersAria": "Chart of order count by month",
-        "empty": "No dated orders available for monthly statistics."
+      "kpi": {
+        "spend": {
+          "label": "Spent",
+          "hint": "The sum of actual order totals in the selected period. Currencies are counted separately."
+        },
+        "snapshot": {
+          "label": "Money in transit",
+          "hint": "How much money sits in active orders right now. This number ignores the selected period."
+        },
+        "average": {
+          "label": "Average book price",
+          "hint": "The average book price as you entered it, before delivery and discounts."
+        },
+        "basket": {
+          "label": "Average order",
+          "hint": "The average actual total of one order."
+        },
+        "snapshotBadge": "Right now",
+        "snapshotFact": "{books, plural, one {# book} other {# books}} · {shipments, plural, one {# shipment} other {# shipments}}",
+        "booksPerOrder": "{value} books per order",
+        "previous": "was {value}",
+        "previousShort": "was {value}",
+        "noChange": "No change",
+        "secondary": {
+          "orders": "Orders",
+          "books": "Books",
+          "shipments": "Shipments",
+          "received": "Received"
+        }
       },
-      "status": {
-        "title": "By status",
-        "active": "Active",
-        "received": "Received",
-        "cancelled": "Cancelled"
+      "dynamics": {
+        "title": "Dynamics",
+        "subtitle": "Grouped by order date. Currencies stay separate, with no conversion.",
+        "metricLabel": "Metric",
+        "currencyLabel": "Currency",
+        "metrics": {
+          "spend": "Spending",
+          "orders": "Orders",
+          "books": "Books"
+        },
+        "current": "Selected period",
+        "comparison": "Comparison",
+        "difference": "Difference",
+        "aria": "Monthly chart of {metric}",
+        "empty": "No dated orders to build a monthly chart from.",
+        "clickHint": "Click a month to see those orders"
       },
-      "stores": {
-        "title": "Spending by store",
-        "empty": "No stores to show.",
-        "orders": "{count, plural, one {# order} other {# orders}}"
+      "pulse": {
+        "title": "What changed",
+        "subtitle": "A few takeaways from the numbers in this period.",
+        "empty": "Not enough change yet to draw conclusions for this period.",
+        "previousPeriod": "the previous period",
+        "spend_change": {
+          "up": "Spending in {currency} is {change} higher than in {comparison}.",
+          "down": "Spending in {currency} is {change} lower than in {comparison}.",
+          "flat": "Spending in {currency} barely moved compared with {comparison}."
+        },
+        "avg_book_price_change": {
+          "up": "The average book price in {currency} went up by {change}.",
+          "down": "The average book price in {currency} went down by {change}.",
+          "flat": "The average book price in {currency} stayed the same."
+        },
+        "avg_landed_cost_change": {
+          "up": "The real cost per book in {currency} went up by {change}.",
+          "down": "The real cost per book in {currency} went down by {change}.",
+          "flat": "The real cost per book in {currency} stayed the same."
+        },
+        "store_growth": {
+          "up": "The biggest increase is at {store}: +{change}.",
+          "down": "The biggest drop is at {store}: −{change}."
+        },
+        "delivery_share": {
+          "default": "Delivery took {percent} of your spending — {total}."
+        },
+        "discount_savings": {
+          "plain": "Discounts saved you {total}.",
+          "withPercent": "Discounts saved you {total}, which is {percent} of the book prices."
+        },
+        "record_month": {
+          "period": "{month} is the most expensive month in the selected period: {total}.",
+          "allTime": "{month} is your most expensive month: {total}."
+        }
+      },
+      "costs": {
+        "title": "What the cost is made of",
+        "subtitle": "Delivery, discounts and the real cost per book in the selected currency.",
+        "currencyLabel": "Currency",
+        "delivery": {
+          "title": "Delivery",
+          "perBook": "{value} per book",
+          "shareOfSpend": "{value} of spending",
+          "shareOfBudget": "{value} of budget",
+          "orders": "{count, plural, one {# order with delivery} other {# orders with delivery}}"
+        },
+        "discount": {
+          "title": "Saved",
+          "orders": "{count, plural, one {# order with a discount} other {# orders with a discount}}",
+          "share": "{value} of the book prices"
+        },
+        "landed": {
+          "title": "Real cost per book",
+          "hint": "Includes the discount, the delivery price and the order's actual total.",
+          "below": "{value} below the listed price",
+          "above": "{value} above the listed price",
+          "coverage": "Calculated for {counted} of {eligible} books",
+          "partialCoverage": "Coverage {value} — the average does not include every book."
+        }
+      },
+      "lifecycle": {
+        "title": "Order journey",
+        "subtitle": "The current status split for the selected period.",
+        "modeLabel": "Unit",
+        "modes": {
+          "orders": "Orders",
+          "books": "Books"
+        },
+        "units": {
+          "orders": "orders",
+          "books": "books"
+        },
+        "empty": "No orders in this period."
       },
       "orderStatus": {
         "active": "Active",
@@ -3408,28 +3504,159 @@
         "received": "Received",
         "cancelled": "Cancelled"
       },
+      "activeAge": {
+        "title": "Money in active orders",
+        "subtitle": "Age is counted from the order date.",
+        "snapshotBadge": "Right now",
+        "buckets": {
+          "0_7": "0–7 days",
+          "8_14": "8–14 days",
+          "15_30": "15–30 days",
+          "31_plus": "31+ days",
+          "unknown_date": "No date set"
+        },
+        "counts": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
+        "empty": "No active orders.",
+        "asOf": "As of {value}"
+      },
+      "stores": {
+        "title": "Stores",
+        "subtitle": "Where you buy the most, and what a book really costs there.",
+        "metricLabel": "Metric",
+        "currencyLabel": "Currency",
+        "metrics": {
+          "spend": "Spending",
+          "orders": "Orders",
+          "books": "Books"
+        },
+        "counts": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
+        "perBook": "{value} per book",
+        "perOrder": "{value} per order",
+        "landed": "real {value}",
+        "landedHint": "The average cost per book including the discount, delivery and the order's final total.",
+        "deltaHint": "Difference from the previous period: {value}",
+        "showAll": "Show all ({count})",
+        "showLess": "Show less",
+        "empty": "No stores to show."
+      },
+      "storeMap": {
+        "title": "Store map",
+        "subtitle": "Where books come cheaper, and where the orders come bigger.",
+        "currencyLabel": "Currency",
+        "axisX": "Average real cost per book",
+        "axisY": "Average order",
+        "bubble": "Books",
+        "orders": "Orders",
+        "coverage": "Calculation coverage",
+        "legend": "Bubble size is the number of books. Further left means a cheaper book; higher up means bigger orders.",
+        "empty": "Not enough data yet to map stores in this currency.",
+        "insufficient": "Not enough data yet: {stores}",
+        "aria": "Scatter chart of stores: real cost per book against the average order"
+      },
+      "calendar": {
+        "title": "Purchase calendar",
+        "subtitle": "Each square is one day.",
+        "metricLabel": "Metric",
+        "metrics": {
+          "orders": "Orders",
+          "books": "Books"
+        },
+        "yearLabel": "Year",
+        "counts": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
+        "daySummary": "{date}: {orders, plural, one {# order} other {# orders}}, {books, plural, one {# book} other {# books}}",
+        "dayEmpty": "{date}: no orders",
+        "less": "Less",
+        "more": "More",
+        "empty": "No dated orders to build a calendar from."
+      },
+      "records": {
+        "title": "Records",
+        "currencyLabel": "Currency",
+        "empty": "Not enough data for records yet.",
+        "scope": {
+          "period": "Within the selected period.",
+          "allTime": "All time.",
+          "truncated": "Within the loaded data — possibly not all time."
+        },
+        "recordMonth": {
+          "title": "Record month",
+          "helper": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}"
+        },
+        "largestOrder": {
+          "title": "Largest order",
+          "helper": "{store} · {books, plural, one {# book} other {# books}}"
+        },
+        "mostBooks": {
+          "title": "Most books in one order",
+          "helper": "{store}",
+          "value": "{count, plural, one {# book} other {# books}}"
+        },
+        "mostActive": {
+          "title": "Most active store",
+          "helper": "{books, plural, one {# book} other {# books}}",
+          "value": "{store} · {count, plural, one {# order} other {# orders}}"
+        },
+        "bestValue": {
+          "title": "Best value store",
+          "helper": "Based on {count, plural, one {# book} other {# books}}"
+        }
+      },
       "topOrders": {
         "title": "Most expensive orders",
-        "empty": "No orders with a price.",
+        "subtitle": "A separate ranking for each currency.",
+        "currencyLabel": "Currency",
+        "books": "{count, plural, one {# book} other {# books}}",
         "untitledOrder": "Order without a number",
-        "books": "{count, plural, one {# book} other {# books}}"
+        "emptyForCurrency": "No orders in {currency}."
+      },
+      "budget": {
+        "title": "Book budget",
+        "currencyLabel": "Currency",
+        "monthCaption": "{month}",
+        "edit": "Change budget",
+        "emptyDescription": "Set a monthly budget to see your progress and a spending forecast.",
+        "emptyCta": "Set a budget",
+        "progress": "{spent} / {budget}",
+        "progressAria": "Budget usage in {currency}",
+        "remaining": "{value} left",
+        "exceeded": "Over by {value}",
+        "forecast": "Forecast for the month: ~{value}",
+        "forecastPending": "The forecast appears after {days, plural, one {# day} other {# days}} of data.",
+        "projectedOverage": "Possible overspend: ~{value}",
+        "scheduled": "From {month}: {value}",
+        "cancelScheduled": "Cancel",
+        "scheduledCancelled": "The scheduled budget change was cancelled",
+        "notActiveYet": "This budget starts next month.",
+        "dialog": {
+          "title": "Monthly budget",
+          "description": "Currencies are independent. An empty field means no budget is set for that currency.",
+          "amount": "Budget, {currency}",
+          "notConfigured": "not set",
+          "effectiveFrom": "Starts from",
+          "effectiveFromHint": "Earlier months keep the budget that applied back then.",
+          "save": "Save",
+          "cancel": "Cancel",
+          "saved": "Budget saved",
+          "failed": "Could not save the budget",
+          "invalidAmount": "Check the budget amount in {currency}"
+        }
       },
       "states": {
         "error": {
           "title": "Could not load the data",
-          "description": "Please try refreshing the page.",
+          "description": "Try refreshing the page.",
           "retry": "Try again"
         },
         "empty": {
-          "title": "No delivery expense data yet",
-          "description": "Once you add orders with prices, your expense statistics will appear here."
+          "title": "No orders in this period",
+          "description": "Change the period or add orders with prices to see the statistics."
         },
-        "noPrice": "Add a price to your orders to see expense statistics.",
         "filteredEmpty": {
-          "title": "No data for the selected filters",
+          "title": "Nothing matches these filters",
           "description": "Try changing or resetting the filters.",
           "reset": "Reset filters"
-        }
+        },
+        "truncated": "The statistics are built from {loaded} records out of a {max} limit, so they may be incomplete."
       }
     },
     "priceDialog": {

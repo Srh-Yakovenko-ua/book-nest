@@ -2718,21 +2718,22 @@
       }
     },
     "activeFilters": {
+      "ageBucket": "Вік: {value}",
       "attention": "Увага: {label}",
-      "store": "Магазин: {value}",
-      "service": "Служба: {value}",
-      "orderedRange": "Дата замовлення: {from} – {to}",
-      "orderedFrom": "Дата замовлення: від {value}",
-      "orderedTo": "Дата замовлення: до {value}",
-      "expectedRange": "Очікувана доставка: {from} – {to}",
-      "expectedFrom": "Очікувана доставка: від {value}",
-      "expectedTo": "Очікувана доставка: до {value}",
-      "booksRange": "Кількість книг: {min}–{max}",
       "booksFrom": "Кількість книг: від {min}",
+      "booksRange": "Кількість книг: {min}–{max}",
       "booksTo": "Кількість книг: до {max}",
-      "priceRange": "Вартість: {min}–{max} {currency}",
+      "expectedFrom": "Очікувана доставка: від {value}",
+      "expectedRange": "Очікувана доставка: {from} – {to}",
+      "expectedTo": "Очікувана доставка: до {value}",
+      "orderedFrom": "Дата замовлення: від {value}",
+      "orderedRange": "Дата замовлення: {from} – {to}",
+      "orderedTo": "Дата замовлення: до {value}",
       "priceFrom": "Вартість: від {min} {currency}",
+      "priceRange": "Вартість: {min}–{max} {currency}",
       "priceTo": "Вартість: до {max} {currency}",
+      "service": "Служба: {value}",
+      "store": "Магазин: {value}",
       "totalKnown": "Сума вказана",
       "totalUnknown": "Сума не вказана"
     },
@@ -3335,37 +3336,33 @@
     "statistics": {
       "metaTitle": "Статистика витрат",
       "title": "Статистика витрат",
-      "subtitle": "Скільки ви витрачаєте на доставку книг — за місяцями, магазинами й валютами.",
-      "summary": {
-        "total": "Загальна сума",
-        "active": "Активні замовлення",
-        "received": "Отримані замовлення",
-        "cancelled": "Скасовані замовлення",
-        "average": "Середня ціна",
-        "orders": "Замовлень",
-        "mobile": {
-          "title": "Детальна статистика",
-          "compact": {
-            "total": "Сума",
-            "active": "Активні",
-            "received": "Отримані",
-            "cancelled": "Скасовані",
-            "average": "Середня",
-            "orders": "Замовлень"
-          },
-          "detailed": {
-            "total": "Загальна сума",
-            "active": "Активні замовлення",
-            "received": "Отримані замовлення",
-            "cancelled": "Скасовані замовлення",
-            "average": "Середня ціна",
-            "orders": "Замовлень"
-          }
+      "subtitle": "Скільки ви витрачаєте на книги, де купуєте вигідніше і скільки грошей зараз у дорозі.",
+      "controls": {
+        "toolbarLabel": "Період і фільтри",
+        "includeCancelled": "Включити скасовані замовлення",
+        "resetFilters": "Скинути фільтри",
+        "compare": "Порівняти",
+        "compareMode": "Із чим порівнювати",
+        "compareModes": {
+          "previous_period": "Попередній період",
+          "same_period_last_year": "Той самий період торік"
         }
       },
-      "controls": {
-        "includeCancelled": "Включити скасовані замовлення",
-        "resetFilters": "Скинути фільтри"
+      "period": {
+        "label": "Період",
+        "this_month": "Цей місяць",
+        "last_month": "Минулий місяць",
+        "last_30_days": "Останні 30 днів",
+        "last_3_months": "Останні 3 місяці",
+        "last_12_months": "Останні 12 місяців",
+        "this_year": "Цей рік",
+        "all_time": "Весь час",
+        "custom": "Свій період",
+        "from": "Від",
+        "to": "До",
+        "caption": "Період: {range}",
+        "comparisonCaption": "Порівняння: {range}",
+        "allTimeCaption": "Період: за весь час"
       },
       "filters": {
         "label": "Фільтри",
@@ -3373,32 +3370,131 @@
         "status": "Статус",
         "store": "Магазин",
         "storePlaceholder": "Точна назва магазину",
-        "from": "Період від",
-        "to": "Період до",
         "any": "Не важливо",
         "apply": "Застосувати",
         "reset": "Скинути"
       },
-      "monthly": {
-        "title": "Витрати за місяцями",
+      "kpi": {
+        "spend": {
+          "label": "Витрачено",
+          "hint": "Сума фактичних підсумків замовлень за вибраний період. Валюти рахуються окремо."
+        },
+        "snapshot": {
+          "label": "Гроші в дорозі",
+          "hint": "Скільки грошей зараз в активних замовленнях. Цей показник не залежить від вибраного періоду."
+        },
+        "average": {
+          "label": "Середня ціна книги",
+          "hint": "Середня ціна книги так, як ви її ввели, без доставки та знижок."
+        },
+        "basket": {
+          "label": "Середній чек",
+          "hint": "Середня фактична сума одного замовлення."
+        },
+        "snapshotBadge": "Станом на зараз",
+        "snapshotFact": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книг}} · {shipments, plural, one {# посилка} few {# посилки} many {# посилок} other {# посилок}}",
+        "booksPerOrder": "{value} книги на замовлення",
+        "previous": "було {value}",
+        "previousShort": "було {value}",
+        "noChange": "Без змін",
+        "secondary": {
+          "orders": "Замовлень",
+          "books": "Книг",
+          "shipments": "Посилок",
+          "received": "Отримано"
+        }
+      },
+      "dynamics": {
+        "title": "Динаміка",
         "subtitle": "Згруповано за датою замовлення. Валюти показані окремо, без конвертації.",
-        "spendingIn": "Витрати, {currency}",
-        "spendingAria": "Графік витрат у валюті {currency} за місяцями",
-        "ordersTitle": "Замовлень за місяць",
-        "ordersValueLabel": "Замовлень",
-        "ordersAria": "Графік кількості замовлень за місяцями",
-        "empty": "Немає замовлень з датою для помісячної статистики."
+        "metricLabel": "Показник",
+        "currencyLabel": "Валюта",
+        "metrics": {
+          "spend": "Витрати",
+          "orders": "Замовлення",
+          "books": "Книги"
+        },
+        "current": "Вибраний період",
+        "comparison": "Порівняння",
+        "difference": "Різниця",
+        "aria": "Графік «{metric}» за місяцями",
+        "empty": "Немає замовлень з датою для помісячної статистики.",
+        "clickHint": "Натисніть на місяць, щоб побачити ці замовлення"
       },
-      "status": {
-        "title": "За статусом",
-        "active": "Активні",
-        "received": "Отримані",
-        "cancelled": "Скасовані"
+      "pulse": {
+        "title": "Що змінилося",
+        "subtitle": "Кілька висновків із цифр за вибраний період.",
+        "empty": "Поки що недостатньо змін для висновків за цей період.",
+        "previousPeriod": "попередній період",
+        "spend_change": {
+          "up": "Витрати в {currency} на {change} вищі, ніж за {comparison}.",
+          "down": "Витрати в {currency} на {change} нижчі, ніж за {comparison}.",
+          "flat": "Витрати в {currency} майже не змінилися порівняно з {comparison}."
+        },
+        "avg_book_price_change": {
+          "up": "Середня ціна книги в {currency} зросла на {change}.",
+          "down": "Середня ціна книги в {currency} знизилася на {change}.",
+          "flat": "Середня ціна книги в {currency} не змінилася."
+        },
+        "avg_landed_cost_change": {
+          "up": "Реальна вартість книги в {currency} зросла на {change}.",
+          "down": "Реальна вартість книги в {currency} знизилася на {change}.",
+          "flat": "Реальна вартість книги в {currency} не змінилася."
+        },
+        "store_growth": {
+          "up": "Найбільше зростання витрат — у «{store}»: +{change}.",
+          "down": "Найбільше зниження витрат — у «{store}»: −{change}."
+        },
+        "delivery_share": {
+          "default": "Доставка забрала {percent} витрат — це {total}."
+        },
+        "discount_savings": {
+          "plain": "Знижки заощадили вам {total}.",
+          "withPercent": "Знижки заощадили вам {total} — це {percent} від суми книг."
+        },
+        "record_month": {
+          "period": "{month} — найдорожчий місяць у вибраному періоді: {total}.",
+          "allTime": "{month} — ваш найдорожчий місяць: {total}."
+        }
       },
-      "stores": {
-        "title": "Витрати за магазинами",
-        "empty": "Немає магазинів для показу.",
-        "orders": "{count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}"
+      "costs": {
+        "title": "З чого складається вартість",
+        "subtitle": "Доставка, знижки та реальна вартість книги у вибраній валюті.",
+        "currencyLabel": "Валюта",
+        "delivery": {
+          "title": "Доставка",
+          "perBook": "{value} на книгу",
+          "shareOfSpend": "{value} витрат",
+          "shareOfBudget": "{value} бюджету",
+          "orders": "{count, plural, one {# замовлення з доставкою} few {# замовлення з доставкою} many {# замовлень з доставкою} other {# замовлень з доставкою}}"
+        },
+        "discount": {
+          "title": "Заощаджено",
+          "orders": "{count, plural, one {# замовлення зі знижкою} few {# замовлення зі знижкою} many {# замовлень зі знижкою} other {# замовлень зі знижкою}}",
+          "share": "{value} від суми книг"
+        },
+        "landed": {
+          "title": "Реальна вартість книги",
+          "hint": "Враховує знижку, доставку та фактичну підсумкову суму замовлення.",
+          "below": "на {value} нижча за ціну",
+          "above": "на {value} вища за ціну",
+          "coverage": "Розраховано для {counted} із {eligible} книг",
+          "partialCoverage": "Покриття {value} — середня вартість не охоплює всі книги."
+        }
+      },
+      "lifecycle": {
+        "title": "Шлях замовлень",
+        "subtitle": "Поточний розподіл за статусами у вибраному періоді.",
+        "modeLabel": "Одиниця",
+        "modes": {
+          "orders": "Замовлення",
+          "books": "Книги"
+        },
+        "units": {
+          "orders": "зам.",
+          "books": "кн."
+        },
+        "empty": "За цей період немає замовлень."
       },
       "orderStatus": {
         "active": "Активне",
@@ -3408,11 +3504,142 @@
         "received": "Отримане",
         "cancelled": "Скасоване"
       },
+      "activeAge": {
+        "title": "Гроші в активних замовленнях",
+        "subtitle": "Вік рахується від дати замовлення.",
+        "snapshotBadge": "Станом на зараз",
+        "buckets": {
+          "0_7": "0–7 днів",
+          "8_14": "8–14 днів",
+          "15_30": "15–30 днів",
+          "31_plus": "31+ днів",
+          "unknown_date": "Дата не вказана"
+        },
+        "counts": "{orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "empty": "Немає активних замовлень.",
+        "asOf": "Дані на {value}"
+      },
+      "stores": {
+        "title": "Магазини",
+        "subtitle": "Де ви купуєте найбільше і за якою реальною ціною.",
+        "metricLabel": "Показник",
+        "currencyLabel": "Валюта",
+        "metrics": {
+          "spend": "Витрати",
+          "orders": "Замовлення",
+          "books": "Книги"
+        },
+        "counts": "{orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "perBook": "{value} за книгу",
+        "perOrder": "{value} за замовлення",
+        "landed": "реальна {value}",
+        "landedHint": "Середня вартість книги з урахуванням знижки, доставки та підсумкової суми замовлення.",
+        "deltaHint": "Різниця з попереднім періодом: {value}",
+        "showAll": "Показати всі ({count})",
+        "showLess": "Згорнути",
+        "empty": "Немає магазинів для показу."
+      },
+      "storeMap": {
+        "title": "Карта магазинів",
+        "subtitle": "Де купуєте дешевше, а де — більшими замовленнями.",
+        "currencyLabel": "Валюта",
+        "axisX": "Середня реальна вартість книги",
+        "axisY": "Середній чек",
+        "bubble": "Кількість книг",
+        "orders": "Замовлень",
+        "coverage": "Покриття розрахунку",
+        "legend": "Розмір кола — кількість книг. Що лівіше магазин, то дешевша книга; що вище — то більші замовлення.",
+        "empty": "Ще недостатньо даних, щоб побудувати карту в цій валюті.",
+        "insufficient": "Ще недостатньо даних: {stores}",
+        "aria": "Точкова діаграма магазинів: реальна вартість книги проти середнього чека"
+      },
+      "calendar": {
+        "title": "Календар покупок",
+        "subtitle": "Кожен квадрат — один день.",
+        "metricLabel": "Показник",
+        "metrics": {
+          "orders": "Замовлення",
+          "books": "Книги"
+        },
+        "yearLabel": "Рік",
+        "counts": "{orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "daySummary": "{date}: {orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}, {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "dayEmpty": "{date}: без замовлень",
+        "less": "Менше",
+        "more": "Більше",
+        "empty": "Немає замовлень з датою для календаря."
+      },
+      "records": {
+        "title": "Рекорди",
+        "currencyLabel": "Валюта",
+        "empty": "Ще недостатньо даних для рекордів.",
+        "scope": {
+          "period": "У вибраному періоді.",
+          "allTime": "За весь час.",
+          "truncated": "У межах завантажених даних — можливо, не за весь час."
+        },
+        "recordMonth": {
+          "title": "Рекордний місяць",
+          "helper": "{orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+        },
+        "largestOrder": {
+          "title": "Найбільше замовлення",
+          "helper": "{store} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+        },
+        "mostBooks": {
+          "title": "Найбільше книг в одному замовленні",
+          "helper": "{store}",
+          "value": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+        },
+        "mostActive": {
+          "title": "Найактивніший магазин",
+          "helper": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+          "value": "{store} · {count, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}"
+        },
+        "bestValue": {
+          "title": "Найвигідніший магазин",
+          "helper": "Порахували за {count, plural, one {# книгою} few {# книгами} many {# книгами} other {# книгами}}"
+        }
+      },
       "topOrders": {
         "title": "Найдорожчі замовлення",
-        "empty": "Немає замовлень з ціною.",
+        "subtitle": "Окремий рейтинг для кожної валюти.",
+        "currencyLabel": "Валюта",
+        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
         "untitledOrder": "Замовлення без номера",
-        "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+        "emptyForCurrency": "У валюті {currency} немає замовлень."
+      },
+      "budget": {
+        "title": "Бюджет на книги",
+        "currencyLabel": "Валюта",
+        "monthCaption": "{month}",
+        "edit": "Змінити бюджет",
+        "emptyDescription": "Задайте місячний бюджет, щоб бачити прогрес і прогноз витрат.",
+        "emptyCta": "Задати бюджет",
+        "progress": "{spent} / {budget}",
+        "progressAria": "Використання бюджету в {currency}",
+        "remaining": "Залишилось {value}",
+        "exceeded": "Перевищено на {value}",
+        "forecast": "Прогноз до кінця місяця: ~{value}",
+        "forecastPending": "Прогноз зʼявиться після {days, plural, one {# дня} few {# днів} many {# днів} other {# днів}} даних.",
+        "projectedOverage": "Можливе перевищення: ~{value}",
+        "scheduled": "З {month}: {value}",
+        "cancelScheduled": "Скасувати",
+        "scheduledCancelled": "Заплановану зміну бюджету скасовано",
+        "notActiveYet": "Бюджет почне діяти з наступного місяця.",
+        "dialog": {
+          "title": "Місячний бюджет",
+          "description": "Валюти незалежні одна від одної. Порожнє поле означає, що бюджет для цієї валюти не задано.",
+          "amount": "Бюджет, {currency}",
+          "notConfigured": "не задано",
+          "effectiveFrom": "Діє з",
+          "effectiveFromHint": "Попередні місяці залишаються з тим бюджетом, який діяв тоді.",
+          "save": "Зберегти",
+          "cancel": "Скасувати",
+          "saved": "Бюджет збережено",
+          "failed": "Не вдалося зберегти бюджет",
+          "invalidAmount": "Перевірте суму бюджету в {currency}"
+        }
       },
       "states": {
         "error": {
@@ -3421,15 +3648,15 @@
           "retry": "Спробувати ще раз"
         },
         "empty": {
-          "title": "Поки немає даних про витрати на доставки",
-          "description": "Коли ви додасте замовлення з цінами, тут зʼявиться статистика витрат."
+          "title": "За цей період немає замовлень",
+          "description": "Змініть період або додайте замовлення з цінами, щоб побачити статистику."
         },
-        "noPrice": "Додайте ціну до замовлень, щоб побачити статистику витрат.",
         "filteredEmpty": {
           "title": "Немає даних за вибраними фільтрами",
           "description": "Спробуйте змінити або скинути фільтри.",
           "reset": "Скинути фільтри"
-        }
+        },
+        "truncated": "Статистику побудовано за {loaded} записами з ліміту {max} — вона може бути неповною."
       }
     },
     "priceDialog": {

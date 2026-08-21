@@ -18,7 +18,7 @@ import { deliveryStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { isHttpsUrl } from "@/lib/is-https-url";
 
-import { toOrderStatusBadge } from "./statistics-view-model";
+import { toOrderStatusBadge } from "./order-status-badge";
 
 export const ORDER_CARD_LAYOUT = { bookLimit: 3 } as const;
 
