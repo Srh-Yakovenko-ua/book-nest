@@ -27,9 +27,15 @@ const STATISTICS_PERIOD = Object.freeze({
   yearsBack: 1,
 });
 
+export type RequestedStatisticsPeriod = {
+  from: string | undefined;
+  to: string | undefined;
+};
+
 export type ResolvedStatisticsPeriods = {
   comparisonPeriod: Nullable<StatisticsComparisonPeriod>;
   currentPeriod: StatisticsPeriod;
+  requestedPeriod: RequestedStatisticsPeriod;
 };
 
 type BoundedPeriod = {
@@ -50,14 +56,15 @@ export function resolveStatisticsPeriods({
 }): ResolvedStatisticsPeriods {
   const today = toIsoDate(now);
   const currentPeriod: StatisticsPeriod = { from: from ?? null, to: to ?? today };
+  const requestedPeriod: RequestedStatisticsPeriod = { from, to };
 
   if (compare === undefined) {
-    return { comparisonPeriod: null, currentPeriod };
+    return { comparisonPeriod: null, currentPeriod, requestedPeriod };
   }
 
   const boundedPeriod = toBoundedPeriod(currentPeriod);
   if (boundedPeriod === null) {
-    return { comparisonPeriod: null, currentPeriod };
+    return { comparisonPeriod: null, currentPeriod, requestedPeriod };
   }
 
   const shifted = shiftForCompareMode({ mode: compare, period: boundedPeriod, today });
@@ -65,6 +72,7 @@ export function resolveStatisticsPeriods({
   return {
     comparisonPeriod: { from: shifted.from, mode: compare, to: shifted.to },
     currentPeriod,
+    requestedPeriod,
   };
 }
 

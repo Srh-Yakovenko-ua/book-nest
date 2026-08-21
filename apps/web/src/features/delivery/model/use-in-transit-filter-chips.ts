@@ -38,6 +38,7 @@ export function useInTransitFilterChips({
   const t = useTranslations("delivery.activeFilters");
   const tAdvanced = useTranslations("delivery.advancedFilters");
   const tAttention = useTranslations("delivery.attention.chip");
+  const tAge = useTranslations("delivery.statistics.activeAge.buckets");
 
   const chips: ActiveFilterChip[] = [];
   const isInverted = deliveryRangeFlags(state);
@@ -50,6 +51,14 @@ export function useInTransitFilterChips({
       key: "attention",
       label: t("attention", { label: tAttention(attentionReason) }),
       onRemove: () => onFilterChange(DELIVERY_FILTER_DEFAULT),
+    });
+  }
+
+  if (state.ageBucket !== null) {
+    chips.push({
+      key: "ageBucket",
+      label: t("ageBucket", { value: tAge(state.ageBucket) }),
+      onRemove: () => onApplyAdvanced({ ...state, ageBucket: null }),
     });
   }
 

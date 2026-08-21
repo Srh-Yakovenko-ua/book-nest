@@ -65,12 +65,14 @@ type PricedOrder = {
 };
 
 export function computeBookOrderStatistics({
+  activeRecords,
   includeCancelled,
   previousRecords,
   records,
   scope,
   topLimit,
 }: {
+  activeRecords: OrderStatisticsRecord[];
   includeCancelled: boolean;
   previousRecords: Nullable<OrderStatisticsRecord[]>;
   records: OrderStatisticsRecord[];
@@ -79,6 +81,9 @@ export function computeBookOrderStatistics({
 }): BookOrderStatisticsAggregates {
   const orders = records.map((record) => classifyOrder({ includeCancelled, record }));
   const includedOrders = orders.filter((order) => order.isIncluded);
+  const activeOrders = activeRecords
+    .map((record) => classifyOrder({ includeCancelled, record }))
+    .filter((order) => order.isIncluded);
   const previousOrders =
     previousRecords === null
       ? null
@@ -126,7 +131,7 @@ export function computeBookOrderStatistics({
           : buildStoreSpendGrowth({ current: includedOrders, previous: previousIncludedOrders }),
     }),
     records: purchaseRecords,
-    snapshot: buildSnapshot(includedOrders),
+    snapshot: buildSnapshot(activeOrders),
     summary,
     topOrders: topOrdersByCurrency.flatMap((group) => group.orders),
     topOrdersByCurrency,
@@ -293,19 +298,19 @@ function buildOrderSummary({
   };
 }
 
-function buildSnapshot(includedOrders: ClassifiedOrder[]): BookOrderStatisticsSnapshot {
+function buildSnapshot(activeOrders: ClassifiedOrder[]): BookOrderStatisticsSnapshot {
   const activeAmounts: AmountAccumulator = new Map();
-  const activeOrders = includedOrders.filter((order) =>
+  const ordersCarryingActiveItems = activeOrders.filter((order) =>
     order.countedItems.some((item) => isActiveItem(item)),
   );
-  for (const order of activeOrders) {
+  for (const order of ordersCarryingActiveItems) {
     addOrderAmount({ accumulator: activeAmounts, order });
   }
 
   return {
-    activeBooksCount: countItems({ orders: includedOrders, predicate: isActiveItem }),
-    activeOrdersCount: activeOrders.length,
-    activeShipmentsCount: countActiveShipments(includedOrders),
+    activeBooksCount: countItems({ orders: activeOrders, predicate: isActiveItem }),
+    activeOrdersCount: ordersCarryingActiveItems.length,
+    activeShipmentsCount: countActiveShipments(activeOrders),
     activeTotalsByCurrency: totalsFromAmounts(activeAmounts),
   };
 }

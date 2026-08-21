@@ -1,3 +1,6 @@
+import type { BookOrderStatisticsCompareMode } from "@app/shared";
+
+import { BookOrderStatisticsCompareModeSchema } from "@app/shared";
 import {
   type inferParserType,
   parseAsBoolean,
@@ -12,6 +15,15 @@ import {
   BookOrdersControllerStatisticsStatus,
 } from "@/shared/api/generated/model";
 
+import type { StatisticsPeriodRange } from "./statistics-period";
+
+import {
+  canCompareStatisticsPeriod,
+  resolveStatisticsPeriod,
+  STATISTICS_PERIOD,
+  STATISTICS_PERIOD_PRESETS,
+} from "./statistics-period";
+
 export const DELIVERY_STATISTICS_CURRENCIES = Object.values(BookOrdersControllerStatisticsCurrency);
 export const DELIVERY_STATISTICS_STATUSES = Object.values(BookOrdersControllerStatisticsStatus);
 
@@ -19,9 +31,14 @@ const currencyValues = Object.values(BookOrdersControllerStatisticsCurrency);
 const statusValues = Object.values(BookOrdersControllerStatisticsStatus);
 
 export const deliveryStatisticsParsers = {
+  compare: parseAsStringLiteral(BookOrderStatisticsCompareModeSchema.options),
   currency: parseAsStringLiteral(currencyValues),
   from: parseAsString.withDefault(""),
   includeCancelled: parseAsBoolean.withDefault(false),
+  money: parseAsStringLiteral(currencyValues),
+  period: parseAsStringLiteral(STATISTICS_PERIOD_PRESETS).withDefault(
+    STATISTICS_PERIOD.defaultPreset,
+  ),
   status: parseAsStringLiteral(statusValues),
   store: parseAsString.withDefault(""),
   to: parseAsString.withDefault(""),
@@ -33,28 +50,44 @@ export function hasActiveStatisticsFilters(state: DeliveryStatisticsQueryState):
   return statisticsFilterCount(state) > 0;
 }
 
+export function resolveStatisticsCompareMode(
+  state: DeliveryStatisticsQueryState,
+  range: StatisticsPeriodRange,
+): BookOrderStatisticsCompareMode | null {
+  return canCompareStatisticsPeriod(range) ? state.compare : null;
+}
+
 export function statisticsFilterCount(state: DeliveryStatisticsQueryState): number {
-  const flags = [
-    state.currency !== null,
-    state.status !== null,
-    state.store.trim() !== "",
-    state.from !== "",
-    state.to !== "",
-  ];
+  const flags = [state.currency !== null, state.status !== null, state.store.trim() !== ""];
   return flags.filter(Boolean).length;
+}
+
+export function statisticsPeriodRange(
+  state: DeliveryStatisticsQueryState,
+  today: string,
+): StatisticsPeriodRange {
+  return resolveStatisticsPeriod({
+    custom: { from: state.from, to: state.to },
+    preset: state.period,
+    today,
+  });
 }
 
 export function toDeliveryStatisticsParams(
   state: DeliveryStatisticsQueryState,
+  today: string,
 ): BookOrdersControllerStatisticsParams {
   const store = state.store.trim();
+  const range = statisticsPeriodRange(state, today);
+  const compare = resolveStatisticsCompareMode(state, range);
 
   return {
     includeCancelled: state.includeCancelled ? "true" : "false",
     ...(state.currency === null ? {} : { currency: state.currency }),
     ...(state.status === null ? {} : { status: state.status }),
     ...(store === "" ? {} : { store }),
-    ...(state.from === "" ? {} : { from: state.from }),
-    ...(state.to === "" ? {} : { to: state.to }),
+    ...(range.from === null ? {} : { from: range.from }),
+    ...(range.to === null ? {} : { to: range.to }),
+    ...(compare === null ? {} : { compare }),
   };
 }

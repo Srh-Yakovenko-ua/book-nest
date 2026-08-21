@@ -169,3 +169,46 @@ describe("turning the page state into request params", () => {
     expect(params.currency).toEqual(["UAH", "EUR"]);
   });
 });
+
+describe("the age bucket arriving from the statistics page", () => {
+  it("counts as one active dimension", () => {
+    expect(countActiveDeliveryDimensions(advanced({ ageBucket: "31_plus" }))).toBe(1);
+    expect(hasActiveDeliveryFilters(state({ ageBucket: "31_plus" }))).toBe(true);
+  });
+
+  it("reaches the server as it was written in the URL", () => {
+    expect(toDeliveryListParams(state({ ageBucket: "0_7" })).ageBucket).toBe("0_7");
+  });
+
+  it("stays out of the request while no bucket is chosen", () => {
+    expect(toDeliveryListParams(state()).ageBucket).toBeUndefined();
+  });
+
+  it("never turns into the delayed filter", () => {
+    expect(toDeliveryListParams(state({ ageBucket: "31_plus" })).filter).toBe(
+      DELIVERY_FILTER_DEFAULT,
+    );
+  });
+
+  it("keeps the oldest-first sort the statistics page asked for", () => {
+    expect(toDeliveryListParams(state({ ageBucket: "31_plus", sort: "oldest_orders" })).sort).toBe(
+      "oldest_orders",
+    );
+  });
+
+  it("travels alongside the store and currency filters", () => {
+    const params = toDeliveryListParams(
+      state({ ageBucket: "15_30", currency: ["UAH"], store: ["Yakaboo"] }),
+    );
+
+    expect(params).toMatchObject({
+      ageBucket: "15_30",
+      currency: ["UAH"],
+      store: ["Yakaboo"],
+    });
+  });
+
+  it("clears together with the other advanced filters", () => {
+    expect(DELIVERY_ADVANCED_EMPTY.ageBucket).toBeNull();
+  });
+});

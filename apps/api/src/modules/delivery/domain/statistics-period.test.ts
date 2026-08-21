@@ -179,7 +179,14 @@ describe("resolveStatisticsPeriods", () => {
   it.each(PERIOD_CASES)(
     "$name",
     ({ compare, expectedComparison, expectedCurrent, from, now, to }) => {
-      expect(resolveStatisticsPeriods({ compare, from, now, to })).toEqual({
+      const { comparisonPeriod, currentPeriod } = resolveStatisticsPeriods({
+        compare,
+        from,
+        now,
+        to,
+      });
+
+      expect({ comparisonPeriod, currentPeriod }).toEqual({
         comparisonPeriod: expectedComparison,
         currentPeriod: expectedCurrent,
       });
@@ -238,5 +245,32 @@ describe("resolveStatisticsPeriods", () => {
     });
 
     expect(currentPeriod).toEqual({ from: null, to: "2026-08-20" });
+  });
+
+  it("hands back empty bounds when the reader asked for no period", () => {
+    const { currentPeriod, requestedPeriod } = resolveStatisticsPeriods({ now: AUGUST_20_2026 });
+
+    expect(requestedPeriod).toEqual({ from: undefined, to: undefined });
+    expect(currentPeriod.to).toBe("2026-08-20");
+  });
+
+  it("repeats the asked-for bounds without filling either of them in", () => {
+    const { requestedPeriod } = resolveStatisticsPeriods({
+      from: "2026-08-01",
+      now: AUGUST_20_2026,
+    });
+
+    expect(requestedPeriod).toEqual({ from: "2026-08-01", to: undefined });
+  });
+
+  it("keeps the asked-for bounds untouched when a comparison is requested", () => {
+    const { requestedPeriod } = resolveStatisticsPeriods({
+      compare: "previous_period",
+      from: "2026-08-01",
+      now: AUGUST_20_2026,
+      to: "2026-08-20",
+    });
+
+    expect(requestedPeriod).toEqual({ from: "2026-08-01", to: "2026-08-20" });
   });
 });

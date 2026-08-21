@@ -1,6 +1,10 @@
 import type { InTransitAttentionReason, InTransitSummaryView, Nullable } from "@app/shared";
 
-import { IN_TRANSIT_ATTENTION_FILTER, InTransitAttentionReasonSchema } from "@app/shared";
+import {
+  ActiveMoneyAgeBucketSchema,
+  IN_TRANSIT_ATTENTION_FILTER,
+  InTransitAttentionReasonSchema,
+} from "@app/shared";
 import { isAfter, isValid, parseISO } from "date-fns";
 import {
   type inferParserType,
@@ -51,7 +55,10 @@ export const DELIVERY_SORT_ORDER = Object.values(DeliveryReadControllerInTransit
 const filterValues = Object.values(DeliveryReadControllerInTransitListFilter);
 const sortValues = Object.values(DeliveryReadControllerInTransitListSort);
 
+export const DELIVERY_AGE_BUCKETS = ActiveMoneyAgeBucketSchema.options;
+
 export const deliveryQueryParsers = {
+  ageBucket: parseAsStringLiteral(DELIVERY_AGE_BUCKETS),
   booksMax: parseAsInteger,
   booksMin: parseAsInteger,
   currency: parseAsArrayOf(parseAsStringLiteral(DELIVERY_CURRENCY_VALUES)).withDefault([]),
@@ -83,6 +90,7 @@ type DeliveryRangeFlags = {
 };
 
 export const DELIVERY_ADVANCED_RESET = {
+  ageBucket: null,
   booksMax: null,
   booksMin: null,
   currency: null,
@@ -98,6 +106,7 @@ export const DELIVERY_ADVANCED_RESET = {
 } satisfies Record<keyof DeliveryAdvancedState, null>;
 
 export const DELIVERY_ADVANCED_EMPTY: DeliveryAdvancedState = {
+  ageBucket: null,
   booksMax: null,
   booksMin: null,
   currency: [],
@@ -118,6 +127,7 @@ export function canSortByOrderTotal(state: Pick<DeliveryQueryState, "currency">)
 
 export function countActiveDeliveryDimensions(state: DeliveryAdvancedState): number {
   return [
+    state.ageBucket !== null,
     state.store.length > 0,
     state.orderedFrom !== null || state.orderedTo !== null,
     state.booksMin !== null || state.booksMax !== null,
@@ -206,6 +216,7 @@ export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListPar
   return {
     currency: state.currency,
     filter: state.filter,
+    ...(state.ageBucket === null ? {} : { ageBucket: state.ageBucket }),
     pageSize: DELIVERY_PAGE_SIZE,
     service: state.service,
     sort: resolveDeliverySort(state),

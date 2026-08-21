@@ -37,10 +37,8 @@ type DeliveryStatisticsFiltersProps = {
 
 type FilterDraft = {
   currency: Nullable<Currency>;
-  from: string;
   status: Nullable<BookOrdersControllerStatisticsStatus>;
   store: string;
-  to: string;
 };
 
 const ANY_VALUE = "any";
@@ -153,31 +151,6 @@ export function DeliveryStatisticsFilters({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground" htmlFor="stats-filter-from">
-                {t("from")}
-              </Label>
-              <Input
-                id="stats-filter-from"
-                onChange={(event) => patch({ from: event.target.value })}
-                type="date"
-                value={draft.from}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground" htmlFor="stats-filter-to">
-                {t("to")}
-              </Label>
-              <Input
-                id="stats-filter-to"
-                onChange={(event) => patch({ to: event.target.value })}
-                type="date"
-                value={draft.to}
-              />
-            </div>
-          </div>
-
           <div className="flex items-center justify-between gap-2 pt-1">
             <Button onClick={reset} size="sm" variant="ghost">
               {t("reset")}
@@ -193,21 +166,9 @@ export function DeliveryStatisticsFilters({
 }
 
 function toDraft(state: DeliveryStatisticsQueryState): FilterDraft {
-  return {
-    currency: state.currency,
-    from: state.from,
-    status: state.status,
-    store: state.store,
-    to: state.to,
-  };
+  return { currency: state.currency, status: state.status, store: state.store };
 }
 
 function toPatch(draft: FilterDraft): StatisticsFilterPatch {
-  return {
-    currency: draft.currency,
-    from: draft.from,
-    status: draft.status,
-    store: draft.store.trim(),
-    to: draft.to,
-  };
+  return { currency: draft.currency, status: draft.status, store: draft.store.trim() };
 }
