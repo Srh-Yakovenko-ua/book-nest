@@ -34,7 +34,6 @@ describe("matchesLoans", () => {
 
   it("matches the contact keys this feature builds", () => {
     expect(matchesLoans({ queryKey: loanKeys.contacts.all })).toBe(true);
-    expect(matchesLoans({ queryKey: loanKeys.contacts.detail("contact-1") })).toBe(true);
     expect(matchesLoans({ queryKey: loanKeys.contacts.search("") })).toBe(true);
   });
 

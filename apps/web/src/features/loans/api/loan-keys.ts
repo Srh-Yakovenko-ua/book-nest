@@ -14,7 +14,6 @@ const LOAN_ROOTS = {
 export const loanKeys = {
   contacts: {
     all: [LOAN_ROOTS.contacts] as const,
-    detail: (contactId: string) => [LOAN_ROOTS.contacts, "detail", contactId] as const,
     search: (search: string) => [LOAN_ROOTS.contacts, "search", search] as const,
   },
   history: {
