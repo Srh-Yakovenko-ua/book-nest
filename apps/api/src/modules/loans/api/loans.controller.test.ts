@@ -920,33 +920,6 @@ describe("GET /api/loans after a contact detail change", () => {
   });
 });
 
-describe("GET /api/loans search by contact detail", () => {
-  it("finds the loan by the current contact detail of the person", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    await createLentLoan(accessToken, { personName: "Ivan" });
-    await changeContactDetail(accessToken, await contactIdFor("Ivan"), "ivan@example.com");
-
-    const res = await listLoans(accessToken, "?search=ivan@example.com");
-
-    expect(loanTitles(res.body.items)).toEqual(["Hyperion"]);
-  });
-
-  it("still finds the loan by the contact detail it stored when it started", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const contact = await request(app.getHttpServer())
-      .post("/api/loans/contacts")
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ contact: "old@example.com", name: "Ivan" });
-    expect(contact.status).toBe(201);
-    await createLentLoan(accessToken, { loanContactId: contact.body.id });
-    await changeContactDetail(accessToken, contact.body.id, "new@example.com");
-
-    const res = await listLoans(accessToken, "?search=old@example.com");
-
-    expect(loanTitles(res.body.items)).toEqual(["Hyperion"]);
-  });
-});
-
 describe("GET /api/loans after a contact is archived", () => {
   it("keeps the active loan of an archived contact in the list", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
@@ -1404,13 +1377,31 @@ describe("GET /api/loans additional filters", () => {
 describe("GET /api/loans search", () => {
   it("searches by contact", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    await createBorrowedLoan(accessToken, { contact: "olha@example.com", personName: "Olha" }, "A");
-    await createBorrowedLoan(accessToken, { contact: "ivan@other.net", personName: "Ivan" }, "B");
+    await createBorrowedLoan(accessToken, { personName: "Olha" }, "A");
+    await createBorrowedLoan(accessToken, { personName: "Ivan" }, "B");
+    await changeContactDetail(accessToken, await contactIdFor("Olha"), "olha@example.com");
+    await changeContactDetail(accessToken, await contactIdFor("Ivan"), "ivan@other.net");
 
     const res = await listLoans(accessToken, "?search=example.com");
 
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].personName).toBe("Olha");
+  });
+
+  it("still searches by the contact detail a loan stored when it started", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contact = await request(app.getHttpServer())
+      .post("/api/loans/contacts")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ contact: "old@example.com", name: "Olha" });
+    expect(contact.status).toBe(201);
+    await createBorrowedLoan(accessToken, { loanContactId: contact.body.id }, "A");
+    await changeContactDetail(accessToken, contact.body.id, "new@example.com");
+
+    const res = await listLoans(accessToken, "?search=old@example.com");
+
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].book.title).toBe("A");
   });
 
   it("searches by note", async () => {
