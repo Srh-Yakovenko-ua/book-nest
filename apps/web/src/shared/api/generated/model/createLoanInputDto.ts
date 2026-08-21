@@ -8,8 +8,6 @@
 import type { CreateLoanInputDtoDirection } from "./createLoanInputDtoDirection";
 
 export interface CreateLoanInputDto {
-  /** @nullable */
-  contact?: string | null;
   direction: CreateLoanInputDtoDirection;
   /**
    * @nullable

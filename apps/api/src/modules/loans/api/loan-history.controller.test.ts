@@ -208,6 +208,23 @@ function peopleOptions(res: Response): LoanHistoryPersonOption[] {
   return LoanHistoryPeopleViewSchema.parse(res.body).items;
 }
 
+async function reachableContactId(
+  accessToken: string,
+  { contact, name }: { contact: string; name: string },
+): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post("/api/loans/contacts")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ contact, name });
+  if (res.status === 201) {
+    const contactId: string = res.body.id;
+    return contactId;
+  }
+
+  expect(res.status).toBe(409);
+  return contactIdFor(name);
+}
+
 async function renameContact(accessToken: string, contactId: string, name: string): Promise<void> {
   const res = await request(app.getHttpServer())
     .patch(`/api/loans/contacts/${contactId}`)
@@ -318,9 +335,12 @@ async function startLoan(accessToken: string, spec: LoanSpec): Promise<Completed
     .post(`/api/books/${bookId}/loan`)
     .set("Authorization", `Bearer ${accessToken}`)
     .send({
-      contact: spec.contact,
       direction: spec.direction,
       expectedReturnDate: spec.expectedReturnDate,
+      loanContactId:
+        spec.contact === undefined
+          ? undefined
+          : await reachableContactId(accessToken, { contact: spec.contact, name: spec.personName }),
       loanDate: spec.loanDate ?? HISTORY_FIXTURE.fallbackLoanDate,
       note: spec.note,
       personName: spec.personName,
@@ -874,6 +894,28 @@ describe("GET /api/loans/history search", () => {
     expect(historyTitles(res)).toEqual(["The Left Hand of Darkness"]);
   });
 
+  it("matches a completed loan by the current contact detail of the person", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSearchableHistory(accessToken);
+    await request(app.getHttpServer())
+      .patch(`/api/loans/contacts/${await contactIdFor("Ivan Petrenko")}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ contact: "ivan@example.com" });
+
+    const res = await listHistory(accessToken, "?search=ivan@example.com");
+
+    expect(historyTitles(res)).toEqual(["Hyperion"]);
+  });
+
+  it("still matches a completed loan by the contact detail it stored when it started", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSearchableHistory(accessToken);
+
+    const res = await listHistory(accessToken, "?search=olha@example.com");
+
+    expect(historyTitles(res)).toEqual(["The Left Hand of Darkness"]);
+  });
+
   it("never reaches another user's completed loans", async () => {
     const owner = await context.registerVerifyAndLogin();
     await seedSearchableHistory(owner.accessToken);
@@ -1421,6 +1463,45 @@ describe("GET /api/loans/history/:loanId", () => {
       note: "hardcover copy",
       returnedDate: "2026-01-13",
     });
+  });
+
+  it("keeps the contact detail the loan stored when the person changes theirs", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { loanId } = await completeLoan(accessToken, {
+      contact: "olha@example.com",
+      direction: "borrowed",
+      loanDate: "2026-01-01",
+      personName: "Olha",
+      returnedAt: "2026-01-13T08:00:00.000Z",
+      title: "Dune",
+    });
+    await request(app.getHttpServer())
+      .patch(`/api/loans/contacts/${await contactIdFor("Olha")}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ contact: "+380001112233" });
+
+    const res = await historyDetail(accessToken, loanId);
+
+    expect(res.body.contact).toBe("olha@example.com");
+  });
+
+  it("falls back to the current detail of the person when the loan stored none", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { loanId } = await completeLoan(accessToken, {
+      direction: "borrowed",
+      loanDate: "2026-01-01",
+      personName: "Olha",
+      returnedAt: "2026-01-13T08:00:00.000Z",
+      title: "Dune",
+    });
+    await request(app.getHttpServer())
+      .patch(`/api/loans/contacts/${await contactIdFor("Olha")}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ contact: "+380001112233" });
+
+    const res = await historyDetail(accessToken, loanId);
+
+    expect(res.body.contact).toBe("+380001112233");
   });
 
   it("keeps the reminder fields out of the history detail", async () => {

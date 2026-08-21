@@ -44,7 +44,7 @@ export function buildLoanEditData({
       : parseIsoDate(input.expectedReturnDate);
 
   return {
-    contact: loanContact.contact,
+    contact: loanContact.refreshesSnapshot ? loanContact.contact : undefined,
     expectedReturnDate,
     loanContactId: loanContact.loanContactId,
     loanDate:
@@ -54,7 +54,7 @@ export function buildLoanEditData({
           ? null
           : parseIsoDate(input.loanDate),
     note: input.note ?? null,
-    personName: loanContact.refreshesPersonName ? loanContact.personName : undefined,
+    personName: loanContact.refreshesSnapshot ? loanContact.personName : undefined,
     ...resolveReminderFields({
       expectedReturnDate,
       remindBeforeDays:

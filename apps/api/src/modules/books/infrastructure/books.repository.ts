@@ -366,7 +366,7 @@ export type StatusGuard = { expectedStatuses: OwnershipStatus[] };
 export type TrashedBookRow = Trashed<TrashedBookSelection>;
 
 export type UpdateActiveLoanData = {
-  contact: Nullable<string>;
+  contact?: Nullable<string>;
   expectedReturnDate: Nullable<Date>;
   loanContactId: string;
   loanDate: Nullable<Date>;

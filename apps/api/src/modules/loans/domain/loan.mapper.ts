@@ -4,7 +4,7 @@ import type { BookLoanModel } from "../../../generated/prisma/models.js";
 import type { LoanContactSource } from "./loan-person.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
-import { resolveLoanPerson } from "./loan-person.js";
+import { resolveActiveLoanPerson } from "./loan-person.js";
 import { getLoanUiStatus } from "./loan-ui-status.js";
 
 type LoanWithContact = BookLoanModel & { loanContact: LoanContactSource };
@@ -21,7 +21,7 @@ export function toLoanInfoView({
     return null;
   }
 
-  const person = resolveLoanPerson(loan);
+  const person = resolveActiveLoanPerson(loan);
 
   return {
     contact: person.contact,

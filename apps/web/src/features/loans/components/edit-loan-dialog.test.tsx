@@ -119,6 +119,21 @@ describe("EditLoanDialog", () => {
     expect(payload).not.toHaveProperty("personName");
   });
 
+  it("offers no field for editing the contact detail of the person", () => {
+    renderDialog();
+
+    expect(screen.queryByLabelText("Контакт")).not.toBeInTheDocument();
+  });
+
+  it("sends no contact detail with the loan edit", async () => {
+    renderDialog();
+
+    await userEvent.click(screen.getByRole("button", { name: messages.books.details.loan.submit }));
+
+    await waitFor(() => expect(editCall()).toBeDefined());
+    expect(JSON.parse(String(editCall()?.[1].body))).not.toHaveProperty("contact");
+  });
+
   it("moves the loan to the contact picked from the list", async () => {
     renderDialog();
 

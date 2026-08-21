@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveLoanPerson } from "./loan-person.js";
+import { resolveActiveLoanPerson, resolveHistoryLoanPerson } from "./loan-person.js";
 
 const LOAN_CONTACT_ID = "6e9e4c9a-1b1a-4d0c-9c1e-2f4a5b6c7d8e";
 
-describe("resolveLoanPerson", () => {
-  it("prefers the current name of the contact over the name the loan stored when it started", () => {
-    const person = resolveLoanPerson({
-      contact: null,
+describe("resolveActiveLoanPerson", () => {
+  it("takes the name and the contact detail from the contact the loan points at", () => {
+    const person = resolveActiveLoanPerson({
       loanContact: {
         contact: "current@example.com",
         id: LOAN_CONTACT_ID,
@@ -22,8 +21,18 @@ describe("resolveLoanPerson", () => {
     });
   });
 
-  it("prefers the contact detail the loan overrides over the one the contact carries", () => {
-    const person = resolveLoanPerson({
+  it("reports no contact detail when the person carries none", () => {
+    const person = resolveActiveLoanPerson({
+      loanContact: { contact: null, id: LOAN_CONTACT_ID, name: "Ігор" },
+    });
+
+    expect(person.contact).toBeNull();
+  });
+});
+
+describe("resolveHistoryLoanPerson", () => {
+  it("keeps the contact detail the finished loan stored when it started", () => {
+    const person = resolveHistoryLoanPerson({
       contact: "+380001112233",
       loanContact: {
         contact: "current@example.com",
@@ -35,12 +44,33 @@ describe("resolveLoanPerson", () => {
     expect(person.contact).toBe("+380001112233");
   });
 
-  it("reports no contact detail when neither the loan nor the contact carries one", () => {
-    const person = resolveLoanPerson({
+  it("falls back to the contact detail of the person when the loan stored none", () => {
+    const person = resolveHistoryLoanPerson({
       contact: null,
-      loanContact: { contact: null, id: LOAN_CONTACT_ID, name: "Ігор" },
+      loanContact: {
+        contact: "current@example.com",
+        id: LOAN_CONTACT_ID,
+        name: "Ігор",
+      },
     });
 
-    expect(person.contact).toBeNull();
+    expect(person.contact).toBe("current@example.com");
+  });
+
+  it("still shows the current name of the person rather than the stored one", () => {
+    const person = resolveHistoryLoanPerson({
+      contact: null,
+      loanContact: {
+        contact: null,
+        id: LOAN_CONTACT_ID,
+        name: "Ігор Петренко",
+      },
+    });
+
+    expect(person).toEqual({
+      contact: null,
+      loanContactId: LOAN_CONTACT_ID,
+      personName: "Ігор Петренко",
+    });
   });
 });

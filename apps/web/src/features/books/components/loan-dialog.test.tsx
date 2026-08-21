@@ -136,6 +136,12 @@ describe("LoanDialog", () => {
     });
   });
 
+  it("offers no field for typing a contact detail on the loan", () => {
+    renderDialog();
+
+    expect(screen.queryByLabelText("Контакт")).not.toBeInTheDocument();
+  });
+
   it("keeps the loan unsaved until a contact is picked", async () => {
     renderDialog();
 

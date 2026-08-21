@@ -78,6 +78,13 @@ afterAll(async () => {
   await context.close();
 });
 
+async function archiveContact(accessToken: string, contactId: string): Promise<void> {
+  const res = await request(app.getHttpServer())
+    .post(`/api/loans/contacts/${contactId}/archive`)
+    .set("Authorization", `Bearer ${accessToken}`);
+  expect(res.status).toBe(200);
+}
+
 async function borrowCustomBook(
   accessToken: string,
   book: Record<string, unknown>,
@@ -89,6 +96,18 @@ async function borrowCustomBook(
     loanDate: isoDay(0),
     personName,
   });
+}
+
+async function changeContactDetail(
+  accessToken: string,
+  contactId: string,
+  contact: string,
+): Promise<void> {
+  const res = await request(app.getHttpServer())
+    .patch(`/api/loans/contacts/${contactId}`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ contact });
+  expect(res.status).toBe(200);
 }
 
 async function contactIdFor(name: string): Promise<string> {
@@ -866,6 +885,99 @@ describe("GET /api/loans after a contact rename", () => {
     const res = await listLoans(accessToken, "?search=melnyk");
 
     expect(loanTitles(res.body.items)).toEqual(["Hers"]);
+  });
+});
+
+describe("GET /api/loans after a contact detail change", () => {
+  it("shows the current detail of the contact rather than the one stored on the loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" });
+    const contactId = await contactIdFor("Ivan");
+    await changeContactDetail(accessToken, contactId, "ivan@example.com");
+
+    const res = await listLoans(accessToken, "?type=lent_to_someone");
+
+    expect(res.body.items[0].contact).toBe("ivan@example.com");
+  });
+
+  it("keeps showing the current detail after the loan stored a different one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contact = await request(app.getHttpServer())
+      .post("/api/loans/contacts")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ contact: "old@example.com", name: "Ivan" });
+    expect(contact.status).toBe(201);
+    await createLentLoan(accessToken, { loanContactId: contact.body.id });
+    await changeContactDetail(accessToken, contact.body.id, "new@example.com");
+
+    const [item] = (await listLoans(accessToken, "?type=lent_to_someone")).body.items;
+    const stored = await prisma.bookLoan.findFirstOrThrow({
+      select: { contact: true },
+      where: { loanContactId: contact.body.id },
+    });
+
+    expect([item.contact, stored.contact]).toEqual(["new@example.com", "old@example.com"]);
+  });
+});
+
+describe("GET /api/loans search by contact detail", () => {
+  it("finds the loan by the current contact detail of the person", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" });
+    await changeContactDetail(accessToken, await contactIdFor("Ivan"), "ivan@example.com");
+
+    const res = await listLoans(accessToken, "?search=ivan@example.com");
+
+    expect(loanTitles(res.body.items)).toEqual(["Hyperion"]);
+  });
+
+  it("still finds the loan by the contact detail it stored when it started", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contact = await request(app.getHttpServer())
+      .post("/api/loans/contacts")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ contact: "old@example.com", name: "Ivan" });
+    expect(contact.status).toBe(201);
+    await createLentLoan(accessToken, { loanContactId: contact.body.id });
+    await changeContactDetail(accessToken, contact.body.id, "new@example.com");
+
+    const res = await listLoans(accessToken, "?search=old@example.com");
+
+    expect(loanTitles(res.body.items)).toEqual(["Hyperion"]);
+  });
+});
+
+describe("GET /api/loans after a contact is archived", () => {
+  it("keeps the active loan of an archived contact in the list", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" });
+    await archiveContact(accessToken, await contactIdFor("Ivan"));
+
+    const res = await listLoans(accessToken, "?type=lent_to_someone");
+
+    expect(loanTitles(res.body.items)).toEqual(["Hyperion"]);
+  });
+
+  it("still names the person on the loan of an archived contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" });
+    const contactId = await contactIdFor("Ivan");
+    await changeContactDetail(accessToken, contactId, "ivan@example.com");
+    await archiveContact(accessToken, contactId);
+
+    const [item] = (await listLoans(accessToken, "?type=lent_to_someone")).body.items;
+
+    expect(item).toMatchObject({ contact: "ivan@example.com", personName: "Ivan" });
+  });
+
+  it("keeps counting the loan of an archived contact in the summary", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" });
+    await archiveContact(accessToken, await contactIdFor("Ivan"));
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent).toMatchObject({ peopleCount: 1, totalCount: 1 });
   });
 });
 

@@ -237,7 +237,6 @@ export const UpdateReadingProgressInputSchema = z.object({
 
 const OWNERSHIP_PERSON_NAME_MIN = 1;
 export const OWNERSHIP_PERSON_NAME_MAX = 100;
-const OWNERSHIP_CONTACT_MAX = 100;
 
 export {
   OWNERSHIP_STORE_NAME_MAX,
@@ -255,11 +254,6 @@ const OwnershipPersonNameSchema = z
       "Name must be at most 100 characters long",
     ),
   );
-
-const OwnershipContactSchema = z
-  .string()
-  .transform(collapseSpaces)
-  .pipe(NoHtmlString.max(OWNERSHIP_CONTACT_MAX, "Contact must be at most 100 characters long"));
 
 const PurchaseInfoFieldsSchema = z.object({
   currency: CurrencySchema.nullable().optional(),
@@ -433,7 +427,6 @@ export type LoanInfoInput = z.infer<typeof LoanInfoInputSchema>;
 
 export const CreateLoanInputSchema = z
   .object({
-    contact: OwnershipContactSchema.nullable().optional(),
     direction: LoanDirectionSchema,
     expectedReturnDate: z.iso.date().nullable().optional(),
     loanContactId: z.uuid().optional(),
@@ -464,7 +457,6 @@ export type CreateLoanInput = z.infer<typeof CreateLoanInputSchema>;
 
 export const UpdateLoanInputSchema = z
   .object({
-    contact: OwnershipContactSchema.nullable().optional(),
     expectedReturnDate: z.iso.date().nullable().optional(),
     loanContactId: z.uuid().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),

@@ -13,12 +13,11 @@ export type ResolvedLoanContact = {
   contact: Nullable<string>;
   loanContactId: string;
   personName: string;
-  refreshesPersonName: boolean;
+  refreshesSnapshot: boolean;
 };
 
 export type ResolveLoanContactInput = {
   attached: Nullable<AttachedLoanContact>;
-  contact: Nullable<string> | undefined;
   loanContactId: string | undefined;
   personName: string | undefined;
   userId: string;
@@ -42,10 +41,10 @@ export class LoanContactResolver {
   constructor(private readonly loanContactsRepository: LoanContactsRepository) {}
 
   async resolve(
-    { attached, contact, loanContactId, personName, userId }: ResolveLoanContactInput,
+    { attached, loanContactId, personName, userId }: ResolveLoanContactInput,
     client?: Prisma.TransactionClient,
   ): Promise<ResolvedLoanContact> {
-    const target = await this.loadTarget({ contact, loanContactId, personName, userId }, client);
+    const target = await this.loadTarget({ loanContactId, personName, userId }, client);
     if (target === null) {
       if (attached === null) {
         throw new BadRequestError(LOAN_PERSON_REQUIRED_MESSAGE, {
@@ -53,10 +52,10 @@ export class LoanContactResolver {
         });
       }
       return {
-        contact: contact === undefined ? attached.contact : contact,
+        contact: attached.contact,
         loanContactId: attached.loanContactId,
         personName: attached.personName,
-        refreshesPersonName: false,
+        refreshesSnapshot: false,
       };
     }
 
@@ -67,15 +66,15 @@ export class LoanContactResolver {
     }
 
     return {
-      contact: contact === undefined ? (keptAttachment?.contact ?? null) : contact,
+      contact: target.contact,
       loanContactId: target.id,
       personName: target.name,
-      refreshesPersonName: keptAttachment === null,
+      refreshesSnapshot: keptAttachment === null,
     };
   }
 
   private async loadTarget(
-    { contact, loanContactId, personName, userId }: Omit<ResolveLoanContactInput, "attached">,
+    { loanContactId, personName, userId }: Omit<ResolveLoanContactInput, "attached">,
     client?: Prisma.TransactionClient,
   ): Promise<Nullable<LoanContactModel>> {
     if (loanContactId !== undefined) {
@@ -95,7 +94,7 @@ export class LoanContactResolver {
 
     return this.loanContactsRepository.ensureByNormalizedName(
       {
-        contact: contact ?? null,
+        contact: null,
         name: personName,
         normalizedName: normalizeName(personName),
         userId,

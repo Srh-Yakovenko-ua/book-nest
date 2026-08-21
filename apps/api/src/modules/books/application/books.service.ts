@@ -107,7 +107,6 @@ export class BooksService {
                 loanContact: await this.loanContactResolver.resolve(
                   {
                     attached: null,
-                    contact: undefined,
                     loanContactId: loanInfoInput.loanContactId,
                     personName: loanInfoInput.personName,
                     userId,
@@ -250,7 +249,6 @@ export class BooksService {
                 loanContact: await this.loanContactResolver.resolve(
                   {
                     attached: current.loans[0] ?? null,
-                    contact: undefined,
                     loanContactId: loanInfoInput.loanContactId,
                     personName: loanInfoInput.personName,
                     userId,

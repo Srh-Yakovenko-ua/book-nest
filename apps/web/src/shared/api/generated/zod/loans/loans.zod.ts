@@ -1162,6 +1162,29 @@ export const LoanContactsControllerCreateResponse = zod.object({
 });
 
 /**
+ * @summary Read one loan contact of the current user
+ */
+export const LoanContactsControllerDetailParams = zod.object({
+  contactId: zod.string(),
+});
+
+export const loanContactsControllerDetailResponseLoanCountMin = 0;
+export const loanContactsControllerDetailResponseLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerDetailResponse = zod.object({
+  archivedAt: zod.string().nullable(),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  id: zod.string(),
+  loanCount: zod
+    .int()
+    .min(loanContactsControllerDetailResponseLoanCountMin)
+    .max(loanContactsControllerDetailResponseLoanCountMax),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
  * @summary Rename a loan contact or change how to reach it
  */
 export const LoanContactsControllerUpdateParams = zod.object({
@@ -1185,6 +1208,52 @@ export const LoanContactsControllerUpdateResponse = zod.object({
     .int()
     .min(loanContactsControllerUpdateResponseLoanCountMin)
     .max(loanContactsControllerUpdateResponseLoanCountMax),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Archive a loan contact so new loans stop offering it
+ */
+export const LoanContactsControllerArchiveParams = zod.object({
+  contactId: zod.string(),
+});
+
+export const loanContactsControllerArchiveResponseLoanCountMin = 0;
+export const loanContactsControllerArchiveResponseLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerArchiveResponse = zod.object({
+  archivedAt: zod.string().nullable(),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  id: zod.string(),
+  loanCount: zod
+    .int()
+    .min(loanContactsControllerArchiveResponseLoanCountMin)
+    .max(loanContactsControllerArchiveResponseLoanCountMax),
+  name: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Restore an archived loan contact
+ */
+export const LoanContactsControllerRestoreParams = zod.object({
+  contactId: zod.string(),
+});
+
+export const loanContactsControllerRestoreResponseLoanCountMin = 0;
+export const loanContactsControllerRestoreResponseLoanCountMax = 9007199254740991;
+
+export const LoanContactsControllerRestoreResponse = zod.object({
+  archivedAt: zod.string().nullable(),
+  contact: zod.string().nullable(),
+  createdAt: zod.string(),
+  id: zod.string(),
+  loanCount: zod
+    .int()
+    .min(loanContactsControllerRestoreResponseLoanCountMin)
+    .max(loanContactsControllerRestoreResponseLoanCountMax),
   name: zod.string(),
   updatedAt: zod.string(),
 });

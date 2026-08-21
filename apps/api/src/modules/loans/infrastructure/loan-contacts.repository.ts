@@ -9,9 +9,12 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
-const loanContactCardArgs = {
-  include: { _count: { select: { loans: { where: { book: SOFT_DELETE_SCOPE.active } } } } },
-} satisfies Prisma.LoanContactDefaultArgs;
+const ownedLoanContactCardArgs = (userId: string) =>
+  ({
+    include: {
+      _count: { select: { loans: { where: { book: SOFT_DELETE_SCOPE.active, userId } } } },
+    },
+  }) satisfies Prisma.LoanContactDefaultArgs;
 
 export type CreateLoanContactData = {
   contact: Nullable<string>;
@@ -27,11 +30,19 @@ export type ListLoanContactsInput = {
   userId: string;
 };
 
-export type LoanContactCard = Prisma.LoanContactGetPayload<typeof loanContactCardArgs>;
+export type LoanContactCard = Prisma.LoanContactGetPayload<
+  ReturnType<typeof ownedLoanContactCardArgs>
+>;
 
 export type LoanContactRename = {
   name: string;
   normalizedName: string;
+};
+
+export type SetLoanContactArchivedData = {
+  archivedAt: Nullable<Date>;
+  id: string;
+  userId: string;
 };
 
 export type UpdateLoanContactData = {
@@ -51,7 +62,7 @@ export class LoanContactsRepository {
   ): Promise<LoanContactCard> {
     return client.loanContact.create({
       data: { contact, name, normalizedName, userId },
-      ...loanContactCardArgs,
+      ...ownedLoanContactCardArgs(userId),
     });
   }
 
@@ -89,6 +100,16 @@ export class LoanContactsRepository {
     return client.loanContact.findFirst({ where: { id, userId } });
   }
 
+  findOwnedCardById(
+    { id, userId }: { id: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<LoanContactCard>> {
+    return client.loanContact.findFirst({
+      where: { id, userId },
+      ...ownedLoanContactCardArgs(userId),
+    });
+  }
+
   listOwned({
     includeArchived,
     limit,
@@ -107,7 +128,18 @@ export class LoanContactsRepository {
       orderBy: [{ name: "asc" }, { id: "asc" }],
       take: limit,
       where,
-      ...loanContactCardArgs,
+      ...ownedLoanContactCardArgs(userId),
+    });
+  }
+
+  setArchivedAt(
+    { archivedAt, id, userId }: SetLoanContactArchivedData,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<LoanContactCard> {
+    return client.loanContact.update({
+      data: { archivedAt },
+      where: { id, userId },
+      ...ownedLoanContactCardArgs(userId),
     });
   }
 
@@ -124,6 +156,10 @@ export class LoanContactsRepository {
       data.contact = contact;
     }
 
-    return client.loanContact.update({ data, where: { id, userId }, ...loanContactCardArgs });
+    return client.loanContact.update({
+      data,
+      where: { id, userId },
+      ...ownedLoanContactCardArgs(userId),
+    });
   }
 }

@@ -30,7 +30,7 @@ import { parseIsoDate, startOfUtcDay, toNullableIsoDate } from "../../../core/is
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { deriveLoanHistoryOutcome } from "../domain/loan-history-result.js";
-import { resolveLoanPerson } from "../domain/loan-person.js";
+import { resolveHistoryLoanPerson } from "../domain/loan-person.js";
 import { LoanHistoryRepository } from "../infrastructure/loan-history.repository.js";
 
 const TOP_PEOPLE_LIMIT = 5;
@@ -200,7 +200,7 @@ export class LoanHistoryService {
   private toDetailView(loan: CompletedLoanWithBook): LoanHistoryDetailView {
     return {
       ...this.toListItemView(loan),
-      contact: resolveLoanPerson(loan).contact,
+      contact: resolveHistoryLoanPerson(loan).contact,
       createdAt: loan.createdAt.toISOString(),
       note: loan.note,
       updatedAt: loan.updatedAt.toISOString(),
@@ -213,7 +213,7 @@ export class LoanHistoryService {
       loanDate: loan.loanDate,
       returnedAt: loan.returnedAt,
     });
-    const person = resolveLoanPerson(loan);
+    const person = resolveHistoryLoanPerson(loan);
 
     return {
       book: this.toBookPreview(loan.book),
