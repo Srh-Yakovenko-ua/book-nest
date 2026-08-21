@@ -49,8 +49,12 @@ function repositoryHolding(ordersCount: number): DeliveryStatisticsRepository {
   return repositoryWithRecords(buildOrderRecords(fetchedRowsCount));
 }
 
-function repositoryWithRecords(records: OrderStatisticsRecord[]): DeliveryStatisticsRepository {
+function repositoryWithRecords(
+  records: OrderStatisticsRecord[],
+  activeRecords: OrderStatisticsRecord[] = [],
+): DeliveryStatisticsRepository {
   return {
+    listActiveOrderRecords: vi.fn().mockResolvedValue(activeRecords),
     listOrderRecords: vi.fn().mockResolvedValue(capOrderStatisticsRecords(records)),
   } as unknown as DeliveryStatisticsRepository;
 }
@@ -133,7 +137,7 @@ describe("DeliveryStatisticsService.statistics", () => {
     expect(result.meta.comparisonPeriod).toBeNull();
   });
 
-  it("closes an open-ended period at today and filters the read on it", async () => {
+  it("closes an open-ended period at today to report it, but not to read by it", async () => {
     const repository = repositoryWithRecords([]);
     const service = new DeliveryStatisticsService(repository);
 
@@ -141,8 +145,73 @@ describe("DeliveryStatisticsService.statistics", () => {
 
     expect(result.meta.currentPeriod).toEqual({ from: null, to: "2026-08-20" });
     expect(vi.mocked(repository.listOrderRecords).mock.calls[0]?.[0]).toEqual(
-      expect.objectContaining({ from: undefined, to: parseIsoDate("2026-08-20") }),
+      expect.objectContaining({ from: undefined, to: undefined }),
     );
+  });
+
+  it("reads money in transit with the same filters and no dates at all", async () => {
+    const repository = repositoryWithRecords([]);
+    const service = new DeliveryStatisticsService(repository);
+
+    await service.statistics({
+      query: statisticsQuery({
+        currency: "EUR",
+        from: "2026-07-01",
+        status: "in_transit",
+        store: "Yakaboo",
+        to: "2026-07-31",
+      }),
+      userId: USER,
+    });
+
+    expect(vi.mocked(repository.listActiveOrderRecords).mock.calls[0]?.[0]).toEqual({
+      currency: "EUR",
+      status: "in_transit",
+      store: "Yakaboo",
+      userId: USER,
+    });
+  });
+
+  it("builds the snapshot from the active read rather than the period read", async () => {
+    const stillMoving: OrderStatisticsRecord = {
+      currency: "UAH",
+      deliveryPrice: null,
+      discount: null,
+      id: "order-moving",
+      isFree: false,
+      items: [
+        {
+          bookId: "book-moving",
+          bookTitle: "Still moving",
+          cancelledAt: null,
+          id: "item-moving",
+          price: 340,
+          receivedAt: null,
+          shipmentId: "shipment-moving",
+        },
+      ],
+      orderDate: new Date("2024-03-14T00:00:00.000Z"),
+      orderNumber: null,
+      shipments: [
+        { cancelledAt: null, id: "shipment-moving", receivedAt: null, status: "in_transit" },
+      ],
+      storeName: "Yakaboo",
+      totalAmount: 340,
+    };
+    const service = new DeliveryStatisticsService(repositoryWithRecords([], [stillMoving]));
+
+    const view = await service.statistics({
+      query: statisticsQuery({ from: "2026-07-01", to: "2026-07-31" }),
+      userId: USER,
+    });
+
+    expect(view.summary.ordersCount).toBe(0);
+    expect(view.snapshot).toEqual({
+      activeBooksCount: 1,
+      activeOrdersCount: 1,
+      activeShipmentsCount: 1,
+      activeTotalsByCurrency: [{ currency: "UAH", total: 340 }],
+    });
   });
 });
 
