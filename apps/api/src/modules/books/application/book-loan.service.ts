@@ -8,7 +8,7 @@ import type {
   UpdateLoanInput,
 } from "@app/shared";
 
-import { OwnershipStatusSchema, ownershipStatusUsesLoan } from "@app/shared";
+import { LOAN_ERROR_CODES, OwnershipStatusSchema, ownershipStatusUsesLoan } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { BookLoanModel } from "../../../generated/prisma/models.js";
@@ -87,11 +87,14 @@ export class BookLoanService {
     } catch (error) {
       rethrowUniqueConstraintAs({
         error,
-        toError: () => new ConflictError(ACTIVE_LOAN_EXISTS_MESSAGE),
+        toError: () =>
+          new ConflictError(ACTIVE_LOAN_EXISTS_MESSAGE, {
+            code: LOAN_ERROR_CODES.activeLoanExists,
+          }),
       });
     }
     if (outcome === "not-found") {
-      throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE);
+      throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE, { code: LOAN_ERROR_CODES.bookNotFound });
     }
     if (outcome === "status-conflict") {
       throw guard.conflictError;
@@ -104,7 +107,7 @@ export class BookLoanService {
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
     const active = book.loans[0];
     if (active === undefined) {
-      throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE);
+      throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE, { code: LOAN_ERROR_CODES.loanNotFound });
     }
 
     await this.transactionRunner.run(async (client) => {
@@ -133,7 +136,9 @@ export class BookLoanService {
   async extendLoan(userId: string, bookId: string, input: ExtendLoanInput): Promise<BookView> {
     const active = await this.loadActiveLoanOrThrow(userId, bookId);
     if (active.expectedReturnDate === null) {
-      throw new ConflictError(EXTEND_REQUIRES_RETURN_DATE_MESSAGE);
+      throw new ConflictError(EXTEND_REQUIRES_RETURN_DATE_MESSAGE, {
+        code: LOAN_ERROR_CODES.extendRequiresReturnDate,
+      });
     }
 
     const expectedReturnDate = extendReturnDate({
@@ -156,7 +161,9 @@ export class BookLoanService {
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
     const ownershipStatus = OwnershipStatusSchema.parse(book.ownershipStatus);
     if (!ownershipStatusUsesLoan(ownershipStatus)) {
-      throw new ConflictError(RETURN_REQUIRES_LOAN_MESSAGE);
+      throw new ConflictError(RETURN_REQUIRES_LOAN_MESSAGE, {
+        code: LOAN_ERROR_CODES.returnRequiresLoan,
+      });
     }
 
     const patch = computeLoanChange({ kind: "return", now: new Date(), ownershipStatus });
@@ -164,10 +171,12 @@ export class BookLoanService {
       expectedStatuses: LOAN_ACTIVE_OWNERSHIP_STATUSES,
     });
     if (outcome === "not-found") {
-      throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE);
+      throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE, { code: LOAN_ERROR_CODES.bookNotFound });
     }
     if (outcome === "status-conflict") {
-      throw new ConflictError(RETURN_REQUIRES_LOAN_MESSAGE);
+      throw new ConflictError(RETURN_REQUIRES_LOAN_MESSAGE, {
+        code: LOAN_ERROR_CODES.returnRequiresLoan,
+      });
     }
 
     return this.viewAssembler.loadView({ bookId, userId });
@@ -180,7 +189,9 @@ export class BookLoanService {
   ): Promise<BookView> {
     const active = await this.loadActiveLoanOrThrow(userId, bookId);
     if (input.remindBeforeDays !== null && active.expectedReturnDate === null) {
-      throw new ConflictError(REMINDER_REQUIRES_RETURN_DATE_MESSAGE);
+      throw new ConflictError(REMINDER_REQUIRES_RETURN_DATE_MESSAGE, {
+        code: LOAN_ERROR_CODES.reminderRequiresReturnDate,
+      });
     }
 
     await this.booksRepository.updateActiveLoanReminder(
@@ -199,7 +210,7 @@ export class BookLoanService {
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
     const active = book.loans[0];
     if (active === undefined) {
-      throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE);
+      throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE, { code: LOAN_ERROR_CODES.loanNotFound });
     }
 
     return active;
@@ -212,12 +223,16 @@ function loanCreateGuard(direction: LoanDirection): {
 } {
   if (direction === "lent") {
     return {
-      conflictError: new ConflictError(LEND_REQUIRES_OWNED_MESSAGE),
+      conflictError: new ConflictError(LEND_REQUIRES_OWNED_MESSAGE, {
+        code: LOAN_ERROR_CODES.lendRequiresOwned,
+      }),
       expectedStatuses: ["owned"],
     };
   }
   return {
-    conflictError: new ConflictError(BORROW_REQUIRES_NONE_MESSAGE),
+    conflictError: new ConflictError(BORROW_REQUIRES_NONE_MESSAGE, {
+      code: LOAN_ERROR_CODES.borrowRequiresFreeBook,
+    }),
     expectedStatuses: ["none", "want_to_buy"],
   };
 }

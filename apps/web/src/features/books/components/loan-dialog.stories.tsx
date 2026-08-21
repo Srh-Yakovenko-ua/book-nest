@@ -11,7 +11,12 @@ function Harness({ book, direction }: { book: BookView; direction: LoanDirection
   const [open, setOpen] = useState(true);
   return (
     <>
-      <LoanDialog book={book} direction={direction} onOpenChange={setOpen} open={open} />
+      <LoanDialog
+        context={{ book, kind: "book" }}
+        direction={direction}
+        onOpenChange={setOpen}
+        open={open}
+      />
       <p data-testid="open-state">{open ? "open" : "closed"}</p>
     </>
   );
@@ -59,7 +64,12 @@ async function pickContact(body: ReturnType<typeof within>, label: string) {
 }
 
 const meta = {
-  args: { book: loanBook(), direction: "borrowed", onOpenChange: () => {}, open: true },
+  args: {
+    context: { book: loanBook(), kind: "book" },
+    direction: "borrowed",
+    onOpenChange: () => {},
+    open: true,
+  },
   component: LoanDialog,
   parameters: { layout: "fullscreen" },
   tags: ["ai-generated"],

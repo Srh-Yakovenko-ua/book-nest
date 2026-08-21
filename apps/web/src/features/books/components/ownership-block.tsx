@@ -18,12 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { BookStoreLinksBlock, RemoveFromWishlistDialog } from "@/features/books-to-buy";
+import { useReturnLoan } from "@/features/loans/api/use-loan-actions";
 import { ownershipStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
-import { useReturnLoan } from "../api/use-loan";
 import { useMarkOwned, useRemoveFromWishlist, useRemoveOwned } from "../api/use-ownership";
 import { todayIso } from "../model/reading-progress";
 import { DeliveryDialog } from "./delivery-dialog";
@@ -183,7 +183,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
         open={deliveryOpen}
       />
       <LoanDialog
-        book={book}
+        context={{ book, kind: "book" }}
         direction={loanDirection}
         onOpenChange={setLoanOpen}
         open={loanOpen}

@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { LOAN_ERROR_CODES } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -254,6 +255,7 @@ describe("POST /api/books/:id/loan preconditions", () => {
     });
 
     expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.borrowRequiresFreeBook);
   });
 
   it("borrows a book that is currently marked want_to_buy", async () => {
@@ -288,6 +290,7 @@ describe("POST /api/books/:id/loan preconditions", () => {
     });
 
     expect(res.status).toBe(409);
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.lendRequiresOwned);
   });
 });
 
@@ -449,6 +452,7 @@ describe("POST /api/books/:id/loan/return", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.message).toBe("Book must be borrowed or lent to be returned");
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.returnRequiresLoan);
   });
 
   it("leaves reading status and favorite untouched when returning a loan", async () => {
@@ -507,6 +511,7 @@ describe("PATCH /api/books/:id/loan", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Loan not found");
+    expect(res.body.code).toBe(LOAN_ERROR_CODES.loanNotFound);
   });
 
   it("returns 404 when the book belongs to another user", async () => {

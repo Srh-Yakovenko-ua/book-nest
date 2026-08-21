@@ -1827,16 +1827,49 @@
           "note": "Note",
           "notePlaceholder": "A few thoughts for yourself…",
           "remindToReturn": "Remind me to return",
-          "datePlaceholder": "Pick a date"
+          "datePlaceholder": "Pick a date",
+          "book": "Book"
         },
+        "bookStep": {
+          "searchLabel": "Search books",
+          "searchPlaceholder": "Title or author",
+          "searching": "Searching books…",
+          "notFound": "Nothing found",
+          "loadError": "Could not load books",
+          "selectBook": "Select a book",
+          "next": "Next",
+          "createBook": "Add a book",
+          "lent": {
+            "title": "Which book are you lending?",
+            "description": "Pick the book you are handing to {name}.",
+            "emptyTitle": "No books to lend",
+            "emptyHint": "Add a book to your library first, then lend it to someone."
+          },
+          "borrowed": {
+            "title": "Which book are you borrowing?",
+            "description": "Pick the book you are borrowing from {name}.",
+            "emptyTitle": "No books to borrow",
+            "emptyHint": "Add the book to BookNest first, then record the loan."
+          }
+        },
+        "back": "Back",
         "submit": "Save",
         "errors": {
+          "activeLoanExists": "This book already has an active loan.",
+          "bookNotFound": "The book is gone. It may have been deleted.",
+          "borrowRequiresFreeBook": "You cannot borrow this book: it is already in your library or out on loan.",
+          "contactArchived": "This contact is archived. Restore it or pick another person.",
+          "contactNotFound": "The contact is gone. It may have been deleted.",
           "dateInvalid": "Pick a valid date.",
+          "extendRequiresReturnDate": "Set a return date first.",
+          "generic": "Couldn’t save. Please try again.",
+          "lendRequiresOwned": "You cannot lend this book: it is already with someone or you do not have it.",
           "loanDateFuture": "The date can’t be in the future.",
-          "returnBeforeLoan": "Return can’t be before the loan date.",
-          "reminderNeedsDate": "Pick a return date for the reminder.",
+          "loanNotFound": "The loan is gone. The book may have been returned already.",
           "noteMax": "No more than {max} characters.",
-          "generic": "Couldn’t save. Please try again."
+          "reminderNeedsDate": "Pick a return date for the reminder.",
+          "returnBeforeLoan": "Return can’t be before the loan date.",
+          "returnRequiresLoan": "This book was never lent, so there is nothing to return."
         }
       },
       "delivery": {
@@ -4626,7 +4659,9 @@
       "actions": {
         "edit": "Edit",
         "archive": "Archive",
-        "restore": "Restore"
+        "restore": "Restore",
+        "lend": "Lend a book",
+        "borrow": "Borrow a book"
       },
       "active": {
         "lent": {

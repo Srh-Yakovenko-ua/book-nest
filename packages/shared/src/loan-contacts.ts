@@ -93,6 +93,8 @@ export const UpdateLoanContactInputSchema = z
 export type UpdateLoanContactInput = z.infer<typeof UpdateLoanContactInputSchema>;
 
 export const LOAN_CONTACT_ERROR_CODES = {
+  archived: "LOAN_CONTACT_ARCHIVED",
   archivedName: "LOAN_CONTACT_ARCHIVED_NAME",
   duplicateName: "LOAN_CONTACT_DUPLICATE_NAME",
+  notFound: "LOAN_CONTACT_NOT_FOUND",
 } as const;

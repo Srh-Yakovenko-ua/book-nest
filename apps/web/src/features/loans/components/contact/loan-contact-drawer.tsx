@@ -1,6 +1,6 @@
 "use client";
 
-import type { Nullable } from "@app/shared";
+import type { LoanDirection, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoanDialog } from "@/features/books/components/loan-dialog";
 
 import { useLoanContact } from "../../api/use-loan-contact";
 import { useRestoreLoanContact } from "../../api/use-restore-loan-contact";
@@ -41,6 +42,7 @@ export function LoanContactDrawer({
   const contactQuery = useLoanContact(contactId);
   const restoreContact = useRestoreLoanContact();
   const [dialog, setDialog] = useState<Nullable<LoanContactDialog>>(null);
+  const [loanDirection, setLoanDirection] = useState<Nullable<LoanDirection>>(null);
 
   const contact = contactQuery.data;
   const isArchived = contact !== undefined && contact.archivedAt !== null;
@@ -83,6 +85,22 @@ export function LoanContactDrawer({
 
             {contact === undefined ? null : (
               <div className="flex flex-wrap gap-2">
+                {isArchived ? null : (
+                  <>
+                    <Button onClick={() => setLoanDirection("lent")} size="sm">
+                      <UiIcon name="arrow-up-right" size={16} />
+                      {tActions("lend")}
+                    </Button>
+                    <Button
+                      onClick={() => setLoanDirection("borrowed")}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      <UiIcon name="arrow-down-circle" size={16} />
+                      {tActions("borrow")}
+                    </Button>
+                  </>
+                )}
                 <Button onClick={() => setDialog("edit")} size="sm" variant="secondary">
                   <UiIcon name="edit" size={16} />
                   {tActions("edit")}
@@ -157,6 +175,16 @@ export function LoanContactDrawer({
             onOpenChange={(next) => setDialog(next ? "archive" : null)}
             open={dialog === "archive"}
           />
+          {loanDirection === null ? null : (
+            <LoanDialog
+              context={{ contact, kind: "contact" }}
+              direction={loanDirection}
+              onOpenChange={(next) => {
+                if (!next) setLoanDirection(null);
+              }}
+              open
+            />
+          )}
         </>
       )}
     </>
