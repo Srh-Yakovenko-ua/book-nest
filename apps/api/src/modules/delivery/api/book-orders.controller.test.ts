@@ -466,6 +466,26 @@ async function statisticsOf(query: StatisticsTestQuery = {}): Promise<BookOrderS
   return BookOrderStatisticsViewSchema.parse(res.body);
 }
 
+const UNDATED_ORDER_PRICE = 450;
+
+async function createUndatedOrder(): Promise<void> {
+  const bookId = await createBook({
+    accessToken: reader.accessToken,
+    app,
+    title: "Stat Undated",
+  });
+
+  await createOrder({
+    accessToken: reader.accessToken,
+    app,
+    input: {
+      currency: "UAH",
+      items: [{ bookId, price: UNDATED_ORDER_PRICE }],
+      storeName: STATISTICS_FIXTURE_STORE.yakaboo,
+    },
+  });
+}
+
 function totalsOf(view: BookOrderStatisticsView): Record<string, number> {
   return Object.fromEntries(view.summary.totalsByCurrency.map((row) => [row.currency, row.total]));
 }
@@ -727,6 +747,40 @@ describe("GET /api/delivery/orders/statistics contract", () => {
 
     expect(narrow.summary.ordersCount).toBeLessThan(unfiltered.summary.ordersCount);
     expect(narrow.snapshot).toEqual(unfiltered.snapshot);
+  });
+
+  it("counts an order that never got a date when no period was asked for", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+    const before = await statisticsOf();
+
+    await createUndatedOrder();
+    const after = await statisticsOf();
+
+    expect(after.meta.loadedOrdersCount).toBe(before.meta.loadedOrdersCount + 1);
+    expect(totalsOf(after).UAH).toBe((totalsOf(before).UAH ?? 0) + UNDATED_ORDER_PRICE);
+  });
+
+  it("gives an undated order no month to sit in", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+    const before = await statisticsOf();
+
+    await createUndatedOrder();
+    const after = await statisticsOf();
+
+    expect(after.monthly).toEqual(before.monthly);
+    expect(after.daily).toEqual(before.daily);
+  });
+
+  it("leaves an undated order out of a period it cannot be placed in", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+    const currentMonth = monthWindow(STATISTICS_FIXTURE_MONTH.current);
+    const before = await statisticsOf(currentMonth);
+
+    await createUndatedOrder();
+    const after = await statisticsOf(currentMonth);
+
+    expect(after.meta.loadedOrdersCount).toBe(before.meta.loadedOrdersCount);
+    expect(totalsOf(after)).toEqual(totalsOf(before));
   });
 
   it("keeps every reader's statistics to their own orders", async () => {

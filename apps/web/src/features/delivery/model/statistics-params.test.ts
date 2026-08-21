@@ -31,8 +31,8 @@ describe("toDeliveryStatisticsParams", () => {
     });
   });
 
-  it("leaves out the lower bound for all time", () => {
-    expect(params({ period: "all_time" })).toEqual({ includeCancelled: "false", to: TODAY });
+  it("asks for no date bounds at all for all time, so undated orders stay in", () => {
+    expect(params({ period: "all_time" })).toEqual({ includeCancelled: "false" });
   });
 
   it("sends the comparison mode once the period can carry one", () => {

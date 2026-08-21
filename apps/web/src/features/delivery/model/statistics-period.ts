@@ -71,7 +71,7 @@ export function resolveStatisticsPeriod({
 
   switch (preset) {
     case "all_time":
-      return { from: null, to: today };
+      return { from: null, to: null };
     case "custom":
       return {
         from: isStatisticsDay(custom.from) ? custom.from : null,

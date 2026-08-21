@@ -53,7 +53,7 @@ export class DeliveryStatisticsService {
     query: BookOrderStatisticsQuery;
     userId: string;
   }): Promise<BookOrderStatisticsView> {
-    const { comparisonPeriod, currentPeriod } = resolveStatisticsPeriods({
+    const { comparisonPeriod, currentPeriod, requestedPeriod } = resolveStatisticsPeriods({
       compare: query.compare,
       from: query.from,
       now: new Date(),
@@ -63,10 +63,10 @@ export class DeliveryStatisticsService {
     const [page, activeRecords, previousRecords] = await Promise.all([
       this.deliveryStatisticsRepository.listOrderRecords({
         currency: query.currency,
-        from: toPeriodBound(currentPeriod.from),
+        from: toPeriodBound(requestedPeriod.from),
         status: query.status,
         store: query.store,
-        to: toPeriodBound(currentPeriod.to),
+        to: toPeriodBound(requestedPeriod.to),
         userId,
       }),
       this.deliveryStatisticsRepository.listActiveOrderRecords({
@@ -133,6 +133,6 @@ function isPeriodFiltered(query: BookOrderStatisticsQuery): boolean {
   );
 }
 
-function toPeriodBound(isoDay: Nullable<string>): Date | undefined {
-  return isoDay === null ? undefined : parseIsoDate(isoDay);
+function toPeriodBound(isoDay: string | undefined): Date | undefined {
+  return isoDay === undefined ? undefined : parseIsoDate(isoDay);
 }

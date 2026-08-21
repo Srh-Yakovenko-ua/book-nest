@@ -35,8 +35,8 @@ describe("resolveStatisticsPeriod", () => {
     expect(range("this_year")).toEqual({ from: "2026-01-01", to: TODAY });
   });
 
-  it("leaves the lower bound open for all time", () => {
-    expect(range("all_time")).toEqual({ from: null, to: TODAY });
+  it("leaves both bounds open for all time, so undated orders still count", () => {
+    expect(range("all_time")).toEqual({ from: null, to: null });
   });
 
   it("takes both bounds from the custom range", () => {
