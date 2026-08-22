@@ -3,6 +3,7 @@ import type {
   LoanContactListItemView,
   LoanContactsView,
   LoanDirection,
+  OwnershipStatus,
 } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
@@ -37,6 +38,11 @@ const UKRAINIAN_ALPHABET_ORDER = [
   "Ірина",
   "Їжак",
 ] as const;
+
+const LOAN_START_OWNERSHIP: Record<LoanDirection, OwnershipStatus> = {
+  borrowed: "none",
+  lent: "owned",
+};
 
 const today = (): string => formatInTimeZone(new Date(), "UTC", "yyyy-MM-dd");
 
@@ -92,11 +98,15 @@ function contactPage(res: Response): Omit<LoanContactsView, "counts" | "items"> 
   return page;
 }
 
-function createBook(accessToken: string, title: string): request.Test {
+function createBook(
+  accessToken: string,
+  title: string,
+  ownershipStatus: OwnershipStatus = "owned",
+): request.Test {
   return request(app.getHttpServer())
     .post("/api/books")
     .set("Authorization", `Bearer ${accessToken}`)
-    .send({ authors: [{ name: "Frank Herbert" }], ownershipStatus: "owned", title });
+    .send({ authors: [{ name: "Frank Herbert" }], ownershipStatus, title });
 }
 
 function createContact(accessToken: string, body: Record<string, unknown>): request.Test {
@@ -134,7 +144,7 @@ async function lendBookTo(
     title,
   }: { direction?: LoanDirection; loanContactId: string; title: string },
 ): Promise<string> {
-  const created = await createBook(accessToken, title);
+  const created = await createBook(accessToken, title, LOAN_START_OWNERSHIP[direction]);
   expect(created.status).toBe(201);
   const bookId: string = created.body.id;
 
