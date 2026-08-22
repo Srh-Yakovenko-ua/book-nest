@@ -1,6 +1,10 @@
 import type { BookBudgetOverview, Currency } from "@app/shared";
 
-import { CurrencySchema, UpsertBookBudgetInputSchema } from "@app/shared";
+import {
+  CurrencySchema,
+  StopBookBudgetInputSchema,
+  UpsertBookBudgetInputSchema,
+} from "@app/shared";
 import { Body, Controller, Delete, Get, HttpCode, Param, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -22,6 +26,7 @@ import { ZodParamPipe } from "../../../core/pipes/zod-param.pipe.js";
 import { HEAVY_READ_THROTTLE, MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookBudgetService } from "../application/book-budget.service.js";
+import { StopBookBudgetInputDto } from "./input-dto/stop-book-budget.input-dto.js";
 import { UpsertBookBudgetInputDto } from "./input-dto/upsert-book-budget.input-dto.js";
 import { BookBudgetOverviewViewDto } from "./view-dto/book-budget.view-dto.js";
 
@@ -59,6 +64,28 @@ export class BookBudgetsController {
   @Throttle(HEAVY_READ_THROTTLE)
   overview(@CurrentUser() user: AuthenticatedUser): Promise<BookBudgetOverview> {
     return this.bookBudgetService.overview({ userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed, or the month is already behind" })
+  @ApiBody({ type: StopBookBudgetInputDto })
+  @ApiNotFoundResponse({ description: "This currency has no budget covering that month" })
+  @ApiOkResponse({
+    description: "The budgets of the current user after this currency was stopped",
+    type: BookBudgetOverviewViewDto,
+  })
+  @ApiOperation({
+    summary: "Stop the budget of one currency from a given month",
+  })
+  @ApiParam({ enum: CurrencySchema.options, name: "currency" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post(":currency/stop")
+  @Throttle(MUTATION_THROTTLE)
+  stop(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("currency", new ZodParamPipe(CurrencySchema)) currency: Currency,
+    @Body(new ZodBodyPipe(StopBookBudgetInputSchema)) body: StopBookBudgetInputDto,
+  ): Promise<BookBudgetOverview> {
+    return this.bookBudgetService.stop({ currency, input: body, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed, or the month is already behind" })

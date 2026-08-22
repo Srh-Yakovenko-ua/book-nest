@@ -1,6 +1,7 @@
 "use client";
 
 import type { BookBudgetOverview, BookBudgetStatus, Currency } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { BOOK_BUDGET_RULES } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
@@ -51,7 +52,7 @@ export function StatisticsBudget({
             />
           ) : null}
           {configured.length === 0 ? null : (
-            <Button onClick={() => setDialogOpen(true)} size="sm" variant="secondary">
+            <Button onClick={() => setDialogOpen(true)} size="lg" variant="secondary">
               {t("edit")}
             </Button>
           )}
@@ -151,7 +152,9 @@ function BudgetStatus({ status }: { status: BookBudgetStatus }) {
         )}
       </ul>
 
-      {scheduled === null ? null : (
+      {scheduled === null ? (
+        <StoppingLine currentMonth={currentMonth} />
+      ) : (
         <ScheduledLine
           currency={currency}
           isPending={cancelScheduled.isPending}
@@ -178,7 +181,7 @@ function ScheduledLine({
   const locale = useLocale();
 
   return (
-    <p className="flex flex-wrap items-center gap-2 rounded-md bg-accent px-2.5 py-1.5 text-xs text-icon">
+    <TimelineNote>
       {t("scheduled", {
         month: monthLabel(scheduled.validFromMonth.slice(0, 7), locale, true),
         value: formatMoney({ amount: scheduled.monthlyAmount, currency, locale }),
@@ -195,6 +198,31 @@ function ScheduledLine({
       >
         {t("cancelScheduled")}
       </Button>
+    </TimelineNote>
+  );
+}
+
+function StoppingLine({
+  currentMonth,
+}: {
+  currentMonth: NonNullable<BookBudgetStatus["currentMonth"]>;
+}) {
+  const t = useTranslations("delivery.statistics.budget");
+  const locale = useLocale();
+
+  if (currentMonth.validToMonth === null) return null;
+
+  return (
+    <TimelineNote>
+      {t("stopping", { month: monthLabel(currentMonth.validToMonth.slice(0, 7), locale, true) })}
+    </TimelineNote>
+  );
+}
+
+function TimelineNote({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex flex-wrap items-center gap-2 rounded-md bg-accent px-2.5 py-1.5 text-xs text-icon">
+      {children}
     </p>
   );
 }

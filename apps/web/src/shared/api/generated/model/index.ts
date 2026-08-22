@@ -1610,6 +1610,7 @@ export * from "./settingsViewDtoLibraryViewMode";
 export * from "./settingsViewDtoThemeMode";
 export * from "./settingsViewDtoWeekStartDay";
 export * from "./startReadingFromQueueInputDto";
+export * from "./stopBookBudgetInputDto";
 export * from "./tagCatalogViewDto";
 export * from "./tagCatalogViewDtoType";
 export * from "./tagsControllerSearchParams";

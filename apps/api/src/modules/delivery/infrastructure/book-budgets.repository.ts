@@ -65,6 +65,21 @@ export class BookBudgetsRepository {
     });
   }
 
+  findEffectiveAt(
+    { currency, month, userId }: { currency: Currency; month: Date; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookBudgetModel>> {
+    return client.bookBudget.findFirst({
+      orderBy: { validFromMonth: "desc" },
+      where: {
+        currency,
+        OR: [{ validToMonth: null }, { validToMonth: { gt: month } }],
+        userId,
+        validFromMonth: { lte: month },
+      },
+    });
+  }
+
   findEffectiveOrLater(
     { month, userId }: { month: Date; userId: string },
     client: Prisma.TransactionClient = this.prisma,

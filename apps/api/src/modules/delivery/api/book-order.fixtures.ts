@@ -23,6 +23,7 @@ const OK_STATUS = 200;
 export const ORDER_ROUTES = {
   budgets: "/api/delivery/budgets",
   budgetScheduled: (currency: string): string => `/api/delivery/budgets/${currency}/scheduled`,
+  budgetStop: (currency: string): string => `/api/delivery/budgets/${currency}/stop`,
   cancelItem: (itemId: string): string => `/api/delivery/items/${itemId}/cancel`,
   cancelledFollowUp: "/api/delivery/books/history/cancelled-follow-up",
   cancelledFollowUpWantToBuy: "/api/delivery/books/history/cancelled-follow-up/want-to-buy",

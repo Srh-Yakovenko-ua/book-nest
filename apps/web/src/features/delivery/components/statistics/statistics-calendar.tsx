@@ -69,10 +69,7 @@ export function StatisticsCalendar({
           />
           {years.length > 1 ? (
             <Select onValueChange={(value) => setYear(Number(value))} value={String(activeYear)}>
-              <SelectTrigger
-                aria-label={t("yearLabel")}
-                className="w-24 text-xs data-[size=default]:h-8"
-              >
+              <SelectTrigger aria-label={t("yearLabel")} className="w-24 data-[size=default]:h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

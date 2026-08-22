@@ -5,6 +5,7 @@ import type {
   BookBudgetVersion,
   Currency,
   Nullable,
+  StopBookBudgetInput,
   UpsertBookBudgetInput,
 } from "@app/shared";
 
@@ -89,6 +90,39 @@ export class BookBudgetService {
     return this.buildOverview({ now: new Date(), userId });
   }
 
+  async stop({
+    currency,
+    input,
+    userId,
+  }: {
+    currency: Currency;
+    input: StopBookBudgetInput;
+    userId: string;
+  }): Promise<BookBudgetOverview> {
+    const now = new Date();
+    const stopFromMonth = this.requireUpcomingMonth({ month: input.effectiveFromMonth, now });
+
+    await this.transactionRunner.run(async (tx) => {
+      const covering = await this.bookBudgetsRepository.findEffectiveAt(
+        { currency, month: stopFromMonth, userId },
+        tx,
+      );
+      if (covering === null) {
+        throw new NotFoundError(BOOK_BUDGET_MESSAGE.noBudgetToStop);
+      }
+
+      await this.bookBudgetsRepository.closeVersionCovering(
+        { currency, userId, validToMonth: stopFromMonth },
+        tx,
+      );
+      if (!isAfter(stopFromMonth, covering.validFromMonth)) {
+        await this.bookBudgetsRepository.deleteById({ id: covering.id }, tx);
+      }
+    });
+
+    return this.buildOverview({ now, userId });
+  }
+
   async upsert({
     input,
     userId,
@@ -97,17 +131,12 @@ export class BookBudgetService {
     userId: string;
   }): Promise<BookBudgetOverview> {
     const now = new Date();
-    const monthWindow = resolveBudgetMonthWindow(now);
-    const effectiveFromMonth = toBudgetMonth(parseIsoDate(input.effectiveFromMonth));
-    if (isBefore(parseISO(effectiveFromMonth), parseISO(monthWindow.month))) {
-      throw new BadRequestError(BOOK_BUDGET_MESSAGE.backdatedMonth);
-    }
 
     await this.writeVersion({
       currency: input.currency,
       monthlyAmount: input.monthlyAmount,
       userId,
-      validFromMonth: parseIsoDate(effectiveFromMonth),
+      validFromMonth: this.requireUpcomingMonth({ month: input.effectiveFromMonth, now }),
     });
 
     return this.buildOverview({ now, userId });
@@ -184,6 +213,14 @@ export class BookBudgetService {
     return sumMonthSpend(
       records.map((record) => classifyOrder({ includeCancelled: false, record })),
     );
+  }
+
+  private requireUpcomingMonth({ month, now }: { month: string; now: Date }): Date {
+    const monthStart = toBudgetMonth(parseIsoDate(month));
+    if (isBefore(parseISO(monthStart), parseISO(resolveBudgetMonthWindow(now).month))) {
+      throw new BadRequestError(BOOK_BUDGET_MESSAGE.backdatedMonth);
+    }
+    return parseIsoDate(monthStart);
   }
 
   private async writeVersion({
@@ -318,6 +355,7 @@ function toCurrentMonth({
     }),
     month,
     validFromMonth: toIsoDate(version.validFromMonth),
+    validToMonth: toNullableIsoDate(version.validToMonth),
   };
 }
 

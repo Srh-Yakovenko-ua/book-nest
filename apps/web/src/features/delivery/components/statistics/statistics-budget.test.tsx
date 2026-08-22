@@ -23,6 +23,7 @@ const CURRENT_MONTH = {
   spentToDate: 18263,
   usedPercent: 73.05,
   validFromMonth: "2026-08-01",
+  validToMonth: null,
 } satisfies NonNullable<BookBudgetOverview["budgets"][number]["currentMonth"]>;
 
 const CONFIGURED: BookBudgetOverview = {

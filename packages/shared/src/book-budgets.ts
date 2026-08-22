@@ -20,6 +20,7 @@ export const BOOK_BUDGET_MESSAGE = {
   amountTooSmall: "Monthly budget must be greater than zero",
   backdatedMonth: "A budget can start no earlier than the current month",
   firstDayOfMonth: "A budget month must be the first day of a month",
+  noBudgetToStop: "This currency has no budget to stop from that month",
   noScheduledVersion: "There is no scheduled budget version to cancel",
   versionConflict: "This budget was changed somewhere else at the same time, please try again",
 } as const;
@@ -29,12 +30,22 @@ export const BookBudgetMonthSchema = isoDay().refine(
   BOOK_BUDGET_MESSAGE.firstDayOfMonth,
 );
 
+const EffectiveFromMonthSchema = BookBudgetMonthSchema.refine(
+  isNotBeforeCurrentMonth,
+  BOOK_BUDGET_MESSAGE.backdatedMonth,
+);
+
+export const StopBookBudgetInputSchema = z.object({
+  effectiveFromMonth: EffectiveFromMonthSchema.describe(
+    "The first month this currency stops having a budget. Earlier months keep theirs.",
+  ),
+});
+
+export type StopBookBudgetInput = z.infer<typeof StopBookBudgetInputSchema>;
+
 export const UpsertBookBudgetInputSchema = z.object({
   currency: CurrencySchema,
-  effectiveFromMonth: BookBudgetMonthSchema.refine(
-    isNotBeforeCurrentMonth,
-    BOOK_BUDGET_MESSAGE.backdatedMonth,
-  ),
+  effectiveFromMonth: EffectiveFromMonthSchema,
   monthlyAmount: z
     .number()
     .min(BOOK_BUDGET_RULES.monthlyAmountMin, BOOK_BUDGET_MESSAGE.amountTooSmall)
@@ -83,6 +94,9 @@ export type BookBudgetProgress = z.infer<typeof BookBudgetProgressSchema>;
 export const BookBudgetCurrentMonthSchema = BookBudgetProgressSchema.extend({
   month: BookBudgetMonthSchema,
   validFromMonth: BookBudgetMonthSchema,
+  validToMonth: BookBudgetMonthSchema.nullable().describe(
+    "The first month this budget no longer covers. Null while it runs open ended.",
+  ),
 });
 
 export type BookBudgetCurrentMonth = z.infer<typeof BookBudgetCurrentMonthSchema>;
