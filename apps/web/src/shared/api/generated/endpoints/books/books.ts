@@ -48,6 +48,8 @@ import type {
   CreateBookStoreLinkInputDto,
   CreateDeliveryInputDto,
   CreateLoanInputDto,
+  CreateLoansBatchInputDto,
+  CreateLoansBatchResultDto,
   DedicationsSummaryViewDto,
   DeliveryViewDto,
   ExtendLoanInputDto,
@@ -4214,6 +4216,194 @@ export function useBookOwnershipControllerMarkBought<
   const queryOptions = getBookOwnershipControllerMarkBoughtQueryOptions(
     id,
     markBoughtInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type bookLoanBatchControllerCreateLoansResponse200 = {
+  data: CreateLoansBatchResultDto;
+  status: 200;
+};
+
+export type bookLoanBatchControllerCreateLoansResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bookLoanBatchControllerCreateLoansResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookLoanBatchControllerCreateLoansResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookLoanBatchControllerCreateLoansResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type bookLoanBatchControllerCreateLoansResponseSuccess =
+  bookLoanBatchControllerCreateLoansResponse200 & {
+    headers: Headers;
+  };
+export type bookLoanBatchControllerCreateLoansResponseError = (
+  | bookLoanBatchControllerCreateLoansResponse400
+  | bookLoanBatchControllerCreateLoansResponse401
+  | bookLoanBatchControllerCreateLoansResponse404
+  | bookLoanBatchControllerCreateLoansResponse409
+) & {
+  headers: Headers;
+};
+
+export type bookLoanBatchControllerCreateLoansResponse =
+  | bookLoanBatchControllerCreateLoansResponseSuccess
+  | bookLoanBatchControllerCreateLoansResponseError;
+
+export const getBookLoanBatchControllerCreateLoansUrl = () => {
+  return `/api/books/loans/batch`;
+};
+
+/**
+ * @summary Record the same loan terms for several books at once
+ */
+export const bookLoanBatchControllerCreateLoans = async (
+  createLoansBatchInputDto: CreateLoansBatchInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<bookLoanBatchControllerCreateLoansResponse> => {
+  return customInstance<bookLoanBatchControllerCreateLoansResponse>(
+    getBookLoanBatchControllerCreateLoansUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createLoansBatchInputDto),
+    },
+  );
+};
+
+export const getBookLoanBatchControllerCreateLoansQueryKey = (
+  createLoansBatchInputDto?: CreateLoansBatchInputDto,
+) => {
+  return ["POST", `/api/books/loans/batch`, createLoansBatchInputDto] as const;
+};
+
+export const getBookLoanBatchControllerCreateLoansQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+  TError = void,
+>(
+  createLoansBatchInputDto: CreateLoansBatchInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getBookLoanBatchControllerCreateLoansQueryKey(createLoansBatchInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>> = ({
+    signal,
+  }) => bookLoanBatchControllerCreateLoans(createLoansBatchInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookLoanBatchControllerCreateLoansQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>
+>;
+export type BookLoanBatchControllerCreateLoansQueryError = void;
+
+export function useBookLoanBatchControllerCreateLoans<
+  TData = Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+  TError = void,
+>(
+  createLoansBatchInputDto: CreateLoansBatchInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanBatchControllerCreateLoans<
+  TData = Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+  TError = void,
+>(
+  createLoansBatchInputDto: CreateLoansBatchInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanBatchControllerCreateLoans<
+  TData = Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+  TError = void,
+>(
+  createLoansBatchInputDto: CreateLoansBatchInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Record the same loan terms for several books at once
+ */
+
+export function useBookLoanBatchControllerCreateLoans<
+  TData = Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>,
+  TError = void,
+>(
+  createLoansBatchInputDto: CreateLoansBatchInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanBatchControllerCreateLoans>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookLoanBatchControllerCreateLoansQueryOptions(
+    createLoansBatchInputDto,
     options,
   );
 

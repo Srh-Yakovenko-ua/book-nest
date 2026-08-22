@@ -265,14 +265,16 @@ describe("LoanContactDrawer", () => {
     expect(await screen.findByRole("button", { name: copy.actions.lend })).toBeInTheDocument();
   });
 
-  it("starts the lending flow on the book step without losing the drawer", async () => {
+  it("starts the lending flow on the book picker without losing the drawer", async () => {
     mockApi();
 
     renderDrawer();
     await userEvent.click(await screen.findByRole("button", { name: copy.actions.lend }));
 
     const bookStep = messages.books.details.loan.bookStep;
-    expect(await screen.findByRole("heading", { name: bookStep.lent.title })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: bookStep.lent.multiTitle }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { hidden: true, name: copy.active.lent.title }),
     ).toBeInTheDocument();

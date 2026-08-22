@@ -1831,25 +1831,20 @@
           "book": "Book"
         },
         "bookStep": {
-          "searchLabel": "Search books",
-          "searchPlaceholder": "Title or author",
-          "searching": "Searching books…",
           "notFound": "Nothing found",
-          "loadError": "Could not load books",
-          "selectBook": "Select a book",
           "next": "Next",
           "createBook": "Add a book",
           "lent": {
-            "title": "Which book are you lending?",
-            "description": "Pick the book you are handing to {name}.",
             "emptyTitle": "No books to lend",
-            "emptyHint": "Add a book to your library first, then lend it to someone."
+            "emptyHint": "Add a book to your library first, then lend it to someone.",
+            "multiTitle": "Which books are you lending?",
+            "multiDescription": "Pick the books you are handing to {name}."
           },
           "borrowed": {
-            "title": "Which book are you borrowing?",
-            "description": "Pick the book you are borrowing from {name}.",
             "emptyTitle": "No books to borrow",
-            "emptyHint": "Add the book to BookNest first, then record the loan."
+            "emptyHint": "Add the book to BookNest first, then record the loan.",
+            "multiTitle": "Which books are you borrowing?",
+            "multiDescription": "Pick the books you are borrowing from {name}."
           }
         },
         "back": "Back",
@@ -1870,6 +1865,27 @@
           "reminderNeedsDate": "Pick a return date for the reminder.",
           "returnBeforeLoan": "Return can’t be before the loan date.",
           "returnRequiresLoan": "This book was never lent, so there is nothing to return."
+        },
+        "booksPicker": {
+          "library": "Your library",
+          "search": "Search by title or author…",
+          "selected": "Selected books: {count}",
+          "clear": "Clear",
+          "emptySelected": "No books selected yet",
+          "removeSelected": "Remove from selection",
+          "loadMore": "Show more"
+        },
+        "batch": {
+          "appliesTo": "These terms will apply to {count, plural, one {# selected book} other {# selected books}}.",
+          "conflictIntro": "These books cannot take a loan right now. Remove them from the selection or change their status:",
+          "lent": {
+            "success": "{count, plural, one {Lent # book} other {Lent # books}}",
+            "description": "Record the terms you are lending these books on."
+          },
+          "borrowed": {
+            "success": "{count, plural, one {Borrowed # book} other {Borrowed # books}}",
+            "description": "Record the terms you are borrowing these books on."
+          }
         }
       },
       "delivery": {
