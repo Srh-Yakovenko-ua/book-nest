@@ -14,7 +14,7 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type { LoanContactResolution } from "./create-loan-contact-dialog";
+import type { LoanContactResolution } from "./create-loan-contact-form";
 
 import { useLoanContactsList } from "../../api/use-loan-contacts-list";
 import { useLoanContactDrawer } from "../../model/use-loan-contact-drawer";

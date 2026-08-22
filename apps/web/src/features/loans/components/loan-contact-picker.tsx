@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import type { LoanContactSelection } from "../model/loan-contact-selection";
 
 import { useLoanContacts } from "../api/use-loan-contacts";
-import { CreateLoanContactDialog } from "./contact/create-loan-contact-dialog";
 
 type LoanContactOptionProps = {
   contact: LoanContactListItemView;
@@ -32,6 +31,7 @@ type LoanContactPickerProps = {
   invalid: boolean;
   label: string;
   onChange: (selection: LoanContactSelection | null) => void;
+  onRequestCreate: (name: string) => void;
   placeholder: string;
   value: LoanContactSelection | null;
 };
@@ -45,6 +45,7 @@ export function LoanContactPicker({
   invalid,
   label,
   onChange,
+  onRequestCreate,
   placeholder,
   value,
 }: LoanContactPickerProps) {
@@ -54,7 +55,6 @@ export function LoanContactPicker({
   const [query, setQuery] = useState(selectedName);
   const [trackedName, setTrackedName] = useState(selectedName);
   const [open, setOpen] = useState(false);
-  const [creatingName, setCreatingName] = useState<null | string>(null);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const {
     fetchNextPage,
@@ -190,7 +190,7 @@ export function LoanContactPicker({
                     className="cursor-pointer"
                     onSelect={() => {
                       setOpen(false);
-                      setCreatingName(trimmedQuery);
+                      onRequestCreate(trimmedQuery);
                     }}
                     value={`create-${trimmedQuery}`}
                   >
@@ -205,19 +205,6 @@ export function LoanContactPicker({
           </PopoverContent>
         </Popover>
       </CommandPrimitive>
-
-      <CreateLoanContactDialog
-        conflictAction="select"
-        initialName={creatingName ?? ""}
-        onOpenChange={(next) => {
-          if (!next) setCreatingName(null);
-        }}
-        onResolved={({ contact }) => {
-          setCreatingName(null);
-          pickContact(contact);
-        }}
-        open={creatingName !== null}
-      />
     </div>
   );
 }

@@ -26,6 +26,8 @@ const CANDIDATE_BOOK_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const SECOND_BOOK_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 const bookStep = messages.books.details.loan.bookStep;
+const contactCreate = messages.loans.contactCreate;
+const loanCopy = messages.books.details.loan;
 const booksPicker = messages.books.details.loan.booksPicker;
 const loanErrors = messages.books.details.loan.errors;
 
@@ -66,6 +68,14 @@ function candidateBook(overrides: Partial<BookView> = {}): BookView {
 function candidateListUrl(): string | undefined {
   const call = fetchMock.mock.calls.find(([url]) => String(url).startsWith("/api/books?"));
   return call === undefined ? undefined : String(call[0]);
+}
+
+function contactCreateCall() {
+  return fetchMock.mock.calls.find(
+    ([url, init]) =>
+      String(url).endsWith("/api/loans/contacts") &&
+      (init?.method ?? "GET").toUpperCase() === "POST",
+  ) as [string, RequestInit] | undefined;
 }
 
 function contactsPage(items: LoanContactListItemView[]) {
@@ -160,6 +170,11 @@ beforeEach(() => {
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
+    if (url.endsWith("/api/loans/contacts") && method === "POST") {
+      return Promise.resolve(
+        jsonResponse(contactView({ id: NEW_CONTACT_ID, loanCount: 0, name: "Марта" }), 201),
+      );
+    }
     if (url.includes("/api/loans/contacts")) {
       return Promise.resolve(jsonResponse(contactsPage(searchResults)));
     }
@@ -239,6 +254,57 @@ describe("LoanDialog", () => {
     expect(JSON.parse(String(loanCall()?.[1].body))).toMatchObject({
       loanContactId: NEW_CONTACT_ID,
     });
+  });
+
+  it("creates the contact without stacking a second dialog over the loan", async () => {
+    searchResults = [];
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText(loanCopy.borrowed.personName), "Марта");
+    await userEvent.click(await screen.findByText("Створити «Марта»"));
+
+    expect(await screen.findByRole("heading", { name: contactCreate.title })).toBeInTheDocument();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.queryByLabelText(loanCopy.borrowed.personName)).not.toBeInTheDocument();
+  });
+
+  it("keeps the loan draft while the reader steps away to create a contact", async () => {
+    searchResults = [];
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText(loanCopy.fields.note), "до вересня");
+    await userEvent.type(screen.getByLabelText(loanCopy.borrowed.personName), "Марта");
+    await userEvent.click(await screen.findByText("Створити «Марта»"));
+    await userEvent.click(
+      await screen.findByRole("button", { name: messages.loans.contactCreate.submit }),
+    );
+
+    expect(await screen.findByLabelText(loanCopy.fields.note)).toHaveValue("до вересня");
+    expect(screen.getByLabelText(loanCopy.borrowed.personName)).toHaveValue("Марта");
+  });
+
+  it("creates nothing when the contact step is left through back", async () => {
+    searchResults = [];
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText(loanCopy.fields.note), "до вересня");
+    await userEvent.type(screen.getByLabelText(loanCopy.borrowed.personName), "Марта");
+    await userEvent.click(await screen.findByText("Створити «Марта»"));
+    await userEvent.click(await screen.findByRole("button", { name: contactCreate.back }));
+
+    expect(await screen.findByLabelText(loanCopy.fields.note)).toHaveValue("до вересня");
+    expect(contactCreateCall()).toBeUndefined();
+  });
+
+  it("closes the whole flow when the contact step is cancelled", async () => {
+    searchResults = [];
+    const { onOpenChange } = renderDialog();
+
+    await userEvent.type(screen.getByLabelText(loanCopy.borrowed.personName), "Марта");
+    await userEvent.click(await screen.findByText("Створити «Марта»"));
+    await userEvent.click(await screen.findByRole("button", { name: contactCreate.cancel }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("offers no field for typing a contact detail on the loan", () => {
@@ -423,6 +489,16 @@ describe("LoanDialog", () => {
     expect(await screen.findByRole("checkbox", { name: "Тигролови" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Місто" })).toBeChecked();
     expect(screen.getByRole("button", { name: bookStep.next })).toBeEnabled();
+  });
+
+  it("keeps the terms already typed when the reader steps back to the list", async () => {
+    await reachLoanForm([candidateBook(), secondBook()]);
+
+    await userEvent.type(screen.getByLabelText(loanCopy.fields.note), "до вересня");
+    await userEvent.click(screen.getByRole("button", { name: loanCopy.back }));
+    await userEvent.click(screen.getByRole("button", { name: bookStep.next }));
+
+    expect(await screen.findByLabelText(loanCopy.fields.note)).toHaveValue("до вересня");
   });
 
   it("names the books that blocked the batch and keeps the reader in the form", async () => {

@@ -11,7 +11,7 @@ import type {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, type UseFormReturn, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -31,6 +31,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { CreateLoanContactStep } from "@/features/loans/components/contact/create-loan-contact-step";
 import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
 
 import { useCreateLoansBatch } from "../api/use-create-loans-batch";
@@ -66,6 +67,8 @@ type LoanMessages = {
   reminderNeedsDate: string;
   returnBeforeLoan: string;
 };
+
+type LoanStep = "books" | "create-contact" | "form";
 
 type LoanValues = {
   expectedReturnDate: string;
@@ -161,40 +164,6 @@ function buildSchema(messages: LoanMessages) {
     });
 }
 
-function ContactFirstFlow({
-  contact,
-  direction,
-  onDone,
-}: {
-  contact: LoanContactView;
-  direction: LoanDirection;
-  onDone: () => void;
-}) {
-  const [selected, setSelected] = useState<BookView[]>([]);
-  const [step, setStep] = useState<"books" | "form">("books");
-
-  if (step === "form" && selected.length > 0) {
-    return (
-      <LoanForm
-        direction={direction}
-        onDone={onDone}
-        target={{ books: selected, contact, kind: "contactBooks", onBack: () => setStep("books") }}
-      />
-    );
-  }
-
-  return (
-    <LoanBooksStep
-      direction={direction}
-      onCancel={onDone}
-      onNext={() => setStep("form")}
-      onSelectedChange={setSelected}
-      personName={contact.name}
-      selected={selected}
-    />
-  );
-}
-
 function LoanDialogBody({
   context,
   direction,
@@ -204,44 +173,14 @@ function LoanDialogBody({
   direction: LoanDirection;
   onDone: () => void;
 }) {
-  if (context.kind === "contact") {
-    return <ContactFirstFlow contact={context.contact} direction={direction} onDone={onDone} />;
-  }
-
-  return (
-    <LoanForm direction={direction} onDone={onDone} target={{ book: context.book, kind: "book" }} />
-  );
-}
-
-function LoanForm({
-  direction,
-  onDone,
-  target,
-}: {
-  direction: LoanDirection;
-  onDone: () => void;
-  target: LoanFormTarget;
-}) {
-  const t = useTranslations("books.details.loan");
   const tErrors = useTranslations("books.details.loan.errors");
-  const tActions = useTranslations("books.actions");
   const tContact = useTranslations("loans.contactPicker");
-  const tBatch = useTranslations("books.details.loan.batch");
-  const createLoan = useCreateLoan();
-  const createLoansBatch = useCreateLoansBatch();
-  const [serverError, setServerError] = useState<null | string>(null);
-  const [blockedBooks, setBlockedBooks] = useState<BookView[]>([]);
+  const fixedContact = context.kind === "contact" ? context.contact : null;
+  const [selected, setSelected] = useState<BookView[]>([]);
+  const [createName, setCreateName] = useState("");
+  const [step, setStep] = useState<LoanStep>(fixedContact === null ? "form" : "books");
 
-  const variant = direction === "lent" ? "lent" : "borrowed";
-  const fixedContact = target.kind === "contactBooks" ? target.contact : null;
-  const isPending = createLoan.isPending || createLoansBatch.isPending;
-
-  const {
-    control,
-    formState: { errors },
-    handleSubmit,
-    setValue,
-  } = useForm<LoanValues>({
+  const form = useForm<LoanValues>({
     defaultValues: {
       expectedReturnDate: "",
       loanContactId: fixedContact?.id ?? "",
@@ -262,6 +201,89 @@ function LoanForm({
       }),
     ),
   });
+
+  if (step === "create-contact") {
+    return (
+      <CreateLoanContactStep
+        initialName={createName}
+        onBack={() => setStep("form")}
+        onCancel={onDone}
+        onResolved={({ contact }) => {
+          form.setValue("loanContactId", contact.id, { shouldValidate: true });
+          form.setValue("loanContactName", contact.name);
+          setStep("form");
+        }}
+      />
+    );
+  }
+
+  if (context.kind === "contact" && (step === "books" || selected.length === 0)) {
+    return (
+      <LoanBooksStep
+        direction={direction}
+        onCancel={onDone}
+        onNext={() => setStep("form")}
+        onSelectedChange={setSelected}
+        personName={context.contact.name}
+        selected={selected}
+      />
+    );
+  }
+
+  return (
+    <LoanForm
+      direction={direction}
+      form={form}
+      onDone={onDone}
+      onRequestCreate={(name) => {
+        setCreateName(name);
+        setStep("create-contact");
+      }}
+      target={
+        context.kind === "contact"
+          ? {
+              books: selected,
+              contact: context.contact,
+              kind: "contactBooks",
+              onBack: () => setStep("books"),
+            }
+          : { book: context.book, kind: "book" }
+      }
+    />
+  );
+}
+
+function LoanForm({
+  direction,
+  form,
+  onDone,
+  onRequestCreate,
+  target,
+}: {
+  direction: LoanDirection;
+  form: UseFormReturn<LoanValues>;
+  onDone: () => void;
+  onRequestCreate: (name: string) => void;
+  target: LoanFormTarget;
+}) {
+  const t = useTranslations("books.details.loan");
+  const tErrors = useTranslations("books.details.loan.errors");
+  const tActions = useTranslations("books.actions");
+  const tBatch = useTranslations("books.details.loan.batch");
+  const createLoan = useCreateLoan();
+  const createLoansBatch = useCreateLoansBatch();
+  const [serverError, setServerError] = useState<null | string>(null);
+  const [blockedBooks, setBlockedBooks] = useState<BookView[]>([]);
+
+  const variant = direction === "lent" ? "lent" : "borrowed";
+  const isPending = createLoan.isPending || createLoansBatch.isPending;
+
+  const {
+    control,
+    formState: { errors },
+    handleSubmit,
+    setValue,
+  } = form;
 
   const loanContactId = useWatch({ control, name: "loanContactId" });
   const loanContactName = useWatch({ control, name: "loanContactName" });
@@ -337,6 +359,7 @@ function LoanForm({
             invalid={errors.loanContactId !== undefined}
             label={t(`${variant}.personName`)}
             onChange={handleContactChange}
+            onRequestCreate={onRequestCreate}
             placeholder={t(`${variant}.personNamePlaceholder`)}
             value={contactSelection}
           />

@@ -4837,6 +4837,7 @@
       "optional": "optional",
       "submit": "Create",
       "cancel": "Cancel",
+      "back": "Back",
       "conflict": {
         "duplicate": "The contact “{name}” already exists",
         "archived": "The contact “{name}” is in the archive",
