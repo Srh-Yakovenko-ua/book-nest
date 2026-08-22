@@ -28,6 +28,10 @@ export const bookBudgetsControllerCancelScheduledResponseBudgetsItemCurrentMonth
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
+export const bookBudgetsControllerCancelScheduledResponseBudgetsItemCurrentMonthValidToMonthRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const bookBudgetsControllerCancelScheduledResponseBudgetsItemScheduledValidFromMonthRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -95,6 +99,15 @@ export const BookBudgetsControllerCancelScheduledResponse = zod.object({
               .regex(
                 bookBudgetsControllerCancelScheduledResponseBudgetsItemCurrentMonthValidFromMonthRegExp,
               ),
+            validToMonth: zod.iso
+              .date()
+              .regex(
+                bookBudgetsControllerCancelScheduledResponseBudgetsItemCurrentMonthValidToMonthRegExp,
+              )
+              .nullable()
+              .describe(
+                "The first month this budget no longer covers. Null while it runs open ended.",
+              ),
           })
           .nullable(),
         scheduled: zod
@@ -135,6 +148,10 @@ export const bookBudgetsControllerOverviewResponseBudgetsItemCurrentMonthMonthRe
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookBudgetsControllerOverviewResponseBudgetsItemCurrentMonthValidFromMonthRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookBudgetsControllerOverviewResponseBudgetsItemCurrentMonthValidToMonthRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
@@ -195,6 +212,13 @@ export const BookBudgetsControllerOverviewResponse = zod.object({
               .regex(
                 bookBudgetsControllerOverviewResponseBudgetsItemCurrentMonthValidFromMonthRegExp,
               ),
+            validToMonth: zod.iso
+              .date()
+              .regex(bookBudgetsControllerOverviewResponseBudgetsItemCurrentMonthValidToMonthRegExp)
+              .nullable()
+              .describe(
+                "The first month this budget no longer covers. Null while it runs open ended.",
+              ),
           })
           .nullable(),
         scheduled: zod
@@ -246,6 +270,10 @@ export const bookBudgetsControllerUpsertResponseBudgetsItemCurrentMonthMonthRegE
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookBudgetsControllerUpsertResponseBudgetsItemCurrentMonthValidFromMonthRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookBudgetsControllerUpsertResponseBudgetsItemCurrentMonthValidToMonthRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
@@ -305,6 +333,13 @@ export const BookBudgetsControllerUpsertResponse = zod.object({
               .regex(
                 bookBudgetsControllerUpsertResponseBudgetsItemCurrentMonthValidFromMonthRegExp,
               ),
+            validToMonth: zod.iso
+              .date()
+              .regex(bookBudgetsControllerUpsertResponseBudgetsItemCurrentMonthValidToMonthRegExp)
+              .nullable()
+              .describe(
+                "The first month this budget no longer covers. Null while it runs open ended.",
+              ),
           })
           .nullable(),
         scheduled: zod
@@ -326,4 +361,122 @@ export const BookBudgetsControllerUpsertResponse = zod.object({
     )
     .describe("Only currencies the user has configured. An unconfigured currency is absent."),
   month: zod.iso.date().regex(bookBudgetsControllerUpsertResponseMonthRegExp),
+});
+
+/**
+ * @summary Stop the budget of one currency from a given month
+ */
+export const BookBudgetsControllerStopParams = zod.object({
+  currency: zod.enum(["UAH", "EUR", "USD"]),
+});
+
+export const bookBudgetsControllerStopBodyEffectiveFromMonthRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const BookBudgetsControllerStopBody = zod.object({
+  effectiveFromMonth: zod.iso
+    .date()
+    .regex(bookBudgetsControllerStopBodyEffectiveFromMonthRegExp)
+    .describe("The first month this currency stops having a budget. Earlier months keep theirs."),
+});
+
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthDaysInMonthMin = 0;
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthDaysInMonthMax = 9007199254740991;
+
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthElapsedDaysMin = 0;
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthElapsedDaysMax = 9007199254740991;
+
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthMonthRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthValidFromMonthRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookBudgetsControllerStopResponseBudgetsItemCurrentMonthValidToMonthRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookBudgetsControllerStopResponseBudgetsItemScheduledValidFromMonthRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookBudgetsControllerStopResponseBudgetsItemScheduledValidToMonthRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookBudgetsControllerStopResponseMonthRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const BookBudgetsControllerStopResponse = zod.object({
+  budgets: zod
+    .array(
+      zod.object({
+        currency: zod.enum(["UAH", "EUR", "USD"]),
+        currentMonth: zod
+          .object({
+            budget: zod.number(),
+            daysInMonth: zod
+              .int()
+              .min(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthDaysInMonthMin)
+              .max(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthDaysInMonthMax),
+            deliveryShareOfBudgetPercent: zod
+              .number()
+              .nullable()
+              .describe(
+                "Delivery spend of the current month against the configured budget. Null when the budget cannot act as a denominator.",
+              ),
+            elapsedDays: zod
+              .int()
+              .min(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthElapsedDaysMin)
+              .max(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthElapsedDaysMax),
+            forecast: zod
+              .number()
+              .nullable()
+              .describe(
+                "Month-end spend projected from the pace so far. Null means insufficient data, which is every month before its third day.",
+              ),
+            projectedOverage: zod.number().nullable(),
+            remaining: zod.number(),
+            remainingSigned: zod
+              .number()
+              .describe(
+                "Budget minus spend without a floor, so an overage reads as a negative number.",
+              ),
+            spentToDate: zod.number(),
+            usedPercent: zod.number(),
+            month: zod.iso
+              .date()
+              .regex(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthMonthRegExp),
+            validFromMonth: zod.iso
+              .date()
+              .regex(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthValidFromMonthRegExp),
+            validToMonth: zod.iso
+              .date()
+              .regex(bookBudgetsControllerStopResponseBudgetsItemCurrentMonthValidToMonthRegExp)
+              .nullable()
+              .describe(
+                "The first month this budget no longer covers. Null while it runs open ended.",
+              ),
+          })
+          .nullable(),
+        scheduled: zod
+          .object({
+            monthlyAmount: zod.number(),
+            validFromMonth: zod.iso
+              .date()
+              .regex(bookBudgetsControllerStopResponseBudgetsItemScheduledValidFromMonthRegExp),
+            validToMonth: zod.iso
+              .date()
+              .regex(bookBudgetsControllerStopResponseBudgetsItemScheduledValidToMonthRegExp)
+              .nullable()
+              .describe(
+                "The first month this version no longer covers. Null while the version is open ended.",
+              ),
+          })
+          .nullable(),
+      }),
+    )
+    .describe("Only currencies the user has configured. An unconfigured currency is absent."),
+  month: zod.iso.date().regex(bookBudgetsControllerStopResponseMonthRegExp),
 });

@@ -8,11 +8,14 @@ import dynamic from "next/dynamic";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import type { StatisticsSectionCurrencies } from "../model/statistics-section-currency";
+
 import { useActiveMoneyAge } from "../api/use-active-money-age";
 import { useBookBudgets } from "../api/use-book-budgets";
 import { useStatistics } from "../api/use-statistics";
 import { resolveMoneyCurrency, statisticsCurrencies } from "../model/statistics-currency";
 import { formatPeriodRange } from "../model/statistics-format";
+import { sectionCurrencyControl } from "../model/statistics-section-currency";
 import { hasAnyOrders } from "../model/statistics-view-model";
 import { useStatisticsParams } from "../model/use-statistics-params";
 import { StatisticsActiveAge } from "./statistics/statistics-active-age";
@@ -49,22 +52,20 @@ const StatisticsCalendar = dynamic(
 
 type StatisticsBodyProps = {
   activeAge: ReturnType<typeof useActiveMoneyAge>;
-  budgetCurrency: Nullable<
-    NonNullable<ReturnType<typeof useBookBudgets>["data"]>["budgets"][number]
-  >;
   budgets: ReturnType<typeof useBookBudgets>;
   comparisonLabel: Nullable<string>;
   comparisonView: Nullable<BookOrderStatisticsView>;
+  costsBudget: Nullable<NonNullable<ReturnType<typeof useBookBudgets>["data"]>["budgets"][number]>;
   currencies: ReturnType<typeof statisticsCurrencies>;
-  currency: ReturnType<typeof resolveMoneyCurrency>;
   currentLabel: Nullable<string>;
+  dashboardCurrency: ReturnType<typeof resolveMoneyCurrency>;
   drilldown: {
     currency: Nullable<ReturnType<typeof resolveMoneyCurrency>>;
     store: Nullable<string>;
   };
   isCurrentMonthPeriod: boolean;
-  onCurrencyChange: (currency: ReturnType<typeof resolveMoneyCurrency>) => void;
   params: ReturnType<typeof useStatisticsParams>;
+  sectionCurrencies: StatisticsSectionCurrencies;
   statistics: ReturnType<typeof useStatistics>;
   view: BookOrderStatisticsView | undefined;
 };
@@ -95,10 +96,51 @@ export function DeliveryStatistics() {
   const budgets = useBookBudgets();
 
   const currencies = view === undefined ? [] : statisticsCurrencies(view);
-  const currency = resolveMoneyCurrency({
+  const dashboardCurrency = resolveMoneyCurrency({
     available: currencies,
     preferred: params.state.money ?? params.state.currency,
   });
+  const budgetCurrencies = budgets.data?.budgets.map((entry) => entry.currency) ?? [];
+
+  const sectionCurrencies: StatisticsSectionCurrencies = {
+    budget: sectionCurrencyControl({
+      available: budgetCurrencies,
+      commit: (moneyBudget) => params.setSectionMoney({ moneyBudget }),
+      dashboardCurrency,
+      override: params.state.moneyBudget,
+    }),
+    costs: sectionCurrencyControl({
+      available: currencies,
+      commit: (moneyCosts) => params.setSectionMoney({ moneyCosts }),
+      dashboardCurrency,
+      override: params.state.moneyCosts,
+    }),
+    dynamics: sectionCurrencyControl({
+      available: currencies,
+      commit: (moneyDynamics) => params.setSectionMoney({ moneyDynamics }),
+      dashboardCurrency,
+      override: params.state.moneyDynamics,
+    }),
+    records: sectionCurrencyControl({
+      available: currencies,
+      commit: (moneyRecords) => params.setSectionMoney({ moneyRecords }),
+      dashboardCurrency,
+      override: params.state.moneyRecords,
+    }),
+    stores: sectionCurrencyControl({
+      available: currencies,
+      commit: (moneyStores) => params.setSectionMoney({ moneyStores }),
+      dashboardCurrency,
+      override: params.state.moneyStores,
+    }),
+    topOrders: sectionCurrencyControl({
+      available: currencies,
+      commit: (moneyTopOrders) => params.setSectionMoney({ moneyTopOrders }),
+      dashboardCurrency,
+      override: params.state.moneyTopOrders,
+    }),
+  };
+
   const drilldown = {
     currency: params.state.currency,
     store: params.state.store.trim() === "" ? null : params.state.store.trim(),
@@ -114,7 +156,8 @@ export function DeliveryStatistics() {
       ? null
       : formatPeriodRange({ from: comparisonPeriod.from, locale, to: comparisonPeriod.to });
 
-  const budgetCurrency = budgets.data?.budgets.find((entry) => entry.currency === currency) ?? null;
+  const costsBudget =
+    budgets.data?.budgets.find((entry) => entry.currency === sectionCurrencies.costs.value) ?? null;
   const isCurrentMonthPeriod = params.state.period === "this_month";
 
   return (
@@ -140,17 +183,17 @@ export function DeliveryStatistics() {
 
       <StatisticsBody
         activeAge={activeAge}
-        budgetCurrency={budgetCurrency}
         budgets={budgets}
         comparisonLabel={comparisonLabel}
         comparisonView={comparisonPeriod === null ? null : (comparison.data ?? null)}
+        costsBudget={costsBudget}
         currencies={currencies}
-        currency={currency}
         currentLabel={currentLabel}
+        dashboardCurrency={dashboardCurrency}
         drilldown={drilldown}
         isCurrentMonthPeriod={isCurrentMonthPeriod}
-        onCurrencyChange={params.setMoneyCurrency}
         params={params}
+        sectionCurrencies={sectionCurrencies}
         statistics={statistics}
         view={view}
       />
@@ -160,17 +203,17 @@ export function DeliveryStatistics() {
 
 function StatisticsBody({
   activeAge,
-  budgetCurrency,
   budgets,
   comparisonLabel,
   comparisonView,
+  costsBudget,
   currencies,
-  currency,
   currentLabel,
+  dashboardCurrency,
   drilldown,
   isCurrentMonthPeriod,
-  onCurrencyChange,
   params,
+  sectionCurrencies,
   statistics,
   view,
 }: StatisticsBodyProps) {
@@ -200,12 +243,12 @@ function StatisticsBody({
 
   return (
     <div className="flex flex-col gap-6">
-      <StatisticsKpi currency={currency} snapshot={view.snapshot} view={view} />
+      <StatisticsKpi currency={dashboardCurrency} snapshot={view.snapshot} view={view} />
 
       <StatisticsBudget
-        currency={currency}
+        currency={sectionCurrencies.budget.value}
         isLoading={budgets.isPending}
-        onCurrencyChange={onCurrencyChange}
+        onCurrencyChange={sectionCurrencies.budget.onChange}
         overview={budgets.data}
       />
 
@@ -215,11 +258,11 @@ function StatisticsBody({
             comparisonLabel={comparisonLabel}
             comparisonMonths={comparisonView?.monthly ?? null}
             currencies={currencies}
-            currency={currency}
+            currency={sectionCurrencies.dynamics.value}
             currentLabel={currentLabel}
             drilldown={drilldown}
             months={view.monthly}
-            onCurrencyChange={onCurrencyChange}
+            onCurrencyChange={sectionCurrencies.dynamics.onChange}
             range={view.meta.currentPeriod}
           />
         </div>
@@ -228,13 +271,13 @@ function StatisticsBody({
 
       <StatisticsCosts
         currencies={currencies}
-        currency={currency}
+        currency={sectionCurrencies.costs.value}
         deliveryShareOfBudgetPercent={
           isCurrentMonthPeriod
-            ? (budgetCurrency?.currentMonth?.deliveryShareOfBudgetPercent ?? null)
+            ? (costsBudget?.currentMonth?.deliveryShareOfBudgetPercent ?? null)
             : null
         }
-        onCurrencyChange={onCurrencyChange}
+        onCurrencyChange={sectionCurrencies.costs.onChange}
         view={view}
       />
 
@@ -251,16 +294,16 @@ function StatisticsBody({
         <StatisticsStores
           comparisonStores={comparisonView?.byStore ?? null}
           currencies={currencies}
-          currency={currency}
+          currency={sectionCurrencies.stores.value}
           drilldown={drilldown}
-          onCurrencyChange={onCurrencyChange}
+          onCurrencyChange={sectionCurrencies.stores.onChange}
           stores={view.byStore}
         />
         <StatisticsStoreMap
           currencies={currencies}
-          currency={currency}
+          currency={sectionCurrencies.stores.value}
           drilldown={drilldown}
-          onCurrencyChange={onCurrencyChange}
+          onCurrencyChange={sectionCurrencies.stores.onChange}
           stores={view.byStore}
         />
       </div>
@@ -269,17 +312,17 @@ function StatisticsBody({
         <StatisticsCalendar daily={view.daily} drilldown={drilldown} today={params.today} />
         <StatisticsRecords
           currencies={currencies}
-          currency={currency}
+          currency={sectionCurrencies.records.value}
           drilldown={drilldown}
-          onCurrencyChange={onCurrencyChange}
+          onCurrencyChange={sectionCurrencies.records.onChange}
           records={view.records}
         />
       </div>
 
       <StatisticsTopOrders
         currencies={currencies}
-        currency={currency}
-        onCurrencyChange={onCurrencyChange}
+        currency={sectionCurrencies.topOrders.value}
+        onCurrencyChange={sectionCurrencies.topOrders.onChange}
         topOrdersByCurrency={view.topOrdersByCurrency}
       />
     </div>

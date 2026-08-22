@@ -107,6 +107,33 @@ describe("useStatisticsParams", () => {
     expect(result.current.hasActiveFilters).toBe(true);
   });
 
+  it("moves one section to another currency without touching the rest", async () => {
+    const { result } = renderParams("?moneyStores=EUR");
+
+    result.current.setSectionMoney({ moneyDynamics: "USD" });
+
+    await waitFor(() => expect(result.current.state.moneyDynamics).toBe("USD"));
+    expect(result.current.state.moneyStores).toBe("EUR");
+    expect(result.current.state.money).toBeNull();
+    expect(result.current.state.currency).toBeNull();
+  });
+
+  it("takes the section override out of the url once it is dropped", async () => {
+    const { result } = renderParams("?moneyBudget=USD");
+
+    result.current.setSectionMoney({ moneyBudget: null });
+
+    await waitFor(() => expect(result.current.state.moneyBudget).toBeNull());
+  });
+
+  it("keeps a section currency out of the dataset filters", async () => {
+    const { result } = renderParams("?moneyCosts=USD&moneyTopOrders=EUR");
+
+    await waitFor(() => expect(result.current.state.moneyCosts).toBe("USD"));
+    expect(result.current.filterCount).toBe(0);
+    expect(result.current.queryParams).not.toHaveProperty("currency");
+  });
+
   it("clears the filters and leaves the period alone", async () => {
     const { result } = renderParams("?period=last_month&currency=EUR");
 

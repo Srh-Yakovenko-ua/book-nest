@@ -36,6 +36,12 @@ export const deliveryStatisticsParsers = {
   from: parseAsString.withDefault(""),
   includeCancelled: parseAsBoolean.withDefault(false),
   money: parseAsStringLiteral(currencyValues),
+  moneyBudget: parseAsStringLiteral(currencyValues),
+  moneyCosts: parseAsStringLiteral(currencyValues),
+  moneyDynamics: parseAsStringLiteral(currencyValues),
+  moneyRecords: parseAsStringLiteral(currencyValues),
+  moneyStores: parseAsStringLiteral(currencyValues),
+  moneyTopOrders: parseAsStringLiteral(currencyValues),
   period: parseAsStringLiteral(STATISTICS_PERIOD_PRESETS).withDefault(
     STATISTICS_PERIOD.defaultPreset,
   ),
@@ -45,6 +51,18 @@ export const deliveryStatisticsParsers = {
 };
 
 export type DeliveryStatisticsQueryState = inferParserType<typeof deliveryStatisticsParsers>;
+
+export type StatisticsMoneyPatch = Partial<
+  Pick<
+    DeliveryStatisticsQueryState,
+    | "moneyBudget"
+    | "moneyCosts"
+    | "moneyDynamics"
+    | "moneyRecords"
+    | "moneyStores"
+    | "moneyTopOrders"
+  >
+>;
 
 export function hasActiveStatisticsFilters(state: DeliveryStatisticsQueryState): boolean {
   return statisticsFilterCount(state) > 0;
