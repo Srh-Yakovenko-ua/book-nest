@@ -1,11 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import type { LoanContactListItemView, LoanDirection } from "@app/shared";
 
-import { LOAN_CONTACT_ERROR_CODES } from "@app/shared";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import type { LoanContactSelection } from "../model/loan-contact-selection";
@@ -13,8 +11,6 @@ import type { LoanContactSelection } from "../model/loan-contact-selection";
 import { LoanContactPicker } from "./loan-contact-picker";
 
 const PICKER_LABEL = "Кому даєте";
-
-const copy = messages.loans.contactCreate;
 
 const CONTACT_IDS = {
   ihor: "11111111-1111-4111-8111-111111111111",
@@ -24,8 +20,6 @@ const CONTACT_IDS = {
 const fetchMock = vi.fn();
 
 let searchResults: LoanContactListItemView[] = [];
-let respondToCreate: () => Response;
-let respondToLookup: () => Response;
 
 function contactsPage(items: LoanContactListItemView[]) {
   return {
@@ -53,20 +47,14 @@ function contactView(overrides: Partial<LoanContactListItemView> = {}): LoanCont
   };
 }
 
-function createCall() {
-  return fetchMock.mock.calls.find(
-    ([url, init]) =>
-      String(url).endsWith("/api/loans/contacts") &&
-      (init?.method ?? "GET").toUpperCase() === "POST",
-  ) as [string, RequestInit] | undefined;
-}
-
 function Harness({
   direction,
   onChange,
+  onRequestCreate,
 }: {
   direction: LoanDirection;
   onChange: (selection: LoanContactSelection | null) => void;
+  onRequestCreate: (name: string) => void;
 }) {
   const [value, setValue] = useState<LoanContactSelection | null>(null);
 
@@ -82,6 +70,7 @@ function Harness({
           setValue(selection);
           onChange(selection);
         }}
+        onRequestCreate={onRequestCreate}
         placeholder="Імʼя людини"
         value={value}
       />
@@ -98,32 +87,19 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function renderPicker(direction: LoanDirection = "lent") {
   const onChange = vi.fn<(selection: LoanContactSelection | null) => void>();
-  renderWithProviders(<Harness direction={direction} onChange={onChange} />);
-  return { input: screen.getByLabelText(PICKER_LABEL), onChange };
-}
-
-function restoreCall() {
-  return fetchMock.mock.calls.find(([url]) => String(url).includes("/restore")) as
-    [string, RequestInit] | undefined;
+  const onRequestCreate = vi.fn<(name: string) => void>();
+  renderWithProviders(
+    <Harness direction={direction} onChange={onChange} onRequestCreate={onRequestCreate} />,
+  );
+  return { input: screen.getByLabelText(PICKER_LABEL), onChange, onRequestCreate };
 }
 
 beforeEach(() => {
   searchResults = [];
-  respondToCreate = () => jsonResponse(contactView({ id: CONTACT_IDS.marta, name: "Марта" }), 201);
-  respondToLookup = () => jsonResponse({ message: "not found" }, 404);
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
-    if (url.includes("/restore") && method === "POST") {
-      return Promise.resolve(jsonResponse(contactView({ id: CONTACT_IDS.marta, name: "Марта" })));
-    }
-    if (url.includes("/api/loans/contacts/by-name")) {
-      return Promise.resolve(respondToLookup());
-    }
-    if (url.endsWith("/api/loans/contacts") && method === "POST") {
-      return Promise.resolve(respondToCreate());
-    }
     if (url.includes("/api/loans/contacts")) {
       return Promise.resolve(jsonResponse(contactsPage(searchResults)));
     }
@@ -210,112 +186,15 @@ describe("LoanContactPicker", () => {
     await waitFor(() => expect(screen.queryByText("Створити «ІГОР»")).not.toBeInTheDocument());
   });
 
-  it("opens the create dialog with the typed name already filled in", async () => {
-    const { input } = renderPicker();
+  it("hands the typed name to the host instead of opening a second dialog", async () => {
+    const { input, onRequestCreate } = renderPicker();
 
     await userEvent.click(input);
-    await userEvent.type(input, "Марта");
+    await userEvent.type(input, "  Марта  ");
 
     await userEvent.click(await screen.findByText("Створити «Марта»"));
 
-    expect(await screen.findByLabelText(copy.name)).toHaveValue("Марта");
-    expect(createCall()).toBeUndefined();
-  });
-
-  it("sends the contact detail typed in the dialog and selects the new contact", async () => {
-    const { input, onChange } = renderPicker();
-
-    await userEvent.click(input);
-    await userEvent.type(input, "Марта");
-    await userEvent.click(await screen.findByText("Створити «Марта»"));
-
-    await userEvent.type(await screen.findByLabelText(/^Контакт/), "marta@example.com");
-    await userEvent.click(screen.getByRole("button", { name: copy.submit }));
-
-    await waitFor(() => expect(createCall()).toBeDefined());
-    expect(JSON.parse(String(createCall()?.[1].body))).toEqual({
-      contact: "marta@example.com",
-      name: "Марта",
-    });
-    await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith({
-        contactId: CONTACT_IDS.marta,
-        kind: "picked",
-        name: "Марта",
-      }),
-    );
-  });
-
-  it("offers the existing contact when the name is already taken by a live one", async () => {
-    respondToCreate = () =>
-      jsonResponse({ code: LOAN_CONTACT_ERROR_CODES.duplicateName, message: "duplicate" }, 409);
-    respondToLookup = () => jsonResponse(contactView({ id: CONTACT_IDS.marta, name: "Марта" }));
-    const { input, onChange } = renderPicker();
-
-    await userEvent.click(input);
-    await userEvent.type(input, "Марта");
-    await userEvent.click(await screen.findByText("Створити «Марта»"));
-    await userEvent.click(await screen.findByRole("button", { name: copy.submit }));
-
-    expect(await screen.findByText("Контакт «Марта» вже існує")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Обрати Марта" }));
-
-    await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith({
-        contactId: CONTACT_IDS.marta,
-        kind: "picked",
-        name: "Марта",
-      }),
-    );
-  });
-
-  it("restores the archived contact that holds the typed name and selects it", async () => {
-    respondToCreate = () =>
-      jsonResponse({ code: LOAN_CONTACT_ERROR_CODES.archivedName, message: "archived" }, 409);
-    respondToLookup = () =>
-      jsonResponse(
-        contactView({
-          archivedAt: "2026-02-01T10:00:00.000Z",
-          id: CONTACT_IDS.marta,
-          name: "Марта",
-        }),
-      );
-    const { input, onChange } = renderPicker();
-
-    await userEvent.click(input);
-    await userEvent.type(input, "Марта");
-    await userEvent.click(await screen.findByText("Створити «Марта»"));
-    await userEvent.click(await screen.findByRole("button", { name: copy.submit }));
-
-    expect(await screen.findByText("Контакт «Марта» є в архіві")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Відновити Марта" }));
-
-    await waitFor(() => expect(restoreCall()).toBeDefined());
-    expect(String(restoreCall()?.[0])).toContain(
-      `/api/loans/contacts/${CONTACT_IDS.marta}/restore`,
-    );
-    await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith({
-        contactId: CONTACT_IDS.marta,
-        kind: "picked",
-        name: "Марта",
-      }),
-    );
-  });
-
-  it("falls back to a field error when no contact holds the conflicting name", async () => {
-    respondToCreate = () =>
-      jsonResponse({ code: LOAN_CONTACT_ERROR_CODES.duplicateName, message: "duplicate" }, 409);
-    const { input, onChange } = renderPicker();
-
-    await userEvent.click(input);
-    await userEvent.type(input, "Марта");
-    await userEvent.click(await screen.findByText("Створити «Марта»"));
-    await userEvent.click(await screen.findByRole("button", { name: copy.submit }));
-
-    expect(await screen.findByText(copy.errors.duplicateName)).toBeInTheDocument();
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onRequestCreate).toHaveBeenCalledWith("Марта");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
