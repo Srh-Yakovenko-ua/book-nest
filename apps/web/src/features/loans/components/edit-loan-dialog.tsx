@@ -192,6 +192,7 @@ function EditLoanForm({ loan, onDone }: { loan: LoanListItemView; onDone: () => 
         <Label htmlFor="edit-loan-contact-picker">{t(`${variant}.personName`)}</Label>
         <LoanContactPicker
           describedBy={errors.loanContactId ? "edit-loan-contact-picker-error" : undefined}
+          direction={variant}
           id="edit-loan-contact-picker"
           invalid={errors.loanContactId !== undefined}
           label={t(`${variant}.personName`)}

@@ -4568,7 +4568,8 @@
       "createHeading": "New contact",
       "createAction": "Create “{name}”",
       "creating": "Creating…",
-      "loanCount": "{count, plural, one {# loan} other {# loans}}",
+      "activeLentCount": "{count} lent",
+      "activeBorrowedCount": "{count} borrowed",
       "clear": "Clear",
       "required": "Pick a person from the list or create a new one.",
       "errors": {

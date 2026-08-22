@@ -43,6 +43,7 @@ import type { CreateBookFormValues } from "../model/create-book-form";
 import {
   EDIT_DELIVERY_STATUS_OPTIONS,
   OWNERSHIP_STATUS_OPTIONS,
+  ownershipLoanDirection,
   ownershipUsesDelivery,
   ownershipUsesLoan,
 } from "../model/book-status-fields";
@@ -636,6 +637,7 @@ export function OwnershipStatusSection({
             <Label htmlFor="loan-contact-picker">{t("loanInfo.fields.personName")}</Label>
             <LoanContactPicker
               describedBy={loanContactError ? "loan-contact-picker-error" : undefined}
+              direction={ownershipLoanDirection(status)}
               id="loan-contact-picker"
               invalid={loanContactError !== undefined}
               label={t("loanInfo.fields.personName")}

@@ -284,6 +284,7 @@ function LoanForm({
           <Label htmlFor="loan-contact-picker">{t(`${variant}.personName`)}</Label>
           <LoanContactPicker
             describedBy={errors.loanContactId ? "loan-contact-picker-error" : undefined}
+            direction={direction}
             id="loan-contact-picker"
             invalid={errors.loanContactId !== undefined}
             label={t(`${variant}.personName`)}

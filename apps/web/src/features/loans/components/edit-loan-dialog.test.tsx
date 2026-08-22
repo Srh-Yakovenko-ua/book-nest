@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import type { LoanContactView, LoanListItemView } from "@app/shared";
+import type { LoanContactListItemView, LoanListItemView } from "@app/shared";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,13 +18,13 @@ const CONTACT_IDS = {
 
 const fetchMock = vi.fn();
 
-let searchResults: LoanContactView[] = [];
+let searchResults: LoanContactListItemView[] = [];
 
 function contactPicker() {
   return screen.getByLabelText(messages.books.details.loan.lent.personName);
 }
 
-function contactsPage(items: LoanContactView[]) {
+function contactsPage(items: LoanContactListItemView[]) {
   return {
     counts: { active: items.length, all: items.length, archived: 0 },
     items,
@@ -35,8 +35,10 @@ function contactsPage(items: LoanContactView[]) {
   };
 }
 
-function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
+function contactView(overrides: Partial<LoanContactListItemView> = {}): LoanContactListItemView {
   return {
+    activeBorrowedCount: 0,
+    activeLentCount: 0,
     archivedAt: null,
     contact: null,
     createdAt: "2026-01-10T10:00:00.000Z",

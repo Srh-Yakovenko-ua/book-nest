@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import type { LoanContactView } from "@app/shared";
+import type { LoanContactListItemView, LoanDirection } from "@app/shared";
 
 import { LOAN_CONTACT_ERROR_CODES } from "@app/shared";
 import { useState } from "react";
@@ -23,11 +23,11 @@ const CONTACT_IDS = {
 
 const fetchMock = vi.fn();
 
-let searchResults: LoanContactView[] = [];
+let searchResults: LoanContactListItemView[] = [];
 let respondToCreate: () => Response;
 let respondToLookup: () => Response;
 
-function contactsPage(items: LoanContactView[]) {
+function contactsPage(items: LoanContactListItemView[]) {
   return {
     counts: { active: items.length, all: items.length, archived: 0 },
     items,
@@ -38,8 +38,10 @@ function contactsPage(items: LoanContactView[]) {
   };
 }
 
-function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
+function contactView(overrides: Partial<LoanContactListItemView> = {}): LoanContactListItemView {
   return {
+    activeBorrowedCount: 0,
+    activeLentCount: 0,
     archivedAt: null,
     contact: null,
     createdAt: "2026-01-10T10:00:00.000Z",
@@ -59,13 +61,20 @@ function createCall() {
   ) as [string, RequestInit] | undefined;
 }
 
-function Harness({ onChange }: { onChange: (selection: LoanContactSelection | null) => void }) {
+function Harness({
+  direction,
+  onChange,
+}: {
+  direction: LoanDirection;
+  onChange: (selection: LoanContactSelection | null) => void;
+}) {
   const [value, setValue] = useState<LoanContactSelection | null>(null);
 
   return (
     <div>
       <label htmlFor="contact-picker">{PICKER_LABEL}</label>
       <LoanContactPicker
+        direction={direction}
         id="contact-picker"
         invalid={false}
         label={PICKER_LABEL}
@@ -87,9 +96,9 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderPicker() {
+function renderPicker(direction: LoanDirection = "lent") {
   const onChange = vi.fn<(selection: LoanContactSelection | null) => void>();
-  renderWithProviders(<Harness onChange={onChange} />);
+  renderWithProviders(<Harness direction={direction} onChange={onChange} />);
   return { input: screen.getByLabelText(PICKER_LABEL), onChange };
 }
 
@@ -129,14 +138,13 @@ afterEach(() => {
 });
 
 describe("LoanContactPicker", () => {
-  it("reports the contact picked from the list together with its loan count", async () => {
+  it("reports the contact picked from the list", async () => {
     searchResults = [contactView()];
     const { input, onChange } = renderPicker();
 
     await userEvent.click(input);
 
     expect(await screen.findByText("Ігор")).toBeInTheDocument();
-    expect(screen.getByText("3 позики")).toBeInTheDocument();
 
     await userEvent.click(screen.getByText("Ігор"));
 
@@ -146,6 +154,49 @@ describe("LoanContactPicker", () => {
       name: "Ігор",
     });
     expect(input).toHaveValue("Ігор");
+  });
+
+  it("counts only the books this person still holds when lending one out", async () => {
+    searchResults = [contactView({ activeBorrowedCount: 2, activeLentCount: 3, loanCount: 9 })];
+    const { input } = renderPicker("lent");
+
+    await userEvent.click(input);
+
+    expect(await screen.findByText("передано 3 книги")).toBeInTheDocument();
+    expect(screen.queryByText("9 позик")).not.toBeInTheDocument();
+  });
+
+  it("counts only the books taken from this person when marking one as borrowed", async () => {
+    searchResults = [contactView({ activeBorrowedCount: 2, activeLentCount: 3, loanCount: 9 })];
+    const { input } = renderPicker("borrowed");
+
+    await userEvent.click(input);
+
+    expect(await screen.findByText("позичено 2 книги")).toBeInTheDocument();
+    expect(screen.queryByText("передано 3 книги")).not.toBeInTheDocument();
+  });
+
+  it("leaves the caption out for a person holding nothing right now", async () => {
+    searchResults = [contactView({ activeLentCount: 0, loanCount: 4 })];
+    const { input } = renderPicker("lent");
+
+    await userEvent.click(input);
+
+    expect(await screen.findByText("Ігор")).toBeInTheDocument();
+    expect(screen.queryByText(/передано/)).not.toBeInTheDocument();
+  });
+
+  it("declines a single book with the right case", async () => {
+    searchResults = [
+      contactView({ activeLentCount: 1, id: CONTACT_IDS.ihor, name: "Ігор" }),
+      contactView({ activeLentCount: 5, id: CONTACT_IDS.marta, name: "Марта" }),
+    ];
+    const { input } = renderPicker("lent");
+
+    await userEvent.click(input);
+
+    expect(await screen.findByText("передано 1 книгу")).toBeInTheDocument();
+    expect(screen.getByText("передано 5 книг")).toBeInTheDocument();
   });
 
   it("offers no inline create for a name an existing contact already normalizes to", async () => {

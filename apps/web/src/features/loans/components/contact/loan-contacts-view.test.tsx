@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { LoanContactView } from "@app/shared";
+import type { LoanContactListItemView } from "@app/shared";
 import type { ReactNode } from "react";
 import type { Mock } from "vitest";
 
@@ -35,7 +35,7 @@ const COUNTS = { active: 2, all: 3, archived: 1 } as const;
 
 type ContactsStub = {
   counts?: { active: number; all: number; archived: number };
-  items: LoanContactView[];
+  items: LoanContactListItemView[];
   pagesCount?: number;
   totalCount?: number;
 };
@@ -243,8 +243,10 @@ function applyStatusFilter(label: string) {
     .then(() => userEvent.click(screen.getByRole("button", { name: copy.filters.apply })));
 }
 
-function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
+function contactView(overrides: Partial<LoanContactListItemView> = {}): LoanContactListItemView {
   return {
+    activeBorrowedCount: 0,
+    activeLentCount: 0,
     archivedAt: null,
     contact: null,
     createdAt: "2026-01-10T10:00:00.000Z",
@@ -264,7 +266,7 @@ function createCall(fetchMock: FetchMock) {
   );
 }
 
-function defaultContacts(): LoanContactView[] {
+function defaultContacts(): LoanContactListItemView[] {
   return [
     contactView({ contact: "ihor@example.com", loanCount: 3, name: "Ігор" }),
     contactView({

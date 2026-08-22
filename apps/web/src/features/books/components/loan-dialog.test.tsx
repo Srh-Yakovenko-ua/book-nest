@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import type { BookView, LoanContactView } from "@app/shared";
+import type { BookView, LoanContactListItemView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { LOAN_CONTACT_ERROR_CODES, LOAN_ERROR_CODES } from "@app/shared";
@@ -30,7 +30,7 @@ const loanErrors = messages.books.details.loan.errors;
 const fetchMock = vi.fn();
 
 let candidateBooks: BookView[] = [];
-let searchResults: LoanContactView[] = [];
+let searchResults: LoanContactListItemView[] = [];
 
 function booksPage(items: BookView[]) {
   return {
@@ -65,7 +65,7 @@ function candidateLoanCall() {
   ) as [string, RequestInit] | undefined;
 }
 
-function contactsPage(items: LoanContactView[]) {
+function contactsPage(items: LoanContactListItemView[]) {
   return {
     counts: { active: items.length, all: items.length, archived: 0 },
     items,
@@ -76,8 +76,10 @@ function contactsPage(items: LoanContactView[]) {
   };
 }
 
-function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView {
+function contactView(overrides: Partial<LoanContactListItemView> = {}): LoanContactListItemView {
   return {
+    activeBorrowedCount: 0,
+    activeLentCount: 0,
     archivedAt: null,
     contact: null,
     createdAt: "2026-01-10T10:00:00.000Z",

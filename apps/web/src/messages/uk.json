@@ -4568,7 +4568,8 @@
       "createHeading": "Новий контакт",
       "createAction": "Створити «{name}»",
       "creating": "Створюємо…",
-      "loanCount": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}}",
+      "activeLentCount": "{count, plural, one {передано # книгу} few {передано # книги} many {передано # книг} other {передано # книг}}",
+      "activeBorrowedCount": "{count, plural, one {позичено # книгу} few {позичено # книги} many {позичено # книг} other {позичено # книг}}",
       "clear": "Очистити",
       "required": "Оберіть людину зі списку або створіть нову.",
       "errors": {

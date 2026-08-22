@@ -1,4 +1,9 @@
-import type { LoanContactCounts, LoanContactsView, LoanContactView } from "@app/shared";
+import type {
+  LoanContactCounts,
+  LoanContactListItemView,
+  LoanContactsView,
+  LoanDirection,
+} from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { LOAN_CONTACT_ERROR_CODES, LoanContactsViewSchema } from "@app/shared";
@@ -74,7 +79,7 @@ function contactCounts(res: Response): LoanContactCounts {
   return LoanContactsViewSchema.parse(res.body).counts;
 }
 
-function contactItems(res: Response): LoanContactView[] {
+function contactItems(res: Response): LoanContactListItemView[] {
   return LoanContactsViewSchema.parse(res.body).items;
 }
 
@@ -123,7 +128,11 @@ function getContact(accessToken: string, contactId: string): request.Test {
 
 async function lendBookTo(
   accessToken: string,
-  { loanContactId, title }: { loanContactId: string; title: string },
+  {
+    direction = "lent",
+    loanContactId,
+    title,
+  }: { direction?: LoanDirection; loanContactId: string; title: string },
 ): Promise<string> {
   const created = await createBook(accessToken, title);
   expect(created.status).toBe(201);
@@ -132,7 +141,7 @@ async function lendBookTo(
   const started = await request(app.getHttpServer())
     .post(`/api/books/${bookId}/loan`)
     .set("Authorization", `Bearer ${accessToken}`)
-    .send({ direction: "lent", loanContactId, loanDate: today() });
+    .send({ direction, loanContactId, loanDate: today() });
   expect(started.status).toBe(200);
   return bookId;
 }
@@ -482,6 +491,100 @@ describe("GET /api/loans/contacts loan count", () => {
     const res = await listContacts(accessToken);
 
     expect(contactItems(res)[0]?.loanCount).toBe(0);
+  });
+});
+
+describe("GET /api/loans/contacts active loan counts", () => {
+  it("splits the books still out by the direction they went", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ihor");
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Lent one" });
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Lent two" });
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Lent three" });
+    await lendBookTo(accessToken, {
+      direction: "borrowed",
+      loanContactId: contactId,
+      title: "Borrowed one",
+    });
+    await lendBookTo(accessToken, {
+      direction: "borrowed",
+      loanContactId: contactId,
+      title: "Borrowed two",
+    });
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]).toMatchObject({
+      activeBorrowedCount: 2,
+      activeLentCount: 3,
+      loanCount: 5,
+    });
+  });
+
+  it("drops a returned book from the active counts but keeps it in the lifetime count", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ihor");
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Still out" });
+    const returnedBookId = await lendBookTo(accessToken, {
+      loanContactId: contactId,
+      title: "Came back",
+    });
+    await returnBook(accessToken, returnedBookId);
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]).toMatchObject({
+      activeBorrowedCount: 0,
+      activeLentCount: 1,
+      loanCount: 2,
+    });
+  });
+
+  it("leaves the loans of a trashed book out of the active counts", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const contactId = await createNamedContact(accessToken, "Ihor");
+    await lendBookTo(accessToken, { loanContactId: contactId, title: "Kept" });
+    const trashedBookId = await lendBookTo(accessToken, {
+      loanContactId: contactId,
+      title: "Trashed",
+    });
+    await deleteBook(accessToken, trashedBookId);
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]).toMatchObject({ activeLentCount: 1, loanCount: 1 });
+  });
+
+  it("reports zero active counts for a contact holding nothing", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createNamedContact(accessToken, "Ihor");
+
+    const res = await listContacts(accessToken);
+
+    expect(contactItems(res)[0]).toMatchObject({
+      activeBorrowedCount: 0,
+      activeLentCount: 0,
+      loanCount: 0,
+    });
+  });
+
+  it("keeps the active counts of one contact off another", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const ihorId = await createNamedContact(accessToken, "Ihor");
+    const martaId = await createNamedContact(accessToken, "Marta");
+    await lendBookTo(accessToken, { loanContactId: ihorId, title: "Ihor holds it" });
+    await lendBookTo(accessToken, {
+      direction: "borrowed",
+      loanContactId: martaId,
+      title: "From Marta",
+    });
+
+    const items = contactItems(await listContacts(accessToken));
+
+    expect(items).toMatchObject([
+      { activeBorrowedCount: 0, activeLentCount: 1, name: "Ihor" },
+      { activeBorrowedCount: 1, activeLentCount: 0, name: "Marta" },
+    ]);
   });
 });
 
