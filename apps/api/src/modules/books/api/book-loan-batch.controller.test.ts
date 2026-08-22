@@ -94,7 +94,10 @@ describe("POST /api/books/loans/batch authorization and validation", () => {
       loanDate: today(),
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "bookIds" })]),
+    );
   });
 
   it("offers no way to name the person instead of picking a contact", async () => {
@@ -108,7 +111,10 @@ describe("POST /api/books/loans/batch authorization and validation", () => {
       personName: "Olha",
     });
 
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "loanContactId" })]),
+    );
     expect(await countActiveLoans()).toBe(0);
   });
 
