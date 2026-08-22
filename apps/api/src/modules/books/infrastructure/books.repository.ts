@@ -10,7 +10,12 @@ import type {
   WishlistSort,
 } from "@app/shared";
 
-import { DEFAULT_CURRENCY, LoanTypeSchema, WISHLIST_SORT_DEFAULT } from "@app/shared";
+import {
+  DEFAULT_CURRENCY,
+  LoanTypeSchema,
+  OwnershipStatusSchema,
+  WISHLIST_SORT_DEFAULT,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { subDays, subMonths } from "date-fns";
 import { z } from "zod";
@@ -325,6 +330,12 @@ export type LoanChangePatch =
     }
   | { book: BookOwnershipFields; kind: "return"; returnedAt: Date };
 
+export type LoanCreateTarget = {
+  hasActiveLoan: boolean;
+  id: string;
+  ownershipStatus: Nullable<OwnershipStatus>;
+};
+
 export type LoanReminderData = {
   remindBeforeDays: Nullable<number>;
   remindToReturn: boolean;
@@ -486,6 +497,28 @@ export class BooksRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     await acquireUserQueueLock(userId, client);
+  }
+
+  async applyGuardedOwnershipFields(
+    userId: string,
+    {
+      bookIds,
+      expectedStatuses,
+      fields,
+    }: { bookIds: string[]; expectedStatuses: OwnershipStatus[]; fields: BookOwnershipFields },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const updated = await client.book.updateMany({
+      data: fields,
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        id: { in: bookIds },
+        ownershipStatus: { in: expectedStatuses },
+        userId,
+      },
+    });
+
+    return updated.count;
   }
 
   applyLoanChange(
@@ -656,6 +689,16 @@ export class BooksRepository {
     });
   }
 
+  async createLoansForBooks(
+    userId: string,
+    loans: (CreateLoanInfoData & { bookId: string; type: LoanType })[],
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.bookLoan.createMany({
+      data: loans.map((loan) => ({ ...loan, status: "active", userId })),
+    });
+  }
+
   async dedicationsSummary({ userId }: { userId: string }): Promise<DedicationsSummaryResult> {
     const [countsRows, genreRows, topGenreRows, topAuthorRows, authorsCountRows] =
       await Promise.all([
@@ -756,6 +799,27 @@ export class BooksRepository {
       select: purgeSelect,
       where: { id: bookId, userId },
     });
+  }
+
+  async findLoanCreateTargets(
+    { bookIds, userId }: { bookIds: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<LoanCreateTarget[]> {
+    const rows = await client.book.findMany({
+      select: {
+        id: true,
+        loans: { select: { id: true }, take: 1, where: { status: "active" } },
+        ownershipStatus: true,
+      },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
+    });
+
+    return rows.map((row) => ({
+      hasActiveLoan: row.loans.length > 0,
+      id: row.id,
+      ownershipStatus:
+        row.ownershipStatus === null ? null : OwnershipStatusSchema.parse(row.ownershipStatus),
+    }));
   }
 
   findOwnedById(

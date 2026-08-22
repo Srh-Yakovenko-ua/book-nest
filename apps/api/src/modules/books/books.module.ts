@@ -14,6 +14,7 @@ import { SeriesModule } from "../series/index.js";
 import { TagsModule } from "../tags/index.js";
 import { BookDeliveryController } from "./api/book-delivery.controller.js";
 import { BookListsController } from "./api/book-lists.controller.js";
+import { BookLoanBatchController } from "./api/book-loan-batch.controller.js";
 import { BookLoanController } from "./api/book-loan.controller.js";
 import { BookOwnershipController } from "./api/book-ownership.controller.js";
 import { BookReadingController } from "./api/book-reading.controller.js";
@@ -29,6 +30,7 @@ import { BookFacetsService } from "./application/book-facets.service.js";
 import { BookLibraryReadService } from "./application/book-library-read.service.js";
 import { BookLifecycleService } from "./application/book-lifecycle.service.js";
 import { BookListsService } from "./application/book-lists.service.js";
+import { BookLoanBatchService } from "./application/book-loan-batch.service.js";
 import { BookLoanService } from "./application/book-loan.service.js";
 import { BookOwnershipService } from "./application/book-ownership.service.js";
 import { BookPurgeProcessor } from "./application/book-purge.processor.js";
@@ -63,6 +65,7 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     BooksController,
     BookReadingController,
     BookOwnershipController,
+    BookLoanBatchController,
     BookLoanController,
     BookDeliveryController,
     BookStoreLinkController,
@@ -99,6 +102,7 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     BookCoverCleanup,
     BookReadingService,
     BookOwnershipService,
+    BookLoanBatchService,
     BookLoanService,
     BookDeliveryService,
     BookStoreLinkService,
