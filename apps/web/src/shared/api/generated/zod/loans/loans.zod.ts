@@ -1128,6 +1128,12 @@ export const LoanContactsControllerListQueryParams = zod.object({
 export const loanContactsControllerListResponseItemsItemLoanCountMin = 0;
 export const loanContactsControllerListResponseItemsItemLoanCountMax = 9007199254740991;
 
+export const loanContactsControllerListResponseItemsItemActiveBorrowedCountMin = 0;
+export const loanContactsControllerListResponseItemsItemActiveBorrowedCountMax = 9007199254740991;
+
+export const loanContactsControllerListResponseItemsItemActiveLentCountMin = 0;
+export const loanContactsControllerListResponseItemsItemActiveLentCountMax = 9007199254740991;
+
 export const loanContactsControllerListResponsePageMin = -9007199254740991;
 export const loanContactsControllerListResponsePageMax = 9007199254740991;
 
@@ -1162,6 +1168,14 @@ export const LoanContactsControllerListResponse = zod.object({
         .max(loanContactsControllerListResponseItemsItemLoanCountMax),
       name: zod.string(),
       updatedAt: zod.string(),
+      activeBorrowedCount: zod
+        .int()
+        .min(loanContactsControllerListResponseItemsItemActiveBorrowedCountMin)
+        .max(loanContactsControllerListResponseItemsItemActiveBorrowedCountMax),
+      activeLentCount: zod
+        .int()
+        .min(loanContactsControllerListResponseItemsItemActiveLentCountMin)
+        .max(loanContactsControllerListResponseItemsItemActiveLentCountMax),
     }),
   ),
   page: zod

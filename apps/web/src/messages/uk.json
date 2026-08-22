@@ -4795,7 +4795,8 @@
       "createHeading": "Новий контакт",
       "createAction": "Створити «{name}»",
       "creating": "Створюємо…",
-      "loanCount": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}}",
+      "activeLentCount": "{count, plural, one {передано # книгу} few {передано # книги} many {передано # книг} other {передано # книг}}",
+      "activeBorrowedCount": "{count, plural, one {позичено # книгу} few {позичено # книги} many {позичено # книг} other {позичено # книг}}",
       "clear": "Очистити",
       "required": "Оберіть людину зі списку або створіть нову.",
       "errors": {
@@ -4843,14 +4844,24 @@
       },
       "toolbar": {
         "searchLabel": "Пошук контактів",
-        "searchPlaceholder": "Імʼя або спосіб звʼязку",
-        "searchClear": "Очистити пошук",
-        "statusLabel": "Стан контактів",
-        "status": {
-          "all": "Усі",
-          "active": "Активні",
-          "archived": "Архівовані"
-        }
+        "searchPlaceholder": "Імʼя або контактні дані",
+        "searchClear": "Очистити пошук"
+      },
+      "filters": {
+        "trigger": "Фільтри",
+        "title": "Фільтри",
+        "description": "Обери, які контакти показувати у списку.",
+        "clear": "Очистити фільтри",
+        "apply": "Застосувати фільтри",
+        "sections": {
+          "status": "Стан контакту"
+        },
+        "statusOptions": {
+          "active": "Звичайні",
+          "archived": "Архівовані",
+          "all": "Усі"
+        },
+        "statusHint": "Зазвичай показуємо тільки звичайні контакти. Архівовані нікуди не зникають, їхні позики й історія лишаються на місці."
       },
       "row": {
         "loanCount": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}}"

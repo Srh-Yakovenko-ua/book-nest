@@ -63,14 +63,7 @@ export function LoanContactsView() {
         </Button>
       </header>
 
-      <LoanContactsToolbar
-        counts={counts ?? undefined}
-        onSearchChange={query.setSearch}
-        onSearchClear={() => query.setSearch("")}
-        onStatusSelect={query.setStatus}
-        search={query.state.q}
-        status={query.status}
-      />
+      <LoanContactsToolbar counts={counts ?? undefined} query={query} />
 
       <LoanContactsContent
         hasActiveQuery={query.hasActiveQuery}
