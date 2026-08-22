@@ -1,12 +1,12 @@
 "use client";
 
-import type { BookOrderStatisticsCompareMode, Currency, Nullable } from "@app/shared";
+import type { BookOrderStatisticsCompareMode, Nullable } from "@app/shared";
 
 import { useQueryStates } from "nuqs";
 
 import type { BookOrdersControllerStatisticsParams } from "@/shared/api/generated/model";
 
-import type { DeliveryStatisticsQueryState } from "./statistics-params";
+import type { DeliveryStatisticsQueryState, StatisticsMoneyPatch } from "./statistics-params";
 import type {
   StatisticsCustomRange,
   StatisticsPeriodPreset,
@@ -44,8 +44,8 @@ export type UseStatisticsParamsResult = {
   setCustomRange: (range: StatisticsCustomRange) => void;
   setFilters: (patch: StatisticsFilterPatch) => void;
   setIncludeCancelled: (value: boolean) => void;
-  setMoneyCurrency: (currency: Currency) => void;
   setPeriod: (preset: StatisticsPeriodPreset) => void;
+  setSectionMoney: (patch: StatisticsMoneyPatch) => void;
   state: DeliveryStatisticsQueryState;
   today: string;
 };
@@ -67,7 +67,6 @@ export function useStatisticsParams(): UseStatisticsParamsResult {
     setCustomRange: (range) => void setState({ from: range.from, period: "custom", to: range.to }),
     setFilters: (patch) => void setState(patch),
     setIncludeCancelled: (value) => void setState({ includeCancelled: value }),
-    setMoneyCurrency: (money) => void setState({ money }),
     setPeriod: (preset) =>
       void setState({
         compare: nextCompareMode({ compare: state.compare, preset, state, today }),
@@ -75,6 +74,7 @@ export function useStatisticsParams(): UseStatisticsParamsResult {
         period: preset,
         to: preset === "custom" ? state.to : null,
       }),
+    setSectionMoney: (patch) => void setState(patch),
     state,
     today,
   };

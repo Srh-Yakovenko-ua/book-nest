@@ -12,6 +12,12 @@ const BASE: DeliveryStatisticsQueryState = {
   from: "",
   includeCancelled: false,
   money: null,
+  moneyBudget: null,
+  moneyCosts: null,
+  moneyDynamics: null,
+  moneyRecords: null,
+  moneyStores: null,
+  moneyTopOrders: null,
   period: "this_year",
   status: null,
   store: "",
@@ -59,6 +65,10 @@ describe("toDeliveryStatisticsParams", () => {
 
   it("keeps the display currency out of the request", () => {
     expect(params({ money: "USD" })).not.toHaveProperty("currency");
+  });
+
+  it("keeps a per-section display currency out of the request", () => {
+    expect(params({ moneyStores: "USD", moneyTopOrders: "EUR" })).not.toHaveProperty("currency");
   });
 
   it("drops an empty store instead of filtering on blank text", () => {

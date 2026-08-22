@@ -32,11 +32,9 @@ export function StatisticsCurrencyTabs({
 
   return (
     <Segmented
-      className="h-8 p-0.5 text-xs"
       label={label}
       onValueChange={(next) => onChange(next as Currency)}
       options={currencies.map((currency) => ({ label: currency, value: currency }))}
-      tone="accent"
       value={value}
     />
   );
@@ -57,7 +55,6 @@ export function StatisticsMetricTabs<Metric extends string>({
 }) {
   return (
     <Segmented
-      className="h-8 p-0.5 text-xs"
       label={label}
       onValueChange={(next) => onChange(next as Metric)}
       options={metrics.map((metric) => ({ label: optionLabel(metric), value: metric }))}
