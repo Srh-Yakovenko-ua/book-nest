@@ -4616,14 +4616,24 @@
       },
       "toolbar": {
         "searchLabel": "Search contacts",
-        "searchPlaceholder": "Name or how to reach them",
-        "searchClear": "Clear search",
-        "statusLabel": "Contact state",
-        "status": {
-          "all": "All",
-          "active": "Active",
-          "archived": "Archived"
-        }
+        "searchPlaceholder": "Name or contact details",
+        "searchClear": "Clear search"
+      },
+      "filters": {
+        "trigger": "Filters",
+        "title": "Filters",
+        "description": "Choose which contacts the list should show.",
+        "clear": "Clear filters",
+        "apply": "Apply filters",
+        "sections": {
+          "status": "Contact state"
+        },
+        "statusOptions": {
+          "active": "Regular",
+          "archived": "Archived",
+          "all": "All"
+        },
+        "statusHint": "Normally the list shows regular contacts only. Archived people are still there, with their loans and history untouched."
       },
       "row": {
         "loanCount": "{count, plural, one {# loan} other {# loans}}"
