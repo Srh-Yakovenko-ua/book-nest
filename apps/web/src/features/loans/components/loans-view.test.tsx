@@ -244,6 +244,67 @@ describe("LoansView", () => {
     expect(within(card).getByText(row.personBorrowed)).toBeInTheDocument();
   });
 
+  it("spells the return term once, with the exact date underneath", async () => {
+    const due = dueIn(-3);
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: due.iso,
+        loanUiStatus: "overdue",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText("Прострочено на 3 дні")).toBeInTheDocument();
+    expect(
+      within(card).getByText(row.term.wasDue.replace("{date}", due.display)),
+    ).toBeInTheDocument();
+    expect(within(card).queryByText(messages.loans.status.overdue)).not.toBeInTheDocument();
+    expect(within(card).queryByText(due.display)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { expected: row.term.today, offset: 0, status: "return_soon" as const },
+    { expected: row.term.tomorrow, offset: 1, status: "return_soon" as const },
+    { expected: "Повернути через 2 дні", offset: 2, status: "return_soon" as const },
+    { expected: "Повернути через 9 днів", offset: 9, status: "on_time" as const },
+  ])("reads a $offset-day term as its own sentence", async ({ expected, offset, status }) => {
+    const due = dueIn(offset);
+    mockLoans([
+      loanItem("borrowed_from_someone", "Гобіт", {
+        expectedReturnDate: due.iso,
+        loanUiStatus: status,
+      }),
+    ]);
+
+    renderLoans("borrowed_from_someone");
+
+    const card = await findLoanCard("Гобіт");
+    expect(within(card).getByText(expected)).toBeInTheDocument();
+    expect(
+      within(card).getByText(row.term.dueBy.replace("{date}", due.display)),
+    ).toBeInTheDocument();
+    expect(within(card).queryByText(messages.loans.status[status])).not.toBeInTheDocument();
+  });
+
+  it("leaves a loan without a due date with a single line", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: null,
+        loanUiStatus: "no_return_date",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText(row.term.none)).toBeInTheDocument();
+    expect(within(card).queryByText(messages.loans.status.no_return_date)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/^До /)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/^Термін був /)).not.toBeInTheDocument();
+  });
+
   it("counts how long a lent book is overdue and closes the loan from the menu", async () => {
     mockLoans([
       loanItem("lent_to_someone", "Дюна", {
@@ -1004,6 +1065,11 @@ function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionS
     ...EMPTY_DIRECTION_SUMMARY,
     totalCount: items.filter((item) => item.type === type).length,
   };
+}
+
+function dueIn(offset: number): { display: string; iso: string } {
+  const date = addDays(new Date(), offset);
+  return { display: format(date, "dd.MM.yyyy"), iso: format(date, "yyyy-MM-dd") };
 }
 
 function extendedBookView() {
