@@ -4917,6 +4917,7 @@
       "archivedBadge": "Archived",
       "totalLoans": "{count, plural, one {# loan} other {# loans}} in total",
       "openContact": "Open the card of {name}",
+      "openPersonCard": "Open the person’s card",
       "actions": {
         "edit": "Edit",
         "archive": "Archive",
@@ -4937,15 +4938,30 @@
         "noReturnDate": "No return date"
       },
       "history": {
-        "title": "History",
-        "empty": "No completed loans yet.",
-        "completed": "Completed",
-        "onTime": "On time",
-        "late": "Late",
-        "averageDuration": "Average duration",
-        "durationUnknown": "—",
+        "title": "Loan history",
+        "completedCount": "{count, plural, one {# completed loan} other {# completed loans}}",
+        "breakdown": {
+          "lent": "{count} you lent",
+          "borrowed": "{count} you borrowed",
+          "onTime": "{count} on time",
+          "late": "{count} late",
+          "noDueDate": "{count} without a due date"
+        },
+        "averageDurationLabel": "Average length",
+        "averageDurationHint": "From the day the book changed hands to the day it came back.",
         "recentTitle": "Latest completed",
-        "returnedOn": "Returned on {date}"
+        "recent": {
+          "lent": "You lent",
+          "borrowed": "You borrowed",
+          "returned": "returned {date}",
+          "late": "returned {count, plural, one {# day} other {# days}} late",
+          "noDueDate": "no due date was set"
+        },
+        "viewAll": "View the whole history",
+        "empty": {
+          "title": "No loan history yet",
+          "description": "Completed loans with this person will show up here once the books come back."
+        }
       },
       "edit": {
         "title": "Edit contact",
@@ -5147,17 +5163,22 @@
     "row": {
       "personBorrowed": "Borrowed from:",
       "personLent": "Lent to:",
-      "contact": "Contact:",
       "loanDateBorrowed": "Loan date:",
       "loanDateLent": "Handover date:",
       "note": "Note",
       "reminderOn": "Reminder on",
+      "hasNote": "Has a note",
+      "viewNote": "View the note",
+      "editNote": "Edit the note",
+      "closeNote": "Close",
       "term": {
         "today": "Return today",
         "tomorrow": "Return tomorrow",
         "inDays": "Return in {days, plural, one {# day} other {# days}}",
         "overdue": "Overdue by {days, plural, one {# day} other {# days}}",
-        "none": "No return date"
+        "none": "No return date",
+        "dueBy": "Due {date}",
+        "wasDue": "Was due {date}"
       }
     },
     "actions": {

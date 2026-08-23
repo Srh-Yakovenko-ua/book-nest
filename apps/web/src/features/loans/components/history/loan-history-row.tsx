@@ -1,6 +1,6 @@
 "use client";
 
-import type { LoanHistoryListItemView, LoanHistoryResult } from "@app/shared";
+import type { LoanHistoryListItemView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -20,6 +20,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
+import { LOAN_HISTORY_RESULT_LOOK } from "../../model/loan-history-result";
 import { formatLoanDate } from "../../model/loans-derive";
 import { LoanContactNameButton } from "../contact/loan-contact-name-button";
 
@@ -36,19 +37,6 @@ type TimelineNode = {
   label: string;
   value: string;
 };
-
-const RESULT_LOOK = {
-  late: { icon: "clock", surfaceClass: "bg-warning-soft", toneClass: "text-warning" },
-  no_due_date: {
-    icon: "circle-slash",
-    surfaceClass: "bg-secondary",
-    toneClass: "text-muted-foreground",
-  },
-  on_time: { icon: "check-circle", surfaceClass: "bg-success-soft", toneClass: "text-success" },
-} as const satisfies Record<
-  LoanHistoryResult,
-  { icon: UiIconName; surfaceClass: string; toneClass: string }
->;
 
 export function LoanHistoryRow({
   loan,
@@ -198,7 +186,7 @@ function LoanHistoryActionsMenu({
 
 function LoanHistoryOutcome({ loan }: { loan: LoanHistoryListItemView }) {
   const t = useTranslations("loans.history");
-  const look = RESULT_LOOK[loan.historyResult];
+  const look = LOAN_HISTORY_RESULT_LOOK[loan.historyResult];
 
   const result =
     loan.historyResult === "late"

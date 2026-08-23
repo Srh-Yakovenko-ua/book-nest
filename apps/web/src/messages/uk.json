@@ -4917,6 +4917,7 @@
       "archivedBadge": "Архівовано",
       "totalLoans": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}} усього",
       "openContact": "Відкрити картку: {name}",
+      "openPersonCard": "Відкрити картку людини",
       "actions": {
         "edit": "Редагувати",
         "archive": "Архівувати",
@@ -4937,15 +4938,30 @@
         "noReturnDate": "Без дати повернення"
       },
       "history": {
-        "title": "Історія",
-        "empty": "Завершених позик поки немає.",
-        "completed": "Завершено",
-        "onTime": "Вчасно",
-        "late": "Із запізненням",
-        "averageDuration": "Середня тривалість",
-        "durationUnknown": "—",
+        "title": "Історія позик",
+        "completedCount": "{count, plural, one {# завершена позика} few {# завершені позики} many {# завершених позик} other {# завершених позик}}",
+        "breakdown": {
+          "lent": "{count} ви передавали",
+          "borrowed": "{count} брали",
+          "onTime": "{count} вчасно",
+          "late": "{count} із запізненням",
+          "noDueDate": "{count} без строку"
+        },
+        "averageDurationLabel": "Середня тривалість",
+        "averageDurationHint": "Від дати передачі або отримання книги до фактичного повернення.",
         "recentTitle": "Останні завершені",
-        "returnedOn": "Повернуто {date}"
+        "recent": {
+          "lent": "Ви передавали",
+          "borrowed": "Ви брали",
+          "returned": "повернено {date}",
+          "late": "повернено із запізненням на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+          "noDueDate": "без визначеного строку"
+        },
+        "viewAll": "Переглянути всю історію",
+        "empty": {
+          "title": "Історії позик ще немає",
+          "description": "Завершені позики з цією людиною з’являться тут після повернення книг."
+        }
       },
       "edit": {
         "title": "Редагувати контакт",
@@ -5147,17 +5163,22 @@
     "row": {
       "personBorrowed": "У кого позичено:",
       "personLent": "Кому передано:",
-      "contact": "Контакт:",
       "loanDateBorrowed": "Дата позики:",
       "loanDateLent": "Дата передачі:",
       "note": "Нотатка",
       "reminderOn": "Нагадування увімкнено",
+      "hasNote": "Є нотатка",
+      "viewNote": "Переглянути нотатку",
+      "editNote": "Редагувати нотатку",
+      "closeNote": "Закрити",
       "term": {
         "today": "Повернути сьогодні",
         "tomorrow": "Повернути завтра",
         "inDays": "Повернути через {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
         "overdue": "Прострочено на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
-        "none": "Без дати повернення"
+        "none": "Без дати повернення",
+        "dueBy": "До {date}",
+        "wasDue": "Термін був {date}"
       }
     },
     "actions": {
