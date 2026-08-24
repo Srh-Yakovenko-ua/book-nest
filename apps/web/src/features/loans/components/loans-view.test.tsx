@@ -367,7 +367,7 @@ describe("LoansView", () => {
     });
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith(
-        expect.stringContaining("Строк повернення продовжено до"),
+        expect.stringContaining("Новий термін повернення —"),
       );
     });
   });
@@ -390,7 +390,7 @@ describe("LoansView", () => {
     expect(screen.queryByRole("menuitem", { name: actions.reminderSetup })).not.toBeInTheDocument();
   });
 
-  it("keeps the reminder away from an overdue loan", async () => {
+  it("counts an overdue loan from today instead of offering to extend it", async () => {
     mockLoans([
       loanItem("lent_to_someone", "Дюна", {
         expectedReturnDate: isoDaysFromToday(-4),
@@ -402,7 +402,11 @@ describe("LoansView", () => {
 
     await openLoanMenu("Дюна");
 
-    expect(await screen.findByRole("menuitem", { name: /Продовжити на 7 днів/ })).toBeVisible();
+    expect(
+      await screen.findByRole("menuitem", { name: "Новий термін через 7 днів" }),
+    ).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Новий термін через 14 днів" })).toBeVisible();
+    expect(screen.queryByRole("menuitem", { name: /Продовжити/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: actions.reminderSetup })).not.toBeInTheDocument();
   });
 
