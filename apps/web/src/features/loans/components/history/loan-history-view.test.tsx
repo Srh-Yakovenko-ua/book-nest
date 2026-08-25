@@ -442,7 +442,7 @@ describe("LoanHistoryView period presets", () => {
 });
 
 describe("LoanHistoryView row", () => {
-  it("walks a lent loan through its three dates", async () => {
+  it("spans a lent loan from handover to return, with the plan underneath", async () => {
     mockHistory([
       historyItem({
         expectedReturnDate: "2026-07-10",
@@ -453,24 +453,109 @@ describe("LoanHistoryView row", () => {
 
     renderHistory();
 
-    const [loanDate, expected, returned] = within(await findRow("Дюна")).getAllByRole("listitem");
-    expect(loanDate).toHaveTextContent(copy.timeline.loanDateLent);
-    expect(loanDate).toHaveTextContent("12.06.2026");
-    expect(expected).toHaveTextContent(copy.timeline.expected);
-    expect(expected).toHaveTextContent("10.07.2026");
-    expect(returned).toHaveTextContent(copy.timeline.returned);
-    expect(returned).toHaveTextContent("04.07.2026");
+    const period = await findPeriod("Дюна");
+    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} 12.06.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 04.07.2026`);
+    expect(period).toHaveTextContent(plannedOn("10.07.2026"));
   });
 
-  it("calls the first date a loan date when the book was borrowed", async () => {
-    mockHistory([historyItem({ type: "borrowed_from_someone" })]);
+  it("calls the start of a borrowed loan a borrowing, not a handover", async () => {
+    mockHistory([historyItem({ loanDate: "2026-02-14", type: "borrowed_from_someone" })]);
 
     renderHistory();
 
-    const row = await findRow("Дюна");
-    expect(within(row).getByText(copy.timeline.loanDateBorrowed)).toBeInTheDocument();
-    expect(within(row).queryByText(copy.timeline.loanDateLent)).not.toBeInTheDocument();
-    expect(within(row).getByText(copy.direction.borrowed_from_someone)).toBeInTheDocument();
+    const period = await findPeriod("Дюна");
+    expect(period).toHaveTextContent(`${copy.loanPeriod.borrowed} 14.02.2026`);
+    expect(period).not.toHaveTextContent(copy.loanPeriod.lent);
+    expect(
+      within(await findRow("Дюна")).getByText(copy.direction.borrowed_from_someone),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the return date as prominent as the date the loan started", async () => {
+    mockHistory([historyItem({ loanDate: "2026-06-12", returnedDate: "2026-07-04" })]);
+
+    renderHistory();
+
+    const period = await findPeriod("Дюна");
+    const [start, returned] = ["12.06.2026", "04.07.2026"].map(
+      (date) => within(period).getByText(date).className,
+    );
+    expect(start).toBe(returned);
+  });
+
+  it("keeps the plan a secondary line whether the return beat it, hit it or missed it", async () => {
+    const returns = [
+      { returnedDate: "2026-07-04", title: "Соляріс" },
+      { returnedDate: "2026-07-10", title: "Тигролови" },
+      { returnedDate: "2026-07-16", title: "Кобзар" },
+    ];
+
+    mockHistory(
+      returns.map(({ returnedDate, title }) => ({
+        ...historyItem({ expectedReturnDate: "2026-07-10", returnedDate }),
+        book: { ...historyItem().book, id: `book-${title}`, title },
+        id: `loan-${title}`,
+      })),
+    );
+
+    renderHistory();
+
+    for (const { returnedDate, title } of returns) {
+      const period = await findPeriod(title);
+      expect(period).toHaveTextContent(`${copy.loanPeriod.returned} ${formatUkDate(returnedDate)}`);
+      expect(within(period).getByText(plannedOn("10.07.2026"))).toBeInTheDocument();
+    }
+  });
+
+  it("shows a same-day loan as a period that starts and ends on one date", async () => {
+    mockHistory([
+      historyItem({
+        durationDays: 0,
+        expectedReturnDate: "2026-08-30",
+        loanDate: "2026-08-23",
+        returnedDate: "2026-08-23",
+      }),
+    ]);
+
+    renderHistory();
+
+    const period = await findPeriod("Дюна");
+    expect(period).toHaveTextContent(`${copy.loanPeriod.lent} 23.08.2026`);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 23.08.2026`);
+  });
+
+  it("drops the arrow and says so when the loan never got a start date", async () => {
+    mockHistory([
+      historyItem({ durationDays: null, expectedReturnDate: "2026-08-30", loanDate: null }),
+    ]);
+
+    renderHistory();
+
+    const period = await findPeriod("Дюна");
+    expect(period).toHaveTextContent(copy.loanPeriod.startUnknown);
+    expect(period).toHaveTextContent(plannedOn("30.08.2026"));
+    expect(period).not.toHaveTextContent(copy.loanPeriod.lent);
+    expect(period).not.toHaveTextContent("\u2192");
+  });
+
+  it("says a start-less loan had no deadline either, without inventing a date", async () => {
+    mockHistory([
+      historyItem({
+        durationDays: null,
+        expectedReturnDate: null,
+        historyResult: "no_due_date",
+        loanDate: null,
+      }),
+    ]);
+
+    renderHistory();
+
+    const period = await findPeriod("Дюна");
+    expect(period).toHaveTextContent(copy.loanPeriod.startUnknown);
+    expect(period).toHaveTextContent(copy.loanPeriod.noTerm);
+    expect(period).toHaveTextContent(`${copy.loanPeriod.returned} 04.07.2026`);
+    expect(period).not.toHaveTextContent(plannedOn("").trim());
   });
 
   it("names the person as one clickable entity in both directions", async () => {
@@ -539,7 +624,7 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const row = await findRow("Дюна");
-    expect(within(row).getByText(copy.timeline.expectedNone)).toBeInTheDocument();
+    expect(within(await findPeriod("Дюна")).getByText(copy.loanPeriod.noTerm)).toBeInTheDocument();
     expect(within(row).getByText(copy.result.no_due_date)).toBeInTheDocument();
   });
 
@@ -971,6 +1056,13 @@ async function correctReturnedDate(): Promise<void> {
   await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.save }));
 }
 
+async function findPeriod(title: string): Promise<HTMLElement> {
+  const row = await findRow(title);
+  const block = within(row).getByText(copy.loanPeriod.title).parentElement;
+  if (block === null) throw new Error(`Loan period block not found: ${title}`);
+  return block;
+}
+
 async function findRow(title: string): Promise<HTMLElement> {
   const heading = await screen.findByText(title);
   const row = heading.closest<HTMLElement>("article");
@@ -999,6 +1091,11 @@ function findStatCard(label: string): Promise<HTMLElement> {
     if (card === undefined) throw new Error(`Stat card not found: ${label}`);
     return card;
   });
+}
+
+function formatUkDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  return `${day}.${month}.${year}`;
 }
 
 function historyItem(overrides: Partial<HistoryFixture> = {}): HistoryFixture {
@@ -1174,6 +1271,10 @@ async function pickOption(selectLabel: string, optionName: RegExp | string) {
 async function pickPeriod(presetLabel: string) {
   await userEvent.click(screen.getByRole("button", { name: copy.toolbar.periodLabel }));
   await userEvent.click(await screen.findByRole("radio", { name: presetLabel }));
+}
+
+function plannedOn(date: string): string {
+  return copy.loanPeriod.plan.replace("{date}", date);
 }
 
 function renderHistory(searchParams = "") {

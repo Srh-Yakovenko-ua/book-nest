@@ -5413,6 +5413,15 @@
         "returned": "Повернено",
         "unknownDate": "Дата невідома"
       },
+      "loanPeriod": {
+        "title": "Період позики",
+        "lent": "Передано",
+        "borrowed": "Позичено",
+        "returned": "Повернено",
+        "plan": "План: {date}",
+        "noTerm": "Строк не визначався",
+        "startUnknown": "Початок невідомий"
+      },
       "result": {
         "on_time": "Повернуто вчасно",
         "late": "Із запізненням на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",

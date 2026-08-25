@@ -5,8 +5,6 @@ import type { LoanHistoryListItemView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
-import type { UiIconName } from "@/components/icons";
-
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,12 +28,6 @@ type LoanHistoryRowProps = {
   onEditNote: () => void;
   onOpenContact: () => void;
   onOpenDetails: () => void;
-};
-
-type TimelineNode = {
-  icon: UiIconName;
-  label: string;
-  value: string;
 };
 
 export function LoanHistoryRow({
@@ -105,7 +97,7 @@ export function LoanHistoryRow({
 
         <div className="hidden w-px self-stretch bg-border @3xl/history-row:block" />
 
-        <LoanHistoryTimeline loan={loan} />
+        <LoanHistoryPeriod loan={loan} />
 
         <div className="hidden w-px self-stretch bg-border @3xl/history-row:block" />
 
@@ -212,56 +204,48 @@ function LoanHistoryOutcome({ loan }: { loan: LoanHistoryListItemView }) {
   );
 }
 
-function LoanHistoryTimeline({ loan }: { loan: LoanHistoryListItemView }) {
-  const t = useTranslations("loans.history.timeline");
+function LoanHistoryPeriod({ loan }: { loan: LoanHistoryListItemView }) {
+  const t = useTranslations("loans.history.loanPeriod");
 
-  const nodes: TimelineNode[] = [
-    {
-      icon: "clock",
-      label: t(loan.type === "borrowed_from_someone" ? "loanDateBorrowed" : "loanDateLent"),
-      value: formatLoanDate(loan.loanDate) ?? t("unknownDate"),
-    },
-    {
-      icon: "calendar",
-      label: t("expected"),
-      value: formatLoanDate(loan.expectedReturnDate) ?? t("expectedNone"),
-    },
-    {
-      icon: "check-circle",
-      label: t("returned"),
-      value: formatLoanDate(loan.returnedDate) ?? t("unknownDate"),
-    },
-  ];
+  const startDate = formatLoanDate(loan.loanDate);
+  const returnDate = formatLoanDate(loan.returnedDate) ?? loan.returnedDate;
+  const planDate = formatLoanDate(loan.expectedReturnDate);
 
   return (
-    <ol className="flex min-w-0 flex-1 flex-col gap-2 @5xl/history-row:flex-row @5xl/history-row:items-start @5xl/history-row:gap-1">
-      {nodes.map((node, index) => (
-        <li
-          className="flex min-w-0 items-start gap-1.5 @5xl/history-row:flex-1 @5xl/history-row:basis-0"
-          key={node.label}
-        >
-          {index === 0 ? null : (
-            <UiIcon
-              aria-hidden
-              className="mt-1 hidden shrink-0 text-muted-foreground/50 @5xl/history-row:block"
-              name="arrow-right"
-              size={14}
-            />
-          )}
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex items-start gap-1.5 text-sm font-medium text-foreground tabular-nums">
-              <UiIcon
-                aria-hidden
-                className="mt-0.5 shrink-0 text-icon"
-                name={node.icon}
-                size={14}
-              />
-              <span>{node.value}</span>
-            </span>
-            <span className="pl-5 text-xs text-muted-foreground">{node.label}</span>
-          </span>
-        </li>
-      ))}
-    </ol>
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <p className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <UiIcon aria-hidden className="shrink-0" name="clock" size={14} />
+        {t("title")}
+      </p>
+
+      <p className="min-w-0 text-sm">
+        {startDate === null ? null : (
+          <>
+            <PeriodPoint
+              label={t(loan.type === "borrowed_from_someone" ? "borrowed" : "lent")}
+              value={startDate}
+            />{" "}
+            <span aria-hidden className="text-muted-foreground">
+              &rarr;
+            </span>{" "}
+          </>
+        )}
+        <PeriodPoint label={t("returned")} value={returnDate} />
+      </p>
+
+      <p className="flex min-w-0 flex-col gap-0.5 text-xs text-muted-foreground tabular-nums">
+        {startDate === null ? <span>{t("startUnknown")}</span> : null}
+        <span>{planDate === null ? t("noTerm") : t("plan", { date: planDate })}</span>
+      </p>
+    </div>
+  );
+}
+
+function PeriodPoint({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="whitespace-nowrap">
+      <span className="text-muted-foreground">{label}</span>{" "}
+      <span className="font-medium text-foreground tabular-nums">{value}</span>
+    </span>
   );
 }
