@@ -590,21 +590,38 @@ describe("LoanHistoryView row", () => {
     ).not.toHaveAccessibleDescription();
   });
 
-  it("marks a returned-on-time loan with its duration", async () => {
-    mockHistory([historyItem({ durationDays: 22, historyResult: "on_time" })]);
+  it("marks a returned-on-time loan and labels how long it lasted", async () => {
+    mockHistory([historyItem({ durationDays: 26, historyResult: "on_time" })]);
 
     renderHistory();
 
     const row = await findRow("Дюна");
     expect(within(row).getByText(copy.result.on_time)).toBeInTheDocument();
-    expect(within(row).getByText("22 дні")).toBeInTheDocument();
+    expect(within(row).getByText("Тривалість: 26 днів")).toBeInTheDocument();
   });
 
-  it("counts the delay of a late loan", async () => {
+  it.each([
+    { case: "on the due date", returnedDate: "2026-07-10" },
+    { case: "before the due date", returnedDate: "2026-07-04" },
+  ])("counts a loan returned $case as on time", async ({ returnedDate }) => {
+    mockHistory([historyItem({ durationDays: 22, historyResult: "on_time", returnedDate })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText(copy.result.on_time)).toBeInTheDocument();
+    expect(within(row).queryByText(/Із запізненням/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { delayDays: 1, delayText: "Із запізненням на 1 день" },
+    { delayDays: 2, delayText: "Із запізненням на 2 дні" },
+    { delayDays: 12, delayText: "Із запізненням на 12 днів" },
+  ])("keeps the $delayDays-day delay apart from the duration", async ({ delayDays, delayText }) => {
     mockHistory([
       historyItem({
-        delayDays: 5,
-        durationDays: 30,
+        delayDays,
+        durationDays: 40,
         expectedReturnDate: "2026-05-28",
         historyResult: "late",
         returnedDate: "2026-06-02",
@@ -614,18 +631,76 @@ describe("LoanHistoryView row", () => {
     renderHistory();
 
     const row = await findRow("Дюна");
-    expect(within(row).getByText("Із запізненням на 5 днів")).toBeInTheDocument();
-    expect(within(row).getByText("30 днів усього")).toBeInTheDocument();
+    expect(within(row).getByText(delayText)).toBeInTheDocument();
+    expect(within(row).getByText("Тривалість: 40 днів")).toBeInTheDocument();
   });
 
-  it("says a loan had no due date instead of leaving the plan blank", async () => {
-    mockHistory([historyItem({ expectedReturnDate: null, historyResult: "no_due_date" })]);
+  it.each([
+    { durationDays: 1, durationText: "Тривалість: 1 день" },
+    { durationDays: 2, durationText: "Тривалість: 2 дні" },
+    { durationDays: 5, durationText: "Тривалість: 5 днів" },
+  ])("declines the $durationDays-day duration", async ({ durationDays, durationText }) => {
+    mockHistory([historyItem({ durationDays })]);
+
+    renderHistory();
+
+    expect(within(await findRow("Дюна")).getByText(durationText)).toBeInTheDocument();
+  });
+
+  it("keeps a real same-day loan at zero days instead of hiding it", async () => {
+    mockHistory([
+      historyItem({
+        durationDays: 0,
+        loanDate: "2026-07-04",
+        returnedDate: "2026-07-04",
+      }),
+    ]);
+
+    renderHistory();
+
+    expect(within(await findRow("Дюна")).getByText("Тривалість: 0 днів")).toBeInTheDocument();
+  });
+
+  it("says a loan had no due date without repeating the loan-period wording", async () => {
+    mockHistory([
+      historyItem({ durationDays: 15, expectedReturnDate: null, historyResult: "no_due_date" }),
+    ]);
 
     renderHistory();
 
     const row = await findRow("Дюна");
     expect(within(await findPeriod("Дюна")).getByText(copy.loanPeriod.noTerm)).toBeInTheDocument();
-    expect(within(row).getByText(copy.result.no_due_date)).toBeInTheDocument();
+    expect(within(row).getByText(copy.row.outcome.noDueDate)).toBeInTheDocument();
+    expect(within(row).getByText("Тривалість: 15 днів")).toBeInTheDocument();
+    expect(within(row).queryByText(copy.result.no_due_date)).not.toBeInTheDocument();
+    expect(within(row).queryAllByText(copy.loanPeriod.noTerm)).toHaveLength(1);
+  });
+
+  it.each([
+    { expectedReturnDate: "2026-07-10", historyResult: "on_time" },
+    { delayDays: 9, expectedReturnDate: "2026-06-25", historyResult: "late" },
+    { expectedReturnDate: null, historyResult: "no_due_date" },
+  ] as const)(
+    "drops the duration of a $historyResult loan that never got a start date",
+    async (outcome) => {
+      mockHistory([historyItem({ ...outcome, durationDays: null, loanDate: null })]);
+
+      renderHistory();
+
+      const row = await findRow("Дюна");
+      expect(within(row).queryByText(/Тривалість/)).not.toBeInTheDocument();
+      expect(within(row).queryByText(copy.duration.unknown)).not.toBeInTheDocument();
+    },
+  );
+
+  it("labels the duration the same way for a borrowed loan", async () => {
+    mockHistory([historyItem({ durationDays: 26, type: "borrowed_from_someone" })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText(copy.direction.borrowed_from_someone)).toBeInTheDocument();
+    expect(within(row).getByText("Тривалість: 26 днів")).toBeInTheDocument();
   });
 
   it("keeps the active-loan actions off a completed loan", async () => {

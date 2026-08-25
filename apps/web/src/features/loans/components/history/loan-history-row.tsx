@@ -173,20 +173,8 @@ function LoanHistoryActionsMenu({
 }
 
 function LoanHistoryOutcome({ loan }: { loan: LoanHistoryListItemView }) {
-  const t = useTranslations("loans.history");
+  const t = useTranslations("loans.history.row.outcome");
   const look = LOAN_HISTORY_RESULT_LOOK[loan.historyResult];
-
-  const result =
-    loan.historyResult === "late"
-      ? t("result.late", { count: loan.delayDays ?? 0 })
-      : t(`result.${loan.historyResult}`);
-
-  const duration =
-    loan.durationDays === null
-      ? t("duration.unknown")
-      : t(loan.historyResult === "late" ? "duration.total" : "duration.days", {
-          count: loan.durationDays,
-        });
 
   return (
     <div
@@ -197,11 +185,29 @@ function LoanHistoryOutcome({ loan }: { loan: LoanHistoryListItemView }) {
     >
       <p className={cn("flex items-start gap-1.5 text-sm font-semibold", look.toneClass)}>
         <UiIcon aria-hidden className="mt-0.5 shrink-0" name={look.icon} size={16} />
-        <span>{result}</span>
+        <span>
+          <LoanHistoryOutcomeResult loan={loan} />
+        </span>
       </p>
-      <p className="pl-[1.375rem] text-xs text-muted-foreground tabular-nums">{duration}</p>
+      {loan.durationDays === null ? null : (
+        <p className="pl-[1.375rem] text-xs text-muted-foreground tabular-nums">
+          {t("duration", { count: loan.durationDays })}
+        </p>
+      )}
     </div>
   );
+}
+
+function LoanHistoryOutcomeResult({ loan }: { loan: LoanHistoryListItemView }) {
+  const t = useTranslations("loans.history");
+
+  if (loan.historyResult === "late") {
+    return <>{t("result.late", { count: loan.delayDays ?? 0 })}</>;
+  }
+  if (loan.historyResult === "no_due_date") {
+    return <>{t("row.outcome.noDueDate")}</>;
+  }
+  return <>{t("result.on_time")}</>;
 }
 
 function LoanHistoryPeriod({ loan }: { loan: LoanHistoryListItemView }) {

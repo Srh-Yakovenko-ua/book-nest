@@ -5429,11 +5429,14 @@
       },
       "duration": {
         "days": "{count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
-        "total": "{count, plural, one {# день} few {# дні} many {# днів} other {# днів}} усього",
         "unknown": "Тривалість невідома"
       },
       "row": {
-        "openDetails": "Показати деталі позики"
+        "openDetails": "Показати деталі позики",
+        "outcome": {
+          "noDueDate": "Повернуто без строку",
+          "duration": "Тривалість: {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}"
+        }
       },
       "actions": {
         "menu": "Дії із записом історії",

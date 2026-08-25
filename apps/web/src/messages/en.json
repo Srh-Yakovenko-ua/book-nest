@@ -5429,11 +5429,14 @@
       },
       "duration": {
         "days": "{count, plural, one {# day} other {# days}}",
-        "total": "{count, plural, one {# day} other {# days}} in total",
         "unknown": "Duration unknown"
       },
       "row": {
-        "openDetails": "Show the loan details"
+        "openDetails": "Show the loan details",
+        "outcome": {
+          "noDueDate": "Returned, no deadline",
+          "duration": "Duration: {count, plural, one {# day} other {# days}}"
+        }
       },
       "actions": {
         "menu": "History record actions",
