@@ -1404,7 +1404,7 @@ describe("GET /api/loans advanced filters", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createBorrowedLoan(
       accessToken,
-      { expectedReturnDate: isoDay(-9), personName: "Olha" },
+      { expectedReturnDate: isoDay(-9), loanDate: isoDay(-20), personName: "Olha" },
       "Past Due",
     );
     await createBorrowedLoan(
@@ -1427,7 +1427,7 @@ describe("GET /api/loans advanced filters", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createBorrowedLoan(
       accessToken,
-      { expectedReturnDate: isoDay(-9), personName: "Olha" },
+      { expectedReturnDate: isoDay(-9), loanDate: isoDay(-20), personName: "Olha" },
       "Past Due",
     );
     await createBorrowedLoan(
@@ -1511,7 +1511,12 @@ describe("GET /api/loans advanced filters", () => {
     );
     await createLentLoan(
       accessToken,
-      { expectedReturnDate: isoDay(-4), note: "someone else", personName: "Maria" },
+      {
+        expectedReturnDate: isoDay(-4),
+        loanDate: isoDay(-10),
+        note: "someone else",
+        personName: "Maria",
+      },
       "Other Person",
     );
     const contactId = await contactIdFor("Ivan");
