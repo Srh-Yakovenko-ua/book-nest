@@ -449,7 +449,19 @@ export const LoansControllerSummaryResponse = zod.object({
 export const loansControllerListQueryContactIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
+export const loansControllerListQueryExpectedReturnDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loansControllerListQueryExpectedReturnDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const loansControllerListQueryFilterDefault = `all`;
+export const loansControllerListQueryLoanDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loansControllerListQueryLoanDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const loansControllerListQueryPageNumberDefault = 1;
 export const loansControllerListQueryPageNumberMax = 21474836;
 
@@ -462,9 +474,20 @@ export const loansControllerListQuerySortDefault = `overdue_first`;
 
 export const LoansControllerListQueryParams = zod.object({
   contactId: zod.uuid().regex(loansControllerListQueryContactIdRegExp).optional(),
+  expectedReturnDateFrom: zod.iso
+    .date()
+    .regex(loansControllerListQueryExpectedReturnDateFromRegExp)
+    .optional(),
+  expectedReturnDateTo: zod.iso
+    .date()
+    .regex(loansControllerListQueryExpectedReturnDateToRegExp)
+    .optional(),
   filter: zod
-    .enum(["all", "return_soon", "overdue", "no_return_date", "has_reminder", "without_reminder"])
+    .enum(["all", "return_soon", "overdue", "no_return_date"])
     .default(loansControllerListQueryFilterDefault),
+  hasNote: zod.string().optional(),
+  loanDateFrom: zod.iso.date().regex(loansControllerListQueryLoanDateFromRegExp).optional(),
+  loanDateTo: zod.iso.date().regex(loansControllerListQueryLoanDateToRegExp).optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -475,6 +498,7 @@ export const LoansControllerListQueryParams = zod.object({
     .min(1)
     .max(loansControllerListQueryPageSizeMax)
     .default(loansControllerListQueryPageSizeDefault),
+  reminder: zod.enum(["on", "off"]).optional(),
   search: zod.string().max(loansControllerListQuerySearchMax).optional(),
   sort: zod
     .enum(["overdue_first", "return_date", "loan_date", "title", "author", "person"])

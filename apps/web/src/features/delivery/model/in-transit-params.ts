@@ -5,7 +5,6 @@ import {
   IN_TRANSIT_ATTENTION_FILTER,
   InTransitAttentionReasonSchema,
 } from "@app/shared";
-import { isAfter, isValid, parseISO } from "date-fns";
 import {
   type inferParserType,
   parseAsArrayOf,
@@ -20,6 +19,7 @@ import type {
   DeliveryReadControllerInTransitListPriceCurrency,
 } from "@/shared/api/generated/model";
 
+import { isInvertedDayRange, isStorableDay } from "@/features/books/model/filter-chips";
 import {
   DeliveryReadControllerInTransitListCurrencyItem,
   DeliveryReadControllerInTransitListFilter,
@@ -167,10 +167,6 @@ export function isDeliveryPrimaryFilter(
   return DELIVERY_PRIMARY_FILTERS.some((value) => value === filter);
 }
 
-export function isStorableDay(value: Nullable<string>): value is string {
-  return value !== null && isValid(parseISO(value));
-}
-
 export function resolveDeliveryPriceCurrency(
   state: Pick<DeliveryAdvancedState, "currency" | "priceMax" | "priceMin">,
 ): Nullable<DeliveryReadControllerInTransitListPriceCurrency> {
@@ -244,11 +240,6 @@ function dayBound(
   value: Nullable<string>,
 ): Partial<DeliveryListParams> {
   return isStorableDay(value) ? { [key]: value } : {};
-}
-
-function isInvertedDayRange(from: Nullable<string>, to: Nullable<string>): boolean {
-  if (!isStorableDay(from) || !isStorableDay(to)) return false;
-  return isAfter(parseISO(from), parseISO(to));
 }
 
 function isInvertedNumberRange(min: Nullable<number>, max: Nullable<number>): boolean {

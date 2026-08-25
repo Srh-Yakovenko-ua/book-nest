@@ -31,7 +31,8 @@ type LoanContactPickerProps = {
   invalid: boolean;
   label: string;
   onChange: (selection: LoanContactSelection | null) => void;
-  onRequestCreate: (name: string) => void;
+  onRequestCreate?: (name: string) => void;
+  opensOnFocus?: boolean;
   placeholder: string;
   value: LoanContactSelection | null;
 };
@@ -46,6 +47,7 @@ export function LoanContactPicker({
   label,
   onChange,
   onRequestCreate,
+  opensOnFocus = true,
   placeholder,
   value,
 }: LoanContactPickerProps) {
@@ -82,7 +84,11 @@ export function LoanContactPicker({
   const matchesExistingContact = contacts.some(
     (contact) => normalizeName(contact.name) === normalizedQuery,
   );
-  const showCreateOption = trimmedQuery.length > 0 && searchSettled && !matchesExistingContact;
+  const showCreateOption =
+    onRequestCreate !== undefined &&
+    trimmedQuery.length > 0 &&
+    searchSettled &&
+    !matchesExistingContact;
   const showClear = value !== null || query.length > 0;
 
   function pickContact(contact: LoanContactView) {
@@ -127,7 +133,9 @@ export function LoanContactPicker({
                 )}
                 id={id}
                 onClick={() => setOpen(true)}
-                onFocus={() => setOpen(true)}
+                onFocus={() => {
+                  if (opensOnFocus) setOpen(true);
+                }}
                 onValueChange={(next) => {
                   setQuery(next);
                   setOpen(true);
@@ -190,7 +198,7 @@ export function LoanContactPicker({
                     className="cursor-pointer"
                     onSelect={() => {
                       setOpen(false);
-                      onRequestCreate(trimmedQuery);
+                      onRequestCreate?.(trimmedQuery);
                     }}
                     value={`create-${trimmedQuery}`}
                   >

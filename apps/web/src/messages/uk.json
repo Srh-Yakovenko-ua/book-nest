@@ -5534,13 +5534,82 @@
         "tooLong": "Нотатка не може бути довшою за {max} символів"
       }
     },
+    "advancedFilters": {
+      "trigger": "Фільтри",
+      "title": "Розширені фільтри",
+      "description": "Звужують список позик. Швидкі фільтри працюють окремо і додаються зверху.",
+      "apply": "Застосувати",
+      "clear": "Скинути",
+      "sections": {
+        "person": {
+          "borrowed": "У кого позичено",
+          "lent": "Кому передано"
+        },
+        "loanDate": {
+          "borrowed": "Дата позики",
+          "lent": "Дата передачі"
+        },
+        "dueDate": "Термін повернення",
+        "reminder": "Нагадування",
+        "note": "Нотатка"
+      },
+      "person": {
+        "placeholder": "Будь-яка людина"
+      },
+      "range": {
+        "from": "Від",
+        "to": "До",
+        "invalid": "Початок діапазону більший за кінець"
+      },
+      "dueDate": {
+        "hint": "Показуємо тільки позики з указаним терміном повернення."
+      },
+      "reminderOptions": {
+        "any": "Будь-яке",
+        "on": "Увімкнено",
+        "off": "Вимкнено"
+      },
+      "noteOptions": {
+        "any": "Будь-яка",
+        "with": "Є нотатка",
+        "without": "Без нотатки"
+      }
+    },
+    "activeFilters": {
+      "search": "Пошук: {query}",
+      "person": {
+        "borrowed": "У кого позичено: {name}",
+        "lent": "Кому передано: {name}"
+      },
+      "personUnknown": "Обрана людина",
+      "loanDateFrom": {
+        "borrowed": "Дата позики: від {value}",
+        "lent": "Дата передачі: від {value}"
+      },
+      "loanDateTo": {
+        "borrowed": "Дата позики: до {value}",
+        "lent": "Дата передачі: до {value}"
+      },
+      "loanDateRange": {
+        "borrowed": "Дата позики: {from} – {to}",
+        "lent": "Дата передачі: {from} – {to}"
+      },
+      "dueDateFrom": "Термін повернення: від {value}",
+      "dueDateTo": "Термін повернення: до {value}",
+      "dueDateRange": "Термін повернення: {from} – {to}",
+      "reminder": {
+        "on": "Нагадування: увімкнено",
+        "off": "Нагадування: вимкнено"
+      },
+      "noteWith": "Є нотатка",
+      "noteWithout": "Без нотатки"
+    },
     "quickFilters": {
       "label": "Швидкі фільтри",
       "all": "Усі",
       "overdue": "Прострочені",
       "return_soon": "Повернути скоро",
-      "no_return_date": "Без дати",
-      "without_reminder": "Без нагадування"
+      "no_return_date": "Без дати"
     },
     "shownCount": "Показано {shown} із {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}"
   },
