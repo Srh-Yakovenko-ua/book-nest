@@ -11,12 +11,7 @@ const openContactLabel = (name: string): string =>
 describe("LoanContactNameButton", () => {
   it("puts the contact details inside the same clickable entity", () => {
     renderWithProviders(
-      <LoanContactNameButton
-        contact="+380 67 123 45 67"
-        layout="block"
-        name="Андрій"
-        onOpen={vi.fn()}
-      />,
+      <LoanContactNameButton contact="+380 67 123 45 67" name="Андрій" onOpen={vi.fn()} />,
     );
 
     const trigger = screen.getByRole("button", { name: openContactLabel("Андрій") });
@@ -26,9 +21,7 @@ describe("LoanContactNameButton", () => {
   });
 
   it("shows only the name when there is nothing to call", () => {
-    renderWithProviders(
-      <LoanContactNameButton contact={null} layout="block" name="Софія" onOpen={vi.fn()} />,
-    );
+    renderWithProviders(<LoanContactNameButton contact={null} name="Софія" onOpen={vi.fn()} />);
 
     const trigger = screen.getByRole("button", { name: openContactLabel("Софія") });
     expect(within(trigger).getByText("Софія")).toBeInTheDocument();
@@ -39,12 +32,7 @@ describe("LoanContactNameButton", () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
     renderWithProviders(
-      <LoanContactNameButton
-        contact="olena@example.com"
-        layout="block"
-        name="Олена"
-        onOpen={onOpen}
-      />,
+      <LoanContactNameButton contact="olena@example.com" name="Олена" onOpen={onOpen} />,
     );
 
     await user.tab();
@@ -57,10 +45,10 @@ describe("LoanContactNameButton", () => {
     expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the inline layout a plain name trigger", async () => {
+  it("opens the person card from a click", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
-    renderWithProviders(<LoanContactNameButton name="Петро" onOpen={onOpen} />);
+    renderWithProviders(<LoanContactNameButton contact={null} name="Петро" onOpen={onOpen} />);
 
     const trigger = screen.getByRole("button", { name: openContactLabel("Петро") });
     expect(trigger).toHaveTextContent("Петро");

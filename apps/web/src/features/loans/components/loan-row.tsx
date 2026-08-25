@@ -106,7 +106,6 @@ function LoanPeopleZone({
         </span>
         <LoanContactNameButton
           contact={loan.contact}
-          layout="block"
           name={loan.personName}
           onOpen={onOpenContact}
         />

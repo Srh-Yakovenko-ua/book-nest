@@ -95,16 +95,12 @@ export function LoanHistoryRow({
 
           <Badge variant={isBorrowed ? "info" : "primary"}>{tDirection(loan.type)}</Badge>
 
-          <p className="flex min-w-0 items-baseline gap-1.5 text-xs">
-            <span className="shrink-0 text-muted-foreground">
-              {t(isBorrowed ? "row.personBorrowed" : "row.personLent")}
-            </span>
-            <LoanContactNameButton
-              className="relative z-10 font-medium text-foreground/90"
-              name={loan.personName}
-              onOpen={onOpenContact}
-            />
-          </p>
+          <LoanContactNameButton
+            className="relative z-10 max-w-full self-start"
+            contact={null}
+            name={loan.personName}
+            onOpen={onOpenContact}
+          />
         </div>
 
         <div className="hidden w-px self-stretch bg-border @3xl/history-row:block" />

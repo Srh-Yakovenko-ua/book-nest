@@ -471,7 +471,38 @@ describe("LoanHistoryView row", () => {
     expect(within(row).getByText(copy.timeline.loanDateBorrowed)).toBeInTheDocument();
     expect(within(row).queryByText(copy.timeline.loanDateLent)).not.toBeInTheDocument();
     expect(within(row).getByText(copy.direction.borrowed_from_someone)).toBeInTheDocument();
-    expect(within(row).getByText(copy.row.personBorrowed)).toBeInTheDocument();
+  });
+
+  it("names the person as one clickable entity in both directions", async () => {
+    mockHistory([
+      historyItem({ type: "lent_to_someone" }),
+      historyItem({
+        book: { ...historyItem().book, id: "book-solaris", title: "Соляріс" },
+        id: "loan-solaris",
+        type: "borrowed_from_someone",
+      }),
+    ]);
+
+    renderHistory();
+
+    for (const title of ["Дюна", "Соляріс"]) {
+      const trigger = within(await findRow(title)).getByRole("button", {
+        name: openContactLabel("Олена"),
+      });
+      expect(within(trigger).getByText("Олена")).toBeInTheDocument();
+    }
+  });
+
+  it("keeps the contact details out of the card and inside the person card", async () => {
+    mockHistory([historyItem({ contact: "olena@example.com" })]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).queryByText("olena@example.com")).not.toBeInTheDocument();
+    expect(
+      within(row).getByRole("button", { name: openContactLabel("Олена") }),
+    ).not.toHaveAccessibleDescription();
   });
 
   it("marks a returned-on-time loan with its duration", async () => {

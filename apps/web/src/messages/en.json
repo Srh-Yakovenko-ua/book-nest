@@ -5424,8 +5424,6 @@
         "unknown": "Duration unknown"
       },
       "row": {
-        "personBorrowed": "Borrowed from:",
-        "personLent": "Lent to:",
         "openDetails": "Show the loan details"
       },
       "actions": {

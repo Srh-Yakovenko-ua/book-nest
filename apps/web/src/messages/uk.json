@@ -5424,8 +5424,6 @@
         "unknown": "Тривалість невідома"
       },
       "row": {
-        "personBorrowed": "У кого позичено:",
-        "personLent": "Кому передано:",
         "openDetails": "Показати деталі позики"
       },
       "actions": {
