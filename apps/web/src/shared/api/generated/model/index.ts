@@ -945,6 +945,7 @@ export * from "./loanHistoryPeopleViewDto";
 export * from "./loanHistoryPeopleViewDtoItemsItem";
 export * from "./loansControllerListFilter";
 export * from "./loansControllerListParams";
+export * from "./loansControllerListReminder";
 export * from "./loansControllerListSort";
 export * from "./loansControllerListType";
 export * from "./loansSummaryViewDto";

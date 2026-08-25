@@ -1,13 +1,11 @@
 "use client";
 
-import type { Nullable } from "@app/shared";
-
 import { useLocale, useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "@/features/books";
 import type { DeliveryReadControllerInTransitListFilter } from "@/shared/api/generated/model";
 
-import { rangeLabel } from "@/features/books/model/filter-chips";
+import { rangeLabel, storableDay } from "@/features/books/model/filter-chips";
 import { formatDate } from "@/lib/format";
 
 import type { DeliveryAdvancedState } from "./in-transit-params";
@@ -16,7 +14,6 @@ import {
   DELIVERY_FILTER_DEFAULT,
   deliveryRangeFlags,
   isDeliveryPrimaryFilter,
-  isStorableDay,
   resolveDeliveryPriceCurrency,
   toDeliveryAttentionReason,
 } from "./in-transit-params";
@@ -171,8 +168,4 @@ export function useInTransitFilterChips({
   }
 
   return chips;
-}
-
-function storableDay(value: Nullable<string>): Nullable<string> {
-  return isStorableDay(value) ? value : null;
 }

@@ -1,12 +1,10 @@
 "use client";
 
-import type { Nullable } from "@app/shared";
-
 import { useLocale, useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "@/features/books";
 
-import { rangeLabel } from "@/features/books/model/filter-chips";
+import { rangeLabel, storableDay } from "@/features/books/model/filter-chips";
 import { formatDate } from "@/lib/format";
 
 import type { DeliveryHistoryAdvancedState, DeliveryHistoryTab } from "./history-params";
@@ -14,7 +12,6 @@ import type { DeliveryHistoryAdvancedState, DeliveryHistoryTab } from "./history
 import {
   historyRangeFlags,
   historyTerminalRange,
-  isStorableHistoryDay,
   resolveHistoryPriceCurrency,
 } from "./history-params";
 
@@ -146,8 +143,4 @@ export function useHistoryFilterChips({
   }
 
   return chips;
-}
-
-function storableDay(value: Nullable<string>): Nullable<string> {
-  return isStorableHistoryDay(value) ? value : null;
 }

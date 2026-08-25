@@ -43,16 +43,13 @@ export const LoanInfoViewSchema = z.object({
 
 export type LoanInfoView = z.infer<typeof LoanInfoViewSchema>;
 
-export const LoanFilterSchema = z.enum([
-  "all",
-  "return_soon",
-  "overdue",
-  "no_return_date",
-  "has_reminder",
-  "without_reminder",
-]);
+export const LoanFilterSchema = z.enum(["all", "return_soon", "overdue", "no_return_date"]);
 
 export type LoanFilter = z.infer<typeof LoanFilterSchema>;
+
+export const LoanReminderFilterSchema = z.enum(["on", "off"]);
+
+export type LoanReminderFilter = z.infer<typeof LoanReminderFilterSchema>;
 
 export const LoanSortSchema = z.enum([
   "overdue_first",
@@ -65,14 +62,35 @@ export const LoanSortSchema = z.enum([
 
 export type LoanSort = z.infer<typeof LoanSortSchema>;
 
-export const LoansQuerySchema = z.object({
-  contactId: z.uuid().optional(),
-  filter: LoanFilterSchema.default("all"),
-  ...paginationQueryFields({ pageSizeDefault: 10 }),
-  search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
-  sort: LoanSortSchema.default("overdue_first"),
-  type: LoanTypeSchema.optional(),
-});
+const LOAN_DATE_RANGE_MESSAGE = "Loan date from cannot be after loan date to";
+const RETURN_DATE_RANGE_MESSAGE = "Return date from cannot be after return date to";
+
+const isDayRangeOrdered = (from: string | undefined, to: string | undefined): boolean =>
+  from === undefined || to === undefined || !isAfter(parseISO(from), parseISO(to));
+
+export const LoansQuerySchema = z
+  .object({
+    contactId: z.uuid().optional(),
+    expectedReturnDateFrom: z.iso.date().optional(),
+    expectedReturnDateTo: z.iso.date().optional(),
+    filter: LoanFilterSchema.default("all"),
+    hasNote: z.stringbool().optional(),
+    loanDateFrom: z.iso.date().optional(),
+    loanDateTo: z.iso.date().optional(),
+    ...paginationQueryFields({ pageSizeDefault: 10 }),
+    reminder: LoanReminderFilterSchema.optional(),
+    search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
+    sort: LoanSortSchema.default("overdue_first"),
+    type: LoanTypeSchema.optional(),
+  })
+  .refine((value) => isDayRangeOrdered(value.loanDateFrom, value.loanDateTo), {
+    error: LOAN_DATE_RANGE_MESSAGE,
+    path: ["loanDateTo"],
+  })
+  .refine((value) => isDayRangeOrdered(value.expectedReturnDateFrom, value.expectedReturnDateTo), {
+    error: RETURN_DATE_RANGE_MESSAGE,
+    path: ["expectedReturnDateTo"],
+  });
 
 export type LoansQuery = z.infer<typeof LoansQuerySchema>;
 

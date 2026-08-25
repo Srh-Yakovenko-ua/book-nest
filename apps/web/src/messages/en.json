@@ -5186,8 +5186,9 @@
       "setReturnDate": "Set a return date",
       "changeReturnDate": "Change the return date",
       "extend": "Extend by {days, plural, one {# day} other {# days}}",
-      "extendSuccess": "Return date pushed to {date}",
-      "extendSuccessPlain": "Return date pushed",
+      "extendOverdue": "New due date in {days, plural, one {# day} other {# days}}",
+      "extendSuccess": "New return date — {date}",
+      "extendSuccessPlain": "Return date updated",
       "extendError": "Couldn’t extend the loan",
       "reminderSetup": "Set up a reminder",
       "reminderCurrent": "Reminder: {days, plural, one {# day} other {# days}} before",
@@ -5533,13 +5534,82 @@
         "tooLong": "The note cannot be longer than {max} characters"
       }
     },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "title": "Advanced filters",
+      "description": "They narrow the list of loans. Quick filters work separately and add on top.",
+      "apply": "Apply",
+      "clear": "Reset",
+      "sections": {
+        "person": {
+          "borrowed": "Borrowed from",
+          "lent": "Lent to"
+        },
+        "loanDate": {
+          "borrowed": "Loan date",
+          "lent": "Handover date"
+        },
+        "dueDate": "Return date",
+        "reminder": "Reminder",
+        "note": "Note"
+      },
+      "person": {
+        "placeholder": "Anyone"
+      },
+      "range": {
+        "from": "From",
+        "to": "To",
+        "invalid": "The start of the range is later than its end"
+      },
+      "dueDate": {
+        "hint": "Only loans that have a return date are shown."
+      },
+      "reminderOptions": {
+        "any": "Any",
+        "on": "On",
+        "off": "Off"
+      },
+      "noteOptions": {
+        "any": "Any",
+        "with": "With a note",
+        "without": "Without a note"
+      }
+    },
+    "activeFilters": {
+      "search": "Search: {query}",
+      "person": {
+        "borrowed": "Borrowed from: {name}",
+        "lent": "Lent to: {name}"
+      },
+      "personUnknown": "The chosen person",
+      "loanDateFrom": {
+        "borrowed": "Loan date: from {value}",
+        "lent": "Handover date: from {value}"
+      },
+      "loanDateTo": {
+        "borrowed": "Loan date: to {value}",
+        "lent": "Handover date: to {value}"
+      },
+      "loanDateRange": {
+        "borrowed": "Loan date: {from} – {to}",
+        "lent": "Handover date: {from} – {to}"
+      },
+      "dueDateFrom": "Return date: from {value}",
+      "dueDateTo": "Return date: to {value}",
+      "dueDateRange": "Return date: {from} – {to}",
+      "reminder": {
+        "on": "Reminder: on",
+        "off": "Reminder: off"
+      },
+      "noteWith": "With a note",
+      "noteWithout": "Without a note"
+    },
     "quickFilters": {
       "label": "Quick filters",
       "all": "All",
       "overdue": "Overdue",
       "return_soon": "Returning soon",
-      "no_return_date": "No date",
-      "without_reminder": "No reminder"
+      "no_return_date": "No date"
     },
     "shownCount": "Showing {shown} of {total, plural, one {# book} other {# books}}"
   },
