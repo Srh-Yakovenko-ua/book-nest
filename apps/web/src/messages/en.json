@@ -5297,7 +5297,7 @@
     "loadMore": "Show more",
     "loadMoreError": "Couldn't load more loans",
     "history": {
-      "resultsCount": "Found {count, plural, one {# completed loan} other {# completed loans}}",
+      "shownCount": "Showing {shown} of {total, plural, one {# loan} other {# loans}}",
       "loadMore": "Show more",
       "loadMoreError": "Couldn't load more history records",
       "cards": {
@@ -5340,30 +5340,48 @@
       },
       "toolbar": {
         "searchLabel": "Search the loan history",
-        "searchPlaceholder": "Book title, author or person",
+        "searchPlaceholder": "Search by title, author or person…",
         "searchClear": "Clear search",
-        "directionLabel": "Direction",
-        "resultLabel": "Result",
-        "personLabel": "Person",
-        "periodLabel": "Period",
         "sortLabel": "Sort"
       },
-      "direction": {
-        "all": "All directions",
-        "borrowed_from_someone": "Borrowed from others",
-        "lent_to_someone": "Lent out"
-      },
-      "results": {
-        "all": "All results",
+      "quickFilters": {
+        "label": "Return outcome",
+        "all": "All",
         "on_time": "Returned on time",
-        "late": "Returned late",
-        "no_due_date": "No deadline set"
+        "late": "Late",
+        "no_due_date": "No due date"
+      },
+      "direction": {
+        "all": "All",
+        "borrowed_from_someone": "Borrowed from others",
+        "lent_to_someone": "Lent to others"
+      },
+      "advancedFilters": {
+        "trigger": "Filters",
+        "title": "History filters",
+        "description": "They narrow the loan history. Search and quick filters work separately and add on top.",
+        "apply": "Apply",
+        "clear": "Clear",
+        "sections": {
+          "direction": "Direction",
+          "person": "Person",
+          "returned": "Return date",
+          "loanDate": "Loan / handover date"
+        },
+        "range": {
+          "from": "From",
+          "to": "To",
+          "invalid": "The “from” date cannot be later than the “to” date"
+        }
       },
       "person": {
-        "all": "All people",
-        "count": "{count, plural, one {# loan} other {# loans}}",
+        "label": "Person",
+        "placeholder": "Anyone",
+        "heading": "People in your history",
+        "searching": "Searching people…",
         "empty": "No people in the history yet",
-        "loading": "Loading people…"
+        "clear": "Clear the chosen person",
+        "count": "{count, plural, one {# loan} other {# loans}}"
       },
       "period": {
         "all": "All time",
@@ -5372,21 +5390,69 @@
         "custom": "Custom range",
         "from": "From",
         "to": "To",
-        "apply": "Apply",
-        "reset": "Reset the period",
-        "range": "{from} — {to}",
         "invalidRange": "The “from” date cannot be later than the “to” date"
       },
+      "activeFilters": {
+        "search": "Search: {query}",
+        "direction": {
+          "borrowed_from_someone": "Direction: Borrowed from others",
+          "lent_to_someone": "Direction: Lent to others"
+        },
+        "person": "Person: {name}",
+        "personUnknown": "The chosen person",
+        "returnedPreset": {
+          "thisYear": "Returned: this year",
+          "lastYear": "Returned: last year"
+        },
+        "returnedFrom": "Returned: from {value}",
+        "returnedTo": "Returned: to {value}",
+        "returnedRange": "Returned: {from} – {to}",
+        "loanDateFrom": {
+          "all": "Loan / handover date: from {value}",
+          "borrowed_from_someone": "Loan date: from {value}",
+          "lent_to_someone": "Handover date: from {value}"
+        },
+        "loanDateTo": {
+          "all": "Loan / handover date: to {value}",
+          "borrowed_from_someone": "Loan date: to {value}",
+          "lent_to_someone": "Handover date: to {value}"
+        },
+        "loanDateRange": {
+          "all": "Loan / handover date: {from} – {to}",
+          "borrowed_from_someone": "Loan date: {from} – {to}",
+          "lent_to_someone": "Handover date: {from} – {to}"
+        }
+      },
       "sort": {
-        "returned_desc": "Recently returned",
-        "returned_asc": "Returned earliest",
-        "loan_date_desc": "By loan or handover date",
-        "duration_desc": "By duration",
-        "title_asc": "By title",
-        "person_asc": "By person",
+        "options": {
+          "all": {
+            "returned_desc": "Return date: newest first",
+            "returned_asc": "Return date: oldest first",
+            "loan_date_desc": "Loan / handover date: newest first",
+            "duration_desc": "Duration: longest first",
+            "title_asc": "Title: A–Z",
+            "person_asc": "Person: A–Z"
+          },
+          "borrowed_from_someone": {
+            "returned_desc": "Return date: newest first",
+            "returned_asc": "Return date: oldest first",
+            "loan_date_desc": "Loan date: newest first",
+            "duration_desc": "Duration: longest first",
+            "title_asc": "Title: A–Z",
+            "person_asc": "Person: A–Z"
+          },
+          "lent_to_someone": {
+            "returned_desc": "Return date: newest first",
+            "returned_asc": "Return date: oldest first",
+            "loan_date_desc": "Handover date: newest first",
+            "duration_desc": "Duration: longest first",
+            "title_asc": "Title: A–Z",
+            "person_asc": "Person: A–Z"
+          }
+        },
         "mobile": {
           "title": "Sorting",
-          "description": "Choose the order of the history records.",
+          "description": "Choose the order of the history entries.",
           "close": "Close",
           "groups": {
             "returned": "Return",
@@ -5397,7 +5463,7 @@
           },
           "trigger": {
             "returned_desc": "Recent",
-            "returned_asc": "Earliest",
+            "returned_asc": "Oldest",
             "loan_date_desc": "Loan date",
             "duration_desc": "Duration",
             "title_asc": "Title",

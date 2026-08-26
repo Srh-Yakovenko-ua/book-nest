@@ -4,8 +4,10 @@ import type {
   LoanContactView,
   LoanHistoryDetailView,
   LoanHistoryOverviewView,
+  LoanHistoryResultCounts,
   Nullable,
 } from "@app/shared";
+import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
 import { defaultUserProfileSettings } from "@app/shared";
@@ -23,6 +25,7 @@ type HistoryFixture = LoanHistoryDetailView;
 type MockOptions = {
   overview?: LoanHistoryOverviewView;
   people?: { contactId: string; personName: string; totalCount: number }[];
+  resultCounts?: LoanHistoryResultCounts;
 };
 
 type RecordedRequest = {
@@ -36,10 +39,19 @@ const CONTACT_IDS = {
   olena: "11111111-1111-4111-8111-111111111111",
 } as const;
 
+const CONTACT_NAMES: Record<string, string> = {
+  [CONTACT_IDS.ihor]: "Ігор",
+  [CONTACT_IDS.olena]: "Олена",
+};
+
 const TODAY = new Date(2026, 7, 14, 9, 0, 0);
 
 const copy = messages.loans.history;
+const activeFilters = messages.loans.history.activeFilters;
+const advanced = messages.loans.history.advancedFilters;
+const quickFilters = messages.loans.history.quickFilters;
 const contactDrawer = messages.loans.contactDrawer;
+const library = messages.books.library.activeFilters;
 
 const requests: RecordedRequest[] = [];
 
@@ -123,7 +135,7 @@ describe("LoanHistoryView states", () => {
     expect(await screen.findByText(copy.states.empty.title)).toBeInTheDocument();
     expect(screen.queryByText(copy.cards.total.label)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("combobox", { name: copy.toolbar.directionLabel }),
+      screen.queryByRole("button", { name: new RegExp(advanced.trigger) }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
@@ -135,7 +147,7 @@ describe("LoanHistoryView states", () => {
 
     expect(await screen.findByText(copy.states.noResults.title)).toBeInTheDocument();
     expect(screen.getByText(copy.cards.total.label)).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: copy.toolbar.directionLabel })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: new RegExp(advanced.trigger) })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: copy.states.noResults.clear })).toBeInTheDocument();
     expect(lastListUrl()).toContain(`search=${encodeURIComponent("нічого")}`);
   });
@@ -188,7 +200,7 @@ describe("LoanHistoryView states", () => {
 
     await screen.findByText(copy.states.error.title);
     expect(
-      screen.queryByRole("combobox", { name: copy.toolbar.directionLabel }),
+      screen.queryByRole("button", { name: new RegExp(advanced.trigger) }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
@@ -267,64 +279,74 @@ describe("LoanHistoryView summary cards", () => {
 });
 
 describe("LoanHistoryView toolbar", () => {
-  it("asks for one direction when the reader picks it", async () => {
+  it("asks for one direction when the reader applies it", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     await findRow("Дюна");
-    await pickOption(copy.toolbar.directionLabel, copy.direction.borrowed_from_someone);
+    await openAdvancedFilters();
+    await userEvent.click(chip(copy.direction.borrowed_from_someone));
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
 
     await waitFor(() => {
       expect(lastListUrl()).toContain("type=borrowed_from_someone");
     });
   });
 
-  it("asks for one result when the reader picks it", async () => {
+  it("asks for one result when the reader picks a quick filter", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     await findRow("Дюна");
-    await pickOption(copy.toolbar.resultLabel, copy.results.late);
+    await userEvent.click(await findChip(quickFilters.late));
 
     await waitFor(() => {
       expect(lastListUrl()).toContain("result=late");
     });
   });
 
-  it("asks for one person when the reader picks one from the filter", async () => {
+  it("asks for one person when the reader picks one from the filters", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     await findRow("Дюна");
-    await pickOption(copy.toolbar.personLabel, /Олена/);
+    await openAdvancedFilters();
+    await pickPerson("Олена");
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
 
     await waitFor(() => {
       expect(lastListUrl()).toContain(`contactId=${CONTACT_IDS.olena}`);
     });
   });
 
-  it("goes back to every person when the reader clears the person filter", async () => {
+  it("goes back to every person when the reader clears the picker", async () => {
     mockHistory([historyItem()]);
 
-    renderHistory();
+    renderHistory(`?contactId=${CONTACT_IDS.olena}`);
 
     await findRow("Дюна");
-    await pickOption(copy.toolbar.personLabel, /Олена/);
+    await openAdvancedFilters();
 
+    const picker = personPicker();
     await waitFor(() => {
-      expect(personFilter()).toHaveTextContent("Олена");
+      expect(picker).toHaveValue("Олена");
     });
 
-    await userEvent.click(screen.getByRole("button", { name: messages.common.clear }));
+    await userEvent.click(
+      within(filterSection(advanced.sections.person)).getByRole("button", {
+        name: copy.person.clear,
+      }),
+    );
+    expect(picker).toHaveValue("");
+
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
 
     await waitFor(() => {
-      expect(personFilter()).toHaveTextContent(copy.person.all);
+      expect(lastListUrl()).not.toContain("contactId=");
     });
-    expect(personFilter()).not.toHaveTextContent("Олена");
-    expect(lastListUrl()).not.toContain("contactId=");
   });
 
   it("drops a legacy person filter from the URL instead of asking the API for it", async () => {
@@ -335,7 +357,7 @@ describe("LoanHistoryView toolbar", () => {
     await findRow("Дюна");
     expect(lastListUrl()).not.toContain("person=");
     expect(lastListUrl()).not.toContain("contactId=");
-    expect(personFilter()).toHaveTextContent(copy.person.all);
+    expect(screen.queryByRole("group", { name: library.label })).not.toBeInTheDocument();
   });
 
   it("asks for another order when the reader changes the sort", async () => {
@@ -344,11 +366,27 @@ describe("LoanHistoryView toolbar", () => {
     renderHistory();
 
     await findRow("Дюна");
-    await pickOption(copy.toolbar.sortLabel, copy.sort.duration_desc);
+    await pickOption(copy.toolbar.sortLabel, copy.sort.options.all.duration_desc);
 
     await waitFor(() => {
       expect(lastListUrl()).toContain("sort=duration_desc");
     });
+  });
+
+  it("names the sort options after the direction the reader filtered by", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?type=lent_to_someone");
+
+    await findRow("Дюна");
+    await userEvent.click(screen.getByRole("combobox", { name: copy.toolbar.sortLabel }));
+
+    expect(
+      await screen.findByRole("option", { name: copy.sort.options.lent_to_someone.loan_date_desc }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: copy.sort.options.all.loan_date_desc }),
+    ).not.toBeInTheDocument();
   });
 
   it("sends the typed query once the reader stops typing", async () => {
@@ -395,36 +433,158 @@ describe("LoanHistoryView toolbar", () => {
   });
 });
 
-describe("LoanHistoryView period presets", () => {
-  it("turns this year into a date-only returned range", async () => {
+describe("LoanHistoryView quick filters", () => {
+  it("counts the outcomes the backend measured, zero included", async () => {
+    mockHistory([historyItem()], {
+      resultCounts: { all: 37, late: 9, no_due_date: 0, on_time: 28 },
+    });
+
+    renderHistory();
+
+    await waitFor(() => {
+      expect(within(chip(quickFilters.all)).getByText("37")).toBeInTheDocument();
+    });
+    expect(within(chip(quickFilters.on_time)).getByText("28")).toBeInTheDocument();
+    expect(within(chip(quickFilters.late)).getByText("9")).toBeInTheDocument();
+    expect(within(chip(quickFilters.no_due_date)).getByText("0")).toBeInTheDocument();
+  });
+
+  it("keeps every count as it was when one outcome is picked", async () => {
+    mockHistory([historyItem()], {
+      resultCounts: { all: 37, late: 9, no_due_date: 0, on_time: 28 },
+    });
+
+    renderHistory();
+
+    await userEvent.click(await findChip(quickFilters.late));
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("result=late");
+    });
+    expect(chip(quickFilters.late)).toHaveAttribute("data-state", "on");
+    expect(within(chip(quickFilters.all)).getByText("37")).toBeInTheDocument();
+    expect(within(chip(quickFilters.on_time)).getByText("28")).toBeInTheDocument();
+  });
+
+  it("leaves the chips without numbers until the first page arrives", async () => {
+    server.listPending = true;
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const all = await findChip(quickFilters.all);
+    expect(all).toHaveTextContent(quickFilters.all);
+    expect(within(all).queryByText(/\d/)).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView advanced filters", () => {
+  it("counts the four filter dimensions on the trigger", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory(
+      `?type=lent_to_someone&contactId=${CONTACT_IDS.olena}&from=2026-01-01&to=2026-12-31&loanFrom=2026-02-01`,
+    );
+
+    const trigger = await screen.findByRole("button", { name: new RegExp(advanced.trigger) });
+    expect(within(trigger).getByText("4")).toBeInTheDocument();
+  });
+
+  it("leaves the search and the picked outcome out of that count", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?q=дюна&result=late");
+
+    await findRow("Дюна");
+    const trigger = screen.getByRole("button", { name: new RegExp(advanced.trigger) });
+    expect(within(trigger).queryByText(/\d/)).not.toBeInTheDocument();
+  });
+
+  it("leaves an inverted range out of that count", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?from=2026-05-01&to=2026-01-01");
+
+    await findRow("Дюна");
+    const trigger = screen.getByRole("button", { name: new RegExp(advanced.trigger) });
+    expect(within(trigger).queryByText(/\d/)).not.toBeInTheDocument();
+    expect(lastListUrl()).not.toContain("returnedFrom");
+  });
+
+  it("writes every applied dimension to the URL in one step", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+    mockHistory([historyItem()]);
+
+    renderHistory("?loanFrom=2026-02-01", onUrlUpdate);
+
+    await findRow("Дюна");
+    await openAdvancedFilters();
+
+    await userEvent.click(chip(copy.direction.lent_to_someone));
+    await pickPerson("Олена");
+    await userEvent.click(chip(copy.period.thisYear));
+
+    expect(events).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
+
+    await waitFor(() => {
+      expect(events).toHaveLength(1);
+    });
+    const applied = events[0]?.searchParams;
+    expect(applied?.get("type")).toBe("lent_to_someone");
+    expect(applied?.get("contactId")).toBe(CONTACT_IDS.olena);
+    expect(applied?.get("from")).toBe("2026-01-01");
+    expect(applied?.get("to")).toBe("2026-12-31");
+    expect(applied?.get("loanFrom")).toBe("2026-02-01");
+  });
+
+  it("resets the draft inside the sheet without touching the applied filters", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+    mockHistory([historyItem()]);
+
+    renderHistory("?type=lent_to_someone&from=2026-01-01&to=2026-12-31", onUrlUpdate);
+
+    await findRow("Дюна");
+    await openAdvancedFilters();
+    await userEvent.click(screen.getByRole("button", { name: advanced.clear }));
+
+    expect(
+      within(filterSection(advanced.sections.direction)).getByRole("radio", {
+        name: copy.direction.all,
+      }),
+    ).toBeChecked();
+    expect(events).toHaveLength(0);
+    expect(lastListUrl()).toContain("type=lent_to_someone");
+
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
+
+    await waitFor(() => {
+      expect(lastListUrl()).not.toContain("type=");
+    });
+    expect(lastListUrl()).not.toContain("returnedFrom");
+  });
+
+  it.each([
+    { from: "2026-01-01", preset: "thisYear", to: "2026-12-31" },
+    { from: "2025-01-01", preset: "lastYear", to: "2025-12-31" },
+  ] as const)("turns the $preset preset into a date-only returned range", async (period) => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     await findRow("Дюна");
-    await pickPeriod(copy.period.thisYear);
+    await openAdvancedFilters();
+    await userEvent.click(chip(copy.period[period.preset]));
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
 
     await waitFor(() => {
-      expect(lastListUrl()).toContain("returnedFrom=2026-01-01");
+      expect(lastListUrl()).toContain(`returnedFrom=${period.from}`);
     });
-    expect(lastListUrl()).toContain("returnedTo=2026-12-31");
+    expect(lastListUrl()).toContain(`returnedTo=${period.to}`);
   });
 
-  it("turns last year into a date-only returned range", async () => {
-    mockHistory([historyItem()]);
-
-    renderHistory();
-
-    await findRow("Дюна");
-    await pickPeriod(copy.period.lastYear);
-
-    await waitFor(() => {
-      expect(lastListUrl()).toContain("returnedFrom=2025-01-01");
-    });
-    expect(lastListUrl()).toContain("returnedTo=2025-12-31");
-  });
-
-  it("drops both bounds when the reader goes back to all time", async () => {
+  it("drops both returned bounds when the reader goes back to all time", async () => {
     mockHistory([historyItem()]);
 
     renderHistory("?from=2025-01-01&to=2025-12-31");
@@ -432,12 +592,210 @@ describe("LoanHistoryView period presets", () => {
     await findRow("Дюна");
     expect(lastListUrl()).toContain("returnedFrom=2025-01-01");
 
-    await pickPeriod(copy.period.all);
+    await openAdvancedFilters();
+    await userEvent.click(chip(copy.period.all));
+    await userEvent.click(screen.getByRole("button", { name: advanced.apply }));
 
     await waitFor(() => {
       expect(lastListUrl()).not.toContain("returnedFrom");
     });
     expect(lastListUrl()).not.toContain("returnedTo");
+  });
+
+  it("refuses to apply an inverted loan-date range", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?loanFrom=2026-08-12&loanTo=2026-08-02");
+
+    await findRow("Дюна");
+    await openAdvancedFilters();
+
+    expect(screen.getByRole("button", { name: advanced.apply })).toBeDisabled();
+    expect(screen.getByText(advanced.range.invalid)).toBeInTheDocument();
+    expect(lastListUrl()).not.toContain("loanDate");
+  });
+
+  it("narrows the people to the direction of the draft", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await openAdvancedFilters();
+    await userEvent.click(chip(copy.direction.borrowed_from_someone));
+
+    await waitFor(() => {
+      expect(lastPeopleUrl()).toContain("type=borrowed_from_someone");
+    });
+  });
+});
+
+describe("LoanHistoryView active filters", () => {
+  it("shows one chip per applied condition", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory(
+      `?q=дюна&type=lent_to_someone&contactId=${CONTACT_IDS.olena}&from=2026-01-01&to=2026-12-31&loanFrom=2026-02-01`,
+    );
+
+    expect(await screen.findByText(searchChip("дюна"))).toBeInTheDocument();
+    expect(screen.getByText(activeFilters.direction.lent_to_someone)).toBeInTheDocument();
+    expect(await screen.findByText(personChip("Олена"))).toBeInTheDocument();
+    expect(screen.getByText(activeFilters.returnedPreset.thisYear)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        activeFilters.loanDateFrom.lent_to_someone.replace("{value}", "1 лют. 2026 р."),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves the picked outcome to the quick filters", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?result=late&type=lent_to_someone");
+
+    const group = await screen.findByRole("group", { name: library.label });
+    expect(within(group).getByText(activeFilters.direction.lent_to_someone)).toBeInTheDocument();
+    expect(within(group).queryByText(quickFilters.late)).not.toBeInTheDocument();
+  });
+
+  it("drops one condition from its chip and keeps the rest", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory(`?type=lent_to_someone&contactId=${CONTACT_IDS.olena}`);
+
+    const directionChip = await screen.findByText(activeFilters.direction.lent_to_someone);
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: library.remove.replace("{label}", activeFilters.direction.lent_to_someone),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(directionChip).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(personChip("Олена"))).toBeInTheDocument();
+    await waitFor(() => {
+      expect(lastListUrl()).not.toContain("type=");
+    });
+    expect(lastListUrl()).toContain(`contactId=${CONTACT_IDS.olena}`);
+  });
+
+  it("clears the search from its own chip without touching the filters", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory("?q=дюна&type=lent_to_someone");
+
+    const searchLabel = searchChip("дюна");
+    await screen.findByText(searchLabel);
+    await userEvent.click(
+      screen.getByRole("button", { name: library.remove.replace("{label}", searchLabel) }),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(searchLabel)).not.toBeInTheDocument();
+    });
+    expect(screen.getByText(activeFilters.direction.lent_to_someone)).toBeInTheDocument();
+  });
+
+  it("clears the search, the outcome and every filter at once", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory(`?q=дюна&result=late&type=lent_to_someone&contactId=${CONTACT_IDS.olena}`);
+
+    await userEvent.click(await screen.findByRole("button", { name: library.clearAll }));
+
+    await waitFor(() => {
+      expect(lastListUrl()).toContain("result=all");
+    });
+    expect(lastListUrl()).not.toContain("search=");
+    expect(lastListUrl()).not.toContain("type=");
+    expect(lastListUrl()).not.toContain("contactId=");
+    expect(screen.queryByRole("group", { name: library.label })).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView person picker", () => {
+  it("lists the people of the history with their loan counts", async () => {
+    mockHistory([historyItem()], {
+      people: [
+        { contactId: CONTACT_IDS.olena, personName: "Олена", totalCount: 8 },
+        { contactId: CONTACT_IDS.ihor, personName: "Ігор", totalCount: 2 },
+      ],
+    });
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await openAdvancedFilters();
+    await userEvent.click(personPicker());
+
+    const olena = await screen.findByRole("option", { name: /Олена/ });
+    expect(within(olena).getByText("8 позик")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("option", { name: /Ігор/ })).getByText("2 позики"),
+    ).toBeInTheDocument();
+  });
+
+  it("offers no way to create a contact from the filters", async () => {
+    mockHistory([historyItem()], { people: [] });
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await openAdvancedFilters();
+    await userEvent.type(personPicker(), "Нова людина");
+
+    expect(await screen.findByText(copy.person.empty)).toBeInTheDocument();
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  });
+
+  it("keeps the chosen person named when the scope no longer lists them", async () => {
+    mockHistory([historyItem()], {
+      people: [{ contactId: CONTACT_IDS.olena, personName: "Олена", totalCount: 8 }],
+    });
+
+    renderHistory(`?contactId=${CONTACT_IDS.ihor}`);
+
+    await findRow("Дюна");
+    expect(await screen.findByText(personChip("Ігор"))).toBeInTheDocument();
+
+    await openAdvancedFilters();
+
+    await waitFor(() => {
+      expect(personPicker()).toHaveValue("Ігор");
+    });
+  });
+});
+
+describe("LoanHistoryView result count", () => {
+  it("counts the loaded loans against the filtered total", async () => {
+    mockHistory(historyItems(12));
+
+    renderHistory();
+
+    expect(await screen.findByText(shownCount(10, 12))).toBeInTheDocument();
+  });
+
+  it("grows the count when the reader asks for more", async () => {
+    mockHistory(historyItems(12));
+
+    renderHistory();
+
+    await screen.findByText(shownCount(10, 12));
+    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+
+    expect(await screen.findByText(shownCount(12, 12))).toBeInTheDocument();
+  });
+
+  it("says nothing while the first page is in flight", async () => {
+    server.listPending = true;
+    mockHistory(historyItems(12));
+
+    renderHistory();
+
+    await screen.findByText(copy.states.loading);
+    expect(screen.queryByText(/Показано/)).not.toBeInTheDocument();
   });
 });
 
@@ -1082,13 +1440,13 @@ describe("LoanHistoryView analytics sidebar", () => {
 });
 
 describe("LoanHistoryView pagination", () => {
-  it("counts every match, not only the loans already on screen", async () => {
+  it("keeps the loans beyond the first page off the screen", async () => {
     mockHistory(historyItems(12));
 
     renderHistory();
 
     await findRow("Книга 1");
-    expect(screen.getByText("Знайдено 12 завершених позик")).toBeInTheDocument();
+    expect(screen.getByText(shownCount(10, 12))).toBeInTheDocument();
     expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
   });
 
@@ -1123,7 +1481,7 @@ describe("LoanHistoryView pagination", () => {
     await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
     await screen.findByText("Книга 11");
 
-    await pickOption(copy.toolbar.resultLabel, copy.results.on_time);
+    await userEvent.click(chip(quickFilters.on_time));
 
     await waitFor(() => {
       expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
@@ -1242,14 +1600,22 @@ function bookCover(): NonNullable<HistoryFixture["book"]["cover"]> {
   };
 }
 
-function contactView(): LoanContactView {
+function chip(label: string): HTMLElement {
+  return screen.getByRole("radio", { name: chipName(label) });
+}
+
+function chipName(label: string): (name: string) => boolean {
+  return (name) => name.startsWith(label);
+}
+
+function contactView(contactId: string): LoanContactView {
   return {
     archivedAt: null,
     contact: null,
     createdAt: "2026-01-01T10:00:00.000Z",
-    id: CONTACT_IDS.olena,
+    id: contactId,
     loanCount: 8,
-    name: "Олена",
+    name: CONTACT_NAMES[contactId] ?? "Невідомий",
     updatedAt: "2026-01-01T10:00:00.000Z",
   };
 }
@@ -1262,6 +1628,28 @@ async function correctReturnedDate(): Promise<void> {
   const calendar = await screen.findByRole("grid");
   await userEvent.click(within(calendar).getByRole("button", { name: /^\D+, 1-е липня 2026/ }));
   await userEvent.click(within(dialog).getByRole("button", { name: copy.correctDate.save }));
+}
+
+function countResults(items: HistoryFixture[]): LoanHistoryResultCounts {
+  return {
+    all: items.length,
+    late: items.filter((item) => item.historyResult === "late").length,
+    no_due_date: items.filter((item) => item.historyResult === "no_due_date").length,
+    on_time: items.filter((item) => item.historyResult === "on_time").length,
+  };
+}
+
+function filterSection(title: string): HTMLElement {
+  const section = screen
+    .getAllByText(title)
+    .map((node) => node.closest<HTMLElement>('[data-slot="filter-section"]'))
+    .find((node) => node !== null);
+  if (section === undefined) throw new Error(`Filter section not found: ${title}`);
+  return section;
+}
+
+function findChip(label: string): Promise<HTMLElement> {
+  return screen.findByRole("radio", { name: chipName(label) });
 }
 
 async function findPeriod(title: string): Promise<HTMLElement> {
@@ -1386,6 +1774,12 @@ function lastListUrl(): string {
   return found.url;
 }
 
+function lastPeopleUrl(): string {
+  const found = requests.filter((entry) => entry.url.includes("/api/loans/history/people")).at(-1);
+  if (found === undefined) throw new Error("the history people were never requested");
+  return found.url;
+}
+
 function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
   const pageSize = 10;
 
@@ -1401,7 +1795,7 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
       }
 
       if (url.includes("/api/loans/contacts/")) {
-        return Promise.resolve(jsonResponse(contactView()));
+        return Promise.resolve(jsonResponse(contactView(url.split("/").at(-1) ?? "")));
       }
 
       if (url.includes("/api/loans/history/overview")) {
@@ -1434,6 +1828,7 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
             page: pageNumber,
             pagesCount: Math.max(1, Math.ceil(items.length / pageSize)),
             pageSize,
+            resultCounts: options.resultCounts ?? countResults(items),
             totalCount: items.length,
           }),
         );
@@ -1458,6 +1853,11 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
   );
 }
 
+async function openAdvancedFilters(): Promise<void> {
+  await userEvent.click(await screen.findByRole("button", { name: new RegExp(advanced.trigger) }));
+  await screen.findByRole("dialog", { name: advanced.title });
+}
+
 function openContactLabel(name: string): string {
   return contactDrawer.openContact.replace("{name}", name);
 }
@@ -1468,12 +1868,16 @@ async function openCorrectionDialog(action: string) {
   await userEvent.click(await screen.findByRole("menuitem", { name: action }));
 }
 
-function personFilter(): HTMLElement {
-  return screen.getByRole("combobox", { name: copy.toolbar.personLabel });
+function personChip(name: string): string {
+  return activeFilters.person.replace("{name}", name);
 }
 
 function personFilterLabel(name: string): string {
   return copy.sidebar.people.filter.replace("{name}", name);
+}
+
+function personPicker(): HTMLElement {
+  return screen.getByRole("combobox", { name: copy.person.label });
 }
 
 async function pickOption(selectLabel: string, optionName: RegExp | string) {
@@ -1481,19 +1885,35 @@ async function pickOption(selectLabel: string, optionName: RegExp | string) {
   await userEvent.click(await screen.findByRole("option", { name: optionName }));
 }
 
-async function pickPeriod(presetLabel: string) {
-  await userEvent.click(screen.getByRole("button", { name: copy.toolbar.periodLabel }));
-  await userEvent.click(await screen.findByRole("radio", { name: presetLabel }));
+async function pickPerson(name: string): Promise<void> {
+  await userEvent.click(personPicker());
+  await userEvent.click(await screen.findByRole("option", { name: new RegExp(name) }));
 }
 
 function plannedOn(date: string): string {
   return copy.loanPeriod.plan.replace("{date}", date);
 }
 
-function renderHistory(searchParams = "") {
+function renderHistory(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <LoanHistoryView />
     </NuqsTestingAdapter>,
   );
+}
+
+function searchChip(query: string): string {
+  return activeFilters.search.replace("{query}", query);
+}
+
+function shownCount(shown: number, total: number): string {
+  return `Показано ${shown} із ${total} позик`;
+}
+
+function trackUrl() {
+  const events: UrlUpdateEvent[] = [];
+  const onUrlUpdate: OnUrlUpdateFunction = (event) => {
+    events.push(event);
+  };
+  return { events, onUrlUpdate };
 }

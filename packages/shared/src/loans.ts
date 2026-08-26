@@ -196,6 +196,8 @@ const isReturnedRangeOrdered = (value: { returnedFrom?: string; returnedTo?: str
 export const LoanHistoryQuerySchema = z
   .object({
     contactId: z.uuid().optional(),
+    loanDateFrom: z.iso.date().optional(),
+    loanDateTo: z.iso.date().optional(),
     ...paginationQueryFields({ pageSizeDefault: 10 }),
     result: LoanHistoryResultFilterSchema.default("all"),
     returnedFrom: z.iso.date().optional(),
@@ -204,18 +206,28 @@ export const LoanHistoryQuerySchema = z
     sort: LoanHistorySortSchema.default("returned_desc"),
     type: LoanTypeSchema.optional(),
   })
-  .refine(isReturnedRangeOrdered, { error: RETURNED_RANGE_MESSAGE, path: ["returnedTo"] });
+  .refine(isReturnedRangeOrdered, { error: RETURNED_RANGE_MESSAGE, path: ["returnedTo"] })
+  .refine((value) => isDayRangeOrdered(value.loanDateFrom, value.loanDateTo), {
+    error: LOAN_DATE_RANGE_MESSAGE,
+    path: ["loanDateTo"],
+  });
 
 export type LoanHistoryQuery = z.infer<typeof LoanHistoryQuerySchema>;
 
 export const LoanHistoryOverviewQuerySchema = z
   .object({
     contactId: z.uuid().optional(),
+    loanDateFrom: z.iso.date().optional(),
+    loanDateTo: z.iso.date().optional(),
     returnedFrom: z.iso.date().optional(),
     returnedTo: z.iso.date().optional(),
     type: LoanTypeSchema.optional(),
   })
-  .refine(isReturnedRangeOrdered, { error: RETURNED_RANGE_MESSAGE, path: ["returnedTo"] });
+  .refine(isReturnedRangeOrdered, { error: RETURNED_RANGE_MESSAGE, path: ["returnedTo"] })
+  .refine((value) => isDayRangeOrdered(value.loanDateFrom, value.loanDateTo), {
+    error: LOAN_DATE_RANGE_MESSAGE,
+    path: ["loanDateTo"],
+  });
 
 export type LoanHistoryOverviewQuery = z.infer<typeof LoanHistoryOverviewQuerySchema>;
 
@@ -236,7 +248,24 @@ export const LoanHistoryListItemViewSchema = z.object({
 
 export type LoanHistoryListItemView = z.infer<typeof LoanHistoryListItemViewSchema>;
 
-export const PaginatedLoanHistorySchema = createPaginatedSchema(LoanHistoryListItemViewSchema);
+export const LoanHistoryResultCountsSchema = z.object({
+  all: z.number().int().nonnegative(),
+  late: z.number().int().nonnegative(),
+  no_due_date: z.number().int().nonnegative(),
+  on_time: z.number().int().nonnegative(),
+});
+
+export type LoanHistoryResultCounts = z.infer<typeof LoanHistoryResultCountsSchema>;
+
+export const PaginatedLoanHistorySchema = createPaginatedSchema(
+  LoanHistoryListItemViewSchema,
+).extend({
+  resultCounts: LoanHistoryResultCountsSchema.describe(
+    "Answers to every list filter except result itself, so all === on_time + late + no_due_date and all is the size of the dataset before the result filter is applied.",
+  ),
+});
+
+export type PaginatedLoanHistory = z.infer<typeof PaginatedLoanHistorySchema>;
 
 export const LoanHistoryDetailViewSchema = LoanHistoryListItemViewSchema.extend({
   contact: z.string().nullable(),
@@ -288,15 +317,26 @@ export const LoanHistoryOverviewViewSchema = z.object({
 
 export type LoanHistoryOverviewView = z.infer<typeof LoanHistoryOverviewViewSchema>;
 
-export const LoanHistoryPeopleQuerySchema = z.object({
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LOAN_HISTORY_PEOPLE_LIMIT.max)
-    .default(LOAN_HISTORY_PEOPLE_LIMIT.default),
-  search: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
-});
+export const LoanHistoryPeopleQuerySchema = z
+  .object({
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(LOAN_HISTORY_PEOPLE_LIMIT.max)
+      .default(LOAN_HISTORY_PEOPLE_LIMIT.default),
+    loanDateFrom: z.iso.date().optional(),
+    loanDateTo: z.iso.date().optional(),
+    returnedFrom: z.iso.date().optional(),
+    returnedTo: z.iso.date().optional(),
+    search: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
+    type: LoanTypeSchema.optional(),
+  })
+  .refine(isReturnedRangeOrdered, { error: RETURNED_RANGE_MESSAGE, path: ["returnedTo"] })
+  .refine((value) => isDayRangeOrdered(value.loanDateFrom, value.loanDateTo), {
+    error: LOAN_DATE_RANGE_MESSAGE,
+    path: ["loanDateTo"],
+  });
 
 export type LoanHistoryPeopleQuery = z.infer<typeof LoanHistoryPeopleQuerySchema>;
 

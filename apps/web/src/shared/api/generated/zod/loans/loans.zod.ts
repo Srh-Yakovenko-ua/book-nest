@@ -601,6 +601,12 @@ export const LoansControllerListResponse = zod.object({
 export const loanHistoryControllerListQueryContactIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
+export const loanHistoryControllerListQueryLoanDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerListQueryLoanDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const loanHistoryControllerListQueryPageNumberDefault = 1;
 export const loanHistoryControllerListQueryPageNumberMax = 21474836;
 
@@ -620,6 +626,8 @@ export const loanHistoryControllerListQuerySortDefault = `returned_desc`;
 
 export const LoanHistoryControllerListQueryParams = zod.object({
   contactId: zod.uuid().regex(loanHistoryControllerListQueryContactIdRegExp).optional(),
+  loanDateFrom: zod.iso.date().regex(loanHistoryControllerListQueryLoanDateFromRegExp).optional(),
+  loanDateTo: zod.iso.date().regex(loanHistoryControllerListQueryLoanDateToRegExp).optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -666,6 +674,18 @@ export const loanHistoryControllerListResponsePageSizeMax = 9007199254740991;
 
 export const loanHistoryControllerListResponseTotalCountMin = -9007199254740991;
 export const loanHistoryControllerListResponseTotalCountMax = 9007199254740991;
+
+export const loanHistoryControllerListResponseResultCountsAllMin = 0;
+export const loanHistoryControllerListResponseResultCountsAllMax = 9007199254740991;
+
+export const loanHistoryControllerListResponseResultCountsLateMin = 0;
+export const loanHistoryControllerListResponseResultCountsLateMax = 9007199254740991;
+
+export const loanHistoryControllerListResponseResultCountsNoDueDateMin = 0;
+export const loanHistoryControllerListResponseResultCountsNoDueDateMax = 9007199254740991;
+
+export const loanHistoryControllerListResponseResultCountsOnTimeMin = 0;
+export const loanHistoryControllerListResponseResultCountsOnTimeMax = 9007199254740991;
 
 export const LoanHistoryControllerListResponse = zod.object({
   items: zod.array(
@@ -744,6 +764,28 @@ export const LoanHistoryControllerListResponse = zod.object({
     .int()
     .min(loanHistoryControllerListResponseTotalCountMin)
     .max(loanHistoryControllerListResponseTotalCountMax),
+  resultCounts: zod
+    .object({
+      all: zod
+        .int()
+        .min(loanHistoryControllerListResponseResultCountsAllMin)
+        .max(loanHistoryControllerListResponseResultCountsAllMax),
+      late: zod
+        .int()
+        .min(loanHistoryControllerListResponseResultCountsLateMin)
+        .max(loanHistoryControllerListResponseResultCountsLateMax),
+      no_due_date: zod
+        .int()
+        .min(loanHistoryControllerListResponseResultCountsNoDueDateMin)
+        .max(loanHistoryControllerListResponseResultCountsNoDueDateMax),
+      on_time: zod
+        .int()
+        .min(loanHistoryControllerListResponseResultCountsOnTimeMin)
+        .max(loanHistoryControllerListResponseResultCountsOnTimeMax),
+    })
+    .describe(
+      "Answers to every list filter except result itself, so all === on_time + late + no_due_date and all is the size of the dataset before the result filter is applied.",
+    ),
 });
 
 /**
@@ -751,6 +793,12 @@ export const LoanHistoryControllerListResponse = zod.object({
  */
 export const loanHistoryControllerOverviewQueryContactIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const loanHistoryControllerOverviewQueryLoanDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerOverviewQueryLoanDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const loanHistoryControllerOverviewQueryReturnedFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -761,6 +809,11 @@ export const loanHistoryControllerOverviewQueryReturnedToRegExp = new RegExp(
 
 export const LoanHistoryControllerOverviewQueryParams = zod.object({
   contactId: zod.uuid().regex(loanHistoryControllerOverviewQueryContactIdRegExp).optional(),
+  loanDateFrom: zod.iso
+    .date()
+    .regex(loanHistoryControllerOverviewQueryLoanDateFromRegExp)
+    .optional(),
+  loanDateTo: zod.iso.date().regex(loanHistoryControllerOverviewQueryLoanDateToRegExp).optional(),
   returnedFrom: zod.iso
     .date()
     .regex(loanHistoryControllerOverviewQueryReturnedFromRegExp)
@@ -935,6 +988,18 @@ export const LoanHistoryControllerOverviewResponse = zod.object({
 export const loanHistoryControllerPeopleQueryLimitDefault = 50;
 export const loanHistoryControllerPeopleQueryLimitMax = 200;
 
+export const loanHistoryControllerPeopleQueryLoanDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerPeopleQueryLoanDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerPeopleQueryReturnedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loanHistoryControllerPeopleQueryReturnedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const loanHistoryControllerPeopleQuerySearchMax = 100;
 
 export const LoanHistoryControllerPeopleQueryParams = zod.object({
@@ -943,7 +1008,12 @@ export const LoanHistoryControllerPeopleQueryParams = zod.object({
     .min(1)
     .max(loanHistoryControllerPeopleQueryLimitMax)
     .default(loanHistoryControllerPeopleQueryLimitDefault),
+  loanDateFrom: zod.iso.date().regex(loanHistoryControllerPeopleQueryLoanDateFromRegExp).optional(),
+  loanDateTo: zod.iso.date().regex(loanHistoryControllerPeopleQueryLoanDateToRegExp).optional(),
+  returnedFrom: zod.iso.date().regex(loanHistoryControllerPeopleQueryReturnedFromRegExp).optional(),
+  returnedTo: zod.iso.date().regex(loanHistoryControllerPeopleQueryReturnedToRegExp).optional(),
   search: zod.string().max(loanHistoryControllerPeopleQuerySearchMax).optional(),
+  type: zod.enum(["borrowed_from_someone", "lent_to_someone"]).optional(),
 });
 
 export const loanHistoryControllerPeopleResponseItemsItemTotalCountMin = 0;
