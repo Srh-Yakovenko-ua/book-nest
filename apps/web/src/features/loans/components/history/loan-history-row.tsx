@@ -4,15 +4,16 @@ import type { LoanHistoryListItemView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useId } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "@/i18n/navigation";
@@ -37,7 +38,6 @@ export function LoanHistoryRow({
   onOpenContact,
   onOpenDetails,
 }: LoanHistoryRowProps) {
-  const t = useTranslations("loans.history");
   const tDirection = useTranslations("loans.history.direction");
 
   const isBorrowed = loan.type === "borrowed_from_someone";
@@ -45,9 +45,9 @@ export function LoanHistoryRow({
   const titleId = `loan-history-title-${loan.id}`;
 
   return (
-    <article className="group/history-row @container/history-row relative flex items-stretch gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none sm:gap-3.5">
+    <article className="@container/history-row flex items-stretch gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none sm:gap-3.5">
       <Link
-        className="relative z-10 aspect-[2/3] w-16 shrink-0 self-start overflow-hidden rounded-lg bg-accent outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-20"
+        className="relative aspect-[2/3] w-16 shrink-0 self-start overflow-hidden rounded-lg bg-accent outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-20"
         href={bookHref}
         tabIndex={-1}
       >
@@ -74,7 +74,7 @@ export function LoanHistoryRow({
             id={titleId}
           >
             <Link
-              className="relative z-10 rounded-sm text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="rounded-sm text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50"
               href={bookHref}
             >
               {loan.book.title}
@@ -88,7 +88,7 @@ export function LoanHistoryRow({
           <Badge variant={isBorrowed ? "info" : "primary"}>{tDirection(loan.type)}</Badge>
 
           <LoanContactNameButton
-            className="relative z-10 max-w-full self-start"
+            className="max-w-full self-start"
             contact={null}
             name={loan.personName}
             onOpen={onOpenContact}
@@ -101,64 +101,39 @@ export function LoanHistoryRow({
 
         <div className="hidden w-px self-stretch bg-border @3xl/history-row:block" />
 
-        <LoanHistoryOutcome loan={loan} />
+        <LoanHistoryOutcome loan={loan} onOpenDetails={onOpenDetails} titleId={titleId} />
       </div>
 
-      <div className="relative z-10 shrink-0 self-start">
+      <div className="shrink-0 self-start">
         <LoanHistoryActionsMenu
-          bookHref={bookHref}
+          loanId={loan.id}
           onCorrectDate={onCorrectDate}
           onEditNote={onEditNote}
-          onOpenDetails={onOpenDetails}
         />
       </div>
-
-      <button
-        aria-describedby={titleId}
-        aria-label={t("row.openDetails")}
-        className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        data-loan-trigger={loan.id}
-        onClick={onOpenDetails}
-        type="button"
-      />
     </article>
   );
 }
 
 function LoanHistoryActionsMenu({
-  bookHref,
+  loanId,
   onCorrectDate,
   onEditNote,
-  onOpenDetails,
 }: {
-  bookHref: string;
+  loanId: string;
   onCorrectDate: () => void;
   onEditNote: () => void;
-  onOpenDetails: () => void;
 }) {
   const t = useTranslations("loans.history.actions");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button aria-label={t("menu")} size="icon" variant="ghost">
+        <Button aria-label={t("menu")} data-loan-trigger={loanId} size="icon" variant="ghost">
           <UiIcon name="more" size={18} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuItem onSelect={onOpenDetails}>
-          <UiIcon name="info" size={16} />
-          {t("details")}
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href={bookHref}>
-            <UiIcon name="book" size={16} />
-            {t("openBook")}
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
         <DropdownMenuItem onSelect={onCorrectDate}>
           <UiIcon name="calendar" size={16} />
           {t("correctDate")}
@@ -172,29 +147,55 @@ function LoanHistoryActionsMenu({
   );
 }
 
-function LoanHistoryOutcome({ loan }: { loan: LoanHistoryListItemView }) {
-  const t = useTranslations("loans.history.row.outcome");
+function LoanHistoryOutcome({
+  loan,
+  onOpenDetails,
+  titleId,
+}: {
+  loan: LoanHistoryListItemView;
+  onOpenDetails: () => void;
+  titleId: string;
+}) {
+  const t = useTranslations("loans.history.row");
   const look = LOAN_HISTORY_RESULT_LOOK[loan.historyResult];
+  const outcomeId = useId();
 
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-0.5 self-start rounded-lg px-3 py-2 @3xl/history-row:w-48 @3xl/history-row:shrink-0",
-        look.surfaceClass,
-      )}
-    >
-      <p className={cn("flex items-start gap-1.5 text-sm font-semibold", look.toneClass)}>
-        <UiIcon aria-hidden className="mt-0.5 shrink-0" name={look.icon} size={16} />
-        <span>
-          <LoanHistoryOutcomeResult loan={loan} />
+    <TooltipHint label={t("openDetails")}>
+      <button
+        aria-describedby={`${titleId} ${outcomeId}`}
+        aria-label={t("openDetails")}
+        className={cn(
+          "group/outcome flex cursor-pointer items-center gap-2 self-start rounded-lg border px-3 py-2 text-left transition-colors duration-200 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none @3xl/history-row:w-52 @3xl/history-row:shrink-0",
+          look.surfaceClass,
+          look.hoverSurfaceClass,
+        )}
+        data-loan-details-trigger={loan.id}
+        onClick={onOpenDetails}
+        type="button"
+      >
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5" id={outcomeId}>
+          <span className={cn("flex items-start gap-1.5 text-sm font-semibold", look.toneClass)}>
+            <UiIcon aria-hidden className="mt-0.5 shrink-0" name={look.icon} size={16} />
+            <span className="min-w-0">
+              <LoanHistoryOutcomeResult loan={loan} />
+            </span>
+          </span>
+          {loan.durationDays === null ? null : (
+            <span className="pl-[1.375rem] text-xs text-muted-foreground tabular-nums">
+              {t("outcome.duration", { count: loan.durationDays })}
+            </span>
+          )}
         </span>
-      </p>
-      {loan.durationDays === null ? null : (
-        <p className="pl-[1.375rem] text-xs text-muted-foreground tabular-nums">
-          {t("duration", { count: loan.durationDays })}
-        </p>
-      )}
-    </div>
+
+        <UiIcon
+          aria-hidden
+          className="shrink-0 text-muted-foreground transition-colors group-hover/outcome:text-foreground"
+          name="chevron-right"
+          size={16}
+        />
+      </button>
+    </TooltipHint>
   );
 }
 

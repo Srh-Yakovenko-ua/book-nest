@@ -676,6 +676,24 @@ describe("LoanHistoryView row", () => {
     expect(within(row).queryAllByText(copy.loanPeriod.noTerm)).toHaveLength(1);
   });
 
+  it("still names the outcome of a no-due-date loan whose duration is unknown", async () => {
+    mockHistory([
+      historyItem({
+        durationDays: null,
+        expectedReturnDate: null,
+        historyResult: "no_due_date",
+        loanDate: null,
+      }),
+    ]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByText(copy.row.outcome.noDueDate)).toBeInTheDocument();
+    expect(within(row).queryByText(/Тривалість/)).not.toBeInTheDocument();
+    expect(within(row).queryByText(copy.result.no_due_date)).not.toBeInTheDocument();
+  });
+
   it.each([
     { expectedReturnDate: "2026-07-10", historyResult: "on_time" },
     { delayDays: 9, expectedReturnDate: "2026-06-25", historyResult: "late" },
@@ -711,28 +729,119 @@ describe("LoanHistoryView row", () => {
     const row = await findRow("Дюна");
     await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
 
-    expect(await screen.findByRole("menuitem", { name: copy.actions.details })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("menuitem", { name: copy.actions.correctDate }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("menuitem", { name: messages.loans.actions.markReturned }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: /Продовжити/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: /Нагадування/ })).not.toBeInTheDocument();
   });
-});
 
-describe("LoanHistoryView detail sheet", () => {
-  it("opens the details when the reader clicks the row", async () => {
-    mockHistory([historyItem({ contact: "olena@example.com", note: "Повернулася із закладкою" })]);
+  it("leaves the row menu with nothing but the two corrections", async () => {
+    mockHistory([historyItem()]);
 
     renderHistory();
 
     const row = await findRow("Дюна");
-    await userEvent.click(within(row).getByRole("button", { name: copy.row.openDetails }));
+    await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
+
+    const menu = await screen.findByRole("menu");
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.textContent),
+    ).toEqual([copy.actions.correctDate, copy.actions.editNote]);
+  });
+
+  it("sends the reader to the book through the card, not through the row menu", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(within(row).getByRole("link", { name: "Дюна" })).toHaveAttribute(
+      "href",
+      "/books/book-dune",
+    );
+
+    await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
+
+    const menu = await screen.findByRole("menu");
+    expect(
+      within(menu).queryByRole("menuitem", { name: copy.actions.openBook }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView detail sheet", () => {
+  it("opens the details from the result block", async () => {
+    mockHistory([historyItem({ contact: "olena@example.com", note: "Повернулася із закладкою" })]);
+
+    renderHistory();
+
+    await userEvent.click(await findResultBlock("Дюна"));
 
     const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
     expect(within(sheet).getByText("olena@example.com")).toBeInTheDocument();
     expect(within(sheet).getByText("Повернулася із закладкою")).toBeInTheDocument();
     expect(lastDetailUrl()).toBe("/api/loans/history/loan-dune");
+  });
+
+  it.each([
+    { historyResult: "on_time", outcome: copy.result.on_time },
+    { delayDays: 9, historyResult: "late", outcome: "Із запізненням на 9 днів" },
+    { expectedReturnDate: null, historyResult: "no_due_date", outcome: copy.row.outcome.noDueDate },
+  ] as const)("opens the details from a $historyResult result block", async (item) => {
+    mockHistory([historyItem(item)]);
+
+    renderHistory();
+
+    const trigger = await findResultBlock("Дюна");
+    expect(within(trigger).getByText(item.outcome)).toBeInTheDocument();
+
+    await userEvent.click(trigger);
+
+    expect(await screen.findByRole("dialog", { name: copy.detail.title })).toBeInTheDocument();
+    expect(lastDetailUrl()).toBe("/api/loans/history/loan-dune");
+  });
+
+  it.each(["{Enter}", " "])("opens the details when the reader presses %s", async (key) => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const trigger = await findResultBlock("Дюна");
+    trigger.focus();
+    await userEvent.keyboard(key);
+
+    expect(await screen.findByRole("dialog", { name: copy.detail.title })).toBeInTheDocument();
+  });
+
+  it("names the result block as the only way the card itself opens the details", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    expect(
+      within(row)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual([openContactLabel("Олена"), copy.row.openDetails, copy.actions.menu]);
+  });
+
+  it("leaves the details closed when the reader clicks the empty part of the card", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await userEvent.click(await findRow("Дюна"));
+    await userEvent.click(await findPeriod("Дюна"));
+
+    expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+    expect(requests.some((entry) => isDetailRequest(entry.url))).toBe(false);
   });
 
   it("opens the person card from the name in a row, leaving the details closed", async () => {
@@ -788,7 +897,7 @@ describe("LoanHistoryView detail sheet", () => {
     const row = await findRow("Дюна");
     await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
 
-    await screen.findByRole("menuitem", { name: copy.actions.details });
+    await screen.findByRole("menuitem", { name: copy.actions.correctDate });
     expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
   });
 
@@ -797,8 +906,7 @@ describe("LoanHistoryView detail sheet", () => {
 
     renderHistory();
 
-    const row = await findRow("Дюна");
-    await userEvent.click(within(row).getByRole("button", { name: copy.row.openDetails }));
+    await userEvent.click(await findResultBlock("Дюна"));
 
     const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
     expect(within(sheet).getByText(copy.detail.noteEmpty)).toBeInTheDocument();
@@ -806,27 +914,34 @@ describe("LoanHistoryView detail sheet", () => {
 });
 
 describe("LoanHistoryView focus", () => {
-  it("hands focus back to the row when the details sheet closes", async () => {
-    mockHistory([historyItem()]);
+  it.each(["click", "keyboard"] as const)(
+    "hands focus back to the result block when the details sheet closes after a %s open",
+    async (how) => {
+      mockHistory([historyItem()]);
 
-    renderHistory();
+      renderHistory();
 
-    const row = await findRow("Дюна");
-    const trigger = within(row).getByRole("button", { name: copy.row.openDetails });
+      const trigger = await findResultBlock("Дюна");
 
-    await userEvent.click(trigger);
-    await screen.findByRole("dialog", { name: copy.detail.title });
-    await userEvent.keyboard("{Escape}");
+      if (how === "click") {
+        await userEvent.click(trigger);
+      } else {
+        trigger.focus();
+        await userEvent.keyboard("{Enter}");
+      }
+      await screen.findByRole("dialog", { name: copy.detail.title });
+      await userEvent.keyboard("{Escape}");
 
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(trigger).toHaveFocus();
-    });
-  });
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(trigger).toHaveFocus();
+      });
+    },
+  );
 
-  it("hands focus back to the row when a correction opened from the row menu closes", async () => {
+  it("hands focus back to the row menu when a correction opened there closes", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
@@ -843,7 +958,26 @@ describe("LoanHistoryView focus", () => {
 
     const row = await findRow("Дюна");
     await waitFor(() => {
-      expect(within(row).getByRole("button", { name: copy.row.openDetails })).toHaveFocus();
+      expect(within(row).getByRole("button", { name: copy.actions.menu })).toHaveFocus();
+    });
+  });
+
+  it("keeps each row focus restore on its own card", async () => {
+    mockHistory(historyItems(3));
+
+    renderHistory();
+
+    const trigger = await findResultBlock("Книга 2");
+
+    await userEvent.click(trigger);
+    await screen.findByRole("dialog", { name: copy.detail.title });
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
     });
   });
 
@@ -852,8 +986,7 @@ describe("LoanHistoryView focus", () => {
 
     renderHistory();
 
-    const row = await findRow("Дюна");
-    await userEvent.click(within(row).getByRole("button", { name: copy.row.openDetails }));
+    await userEvent.click(await findResultBlock("Дюна"));
 
     const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
     const sheetAction = await within(sheet).findByRole("button", {
@@ -1136,6 +1269,11 @@ async function findPeriod(title: string): Promise<HTMLElement> {
   const block = within(row).getByText(copy.loanPeriod.title).parentElement;
   if (block === null) throw new Error(`Loan period block not found: ${title}`);
   return block;
+}
+
+async function findResultBlock(title: string): Promise<HTMLElement> {
+  const row = await findRow(title);
+  return within(row).getByRole("button", { name: copy.row.openDetails });
 }
 
 async function findRow(title: string): Promise<HTMLElement> {

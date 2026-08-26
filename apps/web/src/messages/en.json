@@ -5434,13 +5434,12 @@
       "row": {
         "openDetails": "Show the loan details",
         "outcome": {
-          "noDueDate": "Returned, no deadline",
+          "noDueDate": "Returned",
           "duration": "Duration: {count, plural, one {# day} other {# days}}"
         }
       },
       "actions": {
         "menu": "History record actions",
-        "details": "Details",
         "openBook": "Go to the book",
         "correctDate": "Fix the return date",
         "editNote": "Edit the note"

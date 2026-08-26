@@ -5434,13 +5434,12 @@
       "row": {
         "openDetails": "Показати деталі позики",
         "outcome": {
-          "noDueDate": "Повернуто без строку",
+          "noDueDate": "Повернуто",
           "duration": "Тривалість: {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}"
         }
       },
       "actions": {
         "menu": "Дії із записом історії",
-        "details": "Деталі",
         "openBook": "Перейти до книги",
         "correctDate": "Виправити дату повернення",
         "editNote": "Редагувати нотатку"
