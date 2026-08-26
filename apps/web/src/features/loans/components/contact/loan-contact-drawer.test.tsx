@@ -394,7 +394,7 @@ function contactView(overrides: Partial<LoanContactView> = {}): LoanContactView 
 function emptyOverview(): LoanHistoryOverviewView {
   return {
     duration: { averageDays: null, longestDays: null, shortestDays: null },
-    reliability: { lateCount: 0, noDueDateCount: 0, onTimeCount: 0, onTimePercent: 0 },
+    reliability: { lateCount: 0, noDueDateCount: 0, onTimeCount: 0, onTimePercent: null },
     summary: overviewSummary(),
     topPeople: [],
   };
@@ -544,12 +544,12 @@ function overviewSummary(
     averageDelayDays: null,
     averageDurationDays: null,
     borrowedCount: 0,
+    durationCount: 0,
     lateCount: 0,
-    latePercent: 0,
     lentCount: 0,
     noDueDateCount: 0,
     onTimeCount: 0,
-    onTimePercent: 0,
+    onTimePercent: null,
     totalCompleted: 0,
     ...overrides,
   };

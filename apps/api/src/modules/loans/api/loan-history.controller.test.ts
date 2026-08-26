@@ -40,17 +40,17 @@ const HISTORY_FIXTURE = {
 
 const EMPTY_OVERVIEW = {
   duration: { averageDays: null, longestDays: null, shortestDays: null },
-  reliability: { lateCount: 0, noDueDateCount: 0, onTimeCount: 0, onTimePercent: 0 },
+  reliability: { lateCount: 0, noDueDateCount: 0, onTimeCount: 0, onTimePercent: null },
   summary: {
     averageDelayDays: null,
     averageDurationDays: null,
     borrowedCount: 0,
+    durationCount: 0,
     lateCount: 0,
-    latePercent: 0,
     lentCount: 0,
     noDueDateCount: 0,
     onTimeCount: 0,
-    onTimePercent: 0,
+    onTimePercent: null,
     totalCompleted: 0,
   },
   topPeople: [],
@@ -1408,12 +1408,12 @@ describe("GET /api/loans/history/overview summary", () => {
       averageDelayDays: 7,
       averageDurationDays: 8,
       borrowedCount: 2,
+      durationCount: 3,
       lateCount: 2,
-      latePercent: 50,
       lentCount: 2,
       noDueDateCount: 1,
       onTimeCount: 1,
-      onTimePercent: 25,
+      onTimePercent: 33,
       totalCompleted: 4,
     });
   });
@@ -1441,11 +1441,11 @@ describe("GET /api/loans/history/overview summary", () => {
       lateCount: 2,
       noDueDateCount: 1,
       onTimeCount: 1,
-      onTimePercent: 25,
+      onTimePercent: 33,
     });
   });
 
-  it("returns zero percents and null averages for an empty history", async () => {
+  it("returns null percents and null averages for an empty history", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await historyOverview(accessToken);
@@ -1479,6 +1479,87 @@ describe("GET /api/loans/history/overview summary", () => {
     const res = await historyOverview(stranger.accessToken);
 
     expect(res.body).toEqual(EMPTY_OVERVIEW);
+  });
+
+  it("counts the on-time share against the loans that carried a due date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedOverviewHistory(accessToken);
+
+    const res = await historyOverview(accessToken);
+    const { summary } = LoanHistoryOverviewViewSchema.parse(res.body);
+
+    expect(summary.onTimePercent).toBe(
+      Math.round((summary.onTimeCount / (summary.onTimeCount + summary.lateCount)) * 100),
+    );
+    expect(summary.noDueDateCount).toBeGreaterThan(0);
+  });
+
+  it("leaves the on-time percent null when no completed loan carried a due date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      loanDate: "2026-01-01",
+      personName: "Olha",
+      returnedAt: "2026-01-20T10:00:00.000Z",
+      title: "Open ended borrowed",
+    });
+
+    const res = await historyOverview(accessToken);
+    const { reliability, summary } = LoanHistoryOverviewViewSchema.parse(res.body);
+
+    expect(summary).toMatchObject({
+      lateCount: 0,
+      noDueDateCount: 1,
+      onTimeCount: 0,
+      onTimePercent: null,
+      totalCompleted: 1,
+    });
+    expect(reliability.onTimePercent).toBeNull();
+  });
+
+  it("keeps a real zero on-time percent apart from a missing one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      expectedReturnDate: "2026-01-10",
+      loanDate: "2026-01-01",
+      personName: "Olha",
+      returnedAt: "2026-01-14T10:00:00.000Z",
+      title: "Late borrowed",
+    });
+
+    const res = await historyOverview(accessToken);
+
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).summary.onTimePercent).toBe(0);
+  });
+
+  it("counts the average duration only over the loans that have a loan date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedOverviewHistory(accessToken);
+
+    const res = await historyOverview(accessToken);
+    const { summary } = LoanHistoryOverviewViewSchema.parse(res.body);
+
+    expect(summary.durationCount).toBe(3);
+    expect(summary.totalCompleted).toBe(4);
+  });
+
+  it("reports a real zero average when every loan came back the same day", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      loanDate: "2026-01-01",
+      personName: "Olha",
+      returnedAt: "2026-01-01T18:00:00.000Z",
+      title: "Same day borrowed",
+    });
+
+    const res = await historyOverview(accessToken);
+
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).summary).toMatchObject({
+      averageDurationDays: 0,
+      durationCount: 1,
+    });
   });
 
   it("returns null duration analytics when no completed loan has a loan date", async () => {
@@ -1546,8 +1627,8 @@ describe("GET /api/loans/history/overview scope", () => {
       averageDelayDays: 10,
       averageDurationDays: 4,
       borrowedCount: 0,
+      durationCount: 1,
       lateCount: 1,
-      latePercent: 50,
       lentCount: 2,
       noDueDateCount: 1,
       onTimeCount: 0,

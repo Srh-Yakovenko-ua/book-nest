@@ -124,7 +124,10 @@ export class LoanHistoryService {
       this.loanHistoryRepository.topPeople({ ...scope, take: TOP_PEOPLE_LIMIT }),
     ]);
 
-    const onTimePercent = toPercent({ part: row.onTimeCount, whole: row.totalCompleted });
+    const onTimePercent = toOnTimePercent({
+      lateCount: row.lateCount,
+      onTimeCount: row.onTimeCount,
+    });
     const averageDurationDays = toAverage({
       divisor: row.durationCount,
       sum: row.totalDurationDays,
@@ -146,8 +149,8 @@ export class LoanHistoryService {
         averageDelayDays: toAverage({ divisor: row.lateCount, sum: row.totalDelayDays }),
         averageDurationDays,
         borrowedCount: row.borrowedCount,
+        durationCount: row.durationCount,
         lateCount: row.lateCount,
-        latePercent: toPercent({ part: row.lateCount, whole: row.totalCompleted }),
         lentCount: row.lentCount,
         noDueDateCount: row.noDueDateCount,
         onTimeCount: row.onTimeCount,
@@ -285,8 +288,15 @@ function toHistoryScope({
   };
 }
 
-function toPercent({ part, whole }: { part: number; whole: number }): number {
-  return whole === 0 ? 0 : Math.round((part / whole) * 100);
+function toOnTimePercent({
+  lateCount,
+  onTimeCount,
+}: {
+  lateCount: number;
+  onTimeCount: number;
+}): Nullable<number> {
+  const withDueDateCount = onTimeCount + lateCount;
+  return withDueDateCount === 0 ? null : Math.round((onTimeCount / withDueDateCount) * 100);
 }
 
 function toPersonOption(row: LoanHistoryPersonOptionRow): LoanHistoryPersonOption {
