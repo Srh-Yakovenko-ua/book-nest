@@ -515,7 +515,13 @@ function mockApi(options: MockOptions = {}) {
         return Promise.resolve(jsonResponse({ ...emptyOverview(), summary }));
       }
       if (url.includes("/api/loans/history")) {
-        return Promise.resolve(jsonResponse(page(options.history ?? [])));
+        const history = options.history ?? [];
+        return Promise.resolve(
+          jsonResponse({
+            ...page(history),
+            resultCounts: { all: history.length, late: 0, no_due_date: 0, on_time: history.length },
+          }),
+        );
       }
       if (url.startsWith("/api/books?")) {
         return Promise.resolve(jsonResponse(page(options.candidateBooks ?? [])));

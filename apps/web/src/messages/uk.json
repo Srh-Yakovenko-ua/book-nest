@@ -5297,7 +5297,7 @@
     "loadMore": "Показати ще",
     "loadMoreError": "Не вдалося завантажити ще позичені книги",
     "history": {
-      "resultsCount": "Знайдено {count, plural, one {# завершену позику} few {# завершені позики} many {# завершених позик} other {# завершених позик}}",
+      "shownCount": "Показано {shown} із {total, plural, one {# позики} few {# позик} many {# позик} other {# позик}}",
       "loadMore": "Показати ще",
       "loadMoreError": "Не вдалося завантажити більше записів історії",
       "cards": {
@@ -5340,30 +5340,48 @@
       },
       "toolbar": {
         "searchLabel": "Пошук в історії позик",
-        "searchPlaceholder": "Назва книги, автор або людина",
+        "searchPlaceholder": "Пошук за назвою, автором або людиною…",
         "searchClear": "Очистити пошук",
-        "directionLabel": "Напрямок",
-        "resultLabel": "Результат",
-        "personLabel": "Людина",
-        "periodLabel": "Період",
         "sortLabel": "Сортування"
       },
+      "quickFilters": {
+        "label": "Результат повернення",
+        "all": "Усі",
+        "on_time": "Повернуто вчасно",
+        "late": "Із запізненням",
+        "no_due_date": "Без строку"
+      },
       "direction": {
-        "all": "Усі напрямки",
+        "all": "Усі",
         "borrowed_from_someone": "Позичено в інших",
         "lent_to_someone": "Передано іншим"
       },
-      "results": {
-        "all": "Усі результати",
-        "on_time": "Повернуто вчасно",
-        "late": "Із запізненням",
-        "no_due_date": "Без визначеного строку"
+      "advancedFilters": {
+        "trigger": "Фільтри",
+        "title": "Фільтри історії",
+        "description": "Звужують історію позик. Пошук і швидкі фільтри працюють окремо і додаються зверху.",
+        "apply": "Застосувати",
+        "clear": "Очистити",
+        "sections": {
+          "direction": "Напрямок",
+          "person": "Людина",
+          "returned": "Дата повернення",
+          "loanDate": "Дата позики / передачі"
+        },
+        "range": {
+          "from": "Від",
+          "to": "До",
+          "invalid": "Дата «від» не може бути пізніша за дату «до»"
+        }
       },
       "person": {
-        "all": "Усі люди",
-        "count": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}}",
+        "label": "Людина",
+        "placeholder": "Будь-яка людина",
+        "heading": "Люди з історії",
+        "searching": "Шукаємо людей…",
         "empty": "В історії ще немає людей",
-        "loading": "Завантажуємо людей…"
+        "clear": "Очистити вибір людини",
+        "count": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}}"
       },
       "period": {
         "all": "За весь час",
@@ -5372,18 +5390,66 @@
         "custom": "Власний діапазон",
         "from": "Від",
         "to": "До",
-        "apply": "Застосувати",
-        "reset": "Скинути період",
-        "range": "{from} — {to}",
         "invalidRange": "Дата «від» не може бути пізніша за дату «до»"
       },
+      "activeFilters": {
+        "search": "Пошук: {query}",
+        "direction": {
+          "borrowed_from_someone": "Напрямок: Позичено в інших",
+          "lent_to_someone": "Напрямок: Передано іншим"
+        },
+        "person": "Людина: {name}",
+        "personUnknown": "Обрана людина",
+        "returnedPreset": {
+          "thisYear": "Повернено: цього року",
+          "lastYear": "Повернено: минулого року"
+        },
+        "returnedFrom": "Повернено: від {value}",
+        "returnedTo": "Повернено: до {value}",
+        "returnedRange": "Повернено: {from} – {to}",
+        "loanDateFrom": {
+          "all": "Дата позики / передачі: від {value}",
+          "borrowed_from_someone": "Дата позики: від {value}",
+          "lent_to_someone": "Дата передачі: від {value}"
+        },
+        "loanDateTo": {
+          "all": "Дата позики / передачі: до {value}",
+          "borrowed_from_someone": "Дата позики: до {value}",
+          "lent_to_someone": "Дата передачі: до {value}"
+        },
+        "loanDateRange": {
+          "all": "Дата позики / передачі: {from} – {to}",
+          "borrowed_from_someone": "Дата позики: {from} – {to}",
+          "lent_to_someone": "Дата передачі: {from} – {to}"
+        }
+      },
       "sort": {
-        "returned_desc": "Нещодавно повернені",
-        "returned_asc": "Найдавніше повернені",
-        "loan_date_desc": "За датою позики / передачі",
-        "duration_desc": "За тривалістю",
-        "title_asc": "За назвою",
-        "person_asc": "За людиною",
+        "options": {
+          "all": {
+            "returned_desc": "За датою повернення: спочатку нові",
+            "returned_asc": "За датою повернення: спочатку старі",
+            "loan_date_desc": "За датою позики / передачі: спочатку нові",
+            "duration_desc": "За тривалістю: спочатку найдовші",
+            "title_asc": "За назвою: А–Я",
+            "person_asc": "За людиною: А–Я"
+          },
+          "borrowed_from_someone": {
+            "returned_desc": "За датою повернення: спочатку нові",
+            "returned_asc": "За датою повернення: спочатку старі",
+            "loan_date_desc": "За датою позики: спочатку нові",
+            "duration_desc": "За тривалістю: спочатку найдовші",
+            "title_asc": "За назвою: А–Я",
+            "person_asc": "За людиною: А–Я"
+          },
+          "lent_to_someone": {
+            "returned_desc": "За датою повернення: спочатку нові",
+            "returned_asc": "За датою повернення: спочатку старі",
+            "loan_date_desc": "За датою передачі: спочатку нові",
+            "duration_desc": "За тривалістю: спочатку найдовші",
+            "title_asc": "За назвою: А–Я",
+            "person_asc": "За людиною: А–Я"
+          }
+        },
         "mobile": {
           "title": "Сортування",
           "description": "Виберіть порядок записів історії.",
@@ -5413,6 +5479,15 @@
         "returned": "Повернено",
         "unknownDate": "Дата невідома"
       },
+      "loanPeriod": {
+        "title": "Період позики",
+        "lent": "Передано",
+        "borrowed": "Позичено",
+        "returned": "Повернено",
+        "plan": "План: {date}",
+        "noTerm": "Строк не визначався",
+        "startUnknown": "Початок невідомий"
+      },
       "result": {
         "on_time": "Повернуто вчасно",
         "late": "Із запізненням на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
@@ -5420,17 +5495,17 @@
       },
       "duration": {
         "days": "{count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
-        "total": "{count, plural, one {# день} few {# дні} many {# днів} other {# днів}} усього",
         "unknown": "Тривалість невідома"
       },
       "row": {
-        "personBorrowed": "У кого позичено:",
-        "personLent": "Кому передано:",
-        "openDetails": "Показати деталі позики"
+        "openDetails": "Показати деталі позики",
+        "outcome": {
+          "noDueDate": "Повернуто",
+          "duration": "Тривалість: {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}"
+        }
       },
       "actions": {
         "menu": "Дії із записом історії",
-        "details": "Деталі",
         "openBook": "Перейти до книги",
         "correctDate": "Виправити дату повернення",
         "editNote": "Редагувати нотатку"

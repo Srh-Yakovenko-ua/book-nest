@@ -10,7 +10,7 @@ import type {
   LoanHistoryPersonStats,
   LoanHistoryQuery,
   Nullable,
-  Paginator,
+  PaginatedLoanHistory,
   UpdateLoanHistoryInput,
 } from "@app/shared";
 
@@ -91,8 +91,8 @@ export class LoanHistoryService {
   }: {
     query: LoanHistoryQuery;
     userId: string;
-  }): Promise<Paginator<LoanHistoryListItemView>> {
-    const { items, totalCount } = await this.loanHistoryRepository.listHistory({
+  }): Promise<PaginatedLoanHistory> {
+    const { items, resultCounts, totalCount } = await this.loanHistoryRepository.listHistory({
       ...toHistoryScope({ query, userId }),
       result: query.result,
       search: normalizeSearch(query.search),
@@ -100,12 +100,15 @@ export class LoanHistoryService {
       ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
     });
 
-    return buildPaginator({
-      items: items.map((loan) => this.toListItemView(loan)),
-      pageNumber: query.pageNumber,
-      pageSize: query.pageSize,
-      totalCount,
-    });
+    return {
+      ...buildPaginator({
+        items: items.map((loan) => this.toListItemView(loan)),
+        pageNumber: query.pageNumber,
+        pageSize: query.pageSize,
+        totalCount,
+      }),
+      resultCounts,
+    };
   }
 
   async overview({
@@ -164,7 +167,12 @@ export class LoanHistoryService {
   }): Promise<LoanHistoryPeopleView> {
     const rows = await this.loanHistoryRepository.people({
       limit: query.limit,
+      loanDateFrom: query.loanDateFrom,
+      loanDateTo: query.loanDateTo,
+      returnedFrom: query.returnedFrom,
+      returnedTo: query.returnedTo,
       search: normalizeSearch(query.search),
+      type: query.type,
       userId,
     });
     return { items: rows.map((row) => toPersonOption(row)) };
@@ -260,11 +268,16 @@ function toHistoryScope({
   query,
   userId,
 }: {
-  query: Pick<LoanHistoryQuery, "contactId" | "returnedFrom" | "returnedTo" | "type">;
+  query: Pick<
+    LoanHistoryQuery,
+    "contactId" | "loanDateFrom" | "loanDateTo" | "returnedFrom" | "returnedTo" | "type"
+  >;
   userId: string;
 }): LoanHistoryScope {
   return {
     contactId: query.contactId,
+    loanDateFrom: query.loanDateFrom,
+    loanDateTo: query.loanDateTo,
     returnedFrom: query.returnedFrom,
     returnedTo: query.returnedTo,
     type: query.type,
