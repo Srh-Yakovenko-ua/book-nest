@@ -225,13 +225,23 @@ function ReliabilityBlock({
       ) : (
         <>
           <p className="font-heading text-sm font-semibold text-ink">
-            {t("onTimePercent", { percent: reliability.onTimePercent })}
+            {reliability.onTimePercent === null
+              ? t("noDueDateOnly")
+              : t("onTimePercent", { percent: reliability.onTimePercent })}
           </p>
-          <dl className="flex flex-col gap-1.5">
-            <MetricRow label={t("onTime")} value={reliability.onTimeCount} />
-            <MetricRow label={t("late")} value={reliability.lateCount} />
-            <MetricRow label={t("noDueDate")} value={reliability.noDueDateCount} />
-          </dl>
+          {reliability.onTimePercent === null ? null : (
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {t("breakdown", { late: reliability.lateCount, onTime: reliability.onTimeCount })}
+            </p>
+          )}
+          {reliability.noDueDateCount === 0 ? null : (
+            <div className="flex flex-col gap-0.5 border-t border-border pt-2.5">
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {t("noDueDate", { count: reliability.noDueDateCount })}
+              </p>
+              <p className="text-xs text-muted-foreground">{t("noDueDateNote")}</p>
+            </div>
+          )}
         </>
       )}
     </SidebarBlock>

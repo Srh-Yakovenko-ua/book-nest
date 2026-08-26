@@ -286,7 +286,16 @@ export const LoanHistoryPersonStatsSchema = z.object({
 
 export type LoanHistoryPersonStats = z.infer<typeof LoanHistoryPersonStatsSchema>;
 
-const loanHistoryPercent = () => z.number().int().min(0).max(100);
+const loanHistoryOnTimePercent = () =>
+  z
+    .number()
+    .int()
+    .min(0)
+    .max(100)
+    .nullable()
+    .describe(
+      "Share of the loans that had a due date and came back on time, so onTimeCount / (onTimeCount + lateCount). Null when no completed loan carried a due date, which keeps a missing percentage apart from a real 0%.",
+    );
 
 export const LoanHistoryOverviewViewSchema = z.object({
   duration: z.object({
@@ -298,18 +307,24 @@ export const LoanHistoryOverviewViewSchema = z.object({
     lateCount: z.number().int().nonnegative(),
     noDueDateCount: z.number().int().nonnegative(),
     onTimeCount: z.number().int().nonnegative(),
-    onTimePercent: loanHistoryPercent(),
+    onTimePercent: loanHistoryOnTimePercent(),
   }),
   summary: z.object({
     averageDelayDays: z.number().int().nullable(),
     averageDurationDays: z.number().int().nullable(),
     borrowedCount: z.number().int().nonnegative(),
+    durationCount: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe(
+        "How many completed loans have a loan date, so how many averageDurationDays covers.",
+      ),
     lateCount: z.number().int().nonnegative(),
-    latePercent: loanHistoryPercent(),
     lentCount: z.number().int().nonnegative(),
     noDueDateCount: z.number().int().nonnegative(),
     onTimeCount: z.number().int().nonnegative(),
-    onTimePercent: loanHistoryPercent(),
+    onTimePercent: loanHistoryOnTimePercent(),
     totalCompleted: z.number().int().nonnegative(),
   }),
   topPeople: z.array(LoanHistoryPersonStatsSchema),

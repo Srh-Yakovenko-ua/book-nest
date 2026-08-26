@@ -852,11 +852,11 @@ export const loanHistoryControllerOverviewResponseSummaryAverageDurationDaysMax 
 export const loanHistoryControllerOverviewResponseSummaryBorrowedCountMin = 0;
 export const loanHistoryControllerOverviewResponseSummaryBorrowedCountMax = 9007199254740991;
 
+export const loanHistoryControllerOverviewResponseSummaryDurationCountMin = 0;
+export const loanHistoryControllerOverviewResponseSummaryDurationCountMax = 9007199254740991;
+
 export const loanHistoryControllerOverviewResponseSummaryLateCountMin = 0;
 export const loanHistoryControllerOverviewResponseSummaryLateCountMax = 9007199254740991;
-
-export const loanHistoryControllerOverviewResponseSummaryLatePercentMin = 0;
-export const loanHistoryControllerOverviewResponseSummaryLatePercentMax = 100;
 
 export const loanHistoryControllerOverviewResponseSummaryLentCountMin = 0;
 export const loanHistoryControllerOverviewResponseSummaryLentCountMax = 9007199254740991;
@@ -916,7 +916,11 @@ export const LoanHistoryControllerOverviewResponse = zod.object({
     onTimePercent: zod
       .int()
       .min(loanHistoryControllerOverviewResponseReliabilityOnTimePercentMin)
-      .max(loanHistoryControllerOverviewResponseReliabilityOnTimePercentMax),
+      .max(loanHistoryControllerOverviewResponseReliabilityOnTimePercentMax)
+      .nullable()
+      .describe(
+        "Share of the loans that had a due date and came back on time, so onTimeCount \/ (onTimeCount + lateCount). Null when no completed loan carried a due date, which keeps a missing percentage apart from a real 0%.",
+      ),
   }),
   summary: zod.object({
     averageDelayDays: zod
@@ -933,14 +937,17 @@ export const LoanHistoryControllerOverviewResponse = zod.object({
       .int()
       .min(loanHistoryControllerOverviewResponseSummaryBorrowedCountMin)
       .max(loanHistoryControllerOverviewResponseSummaryBorrowedCountMax),
+    durationCount: zod
+      .int()
+      .min(loanHistoryControllerOverviewResponseSummaryDurationCountMin)
+      .max(loanHistoryControllerOverviewResponseSummaryDurationCountMax)
+      .describe(
+        "How many completed loans have a loan date, so how many averageDurationDays covers.",
+      ),
     lateCount: zod
       .int()
       .min(loanHistoryControllerOverviewResponseSummaryLateCountMin)
       .max(loanHistoryControllerOverviewResponseSummaryLateCountMax),
-    latePercent: zod
-      .int()
-      .min(loanHistoryControllerOverviewResponseSummaryLatePercentMin)
-      .max(loanHistoryControllerOverviewResponseSummaryLatePercentMax),
     lentCount: zod
       .int()
       .min(loanHistoryControllerOverviewResponseSummaryLentCountMin)
@@ -956,7 +963,11 @@ export const LoanHistoryControllerOverviewResponse = zod.object({
     onTimePercent: zod
       .int()
       .min(loanHistoryControllerOverviewResponseSummaryOnTimePercentMin)
-      .max(loanHistoryControllerOverviewResponseSummaryOnTimePercentMax),
+      .max(loanHistoryControllerOverviewResponseSummaryOnTimePercentMax)
+      .nullable()
+      .describe(
+        "Share of the loans that had a due date and came back on time, so onTimeCount \/ (onTimeCount + lateCount). Null when no completed loan carried a due date, which keeps a missing percentage apart from a real 0%.",
+      ),
     totalCompleted: zod
       .int()
       .min(loanHistoryControllerOverviewResponseSummaryTotalCompletedMin)

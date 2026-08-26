@@ -74,17 +74,17 @@ vi.mock("@/i18n/navigation", () => ({
 
 const OVERVIEW: LoanHistoryOverviewView = {
   duration: { averageDays: 18, longestDays: 73, shortestDays: 2 },
-  reliability: { lateCount: 9, noDueDateCount: 2, onTimeCount: 26, onTimePercent: 84 },
+  reliability: { lateCount: 9, noDueDateCount: 2, onTimeCount: 26, onTimePercent: 74 },
   summary: {
     averageDelayDays: 6,
     averageDurationDays: 18,
     borrowedCount: 16,
+    durationCount: 29,
     lateCount: 9,
-    latePercent: 24,
     lentCount: 21,
     noDueDateCount: 2,
     onTimeCount: 26,
-    onTimePercent: 70,
+    onTimePercent: 74,
     totalCompleted: 37,
   },
   topPeople: [
@@ -217,15 +217,53 @@ describe("LoanHistoryView summary cards", () => {
     expect(within(total).getByText("21 передано · 16 позичено")).toBeInTheDocument();
   });
 
-  it("takes the on-time percent from the summary, not from the reliability block", async () => {
+  it("measures the on-time share against the loans that had a deadline", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     const onTime = await findStatCard(copy.cards.onTime.label);
     expect(within(onTime).getByText("26")).toBeInTheDocument();
-    expect(within(onTime).getByText("70% усіх завершених")).toBeInTheDocument();
-    expect(within(onTime).queryByText("84% усіх завершених")).not.toBeInTheDocument();
+    expect(within(onTime).getByText("74% позик із визначеним строком")).toBeInTheDocument();
+    expect(within(onTime).queryByText(/70%/)).not.toBeInTheDocument();
+  });
+
+  it("skips the on-time percent when no loan carried a deadline", async () => {
+    mockHistory([historyItem()], {
+      overview: {
+        ...OVERVIEW,
+        reliability: { ...OVERVIEW.reliability, onTimePercent: null },
+        summary: {
+          ...OVERVIEW.summary,
+          averageDelayDays: null,
+          lateCount: 0,
+          noDueDateCount: 37,
+          onTimeCount: 0,
+          onTimePercent: null,
+        },
+      },
+    });
+
+    renderHistory();
+
+    const onTime = await findStatCard(copy.cards.onTime.label);
+    expect(within(onTime).getByText(copy.cards.onTime.empty)).toBeInTheDocument();
+    expect(within(onTime).queryByText(/0%/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a real zero percent apart from a missing one", async () => {
+    mockHistory([historyItem()], {
+      overview: {
+        ...OVERVIEW,
+        reliability: { ...OVERVIEW.reliability, onTimeCount: 0, onTimePercent: 0 },
+        summary: { ...OVERVIEW.summary, onTimeCount: 0, onTimePercent: 0 },
+      },
+    });
+
+    renderHistory();
+
+    const onTime = await findStatCard(copy.cards.onTime.label);
+    expect(within(onTime).getByText("0% позик із визначеним строком")).toBeInTheDocument();
   });
 
   it("names the average delay on the late card", async () => {
@@ -238,43 +276,70 @@ describe("LoanHistoryView summary cards", () => {
     expect(within(late).getByText("У середньому — на 6 днів")).toBeInTheDocument();
   });
 
-  it("reassures the reader on the late card when nothing came back late", async () => {
+  it("claims no delays, not an all-on-time dataset, when nothing came back late", async () => {
     mockHistory([historyItem()], {
       overview: {
         ...OVERVIEW,
-        summary: { ...OVERVIEW.summary, averageDelayDays: null, lateCount: 0, latePercent: 0 },
+        reliability: { ...OVERVIEW.reliability, lateCount: 0, onTimePercent: 100 },
+        summary: {
+          ...OVERVIEW.summary,
+          averageDelayDays: null,
+          lateCount: 0,
+          onTimePercent: 100,
+        },
       },
     });
 
     renderHistory();
 
     const late = await findStatCard(copy.cards.late.label);
-    expect(within(late).getByText(copy.cards.late.allOnTime)).toBeInTheDocument();
+    expect(within(late).getByText(copy.cards.late.noDelays)).toBeInTheDocument();
   });
 
-  it("shows the average duration the backend computed", async () => {
+  it("says how many loans the average duration covers", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     const duration = await findStatCard(copy.cards.duration.label);
     expect(within(duration).getByText("18")).toBeInTheDocument();
-    expect(within(duration).getByText(copy.cards.duration.microfact)).toBeInTheDocument();
+    expect(within(duration).getByText("За 29 позиками з відомим початком")).toBeInTheDocument();
   });
 
-  it("says the duration is still unknown when the backend has no average", async () => {
+  it("reads a zero-day average as a real same-day duration", async () => {
     mockHistory([historyItem()], {
       overview: {
         ...OVERVIEW,
-        duration: { averageDays: null, longestDays: null, shortestDays: null },
-        summary: { ...OVERVIEW.summary, averageDurationDays: null },
+        duration: { ...OVERVIEW.duration, averageDays: 0 },
+        summary: { ...OVERVIEW.summary, averageDurationDays: 0, durationCount: 4 },
       },
     });
 
     renderHistory();
 
     const duration = await findStatCard(copy.cards.duration.label);
+    expect(within(duration).getByText("0")).toBeInTheDocument();
+    expect(within(duration).getByText("За 4 позиками з відомим початком")).toBeInTheDocument();
+    expect(within(duration).queryByText(copy.cards.duration.empty)).not.toBeInTheDocument();
+  });
+
+  it("says the duration is still unknown when no loan has a start", async () => {
+    mockHistory([historyItem()], {
+      overview: {
+        ...OVERVIEW,
+        duration: { averageDays: null, longestDays: null, shortestDays: null },
+        summary: { ...OVERVIEW.summary, averageDurationDays: null, durationCount: 0 },
+      },
+    });
+
+    renderHistory();
+
+    const duration = await findStatCard(copy.cards.duration.label);
+    expect(within(duration).getByText("—")).toBeInTheDocument();
     expect(within(duration).getByText(copy.cards.duration.empty)).toBeInTheDocument();
+
+    const tile = await findMobileTile(copy.cards.duration.mobile.compact);
+    expect(within(tile).getByText("—")).toBeInTheDocument();
   });
 });
 
@@ -1428,14 +1493,39 @@ describe("LoanHistoryView analytics sidebar", () => {
     expect(within(block).getByText("2 дні")).toBeInTheDocument();
   });
 
-  it("takes the reliability percent from the reliability block, not from the summary", async () => {
+  it("reads the sidebar percent off the same deadline-bound formula as the card", async () => {
     mockHistory([historyItem()]);
 
     renderHistory();
 
     const block = await findSidebarBlock(copy.sidebar.reliability.title);
-    expect(within(block).getByText("84% повернуто вчасно")).toBeInTheDocument();
-    expect(within(block).queryByText("70% повернуто вчасно")).not.toBeInTheDocument();
+    expect(within(block).getByText("74% повернуто вчасно")).toBeInTheDocument();
+    expect(within(block).getByText("26 вчасно · 9 із запізненням")).toBeInTheDocument();
+  });
+
+  it("keeps the loans with no deadline out of the sidebar percentage", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.reliability.title);
+    expect(within(block).getByText("2 позики без визначеного строку")).toBeInTheDocument();
+    expect(within(block).getByText(copy.sidebar.reliability.noDueDateNote)).toBeInTheDocument();
+  });
+
+  it("drops the sidebar percentage when no loan carried a deadline", async () => {
+    mockHistory([historyItem()], {
+      overview: {
+        ...OVERVIEW,
+        reliability: { lateCount: 0, noDueDateCount: 37, onTimeCount: 0, onTimePercent: null },
+      },
+    });
+
+    renderHistory();
+
+    const block = await findSidebarBlock(copy.sidebar.reliability.title);
+    expect(within(block).getByText(copy.sidebar.reliability.noDueDateOnly)).toBeInTheDocument();
+    expect(within(block).queryByText(/0% повернуто вчасно/)).not.toBeInTheDocument();
   });
 });
 
@@ -1650,6 +1740,17 @@ function filterSection(title: string): HTMLElement {
 
 function findChip(label: string): Promise<HTMLElement> {
   return screen.findByRole("radio", { name: chipName(label) });
+}
+
+function findMobileTile(compactLabel: string): Promise<HTMLElement> {
+  return waitFor(() => {
+    const tile = screen
+      .getAllByText(compactLabel)
+      .map((node) => node.closest<HTMLElement>('[data-slot="card"]'))
+      .find((node) => node !== null);
+    if (tile === undefined) throw new Error(`Mobile tile not found: ${compactLabel}`);
+    return tile;
+  });
 }
 
 async function findPeriod(title: string): Promise<HTMLElement> {

@@ -5313,7 +5313,8 @@
         },
         "onTime": {
           "label": "Returned on time",
-          "microfact": "{percent}% of everything completed",
+          "microfact": "{percent}% of the loans with a deadline",
+          "empty": "No loan with a deadline yet",
           "mobile": {
             "compact": "On time",
             "detailed": "Returned on time"
@@ -5322,7 +5323,7 @@
         "late": {
           "label": "Returned late",
           "microfact": "On average — {count, plural, one {# day} other {# days}} late",
-          "allOnTime": "Every loan with a deadline came back on time",
+          "noDelays": "No late returns",
           "mobile": {
             "compact": "Late",
             "detailed": "Returned late"
@@ -5330,8 +5331,8 @@
         },
         "duration": {
           "label": "Average duration",
-          "microfact": "From the loan or handover to the return",
-          "empty": "No loan with a known duration yet",
+          "microfact": "Across {count, plural, one {# loan} other {# loans}} with a known start",
+          "empty": "Not enough data",
           "mobile": {
             "compact": "Duration",
             "detailed": "Average duration"
@@ -5545,11 +5546,12 @@
           "empty": "No duration data"
         },
         "reliability": {
-          "title": "Return reliability",
+          "title": "Meeting deadlines",
           "onTimePercent": "{percent}% returned on time",
-          "onTime": "On time",
-          "late": "Late",
-          "noDueDate": "No deadline",
+          "noDueDateOnly": "No loan with a deadline yet",
+          "breakdown": "{onTime} on time · {late} late",
+          "noDueDate": "{count, plural, one {# loan} other {# loans}} with no deadline",
+          "noDueDateNote": "Not counted in the percentage",
           "empty": "No completed loans yet"
         }
       },
