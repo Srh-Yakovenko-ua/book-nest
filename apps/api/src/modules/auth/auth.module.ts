@@ -7,6 +7,7 @@ import { OptionalJwtAccessGuard } from "./api/guards/optional-jwt-access.guard.j
 import { AccessTokenAuthenticator } from "./application/access-token.authenticator.js";
 import { AuthService } from "./application/auth.service.js";
 import { EmailVerificationService } from "./application/email-verification.service.js";
+import { PasswordChangeService } from "./application/password-change.service.js";
 import { PasswordResetService } from "./application/password-reset.service.js";
 import { PasswordService } from "./application/password.service.js";
 import { SessionCleanupReconciler } from "./application/session-cleanup.reconciler.js";
@@ -31,6 +32,7 @@ import { UsersRepository } from "./infrastructure/users.repository.js";
     AccessTokenAuthenticator,
     AuthService,
     EmailVerificationService,
+    PasswordChangeService,
     PasswordResetService,
     PasswordService,
     SessionCleanupReconciler,
