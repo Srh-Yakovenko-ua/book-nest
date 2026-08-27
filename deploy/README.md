@@ -79,6 +79,36 @@ cd ~/booknest && ./maintenance.sh on     # page goes up immediately, no restart 
 
 > **Never** run `docker system prune --volumes` (or any `--volumes` prune): the Postgres data lives in volumes and would be deleted. Image/build-cache pruning is safe; volume pruning is not.
 
+## Query visibility
+
+Three things tell you where the database spends its time, and they are all free.
+
+1. **`pg_stat_statements`** aggregates every statement by normalized text with call counts and total, mean and max time. The compose file preloads it and turns on `track_io_timing` on both Postgres containers. The preload only takes effect when the container is recreated, so after the first deploy that syncs this compose file, recreate the database containers (a few seconds of downtime each) and create the extension once per database:
+
+   ```sh
+   cd ~/booknest
+   docker compose up -d db-prod db-dev
+   docker compose exec -T db-prod psql -U booknest -d booknest -c 'create extension if not exists pg_stat_statements;'
+   docker compose exec -T db-dev  psql -U booknest -d booknest -c 'create extension if not exists pg_stat_statements;'
+   ```
+
+   Then, whenever something feels slow:
+
+   ```sh
+   docker compose exec -T db-prod psql -U booknest -d booknest -c "
+     select calls, round(total_exec_time::numeric, 1) as total_ms, round(mean_exec_time::numeric, 2) as mean_ms,
+            round(max_exec_time::numeric, 1) as max_ms, rows, left(query, 90) as query
+     from pg_stat_statements order by total_exec_time desc limit 15;"
+   ```
+
+   Sort by `mean_exec_time` for the slowest single statements and by `calls` for the chattiest. `select pg_stat_statements_reset();` clears the counters when you want a fresh window.
+
+2. **`log_min_duration_statement=500`** makes Postgres log every statement that takes over half a second, with its text, into the container log: `docker compose logs db-prod | grep 'duration:'`.
+
+3. **The API side.** Prisma emits a query event per statement; the API records each one in the `db_query_duration_seconds` histogram (visible on `/api/metrics` from inside the docker network) and logs a `slow query` warning with the SQL for anything at or above `SLOW_QUERY_THRESHOLD_MS` milliseconds (default 200). `docker compose logs api-prod | grep 'slow query'` lists them; the query event carries no request id, so pair a slow line with the request log by its timestamp.
+
+Read them together: the Postgres log says which statement was slow, `pg_stat_statements` says whether it is slow every time or once, and the API histogram says how much of a request's time the database accounts for.
+
 ## Common ops
 
 ```sh
