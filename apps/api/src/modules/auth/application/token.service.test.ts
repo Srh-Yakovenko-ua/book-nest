@@ -1,3 +1,4 @@
+import { addSeconds, isAfter, isBefore, subSeconds } from "date-fns";
 import { jwtVerify, SignJWT, UnsecuredJWT } from "jose";
 import { describe, expect, it } from "vitest";
 
@@ -36,6 +37,26 @@ describe("TokenService.verifyAccessToken", () => {
 
     expect(result.sub).toBe("11111111-1111-4111-8111-111111111111");
     expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("returns the issuance instant for a token it signed itself", async () => {
+    const beforeSigning = subSeconds(new Date(), 1);
+    const token = await service.signAccessToken("11111111-1111-4111-8111-111111111111");
+    const afterSigning = addSeconds(new Date(), 1);
+
+    const { issuedAt } = await service.verifyAccessToken(token);
+
+    expect(isBefore(beforeSigning, issuedAt)).toBe(true);
+    expect(isAfter(afterSigning, issuedAt)).toBe(true);
+  });
+
+  it("throws UnauthorizedError when the payload carries no iat", async () => {
+    const token = await new SignJWT({ sub: "11111111-1111-4111-8111-111111111111" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("15m")
+      .sign(accessSecret);
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
   });
 
   it("throws UnauthorizedError when the payload carries no exp", async () => {
