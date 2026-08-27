@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly Postgres dump of booknest prod, verified and copied to R2
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+WorkingDirectory=/home/deploy/booknest
+ExecStart=/home/deploy/booknest/backup.sh prod
