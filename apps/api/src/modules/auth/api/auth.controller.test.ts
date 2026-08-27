@@ -1,6 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
-import { subMilliseconds } from "date-fns";
+import { milliseconds, subMilliseconds } from "date-fns";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -95,6 +95,15 @@ function cookieValue(cookie: string): string {
   return pair;
 }
 
+async function loginAccessToken(password: string): Promise<string> {
+  const res = await request(app.getHttpServer())
+    .post("/api/auth/login")
+    .send({ email: validBody.email, password });
+  const accessToken = res.body.accessToken;
+  if (typeof accessToken !== "string") throw new Error("login did not return an access token");
+  return accessToken;
+}
+
 async function loginAndExtractCookie(rememberMe?: boolean): Promise<string> {
   await seedVerifiedUser();
   await prisma.session.deleteMany();
@@ -134,18 +143,17 @@ async function seedVerifiedUser(): Promise<void> {
 
 async function seedVerifiedUserAndLoginToken(): Promise<string> {
   await seedVerifiedUser();
-  const res = await request(app.getHttpServer())
-    .post("/api/auth/login")
-    .send({ email: validBody.email, password: validBody.password });
-  const accessToken = res.body.accessToken;
-  if (typeof accessToken !== "string") throw new Error("login did not return an access token");
-  return accessToken;
+  return loginAccessToken(validBody.password);
 }
 
 function tokenFromUrl(verificationUrl: string): string {
   const token = new URL(verificationUrl).searchParams.get("token");
   if (token === null) throw new Error("token query param missing");
   return token;
+}
+
+function waitPastTokenIssuedSecond(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds({ seconds: 1 })));
 }
 
 describe("POST /api/auth/registration", () => {
@@ -931,6 +939,42 @@ describe("POST /api/auth/reset-password", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "password" })]),
     );
+  });
+
+  it("stamps the password epoch on the user row", async () => {
+    await seedVerifiedUser();
+    const before = await prisma.user.findFirstOrThrow();
+    const token = await requestResetToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    const after = await prisma.user.findFirstOrThrow();
+
+    expect(before.passwordChangedAt).toBeNull();
+    expect(after.passwordChangedAt).not.toBeNull();
+  });
+
+  it("rejects an access token issued before the reset, accepts one issued after", async () => {
+    const staleAccessToken = await seedVerifiedUserAndLoginToken();
+    await waitPastTokenIssuedSecond();
+    const token = await requestResetToken();
+    await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    const staleRes = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${staleAccessToken}`);
+    const freshAccessToken = await loginAccessToken(newPassword);
+    const freshRes = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${freshAccessToken}`);
+
+    expect(staleRes.status).toBe(401);
+    expect(staleRes.body.code).toBe("access_token_stale");
+    expect(freshRes.status).toBe(200);
   });
 });
 
