@@ -6,6 +6,7 @@ import request, { type Response } from "supertest";
 
 import { MailService } from "../modules/mail/application/mail.service.js";
 import { createTestApp } from "./create-test-app.js";
+import { TRUSTED_ORIGIN } from "./trusted-origin.js";
 
 export type AuthenticatedUser = {
   accessToken: string;
@@ -111,6 +112,7 @@ export async function createAuthTestContext(
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: credentials.email, password: credentials.password });
 
     const accessToken = res.body.accessToken;

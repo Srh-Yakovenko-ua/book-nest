@@ -8,6 +8,7 @@ import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createTestApp } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { TRUSTED_ORIGIN } from "../../../test/trusted-origin.js";
 import { MailService } from "../../mail/application/mail.service.js";
 import { SESSION_ROTATION } from "../application/session.service.js";
 import { AuthModule } from "../auth.module.js";
@@ -52,6 +53,8 @@ const mailServiceStub = {
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+const FOREIGN_ORIGIN = "https://evil.example";
 
 const validBody = {
   email: "reader@example.com",
@@ -100,6 +103,7 @@ async function loginAndExtractCookie(rememberMe?: boolean): Promise<string> {
   await prisma.session.deleteMany();
   const res = await request(app.getHttpServer())
     .post("/api/auth/login")
+    .set("Origin", TRUSTED_ORIGIN)
     .send({ email: validBody.email, password: validBody.password, rememberMe });
   return readRefreshCookie(res.headers["set-cookie"]);
 }
@@ -136,6 +140,7 @@ async function seedVerifiedUserAndLoginToken(): Promise<string> {
   await seedVerifiedUser();
   const res = await request(app.getHttpServer())
     .post("/api/auth/login")
+    .set("Origin", TRUSTED_ORIGIN)
     .send({ email: validBody.email, password: validBody.password });
   const accessToken = res.body.accessToken;
   if (typeof accessToken !== "string") throw new Error("login did not return an access token");
@@ -358,6 +363,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password });
 
     expect(res.status).toBe(200);
@@ -372,12 +378,14 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password });
 
     const cookie = readRefreshCookie(res.headers["set-cookie"]);
 
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/Path=\/api\/auth/);
+    expect(cookie).toMatch(/SameSite=Strict/i);
   });
 
   it("opens a session row on successful login", async () => {
@@ -385,6 +393,7 @@ describe("POST /api/auth/login", () => {
 
     await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password });
 
     const sessionCount = await prisma.session.count();
@@ -397,6 +406,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password, rememberMe: true });
 
     expect(Object.keys(res.body).sort()).toEqual(["accessToken", "user"]);
@@ -407,6 +417,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password });
 
     const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
@@ -419,6 +430,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password, rememberMe: false });
 
     const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
@@ -431,6 +443,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password, rememberMe: true });
 
     const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
@@ -444,6 +457,7 @@ describe("POST /api/auth/login", () => {
 
     await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password, rememberMe: false });
 
     const session = await prisma.session.findFirstOrThrow();
@@ -459,6 +473,7 @@ describe("POST /api/auth/login", () => {
 
     await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password, rememberMe: true });
 
     const session = await prisma.session.findFirstOrThrow();
@@ -473,6 +488,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: "Wrongpassword123!" });
 
     expect(res.status).toBe(401);
@@ -484,6 +500,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: "Wrongpassword123!" });
 
     expect(res.headers["set-cookie"]).toBeUndefined();
@@ -492,6 +509,7 @@ describe("POST /api/auth/login", () => {
   it("returns 401 for an unknown email", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: "ghost@example.com", password: validBody.password });
 
     expect(res.status).toBe(401);
@@ -502,6 +520,7 @@ describe("POST /api/auth/login", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email, password: validBody.password });
 
     expect(res.status).toBe(403);
@@ -511,6 +530,7 @@ describe("POST /api/auth/login", () => {
   it("returns 400 with a password field error when the password is missing", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: validBody.email });
 
     expect(res.status).toBe(400);
@@ -522,12 +542,48 @@ describe("POST /api/auth/login", () => {
   it("returns 400 with an email field error when the email is malformed", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
+      .set("Origin", TRUSTED_ORIGIN)
       .send({ email: "not-an-email", password: validBody.password });
 
     expect(res.status).toBe(400);
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "email" })]),
     );
+  });
+
+  it("returns 403 with a cross_site_request code for a foreign Origin", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .set("Origin", FOREIGN_ORIGIN)
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("cross_site_request");
+  });
+
+  it("returns 200 without an Origin when the Sec-Fetch-Site header says same-origin", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .set("Sec-Fetch-Site", "same-origin")
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.accessToken).toBe("string");
+  });
+
+  it("returns 403 when neither the Origin nor the Sec-Fetch-Site header is sent", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("cross_site_request");
   });
 });
 
@@ -537,6 +593,7 @@ describe("POST /api/auth/refresh", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     expect(res.status).toBe(200);
@@ -550,6 +607,7 @@ describe("POST /api/auth/refresh", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     const rotated = readRefreshCookie(res.headers["set-cookie"]);
@@ -560,7 +618,10 @@ describe("POST /api/auth/refresh", () => {
   it("tombstones the old session row and persists a new live one", async () => {
     const cookie = await loginAndExtractCookie();
 
-    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+    await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
 
     const tombstoned = await prisma.session.count({ where: { rotatedAt: { not: null } } });
     const live = await prisma.session.count({ where: { rotatedAt: null } });
@@ -573,7 +634,10 @@ describe("POST /api/auth/refresh", () => {
     const cookie = await loginAndExtractCookie(false);
     const before = await prisma.session.findFirstOrThrow({ where: { rotatedAt: null } });
 
-    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+    await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
 
     const after = await prisma.session.findFirstOrThrow({ where: { rotatedAt: null } });
 
@@ -585,6 +649,7 @@ describe("POST /api/auth/refresh", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
@@ -601,6 +666,7 @@ describe("POST /api/auth/refresh", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     const maxAgeDays = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"])) / 86400;
@@ -613,6 +679,7 @@ describe("POST /api/auth/refresh", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
@@ -626,13 +693,17 @@ describe("POST /api/auth/refresh", () => {
     const cookie = await loginAndExtractCookie();
     const user = await prisma.user.findFirstOrThrow();
 
-    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+    await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
     const liveBefore = await prisma.session.count({
       where: { rotatedAt: null, userId: user.id },
     });
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     expect(res.status).toBe(401);
@@ -644,7 +715,10 @@ describe("POST /api/auth/refresh", () => {
     const cookie = await loginAndExtractCookie();
     const user = await prisma.user.findFirstOrThrow();
 
-    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+    await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
     await prisma.session.updateMany({
       data: { rotatedAt: subMilliseconds(new Date(), SESSION_ROTATION.reuseGraceMs + 1000) },
       where: { rotatedAt: { not: null }, userId: user.id },
@@ -652,6 +726,7 @@ describe("POST /api/auth/refresh", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     expect(res.status).toBe(401);
@@ -659,9 +734,29 @@ describe("POST /api/auth/refresh", () => {
   });
 
   it("returns 401 when no refresh cookie is present", async () => {
-    const res = await request(app.getHttpServer()).post("/api/auth/refresh");
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN);
 
     expect(res.status).toBe(401);
+  });
+
+  it("returns 403 and leaves the session unrotated when the Origin is foreign", async () => {
+    const cookie = await loginAndExtractCookie();
+    const before = await prisma.session.findFirstOrThrow();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Origin", FOREIGN_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
+
+    const after = await prisma.session.findFirstOrThrow();
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("cross_site_request");
+    expect(await prisma.session.count()).toBe(1);
+    expect(after.refreshHash).toBe(before.refreshHash);
+    expect(after.rotatedAt).toBeNull();
   });
 });
 
@@ -671,6 +766,7 @@ describe("POST /api/auth/logout", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/logout")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     const cleared = readRefreshCookie(res.headers["set-cookie"]);
@@ -683,7 +779,10 @@ describe("POST /api/auth/logout", () => {
   it("deletes the session row for the presented token", async () => {
     const cookie = await loginAndExtractCookie();
 
-    await request(app.getHttpServer()).post("/api/auth/logout").set("Cookie", cookieValue(cookie));
+    await request(app.getHttpServer())
+      .post("/api/auth/logout")
+      .set("Origin", TRUSTED_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
 
     const sessionCount = await prisma.session.count();
 
@@ -693,17 +792,23 @@ describe("POST /api/auth/logout", () => {
   it("invalidates the cookie so a later refresh with it returns 401", async () => {
     const cookie = await loginAndExtractCookie();
 
-    await request(app.getHttpServer()).post("/api/auth/logout").set("Cookie", cookieValue(cookie));
+    await request(app.getHttpServer())
+      .post("/api/auth/logout")
+      .set("Origin", TRUSTED_ORIGIN)
+      .set("Cookie", cookieValue(cookie));
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
+      .set("Origin", TRUSTED_ORIGIN)
       .set("Cookie", cookieValue(cookie));
 
     expect(res.status).toBe(401);
   });
 
   it("returns 200 with a logged_out status when no cookie is present", async () => {
-    const res = await request(app.getHttpServer()).post("/api/auth/logout");
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/logout")
+      .set("Origin", TRUSTED_ORIGIN);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "logged_out" });
