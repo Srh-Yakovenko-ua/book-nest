@@ -7,11 +7,8 @@ import { Prisma } from "../generated/prisma/client.js";
 const UNIQUE_CONSTRAINT_CODE = "P2002";
 const FOREIGN_KEY_CONSTRAINT_CODE = "P2003";
 const RECORD_NOT_FOUND_CODE = "P2025";
-const WRITE_CONFLICT_CODE = "P2034";
-const TRANSACTION_API_ERROR_CODE = "P2028";
-
 const RETRYABLE_TRANSACTION_FAILURES = {
-  prismaCodes: [WRITE_CONFLICT_CODE, TRANSACTION_API_ERROR_CODE],
+  prismaCodes: ["P2034", "P2028"],
   sqlStates: ["40001", "40P01"],
 } as const;
 
@@ -75,14 +72,6 @@ export function isUniqueConstraintErrorOn(error: unknown, constraint: string): b
     return target.includes(constraint);
   }
   return readConstraintName(error.meta) === constraint;
-}
-
-export function isWriteConflictError(
-  error: unknown,
-): error is Prisma.PrismaClientKnownRequestError {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === WRITE_CONFLICT_CODE
-  );
 }
 
 export function rethrowUniqueConstraintAs({
