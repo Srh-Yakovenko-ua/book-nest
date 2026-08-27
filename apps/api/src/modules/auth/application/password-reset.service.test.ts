@@ -13,9 +13,11 @@ import type { PasswordService } from "./password.service.js";
 import type { TokenService } from "./token.service.js";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
+import { AuthEvents } from "./auth-events.js";
 import { PasswordResetService } from "./password-reset.service.js";
 
 type Mocks = {
+  authEvents: AuthEvents;
   emailVerificationService: EmailVerificationService;
   mailService: MailService;
   passwordService: PasswordService;
@@ -74,6 +76,9 @@ function buildService(overrides: {
     run: vi.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
   } as unknown as TransactionRunner;
 
+  const authEvents = new AuthEvents();
+  vi.spyOn(authEvents, "emitSessionsRevoked");
+
   const service = new PasswordResetService(
     usersRepository,
     tokensRepository,
@@ -83,10 +88,12 @@ function buildService(overrides: {
     emailVerificationService,
     mailService,
     transactionRunner,
+    authEvents,
   );
 
   return {
     mocks: {
+      authEvents,
       emailVerificationService,
       mailService,
       passwordService,
@@ -234,6 +241,18 @@ describe("PasswordResetService.reset", () => {
     expect(mocks.mailService.sendPasswordChangedEmail).toHaveBeenCalledTimes(1);
   });
 
+  it("announces the revoked sessions once the reset transaction has committed", async () => {
+    const { mocks, service } = buildService({
+      consume: { userId: "11111111-1111-4111-8111-111111111111" },
+    });
+
+    await service.reset("raw-reset-token", "Supersecret123!");
+
+    expect(mocks.authEvents.emitSessionsRevoked).toHaveBeenCalledWith({
+      userId: "11111111-1111-4111-8111-111111111111",
+    });
+  });
+
   it("throws a BadRequestError when the token cannot be consumed", async () => {
     const { service } = buildService({ consume: null });
 
@@ -250,5 +269,13 @@ describe("PasswordResetService.reset", () => {
     expect(mocks.usersRepository.updatePassword).not.toHaveBeenCalled();
     expect(mocks.sessionsRepository.deleteAllByUserId).not.toHaveBeenCalled();
     expect(mocks.mailService.sendPasswordChangedEmail).not.toHaveBeenCalled();
+  });
+
+  it("announces nothing when the token is invalid", async () => {
+    const { mocks, service } = buildService({ consume: null });
+
+    await service.reset("expired-or-used", "Supersecret123!").catch(() => undefined);
+
+    expect(mocks.authEvents.emitSessionsRevoked).not.toHaveBeenCalled();
   });
 });

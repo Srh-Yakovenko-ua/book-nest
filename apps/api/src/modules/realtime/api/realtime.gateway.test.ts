@@ -18,6 +18,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { testAppPort } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
+import { AuthEvents } from "../../auth/application/auth-events.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { RealtimeConnectionRegistry } from "../application/realtime-connection.registry.js";
 import { RealtimeConnectionService } from "../application/realtime-connection.service.js";
@@ -110,6 +111,7 @@ function attemptRawUpgrade({
 }
 
 async function connectOwnerAndBystander(): Promise<{
+  bystanderSocket: Socket;
   hasBystanderReceived: () => boolean;
   ownerSocket: Socket;
   ownerUserId: string;
@@ -131,6 +133,7 @@ async function connectOwnerAndBystander(): Promise<{
   });
 
   return {
+    bystanderSocket,
     hasBystanderReceived: () => bystanderReceived,
     ownerSocket,
     ownerUserId: owner.userId,
@@ -481,5 +484,20 @@ describe("RealtimePort.emitToUser", () => {
         userId,
       }),
     ).not.toThrow();
+  });
+});
+
+describe("AuthEvents session revocation", () => {
+  it("closes every socket of the revoked user and leaves the other users connected", async () => {
+    const { bystanderSocket, ownerSocket, ownerUserId } = await connectOwnerAndBystander();
+
+    const ownerClosed = waitForDisconnect(ownerSocket);
+    app.get(AuthEvents).emitSessionsRevoked({ userId: ownerUserId });
+
+    await expect(ownerClosed).resolves.toBeUndefined();
+    expect(ownerSocket.connected).toBe(false);
+
+    await settleDeliveries();
+    expect(bystanderSocket.connected).toBe(true);
   });
 });

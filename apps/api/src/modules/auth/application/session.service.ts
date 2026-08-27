@@ -12,6 +12,7 @@ import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
+import { AuthEvents } from "./auth-events.js";
 import { TokenService } from "./token.service.js";
 
 type IssuedSession = {
@@ -46,6 +47,7 @@ export class SessionService {
     private readonly usersRepository: UsersRepository,
     private readonly tokenService: TokenService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly authEvents: AuthEvents,
   ) {}
 
   async issue(user: UserModel, options: IssueSessionOptions = {}): Promise<IssuedSession> {
@@ -81,6 +83,7 @@ export class SessionService {
       }
 
       await this.sessionsRepository.deleteAllByUserId(session.userId);
+      this.authEvents.emitSessionsRevoked({ userId: session.userId });
       throw new UnauthorizedError(SESSION_REUSE_MESSAGE);
     }
 
