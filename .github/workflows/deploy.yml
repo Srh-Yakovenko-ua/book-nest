@@ -117,6 +117,8 @@ jobs:
           file: apps/api/Dockerfile
           platforms: linux/amd64
           push: true
+          provenance: mode=max
+          sbom: true
           tags: ${{ env.IMAGE_PREFIX }}/booknest-api:${{ github.ref_name }}
           cache-from: type=gha,scope=api-${{ github.ref_name }}
           cache-to: type=gha,mode=max,scope=api-${{ github.ref_name }}
@@ -164,6 +166,8 @@ jobs:
           file: apps/web/Dockerfile
           platforms: linux/amd64
           push: true
+          provenance: mode=max
+          sbom: true
           tags: ${{ env.IMAGE_PREFIX }}/booknest-web:${{ github.ref_name }}
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ steps.env.outputs.site_url }}
