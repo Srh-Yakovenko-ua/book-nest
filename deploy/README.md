@@ -42,6 +42,30 @@ That's it — the first push to `dev`/`prod` renders `.env`, syncs the stack fil
 
 Push to `dev` or `prod`. CI builds + pushes the `:dev`/`:prod` image to GHCR, syncs stack files + renders `.env` on the server, then runs `./deploy.sh <env>` — pulls the new image, recreates only that env's containers, prunes dangling images. The API container runs `prisma migrate deploy` on boot, so the DB is brought up to date automatically.
 
+Two pushes to the same branch queue, they do not cancel each other: a deploy is a state transition on the box, and killing one halfway leaves a half-recreated stack. On the server `deploy.sh` also takes `flock` on `~/booknest/.deploy.lock`, so a second run started by hand while one is in flight fails fast instead of interleaving.
+
+## Migrations: expand only
+
+The API applies pending migrations on boot and `deploy.sh` rolls back the image when the new container does not become healthy. That rollback restores the code, not the schema: the migrations that already ran stay applied. So a migration is only safe to ship if the previous image still works with the schema it leaves behind. In practice:
+
+- Add columns as nullable or with a default; add tables and indexes freely. The old code never selects a column it does not know.
+- Never drop or rename a column or table in the same release that stops using it. Ship the code that stops reading it first, drop it in a later release once that code is live.
+- Backfills run as their own migration, in batches if the table is big, after the column exists.
+- Take `SET LOCAL lock_timeout = '3s'` on anything that touches a hot table (`users`, `books`), so a stuck lock fails the migration instead of stalling every request behind it.
+
+When a migration fails halfway, the container crashloops on `migrate deploy` until the row in `_prisma_migrations` is resolved. From the server, once the cause is fixed:
+
+```sh
+cd ~/booknest
+prisma_prod() { docker compose run --rm --no-deps --entrypoint node api-prod node_modules/prisma/build/index.js "$@"; }
+prisma_prod migrate status
+prisma_prod migrate resolve --rolled-back <migration_name>   # the DDL did not apply: run it again on next boot
+prisma_prod migrate resolve --applied <migration_name>       # the DDL did apply: mark it done
+docker compose up -d api-prod
+```
+
+`--rolled-back` tells Prisma to run the migration again on the next boot; `--applied` tells it to skip it. Read the migration and the database before choosing, `RESTORE.md` has the psql shell.
+
 ## Maintenance page (prod only)
 
 During a prod deploy the `api-prod` and `web-prod` containers are recreated, so for a few seconds there is nothing to answer requests. Caddy stays up throughout, so the maintenance response lives there — nowhere else can cover that window.
