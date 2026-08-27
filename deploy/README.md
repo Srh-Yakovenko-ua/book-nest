@@ -21,7 +21,7 @@ So the source of truth is: **code/compose → this repo**, **secrets → GitHub 
 
 ## Files
 
-- `docker-compose.yml` — the whole stack (caddy + both envs). Synced from repo by CI.
+- `docker-compose.yml` — the whole stack (caddy + both envs). Synced from repo by CI. It also carries the per-container log rotation (`json-file`, 10m x 5), the 30 s stop grace for the APIs so an in-flight request or queue job can finish before Docker sends SIGKILL, and a `pids_limit` on the app containers. Keeping these in the file means a rebuilt box gets them without anyone remembering `daemon.json`.
 - `Caddyfile` — routing + TLS + the Mailpit basic-auth. Synced from repo by CI. To change the Mailpit password, regenerate the hash with `docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>'` and replace it in the file.
 - `/api/metrics` is answered with a 404 at the edge on both hosts. The endpoint stays reachable inside the docker network for a future scraper.
 - `.env.example` — documents the shape; the real `.env` is CI-rendered from GitHub Secrets. **Never commit a real `.env`.**
