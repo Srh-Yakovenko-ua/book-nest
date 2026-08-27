@@ -22,6 +22,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "node --import @swc-node/register/esm-register --conditions=source scripts/migrate.ts",
     "db:migrate:deploy": "prisma migrate deploy",
+    "db:drift": "sh scripts/check-schema-drift.sh",
     "db:migrate:status": "prisma migrate status",
     "db:migrate:reset": "prisma migrate reset",
     "db:test:clean": "node --import @swc-node/register/esm-register --conditions=source scripts/db-test-clean.ts",
