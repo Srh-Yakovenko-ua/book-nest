@@ -1,5 +1,6 @@
 import type {
   AuthResultView,
+  ChangePasswordResultView,
   ForgotPasswordResultView,
   LogoutResultView,
   NicknameAvailabilityQuery,
@@ -11,6 +12,7 @@ import type {
 import type { Request, Response } from "express";
 
 import {
+  ChangePasswordInputSchema,
   ForgotPasswordInputSchema,
   LoginInputSchema,
   NicknameAvailabilityQuerySchema,
@@ -43,11 +45,13 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { AuthService } from "../application/auth.service.js";
 import { EmailVerificationService } from "../application/email-verification.service.js";
+import { PasswordChangeService } from "../application/password-change.service.js";
 import { PasswordResetService } from "../application/password-reset.service.js";
 import { SessionService } from "../application/session.service.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { CurrentUser } from "./guards/current-user.decorator.js";
 import { JwtProtected } from "./guards/jwt-protected.decorator.js";
+import { ChangePasswordInputDto } from "./input-dto/change-password.input-dto.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
@@ -67,6 +71,8 @@ const FORGOT_PASSWORD_TTL_SECONDS = 60;
 const FORGOT_PASSWORD_LIMIT = 3;
 const RESET_PASSWORD_TTL_SECONDS = 60;
 const RESET_PASSWORD_LIMIT = 5;
+const CHANGE_PASSWORD_TTL_SECONDS = 60;
+const CHANGE_PASSWORD_LIMIT = 5;
 const NICKNAME_AVAILABILITY_TTL_SECONDS = 60;
 const NICKNAME_AVAILABILITY_LIMIT = 20;
 const NICKNAME_MIN_LENGTH = 3;
@@ -82,6 +88,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly passwordChangeService: PasswordChangeService,
     private readonly passwordResetService: PasswordResetService,
     private readonly sessionService: SessionService,
   ) {}
@@ -254,6 +261,36 @@ export class AuthController {
     @Body(new ZodBodyPipe(ResetPasswordInputSchema)) body: ResetPasswordInputDto,
   ): Promise<ResetPasswordResultView> {
     return this.passwordResetService.reset(body.token, body.password);
+  }
+
+  @ApiBadRequestResponse({ description: "Current password is incorrect" })
+  @ApiBody({ type: ChangePasswordInputDto })
+  @ApiOkResponse({
+    description: "Password changed; every other session revoked and the refresh cookie rotated",
+  })
+  @ApiOperation({
+    summary: "Change the password of the signed-in user and sign every other device out",
+  })
+  @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
+  @Post("change-password")
+  @Throttle({
+    default: { limit: CHANGE_PASSWORD_LIMIT, ttl: seconds(CHANGE_PASSWORD_TTL_SECONDS) },
+  })
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodBodyPipe(ChangePasswordInputSchema)) body: ChangePasswordInputDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<ChangePasswordResultView> {
+    const { refreshToken, result, ttlDays } = await this.passwordChangeService.change({
+      currentPassword: body.currentPassword,
+      newPassword: body.newPassword,
+      userId: user.id,
+    });
+
+    this.setRefreshCookie(response, refreshToken, milliseconds({ days: ttlDays }));
+
+    return result;
   }
 
   private setRefreshCookie(

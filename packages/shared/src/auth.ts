@@ -99,10 +99,19 @@ export const ResetPasswordInputSchema = z.object({
   token: z.string().min(1),
 });
 
+export const ChangePasswordInputSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: PasswordSchema,
+});
+
 export type AuthResultView = {
   accessToken: string;
   user: UserView;
 };
+
+export type ChangePasswordInput = z.infer<typeof ChangePasswordInputSchema>;
+
+export type ChangePasswordResultView = { status: "password_changed" };
 
 export type ForgotPasswordResultView = { cooldownSeconds?: number; status: "reset_email_sent" };
 

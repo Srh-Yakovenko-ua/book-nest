@@ -934,6 +934,149 @@ describe("POST /api/auth/reset-password", () => {
   });
 });
 
+describe("POST /api/auth/change-password", () => {
+  const newPassword = "Brandnewpass123!";
+
+  it("returns 401 when no Authorization header is present", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .send({ currentPassword: validBody.password, newPassword });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 with a current_password_invalid code for a wrong current password", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: "Wrongpassword123!", newPassword });
+
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("current_password_invalid");
+  });
+
+  it("keeps the old password usable after a rejected change", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: "Wrongpassword123!", newPassword });
+
+    const login = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(login.status).toBe(200);
+  });
+
+  it("returns 200 with a password_changed status for the correct current password", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "password_changed" });
+  });
+
+  it("sets a fresh httpOnly refresh cookie scoped to /api/auth", async () => {
+    await seedVerifiedUser();
+    const login = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+    const previousCookie = cookieValue(readRefreshCookie(login.headers["set-cookie"]));
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${login.body.accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword });
+
+    const cookie = readRefreshCookie(res.headers["set-cookie"]);
+
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/Path=\/api\/auth/);
+    expect(cookieValue(cookie)).not.toBe(previousCookie);
+  });
+
+  it("leaves only the session issued to the device that changed the password", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword });
+
+    const sessionCount = await prisma.session.count();
+
+    expect(sessionCount).toBe(1);
+  });
+
+  it("stops accepting the old password and starts accepting the new one", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword });
+
+    const oldLogin = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+    const newLogin = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: newPassword });
+
+    expect(oldLogin.status).toBe(401);
+    expect(newLogin.status).toBe(200);
+  });
+
+  it("fires the password changed email after a successful change", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword });
+
+    expect(passwordChangedCount).toBe(1);
+  });
+
+  it("returns 400 with a newPassword field error when the new password lacks complexity", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword: "alllowercase" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "newPassword" })]),
+    );
+  });
+
+  it("returns 400 with a currentPassword field error when the current password is missing", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ newPassword });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "currentPassword" })]),
+    );
+  });
+});
+
 describe("GET /api/auth/me", () => {
   it("returns 200 with the authenticated user view for a valid bearer token", async () => {
     const accessToken = await seedVerifiedUserAndLoginToken();
