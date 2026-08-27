@@ -6,12 +6,14 @@ import type { TransactionRunner } from "../../../core/database/transaction-runne
 import type { UserModel } from "../../../generated/prisma/models.js";
 import type { UsersRepository } from "../infrastructure/users.repository.js";
 import type { EmailVerificationService } from "./email-verification.service.js";
+import type { LoginAttemptLimiter } from "./login-attempt-limiter.js";
 import type { PasswordService } from "./password.service.js";
 import type { SessionService } from "./session.service.js";
 
 import {
   BadRequestError,
   ForbiddenError,
+  TooManyRequestsError,
   UnauthorizedError,
 } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -23,6 +25,8 @@ const baseInput: RegistrationInput = {
   password: "supersecret",
 };
 
+const CLIENT_IP = "203.0.113.10";
+
 const loginInput: LoginInput = {
   email: "reader@example.com",
   password: "supersecret",
@@ -31,6 +35,7 @@ const loginInput: LoginInput = {
 
 type Mocks = {
   emailVerificationService: EmailVerificationService;
+  loginAttemptLimiter: LoginAttemptLimiter;
   passwordService: PasswordService;
   sessionService: SessionService;
   transactionRunner: TransactionRunner;
@@ -42,6 +47,7 @@ function buildService(overrides: {
   createError?: unknown;
   findByEmail?: Nullable<UserModel>;
   findByNickname?: Nullable<UserModel>;
+  locked?: boolean;
   sendVerification?: EmailVerificationService["sendVerification"];
 }): { mocks: Mocks; service: AuthService } {
   const create =
@@ -84,17 +90,27 @@ function buildService(overrides: {
     ),
   } as unknown as SessionService;
 
+  const loginAttemptLimiter = {
+    assertAttemptAllowed:
+      overrides.locked === true
+        ? vi.fn().mockRejectedValue(new TooManyRequestsError("locked", { code: "login_locked" }))
+        : vi.fn().mockResolvedValue(undefined),
+    clear: vi.fn().mockResolvedValue(undefined),
+  } as unknown as LoginAttemptLimiter;
+
   const service = new AuthService(
     usersRepository,
     passwordService,
     emailVerificationService,
     sessionService,
     transactionRunner,
+    loginAttemptLimiter,
   );
 
   return {
     mocks: {
       emailVerificationService,
+      loginAttemptLimiter,
       passwordService,
       sessionService,
       transactionRunner,
@@ -308,7 +324,7 @@ describe("AuthService.login", () => {
   it("returns the refresh token and an auth result for a verified user with the correct password", async () => {
     const { service } = buildService({ compare: true, findByEmail: verifiedUser() });
 
-    const output = await service.login(loginInput);
+    const output = await service.login({ clientIp: CLIENT_IP, input: loginInput });
 
     expect(output.refreshToken).toBe("refresh-token");
     expect(output.result.accessToken).toBe("access-token");
@@ -319,7 +335,7 @@ describe("AuthService.login", () => {
   it("looks the user up by email and confirms the supplied password", async () => {
     const { mocks, service } = buildService({ compare: true, findByEmail: verifiedUser() });
 
-    await service.login(loginInput);
+    await service.login({ clientIp: CLIENT_IP, input: loginInput });
 
     expect(mocks.usersRepository.findByEmail).toHaveBeenCalledWith("reader@example.com");
     expect(mocks.passwordService.compare).toHaveBeenCalledWith("supersecret", "stored-hash");
@@ -329,7 +345,7 @@ describe("AuthService.login", () => {
     const verified = verifiedUser();
     const { mocks, service } = buildService({ compare: true, findByEmail: verified });
 
-    await service.login(loginInput);
+    await service.login({ clientIp: CLIENT_IP, input: loginInput });
 
     expect(mocks.sessionService.issue).toHaveBeenCalledWith(verified, { rememberMe: false });
   });
@@ -338,7 +354,10 @@ describe("AuthService.login", () => {
     const verified = verifiedUser();
     const { mocks, service } = buildService({ compare: true, findByEmail: verified });
 
-    const output = await service.login({ ...loginInput, rememberMe: true });
+    const output = await service.login({
+      clientIp: CLIENT_IP,
+      input: { ...loginInput, rememberMe: true },
+    });
 
     expect(mocks.sessionService.issue).toHaveBeenCalledWith(verified, { rememberMe: true });
     expect(output.ttlDays).toBe(7);
@@ -347,7 +366,10 @@ describe("AuthService.login", () => {
   it("returns the short TTL chosen by the session service when rememberMe is false", async () => {
     const { service } = buildService({ compare: true, findByEmail: verifiedUser() });
 
-    const output = await service.login({ ...loginInput, rememberMe: false });
+    const output = await service.login({
+      clientIp: CLIENT_IP,
+      input: { ...loginInput, rememberMe: false },
+    });
 
     expect(output.ttlDays).toBe(1);
   });
@@ -355,13 +377,15 @@ describe("AuthService.login", () => {
   it("throws an UnauthorizedError when no user matches the email", async () => {
     const { service } = buildService({ findByEmail: null });
 
-    await expect(service.login(loginInput)).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(service.login({ clientIp: CLIENT_IP, input: loginInput })).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
   });
 
   it("runs the timing equalizer and skips session issuance for an unknown email", async () => {
     const { mocks, service } = buildService({ findByEmail: null });
 
-    await service.login(loginInput).catch(() => undefined);
+    await service.login({ clientIp: CLIENT_IP, input: loginInput }).catch(() => undefined);
 
     expect(mocks.passwordService.fakeCompare).toHaveBeenCalledWith("supersecret");
     expect(mocks.sessionService.issue).not.toHaveBeenCalled();
@@ -370,23 +394,25 @@ describe("AuthService.login", () => {
   it("throws an UnauthorizedError when the password does not match", async () => {
     const { service } = buildService({ compare: false, findByEmail: verifiedUser() });
 
-    await expect(service.login(loginInput)).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(service.login({ clientIp: CLIENT_IP, input: loginInput })).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
   });
 
   it("does not issue a session when the password does not match", async () => {
     const { mocks, service } = buildService({ compare: false, findByEmail: verifiedUser() });
 
-    await service.login(loginInput).catch(() => undefined);
+    await service.login({ clientIp: CLIENT_IP, input: loginInput }).catch(() => undefined);
 
     expect(mocks.sessionService.issue).not.toHaveBeenCalled();
   });
 
   it("uses the same generic message for an unknown email and a wrong password", async () => {
     const unknown = await buildService({ findByEmail: null })
-      .service.login(loginInput)
+      .service.login({ clientIp: CLIENT_IP, input: loginInput })
       .catch((caught: unknown) => caught);
     const wrong = await buildService({ compare: false, findByEmail: verifiedUser() })
-      .service.login(loginInput)
+      .service.login({ clientIp: CLIENT_IP, input: loginInput })
       .catch((caught: unknown) => caught);
 
     expect(unknown).toBeInstanceOf(UnauthorizedError);
@@ -400,7 +426,9 @@ describe("AuthService.login", () => {
       findByEmail: createdUser({ emailVerifiedAt: null }),
     });
 
-    const error = await service.login(loginInput).catch((caught: unknown) => caught);
+    const error = await service
+      .login({ clientIp: CLIENT_IP, input: loginInput })
+      .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(ForbiddenError);
     expect((error as ForbiddenError).code).toBe("email_not_verified");
@@ -412,9 +440,54 @@ describe("AuthService.login", () => {
       findByEmail: createdUser({ emailVerifiedAt: null }),
     });
 
-    await service.login(loginInput).catch(() => undefined);
+    await service.login({ clientIp: CLIENT_IP, input: loginInput }).catch(() => undefined);
 
     expect(mocks.sessionService.issue).not.toHaveBeenCalled();
+  });
+
+  it("rejects a locked client before it looks the user up", async () => {
+    const { mocks, service } = buildService({
+      compare: true,
+      findByEmail: verifiedUser(),
+      locked: true,
+    });
+
+    await expect(service.login({ clientIp: CLIENT_IP, input: loginInput })).rejects.toBeInstanceOf(
+      TooManyRequestsError,
+    );
+    expect(mocks.usersRepository.findByEmail).not.toHaveBeenCalled();
+  });
+
+  it("registers every attempt against the email and client before comparing", async () => {
+    const { mocks, service } = buildService({ compare: false, findByEmail: verifiedUser() });
+
+    await service.login({ clientIp: CLIENT_IP, input: loginInput }).catch(() => undefined);
+
+    expect(mocks.loginAttemptLimiter.assertAttemptAllowed).toHaveBeenCalledWith({
+      clientIp: CLIENT_IP,
+      email: "reader@example.com",
+    });
+    expect(mocks.loginAttemptLimiter.clear).not.toHaveBeenCalled();
+  });
+
+  it("registers an attempt for an unknown email so probing counts too", async () => {
+    const { mocks, service } = buildService({ findByEmail: null });
+
+    await service.login({ clientIp: CLIENT_IP, input: loginInput }).catch(() => undefined);
+
+    expect(mocks.loginAttemptLimiter.assertAttemptAllowed).toHaveBeenCalledTimes(1);
+    expect(mocks.loginAttemptLimiter.clear).not.toHaveBeenCalled();
+  });
+
+  it("clears the attempt counters once the password is confirmed", async () => {
+    const { mocks, service } = buildService({ compare: true, findByEmail: verifiedUser() });
+
+    await service.login({ clientIp: CLIENT_IP, input: loginInput });
+
+    expect(mocks.loginAttemptLimiter.clear).toHaveBeenCalledWith({
+      clientIp: CLIENT_IP,
+      email: "reader@example.com",
+    });
   });
 });
 

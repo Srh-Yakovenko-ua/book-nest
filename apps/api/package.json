@@ -30,6 +30,7 @@
   "dependencies": {
     "@app/shared": "workspace:*",
     "@aws-sdk/client-s3": "catalog:",
+    "@nest-lab/throttler-storage-redis": "catalog:",
     "@nestjs/bullmq": "catalog:",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
@@ -52,6 +53,7 @@
     "dotenv": "catalog:",
     "file-type": "catalog:",
     "helmet": "catalog:",
+    "ioredis": "catalog:",
     "jose": "catalog:",
     "nestjs-zod": "catalog:",
     "nodemailer": "catalog:",

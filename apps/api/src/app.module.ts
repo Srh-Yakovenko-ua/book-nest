@@ -1,14 +1,18 @@
 import type { MiddlewareConsumer, NestModule } from "@nestjs/common";
 
+import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 
 import { DatabaseModule } from "./core/database/database.module.js";
 import { RequestIdMiddleware } from "./core/middleware/request-id.middleware.js";
 import { RequestLoggerMiddleware } from "./core/middleware/request-logger.middleware.js";
 import { QueueModule } from "./core/queue/queue.module.js";
+import { RedisModule } from "./core/redis/redis.module.js";
+import { RedisService } from "./core/redis/redis.service.js";
+import { StorageFailOpenThrottlerGuard } from "./core/throttle.guard.js";
 import { GLOBAL_THROTTLE } from "./core/throttle.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AuthorsModule } from "./modules/authors/authors.module.js";
@@ -40,9 +44,17 @@ import { TrashModule } from "./modules/trash/trash.module.js";
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([GLOBAL_THROTTLE]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisService],
+      useFactory: (redis: RedisService) => ({
+        storage: new ThrottlerStorageRedisService(redis),
+        throttlers: [GLOBAL_THROTTLE],
+      }),
+    }),
     ScheduleModule.forRoot(),
     DatabaseModule,
+    RedisModule,
     QueueModule,
     HealthModule,
     MetricsModule,
@@ -71,7 +83,7 @@ import { TrashModule } from "./modules/trash/trash.module.js";
     CharactersModule,
     NotificationsModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [{ provide: APP_GUARD, useClass: StorageFailOpenThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

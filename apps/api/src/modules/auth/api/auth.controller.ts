@@ -19,7 +19,7 @@ import {
   ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Ip, Post, Query, Req, Res } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -157,9 +157,13 @@ export class AuthController {
   @Throttle({ default: { limit: LOGIN_LIMIT, ttl: seconds(LOGIN_TTL_SECONDS) } })
   async login(
     @Body(new ZodBodyPipe(LoginInputSchema)) body: LoginInputDto,
+    @Ip() clientIp: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResultView> {
-    const { refreshToken, result, ttlDays } = await this.authService.login(body);
+    const { refreshToken, result, ttlDays } = await this.authService.login({
+      clientIp,
+      input: body,
+    });
 
     this.setRefreshCookie(response, refreshToken, milliseconds({ days: ttlDays }));
 
