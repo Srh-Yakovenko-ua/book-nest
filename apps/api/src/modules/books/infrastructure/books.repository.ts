@@ -945,7 +945,7 @@ export class BooksRepository {
     }
     const unordered = await db.book.findMany({
       include: wishlistWithRelations(userId),
-      where: { id: { in: orderedIds } },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: orderedIds }, userId },
     });
     const byId = new Map(unordered.map((row) => [row.id, row]));
     const rows = orderedIds.flatMap((id) => {

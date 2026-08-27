@@ -122,7 +122,7 @@ export class HistoryOutcomeRepository {
     }
 
     const books = await this.prisma.book.findMany({
-      where: { id: { in: orderedIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: orderedIds }, userId },
       ...unreadPreviewRelations,
     });
     const byId = new Map(books.map((book) => [book.id, book]));

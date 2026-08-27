@@ -348,7 +348,7 @@ export class SeriesRepository {
     }
 
     const series = await this.prisma.series.findMany({
-      where: { id: { in: orderedIds } },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: orderedIds } },
       ...seriesWithBookCountArgs,
     });
     const seriesById = new Map(series.map((row) => [row.id, row]));
