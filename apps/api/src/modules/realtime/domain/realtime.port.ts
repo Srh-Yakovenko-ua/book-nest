@@ -6,6 +6,7 @@ export type RealtimeEmit = {
 };
 
 export abstract class RealtimePort {
+  abstract disconnectUser(target: { userId: string }): void;
   abstract emitToUser(emit: RealtimeEmit): void;
   abstract hasListeners(target: { userId: string }): Promise<boolean>;
 }

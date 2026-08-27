@@ -21,7 +21,7 @@ function buildPublisher(overrides: { hasListeners?: boolean } = {}): {
 
   const publisher = new NotificationRealtimePublisher(
     fakeOf<NotificationsRepository>({ countUnread }),
-    fakeOf<RealtimePort>({ emitToUser, hasListeners }),
+    fakeOf<RealtimePort>({ disconnectUser: vi.fn(), emitToUser, hasListeners }),
   );
 
   return { countUnread, emitToUser, publisher };

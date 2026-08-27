@@ -49,6 +49,7 @@ const queueStub = {
 };
 
 const realtimeStub = {
+  disconnectUser: vi.fn(),
   emitToUser: vi.fn(),
   hasListeners: vi.fn().mockResolvedValue(true),
 };
