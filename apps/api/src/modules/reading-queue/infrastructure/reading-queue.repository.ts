@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
+import { BOUNDED_LIST, reportTruncation } from "../../../core/database/bounded-list.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
@@ -140,12 +141,14 @@ export class ReadingQueueRepository {
     return book?.queuePosition ?? null;
   }
 
-  listQueue(userId: string, query?: ReadingQueueQuery): Promise<BookWithRelations[]> {
-    return this.prisma.book.findMany({
+  async listQueue(userId: string, query?: ReadingQueueQuery): Promise<BookWithRelations[]> {
+    const rows = await this.prisma.book.findMany({
       include: withRelations(userId),
       orderBy: [{ queuePosition: "asc" }, { id: "asc" }],
+      take: BOUNDED_LIST.maxRows,
       where: buildQueueWhere({ query, userId }),
     });
+    return reportTruncation({ context: { userId }, rows, scope: "reading queue" });
   }
 
   async loadPaceAggregate(

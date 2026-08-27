@@ -3,6 +3,7 @@ import type { LibrarySort, Nullable, OwnershipStatus, ReadingStatus } from "@app
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import { BOUNDED_LIST, reportTruncation } from "../../../core/database/bounded-list.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -259,14 +260,19 @@ export class BookLibraryReadRepository {
     statuses: ReadingStatus[];
     userId: string;
   }): Promise<ActiveReadingRow[]> {
-    const rows = await this.prisma.book.findMany({
-      select: {
-        id: true,
-        pagesCount: true,
-        readingProgress: { select: { currentPage: true } },
-        title: true,
-      },
-      where: buildLibraryWhere({ ownershipStatuses, readingStatuses: statuses, userId }),
+    const rows = reportTruncation({
+      context: { userId },
+      rows: await this.prisma.book.findMany({
+        select: {
+          id: true,
+          pagesCount: true,
+          readingProgress: { select: { currentPage: true } },
+          title: true,
+        },
+        take: BOUNDED_LIST.maxRows,
+        where: buildLibraryWhere({ ownershipStatuses, readingStatuses: statuses, userId }),
+      }),
+      scope: "active reading",
     });
     return rows.map((row) => ({
       currentPage: row.readingProgress?.currentPage ?? null,
