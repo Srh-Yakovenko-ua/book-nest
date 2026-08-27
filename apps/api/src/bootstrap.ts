@@ -12,6 +12,7 @@ import { HttpErrorFilter } from "./core/exceptions/http-error.filter.js";
 import { buildOpenApiDocument } from "./core/openapi.js";
 
 const JSON_BODY_LIMIT = "1mb";
+const UNCOMPRESSED_PATH_PREFIX = "/api/auth";
 
 export async function bootstrapNestApp(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -22,7 +23,12 @@ export async function bootstrapNestApp(): Promise<NestExpressApplication> {
   app.disable("x-powered-by");
   app.set("trust proxy", env.trustProxy ? 1 : false);
   app.use(helmet());
-  app.use(compression());
+  app.use(
+    compression({
+      filter: (req, res) =>
+        !req.path.startsWith(UNCOMPRESSED_PATH_PREFIX) && compression.filter(req, res),
+    }),
+  );
   app.enableCors({
     credentials: true,
     origin: (origin, cb) => {
