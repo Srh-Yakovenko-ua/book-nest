@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { MailService } from "../../mail/index.js";
+import { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
 import { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
 import { PasswordService } from "./password.service.js";
@@ -38,6 +39,7 @@ export class PasswordChangeService {
     private readonly sessionService: SessionService,
     private readonly mailService: MailService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly passwordResetTokensRepository: PasswordResetTokensRepository,
   ) {}
 
   async change({
@@ -65,6 +67,7 @@ export class PasswordChangeService {
     const updatedUser = await this.transactionRunner.run(async (tx) => {
       const updated = await this.usersRepository.updatePassword(userId, passwordHash, tx);
       await this.sessionsRepository.deleteAllByUserId(userId, tx);
+      await this.passwordResetTokensRepository.deleteByUserId(userId, tx);
 
       return updated;
     });

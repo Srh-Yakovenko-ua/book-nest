@@ -959,6 +959,22 @@ describe("POST /api/auth/change-password", () => {
     expect(res.body.code).toBe("current_password_invalid");
   });
 
+  it("invalidates a reset link that was issued before the password changed", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+    const resetToken = await requestResetToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/change-password")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ currentPassword: validBody.password, newPassword });
+
+    const reset = await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: "Anotherpass123!", token: resetToken });
+
+    expect(reset.status).toBe(400);
+  });
+
   it("keeps the old password usable after a rejected change", async () => {
     const accessToken = await seedVerifiedUserAndLoginToken();
 

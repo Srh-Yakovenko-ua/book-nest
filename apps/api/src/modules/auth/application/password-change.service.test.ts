@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
 import type { MailService } from "../../mail/application/mail.service.js";
+import type { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
 import type { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import type { UsersRepository } from "../infrastructure/users.repository.js";
 import type { PasswordService } from "./password.service.js";
@@ -15,6 +16,7 @@ import { PasswordChangeService } from "./password-change.service.js";
 
 type Mocks = {
   mailService: MailService;
+  passwordResetTokensRepository: PasswordResetTokensRepository;
   passwordService: PasswordService;
   sessionService: SessionService;
   sessionsRepository: SessionsRepository;
@@ -43,6 +45,10 @@ function buildService(overrides: { passwordMatches?: boolean; user?: Nullable<Us
     deleteAllByUserId: vi.fn().mockResolvedValue(undefined),
   } as unknown as SessionsRepository;
 
+  const passwordResetTokensRepository = {
+    deleteByUserId: vi.fn().mockResolvedValue(undefined),
+  } as unknown as PasswordResetTokensRepository;
+
   const passwordService = {
     compare: vi.fn().mockResolvedValue(overrides.passwordMatches ?? true),
     hash: vi.fn().mockResolvedValue("new-password-hash"),
@@ -69,11 +75,13 @@ function buildService(overrides: { passwordMatches?: boolean; user?: Nullable<Us
     sessionService,
     mailService,
     transactionRunner,
+    passwordResetTokensRepository,
   );
 
   return {
     mocks: {
       mailService,
+      passwordResetTokensRepository,
       passwordService,
       sessionService,
       sessionsRepository,
@@ -136,6 +144,7 @@ describe("PasswordChangeService.change", () => {
     expect(mocks.passwordService.hash).not.toHaveBeenCalled();
     expect(mocks.usersRepository.updatePassword).not.toHaveBeenCalled();
     expect(mocks.sessionsRepository.deleteAllByUserId).not.toHaveBeenCalled();
+    expect(mocks.passwordResetTokensRepository.deleteByUserId).not.toHaveBeenCalled();
     expect(mocks.sessionService.issue).not.toHaveBeenCalled();
     expect(mocks.mailService.sendPasswordChangedEmail).not.toHaveBeenCalled();
   });
@@ -208,5 +217,15 @@ describe("PasswordChangeService.change", () => {
       userName: "Reader",
     });
     expect(changed.result).toEqual({ status: "password_changed" });
+  });
+
+  it("discards every outstanding reset link inside the same transaction", async () => {
+    const { mocks, service } = buildService();
+
+    await service.change(changeCommand());
+
+    expect(mocks.passwordResetTokensRepository.deleteByUserId).toHaveBeenCalledWith(USER_ID, {
+      tx: true,
+    });
   });
 });
