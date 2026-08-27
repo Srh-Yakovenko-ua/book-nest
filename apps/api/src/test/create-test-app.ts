@@ -14,6 +14,7 @@ import { env } from "../config/env.js";
 import { DatabaseModule } from "../core/database/database.module.js";
 import { HttpErrorFilter } from "../core/exceptions/http-error.filter.js";
 import { RequestIdMiddleware } from "../core/middleware/request-id.middleware.js";
+import { RedisModule } from "../core/redis/redis.module.js";
 
 const JSON_BODY_LIMIT = "1mb";
 const LOOPBACK_HOST = "127.0.0.1";
@@ -28,7 +29,7 @@ export async function createTestApp(
   overrides: ProviderOverride[] = [],
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
-    imports: [DatabaseModule, TestBullModule, ...imports],
+    imports: [DatabaseModule, RedisModule, TestBullModule, ...imports],
   });
 
   for (const override of overrides) {

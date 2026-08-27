@@ -11,6 +11,7 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { MailService } from "../../mail/application/mail.service.js";
 import { SESSION_ROTATION } from "../application/session.service.js";
 import { AuthModule } from "../auth.module.js";
+import { LOGIN_ATTEMPT_POLICY } from "../domain/login-attempt-policy.js";
 
 type SentReset = { resetPasswordUrl: string; to: string };
 type SentVerification = { to: string; verificationUrl: string };
@@ -528,6 +529,46 @@ describe("POST /api/auth/login", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "email" })]),
     );
+  });
+
+  it("locks the account after five wrong passwords even when the sixth one is right", async () => {
+    await seedVerifiedUser();
+
+    for (let attempt = 0; attempt < LOGIN_ATTEMPT_POLICY.client.maxAttempts; attempt += 1) {
+      await request(app.getHttpServer())
+        .post("/api/auth/login")
+        .send({ email: validBody.email, password: "Wrongpassword123!" });
+    }
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(res.status).toBe(429);
+    expect(res.body.code).toBe("login_locked");
+  });
+
+  it("resets the failure counter on a successful sign-in", async () => {
+    await seedVerifiedUser();
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await request(app.getHttpServer())
+        .post("/api/auth/login")
+        .send({ email: validBody.email, password: "Wrongpassword123!" });
+    }
+    await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    const statuses: number[] = [];
+    for (let attempt = 0; attempt < LOGIN_ATTEMPT_POLICY.client.maxAttempts + 1; attempt += 1) {
+      const res = await request(app.getHttpServer())
+        .post("/api/auth/login")
+        .send({ email: validBody.email, password: "Wrongpassword123!" });
+      statuses.push(res.status);
+    }
+
+    expect(statuses).toEqual([401, 401, 401, 401, 401, 429]);
   });
 });
 

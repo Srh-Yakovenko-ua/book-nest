@@ -1,9 +1,16 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { env } from "../config/env.js";
 import { PrismaService } from "../core/database/prisma.service.js";
+import { RedisService } from "../core/redis/redis.service.js";
+import { deleteKeysUnderPrefix } from "./redis-keys.js";
 
 export async function truncateAllTables(app: INestApplication): Promise<void> {
-  const prisma = app.get(PrismaService);
+  await truncateTables(app.get(PrismaService));
+  await deleteKeysUnderPrefix({ client: app.get(RedisService), prefix: env.redisKeyPrefix });
+}
+
+async function truncateTables(prisma: PrismaService): Promise<void> {
   const rows = await prisma.$queryRaw<{ tablename: string }[]>`
     SELECT tablename
     FROM pg_tables

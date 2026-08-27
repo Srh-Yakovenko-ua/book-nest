@@ -21,10 +21,12 @@ import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
 import { EmailVerificationService } from "./email-verification.service.js";
+import { LoginAttemptLimiter } from "./login-attempt-limiter.js";
 import { PasswordService } from "./password.service.js";
 import { SessionService } from "./session.service.js";
 
 const EMAIL_TAKEN_MESSAGE = "Email already registered";
+const INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
 const NICKNAME_TAKEN_MESSAGE = "Nickname already taken";
 const USER_EMAIL_UNIQUE_CONSTRAINT = "users_email_key";
 const USER_NICKNAME_UNIQUE_CONSTRAINT = "users_nickname_key";
@@ -37,6 +39,7 @@ export class AuthService {
     private readonly emailVerificationService: EmailVerificationService,
     private readonly sessionService: SessionService,
     private readonly transactionRunner: TransactionRunner,
+    private readonly loginAttemptLimiter: LoginAttemptLimiter,
   ) {}
 
   async isNicknameAvailable(nickname: string): Promise<NicknameAvailabilityView> {
@@ -45,19 +48,28 @@ export class AuthService {
     return { available: existing === null };
   }
 
-  async login(
-    input: LoginInput,
-  ): Promise<{ refreshToken: string; result: AuthResultView; ttlDays: number }> {
+  async login({
+    clientIp,
+    input,
+  }: {
+    clientIp: string;
+    input: LoginInput;
+  }): Promise<{ refreshToken: string; result: AuthResultView; ttlDays: number }> {
+    const attemptIdentity = { clientIp, email: input.email };
+    await this.loginAttemptLimiter.assertAttemptAllowed(attemptIdentity);
+
     const user = await this.usersRepository.findByEmail(input.email);
     if (user === null) {
       await this.passwordService.fakeCompare(input.password);
-      throw new UnauthorizedError("Invalid email or password");
+      throw new UnauthorizedError(INVALID_CREDENTIALS_MESSAGE);
     }
 
     const passwordMatches = await this.passwordService.compare(input.password, user.passwordHash);
     if (!passwordMatches) {
-      throw new UnauthorizedError("Invalid email or password");
+      throw new UnauthorizedError(INVALID_CREDENTIALS_MESSAGE);
     }
+
+    await this.loginAttemptLimiter.clear(attemptIdentity);
 
     if (user.emailVerifiedAt === null) {
       throw new ForbiddenError("Email not verified", { code: "email_not_verified" });
