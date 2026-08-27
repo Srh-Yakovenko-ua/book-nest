@@ -5,6 +5,7 @@ import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { TokenService } from "./token.service.js";
 
+const USER_ID = "11111111-1111-4111-8111-111111111111";
 const service = new TokenService();
 
 const accessSecret = new TextEncoder().encode(env.jwtAccessSecret);
@@ -36,6 +37,34 @@ describe("TokenService.verifyAccessToken", () => {
 
     expect(result.sub).toBe("11111111-1111-4111-8111-111111111111");
     expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("stamps the issuer, the audience and a unique id on every access token", async () => {
+    const first = await service.signAccessToken(USER_ID);
+    const second = await service.signAccessToken(USER_ID);
+    const { payload } = await jwtVerify(first, new TextEncoder().encode(env.jwtAccessSecret));
+    const { payload: other } = await jwtVerify(
+      second,
+      new TextEncoder().encode(env.jwtAccessSecret),
+    );
+
+    expect(payload.iss).toBe("book-nest-api");
+    expect(payload.aud).toBe("book-nest-web");
+    expect(typeof payload.jti).toBe("string");
+    expect(payload.jti).not.toBe(other.jti);
+  });
+
+  it("throws UnauthorizedError for a token minted for another audience or issuer", async () => {
+    const foreign = await new SignJWT({ sub: USER_ID })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuer("someone-else")
+      .setAudience("book-nest-web")
+      .setJti("11111111-1111-4111-8111-111111111111")
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(new TextEncoder().encode(env.jwtAccessSecret));
+
+    await expect(service.verifyAccessToken(foreign)).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
   it("throws UnauthorizedError when the payload carries no exp", async () => {
