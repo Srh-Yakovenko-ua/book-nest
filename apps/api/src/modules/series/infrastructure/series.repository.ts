@@ -8,6 +8,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesModel } from "../../../generated/prisma/models.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
+import { BOUNDED_LIST, reportTruncation } from "../../../core/database/bounded-list.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
@@ -203,11 +204,13 @@ export class SeriesRepository {
     return series;
   }
 
-  findAllOwned(userId: string): Promise<SeriesWithBookCount[]> {
-    return this.prisma.series.findMany({
+  async findAllOwned(userId: string): Promise<SeriesWithBookCount[]> {
+    const rows = await this.prisma.series.findMany({
+      take: BOUNDED_LIST.maxRows,
       where: { ...SOFT_DELETE_SCOPE.active, userId },
       ...seriesWithBookCountArgs,
     });
+    return reportTruncation({ context: { userId }, rows, scope: "owned series" });
   }
 
   findByNormalized(

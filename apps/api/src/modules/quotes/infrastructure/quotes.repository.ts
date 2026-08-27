@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
+import { BOUNDED_LIST, reportTruncation } from "../../../core/database/bounded-list.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -205,12 +206,14 @@ export class QuotesRepository {
     });
   }
 
-  listForBook(userId: string, bookId: string): Promise<QuoteWithBook[]> {
-    return this.prisma.quote.findMany({
+  async listForBook(userId: string, bookId: string): Promise<QuoteWithBook[]> {
+    const rows = await this.prisma.quote.findMany({
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      take: BOUNDED_LIST.maxRows,
       where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...quoteWithBook,
     });
+    return reportTruncation({ context: { bookId, userId }, rows, scope: "book quotes" });
   }
 
   async listTrashed({

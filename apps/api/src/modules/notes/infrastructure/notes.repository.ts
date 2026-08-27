@@ -13,6 +13,7 @@ import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
 
+import { BOUNDED_LIST, reportTruncation } from "../../../core/database/bounded-list.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -211,20 +212,24 @@ export class NotesRepository {
     return purged.count;
   }
 
-  listByBook(userId: string, bookId: string): Promise<NoteWithEntity[]> {
-    return this.prisma.note.findMany({
+  async listByBook(userId: string, bookId: string): Promise<NoteWithEntity[]> {
+    const rows = await this.prisma.note.findMany({
       orderBy: BOOK_NOTES_ORDER_BY,
+      take: BOUNDED_LIST.maxRows,
       where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...noteEntityArgs,
     });
+    return reportTruncation({ context: { bookId, userId }, rows, scope: "book notes" });
   }
 
-  listBySeries(userId: string, seriesId: string): Promise<NoteWithEntity[]> {
-    return this.prisma.note.findMany({
+  async listBySeries(userId: string, seriesId: string): Promise<NoteWithEntity[]> {
+    const rows = await this.prisma.note.findMany({
       orderBy: SERIES_NOTES_ORDER_BY,
+      take: BOUNDED_LIST.maxRows,
       where: { ...SOFT_DELETE_SCOPE.active, series: SOFT_DELETE_SCOPE.active, seriesId, userId },
       ...noteEntityArgs,
     });
+    return reportTruncation({ context: { seriesId, userId }, rows, scope: "series notes" });
   }
 
   listNotes({ skip, sort, take, ...filter }: ListNotesInput): Promise<NoteWithEntity[]> {
