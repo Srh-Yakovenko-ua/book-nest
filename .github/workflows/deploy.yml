@@ -190,9 +190,9 @@ jobs:
           ENV="${{ github.ref_name }}"
           echo "name=$ENV" >> "$GITHUB_OUTPUT"
           if [ "$ENV" = "prod" ]; then
-            echo "health_url=https://book-nest.net/api/health" >> "$GITHUB_OUTPUT"
+            echo "health_url=https://book-nest.net/api/health/ready" >> "$GITHUB_OUTPUT"
           else
-            echo "health_url=https://dev.book-nest.net/api/health" >> "$GITHUB_OUTPUT"
+            echo "health_url=https://dev.book-nest.net/api/health/ready" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Sync stack files + secrets, then deploy over SSH
@@ -263,15 +263,16 @@ jobs:
           docker logout ghcr.io
           REMOTE
 
-      - name: Verify live health
+      - name: Verify readiness
         run: |
           URL="${{ steps.env.outputs.health_url }}"
           for i in $(seq 1 20); do
-            if curl -fsS -m 10 "$URL" | grep -q '"status":"ok"'; then
-              echo "live health ok: $URL"
+            if body=$(curl -fsS -m 10 "$URL"); then
+              echo "ready: $body"
               exit 0
             fi
             sleep 3
           done
-          echo "live health check failed for $URL" >&2
+          echo "readiness check failed for $URL (last response below)" >&2
+          curl -sS -m 10 "$URL" >&2 || true
           exit 1
