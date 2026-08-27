@@ -8,7 +8,7 @@ import { env } from "../../../../config/env.js";
 import { ForbiddenError } from "../../../../core/exceptions/errors.js";
 import { isTrustedOrigin } from "../../domain/trusted-origin.js";
 
-const optionalHeader = z.string().optional().catch(undefined);
+const optionalHeader = z.string().optional();
 
 const OriginHeadersSchema = z.object({
   origin: optionalHeader,
@@ -24,11 +24,14 @@ const CROSS_SITE_REJECTION = {
 export class TrustedOriginGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    const headers = OriginHeadersSchema.parse(request.headers);
+    const headers = OriginHeadersSchema.safeParse(request.headers);
+    if (!headers.success) {
+      throw new ForbiddenError(CROSS_SITE_REJECTION.message, { code: CROSS_SITE_REJECTION.code });
+    }
 
     const trusted = isTrustedOrigin({
-      origin: headers.origin,
-      secFetchSite: headers["sec-fetch-site"],
+      origin: headers.data.origin,
+      secFetchSite: headers.data["sec-fetch-site"],
       trustedOrigins: env.corsOrigins,
     });
 

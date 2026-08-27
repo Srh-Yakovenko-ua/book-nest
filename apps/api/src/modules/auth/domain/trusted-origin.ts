@@ -11,7 +11,7 @@ export function isTrustedOrigin({
   trustedOrigins: readonly string[];
 }): boolean {
   if (origin === undefined) {
-    return secFetchSite === SAME_ORIGIN_FETCH_SITE;
+    return secFetchSite?.trim().toLowerCase() === SAME_ORIGIN_FETCH_SITE;
   }
 
   const presented = normalizeOrigin(origin);

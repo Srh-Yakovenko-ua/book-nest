@@ -74,4 +74,14 @@ describe("isTrustedOrigin", () => {
       }),
     ).toBe(false);
   });
+
+  it("normalizes the fetch site header the same way as the origin", () => {
+    expect(
+      isTrustedOrigin({
+        origin: undefined,
+        secFetchSite: " Same-Origin ",
+        trustedOrigins: ["https://book-nest.net"],
+      }),
+    ).toBe(true);
+  });
 });
