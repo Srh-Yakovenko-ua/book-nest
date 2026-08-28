@@ -17,8 +17,11 @@ const PROGRESS = {
   deliveryShareOfBudgetPercent: null,
   elapsedDays: 22,
   forecast: null,
+  isForecastComplete: true,
   month: "2026-08-01",
+  outlook: "on_track",
   projectedOverage: null,
+  projectedRemaining: 0,
   remaining: 9000,
   remainingSigned: 9000,
   spentToDate: 0,
@@ -27,13 +30,29 @@ const PROGRESS = {
   validToMonth: null,
 } satisfies NonNullable<BookBudgetOverview["budgets"][number]["currentMonth"]>;
 
+const EMPTY_COVERAGE = {
+  ordersCount: 0,
+  ordersWithoutResolvedAmount: 0,
+  ordersWithResolvedAmount: 0,
+};
+
 const OVERVIEW: BookBudgetOverview = {
   budgets: [
-    { currency: "UAH", currentMonth: PROGRESS, scheduled: null },
+    {
+      currency: "UAH",
+      currentMonth: PROGRESS,
+      spendCoverage: EMPTY_COVERAGE,
+      upcomingChanges: [],
+    },
     {
       currency: "USD",
       currentMonth: { ...PROGRESS, budget: 80, remaining: 80, remainingSigned: 80 },
-      scheduled: null,
+      spendCoverage: {
+        ordersCount: 0,
+        ordersWithoutResolvedAmount: 0,
+        ordersWithResolvedAmount: 0,
+      },
+      upcomingChanges: [],
     },
   ],
   month: "2026-08-01",
@@ -157,7 +176,12 @@ describe("StatisticsBudgetDialog month", () => {
         {
           currency: "UAH",
           currentMonth: { ...PROGRESS, validToMonth: "2026-09-01" },
-          scheduled: null,
+          spendCoverage: {
+            ordersCount: 0,
+            ordersWithoutResolvedAmount: 0,
+            ordersWithResolvedAmount: 0,
+          },
+          upcomingChanges: [],
         },
       ],
       month: "2026-08-01",
@@ -188,10 +212,27 @@ describe("StatisticsBudgetDialog stopping a currency", () => {
     await userEvent.clear(amountInput("USD"));
     await save();
 
-    await waitFor(() => expect(postCall("/api/delivery/budgets/USD/stop")).toBeDefined());
-    expect(postPayload("/api/delivery/budgets/USD/stop")).toEqual({
+    await waitFor(() => expect(postCall("/api/delivery/budgets/save")).toBeDefined());
+    expect(postPayload("/api/delivery/budgets/save")).toMatchObject({
+      changes: expect.arrayContaining([{ action: "stop", currency: "USD" }]),
       effectiveFromMonth: "2026-08-01",
     });
+  });
+
+  it("saves every currency of one edit as a single request", async () => {
+    renderDialog();
+
+    await userEvent.clear(amountInput("USD"));
+    await save();
+
+    await waitFor(() => expect(postCall("/api/delivery/budgets/save")).toBeDefined());
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) =>
+          String(url).includes("/api/delivery/budgets") &&
+          (init?.method ?? "GET").toUpperCase() === "POST",
+      ),
+    ).toHaveLength(1);
   });
 
   it("leaves the currencies that still carry an amount alone", async () => {
@@ -200,17 +241,22 @@ describe("StatisticsBudgetDialog stopping a currency", () => {
     await userEvent.clear(amountInput("USD"));
     await save();
 
-    await waitFor(() => expect(postCall("/api/delivery/budgets/USD/stop")).toBeDefined());
-    expect(postCall("/api/delivery/budgets/UAH/stop")).toBeUndefined();
-    expect(postPayload("/api/delivery/budgets")).toMatchObject({
-      currency: "UAH",
-      monthlyAmount: 9000,
+    await waitFor(() => expect(postCall("/api/delivery/budgets/save")).toBeDefined());
+    expect(postPayload("/api/delivery/budgets/save")).toMatchObject({
+      changes: expect.arrayContaining([{ action: "set", currency: "UAH", monthlyAmount: 9000 }]),
     });
   });
 
   it("asks for nothing when a currency was empty all along", async () => {
     renderDialog({
-      budgets: [{ currency: "UAH", currentMonth: PROGRESS, scheduled: null }],
+      budgets: [
+        {
+          currency: "UAH",
+          currentMonth: PROGRESS,
+          spendCoverage: EMPTY_COVERAGE,
+          upcomingChanges: [],
+        },
+      ],
       month: "2026-08-01",
     });
 

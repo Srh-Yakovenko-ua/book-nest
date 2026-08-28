@@ -17,10 +17,12 @@ import type {
 import {
   isInvertedDayRange,
   isStorableDay,
+  isStorableOrderId,
   storableDay,
 } from "@/features/books/model/filter-chips";
 import {
   DeliveryReadControllerHistoryListCurrencyItem,
+  DeliveryReadControllerHistoryListOrderState,
   DeliveryReadControllerHistoryListSort,
   DeliveryReadControllerHistoryListTab,
 } from "@/shared/api/generated/model";
@@ -50,6 +52,10 @@ export const DELIVERY_HISTORY_CURRENCY_VALUES = Object.values(
   DeliveryReadControllerHistoryListCurrencyItem,
 );
 
+export const DELIVERY_HISTORY_ORDER_STATE_VALUES = Object.values(
+  DeliveryReadControllerHistoryListOrderState,
+);
+
 export const deliveryHistoryRetiredParsers = {
   hasTrackingNumber: parseAsString,
   hasTrackingUrl: parseAsString,
@@ -64,6 +70,8 @@ export const deliveryHistoryParsers = {
   cancelledTo: parseAsString,
   currency: parseAsArrayOf(parseAsStringLiteral(DELIVERY_HISTORY_CURRENCY_VALUES)).withDefault([]),
   from: parseAsString,
+  orderId: parseAsString,
+  orderState: parseAsStringLiteral(DELIVERY_HISTORY_ORDER_STATE_VALUES),
   priceMax: parseAsFloat,
   priceMin: parseAsFloat,
   q: parseAsString.withDefault(""),
@@ -97,6 +105,8 @@ export const DELIVERY_HISTORY_ADVANCED_RESET = {
   cancelledTo: null,
   currency: null,
   from: null,
+  orderId: null,
+  orderState: null,
   priceMax: null,
   priceMin: null,
   receivedFrom: null,
@@ -113,6 +123,8 @@ export const DELIVERY_HISTORY_ADVANCED_EMPTY: DeliveryHistoryAdvancedState = {
   cancelledTo: null,
   currency: [],
   from: null,
+  orderId: null,
+  orderState: null,
   priceMax: null,
   priceMin: null,
   receivedFrom: null,
@@ -140,6 +152,8 @@ export function countActiveHistoryDimensions({
   const terminal = historyTerminalRange({ state, tab });
 
   return [
+    isStorableOrderId(state.orderId),
+    state.orderState !== null,
     state.store.length > 0,
     state.from !== null || state.to !== null,
     state.booksMin !== null || state.booksMax !== null,
@@ -238,6 +252,8 @@ export function toDeliveryHistoryListParams(
 
   return {
     currency: state.currency,
+    ...(isStorableOrderId(state.orderId) ? { orderId: state.orderId } : {}),
+    ...(state.orderState === null ? {} : { orderState: state.orderState }),
     pageSize: DELIVERY_HISTORY_PAGE_SIZE,
     service: state.service,
     sort: resolveHistorySort(state),

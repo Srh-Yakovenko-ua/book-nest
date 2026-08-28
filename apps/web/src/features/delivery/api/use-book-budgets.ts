@@ -1,18 +1,13 @@
-import type {
-  BookBudgetOverview,
-  Currency,
-  StopBookBudgetInput,
-  UpsertBookBudgetInput,
-} from "@app/shared";
+import type { BookBudgetOverview, Currency, SaveBookBudgetsInput } from "@app/shared";
 
 import { BookBudgetOverviewSchema } from "@app/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   bookBudgetsControllerCancelScheduled,
+  bookBudgetsControllerCancelScheduledStop,
   bookBudgetsControllerOverview,
-  bookBudgetsControllerStop,
-  bookBudgetsControllerUpsert,
+  bookBudgetsControllerSave,
 } from "@/shared/api/generated/endpoints/book-budgets/book-budgets";
 
 export const BOOK_BUDGETS_QUERY_KEY = "/api/delivery/budgets";
@@ -35,25 +30,22 @@ export function useCancelScheduledBudget() {
   });
 }
 
-export function useStopBookBudget() {
+export function useCancelScheduledBudgetStop() {
   const sync = useBudgetSync();
 
   return useMutation({
-    mutationFn: async ({
-      currency,
-      ...input
-    }: StopBookBudgetInput & { currency: Currency }): Promise<BookBudgetOverview> =>
-      BookBudgetOverviewSchema.parse(await bookBudgetsControllerStop(currency, input)),
+    mutationFn: async (currency: Currency): Promise<BookBudgetOverview> =>
+      BookBudgetOverviewSchema.parse(await bookBudgetsControllerCancelScheduledStop(currency)),
     onSuccess: sync,
   });
 }
 
-export function useUpsertBookBudget() {
+export function useSaveBookBudgets() {
   const sync = useBudgetSync();
 
   return useMutation({
-    mutationFn: async (payload: UpsertBookBudgetInput): Promise<BookBudgetOverview> =>
-      BookBudgetOverviewSchema.parse(await bookBudgetsControllerUpsert(payload)),
+    mutationFn: async (input: SaveBookBudgetsInput): Promise<BookBudgetOverview> =>
+      BookBudgetOverviewSchema.parse(await bookBudgetsControllerSave(input)),
     onSuccess: sync,
   });
 }

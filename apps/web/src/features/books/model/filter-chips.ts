@@ -1,6 +1,9 @@
 import type { Nullable } from "@app/shared";
 
 import { isAfter, isValid, parseISO } from "date-fns";
+import { z } from "zod";
+
+const OrderIdSchema = z.uuid();
 
 export function isInvertedDayRange(from: Nullable<string>, to: Nullable<string>): boolean {
   if (!isStorableDay(from) || !isStorableDay(to)) return false;
@@ -9,6 +12,10 @@ export function isInvertedDayRange(from: Nullable<string>, to: Nullable<string>)
 
 export function isStorableDay(value: Nullable<string>): value is string {
   return value !== null && isValid(parseISO(value));
+}
+
+export function isStorableOrderId(value: Nullable<string>): value is string {
+  return value !== null && OrderIdSchema.safeParse(value).success;
 }
 
 export function rangeLabel<TValue>({

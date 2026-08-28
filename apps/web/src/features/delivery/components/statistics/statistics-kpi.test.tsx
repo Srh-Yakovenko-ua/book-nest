@@ -8,6 +8,7 @@ import { StatisticsKpi } from "./statistics-kpi";
 
 const SNAPSHOT: BookOrderStatisticsSnapshot = {
   activeBooksCount: 46,
+  activeMoneyCoverageByCurrency: [],
   activeOrdersCount: 38,
   activeShipmentsCount: 31,
   activeTotalsByCurrency: [
@@ -26,7 +27,9 @@ const SUMMARY: BookOrderStatisticsView["summary"] = {
   booksCount: 70,
   cancelledOrdersCount: 0,
   cancelledTotalsByCurrency: [],
+  financialCoverageByCurrency: [],
   ordersCount: 51,
+  priceCoverageByCurrency: [],
   receivedBooksCount: 25,
   receivedTotalsByCurrency: [],
   shipmentsCount: 51,
@@ -43,6 +46,8 @@ function view(comparison: BookOrderStatisticsView["comparison"] = null): BookOrd
     comparison,
     costs: [],
     daily: [],
+    dynamics: { buckets: [], granularity: "month" },
+    insights: { books: [], orders: [], spendByCurrency: [] },
     landedCost: [],
     lifecycle: {
       books: {
@@ -66,14 +71,13 @@ function view(comparison: BookOrderStatisticsView["comparison"] = null): BookOrd
       },
     },
     meta: {
+      activeSource: { isTruncated: false, loadedOrdersCount: 0, maxOrders: 5000 },
       comparisonPeriod: null,
+      comparisonSource: null,
       currentPeriod: { from: "2026-01-01", to: "2026-08-21" },
-      isTruncated: false,
-      loadedOrdersCount: 51,
-      maxOrders: 5000,
+      currentSource: { isTruncated: false, loadedOrdersCount: 0, maxOrders: 5000 },
     },
     monthly: [],
-    pulse: [],
     records: {
       bestValueStoreByCurrency: [],
       largestOrderByCurrency: [],
@@ -149,16 +153,104 @@ describe("StatisticsKpi", () => {
     expect(screen.queryByText("було 22 198 UAH")).not.toBeInTheDocument();
   });
 
-  it("carries the deltas into the compact metric row", () => {
+  it("keeps the compact metric row down to the change itself", () => {
     renderKpi(COMPARISON);
 
-    expect(screen.getAllByText("було 22").length).toBe(2);
-    expect(screen.getByText("44,4%")).toBeInTheDocument();
+    expect(screen.getByText("55,6%")).toBeInTheDocument();
+    expect(screen.queryByText("було 22")).not.toBeInTheDocument();
   });
 
   it("shows a dash instead of a zero when the currency has no value", () => {
     renderWithProviders(<StatisticsKpi currency="USD" snapshot={SNAPSHOT} view={view()} />);
 
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("names the four approved metrics and drops the old money-in-transit wording", () => {
+    renderKpi();
+
+    expect(screen.getByText("Витрачено")).toBeInTheDocument();
+    expect(screen.getByText("Середня ціна книги")).toBeInTheDocument();
+    expect(screen.getByText("Середній чек замовлення")).toBeInTheDocument();
+    expect(screen.getByText("В активних замовленнях")).toBeInTheDocument();
+    expect(screen.queryByText("Гроші в дорозі")).not.toBeInTheDocument();
+  });
+
+  it("separates the period metrics from the current snapshot", () => {
+    renderKpi();
+
+    expect(screen.getAllByText("За вибраний період")).toHaveLength(3);
+    expect(screen.getAllByText("Зараз")).toHaveLength(1);
+  });
+
+  it("says the average book price is measured before discounts and delivery", () => {
+    renderKpi();
+
+    expect(screen.getByText("До знижок і доставки")).toBeInTheDocument();
+  });
+
+  it("keeps the snapshot free of a comparison even when one is asked for", () => {
+    renderKpi(COMPARISON);
+
+    expect(screen.queryByText("було 22 198 UAH")).not.toBeInTheDocument();
+  });
+
+  it("names the active orders next to the books and the parcels", () => {
+    renderKpi();
+
+    expect(screen.getByText("38 замовлень · 46 книг · 31 посилка")).toBeInTheDocument();
+  });
+
+  it("offers the approved chips and drops the received one", () => {
+    renderKpi();
+
+    expect(screen.getByText("Книг на замовлення")).toBeInTheDocument();
+    expect(screen.queryByText("Отримано")).not.toBeInTheDocument();
+  });
+
+  it("says how many orders were left out of a partial spend", () => {
+    renderWithProviders(
+      <StatisticsKpi
+        currency="UAH"
+        snapshot={SNAPSHOT}
+        view={{
+          ...view(),
+          summary: {
+            ...SUMMARY,
+            financialCoverageByCurrency: [
+              { currency: "UAH", ordersInScope: 51, ordersWithResolvedAmount: 48 },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("3 замовлення без визначеної суми")).toBeInTheDocument();
+  });
+
+  it("says nothing about coverage once every order carries an amount", () => {
+    renderWithProviders(
+      <StatisticsKpi
+        currency="UAH"
+        snapshot={SNAPSHOT}
+        view={{
+          ...view(),
+          summary: {
+            ...SUMMARY,
+            financialCoverageByCurrency: [
+              { currency: "UAH", ordersInScope: 51, ordersWithResolvedAmount: 51 },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.queryByText(/без визначеної суми/)).not.toBeInTheDocument();
+  });
+
+  it("says a currency is missing rather than showing it as a zero", () => {
+    renderWithProviders(<StatisticsKpi currency="USD" snapshot={SNAPSHOT} view={view()} />);
+
+    expect(screen.getAllByText("Немає даних у USD").length).toBeGreaterThan(0);
   });
 });

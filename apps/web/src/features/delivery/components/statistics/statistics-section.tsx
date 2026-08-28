@@ -1,6 +1,5 @@
 "use client";
 
-import type { Currency } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,29 +15,6 @@ type StatisticsSectionProps = {
   snapshotLabel?: ReactNode;
   title: ReactNode;
 };
-
-export function StatisticsCurrencyTabs({
-  currencies,
-  label,
-  onChange,
-  value,
-}: {
-  currencies: readonly Currency[];
-  label: string;
-  onChange: (currency: Currency) => void;
-  value: Currency;
-}) {
-  if (currencies.length < 2) return null;
-
-  return (
-    <Segmented
-      label={label}
-      onValueChange={(next) => onChange(next as Currency)}
-      options={currencies.map((currency) => ({ label: currency, value: currency }))}
-      value={value}
-    />
-  );
-}
 
 export function StatisticsMetricTabs<Metric extends string>({
   label,
