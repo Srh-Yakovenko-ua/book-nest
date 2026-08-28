@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { MonthPicker } from "@/components/ui/month-picker";
 import { dateFnsLocale, parseIsoDay } from "@/lib/format";
 
-import { useStopBookBudget, useUpsertBookBudget } from "../../api/use-book-budgets";
+import { useSaveBookBudgets } from "../../api/use-book-budgets";
 
 const CURRENCIES: readonly Currency[] = CurrencySchema.options;
 
@@ -52,13 +52,12 @@ export function StatisticsBudgetDialog({
 }) {
   const t = useTranslations("delivery.statistics.budget.dialog");
   const locale = useLocale();
-  const stop = useStopBookBudget();
-  const upsert = useUpsertBookBudget();
+  const save = useSaveBookBudgets();
   const now = new Date();
   const currentMonth = toMonthStartIso(now);
   const [draft, setDraft] = useState<BudgetDraft>(() => toDraft(overview, currentMonth));
 
-  const isSaving = upsert.isPending || stop.isPending;
+  const isSaving = save.isPending;
 
   function handleOpenChange(next: boolean) {
     if (next) setDraft(toDraft(overview, currentMonth));
@@ -75,7 +74,7 @@ export function StatisticsBudgetDialog({
     }));
   }
 
-  async function save() {
+  async function submit() {
     const entries = CURRENCIES.map((currency) => ({
       currency,
       monthlyAmount: Number(draft.amounts[currency]),
@@ -106,16 +105,17 @@ export function StatisticsBudgetDialog({
     }
 
     try {
-      for (const entry of written) {
-        await upsert.mutateAsync({
-          currency: entry.currency,
-          effectiveFromMonth: draft.month,
-          monthlyAmount: entry.monthlyAmount,
-        });
-      }
-      for (const entry of stopped) {
-        await stop.mutateAsync({ currency: entry.currency, effectiveFromMonth: draft.month });
-      }
+      await save.mutateAsync({
+        changes: [
+          ...written.map((entry) => ({
+            action: "set" as const,
+            currency: entry.currency,
+            monthlyAmount: entry.monthlyAmount,
+          })),
+          ...stopped.map((entry) => ({ action: "stop" as const, currency: entry.currency })),
+        ],
+        effectiveFromMonth: draft.month,
+      });
       toast.success(t("saved"));
       onOpenChange(false);
     } catch {
@@ -198,7 +198,7 @@ export function StatisticsBudgetDialog({
           <Button onClick={() => onOpenChange(false)} variant="ghost">
             {t("cancel")}
           </Button>
-          <Button disabled={isSaving} onClick={() => void save()}>
+          <Button disabled={isSaving} onClick={() => void submit()}>
             {t("save")}
           </Button>
         </DialogFooter>
@@ -250,11 +250,12 @@ function versionCovering({
   month: string;
   status: BookBudgetStatus;
 }): Nullable<number> {
-  const { currentMonth, scheduled } = status;
+  const { currentMonth, upcomingChanges } = status;
+  const scheduled = upcomingChanges.find((change) => change.kind !== "stop") ?? null;
   const asked = parseIsoDay(month);
 
-  if (scheduled !== null && !isBefore(asked, parseISO(scheduled.validFromMonth))) {
-    return covers({ asked, validToMonth: scheduled.validToMonth }) ? scheduled.monthlyAmount : null;
+  if (scheduled !== null && !isBefore(asked, parseISO(scheduled.effectiveFromMonth))) {
+    return scheduled.monthlyAmount;
   }
   if (currentMonth === null) return null;
   return covers({ asked, validToMonth: currentMonth.validToMonth }) ? currentMonth.budget : null;

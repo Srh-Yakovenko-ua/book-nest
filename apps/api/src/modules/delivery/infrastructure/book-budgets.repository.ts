@@ -100,6 +100,25 @@ export class BookBudgetsRepository {
     });
   }
 
+  async findScheduledStop(
+    { currency, month, userId }: { currency: Currency; month: Date; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookBudgetModel & { validToMonth: Date }>> {
+    const closing = await client.bookBudget.findFirst({
+      orderBy: { validFromMonth: "desc" },
+      where: { currency, userId, validToMonth: { gt: month } },
+    });
+    if (closing === null || closing.validToMonth === null) {
+      return null;
+    }
+
+    const following = await client.bookBudget.findFirst({
+      where: { currency, userId, validFromMonth: closing.validToMonth },
+    });
+
+    return following === null ? { ...closing, validToMonth: closing.validToMonth } : null;
+  }
+
   reopenVersionEndingAt(
     {
       currency,
