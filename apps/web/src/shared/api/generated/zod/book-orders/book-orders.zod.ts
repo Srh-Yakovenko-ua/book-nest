@@ -376,6 +376,154 @@ export const bookOrdersControllerStatisticsResponseDynamicsBucketsItemDrilldownT
 export const bookOrdersControllerStatisticsResponseDynamicsBucketsItemDrilldownTargetsItemOrdersCountMin = 0;
 export const bookOrdersControllerStatisticsResponseDynamicsBucketsItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
 
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineScopePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineScopePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const bookOrdersControllerStatisticsResponseLandedCostItemBooksInScopeMin = 0;
 export const bookOrdersControllerStatisticsResponseLandedCostItemBooksInScopeMax = 9007199254740991;
 
@@ -561,154 +709,6 @@ export const bookOrdersControllerStatisticsResponseMonthlyItemBooksCountMax = 90
 export const bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMin = 0;
 export const bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenBooksCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenOrdersCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemSevenScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightFromRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightToRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightOrdersCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemEightScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineFromRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineToRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineBooksCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsBooksItemNineScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenBooksCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenOrdersCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemSevenScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightFromRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightToRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightOrdersCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemEightScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineFromRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineToRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineBooksCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsOrdersItemNineScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenBooksCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenOrdersCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemSevenScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightOrdersCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemEightScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineBooksCountMax = 9007199254740991;
-
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineScopePeriodFromRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
-export const bookOrdersControllerStatisticsResponseInsightsSpendByCurrencyItemSignalsItemNineScopePeriodToRegExp =
-  new RegExp(
-    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-  );
 export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemBooksCountMin = 0;
 export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
 
@@ -1260,455 +1260,6 @@ export const BookOrdersControllerStatisticsResponse = zod.object({
     ),
     granularity: zod.enum(["week", "month"]),
   }),
-  landedCost: zod.array(
-    zod.object({
-      booksInScope: zod
-        .int()
-        .min(bookOrdersControllerStatisticsResponseLandedCostItemBooksInScopeMin)
-        .max(bookOrdersControllerStatisticsResponseLandedCostItemBooksInScopeMax)
-        .describe(
-          "Every book of this currency the period counted, whether or not its cost could be broken down. This is the denominator of coveragePercent.",
-        ),
-      booksWithLandedCost: zod
-        .int()
-        .min(bookOrdersControllerStatisticsResponseLandedCostItemBooksWithLandedCostMin)
-        .max(bookOrdersControllerStatisticsResponseLandedCostItemBooksWithLandedCostMax)
-        .describe(
-          "The books whose cost the allocation could actually explain, so they carry a landed cost. This is the numerator of coveragePercent and can never exceed booksInScope.",
-        ),
-      coveragePercent: zod
-        .number()
-        .min(bookOrdersControllerStatisticsResponseLandedCostItemCoveragePercentMin)
-        .max(bookOrdersControllerStatisticsResponseLandedCostItemCoveragePercentMax)
-        .describe(
-          "booksWithLandedCost over booksInScope. It is 0, never null, when nothing was in scope.",
-        ),
-      currency: zod.enum(["UAH", "EUR", "USD"]),
-      averageAdjustmentShare: zod
-        .number()
-        .nullable()
-        .describe(
-          "The part of a book's cost the base price, discount and delivery do not explain: the residual that makes the bridge reconcile with averageLandedBookCost. It is zero whenever the order invariant holds, because an order whose books are all priced may not carry a total that disagrees with them, and an order with an unpriced book is left out of the eligible set entirely. A non-zero value here means a rounding residual, not a real adjustment.",
-        ),
-      averageDeliveryShare: zod.number().nullable(),
-      averageDiscountShare: zod.number().nullable(),
-      averageEligibleRawBookPrice: zod
-        .number()
-        .nullable()
-        .describe(
-          "The starting price of exactly the books that received a landed cost, so the bridge from it to averageLandedBookCost compares one population with itself. A book whose price was never recorded contributes zero here and its whole cost shows up in the adjustment stage.",
-        ),
-      averageLandedBookCost: zod.number().nullable(),
-      deltaFromEligibleRawPrice: zod
-        .number()
-        .nullable()
-        .describe(
-          "averageLandedBookCost minus averageEligibleRawBookPrice. Negative means a book ended up cheaper than its listed price.",
-        ),
-    }),
-  ),
-  lifecycle: zod
-    .object({
-      books: zod.object({
-        active: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksActiveMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksActiveMax),
-        cancelled: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksCancelledMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksCancelledMax),
-        partially_received: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyReceivedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyReceivedMax),
-        partially_shipped: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyShippedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyShippedMax),
-        received: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksReceivedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksReceivedMax),
-        shipped: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksShippedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksShippedMax),
-        total: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleBooksTotalMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleBooksTotalMax),
-      }),
-      comparison: zod
-        .object({
-          books: zod.object({
-            delta: zod
-              .object({
-                active: zod
-                  .int()
-                  .min(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaActiveMin)
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaActiveMax,
-                  ),
-                cancelled: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaCancelledMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaCancelledMax,
-                  ),
-                partially_received: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyReceivedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyReceivedMax,
-                  ),
-                partially_shipped: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyShippedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyShippedMax,
-                  ),
-                received: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaReceivedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaReceivedMax,
-                  ),
-                shipped: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaShippedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaShippedMax,
-                  ),
-                total: zod
-                  .int()
-                  .min(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaTotalMin)
-                  .max(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaTotalMax),
-              })
-              .describe(
-                "Current stage count minus the comparison period's, so a decline reads as negative.",
-              ),
-            previous: zod.object({
-              active: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousActiveMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousActiveMax,
-                ),
-              cancelled: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousCancelledMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousCancelledMax,
-                ),
-              partially_received: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyReceivedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyReceivedMax,
-                ),
-              partially_shipped: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyShippedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyShippedMax,
-                ),
-              received: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousReceivedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousReceivedMax,
-                ),
-              shipped: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousShippedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousShippedMax,
-                ),
-              total: zod
-                .int()
-                .min(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousTotalMin)
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousTotalMax,
-                ),
-            }),
-          }),
-          orders: zod.object({
-            delta: zod
-              .object({
-                active: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaActiveMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaActiveMax,
-                  ),
-                cancelled: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaCancelledMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaCancelledMax,
-                  ),
-                partially_received: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyReceivedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyReceivedMax,
-                  ),
-                partially_shipped: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyShippedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyShippedMax,
-                  ),
-                received: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaReceivedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaReceivedMax,
-                  ),
-                shipped: zod
-                  .int()
-                  .min(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaShippedMin,
-                  )
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaShippedMax,
-                  ),
-                total: zod
-                  .int()
-                  .min(bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaTotalMin)
-                  .max(
-                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaTotalMax,
-                  ),
-              })
-              .describe(
-                "Current stage count minus the comparison period's, so a decline reads as negative.",
-              ),
-            previous: zod.object({
-              active: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousActiveMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousActiveMax,
-                ),
-              cancelled: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousCancelledMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousCancelledMax,
-                ),
-              partially_received: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyReceivedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyReceivedMax,
-                ),
-              partially_shipped: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyShippedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyShippedMax,
-                ),
-              received: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousReceivedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousReceivedMax,
-                ),
-              shipped: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousShippedMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousShippedMax,
-                ),
-              total: zod
-                .int()
-                .min(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousTotalMin,
-                )
-                .max(
-                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousTotalMax,
-                ),
-            }),
-          }),
-        })
-        .nullable()
-        .describe(
-          "Per-stage previous count and signed delta. Null unless the request asked for a comparison period.",
-        ),
-      orders: zod.object({
-        active: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersActiveMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersActiveMax),
-        cancelled: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersCancelledMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersCancelledMax),
-        partially_received: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyReceivedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyReceivedMax),
-        partially_shipped: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyShippedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyShippedMax),
-        received: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersReceivedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersReceivedMax),
-        shipped: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersShippedMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersShippedMax),
-        total: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersTotalMin)
-          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersTotalMax),
-      }),
-    })
-    .describe(
-      "Distribution over the canonical derived order statuses. Orders mode and books mode stay separate objects so a consumer can never render a mixed-unit view.",
-    ),
-  meta: zod
-    .object({
-      activeSource: zod
-        .object({
-          isTruncated: zod.boolean(),
-          loadedOrdersCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseMetaActiveSourceLoadedOrdersCountMin)
-            .max(bookOrdersControllerStatisticsResponseMetaActiveSourceLoadedOrdersCountMax),
-          maxOrders: zod
-            .int()
-            .gt(bookOrdersControllerStatisticsResponseMetaActiveSourceMaxOrdersExclusiveMin)
-            .max(bookOrdersControllerStatisticsResponseMetaActiveSourceMaxOrdersMax)
-            .nullable(),
-        })
-        .describe(
-          "How much of one source dataset the aggregates behind it actually saw. isTruncated means the safety cap cut the detail rows, so every total built on that source is a floor rather than the real number. It says nothing about whether a single metric had enough eligible rows: that is metric coverage, which stays a separate counter.",
-        ),
-      comparisonPeriod: zod
-        .object({
-          from: zod.iso
-            .date()
-            .regex(bookOrdersControllerStatisticsResponseMetaComparisonPeriodFromRegExp),
-          mode: zod.enum(["previous_period", "same_period_last_year"]),
-          to: zod.iso
-            .date()
-            .regex(bookOrdersControllerStatisticsResponseMetaComparisonPeriodToRegExp),
-        })
-        .nullable(),
-      comparisonSource: zod
-        .object({
-          isTruncated: zod.boolean(),
-          loadedOrdersCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseMetaComparisonSourceLoadedOrdersCountMin)
-            .max(bookOrdersControllerStatisticsResponseMetaComparisonSourceLoadedOrdersCountMax),
-          maxOrders: zod
-            .int()
-            .gt(bookOrdersControllerStatisticsResponseMetaComparisonSourceMaxOrdersExclusiveMin)
-            .max(bookOrdersControllerStatisticsResponseMetaComparisonSourceMaxOrdersMax)
-            .nullable(),
-        })
-        .nullable()
-        .describe(
-          "How much of one source dataset the aggregates behind it actually saw. isTruncated means the safety cap cut the detail rows, so every total built on that source is a floor rather than the real number. It says nothing about whether a single metric had enough eligible rows: that is metric coverage, which stays a separate counter.",
-        ),
-      currentPeriod: zod.object({
-        from: zod.iso
-          .date()
-          .regex(bookOrdersControllerStatisticsResponseMetaCurrentPeriodFromRegExp)
-          .nullable(),
-        to: zod.iso
-          .date()
-          .regex(bookOrdersControllerStatisticsResponseMetaCurrentPeriodToRegExp)
-          .nullable(),
-      }),
-      currentSource: zod
-        .object({
-          isTruncated: zod.boolean(),
-          loadedOrdersCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseMetaCurrentSourceLoadedOrdersCountMin)
-            .max(bookOrdersControllerStatisticsResponseMetaCurrentSourceLoadedOrdersCountMax),
-          maxOrders: zod
-            .int()
-            .gt(bookOrdersControllerStatisticsResponseMetaCurrentSourceMaxOrdersExclusiveMin)
-            .max(bookOrdersControllerStatisticsResponseMetaCurrentSourceMaxOrdersMax)
-            .nullable(),
-        })
-        .describe(
-          "How much of one source dataset the aggregates behind it actually saw. isTruncated means the safety cap cut the detail rows, so every total built on that source is a floor rather than the real number. It says nothing about whether a single metric had enough eligible rows: that is metric coverage, which stays a separate counter.",
-        ),
-    })
-    .describe(
-      "Each source the response was built from reports its own completeness. One flag for the whole response would hide the case where the current period was read in full but the comparison period was cut, or the other way round.",
-    ),
-  monthly: zod.array(
-    zod.object({
-      booksCount: zod
-        .int()
-        .min(bookOrdersControllerStatisticsResponseMonthlyItemBooksCountMin)
-        .max(bookOrdersControllerStatisticsResponseMonthlyItemBooksCountMax),
-      month: zod.string(),
-      ordersCount: zod
-        .int()
-        .min(bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMin)
-        .max(bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMax),
-      totalsByCurrency: zod.array(
-        zod.object({
-          currency: zod.enum(["UAH", "EUR", "USD"]),
-          total: zod.number(),
-        }),
-      ),
-    }),
-  ),
   insights: zod
     .object({
       books: zod
@@ -2350,6 +1901,455 @@ export const BookOrdersControllerStatisticsResponse = zod.object({
     .describe(
       "Insights grouped by the context that is selected on the page. Spend is grouped per currency so a page showing UAH never receives a EUR record, and the count metrics have their own groups so switching the chart switches the insights with it.",
     ),
+  landedCost: zod.array(
+    zod.object({
+      booksInScope: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseLandedCostItemBooksInScopeMin)
+        .max(bookOrdersControllerStatisticsResponseLandedCostItemBooksInScopeMax)
+        .describe(
+          "Every book of this currency the period counted, whether or not its cost could be broken down. This is the denominator of coveragePercent.",
+        ),
+      booksWithLandedCost: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseLandedCostItemBooksWithLandedCostMin)
+        .max(bookOrdersControllerStatisticsResponseLandedCostItemBooksWithLandedCostMax)
+        .describe(
+          "The books whose cost the allocation could actually explain, so they carry a landed cost. This is the numerator of coveragePercent and can never exceed booksInScope.",
+        ),
+      coveragePercent: zod
+        .number()
+        .min(bookOrdersControllerStatisticsResponseLandedCostItemCoveragePercentMin)
+        .max(bookOrdersControllerStatisticsResponseLandedCostItemCoveragePercentMax)
+        .describe(
+          "booksWithLandedCost over booksInScope. It is 0, never null, when nothing was in scope.",
+        ),
+      currency: zod.enum(["UAH", "EUR", "USD"]),
+      averageAdjustmentShare: zod
+        .number()
+        .nullable()
+        .describe(
+          "The part of a book's cost the base price, discount and delivery do not explain: the residual that makes the bridge reconcile with averageLandedBookCost. It is zero whenever the order invariant holds, because an order whose books are all priced may not carry a total that disagrees with them, and an order with an unpriced book is left out of the eligible set entirely. A non-zero value here means a rounding residual, not a real adjustment.",
+        ),
+      averageDeliveryShare: zod.number().nullable(),
+      averageDiscountShare: zod.number().nullable(),
+      averageEligibleRawBookPrice: zod
+        .number()
+        .nullable()
+        .describe(
+          "The starting price of exactly the books that received a landed cost, so the bridge from it to averageLandedBookCost compares one population with itself. A book whose price was never recorded contributes zero here and its whole cost shows up in the adjustment stage.",
+        ),
+      averageLandedBookCost: zod.number().nullable(),
+      deltaFromEligibleRawPrice: zod
+        .number()
+        .nullable()
+        .describe(
+          "averageLandedBookCost minus averageEligibleRawBookPrice. Negative means a book ended up cheaper than its listed price.",
+        ),
+    }),
+  ),
+  lifecycle: zod
+    .object({
+      books: zod.object({
+        active: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksActiveMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksActiveMax),
+        cancelled: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksCancelledMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksCancelledMax),
+        partially_received: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyReceivedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyReceivedMax),
+        partially_shipped: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyShippedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksPartiallyShippedMax),
+        received: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksReceivedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksReceivedMax),
+        shipped: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksShippedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksShippedMax),
+        total: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleBooksTotalMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleBooksTotalMax),
+      }),
+      comparison: zod
+        .object({
+          books: zod.object({
+            delta: zod
+              .object({
+                active: zod
+                  .int()
+                  .min(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaActiveMin)
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaActiveMax,
+                  ),
+                cancelled: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaCancelledMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaCancelledMax,
+                  ),
+                partially_received: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyReceivedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyReceivedMax,
+                  ),
+                partially_shipped: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyShippedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaPartiallyShippedMax,
+                  ),
+                received: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaReceivedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaReceivedMax,
+                  ),
+                shipped: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaShippedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaShippedMax,
+                  ),
+                total: zod
+                  .int()
+                  .min(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaTotalMin)
+                  .max(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksDeltaTotalMax),
+              })
+              .describe(
+                "Current stage count minus the comparison period's, so a decline reads as negative.",
+              ),
+            previous: zod.object({
+              active: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousActiveMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousActiveMax,
+                ),
+              cancelled: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousCancelledMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousCancelledMax,
+                ),
+              partially_received: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyReceivedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyReceivedMax,
+                ),
+              partially_shipped: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyShippedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousPartiallyShippedMax,
+                ),
+              received: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousReceivedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousReceivedMax,
+                ),
+              shipped: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousShippedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousShippedMax,
+                ),
+              total: zod
+                .int()
+                .min(bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousTotalMin)
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonBooksPreviousTotalMax,
+                ),
+            }),
+          }),
+          orders: zod.object({
+            delta: zod
+              .object({
+                active: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaActiveMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaActiveMax,
+                  ),
+                cancelled: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaCancelledMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaCancelledMax,
+                  ),
+                partially_received: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyReceivedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyReceivedMax,
+                  ),
+                partially_shipped: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyShippedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaPartiallyShippedMax,
+                  ),
+                received: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaReceivedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaReceivedMax,
+                  ),
+                shipped: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaShippedMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaShippedMax,
+                  ),
+                total: zod
+                  .int()
+                  .min(bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaTotalMin)
+                  .max(
+                    bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersDeltaTotalMax,
+                  ),
+              })
+              .describe(
+                "Current stage count minus the comparison period's, so a decline reads as negative.",
+              ),
+            previous: zod.object({
+              active: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousActiveMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousActiveMax,
+                ),
+              cancelled: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousCancelledMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousCancelledMax,
+                ),
+              partially_received: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyReceivedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyReceivedMax,
+                ),
+              partially_shipped: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyShippedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousPartiallyShippedMax,
+                ),
+              received: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousReceivedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousReceivedMax,
+                ),
+              shipped: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousShippedMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousShippedMax,
+                ),
+              total: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousTotalMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseLifecycleComparisonOrdersPreviousTotalMax,
+                ),
+            }),
+          }),
+        })
+        .nullable()
+        .describe(
+          "Per-stage previous count and signed delta. Null unless the request asked for a comparison period.",
+        ),
+      orders: zod.object({
+        active: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersActiveMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersActiveMax),
+        cancelled: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersCancelledMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersCancelledMax),
+        partially_received: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyReceivedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyReceivedMax),
+        partially_shipped: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyShippedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersPartiallyShippedMax),
+        received: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersReceivedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersReceivedMax),
+        shipped: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersShippedMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersShippedMax),
+        total: zod
+          .int()
+          .min(bookOrdersControllerStatisticsResponseLifecycleOrdersTotalMin)
+          .max(bookOrdersControllerStatisticsResponseLifecycleOrdersTotalMax),
+      }),
+    })
+    .describe(
+      "Distribution over the canonical derived order statuses. Orders mode and books mode stay separate objects so a consumer can never render a mixed-unit view.",
+    ),
+  meta: zod
+    .object({
+      activeSource: zod
+        .object({
+          isTruncated: zod.boolean(),
+          loadedOrdersCount: zod
+            .int()
+            .min(bookOrdersControllerStatisticsResponseMetaActiveSourceLoadedOrdersCountMin)
+            .max(bookOrdersControllerStatisticsResponseMetaActiveSourceLoadedOrdersCountMax),
+          maxOrders: zod
+            .int()
+            .gt(bookOrdersControllerStatisticsResponseMetaActiveSourceMaxOrdersExclusiveMin)
+            .max(bookOrdersControllerStatisticsResponseMetaActiveSourceMaxOrdersMax)
+            .nullable(),
+        })
+        .describe(
+          "How much of one source dataset the aggregates behind it actually saw. isTruncated means the safety cap cut the detail rows, so every total built on that source is a floor rather than the real number. It says nothing about whether a single metric had enough eligible rows: that is metric coverage, which stays a separate counter.",
+        ),
+      comparisonPeriod: zod
+        .object({
+          from: zod.iso
+            .date()
+            .regex(bookOrdersControllerStatisticsResponseMetaComparisonPeriodFromRegExp),
+          mode: zod.enum(["previous_period", "same_period_last_year"]),
+          to: zod.iso
+            .date()
+            .regex(bookOrdersControllerStatisticsResponseMetaComparisonPeriodToRegExp),
+        })
+        .nullable(),
+      comparisonSource: zod
+        .object({
+          isTruncated: zod.boolean(),
+          loadedOrdersCount: zod
+            .int()
+            .min(bookOrdersControllerStatisticsResponseMetaComparisonSourceLoadedOrdersCountMin)
+            .max(bookOrdersControllerStatisticsResponseMetaComparisonSourceLoadedOrdersCountMax),
+          maxOrders: zod
+            .int()
+            .gt(bookOrdersControllerStatisticsResponseMetaComparisonSourceMaxOrdersExclusiveMin)
+            .max(bookOrdersControllerStatisticsResponseMetaComparisonSourceMaxOrdersMax)
+            .nullable(),
+        })
+        .nullable()
+        .describe(
+          "How much of one source dataset the aggregates behind it actually saw. isTruncated means the safety cap cut the detail rows, so every total built on that source is a floor rather than the real number. It says nothing about whether a single metric had enough eligible rows: that is metric coverage, which stays a separate counter.",
+        ),
+      currentPeriod: zod.object({
+        from: zod.iso
+          .date()
+          .regex(bookOrdersControllerStatisticsResponseMetaCurrentPeriodFromRegExp)
+          .nullable(),
+        to: zod.iso
+          .date()
+          .regex(bookOrdersControllerStatisticsResponseMetaCurrentPeriodToRegExp)
+          .nullable(),
+      }),
+      currentSource: zod
+        .object({
+          isTruncated: zod.boolean(),
+          loadedOrdersCount: zod
+            .int()
+            .min(bookOrdersControllerStatisticsResponseMetaCurrentSourceLoadedOrdersCountMin)
+            .max(bookOrdersControllerStatisticsResponseMetaCurrentSourceLoadedOrdersCountMax),
+          maxOrders: zod
+            .int()
+            .gt(bookOrdersControllerStatisticsResponseMetaCurrentSourceMaxOrdersExclusiveMin)
+            .max(bookOrdersControllerStatisticsResponseMetaCurrentSourceMaxOrdersMax)
+            .nullable(),
+        })
+        .describe(
+          "How much of one source dataset the aggregates behind it actually saw. isTruncated means the safety cap cut the detail rows, so every total built on that source is a floor rather than the real number. It says nothing about whether a single metric had enough eligible rows: that is metric coverage, which stays a separate counter.",
+        ),
+    })
+    .describe(
+      "Each source the response was built from reports its own completeness. One flag for the whole response would hide the case where the current period was read in full but the comparison period was cut, or the other way round.",
+    ),
+  monthly: zod.array(
+    zod.object({
+      booksCount: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseMonthlyItemBooksCountMin)
+        .max(bookOrdersControllerStatisticsResponseMonthlyItemBooksCountMax),
+      month: zod.string(),
+      ordersCount: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMin)
+        .max(bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMax),
+      totalsByCurrency: zod.array(
+        zod.object({
+          currency: zod.enum(["UAH", "EUR", "USD"]),
+          total: zod.number(),
+        }),
+      ),
+    }),
+  ),
   records: zod.object({
     bestValueStoreByCurrency: zod.array(
       zod

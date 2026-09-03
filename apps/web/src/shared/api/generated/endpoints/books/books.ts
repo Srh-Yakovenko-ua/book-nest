@@ -2600,6 +2600,206 @@ export function useBooksControllerRestore<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type bookReadingControllerDeleteReadingEventResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type bookReadingControllerDeleteReadingEventResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookReadingControllerDeleteReadingEventResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookReadingControllerDeleteReadingEventResponseSuccess =
+  bookReadingControllerDeleteReadingEventResponse204 & {
+    headers: Headers;
+  };
+export type bookReadingControllerDeleteReadingEventResponseError = (
+  | bookReadingControllerDeleteReadingEventResponse401
+  | bookReadingControllerDeleteReadingEventResponse404
+) & {
+  headers: Headers;
+};
+
+export type bookReadingControllerDeleteReadingEventResponse =
+  | bookReadingControllerDeleteReadingEventResponseSuccess
+  | bookReadingControllerDeleteReadingEventResponseError;
+
+export const getBookReadingControllerDeleteReadingEventUrl = (id: string, eventId: string) => {
+  return `/api/books/${id}/reading-events/${eventId}`;
+};
+
+/**
+ * @summary Delete one mistaken reading activity event from the reading history
+ */
+export const bookReadingControllerDeleteReadingEvent = async (
+  id: string,
+  eventId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<bookReadingControllerDeleteReadingEventResponse> => {
+  return customInstance<bookReadingControllerDeleteReadingEventResponse>(
+    getBookReadingControllerDeleteReadingEventUrl(id, eventId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getBookReadingControllerDeleteReadingEventQueryKey = (id: string, eventId: string) => {
+  return ["DELETE", `/api/books/${id}/reading-events/${eventId}`] as const;
+};
+
+export const getBookReadingControllerDeleteReadingEventQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+  TError = void,
+>(
+  id: string,
+  eventId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBookReadingControllerDeleteReadingEventQueryKey(id, eventId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>
+  > = ({ signal }) =>
+    bookReadingControllerDeleteReadingEvent(id, eventId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined && eventId !== null && eventId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookReadingControllerDeleteReadingEventQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>
+>;
+export type BookReadingControllerDeleteReadingEventQueryError = void;
+
+export function useBookReadingControllerDeleteReadingEvent<
+  TData = Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+  TError = void,
+>(
+  id: string,
+  eventId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+          TError,
+          Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookReadingControllerDeleteReadingEvent<
+  TData = Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+  TError = void,
+>(
+  id: string,
+  eventId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+          TError,
+          Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookReadingControllerDeleteReadingEvent<
+  TData = Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+  TError = void,
+>(
+  id: string,
+  eventId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Delete one mistaken reading activity event from the reading history
+ */
+
+export function useBookReadingControllerDeleteReadingEvent<
+  TData = Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+  TError = void,
+>(
+  id: string,
+  eventId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerDeleteReadingEvent>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookReadingControllerDeleteReadingEventQueryOptions(id, eventId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type bookReadingControllerGetReadingHistoryResponse200 = {
   data: ReadingHistoryViewDto;
   status: 200;
