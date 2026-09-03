@@ -29,7 +29,8 @@
     "quotes": "Quotes",
     "publishers": "Publishers",
     "settings": "Settings",
-    "loansContacts": "Contacts"
+    "loansContacts": "Contacts",
+    "statistics": "Statistics"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -7655,6 +7656,433 @@
       "deleted": "Goal deleted",
       "conflict": "This list already has an active goal",
       "error": "Something went wrong"
+    }
+  },
+  "statistics": {
+    "metaTitle": "Reading statistics",
+    "title": "Statistics",
+    "subtitle": "How you read in the selected period: dynamics, tastes, progress and records.",
+    "dividers": {
+      "tastes": "Your reading tastes",
+      "progress": "Your progress"
+    },
+    "states": {
+      "loading": "Loading statistics",
+      "refreshing": "Refreshing data",
+      "refetchError": "Could not refresh the statistics. Showing the previous data.",
+      "lowerBound": "Reading history before the day full tracking began may be incomplete. Pages, active days and streaks are shown as the lowest known values.",
+      "error": {
+        "title": "Could not show the statistics",
+        "description": "Try reloading the page. If that does not help, come back a little later.",
+        "retry": "Try again"
+      },
+      "periodEmpty": {
+        "title": "No reading in this period yet",
+        "description": "Pick another period or look at the all-time summary.",
+        "action": "Show all time"
+      },
+      "invalidRange": {
+        "description": "Pick a valid start and end date to see the statistics for that period.",
+        "title": "Choose a period"
+      }
+    },
+    "period": {
+      "toolbarLabel": "Statistics period",
+      "label": "Period",
+      "kinds": {
+        "year": "Calendar year",
+        "last_12_months": "Last 12 months",
+        "custom": "Custom period",
+        "all_time": "All time"
+      },
+      "yearLabel": "Year",
+      "yearClear": "Clear year",
+      "yearPrev": "Earlier years",
+      "yearNext": "Later years",
+      "from": "Period start",
+      "to": "Period end",
+      "issues": {
+        "incomplete": "Pick both dates of the period.",
+        "invalid": "That date is not in a valid format.",
+        "reversed": "The start of the period cannot be later than its end.",
+        "future": "A period cannot reach into the future."
+      },
+      "caption": "Period: {range}",
+      "allTimeCaption": "Period: everything up to today",
+      "comparisonCaption": "Compared with {range}"
+    },
+    "compare": {
+      "toggle": "Compare",
+      "mode": "Comparison mode",
+      "unavailable": "All time cannot be compared with another period.",
+      "modes": {
+        "previous_period": "With the previous period",
+        "same_period_last_year": "With the same period last year"
+      }
+    },
+    "delta": {
+      "unchanged": "No change",
+      "fromZero": "from 0 to {current}",
+      "previous": "vs {previous}",
+      "percentagePoints": "{value} p.p."
+    },
+    "contextActions": {
+      "open_author": "All books by this author",
+      "open_book": "Open the book",
+      "open_goal": "Open the goal",
+      "open_publisher": "Open the publisher",
+      "open_series": "Open the series"
+    },
+    "rankings": {
+      "showMore": "Show {count} more",
+      "showLess": "Show less"
+    },
+    "hero": {
+      "title": {
+        "year": "{year} in books",
+        "last_12_months": "The last 12 months",
+        "custom": "{range}",
+        "all_time": "Your reading, all time"
+      },
+      "subtitle": "A short picture of the period: what you finished and what stands out.",
+      "recentTitle": "Recently finished"
+    },
+    "kpi": {
+      "lowerBoundValue": "≥ {value}",
+      "lowerBoundHint": "Lowest known value",
+      "completedReads": {
+        "label": "Reads finished",
+        "unit": "{count, plural, one {read} other {reads}}",
+        "value": "{count, plural, one {# read} other {# reads}}",
+        "unique": "{count, plural, one {# distinct book} other {# distinct books}}"
+      },
+      "pagesRead": {
+        "label": "Pages read",
+        "unit": "{count, plural, one {page} other {pages}}",
+        "value": "{count, plural, one {# page} other {# pages}}"
+      },
+      "averageRating": {
+        "label": "Average rating",
+        "scale": "/ 10",
+        "coverage": "{knownCount} of {eligibleCount} reads rated",
+        "reason": {
+          "NO_RATINGS": "No rated reads",
+          "INSUFFICIENT_SAMPLE": "Too few ratings for an average"
+        }
+      },
+      "activeDays": {
+        "label": "Active days",
+        "unit": "{count, plural, one {day} other {days}}",
+        "value": "{count, plural, one {# day} other {# days}}",
+        "rate": "{percent}% of the period"
+      }
+    },
+    "insights": {
+      "title": "Insights",
+      "description": "Observations the backend picked as the most notable for this period.",
+      "empty": "No reliable observations for this period yet.",
+      "codes": {
+        "completed_reads_vs_comparison": "{direction, select, up {You finished {currentValue} reads — {absoluteDelta} more than the {comparisonValue} before.} other {You finished {currentValue} reads — {absoluteDelta} fewer than the {comparisonValue} before.}}",
+        "pages_read_vs_comparison": "{direction, select, up {You read {currentValue} pages — {absoluteDelta} more than the {comparisonValue} before.} other {You read {currentValue} pages — {absoluteDelta} fewer than the {comparisonValue} before.}}",
+        "most_active_weekday": "Your most active weekday is {weekday}: {activeDays} active days and {pagesRead} pages.",
+        "longest_streak_in_period": "Your longest streak ran {days} days in a row, from {startDate} to {endDate}.",
+        "top_genre_share": "The most frequent genre is {genreKey}: {completedReadCount} reads, {share} of everything you finished.",
+        "top_author_reads": "You read {authorName} most often — {completedReadCount} reads.",
+        "series_marathon": "Your longest series marathon was {marathonLength} books in a row from “{seriesName}”.",
+        "high_rating_share": "{highRatedReadsCount} of {ratedReadsCount} rated reads scored 8.0 or higher; the average is {averageRating}.",
+        "new_authors_discovered": "You discovered {authorCount} new authors, {firstAuthorName} among them.",
+        "dominant_language": "The most frequent edition language is {language}: {completedReadCount} reads, {share} of the known ones."
+      }
+    },
+    "dynamics": {
+      "title": "Reading dynamics",
+      "metricLabel": "Dynamics metric",
+      "metrics": {
+        "reads": "Reads",
+        "pages": "Pages"
+      },
+      "subtitles": {
+        "day": "Split by day of the period.",
+        "week": "Split by week of the period.",
+        "month": "Split by month of the period.",
+        "year": "Split by year."
+      },
+      "empty": "No data to chart for this period.",
+      "current": "Current period",
+      "comparison": "Comparison period",
+      "peakReads": "Busiest stretch: {range} — {reads, plural, one {# read} other {# reads}}.",
+      "peakPages": "Busiest stretch: {range} — {pages, plural, one {# page} other {# pages}}.",
+      "tooltip": {
+        "reads": "{count, plural, one {# read} other {# reads}}",
+        "uniqueBooks": "{count, plural, one {# distinct book} other {# distinct books}}",
+        "pages": "{count, plural, one {# page} other {# pages}}",
+        "comparison": "{metric} in the comparison period: {value}"
+      },
+      "srBucket": "{range}: {reads, plural, one {# read} other {# reads}} · {pages} pages"
+    },
+    "calendar": {
+      "title": "Reading calendar",
+      "description": "The days you actually read.",
+      "modeLabel": "Calendar mode",
+      "modes": {
+        "activity": "Activity",
+        "books": "Books"
+      },
+      "metricRange": "Figures for {range}",
+      "displayRange": "The calendar shows {range}.",
+      "legacyNote": "Days before full history tracking began are observed facts; an empty cell there does not prove that you did not read.",
+      "empty": "No day with activity in this period.",
+      "unavailable": "The calendar is unavailable",
+      "reason": {
+        "NO_ACTIVITY_HISTORY": "There is not a single recorded page read yet."
+      },
+      "summary": {
+        "activeDays": "Active days",
+        "activeDaysRate": "Share of the period",
+        "longestStreak": "Longest streak",
+        "currentStreak": "Current streak",
+        "mostActiveWeekday": "Most active weekday",
+        "days": "{count, plural, one {# day} other {# days}}",
+        "daysAtLeast": "{count, plural, one {#+ day} other {#+ days}}",
+        "lowerBoundValue": "≥ {value}",
+        "continuesBeforeRange": "The streak started before this period",
+        "weekdayHint": "{days} active days · {pages} pages",
+        "unavailable": "—",
+        "reason": {
+          "LEGACY_HISTORY_INCOMPLETE": "Part of this period predates full history tracking, so the figure would mislead.",
+          "PERIOD_NOT_CURRENT": "A closed period has no running streak."
+        }
+      },
+      "heatmap": {
+        "legendLess": "less",
+        "legendMore": "more",
+        "relativeHint": "Intensity is relative to your own activity in this period.",
+        "dayEmpty": "{date}: no reading",
+        "dayUnknown": "{date}: this day may be missing from the history",
+        "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}"
+      },
+      "books": {
+        "more": "+{count}",
+        "empty": "No months to show.",
+        "emptyMonth": "You did not read this month.",
+        "previousMonth": "Previous month",
+        "nextMonth": "Next month",
+        "daySummary": "{date}: {pages} pages, {books, plural, one {# book} other {# books}}",
+        "dayEmpty": "{date}: no reading",
+        "dayUnknown": "{date}: this day may be missing from the history",
+        "diaryMeta": "{books, plural, one {# book} other {# books}} · {pages} pages"
+      }
+    },
+    "details": {
+      "day": {
+        "loading": "Loading the day",
+        "error": "Could not load this day",
+        "retry": "Try again",
+        "summary": "{pages} pages · {books, plural, one {# book} other {# books}}",
+        "empty": "No pages were read on this day.",
+        "bookPages": "{pages} pages",
+        "deletedBook": "This book was removed from the library",
+        "legacyQuality": "This day predates full history tracking, so it may be incomplete."
+      },
+      "completedRead": {
+        "open": "Read details: {title}",
+        "finishedAt": "Finished {date}",
+        "noRating": "Not rated",
+        "deletedBook": "This book was removed from the library",
+        "relatedTitle": "Related"
+      }
+    },
+    "ratings": {
+      "title": "Ratings",
+      "description": "Your ratings of finished reads on the 0.5 to 10 scale.",
+      "unavailable": "No ratings yet",
+      "reason": {
+        "NO_RATINGS": "None of the reads finished in this period carry a rating.",
+        "INSUFFICIENT_SAMPLE": "Too few rated reads for a reliable average."
+      },
+      "averageRating": "Average rating",
+      "scale": "{value} / 10",
+      "highRated": "Rated 8.0 and above",
+      "highRatedValue": "{count} · {percent}%",
+      "ratedReads": "Rated reads",
+      "ratedReadsValue": "{rated} of {total}",
+      "coverage": "{knownCount} of {eligibleCount} reads rated",
+      "distributionRow": "Rating {rating}: {count, plural, one {# read} other {# reads}}",
+      "topRatedTitle": "Highest rated",
+      "topRatedEmpty": "No rated reads yet."
+    },
+    "genres": {
+      "title": "Genres",
+      "description": "Genres of the reads finished in this period.",
+      "modeLabel": "Genre metric",
+      "modes": {
+        "frequency": "Read most often",
+        "rated": "Rated highest"
+      },
+      "empty": "The reads finished in this period carry no genres.",
+      "coverage": "{knownCount} of {eligibleCount} reads carry a genre",
+      "share": "{percent}% of reads",
+      "reads": "{count, plural, one {# read} other {# reads}}",
+      "ratedReads": "{count, plural, one {# rating} other {# ratings}}",
+      "ratedUnavailable": "Too few ratings",
+      "reason": {
+        "INSUFFICIENT_SAMPLE": "A genre needs at least 3 rated reads to be ranked."
+      },
+      "unavailable": "Genres cannot be measured",
+      "unavailableDescription": "None of the reads finished in this period carry a recorded genre."
+    },
+    "authors": {
+      "title": "Authors",
+      "description": "Authors of the reads finished in this period.",
+      "modeLabel": "Author metric",
+      "modes": {
+        "frequency": "Read most often",
+        "rated": "Rated highest"
+      },
+      "empty": "The reads finished in this period carry no authors.",
+      "coverage": "{knownCount} of {eligibleCount} reads carry an author",
+      "reads": "{count, plural, one {# read} other {# reads}}",
+      "ratedReads": "{count, plural, one {# rating} other {# ratings}}",
+      "ratedUnavailable": "Too few ratings",
+      "reason": {
+        "INSUFFICIENT_SAMPLE": "An author needs at least 3 rated reads to be ranked."
+      },
+      "returningTitle": "You keep coming back to",
+      "returningMeta": "{years, plural, one {# year} other {# years}} · {reads, plural, one {# read} other {# reads}} · last read {lastRead}",
+      "unavailable": "Authors cannot be measured",
+      "unavailableDescription": "None of the reads finished in this period carry a recorded author."
+    },
+    "publishers": {
+      "title": "Publishers",
+      "description": "Publishers behind the reads finished in this period.",
+      "empty": "The reads finished in this period carry no publishers.",
+      "coverage": "{knownCount} of {eligibleCount} reads carry a publisher",
+      "reads": "{count, plural, one {# read} other {# reads}}",
+      "summary": "Publishers in total: {total}",
+      "concentration": "The top 3 account for {percent}% of reads",
+      "unavailable": "Publishers cannot be measured",
+      "unavailableDescription": "None of the reads finished in this period carry a recorded publisher."
+    },
+    "languages": {
+      "title": "Languages",
+      "description": "The edition language recorded when each read was finished.",
+      "empty": "The reads finished in this period carry no language.",
+      "coverage": "{knownCount} of {eligibleCount} historical reads carry a reliably recorded edition language",
+      "share": "{percent}% of the known ones",
+      "reads": "{count, plural, one {# read} other {# reads}}",
+      "sourceHint": "The edition language recorded in BookNest when the read was finished.",
+      "diversity": "{count, plural, one {# language} other {# languages}}",
+      "unavailable": "Languages cannot be measured",
+      "unavailableDescription": "None of the reads finished in this period carry a recorded edition language."
+    },
+    "discoveries": {
+      "title": "New discoveries",
+      "description": "First finished encounters with an author, a genre or a publisher in this period.",
+      "empty": "No new discoveries in this period.",
+      "unavailable": "Discoveries are unavailable",
+      "reason": {
+        "LEGACY_HISTORY_INCOMPLETE": "Some completions were carried over from older history, so a first encounter cannot be proven."
+      },
+      "partialNote": "Some completions in this period cannot be proven to be a first-ever read.",
+      "counts": "New authors: {authors} · genres: {genres} · publishers: {publishers}",
+      "kinds": {
+        "author": "Author",
+        "genre": "Genre",
+        "publisher": "Publisher"
+      },
+      "firstRead": "First finished read: {date}",
+      "afterDiscovery": "{count, plural, one {# read after the discovery} other {# reads after the discovery}}",
+      "averageRating": "average rating {value}"
+    },
+    "goal": {
+      "title": "Reading goal",
+      "description": "The active goal with the nearest deadline.",
+      "empty": "No active goal",
+      "emptyDescription": "Create a goal to see its progress right here.",
+      "create": "Create a goal",
+      "deadline": "By {date}",
+      "fallbackName": "{count, plural, one {# book} other {# books}}",
+      "progress": "{completed} of {target}",
+      "progressLabel": "Goal progress: {percent}%",
+      "status": "Status",
+      "pace": "Pace",
+      "paces": {
+        "ahead": "Ahead of plan",
+        "on_track": "On track",
+        "behind": "Behind plan",
+        "critical": "Needs a noticeably higher pace"
+      },
+      "remaining": "Remaining",
+      "remainingValue": "{count, plural, one {# book} other {# books}}",
+      "forecast": "Projected finish",
+      "forecastUnavailable": "Not enough data",
+      "open": "Open the goal",
+      "otherGoals": "{count, plural, one {# more active goal} other {# more active goals}}"
+    },
+    "series": {
+      "title": "Series reading",
+      "description": "How you moved through book series in this period.",
+      "unavailable": "Series data is unavailable",
+      "share": "{series} of {total} reads came from series · {percent}%",
+      "shareUnknown": "The share of series reading could not be computed.",
+      "lifecycleUnavailable": "Series milestones are unavailable",
+      "reason": {
+        "LEGACY_HISTORY_INCOMPLETE": "Some completions were carried over from older history, so structural transitions cannot be proven."
+      },
+      "lifecycle": {
+        "started": "Started",
+        "continued": "Continued",
+        "completed": "Completed",
+        "caughtUp": "Caught up"
+      },
+      "mostActiveTitle": "Most active series",
+      "attributablePages": "{pages} pages",
+      "reads": "{count, plural, one {# read} other {# reads}}",
+      "empty": "No reads from series were finished in this period.",
+      "topProgressTitle": "Most progress",
+      "firstCompletions": "{count, plural, one {# new book} other {# new books}}",
+      "marathon": "Series marathon: {length} books in a row from “{name}”, finished {date}."
+    },
+    "libraryBalance": {
+      "title": "Library balance",
+      "description": "How many of your own books are still waiting to be read.",
+      "currentTbr": "Unread right now",
+      "currentTbrValue": "{unread} of {total}",
+      "readRatio": "Share already read",
+      "forecast": "Enough for about",
+      "forecastValue": "{months} mo",
+      "forecastPace": "at {rate} books per month",
+      "flowUnavailable": "The unread-library flow is unavailable",
+      "flowReason": {
+        "HISTORY_NOT_TRACKED": "BookNest does not record ownership transitions yet, so the change over a period cannot be computed."
+      },
+      "flow": "In {inflow} · out {outflow} · net {net}",
+      "forecastReason": {
+        "INSUFFICIENT_SAMPLE": "Too little reading history to estimate a pace.",
+        "LOW_CONFIDENCE": "The reading pace is too uneven for a reliable estimate.",
+        "LEGACY_HISTORY_INCOMPLETE": "Part of the history is incomplete, so a pace estimate would mislead."
+      }
+    },
+    "records": {
+      "title": "Your records",
+      "description": "The most notable extremes of this period.",
+      "empty": "No records in this period yet.",
+      "types": {
+        "longest_completed_book": "Longest book finished",
+        "shortest_completed_book": "Shortest book finished",
+        "most_pages_in_day": "Busiest day",
+        "fastest_completed_read": "Fastest read finished",
+        "longest_series_marathon": "Longest series marathon",
+        "longest_streak": "Longest reading streak",
+        "peak_month": "Busiest month"
+      },
+      "values": {
+        "pages": "{count, plural, one {# page} other {# pages}}",
+        "elapsedDays": "finished in {count, plural, one {# day} other {# days}}",
+        "marathon": "{count, plural, one {# book in a row} other {# books in a row}}",
+        "streakDays": "{count, plural, one {# day in a row} other {# days in a row}}",
+        "peakMonthDetail": "{reads, plural, one {# read} other {# reads}} · {pages} pages"
+      }
     }
   }
 }
