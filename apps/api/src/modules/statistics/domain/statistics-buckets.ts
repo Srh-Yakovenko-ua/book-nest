@@ -44,18 +44,6 @@ export function buildStatisticsBuckets({
   return buckets;
 }
 
-export function resolveBucketKey({
-  granularity,
-  isoDay,
-  weekStartDay,
-}: {
-  granularity: ReadingStatisticsGranularity;
-  isoDay: string;
-  weekStartDay: WeekStartDay;
-}): string {
-  return bucketStart({ granularity, isoDay, weekStartDay });
-}
-
 function bucketEnd({
   granularity,
   start,

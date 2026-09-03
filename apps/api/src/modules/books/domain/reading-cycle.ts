@@ -67,19 +67,6 @@ export type ReadingCycleTransitionInput = {
 
 export type TerminalReadingCycleState = Exclude<ReadingCycleState, "active">;
 
-export function isReadingCycleDurationKnown({
-  finishedAt,
-  startedAt,
-}: {
-  finishedAt: Nullable<Date>;
-  startedAt: Nullable<Date>;
-}): boolean {
-  if (startedAt === null || finishedAt === null) {
-    return false;
-  }
-  return !isBefore(finishedAt, startedAt);
-}
-
 export function planReadingCycleCommand(input: ReadingCycleTransitionInput): ReadingCycleCommand {
   switch (input.targetStatus) {
     case "dnf":
@@ -120,12 +107,6 @@ export function resolveFirstCompletionReliability({
   return isBefore(bookCreatedAt, cycleHistoryCutoverAt)
     ? FIRST_COMPLETION_RELIABILITY.firstKnownOnly
     : FIRST_COMPLETION_RELIABILITY.provenFirst;
-}
-
-export function terminalCycleDate(cycle: ReadingCycleSnapshot): Nullable<string> {
-  return cycle.state === READING_CYCLE_STATE.finished
-    ? toNullableIsoDate(cycle.finishedAt)
-    : toNullableIsoDate(cycle.endedAt);
 }
 
 function planTerminalCommand({
