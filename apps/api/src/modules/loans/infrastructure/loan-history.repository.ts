@@ -154,7 +154,7 @@ type LoanHistoryRow = Prisma.BookLoanGetPayload<typeof historyBookInclude>;
 
 type LoanHistoryScopedFilter = LoanHistoryScope & { search: string | undefined };
 
-type TopHistoryPeopleInput = LoanHistoryScope & { take: number };
+type TopHistoryPeopleInput = Omit<LoanHistoryScope, "contactId"> & { take: number };
 
 @Injectable()
 export class LoanHistoryRepository {
@@ -307,7 +307,7 @@ export class LoanHistoryRepository {
         (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}))::int AS "borrowedCount",
         (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_LENT}))::int AS "lentCount"
       ${HISTORY_SOURCE}
-      WHERE ${buildHistoryScopeWhere(scope)}
+      WHERE ${buildHistoryScopeWhere({ ...scope, contactId: undefined })}
       GROUP BY contact.id
       ORDER BY "totalCount" DESC, contact.name ASC
       LIMIT ${take}

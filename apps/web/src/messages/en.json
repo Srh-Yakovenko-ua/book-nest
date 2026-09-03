@@ -5696,8 +5696,7 @@
           "title": "People you deal with most",
           "count": "{count, plural, one {# loan} other {# loans}}",
           "breakdown": "{lent} lent out · {borrowed} borrowed",
-          "empty": "No completed loans yet",
-          "filter": "Filter by person: {name}"
+          "empty": "No completed loans yet"
         },
         "duration": {
           "title": "Loan duration",

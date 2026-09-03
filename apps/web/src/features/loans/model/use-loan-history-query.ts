@@ -34,14 +34,12 @@ export type UseLoanHistoryQueryResult = {
   applyAdvanced: (draft: LoanHistoryAdvancedState) => void;
   clearFilters: () => void;
   clearSearch: () => void;
-  contactId: string;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   listParams: LoanHistoryListParams;
   overviewParams: LoanHistoryControllerOverviewParams;
   peopleParams: LoanHistoryControllerPeopleParams;
   result: LoanHistoryControllerListResult;
-  setContactId: (value: string) => void;
   setResult: (value: LoanHistoryControllerListResult) => void;
   setSearch: (value: string) => void;
   setSort: (value: LoanHistoryControllerListSort) => void;
@@ -59,14 +57,12 @@ export function useLoanHistoryQuery(): UseLoanHistoryQueryResult {
     applyAdvanced: (draft) => void setState(toAdvancedPatch(draft)),
     clearFilters: () => void setState(LOAN_HISTORY_FILTERS_RESET),
     clearSearch: () => void setState({ q: null }),
-    contactId: state.contactId,
     hasActiveFilters: hasActiveLoanHistoryFilters(state),
     hasActiveSearch: hasActiveLoanHistorySearch(state),
     listParams: toLoanHistoryListParams(state),
     overviewParams: toLoanHistoryOverviewParams(advanced),
     peopleParams: toLoanHistoryPeopleParams(advanced),
     result: state.result,
-    setContactId: (value) => void setState({ contactId: emptyToNull(value) }),
     setResult: (value) => void setState({ result: value }),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),

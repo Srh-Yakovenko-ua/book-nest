@@ -1447,39 +1447,21 @@ describe("LoanHistoryView analytics sidebar", () => {
     expect(
       within(block).getByRole("button", { name: openContactLabel("Олена") }),
     ).toBeInTheDocument();
-    expect(
-      within(block).getByRole("button", { name: personFilterLabel("Олена") }),
-    ).toBeInTheDocument();
+    expect(within(block).getAllByRole("button")).toHaveLength(2);
   });
 
   it("opens the person card from the people block instead of filtering", async () => {
+    const { events, onUrlUpdate } = trackUrl();
     mockHistory([historyItem()]);
 
-    renderHistory();
+    renderHistory("", onUrlUpdate);
 
     const block = await findSidebarBlock(copy.sidebar.people.title);
-    const filterToggle = within(block).getByRole("button", { name: personFilterLabel("Олена") });
 
     await userEvent.click(within(block).getByRole("button", { name: openContactLabel("Олена") }));
 
     expect(await screen.findByRole("dialog", { name: "Олена" })).toBeInTheDocument();
-    expect(filterToggle).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("filters the list by the person the reader clicks", async () => {
-    mockHistory([historyItem()]);
-
-    renderHistory();
-
-    const block = await findSidebarBlock(copy.sidebar.people.title);
-    const person = within(block).getByRole("button", { name: personFilterLabel("Олена") });
-
-    await userEvent.click(person);
-
-    await waitFor(() => {
-      expect(lastListUrl()).toContain(`contactId=${CONTACT_IDS.olena}`);
-    });
-    expect(person).toHaveAttribute("aria-pressed", "true");
+    expect(events).toHaveLength(0);
   });
 
   it("reports the durations the backend measured", async () => {
@@ -1971,10 +1953,6 @@ async function openCorrectionDialog(action: string) {
 
 function personChip(name: string): string {
   return activeFilters.person.replace("{name}", name);
-}
-
-function personFilterLabel(name: string): string {
-  return copy.sidebar.people.filter.replace("{name}", name);
 }
 
 function personPicker(): HTMLElement {

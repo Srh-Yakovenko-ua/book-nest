@@ -2,6 +2,7 @@ import type {
   LoanDirection,
   LoanHistoryListItemView,
   LoanHistoryPersonOption,
+  LoanHistoryPersonStats,
   LoanHistoryResultCounts,
   LoanHistorySort,
   Nullable,
@@ -1796,6 +1797,260 @@ describe("GET /api/loans/history/overview top people", () => {
     expect(
       LoanHistoryOverviewViewSchema.parse(res.body).topPeople.map((person) => person.personName),
     ).toEqual(["Zoryana", "Andrii"]);
+  });
+});
+
+describe("GET /api/loans/history/overview top people facet", () => {
+  function overviewTopPeople(res: Response): LoanHistoryPersonStats[] {
+    return LoanHistoryOverviewViewSchema.parse(res.body).topPeople;
+  }
+
+  async function seedThreePeopleHistory(accessToken: string): Promise<void> {
+    await completeLoan(accessToken, {
+      direction: "lent",
+      loanDate: "2026-01-05",
+      personName: "Ivan",
+      returnedAt: "2026-01-20T10:00:00.000Z",
+      title: "Ivan lent one",
+    });
+    await completeLoan(accessToken, {
+      direction: "lent",
+      loanDate: "2026-02-05",
+      personName: "Ivan",
+      returnedAt: "2026-02-20T10:00:00.000Z",
+      title: "Ivan lent two",
+    });
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      loanDate: "2026-03-05",
+      personName: "Ivan",
+      returnedAt: "2026-03-20T10:00:00.000Z",
+      title: "Ivan borrowed one",
+    });
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      expectedReturnDate: "2026-01-20",
+      loanDate: "2026-01-10",
+      personName: "Olha",
+      returnedAt: "2026-01-25T10:00:00.000Z",
+      title: "Olha borrowed late",
+    });
+    await completeLoan(accessToken, {
+      direction: "borrowed",
+      expectedReturnDate: "2026-02-20",
+      loanDate: "2026-02-10",
+      personName: "Olha",
+      returnedAt: "2026-02-15T10:00:00.000Z",
+      title: "Olha borrowed on time",
+    });
+    await completeLoan(accessToken, {
+      direction: "lent",
+      loanDate: "2026-03-10",
+      personName: "Petro",
+      returnedAt: "2026-03-15T10:00:00.000Z",
+      title: "Petro lent one",
+    });
+  }
+
+  it("ranks every person of the unfiltered history by their completed loan count", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken);
+
+    expect(overviewTopPeople(res)).toEqual([
+      {
+        borrowedCount: 1,
+        contactId: await contactIdFor("Ivan"),
+        lentCount: 2,
+        personName: "Ivan",
+        totalCount: 3,
+      },
+      {
+        borrowedCount: 2,
+        contactId: await contactIdFor("Olha"),
+        lentCount: 0,
+        personName: "Olha",
+        totalCount: 2,
+      },
+      {
+        borrowedCount: 0,
+        contactId: await contactIdFor("Petro"),
+        lentCount: 1,
+        personName: "Petro",
+        totalCount: 1,
+      },
+    ]);
+  });
+
+  it("adds every top person's lent and borrowed counts up to their total", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const topPeople = overviewTopPeople(await historyOverview(accessToken));
+
+    expect(topPeople.map((person) => person.lentCount + person.borrowedCount)).toEqual([3, 2, 1]);
+    expect(topPeople.map((person) => person.totalCount)).toEqual([3, 2, 1]);
+  });
+
+  it("keeps the other people in the top people block when a contact filters the history", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken, `?contactId=${await contactIdFor("Olha")}`);
+
+    expect(res.status).toBe(200);
+    expect(overviewTopPeople(res).map((person) => person.personName)).toEqual([
+      "Ivan",
+      "Olha",
+      "Petro",
+    ]);
+  });
+
+  it("narrows the summary to the filtered contact while the top people stay comparative", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken, `?contactId=${await contactIdFor("Olha")}`);
+
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).summary).toEqual({
+      averageDelayDays: 5,
+      averageDurationDays: 10,
+      borrowedCount: 2,
+      durationCount: 2,
+      lateCount: 1,
+      lentCount: 0,
+      noDueDateCount: 0,
+      onTimeCount: 1,
+      onTimePercent: 50,
+      totalCompleted: 2,
+    });
+    expect(overviewTopPeople(res)).toHaveLength(3);
+  });
+
+  it("narrows the duration figures to the filtered contact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken, `?contactId=${await contactIdFor("Olha")}`);
+
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).duration).toEqual({
+      averageDays: 10,
+      longestDays: 15,
+      shortestDays: 5,
+    });
+  });
+
+  it("counts only the lent loans in the top people block for the lent direction", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken, "?type=lent_to_someone");
+
+    expect(overviewTopPeople(res)).toEqual([
+      {
+        borrowedCount: 0,
+        contactId: await contactIdFor("Ivan"),
+        lentCount: 2,
+        personName: "Ivan",
+        totalCount: 2,
+      },
+      {
+        borrowedCount: 0,
+        contactId: await contactIdFor("Petro"),
+        lentCount: 1,
+        personName: "Petro",
+        totalCount: 1,
+      },
+    ]);
+  });
+
+  it("counts only the borrowed loans in the top people block for the borrowed direction", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken, "?type=borrowed_from_someone");
+
+    expect(overviewTopPeople(res)).toEqual([
+      {
+        borrowedCount: 2,
+        contactId: await contactIdFor("Olha"),
+        lentCount: 0,
+        personName: "Olha",
+        totalCount: 2,
+      },
+      {
+        borrowedCount: 1,
+        contactId: await contactIdFor("Ivan"),
+        lentCount: 0,
+        personName: "Ivan",
+        totalCount: 1,
+      },
+    ]);
+  });
+
+  it("keeps the direction filter on the top people while the contact filter stays off them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(
+      accessToken,
+      `?type=lent_to_someone&contactId=${await contactIdFor("Olha")}`,
+    );
+
+    expect(overviewTopPeople(res).map((person) => person.personName)).toEqual(["Ivan", "Petro"]);
+    expect(LoanHistoryOverviewViewSchema.parse(res.body).summary.totalCompleted).toBe(0);
+  });
+
+  it("narrows the top people by the returned period", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(
+      accessToken,
+      "?returnedFrom=2026-02-01&returnedTo=2026-02-28",
+    );
+
+    expect(overviewTopPeople(res)).toEqual([
+      {
+        borrowedCount: 0,
+        contactId: await contactIdFor("Ivan"),
+        lentCount: 1,
+        personName: "Ivan",
+        totalCount: 1,
+      },
+      {
+        borrowedCount: 1,
+        contactId: await contactIdFor("Olha"),
+        lentCount: 0,
+        personName: "Olha",
+        totalCount: 1,
+      },
+    ]);
+  });
+
+  it("narrows the top people by the loan date range", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedThreePeopleHistory(accessToken);
+
+    const res = await historyOverview(accessToken, "?loanDateFrom=2026-03-01");
+
+    expect(overviewTopPeople(res)).toEqual([
+      {
+        borrowedCount: 1,
+        contactId: await contactIdFor("Ivan"),
+        lentCount: 0,
+        personName: "Ivan",
+        totalCount: 1,
+      },
+      {
+        borrowedCount: 0,
+        contactId: await contactIdFor("Petro"),
+        lentCount: 1,
+        personName: "Petro",
+        totalCount: 1,
+      },
+    ]);
   });
 });
 
