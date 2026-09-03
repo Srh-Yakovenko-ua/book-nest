@@ -780,6 +780,18 @@ export class BooksRepository {
     };
   }
 
+  deleteReadingEvent(
+    { bookId, eventId }: { bookId: string; eventId: string },
+    client?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const deleted = await tx.bookReadingProgressEvent.deleteMany({
+        where: { bookId, id: eventId },
+      });
+      return deleted.count;
+    });
+  }
+
   async existsOwned({ bookId, userId }: { bookId: string; userId: string }): Promise<boolean> {
     const book = await this.prisma.book.findFirst({
       select: { id: true },
@@ -1062,58 +1074,24 @@ export class BooksRepository {
     return result._max.queuePosition ?? 0;
   }
 
-  recordReadingProgress(
+  recordReadingEvent(
     args: {
       bookId: string;
-      event: Nullable<ReadingProgressEventData>;
-      patch: ReadingChangePatch;
-      userId: string;
+      event: ReadingProgressEventData;
+      readingCycleId: Nullable<string>;
     },
     client?: Prisma.TransactionClient,
   ): Promise<void> {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
-      await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
-
-      if (args.event !== null) {
-        await tx.bookReadingProgressEvent.create({
-          data: {
-            bookId: args.bookId,
-            date: args.event.date,
-            page: args.event.page,
-            pagesRead: args.event.pagesRead,
-          },
-        });
-      }
-    });
-  }
-
-  recordReadingStatusChange(
-    args: {
-      bookId: string;
-      clearEvents: boolean;
-      event: Nullable<ReadingProgressEventData>;
-      patch: ReadingChangePatch;
-      userId: string;
-    },
-    client?: Prisma.TransactionClient,
-  ): Promise<void> {
-    return runInClient({ client, prisma: this.prisma }, async (tx) => {
-      await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
-
-      if (args.clearEvents) {
-        await tx.bookReadingProgressEvent.deleteMany({ where: { bookId: args.bookId } });
-      }
-
-      if (args.event !== null) {
-        await tx.bookReadingProgressEvent.create({
-          data: {
-            bookId: args.bookId,
-            date: args.event.date,
-            page: args.event.page,
-            pagesRead: args.event.pagesRead,
-          },
-        });
-      }
+      await tx.bookReadingProgressEvent.create({
+        data: {
+          bookId: args.bookId,
+          date: args.event.date,
+          page: args.event.page,
+          pagesRead: args.event.pagesRead,
+          readingCycleId: args.readingCycleId,
+        },
+      });
     });
   }
 
