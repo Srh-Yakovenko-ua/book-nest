@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { BookLanguageSchema } from "./book-enums.js";
-import { CountSchema, isoDay, ratingBound } from "./internal.js";
+import { CountSchema, isoDay, ratingAverage } from "./internal.js";
 import { ReadingStatisticsContextActionSchema } from "./reading-statistics-common.js";
 
 export const ReadingStatisticsInsightCategorySchema = z.enum([
@@ -84,7 +84,7 @@ export const ReadingStatisticsInsightSchema = z
       "high_rating_share",
       "ratings",
       z.object({
-        averageRating: ratingBound(),
+        averageRating: ratingAverage(),
         highRatedReadsCount: CountSchema,
         ratedReadsCount: CountSchema,
       }),

@@ -1070,7 +1070,6 @@ export const statisticsControllerGetOverviewResponseHeroFeaturedInsightEightActi
   );
 export const statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsAverageRatingMin = 0.5;
 export const statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsAverageRatingMax = 10;
-export const statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsAverageRatingMultipleOf = 0.5;
 
 export const statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsHighRatedReadsCountMin = 0;
 export const statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsHighRatedReadsCountMax = 9007199254740991;
@@ -1427,7 +1426,6 @@ export const statisticsControllerGetOverviewResponseInsightsItemsItemEightAction
   );
 export const statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsAverageRatingMin = 0.5;
 export const statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsAverageRatingMax = 10;
-export const statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsAverageRatingMultipleOf = 0.5;
 
 export const statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsHighRatedReadsCountMin = 0;
 export const statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsHighRatedReadsCountMax = 9007199254740991;
@@ -4604,9 +4602,6 @@ export const StatisticsControllerGetOverviewResponse = zod.object({
               )
               .max(
                 statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsAverageRatingMax,
-              )
-              .multipleOf(
-                statisticsControllerGetOverviewResponseHeroFeaturedInsightEightParamsAverageRatingMultipleOf,
               ),
             highRatedReadsCount: zod
               .int()
@@ -5537,9 +5532,6 @@ export const StatisticsControllerGetOverviewResponse = zod.object({
                   )
                   .max(
                     statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsAverageRatingMax,
-                  )
-                  .multipleOf(
-                    statisticsControllerGetOverviewResponseInsightsItemsItemEightParamsAverageRatingMultipleOf,
                   ),
                 highRatedReadsCount: zod
                   .int()
