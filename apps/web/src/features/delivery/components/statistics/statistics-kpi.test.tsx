@@ -125,13 +125,23 @@ describe("StatisticsKpi", () => {
     renderKpi();
 
     expect(screen.getByText("40 008 UAH")).toBeInTheDocument();
-    expect(screen.getByText("170,4 EUR")).toBeInTheDocument();
+    expect(screen.getByText("Інші: 170,4 EUR")).toBeInTheDocument();
   });
 
-  it("marks the money-in-transit card as a snapshot", () => {
+  it("labels the other currencies instead of dropping them in bare", () => {
     renderKpi();
 
-    expect(screen.getByText("Станом на зараз")).toBeInTheDocument();
+    expect(screen.getByText("Інші: 83,4 EUR")).toBeInTheDocument();
+    expect(screen.queryByText("170,4 EUR")).not.toBeInTheDocument();
+  });
+
+  it("says the snapshot is current once, in the group heading and not in the card", () => {
+    renderKpi();
+
+    expect(screen.getAllByText("Станом на зараз")).toHaveLength(1);
+    expect(
+      screen.getByText("Гроші в дорозі").closest("[data-slot='stat-card']"),
+    ).not.toHaveTextContent("Станом на зараз");
   });
 
   it("shows no comparison at all until one is asked for", () => {
@@ -171,16 +181,25 @@ describe("StatisticsKpi", () => {
 
     expect(screen.getByText("Витрачено")).toBeInTheDocument();
     expect(screen.getByText("Середня ціна книги")).toBeInTheDocument();
-    expect(screen.getByText("Середній чек замовлення")).toBeInTheDocument();
-    expect(screen.getByText("В активних замовленнях")).toBeInTheDocument();
-    expect(screen.queryByText("Гроші в дорозі")).not.toBeInTheDocument();
+    expect(screen.getByText("Середній чек")).toBeInTheDocument();
+    expect(screen.getByText("Гроші в дорозі")).toBeInTheDocument();
+    expect(screen.queryByText("В активних замовленнях")).not.toBeInTheDocument();
+    expect(screen.queryByText("Середній чек замовлення")).not.toBeInTheDocument();
   });
 
   it("separates the period metrics from the current snapshot", () => {
     renderKpi();
 
-    expect(screen.getAllByText("За вибраний період")).toHaveLength(3);
-    expect(screen.getAllByText("Зараз")).toHaveLength(1);
+    expect(screen.getAllByText("За вибраний період")).toHaveLength(1);
+    expect(screen.getAllByText("Станом на зараз")).toHaveLength(1);
+  });
+
+  it("puts the books-per-order helper inside the average order card", () => {
+    renderKpi();
+
+    expect(
+      screen.getByText("1,4 книги / замовлення").closest("[data-slot='stat-card']"),
+    ).toHaveTextContent("Середній чек");
   });
 
   it("says the average book price is measured before discounts and delivery", () => {
@@ -201,10 +220,13 @@ describe("StatisticsKpi", () => {
     expect(screen.getByText("38 замовлень · 46 книг · 31 посилка")).toBeInTheDocument();
   });
 
-  it("offers the approved chips and drops the received one", () => {
+  it("offers the approved chips and drops the promoted and received ones", () => {
     renderKpi();
 
-    expect(screen.getByText("Книг на замовлення")).toBeInTheDocument();
+    expect(screen.getByText("Замовлень")).toBeInTheDocument();
+    expect(screen.getByText("Книг")).toBeInTheDocument();
+    expect(screen.getByText("Посилок")).toBeInTheDocument();
+    expect(screen.queryByText("Книг на замовлення")).not.toBeInTheDocument();
     expect(screen.queryByText("Отримано")).not.toBeInTheDocument();
   });
 
