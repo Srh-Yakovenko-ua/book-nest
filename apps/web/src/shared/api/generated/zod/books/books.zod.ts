@@ -4601,6 +4601,16 @@ export const BooksControllerRestoreResponse = zod.object({
 });
 
 /**
+ * @summary Delete one mistaken reading activity event from the reading history
+ */
+export const BookReadingControllerDeleteReadingEventParams = zod.object({
+  id: zod.string(),
+  eventId: zod.string(),
+});
+
+export const BookReadingControllerDeleteReadingEventResponse = zod.void();
+
+/**
  * @summary Get the reading progress history of a book
  */
 export const BookReadingControllerGetReadingHistoryParams = zod.object({
