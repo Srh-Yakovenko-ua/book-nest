@@ -3449,8 +3449,9 @@
           "label": "Середня ціна книги"
         },
         "basket": {
+          "helper": "{value} книги / замовлення",
           "hint": "Середня фактична сума одного замовлення.",
-          "label": "Середній чек замовлення"
+          "label": "Середній чек"
         },
         "booksPerOrder": "{value} книги на замовлення",
         "coverage": {
@@ -3461,23 +3462,22 @@
         },
         "missingForCurrency": "Немає даних у {currency}",
         "noChange": "Без змін",
+        "otherCurrencies": "Інші: {value}",
         "previous": "було {value}",
         "previousShort": "було {value}",
         "scope": {
-          "now": "Зараз",
+          "now": "Станом на зараз",
           "period": "За вибраний період"
         },
         "secondary": {
           "books": "Книг",
-          "booksPerOrder": "Книг на замовлення",
           "orders": "Замовлень",
           "shipments": "Посилок"
         },
         "snapshot": {
           "hint": "Поточний стан активних замовлень. Не залежить від вибраного періоду.",
-          "label": "В активних замовленнях"
+          "label": "Гроші в дорозі"
         },
-        "snapshotBadge": "Станом на зараз",
         "snapshotFact": "{orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлення}} · {books, plural, one {# книга} few {# книги} many {# книг} other {# книг}} · {shipments, plural, one {# посилка} few {# посилки} many {# посилок} other {# посилок}}",
         "spend": {
           "hint": "Сума фактичних підсумків замовлень за вибраний період. Валюти рахуються окремо.",

@@ -3449,8 +3449,9 @@
           "label": "Average book price"
         },
         "basket": {
+          "helper": "{value} books / order",
           "hint": "The average final amount of one order.",
-          "label": "Average order total"
+          "label": "Average order"
         },
         "booksPerOrder": "{value} books per order",
         "coverage": {
@@ -3461,23 +3462,22 @@
         },
         "missingForCurrency": "No data in {currency}",
         "noChange": "No change",
+        "otherCurrencies": "Other: {value}",
         "previous": "was {value}",
         "previousShort": "was {value}",
         "scope": {
-          "now": "Right now",
+          "now": "As of now",
           "period": "Selected period"
         },
         "secondary": {
           "books": "Books",
-          "booksPerOrder": "Books per order",
           "orders": "Orders",
           "shipments": "Parcels"
         },
         "snapshot": {
           "hint": "The current state of the active orders. It does not follow the selected period.",
-          "label": "In active orders"
+          "label": "Money in transit"
         },
-        "snapshotBadge": "As of now",
         "snapshotFact": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}} · {shipments, plural, one {# parcel} other {# parcels}}",
         "spend": {
           "hint": "The sum of the final order totals of the selected period. Currencies are counted apart.",
