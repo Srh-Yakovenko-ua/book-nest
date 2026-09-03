@@ -121,7 +121,10 @@ export class LoanHistoryService {
     const scope = toHistoryScope({ query, userId });
     const [row, topPeople] = await Promise.all([
       this.loanHistoryRepository.overview(scope),
-      this.loanHistoryRepository.topPeople({ ...scope, take: TOP_PEOPLE_LIMIT }),
+      this.loanHistoryRepository.topPeople({
+        ...toHistoryFacetScope({ query, userId }),
+        take: TOP_PEOPLE_LIMIT,
+      }),
     ]);
 
     const onTimePercent = toOnTimePercent({
@@ -267,6 +270,26 @@ function toCorrectedReturnedAt({
   return returnedAt;
 }
 
+function toHistoryFacetScope({
+  query,
+  userId,
+}: {
+  query: Pick<
+    LoanHistoryQuery,
+    "loanDateFrom" | "loanDateTo" | "returnedFrom" | "returnedTo" | "type"
+  >;
+  userId: string;
+}): Omit<LoanHistoryScope, "contactId"> {
+  return {
+    loanDateFrom: query.loanDateFrom,
+    loanDateTo: query.loanDateTo,
+    returnedFrom: query.returnedFrom,
+    returnedTo: query.returnedTo,
+    type: query.type,
+    userId,
+  };
+}
+
 function toHistoryScope({
   query,
   userId,
@@ -277,15 +300,7 @@ function toHistoryScope({
   >;
   userId: string;
 }): LoanHistoryScope {
-  return {
-    contactId: query.contactId,
-    loanDateFrom: query.loanDateFrom,
-    loanDateTo: query.loanDateTo,
-    returnedFrom: query.returnedFrom,
-    returnedTo: query.returnedTo,
-    type: query.type,
-    userId,
-  };
+  return { ...toHistoryFacetScope({ query, userId }), contactId: query.contactId };
 }
 
 function toOnTimePercent({

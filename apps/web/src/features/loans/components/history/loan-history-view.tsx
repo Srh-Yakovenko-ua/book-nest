@@ -78,11 +78,8 @@ export function LoanHistoryView() {
   const showChrome = !list.isError && !isHistoryEmpty;
 
   const analytics = {
-    activeContactId: query.contactId,
     isLoading: overview.isPending,
     onPersonOpen: contactDrawer.openContact,
-    onPersonSelect: (contactId: string) =>
-      query.setContactId(contactId === query.contactId ? "" : contactId),
     overview: overview.data,
   };
 
