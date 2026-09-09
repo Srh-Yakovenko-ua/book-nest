@@ -6395,10 +6395,12 @@
       }
     },
     "card": {
-      "openBook": "To the book",
+      "commentLabel": "Comment",
+      "coverAlt": "Cover of “{title}”",
       "pageLabel": "p. {page}",
-      "showLess": "Show less",
-      "showMore": "Show more"
+      "quoteTextLabel": "Quote text",
+      "showFull": "Show in full",
+      "unknownAuthor": "Unknown author"
     },
     "copy": {
       "success": "Quote copied",
@@ -6432,7 +6434,7 @@
       "spoilerToggleHelper": "Tick this if the quote reveals important plot details.",
       "favoriteToggle": "Add to favorites",
       "favoriteToggleHelper": "Save this quote to the “Favorites” section.",
-      "spoilerNote": "Quotes marked as spoilers stay hidden until the “Show spoiler” button is pressed.",
+      "spoilerNote": "Quotes marked as spoilers stay hidden until the “Show quote” button is pressed.",
       "addSubmit": "Save quote",
       "editSubmit": "Save changes",
       "addSuccess": "Quote added",
@@ -6612,11 +6614,10 @@
       "list": "List"
     },
     "spoiler": {
-      "badge": "Contains spoilers",
-      "noSpoilerBadge": "No spoilers",
+      "statusBadge": "Spoiler",
       "hiddenText": "This quote contains a spoiler",
-      "show": "Show spoiler",
-      "hide": "Hide spoiler"
+      "gateDescription": "It may reveal important events from the book.",
+      "showQuote": "Show quote"
     },
     "advancedFilters": {
       "trigger": "Filters",

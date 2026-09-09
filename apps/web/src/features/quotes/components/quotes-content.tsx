@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 
 import type { QuotesViewMode } from "../model/quotes-query";
 
-import { QuoteCard } from "./quote-card";
+import { QuoteArchiveCard } from "./quote/quote-archive-card";
+import { QUOTE_CARD_SHELL } from "./quote/quote-card-shell";
 
 const SKELETON_COUNT = 6;
 
@@ -94,12 +95,12 @@ export function QuotesContent({
   return (
     <div className="flex flex-col gap-6">
       <ul
-        className={cn("grid grid-cols-1 gap-4", view === "grid" && "md:grid-cols-2")}
+        className={cn("grid grid-cols-1 items-start gap-4", view === "grid" && "md:grid-cols-2")}
         key={listIdentity}
       >
         {quotes.map((quote) => (
           <li className="flex min-w-0" key={quote.id}>
-            <QuoteCard quote={quote} variant="archive" />
+            <QuoteArchiveCard quote={quote} />
           </li>
         ))}
       </ul>
@@ -158,15 +159,12 @@ function QuotesSkeleton({ view }: { view: QuotesViewMode }) {
   return (
     <div
       aria-busy
-      className={cn("grid grid-cols-1 gap-4", view === "grid" && "md:grid-cols-2")}
+      className={cn("grid grid-cols-1 items-start gap-4", view === "grid" && "md:grid-cols-2")}
       role="status"
     >
       <span className="sr-only">{t("loading")}</span>
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-        <div
-          className="flex flex-col gap-3 rounded-xl border border-accent-border bg-accent/25 p-4"
-          key={index}
-        >
+        <div className={QUOTE_CARD_SHELL.base} key={index}>
           <div className="flex items-center gap-3">
             <Skeleton className="aspect-[3/4] w-10 shrink-0 rounded-md" />
             <div className="flex flex-1 flex-col gap-2">
