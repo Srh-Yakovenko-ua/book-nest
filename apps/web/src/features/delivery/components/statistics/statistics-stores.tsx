@@ -44,20 +44,20 @@ const STORE_LIST = {
 } as const;
 
 export function StatisticsStores({
+  activeStoreKey,
   bestValueStores,
   currency,
   drilldown,
-  highlightedStoreKey,
   metric,
-  onHighlight,
+  onHover,
   stores,
 }: {
+  activeStoreKey: Nullable<string>;
   bestValueStores: BookOrderStatisticsBestValueStoreByCurrency;
   currency: Currency;
   drilldown: StatisticsDrilldownContext;
-  highlightedStoreKey: Nullable<string>;
   metric: StoreMetric;
-  onHighlight: (storeKey: Nullable<string>) => void;
+  onHover: (storeKey: Nullable<string>) => void;
   stores: readonly BookOrderStatisticsStore[];
 }) {
   const t = useTranslations("delivery.statistics.stores");
@@ -133,10 +133,10 @@ export function StatisticsStores({
               currency={currency}
               drilldown={drilldown}
               isBestValue={row.storeKey === bestValueStoreKey}
-              isHighlighted={row.storeKey === highlightedStoreKey}
+              isHighlighted={row.storeKey === activeStoreKey}
               key={row.storeKey}
               metric={metric}
-              onHighlight={onHighlight}
+              onHover={onHover}
               rank={firstIndex + index + 1}
               row={row}
             />
@@ -201,7 +201,7 @@ function StoreListRow({
   isBestValue,
   isHighlighted,
   metric,
-  onHighlight,
+  onHover,
   rank,
   row,
 }: {
@@ -210,7 +210,7 @@ function StoreListRow({
   isBestValue: boolean;
   isHighlighted: boolean;
   metric: StoreMetric;
-  onHighlight: (storeKey: Nullable<string>) => void;
+  onHover: (storeKey: Nullable<string>) => void;
   rank: number;
   row: StoreRow;
 }) {
@@ -253,10 +253,10 @@ function StoreListRow({
         "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-md px-1.5 py-1.5 transition-colors",
         isHighlighted && "bg-accent",
       )}
-      onBlur={() => onHighlight(null)}
-      onFocus={() => onHighlight(row.storeKey)}
-      onMouseEnter={() => onHighlight(row.storeKey)}
-      onMouseLeave={() => onHighlight(null)}
+      onBlur={() => onHover(null)}
+      onFocus={() => onHover(row.storeKey)}
+      onMouseEnter={() => onHover(row.storeKey)}
+      onMouseLeave={() => onHover(null)}
     >
       <span className={STORE_LIST.rank}>{rank}</span>
 

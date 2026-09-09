@@ -21,6 +21,7 @@ import type { UseStatisticsParamsResult } from "../model/use-statistics-params";
 import { useActiveMoneyAge } from "../api/use-active-money-age";
 import { useBookBudgets } from "../api/use-book-budgets";
 import { useStatistics } from "../api/use-statistics";
+import { useStoreHighlight } from "../hooks/use-store-highlight";
 import { statisticsCurrencies } from "../model/statistics-currency";
 import { statisticsEmptyKind } from "../model/statistics-empty";
 import { formatPeriodRange } from "../model/statistics-format";
@@ -202,8 +203,8 @@ function StatisticsBody({
 }: StatisticsBodyProps) {
   const t = useTranslations("delivery.statistics");
   const [highlightedBucketKey, setHighlightedBucketKey] = useState<Nullable<string>>(null);
-  const [highlightedStoreKey, setHighlightedStoreKey] = useState<Nullable<string>>(null);
   const [storeMetric, setStoreMetric] = useState<StoreMetric>("spend");
+  const storeHighlight = useStoreHighlight();
   const view = period.data;
 
   if (period.isInitialError) {
@@ -317,20 +318,22 @@ function StatisticsBody({
               value={storeMetric}
             />
             <StatisticsStores
+              activeStoreKey={storeHighlight.activeStoreKey}
               bestValueStores={view.bestValueStoreByCurrency}
               currency={displayCurrency}
               drilldown={drilldown}
-              highlightedStoreKey={highlightedStoreKey}
               metric={storeMetric}
-              onHighlight={setHighlightedStoreKey}
+              onHover={storeHighlight.hover}
               stores={view.byStore}
             />
           </div>
           <StatisticsStoreMap
+            activeStoreKey={storeHighlight.activeStoreKey}
             currency={displayCurrency}
             drilldown={drilldown}
-            highlightedStoreKey={highlightedStoreKey}
-            onHighlight={setHighlightedStoreKey}
+            onHover={storeHighlight.hover}
+            onSelect={storeHighlight.select}
+            selectedStoreKey={storeHighlight.selectedStoreKey}
             stores={view.byStore}
           />
         </div>

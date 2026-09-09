@@ -34,7 +34,7 @@ const SECTION_ORDER = [
   "Що впливає на фактичну вартість книги",
   "Магазини",
   "Рейтинг магазинів",
-  "Порівняння магазинів",
+  "Ціна книги × середній чек",
   "Шлях замовлень",
   "Активні замовлення за часом від оформлення",
   "Календар покупок",
@@ -42,7 +42,7 @@ const SECTION_ORDER = [
   "Найдорожчі замовлення",
 ];
 
-const STRETCHED_CARDS = ["Рейтинг магазинів", "Порівняння магазинів"];
+const STRETCHED_CARDS = ["Рейтинг магазинів", "Ціна книги × середній чек"];
 
 const EMPTY_VIEW = makeStatisticsView({
   summary: { ...makeStatisticsView().summary, ordersCount: 0 },
@@ -99,7 +99,7 @@ function rowOf(title: string): HTMLElement {
 }
 
 async function settle(): Promise<void> {
-  for (const title of ["Динаміка покупок", "Порівняння магазинів", "Календар покупок"]) {
+  for (const title of ["Динаміка покупок", "Ціна книги × середній чек", "Календар покупок"]) {
     await screen.findByText(title);
   }
 }
@@ -156,7 +156,7 @@ describe("DeliveryStatistics layout", () => {
     await settle();
 
     const rankingColumn = rowOf("Рейтинг магазинів");
-    const row = rowOf("Порівняння магазинів");
+    const row = rowOf("Ціна книги × середній чек");
 
     expect(rankingColumn.parentElement).toBe(row);
     expect(row.className).toContain("lg:grid-cols-[45fr_55fr]");
@@ -210,7 +210,7 @@ describe("DeliveryStatistics layout", () => {
     }
 
     expect(cardOf("Рейтинг магазинів").className).toContain("flex-1");
-    expect(cardOf("Порівняння магазинів").className).toContain("h-full");
+    expect(cardOf("Ціна книги × середній чек").className).toContain("h-full");
   });
 
   it("loads with a skeleton that follows the same order", () => {

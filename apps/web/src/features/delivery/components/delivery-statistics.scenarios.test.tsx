@@ -83,7 +83,7 @@ function renderStatistics(searchParams = "") {
 }
 
 async function settle(): Promise<void> {
-  for (const title of ["Динаміка покупок", "Порівняння магазинів", "Календар покупок"]) {
+  for (const title of ["Динаміка покупок", "Ціна книги × середній чек", "Календар покупок"]) {
     await screen.findByText(title);
   }
 }

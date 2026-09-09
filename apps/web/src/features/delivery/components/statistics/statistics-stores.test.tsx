@@ -100,18 +100,18 @@ function ranks() {
 }
 
 function renderStores({
+  activeStoreKey = null as Nullable<string>,
   bestValueStores = [] as BookOrderStatisticsBestValueStoreByCurrency,
   currency = "UAH" as Currency,
-  highlightedStoreKey = null as Nullable<string>,
-  onHighlight = vi.fn(),
+  onHover = vi.fn(),
   stores = [YAKABOO, VIVAT] as BookOrderStatisticsStore[],
 } = {}) {
   return renderWithProviders(
     <StoresHarness
+      activeStoreKey={activeStoreKey}
       bestValueStores={bestValueStores}
       currency={currency}
-      highlightedStoreKey={highlightedStoreKey}
-      onHighlight={onHighlight}
+      onHover={onHover}
       stores={stores}
     />,
   );
@@ -128,16 +128,16 @@ function rowOf(store: string) {
 }
 
 function StoresHarness({
+  activeStoreKey,
   bestValueStores,
   currency,
-  highlightedStoreKey,
-  onHighlight,
+  onHover,
   stores,
 }: {
+  activeStoreKey: Nullable<string>;
   bestValueStores: BookOrderStatisticsBestValueStoreByCurrency;
   currency: Currency;
-  highlightedStoreKey: Nullable<string>;
-  onHighlight: (storeKey: Nullable<string>) => void;
+  onHover: (storeKey: Nullable<string>) => void;
   stores: readonly BookOrderStatisticsStore[];
 }) {
   const t = useTranslations("delivery.statistics.stores");
@@ -153,6 +153,7 @@ function StoresHarness({
         value={metric}
       />
       <StatisticsStores
+        activeStoreKey={activeStoreKey}
         bestValueStores={bestValueStores}
         currency={currency}
         drilldown={{
@@ -162,9 +163,8 @@ function StoresHarness({
           orderState: null,
           store: null,
         }}
-        highlightedStoreKey={highlightedStoreKey}
         metric={metric}
-        onHighlight={onHighlight}
+        onHover={onHover}
         stores={stores}
       />
     </>
@@ -294,12 +294,12 @@ describe("StatisticsStores", () => {
 
   it("tells the paired card which store the reader is on", async () => {
     const user = userEvent.setup();
-    const onHighlight = vi.fn();
-    renderStores({ onHighlight });
+    const onHover = vi.fn();
+    renderStores({ onHover });
 
     await user.hover(screen.getByText("Yakaboo"));
 
-    expect(onHighlight).toHaveBeenCalledWith("yakaboo");
+    expect(onHover).toHaveBeenCalledWith("yakaboo");
   });
 
   it("says a currency is empty rather than falling back to another one", () => {

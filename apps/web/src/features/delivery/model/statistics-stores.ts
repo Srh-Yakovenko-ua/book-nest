@@ -44,6 +44,7 @@ export type StoreScatterPoint = {
   coveragePercent: number;
   currencyBooksCount: number;
   currencyOrdersCount: number;
+  drilldown: StatisticsDrilldownBreakdown;
   landedEligibleBooksCount: number;
   store: string;
   storeKey: string;
@@ -140,6 +141,7 @@ export function storeScatter({
       coveragePercent: coverage.coveragePercent,
       currencyBooksCount: coverage.booksInScope,
       currencyOrdersCount,
+      drilldown: store.drilldown,
       landedEligibleBooksCount,
       store: store.store,
       storeKey: store.storeKey,
