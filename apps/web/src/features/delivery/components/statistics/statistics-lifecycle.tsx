@@ -74,6 +74,8 @@ export function StatisticsLifecycle({
           value={mode}
         />
       }
+      className="h-full"
+      contentClassName="grow"
       description={t(`subtitles.${mode}`, { period: currentLabel ?? t("allTime") })}
       title={t("title")}
     >
@@ -95,7 +97,7 @@ export function StatisticsLifecycle({
             ) : null}
           </div>
 
-          <ul className="-mx-2 flex flex-col">
+          <ul className="-mx-2 flex grow flex-col justify-between">
             {breakdown.stages.map((row) => (
               <StageRow
                 drilldown={rowDrilldown}

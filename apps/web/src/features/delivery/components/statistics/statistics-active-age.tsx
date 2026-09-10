@@ -46,6 +46,8 @@ export function StatisticsActiveAge({
 
   return (
     <StatisticsSection
+      className="h-full"
+      contentClassName="grow"
       description={t("subtitle")}
       snapshotLabel={
         data === undefined ? undefined : t("asOf", { value: formatDate(data.asOf, locale) })
@@ -111,7 +113,7 @@ function ActiveAgeContent({
       </ul>
 
       {breakdown.unknown === null ? null : (
-        <div className="border-t border-border pt-2">
+        <div className="mt-auto border-t border-border pt-2">
           <ul className="-mx-2 flex flex-col">
             <AgeBucketRow drilldown={drilldown} row={breakdown.unknown} />
           </ul>
