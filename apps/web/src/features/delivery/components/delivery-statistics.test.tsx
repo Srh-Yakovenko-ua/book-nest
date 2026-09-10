@@ -42,7 +42,12 @@ const SECTION_ORDER = [
   "Найдорожчі замовлення",
 ];
 
-const STRETCHED_CARDS = ["Рейтинг магазинів", "Ціна книги × середній чек"];
+const STRETCHED_CARDS = [
+  "Активні замовлення: час від оформлення",
+  "Рейтинг магазинів",
+  "Статуси доставки",
+  "Ціна книги × середній чек",
+];
 
 const EMPTY_VIEW = makeStatisticsView({
   summary: { ...makeStatisticsView().summary, ordersCount: 0 },
@@ -173,7 +178,9 @@ describe("DeliveryStatistics layout", () => {
 
     expect(rowOf("Активні замовлення: час від оформлення")).toBe(row);
     expect(row.className).toContain("lg:grid-cols-2");
-    expect(row.className).toContain("items-start");
+    expect(row.className).toContain("items-stretch");
+    expect(cardOf("Статуси доставки").className).toContain("h-full");
+    expect(cardOf("Активні замовлення: час від оформлення").className).toContain("h-full");
   });
 
   it("gives the calendar a full-width row of its own", async () => {
@@ -200,7 +207,7 @@ describe("DeliveryStatistics layout", () => {
     expect(topOrders.parentElement).toBe(row);
   });
 
-  it("lets paired cards keep their natural height, apart from the store pair", async () => {
+  it("stretches only the pairs that share a height, and leaves every other card alone", async () => {
     renderStatistics();
     await settle();
 
