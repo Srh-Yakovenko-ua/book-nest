@@ -1,32 +1,68 @@
 "use client";
 
-import type { QuoteView } from "@app/shared";
+import type { Nullable, QuoteView } from "@app/shared";
 
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { useQuoteFullView } from "../../hooks/use-quote-full-view";
 import { QuoteActions } from "./quote-actions";
 import { QuoteBody } from "./quote-body";
 import { QuoteBookHeader } from "./quote-book-header";
 import { QUOTE_CARD_SHELL } from "./quote-card-shell";
 import { QuoteComment } from "./quote-comment";
+import { QuoteFullViewDialog } from "./quote-full-view-dialog";
 import { QuoteMeta } from "./quote-meta";
-import { QuoteSpoilerBadge } from "./quote-spoiler-badge";
 
 export function QuoteArchiveCard({ quote }: { quote: QuoteView }) {
+  const t = useTranslations("quotes.card");
   const bookHref = `/books/${quote.bookId}`;
+  const fullView = useQuoteFullView();
+  const [card, setCard] = useState<Nullable<HTMLElement>>(null);
 
   return (
-    <article className={cn(QUOTE_CARD_SHELL.base, QUOTE_CARD_SHELL.interactive)}>
-      <div className="flex items-start gap-2">
+    <article
+      className={cn(
+        QUOTE_CARD_SHELL.base,
+        QUOTE_CARD_SHELL.interactive,
+        QUOTE_CARD_SHELL.fixedHeight,
+      )}
+      ref={setCard}
+    >
+      <div className="flex shrink-0 items-start gap-2">
         <QuoteBookHeader book={quote.book} />
         <QuoteActions bookHref={bookHref} className="ml-auto" quote={quote} />
       </div>
 
-      <QuoteBody bookHref={bookHref} quote={quote} />
+      <QuoteBody fitTo={card} onExpand={fullView.openFrom} quote={quote} />
 
-      <QuoteMeta quote={quote} trailing={quote.isSpoiler ? <QuoteSpoilerBadge /> : undefined} />
+      <QuoteMeta isCompact quote={quote} />
 
-      <QuoteComment text={quote.comment} />
+      <QuoteComment
+        expandAction={
+          <Button
+            className="h-auto p-0"
+            onClick={(event) => fullView.openFrom(event.currentTarget)}
+            size="sm"
+            variant="link"
+          >
+            {t("showFullComment")}
+          </Button>
+        }
+        isCompact
+        text={quote.comment}
+      />
+
+      <QuoteFullViewDialog
+        bookHref={bookHref}
+        onOpenChange={fullView.onOpenChange}
+        open={fullView.isOpen}
+        quote={quote}
+        triggerRef={fullView.triggerRef}
+      />
     </article>
   );
 }

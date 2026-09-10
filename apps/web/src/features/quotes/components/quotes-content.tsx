@@ -164,7 +164,7 @@ function QuotesSkeleton({ view }: { view: QuotesViewMode }) {
     >
       <span className="sr-only">{t("loading")}</span>
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-        <div className={QUOTE_CARD_SHELL.base} key={index}>
+        <div className={cn(QUOTE_CARD_SHELL.base, QUOTE_CARD_SHELL.fixedHeight)} key={index}>
           <div className="flex items-center gap-3">
             <Skeleton className="aspect-[3/4] w-10 shrink-0 rounded-md" />
             <div className="flex flex-1 flex-col gap-2">

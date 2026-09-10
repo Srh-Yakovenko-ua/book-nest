@@ -6400,6 +6400,7 @@
       "pageLabel": "p. {page}",
       "quoteTextLabel": "Quote text",
       "showFull": "Show in full",
+      "showFullComment": "Show the full comment",
       "unknownAuthor": "Unknown author"
     },
     "copy": {

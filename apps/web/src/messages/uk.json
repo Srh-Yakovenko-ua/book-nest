@@ -6400,6 +6400,7 @@
       "pageLabel": "стор. {page}",
       "quoteTextLabel": "Текст цитати",
       "showFull": "Показати повністю",
+      "showFullComment": "Показати коментар повністю",
       "unknownAuthor": "Автор невідомий"
     },
     "copy": {

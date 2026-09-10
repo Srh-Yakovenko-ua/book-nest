@@ -21,7 +21,7 @@ type QuotesQuickActionsProps = {
   onShowWithComment: () => void;
 };
 
-type QuotesSidebarProps = QuotesQuickActionsProps & {
+type QuotesSidebarProps = {
   isLoading: boolean;
   summary: QuotesSummaryView | undefined;
 };
@@ -70,7 +70,7 @@ export function QuotesQuickActions({
   );
 }
 
-export function QuotesSidebar({ isLoading, summary, ...quickActions }: QuotesSidebarProps) {
+export function QuotesSidebar({ isLoading, summary }: QuotesSidebarProps) {
   const t = useTranslations("quotes.sidebar");
 
   return (
@@ -85,8 +85,6 @@ export function QuotesSidebar({ isLoading, summary, ...quickActions }: QuotesSid
           <QuotesStats summary={summary} />
         )}
       </SidebarBlock>
-
-      <QuotesQuickActions {...quickActions} />
     </aside>
   );
 }

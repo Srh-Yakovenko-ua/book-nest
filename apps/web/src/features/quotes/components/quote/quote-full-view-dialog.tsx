@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Link } from "@/i18n/navigation";
 
-import { QuoteActions } from "./quote-actions";
 import { QuoteComment } from "./quote-comment";
 import { QuoteCover } from "./quote-cover";
 import { QuoteMeta } from "./quote-meta";
@@ -23,7 +22,6 @@ import { QuoteSpoilerBadge } from "./quote-spoiler-badge";
 
 type QuoteFullViewDialogProps = {
   bookHref: Nullable<string>;
-  maxPage?: number;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   quote: QuoteView;
@@ -32,7 +30,6 @@ type QuoteFullViewDialogProps = {
 
 export function QuoteFullViewDialog({
   bookHref,
-  maxPage,
   onOpenChange,
   open,
   quote,
@@ -60,7 +57,7 @@ export function QuoteFullViewDialog({
         className="max-h-[90dvh] gap-4 overflow-y-auto sm:max-w-2xl"
         onCloseAutoFocus={(event) => {
           const trigger = triggerRef.current;
-          if (trigger === null) return;
+          if (trigger === null || !trigger.isConnected) return;
           event.preventDefault();
           trigger.focus();
         }}
@@ -112,10 +109,6 @@ export function QuoteFullViewDialog({
         <QuoteMeta quote={quote} trailing={quote.isSpoiler ? <QuoteSpoilerBadge /> : undefined} />
 
         <QuoteComment text={quote.comment} />
-
-        <div className="flex items-center gap-1 border-t border-border/60 pt-3">
-          <QuoteActions bookHref={bookHref} maxPage={maxPage} quote={quote} />
-        </div>
       </DialogContent>
     </Dialog>
   );
