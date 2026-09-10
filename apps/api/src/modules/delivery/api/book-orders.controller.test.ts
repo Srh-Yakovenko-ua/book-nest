@@ -800,6 +800,83 @@ describe("GET /api/delivery/orders/statistics contract", () => {
   });
 });
 
+describe("GET /api/delivery/orders/statistics calendar coverage", () => {
+  it("answers an empty library with a coverage of three zeros", async () => {
+    const view = await statisticsOf();
+
+    expect(view.calendarCoverage).toEqual({
+      ordersInScope: 0,
+      ordersWithOrderDate: 0,
+      ordersWithoutOrderDate: 0,
+    });
+  });
+
+  it("reports a fully dated catalogue as covered by every order in scope", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+
+    const view = await statisticsOf();
+
+    expect(view.calendarCoverage).toEqual({
+      ordersInScope: 8,
+      ordersWithOrderDate: 8,
+      ordersWithoutOrderDate: 0,
+    });
+  });
+
+  it("reports an order that never got a date as in scope but without a day", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+    const before = await statisticsOf();
+
+    await createUndatedOrder();
+    const after = await statisticsOf();
+
+    expect(after.calendarCoverage).toEqual({
+      ordersInScope: before.calendarCoverage.ordersInScope + 1,
+      ordersWithOrderDate: before.calendarCoverage.ordersWithOrderDate,
+      ordersWithoutOrderDate: 1,
+    });
+  });
+
+  it("counts the same population the daily series and the summary were built from", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+    await createUndatedOrder();
+
+    const view = await statisticsOf();
+
+    expect({
+      bucketedOrders: view.daily.reduce((sum, day) => sum + day.ordersCount, 0),
+      inScope: view.calendarCoverage.ordersInScope,
+    }).toEqual({
+      bucketedOrders: view.calendarCoverage.ordersWithOrderDate,
+      inScope: view.summary.ordersCount,
+    });
+  });
+
+  it("takes a cancelled order into the coverage only when the reader asks for it", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+
+    const excluded = await statisticsOf();
+    const included = await statisticsOf({ includeCancelled: "true" });
+
+    expect({
+      excluded: excluded.calendarCoverage.ordersInScope,
+      included: included.calendarCoverage.ordersInScope,
+    }).toEqual({ excluded: 8, included: 9 });
+  });
+
+  it("leaves an undated order out of the coverage of a period it cannot be placed in", async () => {
+    await seedStatisticsFixture({ accessToken: reader.accessToken, app });
+    const currentMonth = monthWindow(STATISTICS_FIXTURE_MONTH.current);
+    const before = await statisticsOf(currentMonth);
+
+    await createUndatedOrder();
+    const after = await statisticsOf(currentMonth);
+
+    expect(after.calendarCoverage).toEqual(before.calendarCoverage);
+    expect(after.calendarCoverage.ordersWithoutOrderDate).toBe(0);
+  });
+});
+
 describe("GET /api/delivery/orders/statistics/active-age", () => {
   it("measures the age of active money and ignores the historical period filter", async () => {
     await seedStatisticsFixture({ accessToken: reader.accessToken, app });

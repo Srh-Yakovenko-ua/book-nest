@@ -1,15 +1,25 @@
 import type {
   BookOrderStatisticsDaily,
+  StatisticsCalendarCoverage,
   StatisticsDrilldownBreakdown,
   StatisticsDrilldownDestination,
 } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import type { OrderStatisticsItemRecord, OrderStatisticsRecord } from "./statistics-scope.js";
+import type {
+  ClassifiedOrder,
+  OrderStatisticsItemRecord,
+  OrderStatisticsRecord,
+} from "./statistics-scope.js";
 
-import { buildOrderDaily } from "./statistics-calendar.js";
+import { buildOrderCalendarCoverage, buildOrderDaily } from "./statistics-calendar.js";
 import { classifyOrder } from "./statistics-scope.js";
+
+type CoverageSplitCase = {
+  name: string;
+  records: OrderStatisticsRecord[];
+};
 
 type DayKeyCase = {
   expected: string;
@@ -27,6 +37,16 @@ const ORDER_INSTANTS = Object.freeze({
 
 const CANCELLED_AT = new Date("2026-03-06T09:00:00.000Z");
 
+function coverageOf({
+  includeCancelled = false,
+  records,
+}: {
+  includeCancelled?: boolean;
+  records: OrderStatisticsRecord[];
+}): StatisticsCalendarCoverage {
+  return buildOrderCalendarCoverage(includedOrdersOf({ includeCancelled, records }));
+}
+
 function dailyOf({
   includeCancelled = false,
   records,
@@ -34,11 +54,19 @@ function dailyOf({
   includeCancelled?: boolean;
   records: OrderStatisticsRecord[];
 }): BookOrderStatisticsDaily {
-  const included = records
+  return buildOrderDaily(includedOrdersOf({ includeCancelled, records }));
+}
+
+function includedOrdersOf({
+  includeCancelled = false,
+  records,
+}: {
+  includeCancelled?: boolean;
+  records: OrderStatisticsRecord[];
+}): ClassifiedOrder[] {
+  return records
     .map((record) => classifyOrder({ includeCancelled, record }))
     .filter((order) => order.isIncluded);
-
-  return buildOrderDaily(included);
 }
 
 function makeItem(overrides: Partial<OrderStatisticsItemRecord> = {}): OrderStatisticsItemRecord {
@@ -375,5 +403,117 @@ describe("buildOrderDaily splits a day by where its orders now live", () => {
       "in_transit",
       "history_received",
     ]);
+  });
+});
+
+const CANCELLED_UNDATED_ORDER = makeOrder({
+  id: "order-cancelled-undated",
+  isFree: false,
+  items: [makeItem({ bookId: "book-cancelled-undated", cancelledAt: CANCELLED_AT, price: 300 })],
+  orderDate: null,
+  totalAmount: 300,
+});
+
+const ALL_DATED_RECORDS: OrderStatisticsRecord[] = [
+  makeOrder({ id: "order-dated-first", orderDate: ORDER_INSTANTS.marchFirst }),
+  makeOrder({ id: "order-dated-fourth", orderDate: ORDER_INSTANTS.marchFourth }),
+  makeOrder({ id: "order-dated-fourth-again", orderDate: ORDER_INSTANTS.marchFourth }),
+];
+
+const ALL_UNDATED_RECORDS: OrderStatisticsRecord[] = [
+  makeOrder({ id: "order-undated-a", orderDate: null }),
+  makeOrder({ id: "order-undated-b", orderDate: null }),
+];
+
+const MIXED_DATING_RECORDS: OrderStatisticsRecord[] = [
+  ...ALL_DATED_RECORDS,
+  ...ALL_UNDATED_RECORDS,
+];
+
+const COVERAGE_SPLIT_CASES: CoverageSplitCase[] = [
+  { name: "a scope that mixes dated and undated orders", records: MIXED_DATING_RECORDS },
+  { name: "a scope where every order carries a date", records: ALL_DATED_RECORDS },
+  { name: "a scope where no order carries a date", records: ALL_UNDATED_RECORDS },
+  { name: "an empty scope", records: [] },
+];
+
+describe("buildOrderCalendarCoverage reports what the calendar could have drawn", () => {
+  it("counts an order without an order date in the scope instead of dropping it", () => {
+    expect(coverageOf({ records: MIXED_DATING_RECORDS })).toEqual({
+      ordersInScope: 5,
+      ordersWithOrderDate: 3,
+      ordersWithoutOrderDate: 2,
+    });
+  });
+
+  it("reports a scope whose orders all carry a date as fully covered", () => {
+    expect(coverageOf({ records: ALL_DATED_RECORDS })).toEqual({
+      ordersInScope: 3,
+      ordersWithOrderDate: 3,
+      ordersWithoutOrderDate: 0,
+    });
+  });
+
+  it("reports a scope whose orders all lack a date as covered by none of them", () => {
+    expect(coverageOf({ records: ALL_UNDATED_RECORDS })).toEqual({
+      ordersInScope: 2,
+      ordersWithOrderDate: 0,
+      ordersWithoutOrderDate: 2,
+    });
+  });
+
+  it("answers an empty scope with three zeros rather than an absent shape", () => {
+    expect(coverageOf({ records: [] })).toEqual({
+      ordersInScope: 0,
+      ordersWithOrderDate: 0,
+      ordersWithoutOrderDate: 0,
+    });
+  });
+
+  it.each(COVERAGE_SPLIT_CASES)("splits $name without losing an order", ({ records }) => {
+    const coverage = coverageOf({ records });
+
+    expect(coverage.ordersWithOrderDate + coverage.ordersWithoutOrderDate).toBe(
+      coverage.ordersInScope,
+    );
+  });
+
+  it("keeps an undated cancelled order out of the scope when the caller excludes cancellations", () => {
+    expect(coverageOf({ records: [LIVE_MARCH_FOURTH_ORDER, CANCELLED_UNDATED_ORDER] })).toEqual({
+      ordersInScope: 1,
+      ordersWithOrderDate: 1,
+      ordersWithoutOrderDate: 0,
+    });
+  });
+
+  it("counts an undated cancelled order once the caller includes cancellations", () => {
+    expect(
+      coverageOf({
+        includeCancelled: true,
+        records: [LIVE_MARCH_FOURTH_ORDER, CANCELLED_UNDATED_ORDER],
+      }),
+    ).toEqual({ ordersInScope: 2, ordersWithOrderDate: 1, ordersWithoutOrderDate: 1 });
+  });
+});
+
+describe("buildOrderCalendarCoverage and buildOrderDaily describe one population", () => {
+  it("accounts for every order the daily series bucketed", () => {
+    const included = includedOrdersOf({ records: MIXED_DATING_RECORDS });
+    const bucketedOrders = buildOrderDaily(included).reduce((sum, day) => sum + day.ordersCount, 0);
+
+    expect(bucketedOrders).toBe(buildOrderCalendarCoverage(included).ordersWithOrderDate);
+  });
+
+  it("gives the undated orders no day while still counting them in the scope", () => {
+    const included = includedOrdersOf({ records: MIXED_DATING_RECORDS });
+
+    expect(buildOrderDaily(included).map((day) => day.date)).toEqual(["2026-03-01", "2026-03-04"]);
+  });
+
+  it("buckets nothing at all when no order in the scope carries a date", () => {
+    const included = includedOrdersOf({ records: ALL_UNDATED_RECORDS });
+
+    expect(buildOrderDaily(included)).toEqual([]);
+    expect(buildOrderCalendarCoverage(included).ordersInScope).toBe(2);
   });
 });

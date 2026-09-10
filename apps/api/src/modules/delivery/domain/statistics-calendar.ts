@@ -1,4 +1,4 @@
-import type { BookOrderStatisticsDaily } from "@app/shared";
+import type { BookOrderStatisticsDaily, StatisticsCalendarCoverage } from "@app/shared";
 
 import type { AmountAccumulator, ClassifiedOrder } from "./statistics-scope.js";
 
@@ -12,6 +12,16 @@ type DayBucket = {
   orders: ClassifiedOrder[];
   ordersCount: number;
 };
+
+export function buildOrderCalendarCoverage(orders: ClassifiedOrder[]): StatisticsCalendarCoverage {
+  const ordersWithOrderDate = orders.filter((order) => order.record.orderDate !== null).length;
+
+  return {
+    ordersInScope: orders.length,
+    ordersWithOrderDate,
+    ordersWithoutOrderDate: orders.length - ordersWithOrderDate,
+  };
+}
 
 export function buildOrderDaily(orders: ClassifiedOrder[]): BookOrderStatisticsDaily {
   const buckets = new Map<string, DayBucket>();

@@ -3750,11 +3750,11 @@
           "books": "Books"
         },
         "yearLabel": "Year",
+        "gridLabel": "Purchase calendar grid",
         "daySummary": {
           "orders": "{date}: {orders, plural, one {# order} other {# orders}}, {books, plural, one {# book} other {# books}}",
           "books": "{date}: {books, plural, one {# book} other {# books}} in {orders, plural, one {# order} other {# orders}}"
         },
-        "dayEmpty": "{date}: no orders",
         "tooltipPrimary": {
           "orders": "{count, plural, one {# order} other {# orders}}",
           "books": "{count, plural, one {# book} other {# books}}"
@@ -3771,8 +3771,19 @@
         },
         "legendMore": "More",
         "relativeHint": "Shading shows activity relative to the busiest day of the shown period.",
-        "empty": "No data for the purchase calendar.",
-        "emptyYear": "No purchases in {year}."
+        "coverageNote": "{count, plural, one {# order without an order date is not shown in the calendar.} other {# orders without an order date are not shown in the calendar.}}",
+        "empty": {
+          "period": {
+            "title": "No purchases in the selected period",
+            "description": "There are no orders with an order date in this period."
+          },
+          "year": "No purchases in {year}",
+          "noDates": "No purchases with an order date"
+        },
+        "truncated": {
+          "title": "Calendar data may be incomplete",
+          "description": "Some orders were left out of the calculation because of the sample limit."
+        }
       },
       "records": {
         "title": "Records",

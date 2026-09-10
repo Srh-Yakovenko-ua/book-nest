@@ -43,6 +43,7 @@ function view(comparison: BookOrderStatisticsView["comparison"] = null): BookOrd
   return {
     bestValueStoreByCurrency: [],
     byStore: [],
+    calendarCoverage: { ordersInScope: 51, ordersWithOrderDate: 0, ordersWithoutOrderDate: 51 },
     comparison,
     costs: [],
     daily: [],

@@ -124,6 +124,7 @@ export function makeMixedStatisticsView(
       },
     ],
     byStore: [yakaboo, depository],
+    calendarCoverage: { ordersInScope: 7, ordersWithOrderDate: 7, ordersWithoutOrderDate: 0 },
     costs: [
       {
         currency: "UAH",
@@ -413,6 +414,7 @@ export function makeStatisticsView(
   return {
     bestValueStoreByCurrency: [],
     byStore: [],
+    calendarCoverage: { ordersInScope: 6, ordersWithOrderDate: 0, ordersWithoutOrderDate: 6 },
     comparison: null,
     costs: [],
     daily: [],

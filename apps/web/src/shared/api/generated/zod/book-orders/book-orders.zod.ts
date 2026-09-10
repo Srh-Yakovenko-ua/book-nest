@@ -322,6 +322,15 @@ export const bookOrdersControllerStatisticsResponseByStoreItemOrdersCountMax = 9
 export const bookOrdersControllerStatisticsResponseByStoreItemOrdersCountByCurrencyItemCountMin = 0;
 export const bookOrdersControllerStatisticsResponseByStoreItemOrdersCountByCurrencyItemCountMax = 9007199254740991;
 
+export const bookOrdersControllerStatisticsResponseCalendarCoverageOrdersInScopeMin = 0;
+export const bookOrdersControllerStatisticsResponseCalendarCoverageOrdersInScopeMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithOrderDateMin = 0;
+export const bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithOrderDateMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithoutOrderDateMin = 0;
+export const bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithoutOrderDateMax = 9007199254740991;
+
 export const bookOrdersControllerStatisticsResponseCostsItemOrdersWithDeliveryCountMin = 0;
 export const bookOrdersControllerStatisticsResponseCostsItemOrdersWithDeliveryCountMax = 9007199254740991;
 
@@ -1021,6 +1030,24 @@ export const BookOrdersControllerStatisticsResponse = zod.object({
       ),
     }),
   ),
+  calendarCoverage: zod
+    .object({
+      ordersInScope: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseCalendarCoverageOrdersInScopeMin)
+        .max(bookOrdersControllerStatisticsResponseCalendarCoverageOrdersInScopeMax),
+      ordersWithOrderDate: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithOrderDateMin)
+        .max(bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithOrderDateMax),
+      ordersWithoutOrderDate: zod
+        .int()
+        .min(bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithoutOrderDateMin)
+        .max(bookOrdersControllerStatisticsResponseCalendarCoverageOrdersWithoutOrderDateMax),
+    })
+    .describe(
+      "How many of the orders the calendar could have drawn actually carry an order date. The counts describe the orders that survived the dataset filters inside the source that was actually loaded, so a truncated source lowers all three rather than making them disagree. An order with no order date is counted in ordersInScope and left out of the daily series, never bucketed under a substitute day.",
+    ),
   comparison: zod
     .object({
       averageBookPriceByCurrency: zod.array(
