@@ -112,19 +112,15 @@ describe("QuoteFullViewDialog", () => {
     expect(within(dialog).getByText(QUOTE_TEXT)).toBeInTheDocument();
   });
 
-  it("carries the favorite button and the actions menu", async () => {
+  it("keeps the favorite button and the actions menu out, since reading is its only job", async () => {
     const dialog = await openDialog();
 
     expect(
-      within(dialog).getByRole("button", { name: "Додати цитату в улюблені" }),
-    ).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole("button", { name: "Дії для цитати" }));
-    expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual([
-      "Редагувати",
-      "Перейти до книги",
-      "Скопіювати цитату",
-      "Видалити",
-    ]);
+      within(dialog).queryByRole("button", { name: "Додати цитату в улюблені" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "Дії для цитати" }),
+    ).not.toBeInTheDocument();
   });
 
   it("scrolls its own body and the quote block instead of growing past the viewport", async () => {
@@ -172,17 +168,5 @@ describe("QuoteFullViewDialog without a book link", () => {
       within(dialog).getByRole("img", { name: "Обкладинка книги «Дюна»" }),
     ).toBeInTheDocument();
     expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
-  });
-
-  it("leaves the book entry out of the actions menu", async () => {
-    const dialog = await openHarness({ bookHref: null, quote: makeQuote({ text: QUOTE_TEXT }) });
-
-    await userEvent.click(within(dialog).getByRole("button", { name: "Дії для цитати" }));
-
-    expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual([
-      "Редагувати",
-      "Скопіювати цитату",
-      "Видалити",
-    ]);
   });
 });

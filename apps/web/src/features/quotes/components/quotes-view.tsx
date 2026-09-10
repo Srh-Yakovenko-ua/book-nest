@@ -218,15 +218,7 @@ export function QuotesView() {
         </div>
 
         {showSidebar ? (
-          <QuotesSidebar
-            isLoading={summary.isPending}
-            onAddQuote={() => setAddOpen(true)}
-            onClearFilters={clearFilters}
-            onShowFavorites={() => setFilter("favorites")}
-            onShowRecent={() => setSort("newest")}
-            onShowWithComment={() => setFilter("with_comment")}
-            summary={summary.data}
-          />
+          <QuotesSidebar isLoading={summary.isPending} summary={summary.data} />
         ) : null}
       </div>
 

@@ -23,6 +23,9 @@ vi.mock("sonner", () => ({
 
 const QUOTE_TEXT = "Страх — убивця розуму.";
 
+const LONG_COMMENT =
+  "Перечитую цей абзац щоразу, коли треба зібратися: він коротко описує саме те, що зі мною відбувається перед складною розмовою.";
+
 const fetchMock = vi.fn();
 const writeText = vi.fn();
 
@@ -163,10 +166,11 @@ describe("QuoteArchiveCard spoilers", () => {
     expect(screen.getByRole("button", { name: "Показати цитату" })).toBeInTheDocument();
   });
 
-  it("marks a spoiler quote with the spoiler badge", () => {
+  it("leaves the spoiler badge out of the card, since the gate already says so", () => {
     renderCard({ isSpoiler: true });
 
-    expect(screen.getByText("Спойлер")).toBeInTheDocument();
+    expect(screen.getByText("Ця цитата містить спойлер")).toBeInTheDocument();
+    expect(screen.queryByText("Спойлер")).not.toBeInTheDocument();
   });
 
   it("keeps the comment readable while the spoiler text stays hidden", () => {
@@ -184,13 +188,63 @@ describe("QuoteArchiveCard spoilers", () => {
   });
 });
 
-describe("QuoteArchiveCard long text", () => {
-  it("offers the full view when the text outgrows the clamp", () => {
+describe("QuoteArchiveCard full view", () => {
+  function clampEverything() {
     restoreMetrics = stubTextMetrics({ clientHeight: 100, scrollHeight: 500 });
+  }
+
+  it("offers the full view when the text outgrows the clamp", () => {
+    clampEverything();
 
     renderCard();
 
     expect(screen.getByRole("button", { name: "Показати повністю" })).toBeInTheDocument();
+  });
+
+  it("opens the dialog with the whole text", async () => {
+    clampEverything();
+    renderCard();
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати повністю" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(QUOTE_TEXT)).toBeInTheDocument();
+  });
+
+  it("reveals the whole spoiler text in the dialog without gating it again", async () => {
+    renderCard({ isSpoiler: true });
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати цитату" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(QUOTE_TEXT)).toBeInTheDocument();
+    expect(within(dialog).queryByText("Ця цитата містить спойлер")).not.toBeInTheDocument();
+  });
+
+  it("leaves the comment without a trigger while it fits the clamp", () => {
+    renderCard({ comment: LONG_COMMENT });
+
+    expect(
+      screen.queryByRole("button", { name: "Показати коментар повністю" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers its own trigger once the comment outgrows the clamp", () => {
+    clampEverything();
+
+    renderCard({ comment: LONG_COMMENT, isSpoiler: true });
+
+    expect(screen.getByRole("button", { name: "Показати коментар повністю" })).toBeInTheDocument();
+  });
+
+  it("opens the dialog with the whole comment", async () => {
+    clampEverything();
+    renderCard({ comment: LONG_COMMENT });
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати коментар повністю" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(LONG_COMMENT)).toBeInTheDocument();
   });
 });
 

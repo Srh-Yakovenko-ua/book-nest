@@ -77,8 +77,8 @@ export function QuotesToolbar({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-1.5">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 lg:flex-1">
           <DebouncedSearchInput
             clearLabel={t("searchClear")}
             label={t("searchLabel")}
@@ -89,23 +89,14 @@ export function QuotesToolbar({
           />
         </div>
 
-        <QuotesSortSheet
-          className="max-w-[9.5rem] sm:hidden"
-          label={t("sortLabel")}
-          onChange={onSortChange}
-          value={sort}
-        />
-      </div>
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <QuotesSortSheet
+            className="max-w-[9.5rem] sm:hidden"
+            label={t("sortLabel")}
+            onChange={onSortChange}
+            value={sort}
+          />
 
-      <div className="flex items-center justify-between gap-1.5 sm:gap-3">
-        <QuotesAdvancedFilters
-          activeCount={activeFilterCount}
-          facets={facets}
-          onApply={onApplyAdvanced}
-          state={state}
-        />
-
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <div className="hidden sm:block sm:w-80">
             <Select
               onValueChange={(next) => {
@@ -133,8 +124,15 @@ export function QuotesToolbar({
             </Select>
           </div>
 
+          <QuotesAdvancedFilters
+            activeCount={activeFilterCount}
+            facets={facets}
+            onApply={onApplyAdvanced}
+            state={state}
+          />
+
           <Segmented
-            className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+            className="ml-auto h-10 shrink-0 items-stretch [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
             label={tView("label")}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
@@ -187,15 +185,13 @@ export function QuotesToolbar({
 export function QuotesToolbarSkeleton() {
   return (
     <div aria-busy className="flex flex-col gap-3">
-      <div className="flex items-center gap-1.5">
-        <Skeleton className="h-10 min-w-0 flex-1 rounded-md" />
-        <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
-      </div>
-      <div className="flex items-center justify-between gap-1.5 sm:gap-3">
-        <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <Skeleton className="h-10 min-w-0 rounded-md lg:flex-1" />
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
           <Skeleton className="hidden h-10 rounded-md sm:block sm:w-80" />
-          <Skeleton className="h-10 w-20 shrink-0 rounded-full sm:w-40" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
+          <Skeleton className="ml-auto h-10 w-20 shrink-0 rounded-full sm:w-40" />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
