@@ -326,8 +326,13 @@ export const QuotesControllerListTrashResponse = zod.object({
 /**
  * @summary Get summary statistics for the current user's quotes
  */
+export const quotesControllerSummaryResponseAverageQuotesPerQuotedBookMin = 0;
+
 export const quotesControllerSummaryResponseFavoritesCountMin = 0;
 export const quotesControllerSummaryResponseFavoritesCountMax = 9007199254740991;
+
+export const quotesControllerSummaryResponseQuotedBooksCountMin = 0;
+export const quotesControllerSummaryResponseQuotedBooksCountMax = 9007199254740991;
 
 export const quotesControllerSummaryResponseSpoilerCountMin = 0;
 export const quotesControllerSummaryResponseSpoilerCountMax = 9007199254740991;
@@ -335,8 +340,14 @@ export const quotesControllerSummaryResponseSpoilerCountMax = 9007199254740991;
 export const quotesControllerSummaryResponseTopAuthorQuotesCountMin = 0;
 export const quotesControllerSummaryResponseTopAuthorQuotesCountMax = 9007199254740991;
 
+export const quotesControllerSummaryResponseTopAuthorTiedCountMin = 0;
+export const quotesControllerSummaryResponseTopAuthorTiedCountMax = 9007199254740991;
+
 export const quotesControllerSummaryResponseTopBookQuotesCountMin = 0;
 export const quotesControllerSummaryResponseTopBookQuotesCountMax = 9007199254740991;
+
+export const quotesControllerSummaryResponseTopBookTiedCountMin = 0;
+export const quotesControllerSummaryResponseTopBookTiedCountMax = 9007199254740991;
 
 export const quotesControllerSummaryResponseTotalCountMin = 0;
 export const quotesControllerSummaryResponseTotalCountMax = 9007199254740991;
@@ -348,21 +359,34 @@ export const quotesControllerSummaryResponseWithoutSpoilerCountMin = 0;
 export const quotesControllerSummaryResponseWithoutSpoilerCountMax = 9007199254740991;
 
 export const QuotesControllerSummaryResponse = zod.object({
+  averageQuotesPerQuotedBook: zod
+    .number()
+    .min(quotesControllerSummaryResponseAverageQuotesPerQuotedBookMin)
+    .nullable(),
   favoritesCount: zod
     .int()
     .min(quotesControllerSummaryResponseFavoritesCountMin)
     .max(quotesControllerSummaryResponseFavoritesCountMax),
+  quotedBooksCount: zod
+    .int()
+    .min(quotesControllerSummaryResponseQuotedBooksCountMin)
+    .max(quotesControllerSummaryResponseQuotedBooksCountMax),
   spoilerCount: zod
     .int()
     .min(quotesControllerSummaryResponseSpoilerCountMin)
     .max(quotesControllerSummaryResponseSpoilerCountMax),
   topAuthor: zod
     .object({
+      id: zod.string(),
       name: zod.string(),
       quotesCount: zod
         .int()
         .min(quotesControllerSummaryResponseTopAuthorQuotesCountMin)
         .max(quotesControllerSummaryResponseTopAuthorQuotesCountMax),
+      tiedCount: zod
+        .int()
+        .min(quotesControllerSummaryResponseTopAuthorTiedCountMin)
+        .max(quotesControllerSummaryResponseTopAuthorTiedCountMax),
     })
     .nullable(),
   topBook: zod
@@ -372,6 +396,10 @@ export const QuotesControllerSummaryResponse = zod.object({
         .int()
         .min(quotesControllerSummaryResponseTopBookQuotesCountMin)
         .max(quotesControllerSummaryResponseTopBookQuotesCountMax),
+      tiedCount: zod
+        .int()
+        .min(quotesControllerSummaryResponseTopBookTiedCountMin)
+        .max(quotesControllerSummaryResponseTopBookTiedCountMax),
       title: zod.string(),
     })
     .nullable(),

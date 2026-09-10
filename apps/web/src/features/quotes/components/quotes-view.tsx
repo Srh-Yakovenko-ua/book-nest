@@ -5,12 +5,9 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
-
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
-import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
 import { useRouter } from "@/i18n/navigation";
 
 import { useQuotes } from "../api/use-quotes";
@@ -24,12 +21,8 @@ import { QuoteDialog } from "./quote-dialog";
 import { QuotesContent } from "./quotes-content";
 import { QuotesOverviewPanel } from "./quotes-overview-panel";
 import { QuotesSidebar } from "./quotes-sidebar";
+import { QuotesSummaryCards, useQuotesSummaryCards } from "./quotes-summary-cards";
 import { QuotesToolbar, QuotesToolbarSkeleton } from "./quotes-toolbar";
-
-const QUOTES_MOBILE_TILE_COUNT = 3;
-
-type QuoteSummaryKey =
-  "favorites" | "spoilers" | "topAuthor" | "topBook" | "total" | "withComment" | "withoutSpoilers";
 
 export function QuotesView() {
   const t = useTranslations("quotes");
@@ -72,64 +65,18 @@ export function QuotesView() {
     state,
   });
 
-  const stats = summary.data;
-  const topBook = stats?.topBook ?? null;
-  const topAuthor = stats?.topAuthor ?? null;
-
-  const summaryLabels = (key: QuoteSummaryKey) => ({
-    label: t(`summary.mobile.detailed.${key}`),
-    mobileLabels: {
-      compact: t(`summary.mobile.compact.${key}`),
-      detailed: t(`summary.mobile.detailed.${key}`),
-    },
-  });
-
-  const summaryCards: LibrarySummaryCard[] = [
-    {
-      ...summaryLabels("total"),
-      icon: "quote",
-      iconTone: "primary",
-      value: stats?.totalCount ?? 0,
-    },
-    {
-      ...summaryLabels("favorites"),
-      icon: "heart",
-      iconTone: "favorite",
-      value: stats?.favoritesCount ?? 0,
-    },
-    {
-      ...summaryLabels("withComment"),
-      icon: "note",
-      iconTone: "info",
-      value: stats?.withCommentCount ?? 0,
-    },
-    {
-      ...summaryLabels("spoilers"),
-      icon: "eye-off",
-      iconTone: "tag",
-      value: stats?.spoilerCount ?? 0,
-    },
-    {
-      ...summaryLabels("withoutSpoilers"),
-      icon: "eye",
-      iconTone: "success",
-      value: stats?.withoutSpoilerCount ?? 0,
-    },
-    {
-      ...summaryLabels("topBook"),
-      icon: "book",
-      iconTone: "ink",
-      value: topBook === null ? t("summary.empty") : topBook.title,
-      valueClassName: "text-lg leading-snug line-clamp-2",
-    },
-    {
-      ...summaryLabels("topAuthor"),
-      icon: "user",
-      iconTone: "genre",
-      value: topAuthor === null ? t("summary.empty") : topAuthor.name,
-      valueClassName: "text-lg leading-snug line-clamp-2",
-    },
-  ];
+  const summaryCards = useQuotesSummaryCards(summary.data);
+  const overviewPanel = (
+    <QuotesOverviewPanel
+      isLoading={summary.isPending}
+      onAddQuote={() => setAddOpen(true)}
+      onClearFilters={clearFilters}
+      onShowFavorites={() => setFilter("favorites")}
+      onShowRecent={() => setSort("newest")}
+      onShowWithComment={() => setFilter("with_comment")}
+      summaryCards={summaryCards}
+    />
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -154,21 +101,11 @@ export function QuotesView() {
       </header>
 
       {showSidebar ? (
-        <LibrarySummaryMobile
-          action={
-            <QuotesOverviewPanel
-              isLoading={summary.isPending}
-              onAddQuote={() => setAddOpen(true)}
-              onClearFilters={clearFilters}
-              onShowFavorites={() => setFilter("favorites")}
-              onShowRecent={() => setSort("newest")}
-              onShowWithComment={() => setFilter("with_comment")}
-              summaryCards={summaryCards}
-            />
-          }
-          cards={summaryCards.slice(0, QUOTES_MOBILE_TILE_COUNT)}
-          className="sm:hidden"
+        <QuotesSummaryCards
+          cards={summaryCards}
+          isError={summary.isError}
           isLoading={summary.isPending}
+          mobileAction={overviewPanel}
         />
       ) : null}
 

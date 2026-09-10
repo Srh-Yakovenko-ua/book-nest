@@ -6608,23 +6608,30 @@
     },
     "summary": {
       "empty": "—",
+      "quotedBooks": "Books with quotes",
+      "booksUnit": "{count, plural, one {book} other {books}}",
+      "quotesUnit": "{count, plural, one {quote} other {quotes}}",
+      "quotesTotal": "{count, plural, one {# quote} other {# quotes}} in total",
+      "noQuotesYet": "No quotes yet",
+      "averagePerBook": "Average per book",
+      "amongBooks": "Across {count, plural, one {# book} other {# books}}",
+      "noDataYet": "No data yet",
+      "topBook": "Most quoted book",
+      "topBookTied": "{title} · {count, plural, one {# more book} other {# more books}}",
+      "topAuthor": "Most quoted author",
+      "topAuthorTied": "{name} · {count, plural, one {# more author} other {# more authors}}",
+      "noAuthorData": "No author data yet",
       "mobile": {
         "title": "Detailed stats",
         "compact": {
-          "total": "Total",
-          "favorites": "Favorites",
-          "withComment": "Comments",
-          "spoilers": "Spoilers",
-          "withoutSpoilers": "No spoilers",
+          "quotedBooks": "Books",
+          "averagePerBook": "Average",
           "topBook": "Book",
           "topAuthor": "Author"
         },
         "detailed": {
-          "total": "Quotes in total",
-          "favorites": "Favorite quotes",
-          "withComment": "With comments",
-          "spoilers": "With spoilers",
-          "withoutSpoilers": "Without spoilers",
+          "quotedBooks": "Books with quotes",
+          "averagePerBook": "Average per book",
           "topBook": "Most quoted book",
           "topAuthor": "Most quoted author"
         }

@@ -1,7 +1,7 @@
-import type { QuotesFacetsView } from "@app/shared";
+import type { QuotesFacetsView, QuotesSummaryView } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
-import { QuotesFacetsViewSchema } from "@app/shared";
+import { QuotesFacetsViewSchema, QuotesSummaryViewSchema } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -389,6 +389,30 @@ describe("GET /api/quotes pagination and validation", () => {
 });
 
 describe("GET /api/quotes/summary", () => {
+  async function deleteQuote(accessToken: string, bookId: string, quoteId: string): Promise<void> {
+    const res = await request(app.getHttpServer())
+      .delete(`/api/books/${bookId}/quotes/${quoteId}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    if (res.status !== 200) {
+      throw new Error(`quote trashing failed: ${res.status} ${JSON.stringify(res.body)}`);
+    }
+  }
+
+  async function summaryBody(accessToken: string): Promise<QuotesSummaryView> {
+    const res = await quotesSummary(accessToken);
+    expect(res.status).toBe(200);
+    return QuotesSummaryViewSchema.parse(res.body);
+  }
+
+  async function trashOwnedBook(accessToken: string, bookId: string): Promise<void> {
+    const res = await request(app.getHttpServer())
+      .delete(`/api/books/${bookId}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    if (res.status !== 200) {
+      throw new Error(`book trashing failed: ${res.status} ${JSON.stringify(res.body)}`);
+    }
+  }
+
   it("returns zeros when there are no quotes", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
@@ -396,7 +420,9 @@ describe("GET /api/quotes/summary", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
+      averageQuotesPerQuotedBook: null,
       favoritesCount: 0,
+      quotedBooksCount: 0,
       spoilerCount: 0,
       topAuthor: null,
       topBook: null,
@@ -420,17 +446,140 @@ describe("GET /api/quotes/summary", () => {
     await addQuote(accessToken, dune, { comment: "note", isSpoiler: true, text: "b" });
     await addQuote(accessToken, dune, { text: "c" });
     await addQuote(accessToken, hyperion, { text: "d" });
+    const herbertId = await authorIdByName(accessToken, "Frank Herbert");
 
-    const res = await quotesSummary(accessToken);
+    const body = await summaryBody(accessToken);
 
-    expect(res.body).toEqual({
+    expect(body).toEqual({
+      averageQuotesPerQuotedBook: 2,
       favoritesCount: 1,
+      quotedBooksCount: 2,
       spoilerCount: 1,
-      topAuthor: { name: "Frank Herbert", quotesCount: 3 },
-      topBook: { id: dune, quotesCount: 3, title: "Dune" },
+      topAuthor: { id: herbertId, name: "Frank Herbert", quotesCount: 3, tiedCount: 0 },
+      topBook: { id: dune, quotesCount: 3, tiedCount: 0, title: "Dune" },
       totalCount: 4,
       withCommentCount: 1,
       withoutSpoilerCount: 3,
+    });
+  });
+
+  it("counts a book once however many quotes it holds", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const dune = await createBook(accessToken, { title: "Dune" });
+    await addQuote(accessToken, dune, { text: "a" });
+    await addQuote(accessToken, dune, { text: "b" });
+    await addQuote(accessToken, dune, { text: "c" });
+
+    const body = await summaryBody(accessToken);
+
+    expect(body.quotedBooksCount).toBe(1);
+    expect(body.totalCount).toBe(3);
+    expect(body.averageQuotesPerQuotedBook).toBe(3);
+  });
+
+  it("excludes a trashed quote from every metric", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const dune = await createBook(accessToken, { title: "Dune" });
+    const hyperion = await createBook(accessToken, {
+      authors: [{ name: "Dan Simmons" }],
+      title: "Hyperion",
+    });
+    await addQuote(accessToken, dune, { text: "a" });
+    await addQuote(accessToken, dune, { text: "b" });
+    const trashed = await addQuote(accessToken, hyperion, { text: "c" });
+
+    await deleteQuote(accessToken, hyperion, trashed);
+    const body = await summaryBody(accessToken);
+
+    expect(body.totalCount).toBe(2);
+    expect(body.quotedBooksCount).toBe(1);
+    expect(body.averageQuotesPerQuotedBook).toBe(2);
+    expect(body.topBook).toEqual({ id: dune, quotesCount: 2, tiedCount: 0, title: "Dune" });
+    expect(body.topAuthor?.name).toBe("Frank Herbert");
+  });
+
+  it("excludes a trashed book from every metric", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const dune = await createBook(accessToken, { title: "Dune" });
+    const hyperion = await createBook(accessToken, {
+      authors: [{ name: "Dan Simmons" }],
+      title: "Hyperion",
+    });
+    await addQuote(accessToken, dune, { text: "a" });
+    await addQuote(accessToken, hyperion, { text: "b" });
+    await addQuote(accessToken, hyperion, { text: "c" });
+
+    await trashOwnedBook(accessToken, hyperion);
+    const body = await summaryBody(accessToken);
+
+    expect(body.totalCount).toBe(1);
+    expect(body.quotedBooksCount).toBe(1);
+    expect(body.averageQuotesPerQuotedBook).toBe(1);
+    expect(body.topBook).toEqual({ id: dune, quotesCount: 1, tiedCount: 0, title: "Dune" });
+    expect(body.topAuthor?.name).toBe("Frank Herbert");
+  });
+
+  it("breaks a tie by the Ukrainian collation and reports the tied rivals", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const yalynka = await createBook(accessToken, {
+      authors: [{ name: "Ярема" }],
+      title: "Ялинка",
+    });
+    const yizhak = await createBook(accessToken, {
+      authors: [{ name: "Їжак" }],
+      title: "Їжак",
+    });
+    await addQuote(accessToken, yalynka, { text: "a" });
+    await addQuote(accessToken, yalynka, { text: "b" });
+    await addQuote(accessToken, yizhak, { text: "c" });
+    await addQuote(accessToken, yizhak, { text: "d" });
+    const yizhakAuthorId = await authorIdByName(accessToken, "Їжак");
+
+    const body = await summaryBody(accessToken);
+
+    expect(body.topBook).toEqual({
+      id: yizhak,
+      quotesCount: 2,
+      tiedCount: 1,
+      title: "Їжак",
+    });
+    expect(body.topAuthor).toEqual({
+      id: yizhakAuthorId,
+      name: "Їжак",
+      quotesCount: 2,
+      tiedCount: 1,
+    });
+    expect(body.averageQuotesPerQuotedBook).toBe(2);
+  });
+
+  it("counts a quote of a multi-author book for every linked author", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const goodOmens = await createBook(accessToken, {
+      authors: [{ name: "Neil Gaiman" }, { name: "Terry Pratchett" }],
+      title: "Good Omens",
+    });
+    const mort = await createBook(accessToken, {
+      authors: [{ name: "Terry Pratchett" }],
+      title: "Mort",
+    });
+    await addQuote(accessToken, goodOmens, { text: "a" });
+    await addQuote(accessToken, mort, { text: "b" });
+    const pratchettId = await authorIdByName(accessToken, "Terry Pratchett");
+
+    const body = await summaryBody(accessToken);
+
+    expect(body.totalCount).toBe(2);
+    expect(body.topAuthor).toEqual({
+      id: pratchettId,
+      name: "Terry Pratchett",
+      quotesCount: 2,
+      tiedCount: 0,
+    });
+    expect(body.topBook).toEqual({
+      id: goodOmens,
+      quotesCount: 1,
+      tiedCount: 1,
+      title: "Good Omens",
     });
   });
 });

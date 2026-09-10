@@ -172,20 +172,25 @@ export const PaginatedQuotesSchema = createPaginatedSchema(QuoteViewSchema);
 export const QuotesSummaryBookSchema = z.object({
   id: z.string(),
   quotesCount: z.number().int().nonnegative(),
+  tiedCount: z.number().int().nonnegative(),
   title: z.string(),
 });
 
 export type QuotesSummaryBook = z.infer<typeof QuotesSummaryBookSchema>;
 
 export const QuotesSummaryAuthorSchema = z.object({
+  id: z.string(),
   name: z.string(),
   quotesCount: z.number().int().nonnegative(),
+  tiedCount: z.number().int().nonnegative(),
 });
 
 export type QuotesSummaryAuthor = z.infer<typeof QuotesSummaryAuthorSchema>;
 
 export const QuotesSummaryViewSchema = z.object({
+  averageQuotesPerQuotedBook: z.number().nonnegative().nullable(),
   favoritesCount: z.number().int().nonnegative(),
+  quotedBooksCount: z.number().int().nonnegative(),
   spoilerCount: z.number().int().nonnegative(),
   topAuthor: QuotesSummaryAuthorSchema.nullable(),
   topBook: QuotesSummaryBookSchema.nullable(),

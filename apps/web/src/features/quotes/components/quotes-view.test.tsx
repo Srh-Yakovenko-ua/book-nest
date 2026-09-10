@@ -14,6 +14,11 @@ import { QuotesView } from "./quotes-view";
 
 const SORT_LABEL = "Сортування цитат";
 
+type QuotesMockOptions = {
+  facetsFor?: (url: string) => QuotesFacetsView;
+  summaryStatus?: number;
+};
+
 const requestedUrls: string[] = [];
 
 vi.mock("@/i18n/navigation", () => ({
@@ -40,11 +45,24 @@ const FACETS: QuotesFacetsView = {
   withoutSpoilerCount: 12,
 };
 
+const NARROWED_FACETS: QuotesFacetsView = {
+  authors: [{ count: 8, id: "author-1", name: "Френк Герберт" }],
+  books: [{ count: 8, id: "book-1", title: "Дюна" }],
+  favoritesCount: 1,
+  spoilerCount: 0,
+  totalCount: 8,
+  withCommentCount: 2,
+  withoutCommentCount: 6,
+  withoutSpoilerCount: 8,
+};
+
 const SUMMARY: QuotesSummaryView = {
+  averageQuotesPerQuotedBook: 13 / 5,
   favoritesCount: 2,
+  quotedBooksCount: 5,
   spoilerCount: 1,
-  topAuthor: null,
-  topBook: null,
+  topAuthor: { id: "author-1", name: "Френк Герберт", quotesCount: 8, tiedCount: 0 },
+  topBook: { id: "book-1", quotesCount: 8, tiedCount: 0, title: "Дюна" },
   totalCount: 13,
   withCommentCount: 3,
   withoutSpoilerCount: 12,
@@ -283,10 +301,57 @@ describe("QuotesView advanced filters", () => {
   });
 });
 
-function jsonResponse(body: unknown): Response {
+describe("QuotesView overview cards", () => {
+  it("keeps the four cards steady while the quick-filter counts follow the filters", async () => {
+    mockQuotes(quotes(13), {
+      facetsFor: (url) => (url.includes("book=book-1") ? NARROWED_FACETS : FACETS),
+    });
+
+    renderQuotes("?book=book-1");
+
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    await waitFor(() => expect(filterChipTexts()[0]).toBe("Усі8"));
+
+    const cardsWithFilter = summaryCardTexts();
+    expect(cardsWithFilter).toHaveLength(4);
+
+    await userEvent.click(
+      within(screen.getByRole("group", { name: "Активні фільтри" })).getByRole("button", {
+        name: "Прибрати фільтр Книга: Дюна",
+      }),
+    );
+
+    await waitFor(() => expect(filterChipTexts()[0]).toBe("Усі13"));
+    expect(summaryCardTexts()).toEqual(cardsWithFilter);
+    expect(requestedUrls.filter((url) => url.includes("/api/quotes/summary"))).toHaveLength(1);
+  });
+
+  it("keeps the mobile overview reachable when the summary request fails", async () => {
+    mockQuotes(quotes(13), { summaryStatus: 500 });
+
+    renderQuotes();
+
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    const trigger = await screen.findByRole("button", { name: "Огляд цитат" });
+
+    await waitFor(() =>
+      expect(trigger.parentElement?.querySelectorAll('[data-slot="card"]')).toHaveLength(0),
+    );
+    expect(summaryCardTexts()).toHaveLength(0);
+    expect(trigger).toBeInTheDocument();
+  });
+});
+
+function filterChipTexts(): string[] {
+  return within(screen.getByRole("radiogroup", { name: "Швидкі фільтри цитат" }))
+    .getAllByRole("radio")
+    .map((chip) => chip.textContent ?? "");
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
@@ -305,14 +370,18 @@ function listUrls(): string[] {
   );
 }
 
-function mockQuotes(items: QuoteView[]) {
+function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
+  const { facetsFor = () => FACETS, summaryStatus = 200 } = options;
+
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
       requestedUrls.push(url);
-      if (url.includes("/api/quotes/summary")) return Promise.resolve(jsonResponse(SUMMARY));
-      if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(FACETS));
+      if (url.includes("/api/quotes/summary")) {
+        return Promise.resolve(jsonResponse(summaryStatus === 200 ? SUMMARY : {}, summaryStatus));
+      }
+      if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(facetsFor(url)));
       if (url.includes("/api/quotes")) return Promise.resolve(jsonResponse(quotesPage(items, url)));
       if (url.includes("/api/books")) {
         return Promise.resolve(
@@ -368,6 +437,12 @@ function renderQuotes(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
     <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <QuotesView />
     </NuqsTestingAdapter>,
+  );
+}
+
+function summaryCardTexts(): string[] {
+  return [...document.querySelectorAll('[data-slot="stat-card"]')].map(
+    (card) => card.textContent ?? "",
   );
 }
 

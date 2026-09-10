@@ -546,7 +546,8 @@ describe("QuotesService.summary", () => {
   it("maps aggregate repository data into the summary view", async () => {
     const { repository, service } = buildService();
     repository.summaryData.mockResolvedValue({
-      bookCounts: [{ bookId: BOOK_ID, count: 4, firstAuthorName: "Frank Herbert", title: "Dune" }],
+      authorLinks: [{ author: { id: AUTHOR_ID, name: "Frank Herbert" }, bookId: BOOK_ID }],
+      bookCounts: [{ bookId: BOOK_ID, count: 4, title: "Dune" }],
       favorites: 2,
       spoiler: 1,
       total: 4,
@@ -556,13 +557,71 @@ describe("QuotesService.summary", () => {
     const summary = await service.summary({ userId: USER_ID });
 
     expect(summary).toEqual({
+      averageQuotesPerQuotedBook: 4,
       favoritesCount: 2,
+      quotedBooksCount: 1,
       spoilerCount: 1,
-      topAuthor: { name: "Frank Herbert", quotesCount: 4 },
-      topBook: { id: BOOK_ID, quotesCount: 4, title: "Dune" },
+      topAuthor: { id: AUTHOR_ID, name: "Frank Herbert", quotesCount: 4, tiedCount: 0 },
+      topBook: { id: BOOK_ID, quotesCount: 4, tiedCount: 0, title: "Dune" },
       totalCount: 4,
       withCommentCount: 3,
       withoutSpoilerCount: 3,
+    });
+  });
+
+  it("averages across quoted books and ranks the canonical author relation", async () => {
+    const { repository, service } = buildService();
+    repository.summaryData.mockResolvedValue({
+      authorLinks: [
+        { author: { id: AUTHOR_ID, name: "Frank Herbert" }, bookId: BOOK_ID },
+        { author: { id: AUTHOR_ID, name: "Frank Herbert" }, bookId: OTHER_BOOK_ID },
+      ],
+      bookCounts: [
+        { bookId: BOOK_ID, count: 4, title: "Dune" },
+        { bookId: OTHER_BOOK_ID, count: 3, title: "Messiah" },
+      ],
+      favorites: 0,
+      spoiler: 0,
+      total: 7,
+      withComment: 0,
+    });
+
+    const summary = await service.summary({ userId: USER_ID });
+
+    expect(summary.quotedBooksCount).toBe(2);
+    expect(summary.averageQuotesPerQuotedBook).toBe(3.5);
+    expect(summary.topBook).toEqual({ id: BOOK_ID, quotesCount: 4, tiedCount: 0, title: "Dune" });
+    expect(summary.topAuthor).toEqual({
+      id: AUTHOR_ID,
+      name: "Frank Herbert",
+      quotesCount: 7,
+      tiedCount: 0,
+    });
+  });
+
+  it("returns null tops and no average when the user has no quotes", async () => {
+    const { repository, service } = buildService();
+    repository.summaryData.mockResolvedValue({
+      authorLinks: [],
+      bookCounts: [],
+      favorites: 0,
+      spoiler: 0,
+      total: 0,
+      withComment: 0,
+    });
+
+    const summary = await service.summary({ userId: USER_ID });
+
+    expect(summary).toEqual({
+      averageQuotesPerQuotedBook: null,
+      favoritesCount: 0,
+      quotedBooksCount: 0,
+      spoilerCount: 0,
+      topAuthor: null,
+      topBook: null,
+      totalCount: 0,
+      withCommentCount: 0,
+      withoutSpoilerCount: 0,
     });
   });
 });
