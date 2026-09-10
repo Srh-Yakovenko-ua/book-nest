@@ -104,7 +104,21 @@ describe("buildStatisticsDrilldown destination routing", () => {
     const params = paramsOf(href);
 
     expect(params.get("ageBucket")).toBe("15_30");
+    expect(params.get("sort")).toBe("oldest_orders");
     expect(params.has("orderedFrom")).toBe(false);
+  });
+
+  it("does not sort the undated bucket by an order date it does not have", () => {
+    const href = hrefOf({
+      context: EMPTY_CONTEXT,
+      destination: "in_transit",
+      metricKind: STATISTICS_METRIC_KIND.countOrStatus,
+      scope: { ageBucket: "unknown_date", kind: "age_bucket" },
+    });
+    const params = paramsOf(href);
+
+    expect(params.get("ageBucket")).toBe("unknown_date");
+    expect(params.has("sort")).toBe(false);
   });
 });
 

@@ -341,6 +341,7 @@ function StatisticsBody({
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <StatisticsLifecycle
+          comparisonLabel={comparisonLabel}
           currentLabel={currentLabel}
           drilldown={drilldown}
           includeCancelled={params.state.includeCancelled}
