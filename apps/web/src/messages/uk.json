@@ -6608,23 +6608,30 @@
     },
     "summary": {
       "empty": "—",
+      "quotedBooks": "Книг із цитатами",
+      "booksUnit": "{count, plural, one {книга} few {книги} many {книг} other {книг}}",
+      "quotesUnit": "{count, plural, one {цитата} few {цитати} many {цитат} other {цитати}}",
+      "quotesTotal": "{count, plural, one {# цитата} few {# цитати} many {# цитат} other {# цитати}} загалом",
+      "noQuotesYet": "Цитат ще немає",
+      "averagePerBook": "Середньо на книгу",
+      "amongBooks": "Серед {count, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
+      "noDataYet": "Ще немає даних",
+      "topBook": "Найцитованіша книга",
+      "topBookTied": "{title} · ще {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "topAuthor": "Найцитованіший автор",
+      "topAuthorTied": "{name} · ще {count, plural, one {# автор} few {# автори} many {# авторів} other {# авторів}}",
+      "noAuthorData": "Немає даних про авторів",
       "mobile": {
         "title": "Детальна статистика",
         "compact": {
-          "total": "Усього",
-          "favorites": "Улюблені",
-          "withComment": "З коментарем",
-          "spoilers": "Спойлери",
-          "withoutSpoilers": "Без спойлерів",
+          "quotedBooks": "Книг",
+          "averagePerBook": "Середньо",
           "topBook": "Книга",
           "topAuthor": "Автор"
         },
         "detailed": {
-          "total": "Усього цитат",
-          "favorites": "Улюблені цитати",
-          "withComment": "З коментарями",
-          "spoilers": "Зі спойлерами",
-          "withoutSpoilers": "Без спойлерів",
+          "quotedBooks": "Книг із цитатами",
+          "averagePerBook": "Середньо на книгу",
           "topBook": "Найцитованіша книга",
           "topAuthor": "Найцитованіший автор"
         }

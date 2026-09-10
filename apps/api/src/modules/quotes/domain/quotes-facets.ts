@@ -1,11 +1,12 @@
 import type { QuoteAuthorFacet, QuoteBookFacet, QuotesFacetsView } from "@app/shared";
 
-import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
-import {
-  type QuoteAuthorLink,
-  type QuoteFilterCounts,
+import type {
+  QuoteAuthorLink,
+  QuoteBookCount,
+  QuoteFilterCounts,
 } from "../infrastructure/quotes.repository.js";
-import { type QuoteBookCount } from "./quotes-summary.js";
+
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 
 export function buildQuotesFacets({
   authors,
@@ -61,15 +62,36 @@ export function toBookFacets(bookCounts: QuoteBookCount[]): QuoteBookFacet[] {
   );
 }
 
-function sortFacets<TFacet extends { count: number }>(
+function compareFacets<TFacet extends { count: number; id: string }>({
+  label,
+  left,
+  right,
+}: {
+  label: (facet: TFacet) => string;
+  left: TFacet;
+  right: TFacet;
+}): number {
+  if (left.count !== right.count) {
+    return right.count - left.count;
+  }
+
+  const byLabel = UKRAINIAN_COLLATION.compare(label(left), label(right));
+  if (byLabel !== 0) {
+    return byLabel;
+  }
+
+  if (left.id === right.id) {
+    return 0;
+  }
+
+  return left.id < right.id ? -1 : 1;
+}
+
+function sortFacets<TFacet extends { count: number; id: string }>(
   facets: TFacet[],
   label: (facet: TFacet) => string,
 ): TFacet[] {
   return facets
     .filter((facet) => facet.count > 0)
-    .sort((left, right) =>
-      left.count === right.count
-        ? UKRAINIAN_COLLATION.compare(label(left), label(right))
-        : right.count - left.count,
-    );
+    .sort((left, right) => compareFacets({ label, left, right }));
 }

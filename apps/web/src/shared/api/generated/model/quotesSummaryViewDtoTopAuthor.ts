@@ -10,10 +10,16 @@
  * @nullable
  */
 export type QuotesSummaryViewDtoTopAuthor = {
+  id: string;
   name: string;
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   quotesCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  tiedCount: number;
 } | null;

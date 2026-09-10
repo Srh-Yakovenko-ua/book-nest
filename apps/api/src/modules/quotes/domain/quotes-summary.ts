@@ -1,73 +1,62 @@
 import type {
   Nullable,
+  QuoteAuthorFacet,
+  QuoteBookFacet,
   QuotesSummaryAuthor,
   QuotesSummaryBook,
   QuotesSummaryView,
 } from "@app/shared";
 
-import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+import type { QuotesSummaryData } from "../infrastructure/quotes.repository.js";
 
-export type QuoteBookCount = {
-  bookId: string;
-  count: number;
-  firstAuthorName: string;
-  title: string;
-};
-
-export type QuotesSummaryData = {
-  bookCounts: QuoteBookCount[];
-  favorites: number;
-  spoiler: number;
-  total: number;
-  withComment: number;
-};
+import { toAuthorFacets, toBookFacets } from "./quotes-facets.js";
 
 export function buildQuotesSummary(data: QuotesSummaryData): QuotesSummaryView {
+  const quotedBooksCount = data.bookCounts.length;
+
   return {
+    averageQuotesPerQuotedBook: quotedBooksCount === 0 ? null : data.total / quotedBooksCount,
     favoritesCount: data.favorites,
+    quotedBooksCount,
     spoilerCount: data.spoiler,
-    topAuthor: topAuthorOf(data.bookCounts),
-    topBook: topBookOf(data.bookCounts),
+    topAuthor: topAuthorOf(
+      toAuthorFacets({ bookCounts: data.bookCounts, links: data.authorLinks }),
+    ),
+    topBook: topBookOf(toBookFacets(data.bookCounts)),
     totalCount: data.total,
     withCommentCount: data.withComment,
     withoutSpoilerCount: data.total - data.spoiler,
   };
 }
 
-function topAuthorOf(bookCounts: QuoteBookCount[]): Nullable<QuotesSummaryAuthor> {
-  const countByAuthor = new Map<string, number>();
-  for (const entry of bookCounts) {
-    const name = entry.firstAuthorName.trim();
-    if (name.length === 0) {
-      continue;
-    }
-    countByAuthor.set(name, (countByAuthor.get(name) ?? 0) + entry.count);
-  }
-
-  let best: Nullable<QuotesSummaryAuthor> = null;
-  for (const [name, quotesCount] of countByAuthor) {
-    if (best === null || wins(quotesCount, name, best.quotesCount, best.name)) {
-      best = { name, quotesCount };
-    }
-  }
-
-  return best;
+function tiedCountOf(facets: { count: number }[], topCount: number): number {
+  return facets.filter((facet) => facet.count === topCount).length - 1;
 }
 
-function topBookOf(bookCounts: QuoteBookCount[]): Nullable<QuotesSummaryBook> {
-  let best: Nullable<QuoteBookCount> = null;
-  for (const entry of bookCounts) {
-    if (best === null || wins(entry.count, entry.title, best.count, best.title)) {
-      best = entry;
-    }
+function topAuthorOf(facets: QuoteAuthorFacet[]): Nullable<QuotesSummaryAuthor> {
+  const [winner] = facets;
+  if (winner === undefined) {
+    return null;
   }
 
-  return best === null ? null : { id: best.bookId, quotesCount: best.count, title: best.title };
+  return {
+    id: winner.id,
+    name: winner.name,
+    quotesCount: winner.count,
+    tiedCount: tiedCountOf(facets, winner.count),
+  };
 }
 
-function wins(count: number, label: string, bestCount: number, bestLabel: string): boolean {
-  if (count !== bestCount) {
-    return count > bestCount;
+function topBookOf(facets: QuoteBookFacet[]): Nullable<QuotesSummaryBook> {
+  const [winner] = facets;
+  if (winner === undefined) {
+    return null;
   }
-  return UKRAINIAN_COLLATION.compare(label, bestLabel) < 0;
+
+  return {
+    id: winner.id,
+    quotesCount: winner.count,
+    tiedCount: tiedCountOf(facets, winner.count),
+    title: winner.title,
+  };
 }

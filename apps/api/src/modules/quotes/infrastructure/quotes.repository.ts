@@ -5,7 +5,6 @@ import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
-import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
@@ -47,6 +46,12 @@ export type QuoteAuthorLink = {
   bookId: string;
 };
 
+export type QuoteBookCount = {
+  bookId: string;
+  count: number;
+  title: string;
+};
+
 export type QuoteFilterCounts = Record<QuoteFilter, number>;
 
 export type QuotesDatasetInput = {
@@ -60,6 +65,15 @@ export type QuotesDatasetInput = {
 
 export type QuotesFilterInput = QuotesDatasetInput & {
   filter: QuoteFilter;
+};
+
+export type QuotesSummaryData = {
+  authorLinks: QuoteAuthorLink[];
+  bookCounts: QuoteBookCount[];
+  favorites: number;
+  spoiler: number;
+  total: number;
+  withComment: number;
 };
 
 export type QuoteUpdateData = Partial<QuoteWriteData>;
@@ -350,9 +364,11 @@ export class QuotesRepository {
     ]);
 
     const counts = z.array(QuotesSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_QUOTE_COUNTS;
+    const bookCounts = await this.resolveBookCounts(userId, groups);
 
     return {
-      bookCounts: await this.resolveBookCounts(userId, groups),
+      authorLinks: await this.authorQuoteLinks(bookCounts.map((entry) => entry.bookId)),
+      bookCounts,
       favorites: counts.favorites,
       spoiler: counts.spoiler,
       total: counts.total,
@@ -382,7 +398,7 @@ export class QuotesRepository {
     }
 
     const books = await this.prisma.book.findMany({
-      select: { firstAuthorName: true, id: true, title: true },
+      select: { id: true, title: true },
       where: {
         ...SOFT_DELETE_SCOPE.active,
         id: { in: groups.map((group) => group.bookId) },
@@ -396,14 +412,7 @@ export class QuotesRepository {
       if (book === undefined) {
         return [];
       }
-      return [
-        {
-          bookId: group.bookId,
-          count: group._count._all,
-          firstAuthorName: book.firstAuthorName,
-          title: book.title,
-        },
-      ];
+      return [{ bookId: group.bookId, count: group._count._all, title: book.title }];
     });
   }
 }

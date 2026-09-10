@@ -17,6 +17,7 @@ export type UiIconName =
   | "bell-off"
   | "book"
   | "book-copy"
+  | "book-open-text"
   | "book-x"
   | "bookmark"
   | "boxes"
@@ -116,6 +117,7 @@ export type UiIconName =
   | "type"
   | "upload"
   | "user"
+  | "user-round"
   | "wallet"
   | "x"
   | "x-circle";
