@@ -35,8 +35,8 @@ const SECTION_ORDER = [
   "Магазини",
   "Рейтинг магазинів",
   "Ціна книги × середній чек",
-  "Шлях замовлень",
-  "Активні замовлення за часом від оформлення",
+  "Статуси доставки",
+  "Активні замовлення: час від оформлення",
   "Календар покупок",
   "Рекорди",
   "Найдорожчі замовлення",
@@ -169,9 +169,9 @@ describe("DeliveryStatistics layout", () => {
     renderStatistics();
     await settle();
 
-    const row = rowOf("Шлях замовлень");
+    const row = rowOf("Статуси доставки");
 
-    expect(rowOf("Активні замовлення за часом від оформлення")).toBe(row);
+    expect(rowOf("Активні замовлення: час від оформлення")).toBe(row);
     expect(row.className).toContain("lg:grid-cols-2");
     expect(row.className).toContain("items-start");
   });
@@ -253,7 +253,7 @@ describe("DeliveryStatistics query isolation", () => {
 
     expect(await screen.findByText("Не вдалося завантажити дані")).toBeInTheDocument();
     expect(await screen.findByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.getByText("Активні замовлення за часом від оформлення")).toBeInTheDocument();
+    expect(screen.getByText("Активні замовлення: час від оформлення")).toBeInTheDocument();
   });
 
   it("shows the budget while the period query is still loading", () => {
@@ -262,7 +262,7 @@ describe("DeliveryStatistics query isolation", () => {
     renderStatistics();
 
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.getByText("Активні замовлення за часом від оформлення")).toBeInTheDocument();
+    expect(screen.getByText("Активні замовлення: час від оформлення")).toBeInTheDocument();
   });
 
   it("keeps a failed budget inside its own card", async () => {
@@ -299,7 +299,7 @@ describe("DeliveryStatistics empty states", () => {
     expect(await screen.findByText("У вибраному періоді немає замовлень")).toBeInTheDocument();
     expect(screen.getByText("Витрачено")).toBeInTheDocument();
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.getByText("Активні замовлення за часом від оформлення")).toBeInTheDocument();
+    expect(screen.getByText("Активні замовлення: час від оформлення")).toBeInTheDocument();
     for (const title of ["Динаміка покупок", "Рейтинг магазинів", "Календар покупок", "Рекорди"]) {
       expect(screen.queryByText(title)).toBe(null);
     }
@@ -323,7 +323,7 @@ describe("DeliveryStatistics empty states", () => {
     expect(await screen.findByText("Покупок ще немає")).toBeInTheDocument();
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
     expect(screen.queryByText("Витрачено")).toBe(null);
-    expect(screen.queryByText("Активні замовлення за часом від оформлення")).toBe(null);
+    expect(screen.queryByText("Активні замовлення: час від оформлення")).toBe(null);
   });
 
   it("does not call an empty year an empty library", async () => {

@@ -11,6 +11,7 @@ export const LIFECYCLE_STAGES = {
 
 export type LifecycleBreakdown = {
   cancelled: LifecycleRow;
+  hasComparison: boolean;
   stages: LifecycleRow[];
   total: number;
 };
@@ -18,7 +19,7 @@ export type LifecycleBreakdown = {
 export type LifecycleRow = {
   count: number;
   delta: Nullable<number>;
-  share: number;
+  previous: Nullable<number>;
   stage: BookOrderDerivedStatus;
   totalShare: number;
 };
@@ -29,20 +30,19 @@ export function lifecycleBreakdown(
 ): LifecycleBreakdown {
   const counts = lifecycle[mode];
   const comparison = lifecycle.comparison === null ? null : lifecycle.comparison[mode];
-  const stages = LIFECYCLE_STAGES[mode];
-  const peak = Math.max(...stages.map((stage) => counts[stage]), 1);
 
-  const toRow = (stage: BookOrderDerivedStatus, reference: number): LifecycleRow => ({
+  const toRow = (stage: BookOrderDerivedStatus): LifecycleRow => ({
     count: counts[stage],
     delta: comparison === null ? null : comparison.delta[stage],
-    share: reference === 0 ? 0 : counts[stage] / reference,
+    previous: comparison === null ? null : comparison.previous[stage],
     stage,
     totalShare: counts.total === 0 ? 0 : counts[stage] / counts.total,
   });
 
   return {
-    cancelled: toRow("cancelled", Math.max(peak, counts.cancelled)),
-    stages: stages.map((stage) => toRow(stage, peak)),
+    cancelled: toRow("cancelled"),
+    hasComparison: comparison !== null,
+    stages: LIFECYCLE_STAGES[mode].map((stage) => toRow(stage)),
     total: counts.total,
   };
 }

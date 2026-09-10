@@ -22,6 +22,28 @@ const LIFECYCLE: BookOrderStatisticsLifecycle = {
   orders: ORDERS,
 };
 
+const WITH_COMPARISON: BookOrderStatisticsLifecycle = {
+  ...LIFECYCLE,
+  comparison: {
+    books: {
+      delta: { ...ORDERS, active: 0, received: 0, total: 0 },
+      previous: BOOKS,
+    },
+    orders: {
+      delta: {
+        active: 14,
+        cancelled: 0,
+        partially_received: 1,
+        partially_shipped: 1,
+        received: -2,
+        shipped: 15,
+        total: 29,
+      },
+      previous: { ...ORDERS, active: 0, received: 22, total: 33 },
+    },
+  },
+};
+
 describe("lifecycleBreakdown", () => {
   it("keeps the canonical stage order instead of sorting by size", () => {
     expect(lifecycleBreakdown(LIFECYCLE, "orders").stages.map((row) => row.stage)).toEqual([
@@ -33,11 +55,18 @@ describe("lifecycleBreakdown", () => {
     ]);
   });
 
-  it("scales the bars against the busiest stage, not the total", () => {
+  it("measures every share against the reported total, never against the busiest stage", () => {
     const { stages } = lifecycleBreakdown(LIFECYCLE, "orders");
 
-    expect(stages.find((row) => row.stage === "received")?.share).toBe(1);
-    expect(stages.find((row) => row.stage === "active")?.share).toBeCloseTo(14 / 20);
+    expect(stages.find((row) => row.stage === "received")?.totalShare).toBeCloseTo(20 / 62);
+    expect(stages.find((row) => row.stage === "active")?.totalShare).toBeCloseTo(14 / 62);
+  });
+
+  it("shares the same denominator with the cancelled row", () => {
+    const breakdown = lifecycleBreakdown(LIFECYCLE, "orders");
+
+    expect(breakdown.cancelled.totalShare).toBeCloseTo(11 / 62);
+    expect(breakdown.total).toBe(62);
   });
 
   it("never mixes the two units in one view", () => {
@@ -52,37 +81,28 @@ describe("lifecycleBreakdown", () => {
     expect(breakdown.cancelled.count).toBe(11);
   });
 
-  it("has no deltas until a comparison is requested", () => {
-    expect(lifecycleBreakdown(LIFECYCLE, "orders").stages[0]?.delta).toBeNull();
+  it("has no comparison figures until a comparison is requested", () => {
+    const breakdown = lifecycleBreakdown(LIFECYCLE, "orders");
+
+    expect(breakdown.hasComparison).toBe(false);
+    expect(breakdown.stages.every((row) => row.delta === null)).toBe(true);
+    expect(breakdown.stages.every((row) => row.previous === null)).toBe(true);
+    expect(breakdown.cancelled.delta).toBeNull();
   });
 
   it("passes the per-stage delta through, sign and all", () => {
-    const withComparison: BookOrderStatisticsLifecycle = {
-      ...LIFECYCLE,
-      comparison: {
-        books: {
-          delta: { ...ORDERS, active: 0, received: 0, total: 0 },
-          previous: BOOKS,
-        },
-        orders: {
-          delta: {
-            active: 14,
-            cancelled: 0,
-            partially_received: 1,
-            partially_shipped: 1,
-            received: -2,
-            shipped: 15,
-            total: 29,
-          },
-          previous: { ...ORDERS, active: 0, received: 22, total: 33 },
-        },
-      },
-    };
+    const { hasComparison, stages } = lifecycleBreakdown(WITH_COMPARISON, "orders");
 
-    const { stages } = lifecycleBreakdown(withComparison, "orders");
-
+    expect(hasComparison).toBe(true);
     expect(stages.find((row) => row.stage === "received")?.delta).toBe(-2);
     expect(stages.find((row) => row.stage === "active")?.delta).toBe(14);
+  });
+
+  it("carries the previous count so the delta can name where it came from", () => {
+    const { stages } = lifecycleBreakdown(WITH_COMPARISON, "orders");
+
+    expect(stages.find((row) => row.stage === "received")?.previous).toBe(22);
+    expect(stages.find((row) => row.stage === "active")?.previous).toBe(0);
   });
 
   it("drops the unreachable partial stages from the books view", () => {
@@ -93,13 +113,24 @@ describe("lifecycleBreakdown", () => {
     ]);
   });
 
-  it("reports the real share of the total next to the peak-based bar", () => {
-    const { stages } = lifecycleBreakdown(LIFECYCLE, "orders");
-    const received = stages.find((row) => row.stage === "received");
+  it("reports a zero share instead of dividing by an empty total", () => {
+    const empty: BookOrderStatisticsLifecycle = {
+      books: { ...BOOKS },
+      comparison: null,
+      orders: {
+        active: 0,
+        cancelled: 0,
+        partially_received: 0,
+        partially_shipped: 0,
+        received: 0,
+        shipped: 0,
+        total: 0,
+      },
+    };
 
-    expect({ share: received?.share, totalShare: received?.totalShare }).toEqual({
-      share: 1,
-      totalShare: 20 / 62,
-    });
+    const breakdown = lifecycleBreakdown(empty, "orders");
+
+    expect(breakdown.stages.every((row) => row.totalShare === 0)).toBe(true);
+    expect(breakdown.cancelled.totalShare).toBe(0);
   });
 });

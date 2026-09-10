@@ -141,11 +141,11 @@ describe("Scenario A — mixed currencies", () => {
     const user = userEvent.setup();
     renderStatistics();
     await settle();
-    const lifecycleBefore = cardOf("Шлях замовлень").textContent;
+    const lifecycleBefore = cardOf("Статуси доставки").textContent;
 
     await user.click(currencyChoice("EUR"));
 
-    expect(cardOf("Шлях замовлень").textContent).toBe(lifecycleBefore);
+    expect(cardOf("Статуси доставки").textContent).toBe(lifecycleBefore);
   });
 
   it("offers no currency the dataset never carried", async () => {
@@ -184,7 +184,7 @@ describe("Scenario B — dataset currency filter", () => {
       within(cardOf("Рейтинг магазинів")).getByRole("link", { name: /Book Depository/ }),
     ).toHaveAttribute("href", expect.stringContaining("currency=EUR"));
     expect(
-      within(cardOf("Активні замовлення за часом від оформлення")).getByRole("link", {
+      within(cardOf("Активні замовлення: час від оформлення")).getByRole("link", {
         name: /8–14 днів/,
       }),
     ).toHaveAttribute("href", expect.stringContaining("ageBucket=8_14"));

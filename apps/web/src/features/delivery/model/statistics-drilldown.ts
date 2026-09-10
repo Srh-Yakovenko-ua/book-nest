@@ -26,6 +26,8 @@ const DESTINATION = StatisticsDrilldownDestinationSchema.enum;
 
 const IN_TRANSIT_SORT = "oldest_orders";
 
+const UNDATED_AGE_BUCKET = "unknown_date";
+
 const DESTINATION_LIST_PARAMS = {
   encodedSeparator: "%2C",
   keys: ["currency", "store"],
@@ -195,7 +197,10 @@ function scopeParams({
 }): Record<string, string> {
   switch (scope.kind) {
     case "age_bucket":
-      return { ageBucket: scope.ageBucket, sort: IN_TRANSIT_SORT };
+      return {
+        ageBucket: scope.ageBucket,
+        ...(scope.ageBucket === UNDATED_AGE_BUCKET ? {} : { sort: IN_TRANSIT_SORT }),
+      };
     case "order":
       return { orderId: scope.orderId };
     case "order_date_range":

@@ -3612,18 +3612,39 @@
       },
       "lifecycle": {
         "allTime": "all time",
-        "cancelledExcluded": "Not counted",
+        "cancelledExcluded": "Not counted in this view",
+        "comparedTo": "Compared with {period}.",
+        "delta": {
+          "current": "Now {count} · change {delta}",
+          "noChange": "no change",
+          "previous": {
+            "books": "Was {count, plural, one {# book} other {# books}}",
+            "orders": "Was {count, plural, one {# order} other {# orders}}"
+          }
+        },
         "empty": "No orders in this period.",
         "modeLabel": "Unit",
         "modes": {
           "books": "Books",
           "orders": "Orders"
         },
-        "subtitles": {
-          "books": "Where the books of the orders placed {period} stand now.",
-          "orders": "Where the orders placed {period} stand now."
+        "statuses": {
+          "active": "Awaiting shipment",
+          "cancelled": "Cancelled",
+          "partially_received": "Partially received",
+          "partially_shipped": "Partially shipped",
+          "received": "Received",
+          "shipped": "Shipped"
         },
-        "title": "Order journey",
+        "subtitles": {
+          "books": "The current split of the books in the orders placed {period}.",
+          "orders": "The current split of the orders placed {period}."
+        },
+        "title": "Delivery statuses",
+        "totals": {
+          "books": "{count, plural, one {<value>#</value> book} other {<value>#</value> books}} in this view",
+          "orders": "{count, plural, one {<value>#</value> order} other {<value>#</value> orders}} in this view"
+        },
         "units": {
           "books": "bk.",
           "orders": "ord."
@@ -3640,19 +3661,27 @@
       "activeAge": {
         "asOf": "As of {value}",
         "buckets": {
-          "0_7": "Up to 7 days",
+          "0_7": "0–7 days",
           "15_30": "15–30 days",
           "31_plus": "31 days and more",
           "8_14": "8–14 days",
           "unknown_date": "No order date"
         },
         "counts": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
-        "empty": "No active orders.",
+        "empty": {
+          "description": "Every order is either finished or has no books left to receive.",
+          "title": "No active orders"
+        },
         "error": "Could not load the active orders.",
+        "moneyHint": "The value of the active orders in this group. A partially received order counts at its full amount.",
+        "moneyHintLabel": "What this amount means",
         "retry": "Try again",
-        "shareOfActive": "{orders} ord. · {value}",
-        "subtitle": "How long ago each order was placed. Amounts are shown per currency.",
-        "title": "Active orders by time since ordering"
+        "shareOfActive": "{value} of active orders",
+        "shipments": "{count, plural, one {# shipment} other {# shipments}}",
+        "subtitle": "How long ago the orders that still have books to receive were placed.",
+        "title": "Active orders: time since ordering",
+        "unknownHint": "The time since ordering cannot be measured because the order date is missing.",
+        "unknownHintLabel": "Why the time is unknown"
       },
       "stores": {
         "bestValue": {
