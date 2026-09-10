@@ -300,6 +300,15 @@ function StatisticsBody({
         />
       </div>
 
+      <StatisticsCalendar
+        coverage={view.calendarCoverage}
+        daily={view.daily}
+        drilldown={drilldown}
+        isTruncated={view.meta.currentSource.isTruncated}
+        period={view.meta.currentPeriod}
+        today={params.today}
+      />
+
       <StatisticsCosts currency={displayCurrency} view={view} />
 
       <StatisticsSection
@@ -350,14 +359,6 @@ function StatisticsBody({
         />
         {activeAgeCard}
       </div>
-
-      <StatisticsCalendar
-        daily={view.daily}
-        drilldown={drilldown}
-        isTruncated={view.meta.currentSource.isTruncated}
-        period={view.meta.currentPeriod}
-        today={params.today}
-      />
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         <StatisticsRecords

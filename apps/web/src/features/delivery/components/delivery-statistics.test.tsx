@@ -31,13 +31,13 @@ const SECTION_ORDER = [
   "Витрачено",
   "Бюджет на книги",
   "Динаміка покупок",
+  "Календар покупок",
   "Що впливає на фактичну вартість книги",
   "Магазини",
   "Рейтинг магазинів",
   "Ціна книги × середній чек",
   "Статуси доставки",
   "Активні замовлення: час від оформлення",
-  "Календар покупок",
   "Рекорди",
   "Найдорожчі замовлення",
 ];
@@ -229,10 +229,10 @@ describe("DeliveryStatistics layout", () => {
       screen.getByTestId("statistics-skeleton-kpi"),
       cardOf("Бюджет на книги"),
       screen.getByTestId("statistics-skeleton-dynamics"),
+      screen.getByTestId("statistics-skeleton-calendar"),
       screen.getByTestId("statistics-skeleton-costs"),
       screen.getByTestId("statistics-skeleton-stores"),
       screen.getByTestId("statistics-skeleton-lifecycle"),
-      screen.getByTestId("statistics-skeleton-calendar"),
       screen.getByTestId("statistics-skeleton-records"),
     ].reduce((previous, node) => {
       expect(follows(previous, node)).toBe(true);

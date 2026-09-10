@@ -113,6 +113,7 @@ export * from "./bookOrderStatisticsViewDtoByStoreItemOrdersCountByCurrencyItem"
 export * from "./bookOrderStatisticsViewDtoByStoreItemOrdersCountByCurrencyItemCurrency";
 export * from "./bookOrderStatisticsViewDtoByStoreItemTotalsByCurrencyItem";
 export * from "./bookOrderStatisticsViewDtoByStoreItemTotalsByCurrencyItemCurrency";
+export * from "./bookOrderStatisticsViewDtoCalendarCoverage";
 export * from "./bookOrderStatisticsViewDtoComparison";
 export * from "./bookOrderStatisticsViewDtoComparisonAverageBookPriceByCurrencyItem";
 export * from "./bookOrderStatisticsViewDtoComparisonAverageBookPriceByCurrencyItemCurrency";

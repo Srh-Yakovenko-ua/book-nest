@@ -1,0 +1,1156 @@
+{
+  "spec": "docs/booknest-calendar-purchases-refactor.md",
+  "generatedAt": "2026-09-10T10:02:12Z",
+  "branch": "fix/stat-blocks",
+  "checkout": "D:/IT/book-nest (main checkout, not a worktree)",
+  "scope": {
+    "included": [
+      "Spec sections 1-18 and the Фінальний результат checklist",
+      "One backend addition: calendarCoverage (shared contract + delivery domain + tests)",
+      "Frontend purchase calendar: apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx and its model",
+      "Section ordering on the purchases statistics page and the matching loading skeleton",
+      "uk + en i18n keys under delivery.statistics.calendar"
+    ],
+    "excluded": [
+      {
+        "item": "Any backend statistics logic other than calendarCoverage",
+        "reason": "Spec line 17 forbids it explicitly: 'Основну backend-логіку статистики не змінювати, крім явно описаного нижче calendarCoverage.'"
+      },
+      {
+        "item": "Reading-statistics heatmap (apps/web/src/features/statistics/components/reading/reading-heatmap.tsx, 13px cells, its own INTENSITY_CLASS)",
+        "reason": "Different feature slice, not named by the spec. It is an incidental resemblance, not shared knowledge (CLAUDE.md §8.7) - do not extract a shared heatmap while doing this refactor."
+      },
+      {
+        "item": "URL state for calendarYear / metric, Compare inside the calendar, a local period picker, persistent selectedDay, interactive controls in the tooltip, per-calendar KPI cards (Днів із покупками / Найактивніший день / Середньо за день / Максимум за день)",
+        "reason": "Section 18 non-goals. Encoded as guard task T22 rather than as work."
+      },
+      {
+        "item": "Reading statistics page (apps/web/src/app/[locale]/(app)/statistics/page.tsx) and its own calendar",
+        "reason": "The spec targets the delivery/purchases statistics page (apps/web/src/app/[locale]/(app)/delivery/statistics/page.tsx) only."
+      }
+    ]
+  },
+  "componentMap": {
+    "calendarComponent": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx",
+    "calendarComponentTest": "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx",
+    "calendarModel": "apps/web/src/features/delivery/model/statistics-calendar.ts",
+    "calendarModelTest": "apps/web/src/features/delivery/model/statistics-calendar.test.ts",
+    "pageComposition": "apps/web/src/features/delivery/components/delivery-statistics.tsx",
+    "pageCompositionTest": "apps/web/src/features/delivery/components/delivery-statistics.test.tsx",
+    "sectionShell": "apps/web/src/features/delivery/components/statistics/statistics-section.tsx",
+    "states": "apps/web/src/features/delivery/components/statistics/statistics-states.tsx",
+    "drilldownMenu": "apps/web/src/features/delivery/components/statistics/statistics-drilldown-action.tsx",
+    "drilldownModel": "apps/web/src/features/delivery/model/statistics-drilldown.ts",
+    "route": "apps/web/src/app/[locale]/(app)/delivery/statistics/page.tsx",
+    "sharedContract": "packages/shared/src/order-statistics.ts + packages/shared/src/orders.ts",
+    "backendCalendar": "apps/api/src/modules/delivery/domain/statistics-calendar.ts",
+    "backendAssembly": "apps/api/src/modules/delivery/domain/order-statistics.ts",
+    "backendService": "apps/api/src/modules/delivery/application/delivery-statistics.service.ts",
+    "i18n": "apps/web/src/messages/uk.json:3741 + apps/web/src/messages/en.json:3741",
+    "tokens": "apps/web/src/styles/globals.css:110 (--primary terracotta), :115 (--secondary warm beige)"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add calendarCoverage to the shared statistics contract",
+      "specSection": "8",
+      "layer": "shared",
+      "files": ["packages/shared/src/order-statistics.ts", "packages/shared/src/orders.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "packages/shared/src/order-statistics.ts exports StatisticsCalendarCoverageSchema = z.object({ ordersInScope: CountSchema, ordersWithOrderDate: CountSchema, ordersWithoutOrderDate: CountSchema }) plus the inferred type",
+        "The schema carries a .describe() saying the counts are bounded by the actually loaded (possibly truncated) source, per spec section 15",
+        "packages/shared/src/orders.ts BookOrderStatisticsViewSchema (currently line 1461) gains calendarCoverage as a required, non-nullable key placed per the alphabetical key order already used in that object",
+        "No other key of BookOrderStatisticsViewSchema changes",
+        "CountSchema is reused from ./internal.js, not a hand-rolled z.number().int().min(0)"
+      ],
+      "status": "done",
+      "proof": [
+        "packages/shared/src/order-statistics.ts:504-514",
+        "packages/shared/src/orders.ts:1465"
+      ],
+      "verifyNote": "CountSchema reused; .describe() covers the truncated-source caveat; alphabetical placement between byStore and comparison; no other key of the view schema touched."
+    },
+    {
+      "id": "T2",
+      "title": "Compute calendarCoverage in the delivery statistics domain",
+      "specSection": "8",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/delivery/domain/statistics-calendar.ts",
+        "apps/api/src/modules/delivery/domain/order-statistics.ts"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "apps/api/src/modules/delivery/domain/statistics-calendar.ts exports buildOrderCalendarCoverage(orders: ClassifiedOrder[]): StatisticsCalendarCoverage",
+        "ordersWithOrderDate counts orders whose record.orderDate !== null, ordersWithoutOrderDate counts the rest, ordersInScope === ordersWithOrderDate + ordersWithoutOrderDate",
+        "apps/api/src/modules/delivery/domain/order-statistics.ts calls it with the same includedOrders array already passed to buildOrderDaily (currently line 125), so coverage and daily describe the same population",
+        "buildOrderDaily body is unchanged apart from nothing; no other aggregate function in apps/api/src/modules/delivery/** is modified",
+        "No new Prisma query and no repository change: git diff shows apps/api/src/modules/delivery/infrastructure/** untouched"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/api/src/modules/delivery/domain/statistics-calendar.ts:16-24",
+        "apps/api/src/modules/delivery/domain/order-statistics.ts:123"
+      ],
+      "verifyNote": "Computed over the same includedOrders array buildOrderDaily gets (order-statistics.ts:126); infrastructure/** untouched in git status; buildOrderDaily body unchanged."
+    },
+    {
+      "id": "T3",
+      "title": "Unit-test calendarCoverage in the domain",
+      "specSection": "8",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/domain/statistics-calendar.test.ts"],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "A test asserts ordersWithoutOrderDate > 0 for a mixed set where at least one classified order has record.orderDate === null",
+        "A test asserts ordersInScope === ordersWithOrderDate + ordersWithoutOrderDate",
+        "A test asserts the dateless orders still do not appear in buildOrderDaily output"
+      ],
+      "status": "done",
+      "proof": ["apps/api/src/modules/delivery/domain/statistics-calendar.test.ts:440-518"],
+      "verifyNote": "Mixed / all-dated / all-undated / empty cases, the sum invariant as it.each at :475, and the daily-has-no-day assertion at :507."
+    },
+    {
+      "id": "T4",
+      "title": "Assert calendarCoverage survives the HTTP contract",
+      "specSection": "8",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/delivery/api/book-orders.controller.test.ts",
+        "apps/api/src/modules/delivery/application/delivery-statistics.service.test.ts"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "book-orders.controller.test.ts (which already parses the body with BookOrderStatisticsViewSchema at line 466) has an assertion reading calendarCoverage off the parsed response",
+        "At least one case covers an order with a null orderDate reaching ordersWithoutOrderDate through the real service path",
+        "No existing assertion in those files is deleted to make the new field fit"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/api/src/modules/delivery/api/book-orders.controller.test.ts:803-878",
+        "apps/api/src/modules/delivery/domain/order-statistics.test.ts:811-865"
+      ],
+      "verifyNote": "Read off BookOrderStatisticsViewSchema.parse (controller test :466); an undated order reaches ordersWithoutOrderDate through the real service path at :826; pure addition, nothing deleted; 43/43 green."
+    },
+    {
+      "id": "T5",
+      "title": "Regenerate the typed API client for the new field",
+      "specSection": "8",
+      "layer": "api",
+      "files": [
+        "apps/api/openapi.json",
+        "apps/web/src/shared/api/generated/model/bookOrderStatisticsViewDto.ts",
+        "apps/web/src/shared/api/generated/zod/book-orders/book-orders.zod.ts"
+      ],
+      "dependsOn": ["T1", "T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/api generate:openapi then pnpm gen:api were run, not hand-edited",
+        "apps/web/src/shared/api/generated/model/bookOrderStatisticsViewDto.ts contains calendarCoverage",
+        "The generated diff contains no unrelated churn beyond calendarCoverage"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/shared/api/generated/model/bookOrderStatisticsViewDto.ts:29-30",
+        "apps/web/src/shared/api/generated/model/bookOrderStatisticsViewDtoCalendarCoverage.ts:12-28",
+        "apps/web/src/shared/api/generated/zod/book-orders/book-orders.zod.ts:1033-1050"
+      ],
+      "verifyNote": "apps/api/openapi.json is gitignored (.gitignore:14) so it cannot show in the diff; the generated output carries the orval banner and the schema .describe() verbatim, and the generated diff holds nothing but calendarCoverage."
+    },
+    {
+      "id": "T6",
+      "title": "Extend the frontend statistics view fixtures with calendarCoverage",
+      "specSection": "8",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/model/statistics.fixtures.ts",
+        "apps/web/src/features/delivery/components/statistics/statistics-costs.test.tsx",
+        "apps/web/src/features/delivery/components/statistics/statistics-kpi.test.tsx",
+        "apps/web/src/features/delivery/model/statistics-currency.test.ts",
+        "apps/web/src/features/delivery/components/delivery-statistics.scenarios.test.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "makeStatisticsView (statistics.fixtures.ts:410) returns a calendarCoverage object so the BookOrderStatisticsView return type still typechecks",
+        "The richer fixture around statistics.fixtures.ts:149 gets coverage numbers consistent with its daily rows (ordersWithOrderDate equals the sum of its daily ordersCount)",
+        "Every other `satisfies BookOrderStatisticsView` / `: BookOrderStatisticsView` literal in apps/web/src compiles under pnpm typecheck",
+        "At least one fixture path exposes ordersWithoutOrderDate > 0 so the note in T14 is reachable from a test"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/model/statistics.fixtures.ts:127",
+        "apps/web/src/features/delivery/model/statistics.fixtures.ts:417",
+        "apps/web/src/features/delivery/components/statistics/statistics-costs.test.tsx:47",
+        "apps/web/src/features/delivery/components/statistics/statistics-kpi.test.tsx:46",
+        "apps/web/src/features/delivery/model/statistics-currency.test.ts:40"
+      ],
+      "verifyNote": "Rich fixture 7 = 4 + 3 daily ordersCount; pnpm typecheck green. Finding: makeStatisticsView (:417) sets ordersInScope 6 while its SUMMARY.ordersCount is 0, a combination the API cannot produce (controller test :826-838 asserts inScope === summary.ordersCount); statistics-kpi.test.tsx:46 has the same shape."
+    },
+    {
+      "id": "T7",
+      "title": "Move the calendar section directly under the dynamics + pulse row",
+      "specSection": "1",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/delivery-statistics.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "In delivery-statistics.tsx the <StatisticsCalendar> element (currently line 354) is rendered immediately after the dynamics/pulse grid (currently ends line 301) and before <StatisticsCosts>",
+        "Resulting JSX order: KPI, budget card, dynamics+pulse grid, calendar, costs, stores section, lifecycle+activeAge grid, records+topOrders grid",
+        "The calendar stays its own direct child of the flex column with no grid wrapper, so it remains full width",
+        "The dynamic() import wrapper for StatisticsCalendar (line 68) is untouched"
+      ],
+      "status": "done",
+      "proof": ["apps/web/src/features/delivery/components/delivery-statistics.tsx:303-310"],
+      "verifyNote": "Renders between the dynamics/pulse grid (ends :300) and StatisticsCosts (:311), direct child of the flex column, no grid wrapper; the dynamic() wrapper at :68 is untouched."
+    },
+    {
+      "id": "T8",
+      "title": "Match the loading skeleton to the new section order",
+      "specSection": "1",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-states.tsx"],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "In StatisticsSkeleton the block with data-testid=\"statistics-skeleton-calendar\" (currently line 233) sits between statistics-skeleton-dynamics and statistics-skeleton-costs",
+        "No skeleton block is removed or added, only reordered"
+      ],
+      "status": "done",
+      "proof": ["apps/web/src/features/delivery/components/statistics/statistics-states.tsx:218"],
+      "verifyNote": "Sits between statistics-skeleton-dynamics (:213) and statistics-skeleton-costs (:219); moved only, none added or removed."
+    },
+    {
+      "id": "T9",
+      "title": "Update the page-order test to the new sequence",
+      "specSection": "1",
+      "layer": "test",
+      "files": ["apps/web/src/features/delivery/components/delivery-statistics.test.tsx"],
+      "dependsOn": ["T7", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "SECTION_ORDER (line 30) lists \"Календар покупок\" right after \"Динаміка покупок\" and before \"Що впливає на фактичну вартість книги\"",
+        "The existing full-width assertions at lines 190-194 still pass unchanged in intent (calendar row has no grid-cols, calendar card has no h-full)"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/delivery-statistics.test.tsx:34",
+        "apps/web/src/features/delivery/components/delivery-statistics.test.tsx:186-195"
+      ],
+      "verifyNote": "SECTION_ORDER puts the calendar right after Динаміка покупок and before the cost section; the full-width assertions are unchanged and green."
+    },
+    {
+      "id": "T10",
+      "title": "Enlarge the cells to 14x14 with a 3px gap and drop the hover scale",
+      "specSection": "4",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Every size-[11px] in statistics-calendar.tsx (lines 141, 165, 207, 222) and the h-[11px] weekday-row height (line 114) becomes 14px",
+        "Cell corner radius is rounded-[3px] or rounded-[4px], applied uniformly to grid cells, placeholder cells and legend cells",
+        "Column and row gaps stay gap-[3px]",
+        "CELL_PITCH_PX (line 37) becomes 17 (14 cell + 3 gap) so the month labels still line up with their week columns",
+        "motion-safe:hover:scale-110 and transition-transform are removed from cellClass (line 222); no scale() remains anywhere in the file",
+        "Hover and focus-visible both render a ring/outline plus a tone change only; no width/height/margin/transform changes on hover",
+        "No mobile-specific size below 14px is introduced unless decision D5 says otherwise"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:56-58",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:72-76",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:310-328"
+      ],
+      "verifyNote": "cellSizePx 14, gapPx 3, derived pitch 17, radiusClass rounded-[3px]; no scale or transform left in the file; hover and focus-visible share CALENDAR_UI.interactiveClass (:59-60); one size at every breakpoint per D5. Minor: the out-of-range placeholder span (:266-272) carries the 14px box but no radius class, invisible so unobservable."
+    },
+    {
+      "id": "T11",
+      "title": "Group the calendar presentation constants into one object",
+      "specSection": "4",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "CELL_PITCH_PX, WEEKDAY_ROWS, WEEKDAY_ANCHOR and LEVEL_CLASS are replaced by one frozen/`as const` object (e.g. CALENDAR_UI) with keys, per CLAUDE.md §8.10 and docs/code-principles.md §3.10",
+        "The file has no new comments, no `any`, no `!` non-null assertion",
+        "Cell size and gap live in that object as numbers, and the className strings derive from them rather than repeating a literal 14 in five places"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:54-80",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts:25-31"
+      ],
+      "verifyNote": "CELL_PITCH_PX / WEEKDAY_ROWS / WEEKDAY_ANCHOR / LEVEL_CLASS are gone. Grouped as CALENDAR_UI (tokens) plus CALENDAR_LAYOUT (styles derived from them, so the 14 appears once) plus CALENDAR.levelClass in the model, shared by cells and legend. Deviation from the literal one object, consistent with grouping by concept; no comments, no any, no non-null assertion."
+    },
+    {
+      "id": "T12",
+      "title": "Center the natural-width canvas and scope the scroll to the calendar viewport",
+      "specSection": "3, 5, 16",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "The scroll container (currently line 108, overflow-x-auto) still wraps BOTH the weekday label column and the week grid, so labels scroll with the heatmap",
+        "The inner canvas keeps min-w-max (natural width) and is horizontally centered when it is narrower than the container (e.g. a justify-center / mx-auto w-fit wrapper), verified for a one-month, a few-weeks and a few-days period",
+        "The legend row, the relativeHint helper and the coverage note stay outside the overflow-x-auto element",
+        "No cell is stretched with flex-1 / w-full: cells keep a fixed 14px box regardless of card width",
+        "The Card itself never gains overflow-x-auto and the page does not gain a horizontal scrollbar at 360px viewport width",
+        "Weeks rendered come only from calendarGrid output; no padding months are appended for a short scope"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:204",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:222-228",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:292-306"
+      ],
+      "verifyNote": "mx-auto flex w-max max-w-full centers the canvas at any scope width and clamps it to the card; the scroller wraps both the weekday column (:229) and the week grid (:262); legend, relativeHint and the coverage note sit outside it; every cell keeps the fixed inline 14px box, no flex-1 or w-full; the Card never gains overflow-x-auto. Static evidence only, no live 360px measurement captured."
+    },
+    {
+      "id": "T13",
+      "title": "Keep month labels inside the scope and readable",
+      "specSection": "11",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts"
+      ],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "Month labels still come from grid.monthLabels, which already only contains months inside from..to (statistics-calendar.ts:87)",
+        "Two adjacent labels can no longer overlap: either a minimum week-span guard drops the label of a month narrower than the label box, or labels are positioned by a layout that reserves width per month group",
+        "For a scope spanning one or two months the label is centered over its own group of weeks rather than left-anchored at the group's first week",
+        "Weekday labels still render exactly rows 0/2/4/6 (Пн/Ср/Пт/Нд) and no other weekday",
+        "No week numbers, no day numbers inside cells, no extra grid lines are added"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:488-504",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:247-259",
+        "apps/web/src/features/delivery/model/statistics-calendar.test.ts:184-199"
+      ],
+      "verifyNote": "monthLabelBoxes gives each month a box spanning exactly its own week group (left = weekIndex * 17, width = group span minus the gap) with text-center and overflow-hidden, so a label can neither overlap its neighbour nor sit over a month that is not its own; labels narrower than 34px are dropped, which is the minimum-span guard the task allowed. Consequence: a scope of two week columns or fewer shows no month label at all, and no component test covers month-label rendering."
+    },
+    {
+      "id": "T14",
+      "title": "Move the year selector out of the header into its own right-aligned row",
+      "specSection": "10",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "The <Select> year control (currently lines 85-98, inside the StatisticsSection action next to the metric tabs) is rendered in the section body, above the heatmap, right-aligned to the calendar content column",
+        "The StatisticsSection action prop carries only <StatisticsMetricTabs>",
+        "The selector still renders only when scope !== null && scope.years.length >= 2; with a single year nothing is rendered in that row",
+        "aria-label continues to come from t(\"yearLabel\")",
+        "The card does not print the global period range anywhere"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:205-220",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:115-123",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:295-307"
+      ],
+      "verifyNote": "Own row inside the mx-auto w-max canvas column with justify-end, so it is right-aligned to the calendar content rather than to the card; the section action carries only StatisticsMetricTabs; rendered only for scope.years.length >= 2; aria-label still from yearLabel; no global period printed in the card."
+    },
+    {
+      "id": "T15",
+      "title": "Legend at 14px with metric-aware endpoints and the helper text",
+      "specSection": "12",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "Legend swatches (line 165) are 14x14 and iterate the same level class list the cells use, so legend and grid can never diverge",
+        "Left label is t(`legendLess.${metric}`) and right label t(\"legendMore\"), already metric-aware",
+        "The relativeHint helper stays directly under the legend",
+        "The coverage note from T16 renders as a separate row below the helper, not inline with the legend"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:292-306",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:330-342"
+      ],
+      "verifyNote": "The legend iterates CALENDAR.levelClass, the same list the cells index, at the 14px cellBox; legendLess.{metric} and legendMore unchanged; relativeHint directly beneath; the coverage note is its own row further down (:312)."
+    },
+    {
+      "id": "T16",
+      "title": "Show the informational note for orders without an order date",
+      "specSection": "8, 12",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx"
+      ],
+      "dependsOn": ["T1", "T5", "T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "delivery-statistics.tsx passes view.calendarCoverage into <StatisticsCalendar> as a typed prop; the component does not receive totals from which it could subtract",
+        "statistics-calendar.tsx contains no arithmetic deriving the dateless count (no summing of daily ordersCount and no subtraction from summary/snapshot)",
+        "The note renders only when coverage.ordersWithoutOrderDate > 0",
+        "It is rendered with the neutral informational style (StatisticsDataQualityNote kind=\"partial\" or an equivalent text-muted-foreground row), never text-favorite / destructive / alert-triangle",
+        "The note text is a translated ICU plural key, not a template literal in the component",
+        "No link or button is attached to the note"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx:304",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:317-327",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:277-292"
+      ],
+      "verifyNote": "Typed coverage prop; no reduce and no subtraction anywhere in the calendar file; the note renders only when ordersWithoutOrderDate > 0; StatisticsDataQualityNote kind=partial resolves to the info icon plus text-muted-foreground (statistics-states.tsx:22-32); ICU plural key coverageNote; no link or button attached."
+    },
+    {
+      "id": "T17",
+      "title": "Three distinct empty states",
+      "specSection": "14",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "Case A - no dated purchases anywhere in the selected period: the grid, weekday column and legend are NOT rendered; a StatisticsSectionState shows title 'Немає покупок за вибраний період' and description 'Замовлення з датою оформлення за цей період відсутні.' (current code renders the full zero grid plus emptyYear instead, statistics-calendar.tsx:174-176)",
+        "Case B - multi-year period, selected year empty but other years have data: the grid still renders and a state titled 'У {year} році покупок немає' is shown; the selected year is not auto-switched",
+        "Case C - coverage.ordersInScope > 0 && coverage.ordersWithOrderDate === 0: a state titled 'Немає покупок із датою оформлення' plus the T16 coverage note below it; this branch is chosen before case A",
+        "Each of the three branches is reachable from a distinct condition in the component, expressed with early returns rather than nested ternaries (CLAUDE.md §8.9)",
+        "The pre-existing 'no scope at all' branch (period entirely in the future, scope === null) keeps a state and does not crash"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:180-200",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:308-310",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:238-274"
+      ],
+      "verifyNote": "Case C first as an early return (:180), case A second as an early return (:189, grid, weekday column and legend all skipped), case B keeps the grid and appends empty.year without switching year; scope === null falls into case A and is covered at test :217."
+    },
+    {
+      "id": "T18",
+      "title": "In-card notice for a truncated source, drill-down still disabled",
+      "specSection": "15",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "When isTruncated is true the calendar card itself renders a compact notice titled 'Дані календаря можуть бути неповними' with 'Частина замовлень не увійшла в розрахунок через обмеження вибірки.'",
+        "The page-level StatisticsTruncationNotice in delivery-statistics.tsx:163 is left in place and not duplicated in wording",
+        "statistics-calendar.tsx:213 behaviour is preserved: isTruncated still yields links = [] so no exact-day link or menu is offered",
+        "The coverage note from T16 still renders when applicable, and its text is not rephrased to claim completeness"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:127-135",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:358-365",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:361-376"
+      ],
+      "verifyNote": "In-card notice carries the spec copy; the page-level StatisticsTruncationNotice is still at delivery-statistics.tsx:164 with different wording (uk.json:3929-3931); isTruncated still yields links = []; the coverage note is unchanged and still honest."
+    },
+    {
+      "id": "T19",
+      "title": "Preserve the existing exact drill-down rule",
+      "specSection": "7",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "links still come from statisticsDrilldownLinks with scope { from: cell.date, kind: 'order_date_range', to: cell.date } and metricKind STATISTICS_METRIC_KIND.countOrStatus",
+        "0 links -> no navigation; 1 link -> the whole cell is a <Link> to link.href; 2+ links -> DropdownMenuTrigger opening StatisticsDrilldownMenuContent with only non-zero destinations",
+        "data-[state=open] keeps the cell visually active while the menu is open and the state disappears on close",
+        "No selectedDay state, no useState added to CalendarDay",
+        "statistics-drilldown.ts and statistics-drilldown-action.tsx are unmodified in the diff"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:358-365",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:391-415",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:177-208"
+      ],
+      "verifyNote": "Scope and metricKind unchanged, hrefs unchanged in the tests, statistics-drilldown.ts and statistics-drilldown-action.tsx untouched in git status. Deviation: the open-state ring is now a controlled useState inside CalendarDayMenu (:464-472) instead of data-[state=open], because TooltipTrigger asChild overwrites the trigger data-state. Ephemeral menu state, not a persistent selectedDay."
+    },
+    {
+      "id": "T20",
+      "title": "Tooltip stays purely informational, zero days stay inert",
+      "specSection": "6",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "CalendarDayDetails renders, in order: full date, primary count for the metric, secondary count, the 'Сума замовлень' label and per-currency totals via formatCurrencyTotals",
+        "In orders metric the primary line is orders and the secondary is books; in books metric the primary is books and the secondary is 'у {N} замовленнях'",
+        "TooltipContent contains no button, link or DropdownMenuTrigger",
+        "A cell with value === 0 renders no Tooltip, no Link, no button and is not focusable (no tabIndex, no interactive element)"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:418-449",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:347-349",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:169-175"
+      ],
+      "verifyNote": "Tooltip body is spans only: date, primary, secondary, money label, per-currency totals, with the orders/books roles swapped by metric; zero cells are aria-hidden spans with no tooltip, link, button or tabindex."
+    },
+    {
+      "id": "T21",
+      "title": "Accessibility of interactive cells and the menu",
+      "specSection": "17",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T10", "T19"],
+      "mandatory": true,
+      "doneWhen": [
+        "1 destination renders an anchor (Link), 2+ renders a button-typed DropdownMenuTrigger; neither is a div with onClick",
+        "focus-visible uses the same ring treatment as hover (one shared class fragment, not two divergent ones)",
+        "The tooltip opens on keyboard focus, not only on pointer hover",
+        "aria-label of every interactive cell contains the long date plus both counts, matching the existing daySummary key shape",
+        "Escape closes the menu and focus returns to the triggering cell (Radix default preserved: no modal / onCloseAutoFocus override is added)",
+        "Zero cells carry no tabindex and no aria-describedby to a tooltip",
+        "The resolution of D6 (non-zero day with zero destinations) is implemented consistently in code and in the aria name"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:59-60",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:375-405",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:352-359",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:411-435"
+      ],
+      "verifyNote": "One shared interactiveClass drives hover and focus-visible; Link for one destination, button-typed DropdownMenuTrigger for two or more, no div with onClick; the tooltip opens on keyboard focus; Escape closes and returns focus with no onCloseAutoFocus override; D6 is implemented as button plus aria-disabled plus cursor-not-allowed, keeping the full daySummary accessible name."
+    },
+    {
+      "id": "T22",
+      "title": "Keep the terracotta intensity family, zero + 4 positive levels, relative to the visible scope",
+      "specSection": "2, 13",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "The level class list still has exactly 5 entries: a light neutral/beige zero (bg-secondary, globals.css:115) plus four steps of the terracotta --primary family (globals.css:110)",
+        "No green/amber/red class or token appears in the calendar files",
+        "CALENDAR.levels stays 4 and the peak/quantile is still computed only from days inside the visible from..to window (statistics-calendar.ts:66-71)",
+        "The heatmap concept is unchanged: no bar chart, list or alternative layout branch for short periods anywhere in the component",
+        "The metric toggle still drives cellValue, so intensity changes between orders and books"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/model/statistics-calendar.ts:17-31",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts:82-86"
+      ],
+      "verifyNote": "Five entries: bg-secondary plus four terracotta steps at the D9 ramp /40 /60 /80; no green, amber or red token in either calendar file; levels stays 4; the scale is built only from days inside from..to; no alternative layout branch for short periods; the metric still drives cellValue."
+    },
+    {
+      "id": "T23",
+      "title": "Preserve the local presentation state contract",
+      "specSection": "9",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts"
+      ],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "metric and requestedYear remain component-local useState; neither reaches useStatisticsParams / nuqs / the URL",
+        "Default metric is 'orders'",
+        "resolveCalendarYear still falls back to the newest available year when the requested year leaves the scope (statistics-calendar.ts:130-131)",
+        "A year that is still inside the scope is never reset just because grid.hasValues is false"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:105-106",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts:153-162",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:266-274"
+      ],
+      "verifyNote": "Local useState only, default metric orders, fallback to the newest year when the requested one leaves the scope, and hasValues never resets a year that is still in scope."
+    },
+    {
+      "id": "T24",
+      "title": "Guard the section-18 non-goals",
+      "specSection": "18",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx",
+        "apps/web/src/features/delivery/components/delivery-statistics.tsx"
+      ],
+      "dependsOn": ["T17", "T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "The calendar card contains no summary/KPI tile: no 'Днів із покупками', 'Найактивніший день', 'Середньо за день', 'Максимум за день' string or computation",
+        "No comparison/compare UI, no period picker and no display-currency control is added inside the calendar card",
+        "No records/insights value from view.records or view.insights is rendered inside the calendar",
+        "The diff adds no searchParams/nuqs usage in the calendar files"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:1-522"
+      ],
+      "verifyNote": "Greps for the four KPI captions, compare, a period picker, a currency control, view.records / view.insights, nuqs and searchParams all come back empty across the calendar files."
+    },
+    {
+      "id": "T25",
+      "title": "i18n keys for every new string, uk and en",
+      "specSection": "8, 10, 12, 14, 15",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T16", "T17", "T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "delivery.statistics.calendar gains, in BOTH files with identical key sets: a coverage note key with an ICU plural on the order count, empty.period title+description, empty.year title, empty.noDates title, truncated.title + truncated.description",
+        "uk coverage note reads 'N замовлень без дати оформлення не показані в календарі.' with correct one/few/many plural forms",
+        "uk empty texts read exactly: 'Немає покупок за вибраний період' / 'Замовлення з датою оформлення за цей період відсутні.' / 'У {year} році покупок немає' / 'Немає покупок із датою оформлення'",
+        "uk truncated texts read exactly: 'Дані календаря можуть бути неповними' / 'Частина замовлень не увійшла в розрахунок через обмеження вибірки.'",
+        "The already-correct title and subtitle.orders / subtitle.books keys (uk.json:3742-3745) are left untouched",
+        "Obsolete keys (the old flat 'empty' / 'emptyYear' if superseded) are removed from both files rather than left orphaned",
+        "No component renders a hardcoded Ukrainian or English sentence"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/messages/uk.json:3753",
+        "apps/web/src/messages/uk.json:3774-3786",
+        "apps/web/src/messages/en.json:3774-3786"
+      ],
+      "verifyNote": "27 keys under delivery.statistics.calendar with identical key sets in uk and en (scripted comparison, no one-sided key); the uk copy matches the spec strings verbatim; ICU plural one/few/many/other on coverageNote; the obsolete dayEmpty and the flat empty/emptyYear are gone with no dangling reference (the surviving dayEmpty hits belong to the reading feature); title and subtitle untouched."
+    },
+    {
+      "id": "T26",
+      "title": "Update and extend the calendar component tests",
+      "specSection": "3, 4, 6, 7, 12, 14, 15, 17",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx"
+      ],
+      "dependsOn": ["T10", "T14", "T16", "T17", "T18", "T21", "T25"],
+      "mandatory": true,
+      "doneWhen": [
+        "The two existing empty-state assertions (lines 161-171) are rewritten against the new copy, not deleted",
+        "A test covers coverage.ordersWithoutOrderDate > 0 rendering the note, and coverage.ordersWithoutOrderDate === 0 not rendering it",
+        "A test covers the all-dateless case (ordersInScope > 0, ordersWithOrderDate === 0) showing 'Немає покупок із датою оформлення' and no grid",
+        "A test covers isTruncated rendering the in-card notice while still exposing a button rather than a link for a day (extends the existing line 154 case)",
+        "A test asserts the year Select is absent for a single-year period and present for a multi-year period",
+        "The existing drill-down tests (lines 121-152) still pass without changing their expected hrefs"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:217-235",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:238-307",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:361-376"
+      ],
+      "verifyNote": "Empty-state assertions rewritten rather than deleted; note present and absent both covered; the all-dateless case covered; the truncated case asserts the in-card notice plus a button rather than a link; the year Select is asserted absent for one year and present for two; the drill-down hrefs are unchanged. 44 tests in the file, all green."
+    },
+    {
+      "id": "T27",
+      "title": "Extend the calendar model tests for the geometry and level changes",
+      "specSection": "5, 11, 13",
+      "layer": "test",
+      "files": ["apps/web/src/features/delivery/model/statistics-calendar.test.ts"],
+      "dependsOn": ["T13", "T22"],
+      "mandatory": true,
+      "doneWhen": [
+        "A test asserts that a one-month period produces only that month's weeks (no padding month)",
+        "A test asserts monthLabels contains no entry for a month outside from..to",
+        "If D1 selects quantile levels, tests cover the outlier case: one day of 100 and several days of 1-3 no longer all land on level 1, and the maximum day still lands on level 4",
+        "The existing level/peak tests (lines 186-210) are updated rather than removed if the quantization changes"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/model/statistics-calendar.test.ts:184-199",
+        "apps/web/src/features/delivery/model/statistics-calendar.test.ts:219-242",
+        "apps/web/src/features/delivery/model/statistics-calendar.test.ts:287-311"
+      ],
+      "verifyNote": "A one-month period yields exactly its 31 days with no padding month; no label for a month the period never reaches; the outlier case spreads 1/2/3 and keeps the peak at 4; the 99-versus-100 collapse from the D1 correction is pinned; the pre-existing level test at :215 is kept and green."
+    },
+    {
+      "id": "T28",
+      "title": "Optional: quantile-based positive levels when an outlier flattens the scale",
+      "specSection": "13",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/model/statistics-calendar.ts"],
+      "dependsOn": ["T22"],
+      "mandatory": true,
+      "optionalBecause": "Spec section 13 line 317 says 'дозволено перейти на quantile-based presentation levels' - permission, conditional on the outlier problem being real. Gated by decision D1.",
+      "doneWhen": [
+        "toLevel (statistics-calendar.ts:193) computes the level from the distribution of positive days in the visible window, not from peak alone",
+        "Zero stays level 0 and the busiest day stays level 4",
+        "This is presentation-only: no change under apps/api/** and the tooltip still prints cell.ordersCount / cell.booksCount verbatim",
+        "CalendarGrid still exposes whatever the legend needs without leaking a second source of truth for the level thresholds"
+      ],
+      "note": "Promoted to mandatory by decision D1.",
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/model/statistics-calendar.ts:187-205",
+        "apps/web/src/features/delivery/model/statistics-calendar.ts:243-252"
+      ],
+      "verifyNote": "levelScale computes quartiles over the positive days of the visible window; toLevel returns max(quantileLevel, peakLevel), so the peak ratio is the floor the D1 correction asked for; zero stays 0 and the peak stays 4; nothing under apps/api changed; the tooltip still prints raw counts; CalendarGrid exposes only peak and hasValues, thresholds stay internal."
+    },
+    {
+      "id": "T29",
+      "title": "Optional: subtle right edge fade on the scrollable canvas",
+      "specSection": "16",
+      "layer": "web",
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "dependsOn": ["T12"],
+      "mandatory": false,
+      "optionalBecause": "Spec section 16 line 386 says 'Опційно можна додати subtle edge fade'. Gated by decision D2.",
+      "doneWhen": [
+        "The fade is purely decorative (aria-hidden, pointer-events-none) and uses a semantic background token, not a raw color",
+        "It is absent when the canvas fits without scrolling",
+        "It does not sit on top of any focusable cell in a way that blocks pointer interaction"
+      ],
+      "note": "Dropped by decision D2 - out of scope.",
+      "status": "absent-as-decided",
+      "proof": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "verifyNote": "D2 declined it. Greps for gradient, fade, mask-image and from-card in the calendar files return nothing."
+    },
+    {
+      "id": "T30",
+      "title": "Final acceptance pass against the Фінальний результат checklist",
+      "specSection": "Фінальний результат",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/delivery/components/delivery-statistics.test.tsx",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx"
+      ],
+      "dependsOn": ["T7", "T10", "T12", "T16", "T17", "T21", "T24", "T25", "T26"],
+      "mandatory": true,
+      "doneWhen": [
+        "Section order verified: calendar immediately after the dynamics + pulse row",
+        "Calendar still full width (existing assertion delivery-statistics.test.tsx:190-194 green)",
+        "Canvas centered and natural width for a year, for a few months and for a 7-day period",
+        "Cells are 14x14 in the grid and in the legend",
+        "Tooltip informational only; drill-down rule unchanged",
+        "Orders without orderDate are reported from calendarCoverage, never derived on the frontend",
+        "Gates run and captured: pnpm typecheck, pnpm lint, pnpm format:check, pnpm exec vitest run on the touched test files, plus /blast-radius because packages/shared changed"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/delivery-statistics.test.tsx:186-195",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:309-350"
+      ],
+      "verifyNote": "Gates re-run by the auditor on 2026-09-10: pnpm typecheck green (turbo replay over the current inputs); pnpm lint 0 errors and 8 warnings, none in a touched file; web vitest 99/99 across the four delivery suites (two timeouts at the default worker count were load flakes, green at VITEST_MAX_WORKERS=2); api domain 71/71; api book-orders controller 43/43 against the live local Postgres. The /blast-radius sweep was done by hand instead of via the skill: every BookOrderStatisticsView literal typechecks and no other test parses a stubbed statistics body. Caveat: repo-level pnpm format:check exits 1 on two untracked docs unrelated to this change."
+    },
+    {
+      "id": "T31",
+      "title": "Apply the accessibility fixes from the audit",
+      "layer": "web",
+      "mandatory": true,
+      "dependsOn": ["T10", "T21"],
+      "specSection": 17,
+      "files": ["apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx"],
+      "doneWhen": [
+        "ring-ring/60 replaced by a ring that measures at least 3:1 against the card background (WCAG 1.4.11)",
+        "zero-count day cells are not announced individually by assistive tech",
+        "the cell that opened the drill-down menu stays visually active while it is open (spec section 7)",
+        "aria-disabled truncated cells are programmatically linked to the truncated notice",
+        "the scroll viewport is keyboard-reachable and named even when it holds no focusable cell",
+        "intensity level 1 is visibly distinct from an empty day (decision D9)"
+      ],
+      "status": "done",
+      "proof": [
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:59-60",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:222-227",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:347-349",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:379",
+        "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:472"
+      ],
+      "verifyNote": "ring-ring at full opacity (globals.css:129, --ring = --primary, comfortably past 3:1 on both card backgrounds); zero cells are aria-hidden and unannounced; the open menu keeps ring-2 brightness-90 through the controlled isOpen; aria-describedby links a cut-short cell to the in-card notice; the scroller is a named tabbable region; the ramp starts at bg-primary/40 per D9, visibly darker than bg-secondary though still a heatmap tint rather than a 3:1 step."
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Switch the positive-day levels from peak-based to quantile-based?",
+      "specSays": "Section 13, line 317: allowed ('дозволено перейти') only if the current peak-based quantization makes almost all positive cells equally light because of an outlier. It stays presentation-only.",
+      "codebaseSays": "toLevel at apps/web/src/features/delivery/model/statistics-calendar.ts:193-196 is Math.ceil(value / peak * 4). A user with one 40-order day and many 1-2 order days gets level 1 for every ordinary day, so the flattening is real for realistic data, not hypothetical. Changing it touches the existing level tests at statistics-calendar.test.ts:186-210.",
+      "recommendation": "Yes, do T28. Keep peak for the top level (busiest day stays level 4) and use the positive-day distribution for levels 1-3. Cost is one pure function plus its tests; benefit is that the block stops reading as empty for the most common purchase pattern.",
+      "blocks": ["T28", "T27"],
+      "answer": "ACCEPTED (user, 2026-09-10): switch positive-day levels to quantile-based. Peak day stays level 4; levels 1-3 come from the distribution of positive days. Presentation only - backend untouched, tooltip always shows exact counts. T28 becomes mandatory.",
+      "status": "answered"
+    },
+    {
+      "id": "D2",
+      "question": "Add the optional right-edge fade on the mobile scroll viewport?",
+      "specSays": "Section 16, line 386: 'Опційно можна додати subtle edge fade справа'.",
+      "codebaseSays": "No existing edge-fade pattern in the statistics slice; the reading heatmap does not have one either. It would be a new one-off visual primitive.",
+      "recommendation": "Skip it for this pass. Scroll affordance is already given by the cut-off week column, and a new one-off gradient is the kind of thing CLAUDE.md §8.15 calls preemptive. Revisit if a real mobile check shows users missing the scroll.",
+      "blocks": ["T29"],
+      "answer": "DECLINED (user, 2026-09-10): skip the right-edge fade. The clipped week column is affordance enough. T29 stays out of scope.",
+      "status": "answered"
+    },
+    {
+      "id": "D3",
+      "question": "Which population does calendarCoverage count, and where does it hang on the response?",
+      "specSays": "Section 8, lines 174-182: prefers { ordersInScope, ordersWithOrderDate, ordersWithoutOrderDate }, and allows an equivalent structure that fits the current contracts. Section 15 line 371: coverage is understood within the actually loaded source.",
+      "codebaseSays": "buildOrderDaily is called with includedOrders (apps/api/src/modules/delivery/domain/order-statistics.ts:125), i.e. after the includeCancelled/currency/store filters. meta already groups completeness info (activeSource/currentSource, packages/shared/src/orders.ts BookOrderStatisticsMetaSchema), but meta is about source truncation, while coverage is about the calendar's own population. computeBookOrderStatistics returns Omit<BookOrderStatisticsView,'meta'> (order-statistics.ts:59), so a top-level key lands naturally in the domain where daily is built; putting it in meta would mean plumbing it through delivery-statistics.service.ts instead.",
+      "recommendation": "Count includedOrders (the exact array daily is built from) and put calendarCoverage at the top level of BookOrderStatisticsViewSchema, next to daily, with the spec's three field names. This keeps the note's number honest: it describes precisely the orders the calendar could have drawn.",
+      "blocks": ["T1", "T2"],
+      "answer": "ACCEPTED (user, 2026-09-10): calendarCoverage sits top-level next to daily, computed in the delivery domain over includedOrders (post-filter), with the spec field names ordersInScope / ordersWithOrderDate / ordersWithoutOrderDate.",
+      "status": "answered"
+    },
+    {
+      "id": "D4",
+      "question": "Where does the 'Бюджет на книги' card go in the new order?",
+      "specSays": "Section 1 lists KPI, then dynamics + pulse, then the calendar, then specialised analytics. The budget card is not mentioned at all.",
+      "codebaseSays": "It currently sits between KPI and the dynamics row (apps/web/src/features/delivery/components/delivery-statistics.tsx:276) and is asserted in SECTION_ORDER at delivery-statistics.test.tsx:31.",
+      "recommendation": "Leave it where it is. It is KPI-adjacent, not specialised analytics, and moving it is scope the spec never asked for. The spec's real constraint - calendar immediately after dynamics + pulse - is satisfied either way.",
+      "blocks": ["T7"],
+      "answer": "ACCEPTED (user, 2026-09-10): the \"������ �� �����\" card keeps its current position between KPI and dynamics. SECTION_ORDER keeps it there.",
+      "status": "answered"
+    },
+    {
+      "id": "D5",
+      "question": "Ship a mobile-specific 13px cell, or one 14px size everywhere?",
+      "specSays": "Section 4, lines 77-80: mobile is 14x14 by default, 13x13 is tolerated only 'за крайньої потреби', and never back to 11x11.",
+      "codebaseSays": "The card body is already inside a page container with padding; at 360px a full-year canvas is ~53 weeks * 17px = ~900px, so it scrolls regardless of whether the cell is 13 or 14. Dropping to 13 buys nothing once horizontal scroll exists.",
+      "recommendation": "One 14px size at every breakpoint. A responsive size would add a second source of truth for the pitch that the month-label offsets also depend on.",
+      "blocks": ["T10"],
+      "answer": "ACCEPTED (user, 2026-09-10): one 14px cell size at every breakpoint. No responsive pitch - a single pitch stays the only source of truth for month-label offsets.",
+      "status": "answered"
+    },
+    {
+      "id": "D6",
+      "question": "A non-zero day with zero drill-down destinations: keep the focusable tooltip button, or make it a static cell?",
+      "specSays": "Section 7, lines 140-141: '0 destinations - Cell informational/static'. Section 17, line 409: keyboard focus only on interactive non-zero cells; line 412: the tooltip must be reachable on focus.",
+      "codebaseSays": "statistics-calendar.tsx:230-237 currently renders a focusable <button type=\"button\"> with no action, purely to host the tooltip. This is also the state every non-zero day falls into while the source is truncated (line 213 zeroes the links), and the existing test at line 154 asserts that button exists.",
+      "recommendation": "Keep it focusable, but make it explicitly non-actionable: keep the button element so the tooltip and its counts stay keyboard-reachable, and give it aria-disabled plus no menu/link. A truly static span would hide the day's counts from keyboard users, which contradicts section 17 line 412 more sharply than it satisfies section 7's 'static'. Whichever way this goes, T21 and T26 must state it.",
+      "blocks": ["T21", "T26"],
+      "answer": "ACCEPTED (user, 2026-09-10): a non-zero day with zero destinations stays focusable but explicitly non-actionable (button + aria-disabled, no menu, no link), so keyboard users still reach the counts in the truncated state. Encode in T21 and T26.",
+      "status": "answered"
+    },
+    {
+      "id": "D7",
+      "status": "answered",
+      "question": "WCAG 2.2 SC 2.5.8 Target Size requires 24x24px targets or 24px between centres; spec section 4 mandates 14x14 cells at a 17px pitch. Measured live: size 14x14, closest pair 17px apart.",
+      "answer": "ACCEPTED (user, 2026-09-10): keep the 14px cells the spec asks for and claim the SC 2.5.8 \"Equivalent\" exception - the same day drill-down is reachable through the in-transit page own date filters (orderedFrom/orderedTo). Recorded as a deliberate documented decision, not an oversight."
+    },
+    {
+      "id": "D8",
+      "status": "answered",
+      "question": "Statistics section titles render as div rather than a heading (WCAG 1.3.1, level A). Pre-existing across every StatisticsSection, not introduced by this refactor.",
+      "answer": "DECLINED for this task (user, 2026-09-10): out of scope. The spec covers the calendar; changing StatisticsSection touches every statistics block and its tests and needs its own blast-radius pass. Recorded as a standalone finding."
+    },
+    {
+      "id": "D9",
+      "status": "answered",
+      "question": "Intensity level 1 measures 1.26:1 against an empty day in light mode, so a day with a purchase is nearly indistinguishable from one without.",
+      "answer": "ACCEPTED (user, 2026-09-10): raise the lightest positive level so a day with activity is visible. Spec section 13 fixes the terracotta family, not the alpha values, so this stays inside the spec."
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "The purchase calendar is a component that can be reused rather than rewritten",
+      "specRef": "preamble, lines 7-15",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:51 (StatisticsCalendar), model at apps/web/src/features/delivery/model/statistics-calendar.ts:52"
+    },
+    {
+      "claim": "There is a reusable StatisticsSection, metric tabs, Tooltip, Link/Menu/Popover and an existing statistics drill-down to reuse",
+      "specRef": "preamble, lines 10-14",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-section.tsx:47 and :24; apps/web/src/features/delivery/components/statistics/statistics-drilldown-action.tsx:65; apps/web/src/features/delivery/model/statistics-drilldown.ts:98"
+    },
+    {
+      "claim": "The calendar currently sits low on the page, below the specialised analytics",
+      "specRef": "1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/delivery-statistics.tsx:354 - calendar renders after costs (:303), stores (:305) and the lifecycle/active-age grid (:342), and before records (:362)"
+    },
+    {
+      "claim": "The calendar is full width",
+      "specRef": "1, 3",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/delivery-statistics.tsx:354 renders it as a direct child of the flex column with no grid wrapper; asserted at apps/web/src/features/delivery/components/delivery-statistics.test.tsx:192"
+    },
+    {
+      "claim": "The calendar is built from orderDate",
+      "specRef": "2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/delivery/domain/statistics-calendar.ts:19-23 buckets by order.record.orderDate and skips null"
+    },
+    {
+      "claim": "Intensity is relative to the visible calendar scope",
+      "specRef": "2, 13",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/model/statistics-calendar.ts:66-71 computes peak only over days inside the resolved from..to window"
+    },
+    {
+      "claim": "A metric toggle Замовлення | Книги changes the intensity metric",
+      "specRef": "2, 10",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:78-84 feeds metric into calendarGrid at :72; cellValue at model :134-136"
+    },
+    {
+      "claim": "Cells are currently 11x11",
+      "specRef": "4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:141, :165, :207, :222 all use size-[11px]; the weekday label row is h-[11px] at :114"
+    },
+    {
+      "claim": "Hover currently uses scale()",
+      "specRef": "4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:222 - 'transition-transform ... motion-safe:hover:scale-110'"
+    },
+    {
+      "claim": "The cell pitch used to position month labels is a constant",
+      "specRef": "4, 11",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:37 CELL_PITCH_PX = 14 (11px cell + 3px gap), consumed at :130 - it must become 17 when the cell becomes 14"
+    },
+    {
+      "claim": "The heatmap canvas is not centered and stretches from the left edge of the card",
+      "specRef": "3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:108-109 - overflow-x-auto wrapper around a 'flex min-w-max gap-2' row with no centering"
+    },
+    {
+      "claim": "Only the real weeks/months of the selected period are drawn; no padding months",
+      "specRef": "3, 5, 11",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/model/statistics-calendar.ts:77-95 iterates only startOfWeek(from)..endOfWeek(to) and pushes null for out-of-range days; monthLabels are gated by isInside at :87"
+    },
+    {
+      "claim": "Tooltip shows full date, both counts and per-currency order totals",
+      "specRef": "6",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:271-302 (CalendarDayDetails) with formatCurrencyTotals at :296"
+    },
+    {
+      "claim": "Zero days carry no tooltip, no click and no keyboard focus",
+      "specRef": "6, 17",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:203-211 returns a plain <span role=\"img\"> with no Tooltip and no interactive element"
+    },
+    {
+      "claim": "The exact 0 / 1 / 2+ destination drill-down rule already exists",
+      "specRef": "7",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:230-268; links built at :213-220; destinations with ordersCount === 0 filtered out at apps/web/src/features/delivery/model/statistics-drilldown.ts:107"
+    },
+    {
+      "claim": "The open menu leaves the cell visually active and clears it on close",
+      "specRef": "7",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:222 - 'data-[state=open]:ring-2 data-[state=open]:ring-primary'"
+    },
+    {
+      "claim": "There is no persistent selectedDay",
+      "specRef": "7, 18",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:66-67 - the only state is metric and requestedYear"
+    },
+    {
+      "claim": "Orders without orderDate are not inserted as a fake day",
+      "specRef": "8",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/api/src/modules/delivery/domain/statistics-calendar.ts:20-22 skips them entirely, so nothing reaches the grid"
+    },
+    {
+      "claim": "calendarCoverage exists in the contract",
+      "specRef": "8",
+      "verdict": "FALSE",
+      "evidence": "grep for calendarCoverage / ordersWithoutOrderDate across packages/shared/src, apps/api/src, apps/web/src returns no hit; BookOrderStatisticsViewSchema at packages/shared/src/orders.ts:1461-1479 has no such key. This is net-new work (T1-T6)."
+    },
+    {
+      "claim": "The frontend could currently derive the dateless count from totals",
+      "specRef": "8",
+      "verdict": "CONFIRMED",
+      "evidence": "It does not today - apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx receives only daily/drilldown/isTruncated/period/today (:57-63) - and the spec's ban must stay true after T16"
+    },
+    {
+      "claim": "calendarYear and metric are local state, not URL state",
+      "specRef": "9, 18",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:66-67 useState; no nuqs/useStatisticsParams usage in the file"
+    },
+    {
+      "claim": "Default metric is Замовлення",
+      "specRef": "9",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:66 useState<CalendarMetric>(\"orders\")"
+    },
+    {
+      "claim": "An unavailable selected year falls back to an available one, and zero activity does not reset the year",
+      "specRef": "9",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/model/statistics-calendar.ts:123-132 - resolveCalendarYear falls back to scope.years[0] (newest) and never consults hasValues"
+    },
+    {
+      "claim": "The header copy is 'Календар покупок' + 'Покупки за датою оформлення замовлення. Темніший день — більше замовлень/книг.'",
+      "specRef": "10",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/messages/uk.json:3742-3746 already carries exactly that title and both subtitle variants; asserted at apps/web/src/features/delivery/components/statistics/statistics-calendar.test.tsx:77 and :88"
+    },
+    {
+      "claim": "The year selector renders only for a 2+ year period",
+      "specRef": "10",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:85 - 'scope === null || scope.years.length < 2 ? null : <Select>'"
+    },
+    {
+      "claim": "The year selector is currently mixed in with the metric toggle in the header",
+      "specRef": "10",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:77-99 - both live inside one flex row passed as the StatisticsSection action prop"
+    },
+    {
+      "claim": "The card does not duplicate the global period",
+      "specRef": "10",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx has no formatPeriodRange usage; the period label lives in the toolbar (apps/web/src/features/delivery/components/delivery-statistics.tsx:127-131)"
+    },
+    {
+      "claim": "Only Пн/Ср/Пт/Нд weekday labels are shown",
+      "specRef": "11",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:39 WEEKDAY_ROWS = [0, 2, 4, 6]; asserted at statistics-calendar.test.tsx:106-107"
+    },
+    {
+      "claim": "Month labels cannot overlap and are centered over their week group for a short scope",
+      "specRef": "11",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:126-134 absolutely positions every label at weekIndex * pitch with no minimum spacing and no centering - two short adjacent months can collide"
+    },
+    {
+      "claim": "Legend is metric-aware and its swatches mirror the real heatmap levels",
+      "specRef": "12",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:161-169 maps LEVEL_CLASS itself and labels via t(`legendLess.${metric}`)"
+    },
+    {
+      "claim": "Legend cells are 14x14",
+      "specRef": "12",
+      "verdict": "STALE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:165 - size-[11px]; the spec's target is not the current value"
+    },
+    {
+      "claim": "The helper 'Насиченість показує активність відносно найактивнішого дня показаного періоду.' is present",
+      "specRef": "12",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:171 renders t(\"relativeHint\"); text at apps/web/src/messages/uk.json relativeHint, asserted at statistics-calendar.test.tsx:96-100"
+    },
+    {
+      "claim": "The intensity scale is one terracotta family with zero + 4 positive levels and no severity colours",
+      "specRef": "13",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:43-49 LEVEL_CLASS = [bg-secondary, bg-primary/25, /45, /70, bg-primary]; --primary is terracotta oklch(0.551 0.124 40.1) at apps/web/src/styles/globals.css:110 and --secondary a warm beige oklch(0.955 0.027 74.8) at :115"
+    },
+    {
+      "claim": "The current quantization is peak-based",
+      "specRef": "13",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/model/statistics-calendar.ts:193-196 - Math.max(1, Math.ceil((value / peak) * CALENDAR.levels))"
+    },
+    {
+      "claim": "An empty period renders no empty heatmap",
+      "specRef": "14",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:104-176 - when the scope resolves but no day has values, the full zero grid AND legend render, with the emptyYear note appended below at :174-176. The dedicated empty branch at :105 fires only when calendarScope returns null (model :114, from > to, e.g. a future period)."
+    },
+    {
+      "claim": "There is an 'all orders in scope have no orderDate' state",
+      "specRef": "14",
+      "verdict": "FALSE",
+      "evidence": "No such branch exists in statistics-calendar.tsx and no data feeds it - it depends on calendarCoverage (T1/T16)"
+    },
+    {
+      "claim": "A truncated source shows an informational warning inside the calendar card",
+      "specRef": "15",
+      "verdict": "FALSE",
+      "evidence": "The truncation notice is page-level only (apps/web/src/features/delivery/components/delivery-statistics.tsx:163-168 -> StatisticsTruncationNotice at statistics-states.tsx:245); the calendar itself only consumes isTruncated to blank the drill-down links (statistics-calendar.tsx:213)"
+    },
+    {
+      "claim": "In a truncated state exact day drill-down is disabled",
+      "specRef": "15",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:213-220 returns [] when isTruncated; asserted at statistics-calendar.test.tsx:154-159"
+    },
+    {
+      "claim": "Horizontal scroll is confined to the calendar viewport and the weekday labels scroll with the heatmap",
+      "specRef": "16",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:108 wraps both the weekday column (:110) and the week grid (:136) in one overflow-x-auto; the legend block at :159-172 sits outside it"
+    },
+    {
+      "claim": "Header controls wrap on mobile without squeezing the title",
+      "specRef": "16",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-section.tsx:82 header is 'flex flex-wrap items-start justify-between' with the heading holding min-w-[min(100%,16rem)] flex-1 at :62"
+    },
+    {
+      "claim": "One destination is a semantic Link and 2+ a button/menu trigger; the accessible name holds date + counts",
+      "specRef": "17",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:239-247 (Link), :250-268 (DropdownMenuTrigger type=button), aria-label built at :198-201 from the daySummary key"
+    },
+    {
+      "claim": "focus-visible uses the same ring as hover",
+      "specRef": "17",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx:222 has focus-visible:ring-[3px] ring-ring/50 but hover only does motion-safe:hover:scale-110 - hover has no ring at all today"
+    },
+    {
+      "claim": "No KPI/summary cards, Compare, local period picker, URL state or tooltip controls exist inside the calendar",
+      "specRef": "18",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/features/delivery/components/statistics/statistics-calendar.tsx contains no such element; the tooltip body at :283-301 is spans only"
+    },
+    {
+      "claim": "Backend statistics logic other than calendarCoverage must not change",
+      "specRef": "preamble line 17, 13, 15",
+      "verdict": "CONFIRMED",
+      "evidence": "The single insertion point is apps/api/src/modules/delivery/domain/order-statistics.ts:125 where buildOrderDaily(includedOrders) is called; computeBookOrderStatistics returns Omit<BookOrderStatisticsView,'meta'> (:59) so the new key lands there without touching the service, repository or any other aggregate"
+    },
+    {
+      "claim": "The frontend re-parses the statistics response with the shared Zod schema",
+      "specRef": "8 (contract impact)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/delivery/api/use-statistics.ts:20 - BookOrderStatisticsViewSchema.parse(...). A required calendarCoverage therefore breaks every stubbed fetch fixture until T6 lands; that is why T6 is not optional."
+    }
+  ],
+  "unmappedRequirements": [],
+  "verification": {
+    "verifiedAt": "2026-09-10T13:44:37Z",
+    "mode": "VERIFY",
+    "base": "working tree against HEAD 963d8471, nothing committed",
+    "diffSource": "git status --short plus git diff, plus the untracked generated model file",
+    "summary": {
+      "done": 30,
+      "absentAsDecided": 1,
+      "partial": 0,
+      "missing": 0
+    },
+    "gates": {
+      "typecheck": "green",
+      "lint": "0 errors, 8 pre-existing warnings, none in a touched file",
+      "formatCheck": "exit 1 on docs/booknest_quotes_summary_cards_prompt.md and docs/booknest-records-refactor.md, untracked files unrelated to this change",
+      "webTests": "99/99 across statistics-calendar.test.tsx, statistics-calendar.test.ts, delivery-statistics.test.tsx, delivery-statistics.scenarios.test.tsx",
+      "apiTests": "71/71 domain, 43/43 book-orders.controller.test.ts against the local Postgres",
+      "blastRadius": "skill not run by the implementer; the auditor swept the consumers by hand instead"
+    },
+    "drift": [
+      "gridLabel i18n key and the role=region tabbable scroller, asked for by T31 rather than by the original spec text",
+      "CalendarDayMenu introduces a controlled isOpen useState where the old code relied on data-[state=open]",
+      "statistics.fixtures.ts:417 and statistics-kpi.test.tsx:46 describe a view whose calendarCoverage.ordersInScope contradicts its own summary.ordersCount",
+      "unrelated untracked files sharing the working tree: docs/1_stat_booknest-records-top-orders-claude-refactored.zip, docs/2_quote_booknest_quotes_sidebar_prompts.zip, docs/booknest-records-refactor.md, docs/booknest_quotes_summary_cards_prompt.md"
+    ],
+    "openObservations": [
+      "A scope of two week columns or fewer renders no month label at all (34px minimum span, statistics-calendar.tsx:503)",
+      "The no-purchases-in-period state is chosen per metric, so a period whose orders carry no books shows it in the Книги view (statistics-calendar.tsx:141)"
+    ],
+    "finalChecklistVerdict": "satisfied"
+  }
+}

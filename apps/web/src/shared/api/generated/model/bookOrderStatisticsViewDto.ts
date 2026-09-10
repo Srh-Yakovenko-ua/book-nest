@@ -7,6 +7,7 @@
  */
 import type { BookOrderStatisticsViewDtoBestValueStoreByCurrencyItem } from "./bookOrderStatisticsViewDtoBestValueStoreByCurrencyItem";
 import type { BookOrderStatisticsViewDtoByStoreItem } from "./bookOrderStatisticsViewDtoByStoreItem";
+import type { BookOrderStatisticsViewDtoCalendarCoverage } from "./bookOrderStatisticsViewDtoCalendarCoverage";
 import type { BookOrderStatisticsViewDtoComparison } from "./bookOrderStatisticsViewDtoComparison";
 import type { BookOrderStatisticsViewDtoCostsItem } from "./bookOrderStatisticsViewDtoCostsItem";
 import type { BookOrderStatisticsViewDtoDailyItem } from "./bookOrderStatisticsViewDtoDailyItem";
@@ -25,6 +26,8 @@ import type { BookOrderStatisticsViewDtoTopOrdersItem } from "./bookOrderStatist
 export interface BookOrderStatisticsViewDto {
   bestValueStoreByCurrency: BookOrderStatisticsViewDtoBestValueStoreByCurrencyItem[];
   byStore: BookOrderStatisticsViewDtoByStoreItem[];
+  /** How many of the orders the calendar could have drawn actually carry an order date. The counts describe the orders that survived the dataset filters inside the source that was actually loaded, so a truncated source lowers all three rather than making them disagree. An order with no order date is counted in ordersInScope and left out of the daily series, never bucketed under a substitute day. */
+  calendarCoverage: BookOrderStatisticsViewDtoCalendarCoverage;
   /** @nullable */
   comparison: BookOrderStatisticsViewDtoComparison;
   costs: BookOrderStatisticsViewDtoCostsItem[];

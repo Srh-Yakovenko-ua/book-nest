@@ -29,7 +29,7 @@ import type {
 import { assertNever } from "../../../core/assert-never.js";
 import { toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildLandedCostSummary } from "./landed-cost.js";
-import { buildOrderDaily } from "./statistics-calendar.js";
+import { buildOrderCalendarCoverage, buildOrderDaily } from "./statistics-calendar.js";
 import { computeStatisticsCosts } from "./statistics-costs.js";
 import { toCurrencyDeltas, toNumericDelta } from "./statistics-delta.js";
 import { buildStatisticsDynamics } from "./statistics-dynamics.js";
@@ -120,6 +120,7 @@ export function computeBookOrderStatistics({
   return {
     bestValueStoreByCurrency: purchaseRecords.bestValueStoreByCurrency,
     byStore,
+    calendarCoverage: buildOrderCalendarCoverage(includedOrders),
     comparison,
     costs,
     daily: buildOrderDaily(includedOrders),

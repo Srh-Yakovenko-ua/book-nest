@@ -807,3 +807,59 @@ describe("computeBookOrderStatistics snapshot", () => {
     expect(snapshot.activeShipmentsCount).toBe(1);
   });
 });
+
+describe("computeBookOrderStatistics reports the calendar coverage of the orders it counted", () => {
+  const UNDATED_RECORD = makeOrder({
+    id: "order-undated",
+    items: [makeItem({ bookId: "book-undated", price: 150 })],
+    orderDate: null,
+    totalAmount: 150,
+  });
+
+  const DATED_RECORD = makeOrder({
+    id: "order-dated",
+    items: [makeItem({ bookId: "book-dated", price: 120 })],
+    orderDate: APRIL_ORDER_DATE,
+    totalAmount: 120,
+  });
+
+  it("names the undated order as in scope while the daily series has no day for it", () => {
+    const { calendarCoverage, daily } = statisticsOf({
+      records: [DATED_RECORD, UNDATED_RECORD],
+    });
+
+    expect(calendarCoverage).toEqual({
+      ordersInScope: 2,
+      ordersWithOrderDate: 1,
+      ordersWithoutOrderDate: 1,
+    });
+    expect(daily.map((day) => day.date)).toEqual(["2026-04-11"]);
+  });
+
+  it("covers the same population the daily series and the summary were built from", () => {
+    const { calendarCoverage, daily, summary } = statisticsOf({
+      records: [DATED_RECORD, UNDATED_RECORD, ...MIXED_RECORDS],
+    });
+
+    expect({
+      bucketedOrders: daily.reduce((sum, day) => sum + day.ordersCount, 0),
+      inScope: calendarCoverage.ordersInScope,
+    }).toEqual({
+      bucketedOrders: calendarCoverage.ordersWithOrderDate,
+      inScope: summary.ordersCount,
+    });
+  });
+
+  it("grows the coverage by the cancelled order the caller asked to include", () => {
+    const excluded = statisticsOf({ records: [DATED_RECORD, ...MIXED_RECORDS] });
+    const included = statisticsOf({
+      includeCancelled: true,
+      records: [DATED_RECORD, ...MIXED_RECORDS],
+    });
+
+    expect({
+      excluded: excluded.calendarCoverage.ordersInScope,
+      included: included.calendarCoverage.ordersInScope,
+    }).toEqual({ excluded: 2, included: 3 });
+  });
+});

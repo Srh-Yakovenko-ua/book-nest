@@ -53,6 +53,7 @@ import {
   BookOrderStatisticsRecordScopeSchema,
   BookOrderStatisticsSnapshotSchema,
   CurrencyCountSchema,
+  StatisticsCalendarCoverageSchema,
   StatisticsDrilldownBreakdownSchema,
   StatisticsDynamicsSchema,
 } from "./order-statistics.js";
@@ -1461,6 +1462,7 @@ export type BookOrderStatisticsRecords = z.infer<typeof BookOrderStatisticsRecor
 export const BookOrderStatisticsViewSchema = z.object({
   bestValueStoreByCurrency: BookOrderStatisticsBestValueStoreByCurrencySchema,
   byStore: z.array(BookOrderStatisticsStoreSchema),
+  calendarCoverage: StatisticsCalendarCoverageSchema,
   comparison: BookOrderStatisticsComparisonSchema.nullable(),
   costs: BookOrderStatisticsCostsSchema,
   daily: BookOrderStatisticsDailySchema,

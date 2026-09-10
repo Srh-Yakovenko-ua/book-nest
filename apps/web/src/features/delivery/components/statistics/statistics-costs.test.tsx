@@ -44,6 +44,7 @@ function view(overrides: Partial<BookOrderStatisticsView> = {}): BookOrderStatis
   return {
     bestValueStoreByCurrency: [],
     byStore: [],
+    calendarCoverage: { ordersInScope: 0, ordersWithOrderDate: 0, ordersWithoutOrderDate: 0 },
     comparison: null,
     costs: [
       {
