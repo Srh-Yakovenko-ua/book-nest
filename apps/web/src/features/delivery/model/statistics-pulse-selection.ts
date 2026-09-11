@@ -94,7 +94,9 @@ function bestValueFacts(
   records: BookOrderStatisticsRecords,
   currency: Currency,
 ): PulseRecordFact[] {
-  const bestValue = records.bestValueStoreByCurrency.find((entry) => entry.currency === currency);
+  const bestValue = records.bestValueStoreByCurrency
+    .find((entry) => entry.currency === currency)
+    ?.winners.at(0);
   return bestValue === undefined ? [] : [{ bestValue, code: "best_value_store" }];
 }
 
@@ -102,23 +104,25 @@ function largestOrderFacts(
   records: BookOrderStatisticsRecords,
   currency: Currency,
 ): PulseRecordFact[] {
-  const largest = records.largestOrderByCurrency.find((entry) => entry.currency === currency);
-  return largest === undefined ? [] : [{ code: "largest_order", order: largest.order }];
+  const largest = records.largestOrderByCurrency
+    .find((entry) => entry.currency === currency)
+    ?.winners.at(0);
+  return largest === undefined ? [] : [{ code: "largest_order", order: largest }];
 }
 
 function mostActiveByBooksFacts(records: BookOrderStatisticsRecords): PulseRecordFact[] {
-  const leader = records.mostActiveStore.byBooks;
-  return leader === null ? [] : [{ code: "most_active_store_by_books", leader }];
+  const leader = records.mostActiveStore.byBooks.at(0);
+  return leader === undefined ? [] : [{ code: "most_active_store_by_books", leader }];
 }
 
 function mostActiveByOrdersFacts(records: BookOrderStatisticsRecords): PulseRecordFact[] {
-  const leader = records.mostActiveStore.byOrders;
-  return leader === null ? [] : [{ code: "most_active_store_by_orders", leader }];
+  const leader = records.mostActiveStore.byOrders.at(0);
+  return leader === undefined ? [] : [{ code: "most_active_store_by_orders", leader }];
 }
 
 function mostBooksInOrderFacts(records: BookOrderStatisticsRecords): PulseRecordFact[] {
-  const order = records.mostBooksInOrder;
-  return order === null ? [] : [{ code: "most_books_in_order", order }];
+  const order = records.mostBooksInOrder.at(0);
+  return order === undefined ? [] : [{ code: "most_books_in_order", order }];
 }
 
 function recordEntry(fact: PulseRecordFact, scope: BookOrderStatisticsRecordScope): PulseEntry {
@@ -168,7 +172,9 @@ function recordMonthFacts(
   records: BookOrderStatisticsRecords,
   currency: Currency,
 ): PulseRecordFact[] {
-  const recordMonth = records.recordMonthByCurrency.find((entry) => entry.currency === currency);
+  const recordMonth = records.recordMonthByCurrency
+    .find((entry) => entry.currency === currency)
+    ?.winners.at(0);
   return recordMonth === undefined ? [] : [{ code: "record_month", recordMonth }];
 }
 

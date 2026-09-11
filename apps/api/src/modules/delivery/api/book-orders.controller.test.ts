@@ -19,6 +19,7 @@ import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { DeliveryModule } from "../delivery.module.js";
 import {
+  cancelBooksOfOrder,
   createBook,
   createBooks,
   createOrder,
@@ -449,6 +450,40 @@ function monthWindow(month: keyof typeof MONTH_END): { from: string; to: string 
   return { from: `${month}-01`, to: MONTH_END[month] };
 }
 
+async function seedCancelledGiant(): Promise<{
+  cancelledOrderId: string;
+  liveOrderId: string;
+}> {
+  const authed = { accessToken: reader.accessToken, app };
+  const cancelledBooks = await createBooks({
+    ...authed,
+    titles: ["Cancelled Giant A", "Cancelled Giant B"],
+  });
+  const cancelledOrder = await createOrder({
+    ...authed,
+    input: {
+      currency: "UAH",
+      items: cancelledBooks.map((bookId) => ({ bookId, price: 5000 })),
+      orderDate: `${STATISTICS_FIXTURE_MONTH.current}-15`,
+      storeName: STATISTICS_FIXTURE_STORE.amazon,
+    },
+  });
+  await cancelBooksOfOrder({ ...authed, bookIds: cancelledBooks, view: cancelledOrder });
+
+  const liveBooks = await createBooks({ ...authed, titles: ["Live Small A", "Live Small B"] });
+  const liveOrder = await createOrder({
+    ...authed,
+    input: {
+      currency: "UAH",
+      items: liveBooks.map((bookId) => ({ bookId, price: 100 })),
+      orderDate: `${STATISTICS_FIXTURE_MONTH.current}-16`,
+      storeName: STATISTICS_FIXTURE_STORE.yakaboo,
+    },
+  });
+
+  return { cancelledOrderId: cancelledOrder.id, liveOrderId: liveOrder.id };
+}
+
 async function statisticsOf(query: StatisticsTestQuery = {}): Promise<BookOrderStatisticsView> {
   const params = new URLSearchParams(
     Object.entries(query).flatMap<[string, string]>(([key, value]) =>
@@ -710,7 +745,7 @@ describe("GET /api/delivery/orders/statistics contract", () => {
       topOrdersByCurrency: [],
     });
     expect(view.summary.averageBooksPerOrder).toBeNull();
-    expect(view.records.mostBooksInOrder).toBeNull();
+    expect(view.records.mostBooksInOrder).toEqual([]);
   });
 
   it("reports an untruncated read with the cap it was measured against", async () => {
@@ -739,6 +774,28 @@ describe("GET /api/delivery/orders/statistics contract", () => {
       },
     });
     expect(unfiltered.records.scope.isPeriodFiltered).toBe(false);
+  });
+
+  it("keeps a cancelled order out of the purchase records the reader asked to include", async () => {
+    const seeded = await seedCancelledGiant();
+
+    const view = await statisticsOf({ includeCancelled: "true" });
+
+    expect(
+      view.records.largestOrderByCurrency.flatMap((group) =>
+        group.winners.map((winner) => winner.id),
+      ),
+    ).toEqual([seeded.liveOrderId]);
+  });
+
+  it("still ranks that cancelled order first among the top orders of its currency", async () => {
+    const seeded = await seedCancelledGiant();
+
+    const view = await statisticsOf({ includeCancelled: "true" });
+
+    expect(
+      view.topOrdersByCurrency.find((group) => group.currency === "UAH")?.orders.at(0)?.id,
+    ).toBe(seeded.cancelledOrderId);
   });
 
   it("keeps money in transit out of the period filter, whatever window is asked for", async () => {

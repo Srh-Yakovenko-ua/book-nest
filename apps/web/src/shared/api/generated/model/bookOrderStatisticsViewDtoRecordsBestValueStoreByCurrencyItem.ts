@@ -6,21 +6,13 @@
  * OpenAPI spec version: 1.0
  */
 import type { BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemCurrency } from "./bookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemCurrency";
-import type { BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemDrilldown } from "./bookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemDrilldown";
+import type { BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemWinnersItem } from "./bookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemWinnersItem";
 
-/**
- * One winner per currency, never across currencies. A candidate needs at least two landed-eligible books; ties break by the most landed-eligible books, then by store name ascending.
- */
 export type BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItem = {
-  averageLandedBookCost: number;
   currency: BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemCurrency;
-  /** Where this store's orders in this currency live. The record itself counts only books whose real cost is known, so this is context navigation and never an exact drill-down. */
-  drilldown: BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemDrilldown;
   /**
-   * @minimum 2
-   * @maximum 9007199254740991
+   * Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.
+   * @maxItems 3
    */
-  eligibleBooksCount: number;
-  store: string;
-  storeKey: string;
+  winners: BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItemWinnersItem[];
 };

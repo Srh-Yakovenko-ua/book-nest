@@ -42,6 +42,7 @@ export interface BookOrderStatisticsViewDto {
   /** Each source the response was built from reports its own completeness. One flag for the whole response would hide the case where the current period was read in full but the comparison period was cut, or the other way round. */
   meta: BookOrderStatisticsViewDtoMeta;
   monthly: BookOrderStatisticsViewDtoMonthlyItem[];
+  /** The six purchase records, each one a uniform array of equally valued winners. They are always counted without cancelled orders and cancelled items, whatever the global cancelled filter says, so a cancelled order can never hold a record. */
   records: BookOrderStatisticsViewDtoRecords;
   /** Money that is still on its way right now. This block deliberately ignores the historical from/to period filter, so it stays a current snapshot and never turns into a period-bound number. No comparison is emitted for it. */
   snapshot: BookOrderStatisticsViewDtoSnapshot;

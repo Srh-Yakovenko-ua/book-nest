@@ -5,12 +5,18 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { BookOrderStatisticsViewDtoRecordsMostActiveStoreByBooks } from "./bookOrderStatisticsViewDtoRecordsMostActiveStoreByBooks";
-import type { BookOrderStatisticsViewDtoRecordsMostActiveStoreByOrders } from "./bookOrderStatisticsViewDtoRecordsMostActiveStoreByOrders";
+import type { BookOrderStatisticsViewDtoRecordsMostActiveStoreByBooksItem } from "./bookOrderStatisticsViewDtoRecordsMostActiveStoreByBooksItem";
+import type { BookOrderStatisticsViewDtoRecordsMostActiveStoreByOrdersItem } from "./bookOrderStatisticsViewDtoRecordsMostActiveStoreByOrdersItem";
 
 export type BookOrderStatisticsViewDtoRecordsMostActiveStore = {
-  /** @nullable */
-  byBooks: BookOrderStatisticsViewDtoRecordsMostActiveStoreByBooks;
-  /** @nullable */
-  byOrders: BookOrderStatisticsViewDtoRecordsMostActiveStoreByOrders;
+  /**
+   * Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.
+   * @maxItems 3
+   */
+  byBooks: BookOrderStatisticsViewDtoRecordsMostActiveStoreByBooksItem[];
+  /**
+   * Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.
+   * @maxItems 3
+   */
+  byOrders: BookOrderStatisticsViewDtoRecordsMostActiveStoreByOrdersItem[];
 };

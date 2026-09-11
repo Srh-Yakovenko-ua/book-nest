@@ -718,56 +718,76 @@ export const bookOrdersControllerStatisticsResponseMonthlyItemBooksCountMax = 90
 export const bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMin = 0;
 export const bookOrdersControllerStatisticsResponseMonthlyItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemEligibleBooksCountMin = 2;
-export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemEligibleBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemEligibleBooksCountMin = 2;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemEligibleBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemOrderBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemOrderBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersMax = 3;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemWinnersItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemWinnersItemBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemWinnersMax = 3;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksMax = 3;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemBooksCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemOrdersCountMax = 9007199254740991;
 
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersMax = 3;
 
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemOrdersCountMin = 0;
-export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemOrdersCountMax = 9007199254740991;
+export const bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderItemBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderMax = 3;
+
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemOrdersCountMin = 0;
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemOrdersCountMax = 9007199254740991;
+
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemRangeFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemRangeToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersMax = 3;
 
 export const bookOrdersControllerStatisticsResponseRecordsScopePeriodFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -2377,279 +2397,386 @@ export const BookOrdersControllerStatisticsResponse = zod.object({
       ),
     }),
   ),
-  records: zod.object({
-    bestValueStoreByCurrency: zod.array(
-      zod
-        .object({
-          averageLandedBookCost: zod.number(),
+  records: zod
+    .object({
+      bestValueStoreByCurrency: zod.array(
+        zod.object({
           currency: zod.enum(["UAH", "EUR", "USD"]),
-          drilldown: zod
-            .object({
-              targets: zod.array(
-                zod.object({
-                  booksCount: zod
+          winners: zod
+            .array(
+              zod
+                .object({
+                  averageLandedBookCost: zod.number(),
+                  currency: zod.enum(["UAH", "EUR", "USD"]),
+                  drilldown: zod
+                    .object({
+                      targets: zod.array(
+                        zod.object({
+                          booksCount: zod
+                            .int()
+                            .min(
+                              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMin,
+                            )
+                            .max(
+                              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMax,
+                            ),
+                          destination: zod.enum([
+                            "in_transit",
+                            "history_received",
+                            "history_cancelled",
+                          ]),
+                          ordersCount: zod
+                            .int()
+                            .min(
+                              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMin,
+                            )
+                            .max(
+                              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMax,
+                            ),
+                        }),
+                      ),
+                    })
+                    .describe(
+                      "Where this store's orders in this currency live. The record itself counts only books whose real cost is known, so this is context navigation and never an exact drill-down.",
+                    ),
+                  eligibleBooksCount: zod
                     .int()
                     .min(
-                      bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemBooksCountMin,
+                      bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemEligibleBooksCountMin,
                     )
                     .max(
-                      bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemBooksCountMax,
+                      bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersItemEligibleBooksCountMax,
                     ),
-                  destination: zod.enum(["in_transit", "history_received", "history_cancelled"]),
-                  ordersCount: zod
-                    .int()
-                    .min(
-                      bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemOrdersCountMin,
-                    )
-                    .max(
-                      bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemDrilldownTargetsItemOrdersCountMax,
-                    ),
-                }),
-              ),
-            })
-            .describe(
-              "Where this store's orders in this currency live. The record itself counts only books whose real cost is known, so this is context navigation and never an exact drill-down.",
-            ),
-          eligibleBooksCount: zod
-            .int()
-            .min(
-              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemEligibleBooksCountMin,
+                  store: zod.string(),
+                  storeKey: zod.string(),
+                })
+                .describe(
+                  "One winner per currency, never across currencies. A candidate needs at least two landed-eligible books; ties break by the most landed-eligible books, then by store name ascending.",
+                ),
             )
             .max(
-              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemEligibleBooksCountMax,
-            ),
-          store: zod.string(),
-          storeKey: zod.string(),
-        })
-        .describe(
-          "One winner per currency, never across currencies. A candidate needs at least two landed-eligible books; ties break by the most landed-eligible books, then by store name ascending.",
-        ),
-    ),
-    largestOrderByCurrency: zod.array(
-      zod.object({
-        currency: zod.enum(["UAH", "EUR", "USD"]),
-        order: zod.object({
-          booksCount: zod
-            .int()
-            .min(
-              bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemOrderBooksCountMin,
+              bookOrdersControllerStatisticsResponseRecordsBestValueStoreByCurrencyItemWinnersMax,
             )
-            .max(
-              bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemOrderBooksCountMax,
-            ),
-          currency: zod
-            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-            .nullable(),
-          derivedStatus: zod
-            .enum([
-              "active",
-              "partially_shipped",
-              "shipped",
-              "partially_received",
-              "received",
-              "cancelled",
-            ])
             .describe(
-              "The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet.",
+              "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.",
             ),
-          id: zod.string(),
-          orderDate: zod.string().nullable(),
-          orderNumber: zod.string().nullable(),
-          storeName: zod.string(),
-          totalAmount: zod.number(),
         }),
-      }),
-    ),
-    mostActiveStore: zod.object({
-      byBooks: zod
-        .object({
-          booksCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksBooksCountMin)
-            .max(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksBooksCountMax),
-          drilldown: zod
-            .object({
-              targets: zod.array(
-                zod.object({
-                  booksCount: zod
-                    .int()
-                    .min(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemBooksCountMin,
-                    )
-                    .max(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemBooksCountMax,
-                    ),
-                  destination: zod.enum(["in_transit", "history_received", "history_cancelled"]),
-                  ordersCount: zod
-                    .int()
-                    .min(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemOrdersCountMin,
-                    )
-                    .max(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksDrilldownTargetsItemOrdersCountMax,
-                    ),
-                }),
-              ),
-            })
+      ),
+      largestOrderByCurrency: zod.array(
+        zod.object({
+          currency: zod.enum(["UAH", "EUR", "USD"]),
+          winners: zod
+            .array(
+              zod.object({
+                booksCount: zod
+                  .int()
+                  .min(
+                    bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemWinnersItemBooksCountMin,
+                  )
+                  .max(
+                    bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemWinnersItemBooksCountMax,
+                  ),
+                currency: zod
+                  .union([
+                    zod.literal("UAH"),
+                    zod.literal("EUR"),
+                    zod.literal("USD"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                derivedStatus: zod
+                  .enum([
+                    "active",
+                    "partially_shipped",
+                    "shipped",
+                    "partially_received",
+                    "received",
+                    "cancelled",
+                  ])
+                  .describe(
+                    "The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet.",
+                  ),
+                id: zod.string(),
+                orderDate: zod.string().nullable(),
+                orderNumber: zod.string().nullable(),
+                storeName: zod.string(),
+                totalAmount: zod.number(),
+              }),
+            )
+            .max(bookOrdersControllerStatisticsResponseRecordsLargestOrderByCurrencyItemWinnersMax)
             .describe(
-              "Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books.",
+              "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.",
             ),
-          ordersCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksOrdersCountMin)
-            .max(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksOrdersCountMax),
-          store: zod.string(),
-          storeKey: zod.string(),
-        })
-        .nullable(),
-      byOrders: zod
-        .object({
-          booksCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersBooksCountMin)
-            .max(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersBooksCountMax),
-          drilldown: zod
-            .object({
-              targets: zod.array(
-                zod.object({
-                  booksCount: zod
-                    .int()
-                    .min(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemBooksCountMin,
-                    )
-                    .max(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemBooksCountMax,
-                    ),
-                  destination: zod.enum(["in_transit", "history_received", "history_cancelled"]),
-                  ordersCount: zod
-                    .int()
-                    .min(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemOrdersCountMin,
-                    )
-                    .max(
-                      bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersDrilldownTargetsItemOrdersCountMax,
-                    ),
-                }),
-              ),
-            })
-            .describe(
-              "Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books.",
-            ),
-          ordersCount: zod
-            .int()
-            .min(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersOrdersCountMin)
-            .max(
-              bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersOrdersCountMax,
-            ),
-          store: zod.string(),
-          storeKey: zod.string(),
-        })
-        .nullable(),
-    }),
-    mostBooksInOrder: zod
-      .object({
-        booksCount: zod
-          .int()
-          .min(bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderBooksCountMin)
-          .max(bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderBooksCountMax),
-        currency: zod
-          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-          .nullable(),
-        derivedStatus: zod
-          .enum([
-            "active",
-            "partially_shipped",
-            "shipped",
-            "partially_received",
-            "received",
-            "cancelled",
-          ])
+        }),
+      ),
+      mostActiveStore: zod.object({
+        byBooks: zod
+          .array(
+            zod.object({
+              booksCount: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemBooksCountMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemBooksCountMax,
+                ),
+              drilldown: zod
+                .object({
+                  targets: zod.array(
+                    zod.object({
+                      booksCount: zod
+                        .int()
+                        .min(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemBooksCountMin,
+                        )
+                        .max(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemBooksCountMax,
+                        ),
+                      destination: zod.enum([
+                        "in_transit",
+                        "history_received",
+                        "history_cancelled",
+                      ]),
+                      ordersCount: zod
+                        .int()
+                        .min(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemOrdersCountMin,
+                        )
+                        .max(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemDrilldownTargetsItemOrdersCountMax,
+                        ),
+                    }),
+                  ),
+                })
+                .describe(
+                  "Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books.",
+                ),
+              ordersCount: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemOrdersCountMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksItemOrdersCountMax,
+                ),
+              store: zod.string(),
+              storeKey: zod.string(),
+            }),
+          )
+          .max(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByBooksMax)
           .describe(
-            "The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet.",
+            "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.",
           ),
-        id: zod.string(),
-        orderDate: zod.string().nullable(),
-        orderNumber: zod.string().nullable(),
-        storeName: zod.string(),
-        totalAmount: zod.number().nullable(),
-      })
-      .nullable()
-      .describe(
-        "One order named by its id, which is what navigation uses. orderNumber is a label a user may never have filled in and never decides whether the order can be opened.",
-      ),
-    recordMonthByCurrency: zod.array(
-      zod
-        .object({
-          booksCount: zod
-            .int()
-            .min(
-              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemBooksCountMin,
-            )
-            .max(
-              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemBooksCountMax,
-            ),
-          currency: zod.enum(["UAH", "EUR", "USD"]),
-          drilldown: zod
+        byOrders: zod
+          .array(
+            zod.object({
+              booksCount: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemBooksCountMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemBooksCountMax,
+                ),
+              drilldown: zod
+                .object({
+                  targets: zod.array(
+                    zod.object({
+                      booksCount: zod
+                        .int()
+                        .min(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemBooksCountMin,
+                        )
+                        .max(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemBooksCountMax,
+                        ),
+                      destination: zod.enum([
+                        "in_transit",
+                        "history_received",
+                        "history_cancelled",
+                      ]),
+                      ordersCount: zod
+                        .int()
+                        .min(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemOrdersCountMin,
+                        )
+                        .max(
+                          bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemDrilldownTargetsItemOrdersCountMax,
+                        ),
+                    }),
+                  ),
+                })
+                .describe(
+                  "Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books.",
+                ),
+              ordersCount: zod
+                .int()
+                .min(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemOrdersCountMin,
+                )
+                .max(
+                  bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersItemOrdersCountMax,
+                ),
+              store: zod.string(),
+              storeKey: zod.string(),
+            }),
+          )
+          .max(bookOrdersControllerStatisticsResponseRecordsMostActiveStoreByOrdersMax)
+          .describe(
+            "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.",
+          ),
+      }),
+      mostBooksInOrder: zod
+        .array(
+          zod
             .object({
-              targets: zod.array(
-                zod.object({
+              booksCount: zod
+                .int()
+                .min(bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderItemBooksCountMin)
+                .max(
+                  bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderItemBooksCountMax,
+                ),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
+              derivedStatus: zod
+                .enum([
+                  "active",
+                  "partially_shipped",
+                  "shipped",
+                  "partially_received",
+                  "received",
+                  "cancelled",
+                ])
+                .describe(
+                  "The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet.",
+                ),
+              id: zod.string(),
+              orderDate: zod.string().nullable(),
+              orderNumber: zod.string().nullable(),
+              storeName: zod.string(),
+              totalAmount: zod.number().nullable(),
+            })
+            .describe(
+              "One order named by its id, which is what navigation uses. orderNumber is a label a user may never have filled in and never decides whether the order can be opened.",
+            ),
+        )
+        .max(bookOrdersControllerStatisticsResponseRecordsMostBooksInOrderMax)
+        .describe(
+          "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.",
+        ),
+      recordMonthByCurrency: zod.array(
+        zod.object({
+          currency: zod.enum(["UAH", "EUR", "USD"]),
+          winners: zod
+            .array(
+              zod
+                .object({
                   booksCount: zod
                     .int()
                     .min(
-                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemBooksCountMin,
+                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemBooksCountMin,
                     )
                     .max(
-                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemBooksCountMax,
+                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemBooksCountMax,
                     ),
-                  destination: zod.enum(["in_transit", "history_received", "history_cancelled"]),
+                  currency: zod.enum(["UAH", "EUR", "USD"]),
+                  drilldown: zod
+                    .object({
+                      targets: zod.array(
+                        zod.object({
+                          booksCount: zod
+                            .int()
+                            .min(
+                              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMin,
+                            )
+                            .max(
+                              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemBooksCountMax,
+                            ),
+                          destination: zod.enum([
+                            "in_transit",
+                            "history_received",
+                            "history_cancelled",
+                          ]),
+                          ordersCount: zod
+                            .int()
+                            .min(
+                              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMin,
+                            )
+                            .max(
+                              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemDrilldownTargetsItemOrdersCountMax,
+                            ),
+                        }),
+                      ),
+                    })
+                    .describe(
+                      "Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books.",
+                    ),
+                  month: zod.string(),
                   ordersCount: zod
                     .int()
                     .min(
-                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemOrdersCountMin,
+                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemOrdersCountMin,
                     )
                     .max(
-                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemDrilldownTargetsItemOrdersCountMax,
+                      bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemOrdersCountMax,
                     ),
-                }),
-              ),
-            })
-            .describe(
-              "Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books.",
-            ),
-          month: zod.string(),
-          ordersCount: zod
-            .int()
-            .min(
-              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemOrdersCountMin,
+                  range: zod
+                    .object({
+                      from: zod.iso
+                        .date()
+                        .regex(
+                          bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemRangeFromRegExp,
+                        ),
+                      to: zod.iso
+                        .date()
+                        .regex(
+                          bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersItemRangeToRegExp,
+                        ),
+                    })
+                    .describe(
+                      "The calendar month intersected with the statistics period, so opening the record lands on exactly the orders it counted and never on days the period excluded.",
+                    ),
+                  total: zod.number(),
+                })
+                .describe(
+                  "The heaviest month inside one currency. Its order and book counts are counted in that same currency, so a month that also holds orders in another currency never inflates them.",
+                ),
             )
-            .max(
-              bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemOrdersCountMax,
+            .max(bookOrdersControllerStatisticsResponseRecordsRecordMonthByCurrencyItemWinnersMax)
+            .describe(
+              "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.",
             ),
-          total: zod.number(),
+        }),
+      ),
+      scope: zod
+        .object({
+          isPeriodFiltered: zod.boolean(),
+          isTruncated: zod.boolean(),
+          period: zod.object({
+            from: zod.iso
+              .date()
+              .regex(bookOrdersControllerStatisticsResponseRecordsScopePeriodFromRegExp)
+              .nullable(),
+            to: zod.iso
+              .date()
+              .regex(bookOrdersControllerStatisticsResponseRecordsScopePeriodToRegExp)
+              .nullable(),
+          }),
         })
         .describe(
-          "The heaviest month inside one currency. Its order and book counts are counted in that same currency, so a month that also holds orders in another currency never inflates them.",
+          "Bounds of a record fact. When isPeriodFiltered or isTruncated is true the record holds only inside this scope and must not be presented as an all-time record.",
         ),
+    })
+    .describe(
+      "The six purchase records, each one a uniform array of equally valued winners. They are always counted without cancelled orders and cancelled items, whatever the global cancelled filter says, so a cancelled order can never hold a record.",
     ),
-    scope: zod
-      .object({
-        isPeriodFiltered: zod.boolean(),
-        isTruncated: zod.boolean(),
-        period: zod.object({
-          from: zod.iso
-            .date()
-            .regex(bookOrdersControllerStatisticsResponseRecordsScopePeriodFromRegExp)
-            .nullable(),
-          to: zod.iso
-            .date()
-            .regex(bookOrdersControllerStatisticsResponseRecordsScopePeriodToRegExp)
-            .nullable(),
-        }),
-      })
-      .describe(
-        "Bounds of a record fact. When isPeriodFiltered or isTruncated is true the record holds only inside this scope and must not be presented as an all-time record.",
-      ),
-  }),
   snapshot: zod
     .object({
       activeBooksCount: zod

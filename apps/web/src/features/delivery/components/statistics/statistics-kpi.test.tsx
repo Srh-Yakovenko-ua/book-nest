@@ -82,8 +82,8 @@ function view(comparison: BookOrderStatisticsView["comparison"] = null): BookOrd
     records: {
       bestValueStoreByCurrency: [],
       largestOrderByCurrency: [],
-      mostActiveStore: { byBooks: null, byOrders: null },
-      mostBooksInOrder: null,
+      mostActiveStore: { byBooks: [], byOrders: [] },
+      mostBooksInOrder: [],
       recordMonthByCurrency: [],
       scope: { isPeriodFiltered: true, isTruncated: false, period: { from: null, to: null } },
     },

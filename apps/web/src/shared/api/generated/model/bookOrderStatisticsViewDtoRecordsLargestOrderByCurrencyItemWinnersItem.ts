@@ -5,19 +5,19 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrderCurrency } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrderCurrency";
-import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrderDerivedStatus } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrderDerivedStatus";
+import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemCurrency } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemCurrency";
+import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus";
 
-export type BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrder = {
+export type BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItem = {
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   booksCount: number;
   /** @nullable */
-  currency: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrderCurrency;
+  currency: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemCurrency;
   /** The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet. */
-  derivedStatus: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrderDerivedStatus;
+  derivedStatus: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus;
   id: string;
   /** @nullable */
   orderDate: string | null;

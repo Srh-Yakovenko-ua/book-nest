@@ -63,13 +63,18 @@ export function StatisticsSection({
           : "flex min-w-0 flex-col gap-0.5"
       }
     >
-      <CardTitle className="flex flex-wrap items-center gap-2 text-[0.9375rem] font-semibold text-ink">
-        {title}
-        {snapshotLabel === undefined ? null : (
-          <span className="rounded-full bg-info-soft px-2 py-0.5 text-[0.6875rem] font-medium text-info">
-            {snapshotLabel}
-          </span>
-        )}
+      <CardTitle
+        asChild
+        className="flex flex-wrap items-center gap-2 text-[0.9375rem] font-semibold text-ink"
+      >
+        <h2>
+          {title}
+          {snapshotLabel === undefined ? null : (
+            <span className="rounded-full bg-info-soft px-2 py-0.5 text-[0.6875rem] font-medium text-info">
+              {snapshotLabel}
+            </span>
+          )}
+        </h2>
       </CardTitle>
       {description === undefined ? null : <CardDescription>{description}</CardDescription>}
     </div>

@@ -5,23 +5,22 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { BookOrderStatisticsViewDtoRecordsMostBooksInOrderCurrency } from "./bookOrderStatisticsViewDtoRecordsMostBooksInOrderCurrency";
-import type { BookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus } from "./bookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus";
+import type { BookOrderStatisticsViewDtoRecordsMostBooksInOrderItemCurrency } from "./bookOrderStatisticsViewDtoRecordsMostBooksInOrderItemCurrency";
+import type { BookOrderStatisticsViewDtoRecordsMostBooksInOrderItemDerivedStatus } from "./bookOrderStatisticsViewDtoRecordsMostBooksInOrderItemDerivedStatus";
 
 /**
  * One order named by its id, which is what navigation uses. orderNumber is a label a user may never have filled in and never decides whether the order can be opened.
- * @nullable
  */
-export type BookOrderStatisticsViewDtoRecordsMostBooksInOrder = {
+export type BookOrderStatisticsViewDtoRecordsMostBooksInOrderItem = {
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   booksCount: number;
   /** @nullable */
-  currency: BookOrderStatisticsViewDtoRecordsMostBooksInOrderCurrency;
+  currency: BookOrderStatisticsViewDtoRecordsMostBooksInOrderItemCurrency;
   /** The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet. */
-  derivedStatus: BookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus;
+  derivedStatus: BookOrderStatisticsViewDtoRecordsMostBooksInOrderItemDerivedStatus;
   id: string;
   /** @nullable */
   orderDate: string | null;
@@ -30,4 +29,4 @@ export type BookOrderStatisticsViewDtoRecordsMostBooksInOrder = {
   storeName: string;
   /** @nullable */
   totalAmount: number | null;
-} | null;
+};

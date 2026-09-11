@@ -74,8 +74,8 @@ function view(overrides: Partial<BookOrderStatisticsView> = {}): BookOrderStatis
     records: {
       bestValueStoreByCurrency: [],
       largestOrderByCurrency: [],
-      mostActiveStore: { byBooks: null, byOrders: null },
-      mostBooksInOrder: null,
+      mostActiveStore: { byBooks: [], byOrders: [] },
+      mostBooksInOrder: [],
       recordMonthByCurrency: [],
       scope: { isPeriodFiltered: false, isTruncated: false, period: { from: null, to: null } },
     },

@@ -6,25 +6,13 @@
  * OpenAPI spec version: 1.0
  */
 import type { BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemCurrency } from "./bookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemCurrency";
-import type { BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemDrilldown } from "./bookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemDrilldown";
+import type { BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemWinnersItem } from "./bookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemWinnersItem";
 
-/**
- * The heaviest month inside one currency. Its order and book counts are counted in that same currency, so a month that also holds orders in another currency never inflates them.
- */
 export type BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItem = {
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  booksCount: number;
   currency: BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemCurrency;
-  /** Where the very orders behind one aggregate now live, counted on that same subset. Only non-zero destinations are listed, so an empty array means the aggregate has nowhere exact to open. Both units travel because one block can switch between orders and books. */
-  drilldown: BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemDrilldown;
-  month: string;
   /**
-   * @minimum 0
-   * @maximum 9007199254740991
+   * Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.
+   * @maxItems 3
    */
-  ordersCount: number;
-  total: number;
+  winners: BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItemWinnersItem[];
 };
