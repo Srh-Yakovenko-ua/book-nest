@@ -34,40 +34,42 @@ model User {
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  sessions                  Session[]
-  emailVerificationTokens   EmailVerificationToken[]
-  passwordResetTokens       PasswordResetToken[]
-  socialLinks               UserSocialLink[]
-  settings                  UserProfileSettings?
-  authors                   Author[]
-  publishers                Publisher[]
-  books                     Book[]
-  tags                      Tag[]
-  series                    Series[]
-  bookLists                 BookList[]
-  customGenres              Genre[]
-  mediaAssets               MediaAsset[]
-  bookBudgets               BookBudget[]
-  bookOrders                BookOrder[]
-  bookLoans                 BookLoan[]
-  loanContacts              LoanContact[]
-  bookStoreLinks            BookStoreLink[]
-  deliveryServices          DeliveryService[]
-  changelogRead             ChangelogRead?
-  seriesOrderIgnoredIssues  SeriesOrderIgnoredIssue[]
-  seriesOrderDisabledSeries SeriesOrderDisabledSeries[]
-  quotes                    Quote[]
-  notes                     Note[]
-  characters                Character[]
-  characterGroups           CharacterGroup[]
-  characterTheories         CharacterTheory[]
-  characterRelationships    CharacterRelationship[]
-  characterGraphLayouts     CharacterGraphLayout[]
-  readingCycles             BookReadingCycle[]
-  readingHistoryState       UserReadingHistoryState?
-  notifications             Notification[]
-  readingGoals              ReadingGoal[]
-  readingGoalActivities     ReadingGoalActivity[]
+  sessions                    Session[]
+  emailVerificationTokens     EmailVerificationToken[]
+  passwordResetTokens         PasswordResetToken[]
+  socialLinks                 UserSocialLink[]
+  settings                    UserProfileSettings?
+  authors                     Author[]
+  publishers                  Publisher[]
+  books                       Book[]
+  tags                        Tag[]
+  series                      Series[]
+  bookLists                   BookList[]
+  customGenres                Genre[]
+  mediaAssets                 MediaAsset[]
+  bookBudgets                 BookBudget[]
+  bookOrders                  BookOrder[]
+  bookLoans                   BookLoan[]
+  loanContacts                LoanContact[]
+  bookStoreLinks              BookStoreLink[]
+  deliveryServices            DeliveryService[]
+  changelogRead               ChangelogRead?
+  seriesOrderIgnoredIssues    SeriesOrderIgnoredIssue[]
+  seriesOrderDisabledSeries   SeriesOrderDisabledSeries[]
+  quotes                      Quote[]
+  notes                       Note[]
+  characters                  Character[]
+  characterGroups             CharacterGroup[]
+  characterTheories           CharacterTheory[]
+  characterRelationships      CharacterRelationship[]
+  characterGraphLayouts       CharacterGraphLayout[]
+  readingCycles               BookReadingCycle[]
+  readingHistoryState         UserReadingHistoryState?
+  notifications               Notification[]
+  readingGoals                ReadingGoal[]
+  readingGoalActivities       ReadingGoalActivity[]
+  quoteRediscoveryImpressions QuoteRediscoveryImpression[]
+  quotePostFinishReviews      QuotePostFinishReview[]
 
   @@map("users")
 }
@@ -365,6 +367,7 @@ model BookReadingCycle {
   book                       Book                       @relation(fields: [bookId], references: [id], onDelete: Cascade)
   events                     BookReadingProgressEvent[]
   qualifiedGoalBooks         ReadingGoalBook[]
+  quotePostFinishReviews     QuotePostFinishReview[]
 
   @@index([userId, finishedAt])
   @@index([bookId, state])
@@ -882,11 +885,43 @@ model Quote {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
+  rediscoveryImpressions QuoteRediscoveryImpression[]
+
   @@index([bookId])
   @@index([userId])
   @@index([userId, deletedAt])
   @@index([purgeAt])
   @@map("quotes")
+}
+
+model QuoteRediscoveryImpression {
+  id      String   @id @default(uuid()) @db.Uuid
+  userId  String   @map("user_id") @db.Uuid
+  quoteId String   @map("quote_id") @db.Uuid
+  shownOn DateTime @map("shown_on") @db.Date
+  shownAt DateTime @default(now()) @map("shown_at") @db.Timestamptz
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, quoteId, shownOn])
+  @@index([userId, shownOn])
+  @@index([userId, quoteId, shownAt(sort: Desc)])
+  @@map("quote_rediscovery_impressions")
+}
+
+model QuotePostFinishReview {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  readingCycleId String   @map("reading_cycle_id") @db.Uuid
+  reviewedAt     DateTime @default(now()) @map("reviewed_at") @db.Timestamptz
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readingCycle BookReadingCycle @relation(fields: [readingCycleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, readingCycleId])
+  @@index([readingCycleId])
+  @@map("quote_post_finish_reviews")
 }
 
 model BookTimeline {

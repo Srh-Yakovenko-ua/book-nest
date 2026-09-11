@@ -76,6 +76,10 @@ export default tseslint.config(
       "import-x/no-cycle": "warn",
       "import-x/no-duplicates": "warn",
       "import-x/no-self-import": "error",
+      "jsx-a11y/no-noninteractive-tabindex": [
+        "error",
+        { allowExpressionValues: true, roles: ["tabpanel", "region"], tags: [] },
+      ],
       "react-hooks/set-state-in-effect": "warn",
       "react/prop-types": "off",
       "react/react-in-jsx-scope": "off",

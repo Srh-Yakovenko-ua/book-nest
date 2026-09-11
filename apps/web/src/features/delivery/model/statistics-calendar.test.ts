@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 
 import type { CalendarScope } from "./statistics-calendar";
 
-import { calendarGrid, calendarScope, resolveCalendarYear } from "./statistics-calendar";
+import {
+  calendarGrid,
+  calendarHasDatedPurchases,
+  calendarScope,
+  resolveCalendarYear,
+} from "./statistics-calendar";
 
 const TODAY = "2026-08-21";
 
@@ -21,6 +26,18 @@ function day(date: string, orders: number, books = orders): BookOrderStatisticsD
 const DAILY = [day("2025-06-10", 1), day("2026-03-04", 2), day("2026-08-12", 4)];
 
 const ALL_TIME: StatisticsPeriod = { from: null, to: null };
+
+const ONE_MONTH: StatisticsPeriod = { from: "2026-03-01", to: "2026-03-31" };
+
+const OUTLIER_DAILY = [
+  day("2026-03-02", 1),
+  day("2026-03-03", 1),
+  day("2026-03-04", 2),
+  day("2026-03-05", 2),
+  day("2026-03-06", 3),
+  day("2026-03-09", 3),
+  day("2026-03-10", 40),
+];
 
 function cellFor(date: string, options: Parameters<typeof gridOf>[0] = {}) {
   return (
@@ -164,6 +181,24 @@ describe("calendarGrid", () => {
     expect(grid.monthLabels.map((label) => label.monthStart)).toEqual(["2026-03-04", "2026-04-01"]);
   });
 
+  it("draws a single-month period as that month alone, without padding it out to a neighbour", () => {
+    const dates = datesOf(gridOf({ period: ONE_MONTH }).weeks);
+
+    expect(dates).toHaveLength(31);
+    expect(dates.at(0)).toBe("2026-03-01");
+    expect(dates.at(-1)).toBe("2026-03-31");
+    expect(dates.every((date) => date.startsWith("2026-03"))).toBe(true);
+  });
+
+  it("labels no month the period never reaches, even when a padding week runs into it", () => {
+    const grid = gridOf({ period: { from: "2026-04-02", to: "2026-04-28" } });
+    const dates = datesOf(grid.weeks);
+
+    expect(dates).toContain("2026-04-02");
+    expect(dates).not.toContain("2026-05-01");
+    expect(grid.monthLabels.map((label) => label.monthStart)).toEqual(["2026-04-02"]);
+  });
+
   it("keeps a quiet day inside the period as a real zero cell", () => {
     expect(cellFor("2026-03-05")).toEqual({
       booksCount: 0,
@@ -179,6 +214,31 @@ describe("calendarGrid", () => {
   it("scales the level against the busiest day drawn, not the busiest of all time", () => {
     expect(cellFor("2026-08-12")?.level).toBe(4);
     expect(cellFor("2026-03-04")?.level).toBe(2);
+  });
+
+  it("reads the same day as the darkest one in a year where nothing outranks it", () => {
+    expect(cellFor("2025-06-10", { year: 2025 })?.level).toBe(4);
+  });
+
+  it("keeps two close days close in tone rather than sending the lower one to the lightest", () => {
+    const period = { from: "2026-03-01", to: "2026-03-31" };
+    const daily = [day("2026-03-04", 99), day("2026-03-05", 100)];
+
+    expect(cellFor("2026-03-05", { daily, period })?.level).toBe(4);
+    expect(cellFor("2026-03-04", { daily, period })?.level).toBe(4);
+  });
+
+  it("spreads the ordinary days across levels instead of flattening them under one outlier", () => {
+    expect(cellFor("2026-03-02", { daily: OUTLIER_DAILY, period: ONE_MONTH })?.level).toBe(1);
+    expect(cellFor("2026-03-04", { daily: OUTLIER_DAILY, period: ONE_MONTH })?.level).toBe(2);
+    expect(cellFor("2026-03-06", { daily: OUTLIER_DAILY, period: ONE_MONTH })?.level).toBe(3);
+  });
+
+  it("still hands the outlier day the darkest level", () => {
+    const grid = gridOf({ daily: OUTLIER_DAILY, period: ONE_MONTH });
+
+    expect(grid.peak).toBe(40);
+    expect(cellFor("2026-03-10", { daily: OUTLIER_DAILY, period: ONE_MONTH })?.level).toBe(4);
   });
 
   it("switches the intensity to the book count", () => {
@@ -222,5 +282,31 @@ describe("calendarGrid", () => {
 
   it("lays every week out as seven slots", () => {
     expect(gridOf({}).weeks.every((week) => week.length === 7)).toBe(true);
+  });
+});
+
+describe("calendarHasDatedPurchases", () => {
+  it("finds the dated day the calendar would draw", () => {
+    expect(
+      calendarHasDatedPurchases({ daily: DAILY, metric: "orders", scope: scopeOf(ALL_TIME) }),
+    ).toBe(true);
+  });
+
+  it("looks past a dated day the period leaves out", () => {
+    expect(
+      calendarHasDatedPurchases({
+        daily: [day("2024-01-05", 3)],
+        metric: "orders",
+        scope: scopeOf({ from: "2026-01-01", to: "2026-08-01" }),
+      }),
+    ).toBe(false);
+  });
+
+  it("asks the metric on show, so an order that carried no book leaves the books view empty", () => {
+    const daily = [day("2026-03-04", 1, 0)];
+    const scope = scopeOf({ from: "2026-01-01", to: "2026-08-01" }, daily);
+
+    expect(calendarHasDatedPurchases({ daily, metric: "orders", scope })).toBe(true);
+    expect(calendarHasDatedPurchases({ daily, metric: "books", scope })).toBe(false);
   });
 });

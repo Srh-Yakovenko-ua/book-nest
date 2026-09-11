@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  BookOrderStatisticsFinancialCoverage,
   BookOrderStatisticsTopOrder,
   BookOrderStatisticsTopOrdersByCurrency,
   Currency,
@@ -11,10 +12,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Link } from "@/i18n/navigation";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import type { StatisticsDrilldownContext } from "../../model/statistics-drilldown";
 
@@ -23,125 +25,148 @@ import { toOrderStatusBadge } from "../../model/order-status-badge";
 import { orderDrilldownLink } from "../../model/statistics-drilldown";
 import { StatisticsCurrencyBadge } from "./statistics-display-currency";
 import { StatisticsSection } from "./statistics-section";
-import { StatisticsSectionState } from "./statistics-states";
+import { StatisticsDataQualityNote, StatisticsSectionState } from "./statistics-states";
 
 const TOP_ORDERS = {
-  collapsedCount: 5,
   meta: " · ",
-  ranks: [
-    {
-      badge: "border-primary/60 bg-accent text-primary ring-4 ring-primary/10",
-      rank: 1,
-      sprig: "text-primary/70",
-    },
-    {
-      badge: "border-primary/40 bg-accent/70 text-primary ring-[3px] ring-primary/10",
-      rank: 2,
-      sprig: "text-primary/50",
-    },
-    {
-      badge: "border-primary/25 bg-accent/50 text-primary ring-2 ring-primary/5",
-      rank: 3,
-      sprig: "text-primary/40",
-    },
-  ],
+  pageButton: "aria-disabled:pointer-events-none aria-disabled:opacity-50",
+  pageSize: 5,
+  rankTones: {
+    first: "border-transparent bg-primary text-primary-foreground",
+    rest: "border-transparent bg-secondary text-muted-foreground",
+    second: "border-accent-border bg-accent text-accent-foreground",
+    third: "border-accent-border/50 bg-accent/50 text-accent-foreground",
+  },
+  row: "group grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1.5 rounded-md px-2 py-2.5 transition-colors outline-none hover:bg-accent/25 focus-visible:ring-[3px] focus-visible:ring-ring sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]",
 } as const;
 
 export function StatisticsTopOrders({
   currency,
   drilldown,
+  financialCoverageByCurrency,
+  scopeKey,
   topOrdersByCurrency,
 }: {
   currency: Currency;
   drilldown: StatisticsDrilldownContext;
+  financialCoverageByCurrency: readonly BookOrderStatisticsFinancialCoverage[];
+  scopeKey: string;
   topOrdersByCurrency: BookOrderStatisticsTopOrdersByCurrency;
 }) {
   const t = useTranslations("delivery.statistics.topOrders");
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [page, setPage] = useState(1);
+  const rankingScope = `${currency}|${scopeKey}`;
+  const [seenRankingScope, setSeenRankingScope] = useState(rankingScope);
 
-  const group = topOrdersByCurrency.find((entry) => entry.currency === currency);
-  const orders = group?.orders ?? [];
+  if (seenRankingScope !== rankingScope) {
+    setSeenRankingScope(rankingScope);
+    setPage(1);
+  }
+
+  const orders = topOrdersByCurrency.find((entry) => entry.currency === currency)?.orders ?? [];
   const peak = orders.at(0)?.totalAmount ?? 0;
-  const visible = orders.slice(0, TOP_ORDERS.collapsedCount);
-  const hidden = orders.slice(TOP_ORDERS.collapsedCount);
+
+  const pageCount = Math.max(1, Math.ceil(orders.length / TOP_ORDERS.pageSize));
+
+  if (page > pageCount) {
+    setPage(pageCount);
+  }
+
+  const currentPage = Math.min(page, pageCount);
+  const isFirstPage = currentPage === 1;
+  const isLastPage = currentPage === pageCount;
+  const firstIndex = (currentPage - 1) * TOP_ORDERS.pageSize;
+  const visible = orders.slice(firstIndex, firstIndex + TOP_ORDERS.pageSize);
+
+  const coverage = financialCoverageByCurrency.find((entry) => entry.currency === currency) ?? null;
+  const partialCoverage =
+    coverage !== null && coverage.ordersWithResolvedAmount < coverage.ordersInScope
+      ? coverage
+      : null;
 
   return (
     <StatisticsSection
       action={<StatisticsCurrencyBadge currency={currency} />}
+      className="flex h-full flex-col"
+      contentClassName="flex-1"
       description={t("subtitle")}
       title={t("title")}
     >
       {orders.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("emptyForCurrency", { currency })} />
       ) : (
-        <Collapsible onOpenChange={setIsExpanded} open={isExpanded}>
-          <ol className="flex flex-col divide-y divide-border">
+        <>
+          {orders.length <= TOP_ORDERS.pageSize ? null : (
+            <div className="flex items-center justify-end gap-2">
+              <span aria-live="polite" className="text-xs text-muted-foreground tabular-nums">
+                {t("pageRange", {
+                  from: firstIndex + 1,
+                  to: firstIndex + visible.length,
+                  total: orders.length,
+                })}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Button
+                  aria-disabled={isFirstPage}
+                  aria-label={t("previousPage")}
+                  className={TOP_ORDERS.pageButton}
+                  onClick={() => {
+                    if (isFirstPage) return;
+                    setPage(currentPage - 1);
+                  }}
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  <UiIcon name="chevron-left" size={16} />
+                </Button>
+                <Button
+                  aria-disabled={isLastPage}
+                  aria-label={t("nextPage")}
+                  className={TOP_ORDERS.pageButton}
+                  onClick={() => {
+                    if (isLastPage) return;
+                    setPage(currentPage + 1);
+                  }}
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  <UiIcon name="chevron-right" size={16} />
+                </Button>
+              </span>
+            </div>
+          )}
+
+          <ol className="flex flex-1 flex-col divide-y divide-border">
             {visible.map((order, index) => (
               <TopOrderRow
                 drilldown={drilldown}
                 key={order.id}
                 order={order}
                 peak={peak}
-                rank={index + 1}
+                rank={firstIndex + index + 1}
               />
             ))}
           </ol>
 
-          {hidden.length === 0 ? null : (
-            <>
-              <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down motion-reduce:animate-none">
-                <ol className="flex flex-col divide-y divide-border border-t border-border">
-                  {hidden.map((order, index) => (
-                    <TopOrderRow
-                      drilldown={drilldown}
-                      key={order.id}
-                      order={order}
-                      peak={peak}
-                      rank={TOP_ORDERS.collapsedCount + index + 1}
-                    />
-                  ))}
-                </ol>
-              </CollapsibleContent>
-
-              <CollapsibleTrigger className="mt-2 inline-flex cursor-pointer items-center gap-1 rounded-md text-xs font-medium text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
-                {isExpanded ? t("collapse") : t("expand", { count: hidden.length })}
-                <UiIcon aria-hidden name={isExpanded ? "chevron-up" : "chevron-down"} size={14} />
-              </CollapsibleTrigger>
-            </>
+          {partialCoverage === null ? null : (
+            <StatisticsDataQualityNote kind="partial">
+              {t("coverage", {
+                covered: partialCoverage.ordersWithResolvedAmount,
+                total: partialCoverage.ordersInScope,
+              })}
+            </StatisticsDataQualityNote>
           )}
-        </Collapsible>
+        </>
       )}
     </StatisticsSection>
   );
 }
 
-function RankBadge({ rank }: { rank: number }) {
-  const style = TOP_ORDERS.ranks.find((entry) => entry.rank === rank) ?? null;
-
-  if (style === null) {
-    return (
-      <span className="grid size-7 shrink-0 place-items-center self-start rounded-full border border-transparent bg-secondary text-xs font-semibold text-muted-foreground tabular-nums">
-        {rank}
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex shrink-0 flex-col items-center self-start">
-      <span
-        className={`grid size-7 place-items-center rounded-full border text-xs font-semibold tabular-nums ${style.badge}`}
-      >
-        {rank}
-      </span>
-      <UiIcon
-        aria-hidden
-        className={`-mt-0.5 ${style.sprig}`}
-        data-testid="rank-sprig"
-        name="sprig"
-        size={12}
-      />
-    </span>
-  );
+function rankToneOf(rank: number): string {
+  if (rank === 1) return TOP_ORDERS.rankTones.first;
+  if (rank === 2) return TOP_ORDERS.rankTones.second;
+  if (rank === 3) return TOP_ORDERS.rankTones.third;
+  return TOP_ORDERS.rankTones.rest;
 }
 
 function shareOf({ peak, value }: { peak: number; value: Nullable<number> }): number {
@@ -173,26 +198,37 @@ function TopOrderRow({
     .join(TOP_ORDERS.meta);
 
   const link = orderDrilldownLink({ context: drilldown, order });
-  const rowClass =
-    "grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-md py-2 transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 hover:[&_.text-ink]:text-primary";
 
   const body = (
     <>
-      <RankBadge rank={rank} />
-      <span className="flex min-w-0 flex-col gap-1">
-        <span className="truncate text-sm font-medium text-ink">
-          {order.orderNumber ?? t("untitledOrder")}
-        </span>
-        <span className="truncate text-xs text-muted-foreground">{meta}</span>
-        <ValueBar share={shareOf({ peak, value: order.totalAmount })} />
+      <span
+        className={cn(
+          "col-start-1 col-end-2 row-start-1 grid size-7 shrink-0 place-items-center self-start rounded-full border text-xs font-semibold tabular-nums sm:row-end-3",
+          rankToneOf(rank),
+        )}
+      >
+        {rank}
       </span>
-      <span className="flex shrink-0 flex-col items-end gap-1">
-        <span className="text-sm font-semibold text-ink tabular-nums">
-          {formatMoney({ amount: order.totalAmount, currency: order.currency, locale })}
-        </span>
-        <span className="opacity-80">
-          <StatusBadge entry={toOrderStatusBadge(order.derivedStatus, tStatus)} />
-        </span>
+      <span className="col-start-2 col-end-3 row-start-1 min-w-0 truncate text-sm font-medium text-ink">
+        {order.orderNumber ?? t("untitledOrder")}
+      </span>
+      <UiIcon
+        aria-hidden
+        className="col-start-3 col-end-4 row-start-1 self-start text-muted-foreground transition-colors group-hover:text-icon group-focus-visible:text-icon sm:col-start-4 sm:col-end-5 sm:row-end-4 sm:self-center"
+        name="chevron-right"
+        size={16}
+      />
+      <span className="col-start-2 col-end-4 row-start-2 min-w-0 truncate text-xs text-muted-foreground sm:col-end-3">
+        {meta}
+      </span>
+      <span className="col-start-2 col-end-4 row-start-3 text-sm font-semibold text-ink tabular-nums sm:col-start-3 sm:row-start-1 sm:justify-self-end">
+        {formatMoney({ amount: order.totalAmount, currency: order.currency, locale })}
+      </span>
+      <span className="col-start-2 col-end-4 row-start-4 sm:col-start-3 sm:row-start-2 sm:justify-self-end">
+        <StatusBadge entry={toOrderStatusBadge(order.derivedStatus, tStatus)} />
+      </span>
+      <span className="col-start-2 col-end-4 row-start-5 sm:row-start-3">
+        <ValueBar share={shareOf({ peak, value: order.totalAmount })} />
       </span>
     </>
   );
@@ -200,9 +236,9 @@ function TopOrderRow({
   return (
     <li>
       {link === null ? (
-        <div className={rowClass}>{body}</div>
+        <div className={TOP_ORDERS.row}>{body}</div>
       ) : (
-        <Link className={rowClass} href={link.href}>
+        <Link className={TOP_ORDERS.row} href={link.href}>
           {body}
         </Link>
       )}
@@ -212,7 +248,7 @@ function TopOrderRow({
 
 function ValueBar({ share }: { share: number }) {
   return (
-    <span aria-hidden className="block h-1.5 w-full rounded-full bg-accent">
+    <span aria-hidden className="block h-1.5 w-full rounded-full bg-accent/40">
       <span
         className="block h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none"
         data-testid="top-order-bar"

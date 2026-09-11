@@ -6,9 +6,13 @@
  * OpenAPI spec version: 1.0
  */
 import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemCurrency } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemCurrency";
-import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrder } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrder";
+import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItem } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItem";
 
 export type BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItem = {
   currency: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemCurrency;
-  order: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemOrder;
+  /**
+   * Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.
+   * @maxItems 3
+   */
+  winners: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItem[];
 };

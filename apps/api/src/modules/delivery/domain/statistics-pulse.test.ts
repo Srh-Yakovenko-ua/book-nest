@@ -145,6 +145,7 @@ function recordMonthOf(currency: Currency, total: number): BookOrderStatisticsRe
     drilldown: { targets: [] },
     month: "2026-03",
     ordersCount: 4,
+    range: { from: "2026-03-01", to: "2026-03-31" },
     total,
   };
 }

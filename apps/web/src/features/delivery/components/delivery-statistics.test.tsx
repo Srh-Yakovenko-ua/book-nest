@@ -31,14 +31,24 @@ const SECTION_ORDER = [
   "Витрачено",
   "Бюджет на книги",
   "Динаміка покупок",
-  "Як формується ціна книги",
-  "Рейтинг магазинів",
-  "Порівняння магазинів",
-  "Шлях замовлень",
-  "Активні замовлення за часом від оформлення",
   "Календар покупок",
+  "Що впливає на фактичну вартість книги",
+  "Магазини",
+  "Рейтинг магазинів",
+  "Ціна книги × середній чек",
+  "Статуси доставки",
+  "Активні замовлення: час від оформлення",
   "Рекорди",
   "Найдорожчі замовлення",
+];
+
+const STRETCHED_CARDS = [
+  "Активні замовлення: час від оформлення",
+  "Найдорожчі замовлення",
+  "Рейтинг магазинів",
+  "Рекорди",
+  "Статуси доставки",
+  "Ціна книги × середній чек",
 ];
 
 const EMPTY_VIEW = makeStatisticsView({
@@ -96,7 +106,7 @@ function rowOf(title: string): HTMLElement {
 }
 
 async function settle(): Promise<void> {
-  for (const title of ["Динаміка покупок", "Порівняння магазинів", "Календар покупок"]) {
+  for (const title of ["Динаміка покупок", "Ціна книги × середній чек", "Календар покупок"]) {
     await screen.findByText(title);
   }
 }
@@ -133,36 +143,46 @@ describe("DeliveryStatistics layout", () => {
     });
   });
 
-  it("keeps the insights inside the dynamics section instead of a side column", async () => {
+  it("puts the insights in their own card beside the dynamics chart, at the same height", async () => {
     renderStatistics();
     await settle();
 
-    const dynamics = cardOf("Динаміка покупок");
+    const dynamicsColumn = rowOf("Динаміка покупок");
+    const row = rowOf("Ключове за період");
 
-    expect(dynamics).toContainElement(screen.getByText("Ключове за період"));
-    expect(rowOf("Динаміка покупок").className).not.toContain("grid");
+    expect(cardOf("Динаміка покупок")).not.toContainElement(screen.getByText("Ключове за період"));
+    expect(dynamicsColumn.className).toContain("lg:col-span-2");
+    expect(dynamicsColumn.parentElement).toBe(row);
+    expect(row.className).toContain("lg:grid-cols-3");
+    expect(row).not.toHaveClass("items-start");
+    expect(dynamicsColumn).toHaveClass("grid");
   });
 
-  it("pairs the two store cards in one two-column row", async () => {
+  it("gathers both store cards under one section, with the ranking toggle above them", async () => {
     renderStatistics();
     await settle();
 
-    const row = rowOf("Рейтинг магазинів");
+    const rankingColumn = rowOf("Рейтинг магазинів");
+    const row = rowOf("Ціна книги × середній чек");
 
-    expect(rowOf("Порівняння магазинів")).toBe(row);
-    expect(row.className).toContain("lg:grid-cols-2");
-    expect(row.className).toContain("items-start");
+    expect(rankingColumn.parentElement).toBe(row);
+    expect(row.className).toContain("lg:grid-cols-[45fr_55fr]");
+    expect(row.className).toContain("items-stretch");
+    expect(cardOf("Магазини")).toContainElement(row);
+    expect(rankingColumn.firstElementChild).toHaveAttribute("data-slot", "segmented");
   });
 
   it("pairs the lifecycle cards in one two-column row", async () => {
     renderStatistics();
     await settle();
 
-    const row = rowOf("Шлях замовлень");
+    const row = rowOf("Статуси доставки");
 
-    expect(rowOf("Активні замовлення за часом від оформлення")).toBe(row);
+    expect(rowOf("Активні замовлення: час від оформлення")).toBe(row);
     expect(row.className).toContain("lg:grid-cols-2");
-    expect(row.className).toContain("items-start");
+    expect(row.className).toContain("items-stretch");
+    expect(cardOf("Статуси доставки").className).toContain("h-full");
+    expect(cardOf("Активні замовлення: час від оформлення").className).toContain("h-full");
   });
 
   it("gives the calendar a full-width row of its own", async () => {
@@ -184,18 +204,24 @@ describe("DeliveryStatistics layout", () => {
     const topOrders = rowOf("Найдорожчі замовлення");
 
     expect(row.className).toContain("lg:grid-cols-3");
-    expect(row.className).toContain("items-start");
+    expect(row.className).toContain("items-stretch");
     expect(topOrders.className).toContain("lg:col-span-2");
     expect(topOrders.parentElement).toBe(row);
+    expect(cardOf("Рекорди").className).toContain("h-full");
+    expect(cardOf("Найдорожчі замовлення").className).toContain("h-full");
   });
 
-  it("lets paired cards keep their natural height", async () => {
+  it("stretches only the pairs that share a height, and leaves every other card alone", async () => {
     renderStatistics();
     await settle();
 
     for (const title of SECTION_ORDER.slice(1)) {
+      if (STRETCHED_CARDS.includes(title)) continue;
       expect(cardOf(title).className).not.toContain("h-full");
     }
+
+    expect(cardOf("Рейтинг магазинів").className).toContain("flex-1");
+    expect(cardOf("Ціна книги × середній чек").className).toContain("h-full");
   });
 
   it("loads with a skeleton that follows the same order", () => {
@@ -207,10 +233,10 @@ describe("DeliveryStatistics layout", () => {
       screen.getByTestId("statistics-skeleton-kpi"),
       cardOf("Бюджет на книги"),
       screen.getByTestId("statistics-skeleton-dynamics"),
+      screen.getByTestId("statistics-skeleton-calendar"),
       screen.getByTestId("statistics-skeleton-costs"),
       screen.getByTestId("statistics-skeleton-stores"),
       screen.getByTestId("statistics-skeleton-lifecycle"),
-      screen.getByTestId("statistics-skeleton-calendar"),
       screen.getByTestId("statistics-skeleton-records"),
     ].reduce((previous, node) => {
       expect(follows(previous, node)).toBe(true);
@@ -238,7 +264,7 @@ describe("DeliveryStatistics query isolation", () => {
 
     expect(await screen.findByText("Не вдалося завантажити дані")).toBeInTheDocument();
     expect(await screen.findByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.getByText("Активні замовлення за часом від оформлення")).toBeInTheDocument();
+    expect(screen.getByText("Активні замовлення: час від оформлення")).toBeInTheDocument();
   });
 
   it("shows the budget while the period query is still loading", () => {
@@ -247,7 +273,7 @@ describe("DeliveryStatistics query isolation", () => {
     renderStatistics();
 
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.getByText("Активні замовлення за часом від оформлення")).toBeInTheDocument();
+    expect(screen.getByText("Активні замовлення: час від оформлення")).toBeInTheDocument();
   });
 
   it("keeps a failed budget inside its own card", async () => {
@@ -284,7 +310,7 @@ describe("DeliveryStatistics empty states", () => {
     expect(await screen.findByText("У вибраному періоді немає замовлень")).toBeInTheDocument();
     expect(screen.getByText("Витрачено")).toBeInTheDocument();
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
-    expect(screen.getByText("Активні замовлення за часом від оформлення")).toBeInTheDocument();
+    expect(screen.getByText("Активні замовлення: час від оформлення")).toBeInTheDocument();
     for (const title of ["Динаміка покупок", "Рейтинг магазинів", "Календар покупок", "Рекорди"]) {
       expect(screen.queryByText(title)).toBe(null);
     }
@@ -308,7 +334,7 @@ describe("DeliveryStatistics empty states", () => {
     expect(await screen.findByText("Покупок ще немає")).toBeInTheDocument();
     expect(screen.getByText("Бюджет на книги")).toBeInTheDocument();
     expect(screen.queryByText("Витрачено")).toBe(null);
-    expect(screen.queryByText("Активні замовлення за часом від оформлення")).toBe(null);
+    expect(screen.queryByText("Активні замовлення: час від оформлення")).toBe(null);
   });
 
   it("does not call an empty year an empty library", async () => {

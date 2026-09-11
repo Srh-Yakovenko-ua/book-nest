@@ -2,6 +2,7 @@
 
 import type { BookQuotesView, BookView } from "@app/shared";
 
+import { compareDesc, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -13,8 +14,8 @@ import { Link } from "@/i18n/navigation";
 
 import { useBookQuotes } from "../api/use-book-quotes";
 import { toQuoteBookOption } from "../model/quote-book";
-import { QuoteCard } from "./quote-card";
 import { QuoteDialog } from "./quote-dialog";
+import { BookQuoteCard } from "./quote/book-quote-card";
 
 const BOOK_QUOTES_PREVIEW_LIMIT = 3;
 
@@ -125,7 +126,7 @@ function BookQuotesList({
   if (view.items.length === 0) return <BookQuotesEmpty onAdd={onAdd} />;
 
   const latestQuotes = [...view.items]
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .sort((left, right) => compareDesc(parseISO(left.createdAt), parseISO(right.createdAt)))
     .slice(0, BOOK_QUOTES_PREVIEW_LIMIT);
 
   return (
@@ -133,7 +134,7 @@ function BookQuotesList({
       <ul className="flex flex-col gap-3">
         {latestQuotes.map((quote) => (
           <li key={quote.id}>
-            <QuoteCard maxPage={book.pagesCount ?? undefined} quote={quote} />
+            <BookQuoteCard maxPage={book.pagesCount ?? undefined} quote={quote} />
           </li>
         ))}
       </ul>
