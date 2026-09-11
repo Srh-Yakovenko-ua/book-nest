@@ -39,7 +39,9 @@ import { MediaViewSchema } from "./media.js";
 import { ORDER_FINANCIAL_MESSAGES, validateOrderInvariant } from "./order-financials.js";
 import {
   ActiveMoneyAgeBucketSchema,
+  BOOK_ORDER_RECORD_RULES,
   BookOrderStatisticsBestValueStoreByCurrencySchema,
+  BookOrderStatisticsBestValueStoreSchema,
   BookOrderStatisticsCompareModeSchema,
   BookOrderStatisticsComparisonSchema,
   BookOrderStatisticsCostsSchema,
@@ -1405,6 +1407,25 @@ export const BookOrderStatisticsLifecycleSchema = z
 
 export type BookOrderStatisticsLifecycle = z.infer<typeof BookOrderStatisticsLifecycleSchema>;
 
+const TIED_RECORD_WINNERS_DESCRIPTION =
+  "Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.";
+
+const tiedRecordWinners = <Winner extends z.ZodTypeAny>(winner: Winner) =>
+  z
+    .array(winner)
+    .max(BOOK_ORDER_RECORD_RULES.maxTiedWinners)
+    .describe(TIED_RECORD_WINNERS_DESCRIPTION);
+
+export const BookOrderStatisticsRecordMonthRangeSchema = z
+  .object({ from: isoDay(), to: isoDay() })
+  .describe(
+    "The calendar month intersected with the statistics period, so opening the record lands on exactly the orders it counted and never on days the period excluded.",
+  );
+
+export type BookOrderStatisticsRecordMonthRange = z.infer<
+  typeof BookOrderStatisticsRecordMonthRangeSchema
+>;
+
 export const BookOrderStatisticsRecordMonthSchema = z
   .object({
     booksCount: CountSchema,
@@ -1412,6 +1433,7 @@ export const BookOrderStatisticsRecordMonthSchema = z
     drilldown: StatisticsDrilldownBreakdownSchema,
     month: z.string(),
     ordersCount: CountSchema,
+    range: BookOrderStatisticsRecordMonthRangeSchema,
     total: z.number(),
   })
   .describe(
@@ -1420,13 +1442,31 @@ export const BookOrderStatisticsRecordMonthSchema = z
 
 export type BookOrderStatisticsRecordMonth = z.infer<typeof BookOrderStatisticsRecordMonthSchema>;
 
-export const BookOrderStatisticsCurrencyLargestOrderSchema = z.object({
+export const BookOrderStatisticsCurrencyRecordMonthsSchema = z.object({
   currency: CurrencySchema,
-  order: BookOrderStatisticsTopOrderSchema,
+  winners: tiedRecordWinners(BookOrderStatisticsRecordMonthSchema),
 });
 
-export type BookOrderStatisticsCurrencyLargestOrder = z.infer<
-  typeof BookOrderStatisticsCurrencyLargestOrderSchema
+export type BookOrderStatisticsCurrencyRecordMonths = z.infer<
+  typeof BookOrderStatisticsCurrencyRecordMonthsSchema
+>;
+
+export const BookOrderStatisticsCurrencyLargestOrdersSchema = z.object({
+  currency: CurrencySchema,
+  winners: tiedRecordWinners(BookOrderStatisticsTopOrderSchema),
+});
+
+export type BookOrderStatisticsCurrencyLargestOrders = z.infer<
+  typeof BookOrderStatisticsCurrencyLargestOrdersSchema
+>;
+
+export const BookOrderStatisticsCurrencyBestValueStoresSchema = z.object({
+  currency: CurrencySchema,
+  winners: tiedRecordWinners(BookOrderStatisticsBestValueStoreSchema),
+});
+
+export type BookOrderStatisticsCurrencyBestValueStores = z.infer<
+  typeof BookOrderStatisticsCurrencyBestValueStoresSchema
 >;
 
 export const BookOrderStatisticsStoreLeaderSchema = z.object({
@@ -1440,22 +1480,26 @@ export const BookOrderStatisticsStoreLeaderSchema = z.object({
 export type BookOrderStatisticsStoreLeader = z.infer<typeof BookOrderStatisticsStoreLeaderSchema>;
 
 export const BookOrderStatisticsMostActiveStoreSchema = z.object({
-  byBooks: BookOrderStatisticsStoreLeaderSchema.nullable(),
-  byOrders: BookOrderStatisticsStoreLeaderSchema.nullable(),
+  byBooks: tiedRecordWinners(BookOrderStatisticsStoreLeaderSchema),
+  byOrders: tiedRecordWinners(BookOrderStatisticsStoreLeaderSchema),
 });
 
 export type BookOrderStatisticsMostActiveStore = z.infer<
   typeof BookOrderStatisticsMostActiveStoreSchema
 >;
 
-export const BookOrderStatisticsRecordsSchema = z.object({
-  bestValueStoreByCurrency: BookOrderStatisticsBestValueStoreByCurrencySchema,
-  largestOrderByCurrency: z.array(BookOrderStatisticsCurrencyLargestOrderSchema),
-  mostActiveStore: BookOrderStatisticsMostActiveStoreSchema,
-  mostBooksInOrder: BookOrderStatisticsOrderIdentitySchema.nullable(),
-  recordMonthByCurrency: z.array(BookOrderStatisticsRecordMonthSchema),
-  scope: BookOrderStatisticsRecordScopeSchema,
-});
+export const BookOrderStatisticsRecordsSchema = z
+  .object({
+    bestValueStoreByCurrency: z.array(BookOrderStatisticsCurrencyBestValueStoresSchema),
+    largestOrderByCurrency: z.array(BookOrderStatisticsCurrencyLargestOrdersSchema),
+    mostActiveStore: BookOrderStatisticsMostActiveStoreSchema,
+    mostBooksInOrder: tiedRecordWinners(BookOrderStatisticsOrderIdentitySchema),
+    recordMonthByCurrency: z.array(BookOrderStatisticsCurrencyRecordMonthsSchema),
+    scope: BookOrderStatisticsRecordScopeSchema,
+  })
+  .describe(
+    "The six purchase records, each one a uniform array of equally valued winners. They are always counted without cancelled orders and cancelled items, whatever the global cancelled filter says, so a cancelled order can never hold a record.",
+  );
 
 export type BookOrderStatisticsRecords = z.infer<typeof BookOrderStatisticsRecordsSchema>;
 

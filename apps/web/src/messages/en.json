@@ -3788,6 +3788,8 @@
       "records": {
         "title": "Records",
         "books": "{count, plural, one {# book} other {# books}}",
+        "winnerLabel": "{record}: {value}",
+        "hintLabel": "How this record is counted",
         "scope": {
           "range": "Records among orders placed {range}.",
           "from": "Records among orders placed from {value}.",
@@ -3816,7 +3818,7 @@
           "helper": "{store} · averaged over {count, plural, one {# book} other {# books}}",
           "missing": "Not enough data",
           "missingHelper": "At least {count, plural, one {# book} other {# books}} from one store are needed.",
-          "action": "See this store's orders",
+          "action": "See orders from {store}",
           "note": "The record counts only books whose actual price is known."
         },
         "mostBooks": {
@@ -3831,17 +3833,22 @@
           "missing": "No order with a named store."
         },
         "mostActiveByBooks": {
-          "title": "Most books bought in one store"
+          "title": "Most books bought in one store",
+          "value": "{store} — {count, plural, one {# book} other {# books}}",
+          "helper": "{orders, plural, one {# order} other {# orders}}",
+          "missing": "No books from a named store."
         }
       },
       "topOrders": {
         "title": "Most expensive orders",
-        "subtitle": "Ranked by order total.",
+        "subtitle": "Ranked by the final order total.",
         "books": "{count, plural, one {# book} other {# books}}",
         "untitledOrder": "Order without a number",
-        "emptyForCurrency": "No orders in {currency}.",
-        "expand": "Show {count} more",
-        "collapse": "Collapse"
+        "coverage": "Ranked over {covered} of {total, plural, one {# order} other {# orders}} with a known final total.",
+        "emptyForCurrency": "No orders with a known final total in {currency} for the selected period.",
+        "pageRange": "{from}–{to} of {total}",
+        "previousPage": "Previous page",
+        "nextPage": "Next page"
       },
       "budget": {
         "available": "{value} available",

@@ -230,6 +230,10 @@ export const StatisticsDrilldownBreakdownSchema = z
 
 export type StatisticsDrilldownBreakdown = z.infer<typeof StatisticsDrilldownBreakdownSchema>;
 
+export const BOOK_ORDER_RECORD_RULES = {
+  maxTiedWinners: 3,
+} as const;
+
 export const BOOK_ORDER_BEST_VALUE_STORE_RULES = {
   minimumEligibleBooks: 2,
   tieBreakOrder: [

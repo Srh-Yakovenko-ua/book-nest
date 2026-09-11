@@ -27,8 +27,8 @@ const ALL_TIME_SCOPE = {
 const EMPTY_RECORDS: BookOrderStatisticsRecords = {
   bestValueStoreByCurrency: [],
   largestOrderByCurrency: [],
-  mostActiveStore: { byBooks: null, byOrders: null },
-  mostBooksInOrder: null,
+  mostActiveStore: { byBooks: [], byOrders: [] },
+  mostBooksInOrder: [],
   recordMonthByCurrency: [],
   scope: QUIET_SCOPE,
 };
@@ -44,44 +44,51 @@ const LARGEST_ORDER = {
   totalAmount: 5200,
 };
 
+const STORE_LEADER = {
+  booksCount: 20,
+  drilldown: { targets: [] },
+  ordersCount: 9,
+  store: "Yakaboo",
+  storeKey: "yakaboo",
+};
+
 const RICH_RECORDS: BookOrderStatisticsRecords = {
   ...EMPTY_RECORDS,
   bestValueStoreByCurrency: [
     {
-      averageLandedBookCost: 620,
       currency: "UAH",
-      drilldown: { targets: [] },
-      eligibleBooksCount: 9,
-      store: "Vivat",
-      storeKey: "vivat",
+      winners: [
+        {
+          averageLandedBookCost: 620,
+          currency: "UAH",
+          drilldown: { targets: [] },
+          eligibleBooksCount: 9,
+          store: "Vivat",
+          storeKey: "vivat",
+        },
+      ],
     },
   ],
-  largestOrderByCurrency: [{ currency: "UAH", order: LARGEST_ORDER }],
+  largestOrderByCurrency: [{ currency: "UAH", winners: [LARGEST_ORDER] }],
   mostActiveStore: {
-    byBooks: {
-      booksCount: 20,
-      drilldown: { targets: [] },
-      ordersCount: 9,
-      store: "Yakaboo",
-      storeKey: "yakaboo",
-    },
-    byOrders: {
-      booksCount: 20,
-      drilldown: { targets: [] },
-      ordersCount: 9,
-      store: "Yakaboo",
-      storeKey: "yakaboo",
-    },
+    byBooks: [STORE_LEADER],
+    byOrders: [STORE_LEADER],
   },
-  mostBooksInOrder: { ...LARGEST_ORDER, booksCount: 11, id: "order-most-books" },
+  mostBooksInOrder: [{ ...LARGEST_ORDER, booksCount: 11, id: "order-most-books" }],
   recordMonthByCurrency: [
     {
-      booksCount: 20,
       currency: "UAH",
-      drilldown: { targets: [] },
-      month: "2026-03",
-      ordersCount: 9,
-      total: 12000,
+      winners: [
+        {
+          booksCount: 20,
+          currency: "UAH",
+          drilldown: { targets: [] },
+          month: "2026-03",
+          ordersCount: 9,
+          range: { from: "2026-03-01", to: "2026-03-31" },
+          total: 12000,
+        },
+      ],
     },
   ],
 };

@@ -3788,6 +3788,8 @@
       "records": {
         "title": "Рекорди",
         "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "winnerLabel": "{record}: {value}",
+        "hintLabel": "Як рахується рекорд",
         "scope": {
           "range": "Рекорди серед замовлень, оформлених {range}",
           "from": "Рекорди серед замовлень, оформлених від {value}",
@@ -3816,7 +3818,7 @@
           "helper": "{store} · середнє за {count, plural, one {# книгою} few {# книгами} many {# книгами} other {# книгами}}",
           "missing": "Недостатньо даних",
           "missingHelper": "Потрібно щонайменше {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} в одному магазині.",
-          "action": "Переглянути замовлення магазину",
+          "action": "Переглянути замовлення магазину {store}",
           "note": "Рекорд рахується лише за книгами з відомою фактичною ціною."
         },
         "mostBooks": {
@@ -3831,17 +3833,22 @@
           "missing": "Немає замовлень із вказаним магазином."
         },
         "mostActiveByBooks": {
-          "title": "Найбільше книг куплено в магазині"
+          "title": "Найбільше книг куплено в магазині",
+          "value": "{store} — {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+          "helper": "{orders, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}}",
+          "missing": "Немає книг із вказаним магазином."
         }
       },
       "topOrders": {
         "title": "Найдорожчі замовлення",
-        "subtitle": "Рейтинг за сумою замовлення.",
+        "subtitle": "Рейтинг за підсумковою сумою замовлення.",
         "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
         "untitledOrder": "Замовлення без номера",
-        "emptyForCurrency": "У валюті {currency} немає замовлень.",
-        "expand": "Показати ще {count}",
-        "collapse": "Згорнути"
+        "coverage": "Рейтинг сформовано для {covered} із {total, plural, one {# замовлення} few {# замовлення} many {# замовлень} other {# замовлень}} із відомою підсумковою сумою.",
+        "emptyForCurrency": "Немає замовлень із відомою підсумковою сумою в {currency} за вибраний період.",
+        "pageRange": "{from}–{to} із {total}",
+        "previousPage": "Попередня сторінка",
+        "nextPage": "Наступна сторінка"
       },
       "budget": {
         "available": "Доступно {value}",

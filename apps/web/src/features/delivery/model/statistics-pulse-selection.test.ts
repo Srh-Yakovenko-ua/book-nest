@@ -144,8 +144,8 @@ function recordsOf(
   return {
     bestValueStoreByCurrency: [],
     largestOrderByCurrency: [],
-    mostActiveStore: { byBooks: null, byOrders: null },
-    mostBooksInOrder: null,
+    mostActiveStore: { byBooks: [], byOrders: [] },
+    mostBooksInOrder: [],
     recordMonthByCurrency: [],
     scope: SCOPE,
     ...overrides,
@@ -165,25 +165,39 @@ function storeLeaderOf(store: string) {
 const FULL_RECORDS = recordsOf({
   bestValueStoreByCurrency: [
     {
-      averageLandedBookCost: 620,
       currency: "UAH",
-      drilldown: { targets: [] },
-      eligibleBooksCount: 9,
-      store: "Vivat",
-      storeKey: "vivat",
+      winners: [
+        {
+          averageLandedBookCost: 620,
+          currency: "UAH",
+          drilldown: { targets: [] },
+          eligibleBooksCount: 9,
+          store: "Vivat",
+          storeKey: "vivat",
+        },
+      ],
     },
   ],
-  largestOrderByCurrency: [{ currency: "UAH", order: orderOf("order-largest") }],
-  mostActiveStore: { byBooks: storeLeaderOf("Yakaboo"), byOrders: storeLeaderOf("Yakaboo") },
-  mostBooksInOrder: orderOf("order-most-books", { booksCount: 11 }),
+  largestOrderByCurrency: [{ currency: "UAH", winners: [orderOf("order-largest")] }],
+  mostActiveStore: {
+    byBooks: [storeLeaderOf("Yakaboo")],
+    byOrders: [storeLeaderOf("Yakaboo")],
+  },
+  mostBooksInOrder: [orderOf("order-most-books", { booksCount: 11 })],
   recordMonthByCurrency: [
     {
-      booksCount: 20,
       currency: "UAH",
-      drilldown: { targets: [] },
-      month: "2026-03",
-      ordersCount: 9,
-      total: 12000,
+      winners: [
+        {
+          booksCount: 20,
+          currency: "UAH",
+          drilldown: { targets: [] },
+          month: "2026-03",
+          ordersCount: 9,
+          range: { from: "2026-03-01", to: "2026-03-31" },
+          total: 12000,
+        },
+      ],
     },
   ],
 });
@@ -323,7 +337,7 @@ describe("selectPulseEntries without a comparison period", () => {
     const entries = select({
       currency: "EUR",
       records: recordsOf({
-        largestOrderByCurrency: [{ currency: "EUR", order: orderOf("order-eur") }],
+        largestOrderByCurrency: [{ currency: "EUR", winners: [orderOf("order-eur")] }],
         recordMonthByCurrency: FULL_RECORDS.recordMonthByCurrency,
       }),
     });

@@ -9,10 +9,10 @@
 /**
  * The one lifecycle state of a whole order, derived from its live books and their parcels. Statistics filters, the lifecycle chart and every drill-down read this same state, so a chart and the list it opens can never disagree. active means nothing has been dispatched yet.
  */
-export type BookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus =
-  (typeof BookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus)[keyof typeof BookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus];
+export type BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus =
+  (typeof BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus)[keyof typeof BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus];
 
-export const BookOrderStatisticsViewDtoRecordsMostBooksInOrderDerivedStatus = {
+export const BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItemWinnersItemDerivedStatus = {
   active: "active",
   partially_shipped: "partially_shipped",
   shipped: "shipped",

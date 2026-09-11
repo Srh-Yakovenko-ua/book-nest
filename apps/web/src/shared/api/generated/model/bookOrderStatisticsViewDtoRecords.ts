@@ -8,19 +8,22 @@
 import type { BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItem } from "./bookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItem";
 import type { BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItem } from "./bookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItem";
 import type { BookOrderStatisticsViewDtoRecordsMostActiveStore } from "./bookOrderStatisticsViewDtoRecordsMostActiveStore";
-import type { BookOrderStatisticsViewDtoRecordsMostBooksInOrder } from "./bookOrderStatisticsViewDtoRecordsMostBooksInOrder";
+import type { BookOrderStatisticsViewDtoRecordsMostBooksInOrderItem } from "./bookOrderStatisticsViewDtoRecordsMostBooksInOrderItem";
 import type { BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItem } from "./bookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItem";
 import type { BookOrderStatisticsViewDtoRecordsScope } from "./bookOrderStatisticsViewDtoRecordsScope";
 
+/**
+ * The six purchase records, each one a uniform array of equally valued winners. They are always counted without cancelled orders and cancelled items, whatever the global cancelled filter says, so a cancelled order can never hold a record.
+ */
 export type BookOrderStatisticsViewDtoRecords = {
   bestValueStoreByCurrency: BookOrderStatisticsViewDtoRecordsBestValueStoreByCurrencyItem[];
   largestOrderByCurrency: BookOrderStatisticsViewDtoRecordsLargestOrderByCurrencyItem[];
   mostActiveStore: BookOrderStatisticsViewDtoRecordsMostActiveStore;
   /**
-   * One order named by its id, which is what navigation uses. orderNumber is a label a user may never have filled in and never decides whether the order can be opened.
-   * @nullable
+   * Every equally valued holder of this record, already ranked deterministically and capped at three. An empty array means the record has no holder at all, and a shorter array is never padded with lower non-tied results.
+   * @maxItems 3
    */
-  mostBooksInOrder: BookOrderStatisticsViewDtoRecordsMostBooksInOrder;
+  mostBooksInOrder: BookOrderStatisticsViewDtoRecordsMostBooksInOrderItem[];
   recordMonthByCurrency: BookOrderStatisticsViewDtoRecordsRecordMonthByCurrencyItem[];
   /** Bounds of a record fact. When isPeriodFiltered or isTruncated is true the record holds only inside this scope and must not be presented as an all-time record. */
   scope: BookOrderStatisticsViewDtoRecordsScope;

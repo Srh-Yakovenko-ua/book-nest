@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 import type { StatisticsDrilldownContext } from "../model/statistics-drilldown";
 import type { DynamicsMetric } from "../model/statistics-dynamics";
+import type { DeliveryStatisticsQueryState } from "../model/statistics-params";
 import type { StatisticsScopeState } from "../model/statistics-scope-state";
 import type { StoreMetric } from "../model/statistics-stores";
 import type { UseStatisticsParamsResult } from "../model/use-statistics-params";
@@ -360,20 +361,34 @@ function StatisticsBody({
         {activeAgeCard}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
         <StatisticsRecords
           currency={displayCurrency}
           drilldown={drilldown}
           records={view.records}
         />
-        <div className="lg:col-span-2">
+        <div className="flex h-full flex-col lg:col-span-2">
           <StatisticsTopOrders
             currency={displayCurrency}
             drilldown={drilldown}
+            financialCoverageByCurrency={view.summary.financialCoverageByCurrency}
+            scopeKey={statisticsScopeKey(params.state)}
             topOrdersByCurrency={view.topOrdersByCurrency}
           />
         </div>
       </div>
     </div>
   );
+}
+
+function statisticsScopeKey(state: DeliveryStatisticsQueryState): string {
+  return [
+    state.period,
+    state.from,
+    state.to,
+    state.currency ?? "",
+    state.orderState ?? "",
+    state.store.trim(),
+    String(state.includeCancelled),
+  ].join("|");
 }

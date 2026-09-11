@@ -44,7 +44,9 @@ const SECTION_ORDER = [
 
 const STRETCHED_CARDS = [
   "Активні замовлення: час від оформлення",
+  "Найдорожчі замовлення",
   "Рейтинг магазинів",
+  "Рекорди",
   "Статуси доставки",
   "Ціна книги × середній чек",
 ];
@@ -202,9 +204,11 @@ describe("DeliveryStatistics layout", () => {
     const topOrders = rowOf("Найдорожчі замовлення");
 
     expect(row.className).toContain("lg:grid-cols-3");
-    expect(row.className).toContain("items-start");
+    expect(row.className).toContain("items-stretch");
     expect(topOrders.className).toContain("lg:col-span-2");
     expect(topOrders.parentElement).toBe(row);
+    expect(cardOf("Рекорди").className).toContain("h-full");
+    expect(cardOf("Найдорожчі замовлення").className).toContain("h-full");
   });
 
   it("stretches only the pairs that share a height, and leaves every other card alone", async () => {

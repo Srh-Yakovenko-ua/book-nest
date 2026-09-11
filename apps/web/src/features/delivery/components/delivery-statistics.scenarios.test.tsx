@@ -209,7 +209,7 @@ describe("Scenario C — order-state filter", () => {
     await settle();
 
     expect(
-      within(cardOf("Рекорди")).getByRole("link", { name: "Найбільше замовлень у магазині" }),
+      within(cardOf("Рекорди")).getByRole("link", { name: /^Найбільше замовлень у магазині: / }),
     ).toHaveAttribute("href", expect.stringContaining("orderState=partially_shipped"));
   });
 });
@@ -275,8 +275,8 @@ describe("Scenario G — truncated source", () => {
     await settle();
 
     const records = within(cardOf("Рекорди"));
-    expect(records.queryByRole("link", { name: "Найбільше замовлень у магазині" })).toBe(null);
-    expect(records.getByRole("link", { name: "Найдорожче замовлення" })).toHaveAttribute(
+    expect(records.queryByRole("link", { name: /^Найбільше замовлень у магазині: / })).toBe(null);
+    expect(records.getByRole("link", { name: /^Найдорожче замовлення: / })).toHaveAttribute(
       "href",
       expect.stringContaining("orderId=order-uah-1"),
     );
@@ -332,7 +332,7 @@ describe("Scenario J — background refresh", () => {
     await settle();
 
     expect(
-      within(cardOf("Рекорди")).getByRole("link", { name: "Найдорожче замовлення" }),
+      within(cardOf("Рекорди")).getByRole("link", { name: /^Найдорожче замовлення: / }),
     ).toBeInTheDocument();
 
     handlers.statistics = hangs;
@@ -340,9 +340,9 @@ describe("Scenario J — background refresh", () => {
 
     expect(await screen.findByText("Оновлюємо статистику…")).toBeInTheDocument();
     expect(within(cardOf("Витрачено")).getByText("12 000 UAH")).toBeInTheDocument();
-    expect(within(cardOf("Рекорди")).queryByRole("link", { name: "Найдорожче замовлення" })).toBe(
-      null,
-    );
+    expect(
+      within(cardOf("Рекорди")).queryByRole("link", { name: /^Найдорожче замовлення: / }),
+    ).toBe(null);
   });
 
   it("gives the links back once the new data lands", async () => {
@@ -358,7 +358,7 @@ describe("Scenario J — background refresh", () => {
     await user.click(screen.getByRole("switch", { name: "Порівняти" }));
 
     expect(
-      await within(cardOf("Рекорди")).findByRole("link", { name: "Найдорожче замовлення" }),
+      await within(cardOf("Рекорди")).findByRole("link", { name: /^Найдорожче замовлення: / }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Оновлюємо статистику…")).toBe(null);
   });
