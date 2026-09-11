@@ -979,6 +979,126 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Цитати, які повертаються",
     version: null,
   },
+  {
+    bodyEn:
+      "The quotes page used to narrow the list to one book at a time. The Filters button now opens a panel where you can pick several books, several authors and a range of dates the quotes were added in, and it offers only the books and authors you actually have quotes from. The quick filters now carry counts, so before you click you can see how many quotes each one would show. Active filters appear as removable chips that you can clear one by one or all at once with Clear all, and a line beneath them says how many quotes are shown out of how many. Clearing filters no longer resets your sort order.",
+    bodyUk:
+      "Раніше список цитат можна було звузити лише до однієї книги. Тепер кнопка «Фільтри» відкриває панель, де можна обрати кілька книг, кілька авторів і проміжок дат, коли цитати було додано, причому там є тільки ті книги й автори, цитати з яких у вас справді є. Швидкі фільтри тепер мають лічильники, тож ще до кліку видно, скільки цитат покаже кожен. Активні фільтри з'являються знімними чипами, які можна прибрати по одному або всі разом кнопкою «Очистити все», а рядок під ними підказує, скільки цитат показано і скільки їх усього. Скидання фільтрів більше не змінює сортування.",
+    category: "feature",
+    publishedAt: "2026-09-11T00:00:01.000Z",
+    slug: "quotes-filters-sheet",
+    titleEn: "More ways to filter quotes",
+    titleUk: "Більше способів фільтрувати цитати",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The quotes page has a Grid and List switch in the toolbar. Grid keeps two equal columns, and List gives every quote the full width. Cards now keep the same width whether a quote runs two lines or twenty. Numbered pages are gone: the list grows with a Load more button, as on the dedications page, and changing a filter takes you back to the start of the list. The button for adding a quote has moved out of the filter bar into the page header.",
+    bodyUk:
+      "На панелі інструментів сторінки цитат з'явився перемикач між сіткою та списком. У сітці дві однакові колонки, а в списку кожна цитата займає всю ширину. Картки тепер однакової ширини, чи то цитата на два рядки, чи на двадцять. Нумерованих сторінок більше немає: список доповнюється кнопкою «Показати ще», як на сторінці присвят, а зміна фільтра повертає вас на початок списку. Кнопка додавання цитати переїхала з панелі фільтрів до заголовка сторінки.",
+    category: "improvement",
+    publishedAt: "2026-09-11T00:00:02.000Z",
+    slug: "quotes-grid-list-view",
+    titleEn: "Quotes as a grid or a list",
+    titleUk: "Цитати сіткою або списком",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The summary row on the quotes page used to repeat the numbers the quick filters already show. It now has four cards: how many books you have quotes from, how many quotes such a book gets on average, the book you quote most and the author you quote most. A quote from a book with two authors counts for both of them. When several books or authors share the top count, the card tells you how many share it instead of naming one, and when every book holds a single quote it says so. The statistics block in the side panel is gone, since the cards now cover it.",
+    bodyUk:
+      "Рядок підсумків на сторінці цитат раніше повторював ті самі числа, що вже є на швидких фільтрах. Тепер у ньому чотири картки: зі скількох книг у вас є цитати, скільки цитат у середньому припадає на таку книгу, книга, з якої у вас найбільше цитат, і автор, якого ви цитуєте найчастіше. Цитата з книги двох авторів зараховується кожному з них. Якщо першість ділять кілька книг чи авторів, картка не називає когось одного, а показує, скільки їх. Коли ж у кожній книзі лише по одній цитаті, картка так і каже. Блок статистики в бічній панелі прибрано, бо картки його замінили.",
+    category: "feature",
+    publishedAt: "2026-09-11T00:00:03.000Z",
+    slug: "quotes-overview-cards",
+    titleEn: "A summary of your quotes",
+    titleUk: "Підсумки ваших цитат",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Deleting a search down to one character used to leave the list filtered by the longer search from a moment before, so the field and the results no longer matched. The only ways out were the clear button or typing a second character back. Now a search that is too short to run clears the search, so the list always matches what the field shows. On the quotes page the search hint also tells you what it looks through: the quote, the book, the author and your comment.",
+    bodyUk:
+      "Коли ви стирали пошук до одного символу, список лишався відфільтрованим за попереднім, довшим запитом, і поле пошуку розходилося з результатами. Позбутися цього можна було лише кнопкою очищення або дописавши другий символ. Тепер надто короткий запит просто скидає пошук, тож список завжди відповідає тому, що написано в полі. А на сторінці цитат підказка в полі пошуку тепер пояснює, що шукати можна за цитатою, книгою, автором або коментарем.",
+    category: "fix",
+    publishedAt: "2026-09-11T00:00:04.000Z",
+    slug: "search-short-draft",
+    titleEn: "Search after erasing letters",
+    titleUk: "Пошук після стирання літер",
+    version: null,
+  },
+  {
+    bodyEn:
+      "In the purchase dynamics section of the spending statistics page, the chart now has a card beside it, and on a phone or tablet the card moves below the chart. When you are not comparing periods, the card lists up to three key facts of the period, such as the month you spent the most in. When you compare, it lists up to four noticeable changes, and if there are none it falls back to the key facts instead of staying empty. The hint over a bar now names that bar's own period and shows its value, plus the matching value from the period you compare with. The percent change in that hint is fixed too: growth of 5,206% used to read as 52.1%.",
+    bodyUk:
+      "У розділі «Динаміка покупок» на сторінці статистики витрат поруч із графіком тепер є окрема картка, а на телефоні й планшеті вона опускається під графік. Коли порівняння вимкнене, картка показує до трьох ключових фактів за період, наприклад місяць із найбільшими витратами. Коли ви порівнюєте періоди, вона показує до чотирьох помітних змін, а якщо таких немає, повертається до ключових фактів і не лишається порожньою. Підказка над стовпчиком тепер називає період саме цього стовпчика й показує його значення, а під час порівняння ще й значення з відповідного періоду. Виправлено й відсоток зміни в цій підказці: зростання на 5206% раніше показувалося як 52,1%.",
+    category: "improvement",
+    publishedAt: "2026-09-11T00:00:05.000Z",
+    slug: "spending-dynamics-insights",
+    titleEn: "Insights beside purchase dynamics",
+    titleUk: "Висновки поруч із динамікою покупок",
+    version: null,
+  },
+  {
+    bodyEn:
+      "On the spending statistics page, the block about what drives the actual cost of a book now takes you step by step from a book's average starting price to its actual cost. In between you see how much discounts, delivery and the gap with the order total moved the price, and the page says in words how far above or below the starting price the actual cost ended up. The delivery and discount cards below it are more detailed now. For delivery you see how many orders had it, how much delivery comes to per book on average and its share of all spend. For discounts you see how many orders had one, what share of the book price before the discount they made up and how much you saved per book on average.",
+    bodyUk:
+      "На сторінці статистики витрат блок «Що впливає на фактичну вартість книги» тепер крок за кроком веде від середньої початкової ціни книги до її фактичної вартості. Між ними видно, наскільки ціну змінили знижки, доставка та різниця з підсумком замовлення, і словами пояснено, на скільки фактична вартість вийшла дорожчою чи дешевшою за початкову ціну. Картки із загальними сумами доставки та знижок під ним тепер докладніші. Для доставки видно, скільки замовлень було з доставкою, скільки доставки в середньому припадає на одну книгу і яку частку всіх витрат вона становить. Для знижок видно, скільки замовлень було зі знижкою, яку частку від ціни книг до знижки вони становили і скільки в середньому заощаджено на одній книзі.",
+    category: "improvement",
+    publishedAt: "2026-09-11T00:00:06.000Z",
+    slug: "spending-price-bridge",
+    titleEn: "From starting price to actual cost",
+    titleUk: "Від початкової ціни до фактичної вартості",
+    version: null,
+  },
+  {
+    bodyEn:
+      "On the spending statistics page, the store ranking and the store comparison now sit together in one Stores section, and the ranking pages through five stores at a time. Each store in the ranking shows the actual cost per book when you rank by spend, or books per order when you rank by orders or books. In the ranking by spend, the best value store is marked with a crown. The comparison chart now has labelled axes, so it is clear it sets the actual cost per book in a store against its average order. Clicking a store's point or choosing it from the keyboard now keeps the link to that store's orders open under the chart, where it used to vanish as soon as you moved the pointer toward it. The note on why some stores are missing from the chart now opens with a tap too.",
+    bodyUk:
+      "На сторінці статистики витрат рейтинг магазинів і їх порівняння тепер зібрані в одному розділі «Магазини», а рейтинг гортається по п'ять магазинів на сторінку. Кожен магазин у рейтингу показує фактичну вартість книги, коли обрано «Витрати», або скільки книг припадає на замовлення, коли обрано «Замовлення» чи «Книги». У рейтингу за витратами найвигідніший магазин позначено короною. Діаграма порівняння тепер має підписані осі, тож одразу видно, що вона зіставляє фактичну вартість книги в магазині із середнім чеком. Якщо натиснути на точку магазину або вибрати її з клавіатури, посилання на його замовлення тепер лишається під діаграмою, хоча раніше зникало, щойно ви вели до нього курсор. Пояснення, чому деяких магазинів немає на діаграмі, тепер відкривається й дотиком.",
+    category: "improvement",
+    publishedAt: "2026-09-11T00:00:07.000Z",
+    slug: "spending-store-comparison",
+    titleEn: "Stores ranked and compared",
+    titleUk: "Рейтинг і порівняння магазинів",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The purchase calendar now sits higher on the spending statistics page, and under the legend it says how many orders it left out because they have no order date. If the calendar is empty, it tells you why: nothing was bought in the selected period, one year inside a longer period had no purchases, or none of your orders has an order date. Shading now follows how your active days are spread, so one very busy day no longer turns every other day pale, and two days with similar activity get a similar shade. Only the months the period covers get a label, and on a short period the label no longer disappears.",
+    bodyUk:
+      "Календар покупок тепер стоїть вище на сторінці статистики витрат, а під легендою видно, скільки замовлень він не показав, бо в них немає дати оформлення. Якщо календар порожній, він пояснює причину: за вибраний період нічого не куплено, в одному з років довшого періоду покупок не було або жодне ваше замовлення не має дати оформлення. Насиченість кольору тепер залежить від того, як розподілені ваші активні дні, тож один дуже активний день більше не робить блідими всі інші, а два дні зі схожою активністю мають схожий відтінок. Підпис отримують лише ті місяці, які охоплює період, і в короткому періоді він більше не зникає.",
+    category: "improvement",
+    publishedAt: "2026-09-11T00:00:08.000Z",
+    slug: "purchase-calendar-coverage",
+    titleEn: "A clearer purchase calendar",
+    titleUk: "Зрозуміліший календар покупок",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Records on the spending statistics page now leave out everything cancelled, so neither a cancelled order nor a cancelled book in an order can set a record, even when the rest of the page counts cancelled orders. When several results are tied, the record shows up to three of them. The record for the most books bought in one store now appears as well. Clicking the highest spending month opens the orders from only the part of that month inside the period you chose. The most expensive orders now come five per page, and the ranking numbers carry on from one page to the next.",
+    bodyUk:
+      "Рекорди на сторінці статистики витрат тепер не враховують нічого скасованого, тож ні скасоване замовлення, ні скасована книга в замовленні більше не можуть встановити рекорд, навіть коли решта сторінки враховує скасовані замовлення. Якщо кілька результатів рівні, у рекорді видно до трьох із них. Також з'явився рекорд за кількістю книг, куплених в одному магазині. Клік по місяцю з найбільшими витратами відкриває замовлення лише за ту частину місяця, яка входить у вибраний період. Найдорожчі замовлення тепер розбиті на сторінки по п'ять, і нумерація місць не починається заново на кожній сторінці.",
+    category: "improvement",
+    publishedAt: "2026-09-11T00:00:09.000Z",
+    slug: "spending-records-ties",
+    titleEn: "Records and the most expensive orders",
+    titleUk: "Рекорди й найдорожчі замовлення",
+    version: null,
+  },
+  {
+    bodyEn:
+      "On the spending statistics page, the longest bar in the delivery statuses and active orders blocks always filled its whole track, even when the number beside it said something else. Every bar now shows its real share of the total. The active orders block keeps all four age groups visible even when some are empty, and orders without an order date sit apart under a divider. When you compare periods, each delivery status shows how much its count went up or down, and on a wide screen the two cards now line up at the same height.",
+    bodyUk:
+      "На сторінці статистики витрат найдовша смуга в блоках «Статуси доставки» та «Активні замовлення» завжди заповнювала всю шкалу, хоча число поруч показувало інше. Тепер кожна смуга показує справжню частку від загальної кількості. Блок активних замовлень показує всі чотири групи за часом від оформлення, навіть якщо якась із них порожня, а замовлення без дати оформлення стоять окремо, під роздільною лінією. Під час порівняння періодів кожен статус доставки показує, на скільки змінилася його кількість, а на широкому екрані обидві картки тепер однакової висоти.",
+    category: "fix",
+    publishedAt: "2026-09-11T00:00:10.000Z",
+    slug: "delivery-status-bars-share",
+    titleEn: "Delivery bars show the real share",
+    titleUk: "Смуги доставки показують справжню частку",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
