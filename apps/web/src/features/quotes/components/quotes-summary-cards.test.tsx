@@ -23,8 +23,8 @@ const SUMMARY: QuotesSummaryView = {
   favoritesCount: 4,
   quotedBooksCount: 8,
   spoilerCount: 1,
-  topAuthor: { id: "author-1", name: "Френк Герберт", quotesCount: 9, tiedCount: 0 },
-  topBook: { id: "book-1", quotesCount: 5, tiedCount: 0, title: "Дюна" },
+  topAuthor: { leadersCount: 1, name: "Френк Герберт", quotesCount: 9 },
+  topBook: { leadersCount: 1, quotesCount: 5, title: "Дюна" },
   totalCount: 23,
   withCommentCount: 6,
   withoutSpoilerCount: 22,
@@ -121,6 +121,9 @@ describe("QuotesSummaryCards", () => {
     for (const card of statCards()) {
       expect(card).not.toHaveAttribute("role");
       expect(card).not.toHaveAttribute("tabindex");
+      expect(card.querySelector("a")).toBeNull();
+      expect(card.querySelector("a[href]")).toBeNull();
+      expect(card.querySelector("[tabindex]")).toBeNull();
       expect(iconOf(card)).not.toContain("chevron");
     }
   });
@@ -172,40 +175,73 @@ describe("QuotesSummaryCards", () => {
     expect(cardAt(3)).toHaveTextContent("Френк Герберт");
   });
 
-  it("says how many rivals share the top count", () => {
+  it("counts the leading books instead of naming a winner when they tie", () => {
     renderCards({
-      summary: {
-        ...SUMMARY,
-        topAuthor: { id: "author-1", name: "Френк Герберт", quotesCount: 9, tiedCount: 1 },
-        topBook: { id: "book-1", quotesCount: 5, tiedCount: 2, title: "Дюна" },
-      },
+      summary: { ...SUMMARY, topBook: { leadersCount: 3, quotesCount: 5, title: null } },
     });
 
-    expect(cardAt(2)).toHaveTextContent("Дюна · ще 2 книги");
-    expect(cardAt(3)).toHaveTextContent("Френк Герберт · ще 1 автор");
+    expect(cardAt(2)).toHaveTextContent("3 книги мають максимум");
+    expect(cardAt(2)).not.toHaveTextContent("Дюна");
   });
 
-  it("pluralizes a large tie", () => {
+  it("counts the leading authors instead of naming a winner when they tie", () => {
     renderCards({
       summary: {
         ...SUMMARY,
-        topAuthor: { id: "author-1", name: "Френк Герберт", quotesCount: 9, tiedCount: 5 },
-        topBook: { id: "book-1", quotesCount: 5, tiedCount: 5, title: "Дюна" },
+        topAuthor: { leadersCount: 5, name: null, quotesCount: 9 },
       },
     });
 
-    expect(cardAt(2)).toHaveTextContent("Дюна · ще 5 книг");
-    expect(cardAt(3)).toHaveTextContent("Френк Герберт · ще 5 авторів");
+    expect(cardAt(3)).toHaveTextContent("5 авторів мають максимум");
+    expect(cardAt(3)).not.toHaveTextContent("Френк Герберт");
+  });
+
+  it("calls out a library where every quoted book holds exactly one quote", () => {
+    renderCards({
+      summary: {
+        ...SUMMARY,
+        quotedBooksCount: 8,
+        topBook: { leadersCount: 8, quotesCount: 1, title: null },
+      },
+    });
+
+    expect(cardAt(2)).toHaveTextContent(copy.allBooksSingleQuote);
+  });
+
+  it("keeps the generic leaders phrase when every book ties above one quote", () => {
+    renderCards({
+      summary: {
+        ...SUMMARY,
+        quotedBooksCount: 8,
+        topBook: { leadersCount: 8, quotesCount: 3, title: null },
+      },
+    });
+
+    expect(cardAt(2)).toHaveTextContent("8 книг мають максимум");
+    expect(cardAt(2)).not.toHaveTextContent(copy.allBooksSingleQuote);
+  });
+
+  it("keeps a tied top book free of any link or button", () => {
+    renderCards({
+      summary: { ...SUMMARY, topBook: { leadersCount: 3, quotesCount: 5, title: null } },
+    });
+
+    for (const card of statCards()) {
+      expect(card.querySelector("a")).toBeNull();
+      expect(card.querySelector("a[href]")).toBeNull();
+      expect(card.querySelector('[role="button"]')).toBeNull();
+      expect(card.querySelector("[tabindex]")).toBeNull();
+    }
   });
 
   it("clamps a very long title instead of stretching the row", () => {
     const title = "Дюна ".repeat(60).trim();
     renderCards({
-      summary: { ...SUMMARY, topBook: { id: "book-1", quotesCount: 5, tiedCount: 1, title } },
+      summary: { ...SUMMARY, topBook: { leadersCount: 1, quotesCount: 5, title } },
     });
 
     const clamped = cardAt(2).querySelector(".line-clamp-2");
-    expect(clamped).toHaveTextContent(`${title} · ще 1 книга`);
+    expect(clamped).toHaveTextContent(title);
   });
 
   it("falls back to a dash on every card when nothing was quoted yet", () => {

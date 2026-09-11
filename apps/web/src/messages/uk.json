@@ -6559,16 +6559,6 @@
     "allShown": "Усі цитати показано",
     "sidebar": {
       "label": "Огляд цитат",
-      "stats": {
-        "title": "Статистика",
-        "total": "Усього цитат",
-        "favorites": "Улюблених",
-        "spoilers": "Зі спойлерами",
-        "withoutSpoilers": "Без спойлерів",
-        "withComment": "З коментарями",
-        "topBook": "Найцитованіша книга",
-        "topAuthor": "Найцитованіший автор"
-      },
       "quickFilters": {
         "title": "Швидкі фільтри",
         "withComment": "Цитати з коментарями",
@@ -6649,10 +6639,11 @@
       "averagePerBook": "Середньо на книгу",
       "amongBooks": "Серед {count, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
       "noDataYet": "Ще немає даних",
-      "topBook": "Найцитованіша книга",
-      "topBookTied": "{title} · ще {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
-      "topAuthor": "Найцитованіший автор",
-      "topAuthorTied": "{name} · ще {count, plural, one {# автор} few {# автори} many {# авторів} other {# авторів}}",
+      "topBook": "Найбільше в одній книзі",
+      "topBookLeaders": "{count, plural, one {# книга має максимум} few {# книги мають максимум} many {# книг мають максимум} other {# книг мають максимум}}",
+      "allBooksSingleQuote": "Усі книги з цитатами — по 1 цитаті",
+      "topAuthor": "Найбільше в одного автора",
+      "topAuthorLeaders": "{count, plural, one {# автор має максимум} few {# автори мають максимум} many {# авторів мають максимум} other {# авторів мають максимум}}",
       "noAuthorData": "Немає даних про авторів",
       "mobile": {
         "title": "Детальна статистика",
@@ -6665,8 +6656,8 @@
         "detailed": {
           "quotedBooks": "Книг із цитатами",
           "averagePerBook": "Середньо на книгу",
-          "topBook": "Найцитованіша книга",
-          "topAuthor": "Найцитованіший автор"
+          "topBook": "Найбільше в одній книзі",
+          "topAuthor": "Найбільше в одного автора"
         }
       }
     },

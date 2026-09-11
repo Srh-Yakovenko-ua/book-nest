@@ -6559,16 +6559,6 @@
     "allShown": "All quotes shown",
     "sidebar": {
       "label": "Quotes overview",
-      "stats": {
-        "title": "Statistics",
-        "total": "Quotes in total",
-        "favorites": "Favorites",
-        "spoilers": "With spoilers",
-        "withoutSpoilers": "Without spoilers",
-        "withComment": "With comments",
-        "topBook": "Most quoted book",
-        "topAuthor": "Most quoted author"
-      },
       "quickFilters": {
         "title": "Quick filters",
         "withComment": "Quotes with comments",
@@ -6649,10 +6639,11 @@
       "averagePerBook": "Average per book",
       "amongBooks": "Across {count, plural, one {# book} other {# books}}",
       "noDataYet": "No data yet",
-      "topBook": "Most quoted book",
-      "topBookTied": "{title} · {count, plural, one {# more book} other {# more books}}",
-      "topAuthor": "Most quoted author",
-      "topAuthorTied": "{name} · {count, plural, one {# more author} other {# more authors}}",
+      "topBook": "Most in a single book",
+      "topBookLeaders": "{count, plural, one {# book has the maximum} other {# books share the maximum}}",
+      "allBooksSingleQuote": "Every quoted book has 1 quote",
+      "topAuthor": "Most by a single author",
+      "topAuthorLeaders": "{count, plural, one {# author has the maximum} other {# authors share the maximum}}",
       "noAuthorData": "No author data yet",
       "mobile": {
         "title": "Detailed stats",
@@ -6665,8 +6656,8 @@
         "detailed": {
           "quotedBooks": "Books with quotes",
           "averagePerBook": "Average per book",
-          "topBook": "Most quoted book",
-          "topAuthor": "Most quoted author"
+          "topBook": "Most in a single book",
+          "topAuthor": "Most by a single author"
         }
       }
     },

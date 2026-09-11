@@ -29,34 +29,39 @@ export function buildQuotesSummary(data: QuotesSummaryData): QuotesSummaryView {
   };
 }
 
-function tiedCountOf(facets: { count: number }[], topCount: number): number {
-  return facets.filter((facet) => facet.count === topCount).length - 1;
+function leadersOf<TFacet extends { count: number }>(sortedFacets: TFacet[]): TFacet[] {
+  const [best] = sortedFacets;
+  if (best === undefined) {
+    return [];
+  }
+
+  return sortedFacets.filter((facet) => facet.count === best.count);
 }
 
 function topAuthorOf(facets: QuoteAuthorFacet[]): Nullable<QuotesSummaryAuthor> {
-  const [winner] = facets;
-  if (winner === undefined) {
+  const leaders = leadersOf(facets);
+  const [leader] = leaders;
+  if (leader === undefined) {
     return null;
   }
 
-  return {
-    id: winner.id,
-    name: winner.name,
-    quotesCount: winner.count,
-    tiedCount: tiedCountOf(facets, winner.count),
-  };
+  if (leaders.length > 1) {
+    return { leadersCount: leaders.length, name: null, quotesCount: leader.count };
+  }
+
+  return { leadersCount: 1, name: leader.name, quotesCount: leader.count };
 }
 
 function topBookOf(facets: QuoteBookFacet[]): Nullable<QuotesSummaryBook> {
-  const [winner] = facets;
-  if (winner === undefined) {
+  const leaders = leadersOf(facets);
+  const [leader] = leaders;
+  if (leader === undefined) {
     return null;
   }
 
-  return {
-    id: winner.id,
-    quotesCount: winner.count,
-    tiedCount: tiedCountOf(facets, winner.count),
-    title: winner.title,
-  };
+  if (leaders.length > 1) {
+    return { leadersCount: leaders.length, quotesCount: leader.count, title: null };
+  }
+
+  return { leadersCount: 1, quotesCount: leader.count, title: leader.title };
 }

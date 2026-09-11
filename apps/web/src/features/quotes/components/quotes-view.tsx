@@ -154,9 +154,7 @@ export function QuotesView() {
           />
         </div>
 
-        {showSidebar ? (
-          <QuotesSidebar isLoading={summary.isPending} summary={summary.data} />
-        ) : null}
+        {showSidebar ? <QuotesSidebar /> : null}
       </div>
 
       <QuoteDialog mode="createWithBookPicker" onOpenChange={setAddOpen} open={addOpen} />

@@ -337,17 +337,17 @@ export const quotesControllerSummaryResponseQuotedBooksCountMax = 90071992547409
 export const quotesControllerSummaryResponseSpoilerCountMin = 0;
 export const quotesControllerSummaryResponseSpoilerCountMax = 9007199254740991;
 
+export const quotesControllerSummaryResponseTopAuthorLeadersCountExclusiveMin = 0;
+export const quotesControllerSummaryResponseTopAuthorLeadersCountMax = 9007199254740991;
+
 export const quotesControllerSummaryResponseTopAuthorQuotesCountMin = 0;
 export const quotesControllerSummaryResponseTopAuthorQuotesCountMax = 9007199254740991;
 
-export const quotesControllerSummaryResponseTopAuthorTiedCountMin = 0;
-export const quotesControllerSummaryResponseTopAuthorTiedCountMax = 9007199254740991;
+export const quotesControllerSummaryResponseTopBookLeadersCountExclusiveMin = 0;
+export const quotesControllerSummaryResponseTopBookLeadersCountMax = 9007199254740991;
 
 export const quotesControllerSummaryResponseTopBookQuotesCountMin = 0;
 export const quotesControllerSummaryResponseTopBookQuotesCountMax = 9007199254740991;
-
-export const quotesControllerSummaryResponseTopBookTiedCountMin = 0;
-export const quotesControllerSummaryResponseTopBookTiedCountMax = 9007199254740991;
 
 export const quotesControllerSummaryResponseTotalCountMin = 0;
 export const quotesControllerSummaryResponseTotalCountMax = 9007199254740991;
@@ -377,30 +377,28 @@ export const QuotesControllerSummaryResponse = zod.object({
     .max(quotesControllerSummaryResponseSpoilerCountMax),
   topAuthor: zod
     .object({
-      id: zod.string(),
-      name: zod.string(),
+      leadersCount: zod
+        .int()
+        .gt(quotesControllerSummaryResponseTopAuthorLeadersCountExclusiveMin)
+        .max(quotesControllerSummaryResponseTopAuthorLeadersCountMax),
+      name: zod.string().nullable(),
       quotesCount: zod
         .int()
         .min(quotesControllerSummaryResponseTopAuthorQuotesCountMin)
         .max(quotesControllerSummaryResponseTopAuthorQuotesCountMax),
-      tiedCount: zod
-        .int()
-        .min(quotesControllerSummaryResponseTopAuthorTiedCountMin)
-        .max(quotesControllerSummaryResponseTopAuthorTiedCountMax),
     })
     .nullable(),
   topBook: zod
     .object({
-      id: zod.string(),
+      leadersCount: zod
+        .int()
+        .gt(quotesControllerSummaryResponseTopBookLeadersCountExclusiveMin)
+        .max(quotesControllerSummaryResponseTopBookLeadersCountMax),
       quotesCount: zod
         .int()
         .min(quotesControllerSummaryResponseTopBookQuotesCountMin)
         .max(quotesControllerSummaryResponseTopBookQuotesCountMax),
-      tiedCount: zod
-        .int()
-        .min(quotesControllerSummaryResponseTopBookTiedCountMin)
-        .max(quotesControllerSummaryResponseTopBookTiedCountMax),
-      title: zod.string(),
+      title: zod.string().nullable(),
     })
     .nullable(),
   totalCount: zod
