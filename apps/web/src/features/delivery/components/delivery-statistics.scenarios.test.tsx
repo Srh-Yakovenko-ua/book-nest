@@ -83,7 +83,7 @@ function renderStatistics(searchParams = "") {
 }
 
 async function settle(): Promise<void> {
-  for (const title of ["Динаміка покупок", "Порівняння магазинів", "Календар покупок"]) {
+  for (const title of ["Динаміка покупок", "Ціна книги × середній чек", "Календар покупок"]) {
     await screen.findByText(title);
   }
 }
@@ -141,11 +141,11 @@ describe("Scenario A — mixed currencies", () => {
     const user = userEvent.setup();
     renderStatistics();
     await settle();
-    const lifecycleBefore = cardOf("Шлях замовлень").textContent;
+    const lifecycleBefore = cardOf("Статуси доставки").textContent;
 
     await user.click(currencyChoice("EUR"));
 
-    expect(cardOf("Шлях замовлень").textContent).toBe(lifecycleBefore);
+    expect(cardOf("Статуси доставки").textContent).toBe(lifecycleBefore);
   });
 
   it("offers no currency the dataset never carried", async () => {
@@ -184,7 +184,7 @@ describe("Scenario B — dataset currency filter", () => {
       within(cardOf("Рейтинг магазинів")).getByRole("link", { name: /Book Depository/ }),
     ).toHaveAttribute("href", expect.stringContaining("currency=EUR"));
     expect(
-      within(cardOf("Активні замовлення за часом від оформлення")).getByRole("link", {
+      within(cardOf("Активні замовлення: час від оформлення")).getByRole("link", {
         name: /8–14 днів/,
       }),
     ).toHaveAttribute("href", expect.stringContaining("ageBucket=8_14"));
@@ -209,7 +209,7 @@ describe("Scenario C — order-state filter", () => {
     await settle();
 
     expect(
-      within(cardOf("Рекорди")).getByRole("link", { name: "Найбільше замовлень у магазині" }),
+      within(cardOf("Рекорди")).getByRole("link", { name: /^Найбільше замовлень у магазині: / }),
     ).toHaveAttribute("href", expect.stringContaining("orderState=partially_shipped"));
   });
 });
@@ -219,7 +219,9 @@ describe("Scenario F — incomplete money", () => {
     renderStatistics();
     await settle();
 
-    expect(within(cardOf("Як формується ціна книги")).getByText(/9 із 10/)).toBeInTheDocument();
+    expect(
+      within(cardOf("Що впливає на фактичну вартість книги")).getByText(/9 із 10/),
+    ).toBeInTheDocument();
   });
 
   it("leaves an order without a resolved amount out of the totals rather than as a zero", async () => {
@@ -273,8 +275,8 @@ describe("Scenario G — truncated source", () => {
     await settle();
 
     const records = within(cardOf("Рекорди"));
-    expect(records.queryByRole("link", { name: "Найбільше замовлень у магазині" })).toBe(null);
-    expect(records.getByRole("link", { name: "Найдорожче замовлення" })).toHaveAttribute(
+    expect(records.queryByRole("link", { name: /^Найбільше замовлень у магазині: / })).toBe(null);
+    expect(records.getByRole("link", { name: /^Найдорожче замовлення: / })).toHaveAttribute(
       "href",
       expect.stringContaining("orderId=order-uah-1"),
     );
@@ -330,7 +332,7 @@ describe("Scenario J — background refresh", () => {
     await settle();
 
     expect(
-      within(cardOf("Рекорди")).getByRole("link", { name: "Найдорожче замовлення" }),
+      within(cardOf("Рекорди")).getByRole("link", { name: /^Найдорожче замовлення: / }),
     ).toBeInTheDocument();
 
     handlers.statistics = hangs;
@@ -338,9 +340,9 @@ describe("Scenario J — background refresh", () => {
 
     expect(await screen.findByText("Оновлюємо статистику…")).toBeInTheDocument();
     expect(within(cardOf("Витрачено")).getByText("12 000 UAH")).toBeInTheDocument();
-    expect(within(cardOf("Рекорди")).queryByRole("link", { name: "Найдорожче замовлення" })).toBe(
-      null,
-    );
+    expect(
+      within(cardOf("Рекорди")).queryByRole("link", { name: /^Найдорожче замовлення: / }),
+    ).toBe(null);
   });
 
   it("gives the links back once the new data lands", async () => {
@@ -356,7 +358,7 @@ describe("Scenario J — background refresh", () => {
     await user.click(screen.getByRole("switch", { name: "Порівняти" }));
 
     expect(
-      await within(cardOf("Рекорди")).findByRole("link", { name: "Найдорожче замовлення" }),
+      await within(cardOf("Рекорди")).findByRole("link", { name: /^Найдорожче замовлення: / }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Оновлюємо статистику…")).toBe(null);
   });

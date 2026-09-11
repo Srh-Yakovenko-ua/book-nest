@@ -124,6 +124,7 @@ export function makeMixedStatisticsView(
       },
     ],
     byStore: [yakaboo, depository],
+    calendarCoverage: { ordersInScope: 7, ordersWithOrderDate: 7, ordersWithoutOrderDate: 0 },
     costs: [
       {
         currency: "UAH",
@@ -241,63 +242,80 @@ export function makeMixedStatisticsView(
     records: {
       bestValueStoreByCurrency: [
         {
-          averageLandedBookCost: 620,
           currency: "UAH",
-          drilldown: {
-            targets: [{ booksCount: 9, destination: "history_received", ordersCount: 4 }],
-          },
-          eligibleBooksCount: 9,
-          store: "Yakaboo",
-          storeKey: "yakaboo",
+          winners: [
+            {
+              averageLandedBookCost: 620,
+              currency: "UAH",
+              drilldown: {
+                targets: [{ booksCount: 9, destination: "history_received", ordersCount: 4 }],
+              },
+              eligibleBooksCount: 9,
+              store: "Yakaboo",
+              storeKey: "yakaboo",
+            },
+          ],
         },
       ],
       largestOrderByCurrency: [
         {
           currency: "UAH",
-          order: {
-            booksCount: 4,
-            currency: "UAH",
-            derivedStatus: "received",
-            id: "order-uah-1",
-            orderDate: "2026-03-03",
-            orderNumber: "STAT-A-UAH-1",
-            storeName: "Yakaboo",
-            totalAmount: 5200,
-          },
+          winners: [
+            {
+              booksCount: 4,
+              currency: "UAH",
+              derivedStatus: "received",
+              id: "order-uah-1",
+              orderDate: "2026-03-03",
+              orderNumber: "STAT-A-UAH-1",
+              storeName: "Yakaboo",
+              totalAmount: 5200,
+            },
+          ],
         },
       ],
       mostActiveStore: {
-        byBooks: null,
-        byOrders: {
-          booksCount: 10,
-          drilldown: {
-            targets: [{ booksCount: 10, destination: "history_received", ordersCount: 4 }],
+        byBooks: [],
+        byOrders: [
+          {
+            booksCount: 10,
+            drilldown: {
+              targets: [{ booksCount: 10, destination: "history_received", ordersCount: 4 }],
+            },
+            ordersCount: 4,
+            store: "Yakaboo",
+            storeKey: "yakaboo",
           },
-          ordersCount: 4,
-          store: "Yakaboo",
-          storeKey: "yakaboo",
+        ],
+      },
+      mostBooksInOrder: [
+        {
+          booksCount: 4,
+          currency: "UAH",
+          derivedStatus: "received",
+          id: "order-uah-1",
+          orderDate: "2026-03-03",
+          orderNumber: "STAT-A-UAH-1",
+          storeName: "Yakaboo",
+          totalAmount: 5200,
         },
-      },
-      mostBooksInOrder: {
-        booksCount: 4,
-        currency: "UAH",
-        derivedStatus: "received",
-        id: "order-uah-1",
-        orderDate: "2026-03-03",
-        orderNumber: "STAT-A-UAH-1",
-        storeName: "Yakaboo",
-        totalAmount: 5200,
-      },
+      ],
       recordMonthByCurrency: [
         {
-          booksCount: 10,
           currency: "UAH",
-          drilldown: {
-            targets: [{ booksCount: 10, destination: "history_received", ordersCount: 4 }],
-          },
-          month: "2026-03",
-          ordersCount: 4,
-          total: 12000,
+          winners: [
+            {
+              booksCount: 10,
+              currency: "UAH",
+              drilldown: {
+                targets: [{ booksCount: 10, destination: "history_received", ordersCount: 4 }],
+              },
+              month: "2026-03",
+              ordersCount: 4,
+              range: { from: "2026-03-01", to: "2026-03-31" },
+              total: 12000,
+            },
+          ],
         },
       ],
       scope: {
@@ -413,6 +431,7 @@ export function makeStatisticsView(
   return {
     bestValueStoreByCurrency: [],
     byStore: [],
+    calendarCoverage: { ordersInScope: 6, ordersWithOrderDate: 0, ordersWithoutOrderDate: 6 },
     comparison: null,
     costs: [],
     daily: [],
@@ -431,8 +450,8 @@ export function makeStatisticsView(
     records: {
       bestValueStoreByCurrency: [],
       largestOrderByCurrency: [],
-      mostActiveStore: { byBooks: null, byOrders: null },
-      mostBooksInOrder: null,
+      mostActiveStore: { byBooks: [], byOrders: [] },
+      mostBooksInOrder: [],
       recordMonthByCurrency: [],
       scope: {
         isPeriodFiltered: true,

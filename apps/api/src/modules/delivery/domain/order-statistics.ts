@@ -29,13 +29,13 @@ import type {
 import { assertNever } from "../../../core/assert-never.js";
 import { toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildLandedCostSummary } from "./landed-cost.js";
-import { buildOrderDaily } from "./statistics-calendar.js";
+import { buildOrderCalendarCoverage, buildOrderDaily } from "./statistics-calendar.js";
 import { computeStatisticsCosts } from "./statistics-costs.js";
 import { toCurrencyDeltas, toNumericDelta } from "./statistics-delta.js";
 import { buildStatisticsDynamics } from "./statistics-dynamics.js";
 import { computeBookOrderLifecycle } from "./statistics-lifecycle.js";
 import { buildStatisticsInsights } from "./statistics-pulse.js";
-import { buildPurchaseRecords } from "./statistics-records.js";
+import { buildPurchaseRecords, buildRecordMonthByCurrency } from "./statistics-records.js";
 import {
   addCoverage,
   addItemPrices,
@@ -50,7 +50,11 @@ import {
   ORDER_ENUMS,
   totalsFromAmounts,
 } from "./statistics-scope.js";
-import { buildStoreScorecards, buildStoreSpendMovement } from "./statistics-stores.js";
+import {
+  buildBestValueStoreByCurrency,
+  buildStoreScorecards,
+  buildStoreSpendMovement,
+} from "./statistics-stores.js";
 
 export const ORDER_STATISTICS_TOP_LIMIT = 10;
 
@@ -110,16 +114,22 @@ export function computeBookOrderStatistics({
     currentPeriod: scope.period,
     orders: includedOrders,
   });
-  const purchaseRecords = buildPurchaseRecords({
-    byStore,
-    includedOrders,
-    scope,
-    topOrdersByCurrency,
+  const recordsIncludedOrders = records
+    .map((record) => classifyOrder({ includeCancelled: false, record }))
+    .filter((order) => order.isIncluded);
+  const purchaseRecords = buildPurchaseRecords({ recordOrders: recordsIncludedOrders, scope });
+  const pulseRecordMonthByCurrency = buildRecordMonthByCurrency({
+    orders: includedOrders,
+    period: scope.period,
   });
+  const leadingPulseRecordMonths = pulseRecordMonthByCurrency.flatMap((group) =>
+    group.winners.slice(0, 1),
+  );
 
   return {
-    bestValueStoreByCurrency: purchaseRecords.bestValueStoreByCurrency,
+    bestValueStoreByCurrency: buildBestValueStoreByCurrency(includedOrders),
     byStore,
+    calendarCoverage: buildOrderCalendarCoverage(includedOrders),
     comparison,
     costs,
     daily: buildOrderDaily(includedOrders),
@@ -134,7 +144,7 @@ export function computeBookOrderStatistics({
         previousOrders,
       }),
       landedCoverage: landedCost,
-      recordMonthByCurrency: purchaseRecords.recordMonthByCurrency,
+      recordMonthByCurrency: leadingPulseRecordMonths,
       scope,
       storeMovement:
         previousOrders === null

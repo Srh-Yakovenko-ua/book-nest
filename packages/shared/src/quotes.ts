@@ -1,6 +1,8 @@
+import { isAfter, parseISO } from "date-fns";
 import { z } from "zod";
 
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
+import { CountSchema, isoDay, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
@@ -80,15 +82,56 @@ export const QuoteSortSchema = z.enum([
 
 export type QuoteSort = z.infer<typeof QuoteSortSchema>;
 
-export const QuotesQuerySchema = z.object({
+const CREATED_RANGE_MESSAGE = "createdFrom must not be later than createdTo";
+
+const quotesDatasetQueryFields = {
+  author: queryStringArray(z.uuid()),
+  book: queryStringArray(z.uuid()),
   bookId: z.uuid().optional(),
-  filter: QuoteFilterSchema.default("all"),
-  ...paginationQueryFields({ pageSizeDefault: QUOTES_DEFAULT_PAGE_SIZE }),
+  createdFrom: isoDay().optional(),
+  createdTo: isoDay().optional(),
   q: z.string().trim().max(QUOTE_SEARCH_MAX).optional(),
-  sort: QuoteSortSchema.default("newest"),
-});
+};
+
+function refineCreatedRange(
+  value: { createdFrom?: string | undefined; createdTo?: string | undefined },
+  context: z.RefinementCtx,
+): void {
+  const { createdFrom, createdTo } = value;
+  if (createdFrom === undefined || createdTo === undefined) {
+    return;
+  }
+  if (!isAfter(parseISO(createdFrom), parseISO(createdTo))) {
+    return;
+  }
+  context.addIssue({
+    code: "custom",
+    message: CREATED_RANGE_MESSAGE,
+    path: ["createdFrom"],
+  });
+}
+
+export const QuotesQuerySchema = z
+  .object({
+    ...quotesDatasetQueryFields,
+    filter: QuoteFilterSchema.default("all"),
+    ...paginationQueryFields({ pageSizeDefault: QUOTES_DEFAULT_PAGE_SIZE }),
+    sort: QuoteSortSchema.default("newest"),
+  })
+  .superRefine(refineCreatedRange);
 
 export type QuotesQuery = z.infer<typeof QuotesQuerySchema>;
+
+export function toQuoteBookIds(query: {
+  book?: string[] | undefined;
+  bookId?: string | undefined;
+}): string[] | undefined {
+  const { book, bookId } = query;
+  if (book === undefined && bookId === undefined) {
+    return undefined;
+  }
+  return [...new Set([...(book ?? []), ...(bookId === undefined ? [] : [bookId])])];
+}
 
 export const QuoteBookPreviewSchema = z.object({
   cover: MediaViewSchema.nullable(),
@@ -127,22 +170,25 @@ export type BookQuotesView = z.infer<typeof BookQuotesViewSchema>;
 export const PaginatedQuotesSchema = createPaginatedSchema(QuoteViewSchema);
 
 export const QuotesSummaryBookSchema = z.object({
-  id: z.string(),
+  leadersCount: z.number().int().positive(),
   quotesCount: z.number().int().nonnegative(),
-  title: z.string(),
+  title: z.string().nullable(),
 });
 
 export type QuotesSummaryBook = z.infer<typeof QuotesSummaryBookSchema>;
 
 export const QuotesSummaryAuthorSchema = z.object({
-  name: z.string(),
+  leadersCount: z.number().int().positive(),
+  name: z.string().nullable(),
   quotesCount: z.number().int().nonnegative(),
 });
 
 export type QuotesSummaryAuthor = z.infer<typeof QuotesSummaryAuthorSchema>;
 
 export const QuotesSummaryViewSchema = z.object({
+  averageQuotesPerQuotedBook: z.number().nonnegative().nullable(),
   favoritesCount: z.number().int().nonnegative(),
+  quotedBooksCount: z.number().int().nonnegative(),
   spoilerCount: z.number().int().nonnegative(),
   topAuthor: QuotesSummaryAuthorSchema.nullable(),
   topBook: QuotesSummaryBookSchema.nullable(),
@@ -152,6 +198,71 @@ export const QuotesSummaryViewSchema = z.object({
 });
 
 export type QuotesSummaryView = z.infer<typeof QuotesSummaryViewSchema>;
+
+export const QuotesFacetsQuerySchema = z
+  .object(quotesDatasetQueryFields)
+  .superRefine(refineCreatedRange);
+
+export type QuotesFacetsQuery = z.infer<typeof QuotesFacetsQuerySchema>;
+
+export const QuoteAuthorFacetSchema = z.object({
+  count: CountSchema,
+  id: z.string(),
+  name: z.string(),
+});
+
+export type QuoteAuthorFacet = z.infer<typeof QuoteAuthorFacetSchema>;
+
+export const QuoteBookFacetSchema = z.object({
+  count: CountSchema,
+  id: z.string(),
+  title: z.string(),
+});
+
+export type QuoteBookFacet = z.infer<typeof QuoteBookFacetSchema>;
+
+export const QuotesFacetsViewSchema = z.object({
+  authors: z
+    .array(QuoteAuthorFacetSchema)
+    .describe(
+      "Authors of books holding a quote of the scope, with how many quotes each one carries. The list answers to every dataset filter except the selected authors, so picking one author never makes another disappear.",
+    ),
+  books: z
+    .array(QuoteBookFacetSchema)
+    .describe(
+      "Books holding a quote of the scope, with their quote counts. The list answers to every dataset filter except the selected books, so picking one book never makes another disappear.",
+    ),
+  favoritesCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the scope that are marked as favorite."),
+  spoilerCount: z.number().int().nonnegative().describe("Quotes of the scope marked as a spoiler."),
+  totalCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe(
+      "Quotes in the scope. The scope answers to the dataset parameters only, never to the primary filter or to pagination, so picking one quick filter never moves the number shown on another one.",
+    ),
+  withCommentCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the scope that carry a comment."),
+  withoutCommentCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the scope that carry no comment."),
+  withoutSpoilerCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the scope that are not marked as a spoiler."),
+});
+
+export type QuotesFacetsView = z.infer<typeof QuotesFacetsViewSchema>;
 
 export const QuoteDeletionResultSchema = TrashDeletionResultSchema.extend({
   quoteId: z.string(),
@@ -178,3 +289,53 @@ export type TrashedQuotesQuery = z.infer<typeof TrashedQuotesQuerySchema>;
 export const PaginatedTrashedQuotesSchema = createPaginatedSchema(TrashedQuoteViewSchema);
 
 export type PaginatedTrashedQuotes = z.infer<typeof PaginatedTrashedQuotesSchema>;
+
+export const PostFinishQuotesViewSchema = z.object({
+  book: QuoteBookPreviewSchema,
+  favoritesCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the book the reader marked as favorite."),
+  finishedAt: isoDay().describe("The day the reading cycle was finished."),
+  quotesCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe(
+      "Active quotes of the book, spoilers included, matching what the book-only quotes destination lists.",
+    ),
+  readingCycleId: z
+    .uuid()
+    .describe("The reading cycle this recap belongs to, and the key the review mutation takes."),
+  withCommentCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the book carrying a comment."),
+});
+
+export type PostFinishQuotesView = z.infer<typeof PostFinishQuotesViewSchema>;
+
+export const QuotesOverviewViewSchema = z.object({
+  memoryQuote: QuoteViewSchema.nullable().describe(
+    "An older quote of the reader, picked once per local day, or null while the archive holds fewer than two rediscoverable quotes.",
+  ),
+  postFinish: PostFinishQuotesViewSchema.nullable().describe(
+    "The recap of a book finished within the last 30 days whose quotes the reader has not reviewed yet, or null when no reading cycle qualifies.",
+  ),
+});
+
+export type QuotesOverviewView = z.infer<typeof QuotesOverviewViewSchema>;
+
+export const QuoteRediscoveryImpressionInputSchema = z.object({
+  quoteId: z.uuid(),
+});
+
+export type QuoteRediscoveryImpressionInput = z.infer<typeof QuoteRediscoveryImpressionInputSchema>;
+
+export const QuotePostFinishReviewInputSchema = z.object({
+  readingCycleId: z.uuid(),
+});
+
+export type QuotePostFinishReviewInput = z.infer<typeof QuotePostFinishReviewInputSchema>;

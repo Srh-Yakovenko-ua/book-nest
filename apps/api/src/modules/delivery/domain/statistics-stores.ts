@@ -29,6 +29,11 @@ import {
   totalsFromAmounts,
 } from "./statistics-scope.js";
 
+export type BestValueStoreRanking = {
+  candidates: BookOrderStatisticsBestValueStore[];
+  currency: Currency;
+};
+
 type CurrencyCountAccumulator = Map<Currency, { books: number; orders: number }>;
 
 type StoreGroup = {
@@ -40,12 +45,21 @@ type StoreGroup = {
 export function buildBestValueStoreByCurrency(
   orders: readonly ClassifiedOrder[],
 ): BookOrderStatisticsBestValueStoreByCurrency {
+  return buildBestValueStoreRankingByCurrency(orders).flatMap((ranking) =>
+    ranking.candidates.slice(0, 1),
+  );
+}
+
+export function buildBestValueStoreRankingByCurrency(
+  orders: readonly ClassifiedOrder[],
+): BestValueStoreRanking[] {
   const groups = groupOrdersByStore(orders);
 
   return CurrencySchema.options.flatMap((currency) => {
-    const candidates = groups.flatMap((group) => toBestValueCandidate({ currency, group }));
-    const winner = [...candidates].sort(compareBestValueCandidates).at(0);
-    return winner === undefined ? [] : [winner];
+    const candidates = groups
+      .flatMap((group) => toBestValueCandidate({ currency, group }))
+      .sort(compareBestValueCandidates);
+    return candidates.length === 0 ? [] : [{ candidates, currency }];
   });
 }
 

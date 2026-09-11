@@ -96,6 +96,7 @@ describe("storeScatter", () => {
         coveragePercent: 100,
         currencyBooksCount: 13,
         currencyOrdersCount: 9,
+        drilldown: YAKABOO.drilldown,
         landedEligibleBooksCount: 13,
         store: "Yakaboo",
         storeKey: "yakaboo",

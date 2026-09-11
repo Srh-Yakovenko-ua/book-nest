@@ -11,9 +11,19 @@ import type { QuotesSummaryViewDtoTopBook } from "./quotesSummaryViewDtoTopBook"
 export interface QuotesSummaryViewDto {
   /**
    * @minimum 0
+   * @nullable
+   */
+  averageQuotesPerQuotedBook: number | null;
+  /**
+   * @minimum 0
    * @maximum 9007199254740991
    */
   favoritesCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  quotedBooksCount: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991

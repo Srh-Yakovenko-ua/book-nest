@@ -230,6 +230,10 @@ export const StatisticsDrilldownBreakdownSchema = z
 
 export type StatisticsDrilldownBreakdown = z.infer<typeof StatisticsDrilldownBreakdownSchema>;
 
+export const BOOK_ORDER_RECORD_RULES = {
+  maxTiedWinners: 3,
+} as const;
+
 export const BOOK_ORDER_BEST_VALUE_STORE_RULES = {
   minimumEligibleBooks: 2,
   tieBreakOrder: [
@@ -500,6 +504,18 @@ export const BookOrderStatisticsDailySchema = z
   );
 
 export type BookOrderStatisticsDaily = z.infer<typeof BookOrderStatisticsDailySchema>;
+
+export const StatisticsCalendarCoverageSchema = z
+  .object({
+    ordersInScope: CountSchema,
+    ordersWithOrderDate: CountSchema,
+    ordersWithoutOrderDate: CountSchema,
+  })
+  .describe(
+    "How many of the orders the calendar could have drawn actually carry an order date. The counts describe the orders that survived the dataset filters inside the source that was actually loaded, so a truncated source lowers all three rather than making them disagree. An order with no order date is counted in ordersInScope and left out of the daily series, never bucketed under a substitute day.",
+  );
+
+export type StatisticsCalendarCoverage = z.infer<typeof StatisticsCalendarCoverageSchema>;
 
 const DRILLDOWN_DESTINATION_BY_STATE = {
   active: "in_transit",

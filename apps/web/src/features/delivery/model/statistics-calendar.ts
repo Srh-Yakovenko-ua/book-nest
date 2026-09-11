@@ -14,8 +14,19 @@ export const CALENDAR_METRICS = ["orders", "books"] as const;
 
 export type CalendarMetric = (typeof CALENDAR_METRICS)[number];
 
+const CALENDAR_LEVEL_CLASS = [
+  "bg-secondary",
+  "bg-primary/40",
+  "bg-primary/60",
+  "bg-primary/80",
+  "bg-primary",
+] as const;
+
 export const CALENDAR = {
-  levels: 4,
+  daysPerWeek: 7,
+  levelClass: CALENDAR_LEVEL_CLASS,
+  levelQuantiles: [0.25, 0.5, 0.75],
+  levels: CALENDAR_LEVEL_CLASS.length - 1,
   weekStartsOn: 1,
 } as const;
 
@@ -49,6 +60,11 @@ export type CalendarScope = {
   years: number[];
 };
 
+type CalendarLevelScale = {
+  peak: number;
+  thresholds: number[];
+};
+
 export function calendarGrid({
   daily,
   metric,
@@ -63,11 +79,10 @@ export function calendarGrid({
   const from = laterDay(scope.from, `${year}-01-01`);
   const to = earlierDay(scope.to, `${year}-12-31`);
   const byDate = new Map(daily.map((day) => [day.date, day]));
-  const peak = Math.max(
-    ...daily
+  const scale = levelScale(
+    daily
       .filter((day) => isWithinDays({ day: day.date, from, to }))
       .map((day) => cellValue(day, metric)),
-    0,
   );
 
   const weeks: Nullable<CalendarCell>[][] = [];
@@ -82,13 +97,13 @@ export function calendarGrid({
   for (const date of days) {
     const iso = format(date, STATISTICS_PERIOD.isoDayFormat);
     const isInside = isWithinDays({ day: iso, from, to });
-    week.push(isInside ? toCell({ day: byDate.get(iso), iso, metric, peak }) : null);
+    week.push(isInside ? toCell({ day: byDate.get(iso), iso, metric, scale }) : null);
 
     if (isInside && (getDate(date) === 1 || iso === from)) {
       monthLabels.push({ monthStart: iso, weekIndex: weeks.length });
     }
 
-    if (week.length === 7) {
+    if (week.length === CALENDAR.daysPerWeek) {
       weeks.push(week);
       week = [];
     }
@@ -96,7 +111,22 @@ export function calendarGrid({
 
   if (week.length > 0) weeks.push(week);
 
-  return { from, hasValues: peak > 0, monthLabels, peak, to, weeks };
+  return { from, hasValues: scale.peak > 0, monthLabels, peak: scale.peak, to, weeks };
+}
+
+export function calendarHasDatedPurchases({
+  daily,
+  metric,
+  scope,
+}: {
+  daily: readonly BookOrderStatisticsDay[];
+  metric: CalendarMetric;
+  scope: CalendarScope;
+}): boolean {
+  return daily.some(
+    (day) =>
+      cellValue(day, metric) > 0 && isWithinDays({ day: day.date, from: scope.from, to: scope.to }),
+  );
 }
 
 export function calendarScope({
@@ -154,16 +184,36 @@ function laterDay(left: string, right: string): string {
   return left > right ? left : right;
 }
 
+function levelScale(values: number[]): CalendarLevelScale {
+  const positive = values.filter((value) => value > 0).sort((left, right) => left - right);
+
+  return {
+    peak: positive.at(-1) ?? 0,
+    thresholds: CALENDAR.levelQuantiles.map((quantile) => quantileOf(positive, quantile)),
+  };
+}
+
+function quantileOf(sorted: number[], quantile: number): number {
+  if (sorted.length === 0) return 0;
+
+  const position = (sorted.length - 1) * quantile;
+  const lower = Math.floor(position);
+  const low = sorted[lower] ?? 0;
+  const high = sorted[Math.ceil(position)] ?? low;
+
+  return low + (high - low) * (position - lower);
+}
+
 function toCell({
   day,
   iso,
   metric,
-  peak,
+  scale,
 }: {
   day: BookOrderStatisticsDay | undefined;
   iso: string;
   metric: CalendarMetric;
-  peak: number;
+  scale: CalendarLevelScale;
 }): CalendarCell {
   if (day === undefined) {
     return {
@@ -183,16 +233,22 @@ function toCell({
     booksCount: day.booksCount,
     date: iso,
     drilldown: day.drilldown,
-    level: toLevel({ peak, value }),
+    level: toLevel({ scale, value }),
     ordersCount: day.ordersCount,
     totalsByCurrency: day.totalsByCurrency,
     value,
   };
 }
 
-function toLevel({ peak, value }: { peak: number; value: number }): number {
-  if (value <= 0 || peak <= 0) return 0;
-  return Math.max(1, Math.ceil((value / peak) * CALENDAR.levels));
+function toLevel({ scale, value }: { scale: CalendarLevelScale; value: number }): number {
+  if (value <= 0 || scale.peak <= 0) return 0;
+  if (value >= scale.peak) return CALENDAR.levels;
+
+  const step = scale.thresholds.findIndex((threshold) => value <= threshold);
+  const quantileLevel = step === -1 ? CALENDAR.levels : step + 1;
+  const peakLevel = Math.max(1, Math.ceil((value / scale.peak) * CALENDAR.levels));
+
+  return Math.max(quantileLevel, peakLevel);
 }
 
 function yearOf(day: string): number {

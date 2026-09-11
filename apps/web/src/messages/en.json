@@ -3486,13 +3486,17 @@
       },
       "dynamics": {
         "aria": "Bar chart: {metric}",
-        "clickHint": "Pick a bar to open its orders",
+        "clickHint": "Pick a bar to see the orders from that period",
         "closeDestinations": "Collapse",
         "comparison": "Comparison",
         "current": "Current period",
         "difference": "Change",
         "empty": "Nothing to chart for the selected period.",
         "emptyForCurrency": "No spend in {currency} for the selected period.",
+        "legend": {
+          "comparison": "Previous",
+          "current": "Current"
+        },
         "metricLabel": "Metric",
         "metrics": {
           "books": "Books",
@@ -3544,61 +3548,103 @@
       },
       "costs": {
         "bridge": {
-          "actual": "Actually per book",
-          "actualHint": "The average cost of a book once discounts, delivery and the final order total are counted in.",
-          "adjustment": "Order adjustments",
-          "adjustmentHint": "The gap between the items plus delivery minus discount and the final order total.",
-          "basePrice": "Average price",
+          "actual": "Actual cost",
+          "actualHint": "The average cost of a book once discounts, delivery and the order total are counted in.",
+          "adjustment": "Gap with the order total",
+          "adjustmentHint": "The gap between the items plus delivery minus discount and the actual order total.",
+          "basePrice": "Starting price",
           "basePriceHint": "The average starting price of the very books the actual cost was computed for.",
-          "deltaAbove": "{value} above the starting average price",
-          "deltaBelow": "{value} below the starting average price",
-          "deltaFlat": "No change from the starting average price",
-          "delivery": "Delivery",
+          "deltaAbove": "{value} above the starting price",
+          "deltaBelow": "{value} below the starting price",
+          "deltaFlat": "No change from the starting price",
+          "delivery": "Delivery / book",
           "deliveryHint": "The share of delivery that fell on one book in the calculation.",
-          "discount": "Discounts",
+          "discount": "Discounts / book",
           "discountHint": "The share of the discount that fell on one book in the calculation.",
-          "insufficient": "Not enough data to work out the actual price of a book."
+          "insufficient": "Not enough data to work out the actual price of a book.",
+          "noFactors": "The price did not move: no discounts and no delivery in the calculation.",
+          "perBook": "per book on average"
         },
         "coverage": {
           "all": "Counted for all {total} books",
-          "notAllBooks": "The average does not cover every book.",
-          "partial": "Counted for {counted} of {total} books · {percent}",
+          "hint": "The actual cost can only be worked out for books with enough data about the price and the order total.",
+          "partial": "Counted for {counted} of {total} books · {percent} coverage",
           "tooFew": "Too little data for a reliable average"
         },
         "delivery": {
-          "orders": "{count, plural, one {# order} other {# orders}} with delivery",
-          "perBook": "{value} per book on average",
-          "shareOfSpend": "{value} of all spend",
+          "helper": "Total delivery cost",
+          "orders": {
+            "helper": "with delivery",
+            "label": "{count, plural, one {order} other {orders}}"
+          },
+          "perBook": {
+            "helper": "per book",
+            "label": "on average"
+          },
+          "share": {
+            "helper": "of all spend",
+            "label": "share"
+          },
           "title": "Delivery",
           "zero": "No delivery cost"
         },
         "discount": {
-          "orders": "{count, plural, one {# order} other {# orders}} with a discount",
-          "saved": "{value} saved",
-          "share": "{value} of the book price before the discount",
+          "helper": "Total discounts",
+          "orders": {
+            "helper": "with a discount",
+            "label": "{count, plural, one {order} other {orders}}"
+          },
+          "perBook": {
+            "helper": "per book",
+            "label": "on average"
+          },
+          "share": {
+            "helper": "before the discount",
+            "label": "of the book price"
+          },
           "title": "Discounts",
           "zero": "No discounts"
         },
         "emptyForCurrency": "No data in {currency} for the selected period.",
-        "inSelectedPeriod": "In the selected period.",
         "periodTotals": "Over the selected period",
-        "subtitle": "How discounts, delivery and the final order totals shaped the actual cost of a book.",
-        "title": "How a book price is formed"
+        "subtitle": "How discounts, delivery and the order totals move the average cost of a single book.",
+        "title": "What drives the actual cost of a book"
       },
       "lifecycle": {
         "allTime": "all time",
-        "cancelledExcluded": "Not counted",
+        "cancelledExcluded": "Not counted in this view",
+        "comparedTo": "Compared with {period}.",
+        "delta": {
+          "current": "Now {count} · change {delta}",
+          "noChange": "no change",
+          "previous": {
+            "books": "Was {count, plural, one {# book} other {# books}}",
+            "orders": "Was {count, plural, one {# order} other {# orders}}"
+          }
+        },
         "empty": "No orders in this period.",
         "modeLabel": "Unit",
         "modes": {
           "books": "Books",
           "orders": "Orders"
         },
-        "subtitles": {
-          "books": "Where the books of the orders placed {period} stand now.",
-          "orders": "Where the orders placed {period} stand now."
+        "statuses": {
+          "active": "Awaiting shipment",
+          "cancelled": "Cancelled",
+          "partially_received": "Partially received",
+          "partially_shipped": "Partially shipped",
+          "received": "Received",
+          "shipped": "Shipped"
         },
-        "title": "Order journey",
+        "subtitles": {
+          "books": "The current split of the books in the orders placed {period}.",
+          "orders": "The current split of the orders placed {period}."
+        },
+        "title": "Delivery statuses",
+        "totals": {
+          "books": "{count, plural, one {<value>#</value> book} other {<value>#</value> books}} in this view",
+          "orders": "{count, plural, one {<value>#</value> order} other {<value>#</value> orders}} in this view"
+        },
         "units": {
           "books": "bk.",
           "orders": "ord."
@@ -3615,67 +3661,82 @@
       "activeAge": {
         "asOf": "As of {value}",
         "buckets": {
-          "0_7": "Up to 7 days",
+          "0_7": "0–7 days",
           "15_30": "15–30 days",
           "31_plus": "31 days and more",
           "8_14": "8–14 days",
           "unknown_date": "No order date"
         },
         "counts": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
-        "empty": "No active orders.",
+        "empty": {
+          "description": "Every order is either finished or has no books left to receive.",
+          "title": "No active orders"
+        },
         "error": "Could not load the active orders.",
+        "moneyHint": "The value of the active orders in this group. A partially received order counts at its full amount.",
+        "moneyHintLabel": "What this amount means",
         "retry": "Try again",
-        "shareOfActive": "{orders} ord. · {value}",
-        "subtitle": "How long ago each order was placed. Amounts are shown per currency.",
-        "title": "Active orders by time since ordering"
+        "shareOfActive": "{value} of active orders",
+        "shipments": "{count, plural, one {# shipment} other {# shipments}}",
+        "subtitle": "How long ago the orders that still have books to receive were placed.",
+        "title": "Active orders: time since ordering",
+        "unknownHint": "The time since ordering cannot be measured because the order date is missing.",
+        "unknownHintLabel": "Why the time is unknown"
       },
       "stores": {
+        "bestValue": {
+          "hint": "The lowest average actual book cost among stores with enough data.",
+          "label": "Best value"
+        },
         "booksPerOrder": "{value} books per order",
         "counts": "{orders, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
         "countsBooks": "{orders, plural, one {# order} other {# orders}}",
         "countsOrders": "{books, plural, one {# book} other {# books}}",
         "empty": "No store data for the selected period.",
         "emptyForCurrency": "No spend in {currency} for the selected period.",
-        "landed": "Actually per book {value}",
+        "landed": "{value} / book",
         "metricLabel": "Metric",
         "metrics": {
           "books": "Books",
           "orders": "Orders",
           "spend": "Spend"
         },
-        "perOrder": "Average order {value}",
-        "rawPrice": "Before discounts and delivery",
-        "rawPriceHint": "The average book price before discounts and delivery are spread over it.",
-        "rawPriceValue": "Average book price before discounts and delivery: {value}",
-        "showAll": "Show all {count}",
-        "showLess": "Collapse",
+        "nextPage": "Next page",
+        "openOrders": "See orders from {store}",
+        "pageRange": "{from}–{to} of {total}",
+        "previousPage": "Previous page",
         "subtitles": {
-          "books": "Where you bought the most books.",
-          "orders": "Where you placed the most orders.",
-          "spend": "Where you spent the most over the selected period."
+          "books": "By the number of books ordered in the selected period.",
+          "orders": "By the number of orders placed in the selected period.",
+          "spend": "By total spend in the selected period."
         },
         "title": "Store ranking"
       },
       "storeMap": {
-        "aria": "Scatter chart comparing stores",
-        "axisHintX": "← cheaper per book · pricier →",
+        "aria": "Scatter chart: book price against average order",
+        "axisHintX": "← cheaper book · pricier →",
         "axisHintY": "↑ bigger average order",
-        "axisX": "Actually per book",
+        "axisLabelX": "Actual cost per book, {currency}",
+        "axisLabelY": "Average order, {currency}",
+        "axisX": "Actual cost per book",
         "axisY": "Average order",
         "booksInCalculation": "Books in the calculation",
-        "coverage": "Counted for {counted} of {total} books",
+        "booksInCalculationValue": "{counted} of {total}",
+        "coverage": "Coverage",
         "excluded": "{count, plural, one {# store} other {# stores}} not shown",
-        "excludedHelper": "Not enough data for a fair comparison.",
-        "excludedHide": "Collapse",
-        "excludedRule": "A comparison needs at least {count} books in the selected currency whose actual cost can be worked out.",
-        "excludedShow": "Details",
-        "insufficient": "Not enough data to compare stores",
-        "insufficientHelper": "No store yet carries enough books in the selected currency.",
-        "openStore": "Open the orders of {store} →",
-        "ordersInCurrency": "Orders in {currency}",
-        "singleStore": "Only one store has data so far.",
-        "subtitle": "Compares the actual cost of a book against the average order in the selected currency.",
-        "title": "Store comparison"
+        "excludedHint": "A comparison needs enough data about the actual cost of a book.",
+        "insufficient": "Not enough data to compare",
+        "insufficientHelper": "You need at least {count, plural, one {# store} other {# stores}} with enough data about the actual cost of a book.",
+        "openStore": "See the orders from {store} →",
+        "ordersCount": "Orders",
+        "pointAria": "{store}: actual cost per book {cost}, average order {order}",
+        "selectHint": "Click a store point to select it",
+        "subtitle": "Compare where a book works out cheaper and where you place bigger orders.",
+        "title": "Book price × average order"
+      },
+      "storesGroup": {
+        "subtitle": "Where you buy most often, where you spend the most, and where a book actually works out cheaper.",
+        "title": "Stores"
       },
       "calendar": {
         "title": "Purchase calendar",
@@ -3689,11 +3750,11 @@
           "books": "Books"
         },
         "yearLabel": "Year",
+        "gridLabel": "Purchase calendar grid",
         "daySummary": {
           "orders": "{date}: {orders, plural, one {# order} other {# orders}}, {books, plural, one {# book} other {# books}}",
           "books": "{date}: {books, plural, one {# book} other {# books}} in {orders, plural, one {# order} other {# orders}}"
         },
-        "dayEmpty": "{date}: no orders",
         "tooltipPrimary": {
           "orders": "{count, plural, one {# order} other {# orders}}",
           "books": "{count, plural, one {# book} other {# books}}"
@@ -3710,12 +3771,25 @@
         },
         "legendMore": "More",
         "relativeHint": "Shading shows activity relative to the busiest day of the shown period.",
-        "empty": "No data for the purchase calendar.",
-        "emptyYear": "No purchases in {year}."
+        "coverageNote": "{count, plural, one {# order without an order date is not shown in the calendar.} other {# orders without an order date are not shown in the calendar.}}",
+        "empty": {
+          "period": {
+            "title": "No purchases in the selected period",
+            "description": "There are no orders with an order date in this period."
+          },
+          "year": "No purchases in {year}",
+          "noDates": "No purchases with an order date"
+        },
+        "truncated": {
+          "title": "Calendar data may be incomplete",
+          "description": "Some orders were left out of the calculation because of the sample limit."
+        }
       },
       "records": {
         "title": "Records",
         "books": "{count, plural, one {# book} other {# books}}",
+        "winnerLabel": "{record}: {value}",
+        "hintLabel": "How this record is counted",
         "scope": {
           "range": "Records among orders placed {range}.",
           "from": "Records among orders placed from {value}.",
@@ -3744,7 +3818,7 @@
           "helper": "{store} · averaged over {count, plural, one {# book} other {# books}}",
           "missing": "Not enough data",
           "missingHelper": "At least {count, plural, one {# book} other {# books}} from one store are needed.",
-          "action": "See this store's orders",
+          "action": "See orders from {store}",
           "note": "The record counts only books whose actual price is known."
         },
         "mostBooks": {
@@ -3757,16 +3831,24 @@
           "value": "{store} — {count, plural, one {# order} other {# orders}}",
           "helper": "{books, plural, one {# book} other {# books}}",
           "missing": "No order with a named store."
+        },
+        "mostActiveByBooks": {
+          "title": "Most books bought in one store",
+          "value": "{store} — {count, plural, one {# book} other {# books}}",
+          "helper": "{orders, plural, one {# order} other {# orders}}",
+          "missing": "No books from a named store."
         }
       },
       "topOrders": {
         "title": "Most expensive orders",
-        "subtitle": "Ranked by order total.",
+        "subtitle": "Ranked by the final order total.",
         "books": "{count, plural, one {# book} other {# books}}",
         "untitledOrder": "Order without a number",
-        "emptyForCurrency": "No orders in {currency}.",
-        "expand": "Show {count} more",
-        "collapse": "Collapse"
+        "coverage": "Ranked over {covered} of {total, plural, one {# order} other {# orders}} with a known final total.",
+        "emptyForCurrency": "No orders with a known final total in {currency} for the selected period.",
+        "pageRange": "{from}–{to} of {total}",
+        "previousPage": "Previous page",
+        "nextPage": "Next page"
       },
       "budget": {
         "available": "{value} available",
@@ -6367,10 +6449,13 @@
       }
     },
     "card": {
-      "openBook": "To the book",
+      "commentLabel": "Comment",
+      "coverAlt": "Cover of “{title}”",
       "pageLabel": "p. {page}",
-      "showLess": "Show less",
-      "showMore": "Show more"
+      "quoteTextLabel": "Quote text",
+      "showFull": "Show in full",
+      "showFullComment": "Show the full comment",
+      "unknownAuthor": "Unknown author"
     },
     "copy": {
       "success": "Quote copied",
@@ -6404,7 +6489,7 @@
       "spoilerToggleHelper": "Tick this if the quote reveals important plot details.",
       "favoriteToggle": "Add to favorites",
       "favoriteToggleHelper": "Save this quote to the “Favorites” section.",
-      "spoilerNote": "Quotes marked as spoilers stay hidden until the “Show spoiler” button is pressed.",
+      "spoilerNote": "Quotes marked as spoilers stay hidden until the “Show quote” button is pressed.",
       "addSubmit": "Save quote",
       "editSubmit": "Save changes",
       "addSuccess": "Quote added",
@@ -6469,24 +6554,11 @@
         "actions": "Actions"
       }
     },
-    "pagination": {
-      "label": "Quote pages",
-      "previous": "Previous",
-      "next": "Next",
-      "goToPage": "Go to page {page}"
-    },
+    "loadMore": "Load more",
+    "loadMoreError": "Couldn't load more quotes",
+    "allShown": "All quotes shown",
     "sidebar": {
       "label": "Quotes overview",
-      "stats": {
-        "title": "Statistics",
-        "total": "Quotes in total",
-        "favorites": "Favorites",
-        "spoilers": "With spoilers",
-        "withoutSpoilers": "Without spoilers",
-        "withComment": "With comments",
-        "topBook": "Most quoted book",
-        "topAuthor": "Most quoted author"
-      },
       "quickFilters": {
         "title": "Quick filters",
         "withComment": "Quotes with comments",
@@ -6494,74 +6566,155 @@
         "recent": "Recently added",
         "clear": "Reset filters"
       },
+      "rediscovery": {
+        "title": "Rediscover a quote",
+        "favorite": "Favorite",
+        "withComment": "Has a comment",
+        "savedAge": "You saved it {age}",
+        "cta": "View in full"
+      },
+      "postFinish": {
+        "title": "After finishing",
+        "finishedAge": "Finished {age}",
+        "quotesCount": "{count, plural, one {# quote} other {# quotes}}",
+        "favoritesCount": "{count, plural, one {# favorite} other {# favorites}}",
+        "withCommentCount": "{count, plural, one {# with a comment} other {# with comments}}",
+        "cta": "View quotes"
+      },
       "cta": {
         "title": "Add your first quote",
         "description": "Keep the lines that inspire you, move you and leave a mark on your heart."
       }
     },
     "sort": {
-      "newest": "Newest first",
-      "oldest": "Oldest first",
-      "book_title": "By book title",
-      "book_author": "By author",
-      "page": "By page",
-      "favorites_first": "Favorites first",
-      "no_spoiler_first": "Spoiler-free first",
-      "with_spoiler_first": "Spoilers first"
-    },
-    "sortMobile": {
-      "title": "Sorting",
-      "description": "Choose the order of quotes.",
-      "close": "Close",
-      "trigger": {
-        "newest": "Newest",
-        "oldest": "Oldest",
-        "book_title": "Book",
-        "book_author": "Author",
-        "page": "Page",
-        "favorites_first": "Favorites",
-        "no_spoiler_first": "No spoilers",
-        "with_spoiler_first": "Spoilers"
+      "options": {
+        "newest": "Date added: newest first",
+        "oldest": "Date added: oldest first",
+        "book_title": "Book title: A–Z",
+        "book_author": "Author: A–Z",
+        "page": "Page: lowest first",
+        "favorites_first": "Favorites first",
+        "no_spoiler_first": "Spoiler-free first",
+        "with_spoiler_first": "Spoilers first"
+      },
+      "mobile": {
+        "title": "Sorting",
+        "description": "Choose the order of quotes.",
+        "close": "Close",
+        "groups": {
+          "added": "Date added",
+          "book": "Book",
+          "page": "Page",
+          "legacy": "Current sort"
+        },
+        "options": {
+          "newest": "Newest first",
+          "oldest": "Oldest first",
+          "book_title": "Title: A–Z",
+          "book_author": "Author: A–Z",
+          "page": "Lowest first",
+          "favorites_first": "Favorites first",
+          "no_spoiler_first": "Spoiler-free first",
+          "with_spoiler_first": "Spoilers first"
+        },
+        "trigger": {
+          "newest": "Newest",
+          "oldest": "Oldest",
+          "book_title": "Book A–Z",
+          "book_author": "Author A–Z",
+          "page": "Page ↑",
+          "favorites_first": "Favorites",
+          "no_spoiler_first": "No spoilers",
+          "with_spoiler_first": "Spoilers"
+        }
       }
     },
     "summary": {
       "empty": "—",
+      "quotedBooks": "Books with quotes",
+      "booksUnit": "{count, plural, one {book} other {books}}",
+      "quotesUnit": "{count, plural, one {quote} other {quotes}}",
+      "quotesTotal": "{count, plural, one {# quote} other {# quotes}} in total",
+      "noQuotesYet": "No quotes yet",
+      "averagePerBook": "Average per book",
+      "amongBooks": "Across {count, plural, one {# book} other {# books}}",
+      "noDataYet": "No data yet",
+      "topBook": "Most in a single book",
+      "topBookLeaders": "{count, plural, one {# book has the maximum} other {# books share the maximum}}",
+      "allBooksSingleQuote": "Every quoted book has 1 quote",
+      "topAuthor": "Most by a single author",
+      "topAuthorLeaders": "{count, plural, one {# author has the maximum} other {# authors share the maximum}}",
+      "noAuthorData": "No author data yet",
       "mobile": {
         "title": "Detailed stats",
         "compact": {
-          "total": "Total",
-          "favorites": "Favorites",
-          "withComment": "Comments",
-          "spoilers": "Spoilers",
-          "withoutSpoilers": "No spoilers",
+          "quotedBooks": "Books",
+          "averagePerBook": "Average",
           "topBook": "Book",
           "topAuthor": "Author"
         },
         "detailed": {
-          "total": "Quotes in total",
-          "favorites": "Favorite quotes",
-          "withComment": "With comments",
-          "spoilers": "With spoilers",
-          "withoutSpoilers": "Without spoilers",
-          "topBook": "Most quoted book",
-          "topAuthor": "Most quoted author"
+          "quotedBooks": "Books with quotes",
+          "averagePerBook": "Average per book",
+          "topBook": "Most in a single book",
+          "topAuthor": "Most by a single author"
         }
       }
     },
+    "activeFilters": {
+      "book": "Book: {title}",
+      "createdFrom": "Added from {value}",
+      "createdTo": "Added until {value}",
+      "createdRange": "Added {from} – {to}"
+    },
+    "counter": "Showing {shown} of {total, plural, one {# quote} other {# quotes}}",
     "toolbar": {
       "searchLabel": "Search quotes",
-      "searchPlaceholder": "Search quotes...",
+      "searchPlaceholder": "Search by quote, book, author or comment…",
       "searchClear": "Clear search",
       "filterLabel": "Quote quick filters",
       "bookPlaceholder": "Book",
       "sortLabel": "Sort quotes"
     },
+    "view": {
+      "label": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
     "spoiler": {
-      "badge": "Contains spoilers",
-      "noSpoilerBadge": "No spoilers",
+      "statusBadge": "Spoiler",
       "hiddenText": "This quote contains a spoiler",
-      "show": "Show spoiler",
-      "hide": "Hide spoiler"
+      "gateDescription": "It may reveal important events from the book.",
+      "showQuote": "Show quote"
+    },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "title": "Filters",
+      "description": "Narrow down which quotes to show.",
+      "clear": "Clear",
+      "apply": "Apply",
+      "sections": {
+        "books": "Books",
+        "authors": "Authors",
+        "created": "Date added"
+      },
+      "books": {
+        "placeholder": "Pick books...",
+        "search": "Search a book",
+        "empty": "No books with quotes found",
+        "selected": "Books selected: {count}"
+      },
+      "authors": {
+        "placeholder": "Pick authors...",
+        "search": "Search an author",
+        "empty": "No authors with quotes found",
+        "selected": "Authors selected: {count}"
+      },
+      "range": {
+        "from": "From",
+        "to": "To",
+        "invalid": "The From date cannot be later than To"
+      }
     }
   },
   "timeline": {

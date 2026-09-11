@@ -37,6 +37,7 @@ function view(overrides: Partial<BookOrderStatisticsView>): BookOrderStatisticsV
   return {
     bestValueStoreByCurrency: [],
     byStore: [],
+    calendarCoverage: { ordersInScope: 0, ordersWithOrderDate: 0, ordersWithoutOrderDate: 0 },
     comparison: null,
     costs: [],
     daily: [],
@@ -55,8 +56,8 @@ function view(overrides: Partial<BookOrderStatisticsView>): BookOrderStatisticsV
     records: {
       bestValueStoreByCurrency: [],
       largestOrderByCurrency: [],
-      mostActiveStore: { byBooks: null, byOrders: null },
-      mostBooksInOrder: null,
+      mostActiveStore: { byBooks: [], byOrders: [] },
+      mostBooksInOrder: [],
       recordMonthByCurrency: [],
       scope: { isPeriodFiltered: false, isTruncated: false, period: { from: null, to: null } },
     },
