@@ -170,19 +170,17 @@ export type BookQuotesView = z.infer<typeof BookQuotesViewSchema>;
 export const PaginatedQuotesSchema = createPaginatedSchema(QuoteViewSchema);
 
 export const QuotesSummaryBookSchema = z.object({
-  id: z.string(),
+  leadersCount: z.number().int().positive(),
   quotesCount: z.number().int().nonnegative(),
-  tiedCount: z.number().int().nonnegative(),
-  title: z.string(),
+  title: z.string().nullable(),
 });
 
 export type QuotesSummaryBook = z.infer<typeof QuotesSummaryBookSchema>;
 
 export const QuotesSummaryAuthorSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  leadersCount: z.number().int().positive(),
+  name: z.string().nullable(),
   quotesCount: z.number().int().nonnegative(),
-  tiedCount: z.number().int().nonnegative(),
 });
 
 export type QuotesSummaryAuthor = z.infer<typeof QuotesSummaryAuthorSchema>;

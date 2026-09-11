@@ -73,14 +73,17 @@ export function useQuotesSummaryCards(summary?: QuotesSummaryView): LibrarySumma
 
   const topBookMicrofact = () => {
     if (topBook === null) return t("noQuotesYet");
-    if (topBook.tiedCount === 0) return topBook.title;
-    return t("topBookTied", { count: topBook.tiedCount, title: topBook.title });
+    if (topBook.title !== null) return topBook.title;
+    if (topBook.quotesCount === 1 && topBook.leadersCount === stats.quotedBooksCount) {
+      return t("allBooksSingleQuote");
+    }
+    return t("topBookLeaders", { count: topBook.leadersCount });
   };
 
   const topAuthorMicrofact = () => {
     if (topAuthor === null) return stats.totalCount === 0 ? t("noQuotesYet") : t("noAuthorData");
-    if (topAuthor.tiedCount === 0) return topAuthor.name;
-    return t("topAuthorTied", { count: topAuthor.tiedCount, name: topAuthor.name });
+    if (topAuthor.name !== null) return topAuthor.name;
+    return t("topAuthorLeaders", { count: topAuthor.leadersCount });
   };
 
   const quotedBooksCard: LibrarySummaryCard = {

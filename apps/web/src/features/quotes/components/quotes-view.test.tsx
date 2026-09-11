@@ -70,8 +70,8 @@ const SUMMARY: QuotesSummaryView = {
   favoritesCount: 2,
   quotedBooksCount: 5,
   spoilerCount: 1,
-  topAuthor: { id: "author-1", name: "Френк Герберт", quotesCount: 8, tiedCount: 0 },
-  topBook: { id: "book-1", quotesCount: 8, tiedCount: 0, title: "Дюна" },
+  topAuthor: { leadersCount: 1, name: "Френк Герберт", quotesCount: 8 },
+  topBook: { leadersCount: 1, quotesCount: 8, title: "Дюна" },
   totalCount: 13,
   withCommentCount: 3,
   withoutSpoilerCount: 12,
@@ -368,7 +368,7 @@ describe("QuotesView overview cards", () => {
 });
 
 describe("QuotesView overview blocks", () => {
-  it("shows the rediscovery block between the stats and the post-finish block", async () => {
+  it("shows the rediscovery block above the post-finish block", async () => {
     mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });
 
     renderQuotes();
@@ -376,10 +376,10 @@ describe("QuotesView overview blocks", () => {
     expect(
       await sidebar().findByRole("heading", { level: 2, name: "Згадати цитату" }),
     ).toBeVisible();
-    expect(sidebarHeadings()).toEqual(["Статистика", "Згадати цитату", "Після завершення"]);
+    expect(sidebarHeadings()).toEqual(["Згадати цитату", "Після завершення"]);
   });
 
-  it("leaves the sidebar with the stats alone when the overview holds nothing", async () => {
+  it("leaves the sidebar empty when the overview holds nothing", async () => {
     mockQuotes(quotes(3), { overview: EMPTY_OVERVIEW });
 
     renderQuotes();
@@ -388,7 +388,7 @@ describe("QuotesView overview blocks", () => {
     await waitFor(() => expect(overviewUrls()).toHaveLength(1));
     expect(sidebar().queryByRole("heading", { name: "Згадати цитату" })).not.toBeInTheDocument();
     expect(sidebar().queryByRole("heading", { name: "Після завершення" })).not.toBeInTheDocument();
-    expect(sidebarElement().childElementCount).toBe(1);
+    expect(sidebarElement().childElementCount).toBe(0);
   });
 
   it("asks for the overview once for both blocks that read it", async () => {

@@ -446,8 +446,6 @@ describe("GET /api/quotes/summary", () => {
     await addQuote(accessToken, dune, { comment: "note", isSpoiler: true, text: "b" });
     await addQuote(accessToken, dune, { text: "c" });
     await addQuote(accessToken, hyperion, { text: "d" });
-    const herbertId = await authorIdByName(accessToken, "Frank Herbert");
-
     const body = await summaryBody(accessToken);
 
     expect(body).toEqual({
@@ -455,8 +453,8 @@ describe("GET /api/quotes/summary", () => {
       favoritesCount: 1,
       quotedBooksCount: 2,
       spoilerCount: 1,
-      topAuthor: { id: herbertId, name: "Frank Herbert", quotesCount: 3, tiedCount: 0 },
-      topBook: { id: dune, quotesCount: 3, tiedCount: 0, title: "Dune" },
+      topAuthor: { leadersCount: 1, name: "Frank Herbert", quotesCount: 3 },
+      topBook: { leadersCount: 1, quotesCount: 3, title: "Dune" },
       totalCount: 4,
       withCommentCount: 1,
       withoutSpoilerCount: 3,
@@ -494,7 +492,7 @@ describe("GET /api/quotes/summary", () => {
     expect(body.totalCount).toBe(2);
     expect(body.quotedBooksCount).toBe(1);
     expect(body.averageQuotesPerQuotedBook).toBe(2);
-    expect(body.topBook).toEqual({ id: dune, quotesCount: 2, tiedCount: 0, title: "Dune" });
+    expect(body.topBook).toEqual({ leadersCount: 1, quotesCount: 2, title: "Dune" });
     expect(body.topAuthor?.name).toBe("Frank Herbert");
   });
 
@@ -515,11 +513,11 @@ describe("GET /api/quotes/summary", () => {
     expect(body.totalCount).toBe(1);
     expect(body.quotedBooksCount).toBe(1);
     expect(body.averageQuotesPerQuotedBook).toBe(1);
-    expect(body.topBook).toEqual({ id: dune, quotesCount: 1, tiedCount: 0, title: "Dune" });
+    expect(body.topBook).toEqual({ leadersCount: 1, quotesCount: 1, title: "Dune" });
     expect(body.topAuthor?.name).toBe("Frank Herbert");
   });
 
-  it("breaks a tie by the Ukrainian collation and reports the tied rivals", async () => {
+  it("hides both leaders of a tie and counts them", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const yalynka = await createBook(accessToken, {
       authors: [{ name: "Ярема" }],
@@ -533,22 +531,11 @@ describe("GET /api/quotes/summary", () => {
     await addQuote(accessToken, yalynka, { text: "b" });
     await addQuote(accessToken, yizhak, { text: "c" });
     await addQuote(accessToken, yizhak, { text: "d" });
-    const yizhakAuthorId = await authorIdByName(accessToken, "Їжак");
 
     const body = await summaryBody(accessToken);
 
-    expect(body.topBook).toEqual({
-      id: yizhak,
-      quotesCount: 2,
-      tiedCount: 1,
-      title: "Їжак",
-    });
-    expect(body.topAuthor).toEqual({
-      id: yizhakAuthorId,
-      name: "Їжак",
-      quotesCount: 2,
-      tiedCount: 1,
-    });
+    expect(body.topBook).toEqual({ leadersCount: 2, quotesCount: 2, title: null });
+    expect(body.topAuthor).toEqual({ leadersCount: 2, name: null, quotesCount: 2 });
     expect(body.averageQuotesPerQuotedBook).toBe(2);
   });
 
@@ -564,23 +551,15 @@ describe("GET /api/quotes/summary", () => {
     });
     await addQuote(accessToken, goodOmens, { text: "a" });
     await addQuote(accessToken, mort, { text: "b" });
-    const pratchettId = await authorIdByName(accessToken, "Terry Pratchett");
-
     const body = await summaryBody(accessToken);
 
     expect(body.totalCount).toBe(2);
     expect(body.topAuthor).toEqual({
-      id: pratchettId,
+      leadersCount: 1,
       name: "Terry Pratchett",
       quotesCount: 2,
-      tiedCount: 0,
     });
-    expect(body.topBook).toEqual({
-      id: goodOmens,
-      quotesCount: 1,
-      tiedCount: 1,
-      title: "Good Omens",
-    });
+    expect(body.topBook).toEqual({ leadersCount: 2, quotesCount: 1, title: null });
   });
 });
 

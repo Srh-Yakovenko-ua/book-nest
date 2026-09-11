@@ -154,30 +154,49 @@ describe("buildQuotesSummary topBook", () => {
     expect(buildQuotesSummary(summaryData()).topBook).toBeNull();
   });
 
-  it("returns the only quoted book with no ties", () => {
+  it("returns the only quoted book as the sole leader", () => {
     const summary = buildQuotesSummary(
       summaryData({ bookCounts: [count({ bookId: "a", count: 2, title: "Alpha" })], total: 2 }),
     );
 
-    expect(summary.topBook).toEqual({ id: "a", quotesCount: 2, tiedCount: 0, title: "Alpha" });
+    expect(summary.topBook).toEqual({ leadersCount: 1, quotesCount: 2, title: "Alpha" });
   });
 
-  it("picks the most quoted book", () => {
+  it("names the single most quoted book", () => {
     const summary = buildQuotesSummary(
       summaryData({
         bookCounts: [
-          count({ bookId: "a", count: 2, title: "Alpha" }),
-          count({ bookId: "b", count: 5, title: "Beta" }),
-          count({ bookId: "c", count: 3, title: "Gamma" }),
+          count({ bookId: "a", count: 4, title: "Alpha" }),
+          count({ bookId: "b", count: 12, title: "Безрозсудна" }),
+          count({ bookId: "c", count: 7, title: "Gamma" }),
         ],
-        total: 10,
+        total: 23,
       }),
     );
 
-    expect(summary.topBook).toEqual({ id: "b", quotesCount: 5, tiedCount: 0, title: "Beta" });
+    expect(summary.topBook).toEqual({
+      leadersCount: 1,
+      quotesCount: 12,
+      title: "Безрозсудна",
+    });
   });
 
-  it("breaks a tie by title ascending and reports the other tied books", () => {
+  it("hides both leaders of a two-way tie and counts them", () => {
+    const summary = buildQuotesSummary(
+      summaryData({
+        bookCounts: [
+          count({ bookId: "a", count: 12, title: "Alpha" }),
+          count({ bookId: "b", count: 12, title: "Безрозсудна" }),
+          count({ bookId: "c", count: 4, title: "Gamma" }),
+        ],
+        total: 28,
+      }),
+    );
+
+    expect(summary.topBook).toEqual({ leadersCount: 2, quotesCount: 12, title: null });
+  });
+
+  it("counts all three leaders of a three-way tie", () => {
     const summary = buildQuotesSummary(
       summaryData({
         bookCounts: [
@@ -190,36 +209,55 @@ describe("buildQuotesSummary topBook", () => {
       }),
     );
 
-    expect(summary.topBook).toEqual({ id: "a", quotesCount: 4, tiedCount: 2, title: "Anchor" });
+    expect(summary.topBook).toEqual({ leadersCount: 3, quotesCount: 4, title: null });
   });
 
-  it("settles a tie on identical titles by the lower id, whatever the input order", () => {
+  it("treats every book as a leader when each one holds a single quote", () => {
+    const summary = buildQuotesSummary(
+      summaryData({
+        bookCounts: [
+          count({ bookId: "a", count: 1, title: "Alpha" }),
+          count({ bookId: "b", count: 1, title: "Beta" }),
+          count({ bookId: "c", count: 1, title: "Gamma" }),
+          count({ bookId: "d", count: 1, title: "Delta" }),
+          count({ bookId: "e", count: 1, title: "Epsilon" }),
+        ],
+        total: 5,
+      }),
+    );
+
+    expect(summary.topBook).toEqual({ leadersCount: 5, quotesCount: 1, title: null });
+  });
+
+  it("keeps identical titles from leaking a winner out of a tie", () => {
     const twins = [
       count({ bookId: "book-b", count: 3, title: "Dune" }),
       count({ bookId: "book-a", count: 3, title: "Dune" }),
     ];
-    const expected = { id: "book-a", quotesCount: 3, tiedCount: 1, title: "Dune" };
 
-    expect(buildQuotesSummary(summaryData({ bookCounts: twins, total: 6 })).topBook).toEqual(
-      expected,
-    );
-    expect(
-      buildQuotesSummary(summaryData({ bookCounts: [...twins].reverse(), total: 6 })).topBook,
-    ).toEqual(expected);
+    expect(buildQuotesSummary(summaryData({ bookCounts: twins, total: 6 })).topBook).toEqual({
+      leadersCount: 2,
+      quotesCount: 3,
+      title: null,
+    });
   });
 
-  it("orders a Ukrainian tie by the Ukrainian collation", () => {
-    const summary = buildQuotesSummary(
-      summaryData({
-        bookCounts: [
-          count({ bookId: "b", count: 2, title: "Ялинка" }),
-          count({ bookId: "a", count: 2, title: "Їжак" }),
-        ],
-        total: 4,
-      }),
-    );
+  it("reports the same summary whatever the input order of the book counts", () => {
+    const bookCounts = [
+      count({ bookId: "a", count: 5, title: "Ялинка" }),
+      count({ bookId: "b", count: 9, title: "Їжак" }),
+      count({ bookId: "c", count: 5, title: "Anchor" }),
+    ];
+    const summary = buildQuotesSummary(summaryData({ bookCounts, total: 19 }));
 
-    expect(summary.topBook).toEqual({ id: "a", quotesCount: 2, tiedCount: 1, title: "Їжак" });
+    expect(summary).toEqual(
+      buildQuotesSummary(summaryData({ bookCounts: [...bookCounts].reverse(), total: 19 })),
+    );
+    expect(summary.topBook).toEqual({
+      leadersCount: 1,
+      quotesCount: 9,
+      title: "Їжак",
+    });
   });
 });
 
@@ -236,7 +274,7 @@ describe("buildQuotesSummary topAuthor", () => {
     expect(summary.topAuthor).toBeNull();
   });
 
-  it("returns the only author with no ties", () => {
+  it("returns the only author as the sole leader", () => {
     const summary = buildQuotesSummary(
       summaryData({
         authorLinks: [authorLink("a", "author-1", "Frank Herbert")],
@@ -246,14 +284,13 @@ describe("buildQuotesSummary topAuthor", () => {
     );
 
     expect(summary.topAuthor).toEqual({
-      id: "author-1",
+      leadersCount: 1,
       name: "Frank Herbert",
       quotesCount: 3,
-      tiedCount: 0,
     });
   });
 
-  it("aggregates an author's quotes across their books", () => {
+  it("aggregates the quotes an author collects across their books", () => {
     const summary = buildQuotesSummary(
       summaryData({
         authorLinks: [
@@ -271,10 +308,9 @@ describe("buildQuotesSummary topAuthor", () => {
     );
 
     expect(summary.topAuthor).toEqual({
-      id: "le-guin",
+      leadersCount: 1,
       name: "Ursula Le Guin",
       quotesCount: 5,
-      tiedCount: 0,
     });
   });
 
@@ -295,14 +331,13 @@ describe("buildQuotesSummary topAuthor", () => {
     );
 
     expect(summary.topAuthor).toEqual({
-      id: "pratchett",
+      leadersCount: 1,
       name: "Terry Pratchett",
       quotesCount: 5,
-      tiedCount: 0,
     });
   });
 
-  it("breaks a tie by name ascending and reports the other tied authors", () => {
+  it("hides every leader of a tie and counts them", () => {
     const summary = buildQuotesSummary(
       summaryData({
         authorLinks: [
@@ -319,10 +354,10 @@ describe("buildQuotesSummary topAuthor", () => {
       }),
     );
 
-    expect(summary.topAuthor).toEqual({ id: "ann", name: "Ann", quotesCount: 3, tiedCount: 2 });
+    expect(summary.topAuthor).toEqual({ leadersCount: 3, name: null, quotesCount: 3 });
   });
 
-  it("settles a tie on identical names by the lower id, whatever the input order", () => {
+  it("keeps identical names from leaking a winner out of a tie", () => {
     const links = [
       authorLink("a", "author-b", "Ivan Franko"),
       authorLink("b", "author-a", "Ivan Franko"),
@@ -331,7 +366,7 @@ describe("buildQuotesSummary topAuthor", () => {
       count({ bookId: "a", count: 2, title: "A" }),
       count({ bookId: "b", count: 2, title: "B" }),
     ];
-    const expected = { id: "author-a", name: "Ivan Franko", quotesCount: 2, tiedCount: 1 };
+    const expected = { leadersCount: 2, name: null, quotesCount: 2 };
 
     expect(
       buildQuotesSummary(summaryData({ authorLinks: links, bookCounts, total: 4 })).topAuthor,
@@ -355,10 +390,9 @@ describe("buildQuotesSummary topAuthor", () => {
     );
 
     expect(summary.topAuthor).toEqual({
-      id: "herbert",
+      leadersCount: 1,
       name: "Frank Herbert",
       quotesCount: 2,
-      tiedCount: 0,
     });
   });
 });

@@ -561,8 +561,8 @@ describe("QuotesService.summary", () => {
       favoritesCount: 2,
       quotedBooksCount: 1,
       spoilerCount: 1,
-      topAuthor: { id: AUTHOR_ID, name: "Frank Herbert", quotesCount: 4, tiedCount: 0 },
-      topBook: { id: BOOK_ID, quotesCount: 4, tiedCount: 0, title: "Dune" },
+      topAuthor: { leadersCount: 1, name: "Frank Herbert", quotesCount: 4 },
+      topBook: { leadersCount: 1, quotesCount: 4, title: "Dune" },
       totalCount: 4,
       withCommentCount: 3,
       withoutSpoilerCount: 3,
@@ -590,12 +590,15 @@ describe("QuotesService.summary", () => {
 
     expect(summary.quotedBooksCount).toBe(2);
     expect(summary.averageQuotesPerQuotedBook).toBe(3.5);
-    expect(summary.topBook).toEqual({ id: BOOK_ID, quotesCount: 4, tiedCount: 0, title: "Dune" });
+    expect(summary.topBook).toEqual({
+      leadersCount: 1,
+      quotesCount: 4,
+      title: "Dune",
+    });
     expect(summary.topAuthor).toEqual({
-      id: AUTHOR_ID,
+      leadersCount: 1,
       name: "Frank Herbert",
       quotesCount: 7,
-      tiedCount: 0,
     });
   });
 

@@ -10,16 +10,16 @@
  * @nullable
  */
 export type QuotesSummaryViewDtoTopBook = {
-  id: string;
+  /**
+   * @maximum 9007199254740991
+   * @exclusiveMinimum 0
+   */
+  leadersCount: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   quotesCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  tiedCount: number;
-  title: string;
+  /** @nullable */
+  title: string | null;
 } | null;
