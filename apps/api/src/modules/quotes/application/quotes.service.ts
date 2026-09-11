@@ -18,6 +18,8 @@ import { Injectable } from "@nestjs/common";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
+import { normalizeOptionalQuoteText } from "../domain/quote-text.js";
+import { toQuoteView } from "../domain/quote.mapper.js";
 import { buildQuotesFacets, toAuthorFacets, toBookFacets } from "../domain/quotes-facets.js";
 import { buildQuotesSummary } from "../domain/quotes-summary.js";
 import {
@@ -60,7 +62,7 @@ export class QuotesService {
       userId,
     });
 
-    return this.toQuoteView(created);
+    return this.toView(created);
   }
 
   async deleteForBook({
@@ -123,7 +125,7 @@ export class QuotesService {
     ]);
 
     return buildPaginator({
-      items: items.map((quote) => this.toQuoteView(quote)),
+      items: items.map((quote) => this.toView(quote)),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount,
@@ -146,7 +148,7 @@ export class QuotesService {
 
     return {
       favoritesCount: counts.favorites,
-      items: quotes.map((quote) => this.toQuoteView(quote)),
+      items: quotes.map((quote) => this.toView(quote)),
       spoilerCount: counts.spoiler,
       totalCount: counts.total,
     };
@@ -172,7 +174,7 @@ export class QuotesService {
 
     const updated = await this.quotesRepository.update({ data: toUpdateData(input), quoteId });
 
-    return this.toQuoteView(updated);
+    return this.toView(updated);
   }
 
   private assertPageWithinBook(
@@ -213,34 +215,9 @@ export class QuotesService {
     return quote;
   }
 
-  private toQuoteView(quote: QuoteWithBook): QuoteView {
-    return {
-      book: {
-        cover: this.mediaService.buildViewOrNull(quote.book.coverMedia),
-        firstAuthorName: quote.book.firstAuthorName,
-        id: quote.book.id,
-        title: quote.book.title,
-      },
-      bookId: quote.bookId,
-      chapter: quote.chapter,
-      comment: quote.comment,
-      createdAt: quote.createdAt.toISOString(),
-      id: quote.id,
-      isFavorite: quote.isFavorite,
-      isSpoiler: quote.isSpoiler,
-      page: quote.page,
-      text: quote.text,
-      updatedAt: quote.updatedAt.toISOString(),
-    };
+  private toView(quote: QuoteWithBook): QuoteView {
+    return toQuoteView({ cover: this.mediaService.buildViewOrNull(quote.book.coverMedia), quote });
   }
-}
-
-function normalizeOptionalText(value: Nullable<string> | undefined): Nullable<string> {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
 }
 
 function toQuotesDataset(query: QuotesFacetsQuery, userId: string): QuotesDatasetInput {
@@ -257,10 +234,10 @@ function toQuotesDataset(query: QuotesFacetsQuery, userId: string): QuotesDatase
 function toUpdateData(input: UpdateQuoteInput): QuoteUpdateData {
   const data: QuoteUpdateData = {};
   if (input.chapter !== undefined) {
-    data.chapter = normalizeOptionalText(input.chapter);
+    data.chapter = normalizeOptionalQuoteText(input.chapter);
   }
   if (input.comment !== undefined) {
-    data.comment = normalizeOptionalText(input.comment);
+    data.comment = normalizeOptionalQuoteText(input.comment);
   }
   if (input.isFavorite !== undefined) {
     data.isFavorite = input.isFavorite;
@@ -279,8 +256,8 @@ function toUpdateData(input: UpdateQuoteInput): QuoteUpdateData {
 
 function toWriteData(input: CreateQuoteInput): QuoteWriteData {
   return {
-    chapter: normalizeOptionalText(input.chapter),
-    comment: normalizeOptionalText(input.comment),
+    chapter: normalizeOptionalQuoteText(input.chapter),
+    comment: normalizeOptionalQuoteText(input.comment),
     isFavorite: input.isFavorite,
     isSpoiler: input.isSpoiler,
     page: input.page ?? null,

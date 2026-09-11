@@ -4,6 +4,7 @@ import type { QuotesSummaryView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useSyncExternalStore } from "react";
 
 import type { UiIconName } from "@/components/icons";
 
@@ -12,6 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
+
+import { PostFinishQuotesBlock } from "./post-finish-quotes-block";
+import { QuoteRediscoveryBlock } from "./quote-rediscovery-block";
+
+const SIDEBAR_VISIBLE_QUERY = "(min-width: 40rem)";
 
 type QuotesQuickActionsProps = {
   onAddQuote: () => void;
@@ -72,6 +78,7 @@ export function QuotesQuickActions({
 
 export function QuotesSidebar({ isLoading, summary }: QuotesSidebarProps) {
   const t = useTranslations("quotes.sidebar");
+  const isSidebarOnScreen = useIsSidebarOnScreen();
 
   return (
     <aside
@@ -85,6 +92,14 @@ export function QuotesSidebar({ isLoading, summary }: QuotesSidebarProps) {
           <QuotesStats summary={summary} />
         )}
       </SidebarBlock>
+
+      {isSidebarOnScreen ? (
+        <>
+          <QuoteRediscoveryBlock isVisible />
+
+          <PostFinishQuotesBlock />
+        </>
+      ) : null}
     </aside>
   );
 }
@@ -154,6 +169,14 @@ function QuotesStats({ summary }: { summary: QuotesSummaryView }) {
   );
 }
 
+function readSidebarOnScreen(): boolean {
+  return window.matchMedia(SIDEBAR_VISIBLE_QUERY).matches;
+}
+
+function readSidebarOnScreenOnServer(): boolean {
+  return false;
+}
+
 function RowSkeleton({ rows }: { rows: number }) {
   return (
     <div className="flex flex-col gap-2">
@@ -185,5 +208,19 @@ function StatRow({ icon, label, value }: { icon: UiIconName; label: string; valu
       </dt>
       <dd className="shrink-0 text-sm font-semibold text-ink tabular-nums">{value}</dd>
     </div>
+  );
+}
+
+function subscribeToSidebarViewport(onChange: () => void) {
+  const query = window.matchMedia(SIDEBAR_VISIBLE_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function useIsSidebarOnScreen(): boolean {
+  return useSyncExternalStore(
+    subscribeToSidebarViewport,
+    readSidebarOnScreen,
+    readSidebarOnScreenOnServer,
   );
 }

@@ -291,3 +291,53 @@ export type TrashedQuotesQuery = z.infer<typeof TrashedQuotesQuerySchema>;
 export const PaginatedTrashedQuotesSchema = createPaginatedSchema(TrashedQuoteViewSchema);
 
 export type PaginatedTrashedQuotes = z.infer<typeof PaginatedTrashedQuotesSchema>;
+
+export const PostFinishQuotesViewSchema = z.object({
+  book: QuoteBookPreviewSchema,
+  favoritesCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the book the reader marked as favorite."),
+  finishedAt: isoDay().describe("The day the reading cycle was finished."),
+  quotesCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe(
+      "Active quotes of the book, spoilers included, matching what the book-only quotes destination lists.",
+    ),
+  readingCycleId: z
+    .uuid()
+    .describe("The reading cycle this recap belongs to, and the key the review mutation takes."),
+  withCommentCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Quotes of the book carrying a comment."),
+});
+
+export type PostFinishQuotesView = z.infer<typeof PostFinishQuotesViewSchema>;
+
+export const QuotesOverviewViewSchema = z.object({
+  memoryQuote: QuoteViewSchema.nullable().describe(
+    "An older quote of the reader, picked once per local day, or null while the archive holds fewer than two rediscoverable quotes.",
+  ),
+  postFinish: PostFinishQuotesViewSchema.nullable().describe(
+    "The recap of a book finished within the last 30 days whose quotes the reader has not reviewed yet, or null when no reading cycle qualifies.",
+  ),
+});
+
+export type QuotesOverviewView = z.infer<typeof QuotesOverviewViewSchema>;
+
+export const QuoteRediscoveryImpressionInputSchema = z.object({
+  quoteId: z.uuid(),
+});
+
+export type QuoteRediscoveryImpressionInput = z.infer<typeof QuoteRediscoveryImpressionInputSchema>;
+
+export const QuotePostFinishReviewInputSchema = z.object({
+  readingCycleId: z.uuid(),
+});
+
+export type QuotePostFinishReviewInput = z.infer<typeof QuotePostFinishReviewInputSchema>;

@@ -24,11 +24,14 @@ import type {
   PaginatedQuotesDto,
   PaginatedTrashedQuotesDto,
   QuoteDeletionResultDto,
+  QuotePostFinishReviewInputDto,
+  QuoteRediscoveryImpressionInputDto,
   QuoteViewDto,
   QuotesControllerFacetsParams,
   QuotesControllerListParams,
   QuotesControllerListTrashParams,
   QuotesFacetsViewDto,
+  QuotesOverviewViewDto,
   QuotesSummaryViewDto,
   UpdateQuoteInputDto,
 } from "../../model";
@@ -1458,6 +1461,544 @@ export function useQuotesControllerFacets<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getQuotesControllerFacetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type quotesControllerOverviewResponse200 = {
+  data: QuotesOverviewViewDto;
+  status: 200;
+};
+
+export type quotesControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type quotesControllerOverviewResponseSuccess = quotesControllerOverviewResponse200 & {
+  headers: Headers;
+};
+export type quotesControllerOverviewResponseError = quotesControllerOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type quotesControllerOverviewResponse =
+  quotesControllerOverviewResponseSuccess | quotesControllerOverviewResponseError;
+
+export const getQuotesControllerOverviewUrl = () => {
+  return `/api/quotes/overview`;
+};
+
+/**
+ * @summary Get the quote the reader is invited to remember today and the recap of their latest unreviewed finished book, both read-only
+ */
+export const quotesControllerOverview = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<quotesControllerOverviewResponse> => {
+  return customInstance<quotesControllerOverviewResponse>(getQuotesControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getQuotesControllerOverviewQueryKey = () => {
+  return [`/api/quotes/overview`] as const;
+};
+
+export const getQuotesControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof quotesControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof quotesControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getQuotesControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof quotesControllerOverview>>> = ({
+    signal,
+  }) => quotesControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof quotesControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type QuotesControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof quotesControllerOverview>>
+>;
+export type QuotesControllerOverviewQueryError = void;
+
+export function useQuotesControllerOverview<
+  TData = Awaited<ReturnType<typeof quotesControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof quotesControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof quotesControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useQuotesControllerOverview<
+  TData = Awaited<ReturnType<typeof quotesControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof quotesControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof quotesControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useQuotesControllerOverview<
+  TData = Awaited<ReturnType<typeof quotesControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the quote the reader is invited to remember today and the recap of their latest unreviewed finished book, both read-only
+ */
+
+export function useQuotesControllerOverview<
+  TData = Awaited<ReturnType<typeof quotesControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getQuotesControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type quotesControllerRecordRediscoveryImpressionResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type quotesControllerRecordRediscoveryImpressionResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type quotesControllerRecordRediscoveryImpressionResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type quotesControllerRecordRediscoveryImpressionResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type quotesControllerRecordRediscoveryImpressionResponseSuccess =
+  quotesControllerRecordRediscoveryImpressionResponse204 & {
+    headers: Headers;
+  };
+export type quotesControllerRecordRediscoveryImpressionResponseError = (
+  | quotesControllerRecordRediscoveryImpressionResponse400
+  | quotesControllerRecordRediscoveryImpressionResponse401
+  | quotesControllerRecordRediscoveryImpressionResponse404
+) & {
+  headers: Headers;
+};
+
+export type quotesControllerRecordRediscoveryImpressionResponse =
+  | quotesControllerRecordRediscoveryImpressionResponseSuccess
+  | quotesControllerRecordRediscoveryImpressionResponseError;
+
+export const getQuotesControllerRecordRediscoveryImpressionUrl = () => {
+  return `/api/quotes/rediscovery/impression`;
+};
+
+/**
+ * @summary Record that the rediscovered quote was shown to the reader today
+ */
+export const quotesControllerRecordRediscoveryImpression = async (
+  quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<quotesControllerRecordRediscoveryImpressionResponse> => {
+  return customInstance<quotesControllerRecordRediscoveryImpressionResponse>(
+    getQuotesControllerRecordRediscoveryImpressionUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(quoteRediscoveryImpressionInputDto),
+    },
+  );
+};
+
+export const getQuotesControllerRecordRediscoveryImpressionQueryKey = (
+  quoteRediscoveryImpressionInputDto?: QuoteRediscoveryImpressionInputDto,
+) => {
+  return [
+    "POST",
+    `/api/quotes/rediscovery/impression`,
+    quoteRediscoveryImpressionInputDto,
+  ] as const;
+};
+
+export const getQuotesControllerRecordRediscoveryImpressionQueryOptions = <
+  TData = Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getQuotesControllerRecordRediscoveryImpressionQueryKey(quoteRediscoveryImpressionInputDto);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>
+  > = ({ signal }) =>
+    quotesControllerRecordRediscoveryImpression(quoteRediscoveryImpressionInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type QuotesControllerRecordRediscoveryImpressionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>
+>;
+export type QuotesControllerRecordRediscoveryImpressionQueryError = void;
+
+export function useQuotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+          TError,
+          Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useQuotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+          TError,
+          Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useQuotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Record that the rediscovered quote was shown to the reader today
+ */
+
+export function useQuotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  quoteRediscoveryImpressionInputDto: QuoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof quotesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getQuotesControllerRecordRediscoveryImpressionQueryOptions(
+    quoteRediscoveryImpressionInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type quotesControllerReviewPostFinishResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type quotesControllerReviewPostFinishResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type quotesControllerReviewPostFinishResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type quotesControllerReviewPostFinishResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type quotesControllerReviewPostFinishResponseSuccess =
+  quotesControllerReviewPostFinishResponse204 & {
+    headers: Headers;
+  };
+export type quotesControllerReviewPostFinishResponseError = (
+  | quotesControllerReviewPostFinishResponse400
+  | quotesControllerReviewPostFinishResponse401
+  | quotesControllerReviewPostFinishResponse404
+) & {
+  headers: Headers;
+};
+
+export type quotesControllerReviewPostFinishResponse =
+  quotesControllerReviewPostFinishResponseSuccess | quotesControllerReviewPostFinishResponseError;
+
+export const getQuotesControllerReviewPostFinishUrl = () => {
+  return `/api/quotes/post-finish/review`;
+};
+
+/**
+ * @summary Mark the quotes of one finished reading cycle as reviewed, so its recap stops being offered
+ */
+export const quotesControllerReviewPostFinish = async (
+  quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<quotesControllerReviewPostFinishResponse> => {
+  return customInstance<quotesControllerReviewPostFinishResponse>(
+    getQuotesControllerReviewPostFinishUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(quotePostFinishReviewInputDto),
+    },
+  );
+};
+
+export const getQuotesControllerReviewPostFinishQueryKey = (
+  quotePostFinishReviewInputDto?: QuotePostFinishReviewInputDto,
+) => {
+  return ["POST", `/api/quotes/post-finish/review`, quotePostFinishReviewInputDto] as const;
+};
+
+export const getQuotesControllerReviewPostFinishQueryOptions = <
+  TData = Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getQuotesControllerReviewPostFinishQueryKey(quotePostFinishReviewInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>> = ({
+    signal,
+  }) =>
+    quotesControllerReviewPostFinish(quotePostFinishReviewInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type QuotesControllerReviewPostFinishQueryResult = NonNullable<
+  Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>
+>;
+export type QuotesControllerReviewPostFinishQueryError = void;
+
+export function useQuotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+          TError,
+          Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useQuotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+          TError,
+          Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useQuotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Mark the quotes of one finished reading cycle as reviewed, so its recap stops being offered
+ */
+
+export function useQuotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  quotePostFinishReviewInputDto: QuotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof quotesControllerReviewPostFinish>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getQuotesControllerReviewPostFinishQueryOptions(
+    quotePostFinishReviewInputDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

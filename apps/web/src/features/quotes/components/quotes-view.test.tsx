@@ -1,21 +1,30 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { QuotesFacetsView, QuotesSummaryView, QuoteView } from "@app/shared";
+import type {
+  PostFinishQuotesView,
+  QuotesFacetsView,
+  QuotesOverviewView,
+  QuotesSummaryView,
+  QuoteView,
+} from "@app/shared";
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { QUOTES_PAGE_SIZE } from "../model/quotes-query";
+import { makeQuote } from "../model/quotes.fixtures";
 import { QuotesView } from "./quotes-view";
 
 const SORT_LABEL = "Сортування цитат";
 
 type QuotesMockOptions = {
   facetsFor?: (url: string) => QuotesFacetsView;
+  overview?: QuotesOverviewView;
   summaryStatus?: number;
 };
 
@@ -66,6 +75,22 @@ const SUMMARY: QuotesSummaryView = {
   totalCount: 13,
   withCommentCount: 3,
   withoutSpoilerCount: 12,
+};
+
+const EMPTY_OVERVIEW: QuotesOverviewView = { memoryQuote: null, postFinish: null };
+
+const POST_FINISH: PostFinishQuotesView = {
+  book: {
+    cover: null,
+    firstAuthorName: "Лорен Робертс",
+    id: "book-9",
+    title: "Безрозсудна",
+  },
+  favoritesCount: 4,
+  finishedAt: "2026-09-04",
+  quotesCount: 12,
+  readingCycleId: "8f1c2b3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  withCommentCount: 5,
 };
 
 afterEach(() => {
@@ -342,10 +367,87 @@ describe("QuotesView overview cards", () => {
   });
 });
 
+describe("QuotesView overview blocks", () => {
+  it("shows the rediscovery block between the stats and the post-finish block", async () => {
+    mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });
+
+    renderQuotes();
+
+    expect(
+      await sidebar().findByRole("heading", { level: 2, name: "Згадати цитату" }),
+    ).toBeVisible();
+    expect(sidebarHeadings()).toEqual(["Статистика", "Згадати цитату", "Після завершення"]);
+  });
+
+  it("leaves the sidebar with the stats alone when the overview holds nothing", async () => {
+    mockQuotes(quotes(3), { overview: EMPTY_OVERVIEW });
+
+    renderQuotes();
+
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    await waitFor(() => expect(overviewUrls()).toHaveLength(1));
+    expect(sidebar().queryByRole("heading", { name: "Згадати цитату" })).not.toBeInTheDocument();
+    expect(sidebar().queryByRole("heading", { name: "Після завершення" })).not.toBeInTheDocument();
+    expect(sidebarElement().childElementCount).toBe(1);
+  });
+
+  it("asks for the overview once for both blocks that read it", async () => {
+    mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });
+
+    renderQuotes();
+
+    expect(
+      await sidebar().findByRole("heading", { level: 2, name: "Після завершення" }),
+    ).toBeVisible();
+    expect(sidebar().getByRole("heading", { level: 2, name: "Згадати цитату" })).toBeVisible();
+    expect(overviewUrls()).toHaveLength(1);
+  });
+});
+
+describe("QuotesView overview blocks on a phone", () => {
+  it("leaves the hidden sidebar out of the overview request", async () => {
+    stubMobileViewport();
+    mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: POST_FINISH } });
+
+    renderQuotes();
+
+    expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
+    await waitFor(() => expect(listUrls().length).toBeGreaterThan(0));
+    expect(overviewUrls()).toHaveLength(0);
+    expect(sidebar().queryByRole("heading", { name: "Згадати цитату" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the full view of the rediscovered quote once the drawer is gone", async () => {
+    stubMobileViewport();
+    mockQuotes(quotes(3), { overview: { memoryQuote: makeQuote(), postFinish: null } });
+
+    renderQuotes();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Огляд цитат" }));
+    const drawer = await screen.findByRole("dialog", { name: "Огляд цитат" });
+    await userEvent.click(
+      await within(drawer).findByRole("button", { name: "Переглянути повністю" }),
+    );
+
+    expect(drawer).toHaveAttribute("data-state", "closed");
+    await finishExitAnimation(drawer);
+    expect(drawer.isConnected).toBe(false);
+
+    const fullView = await screen.findByRole("dialog", { name: "Дюна" });
+    expect(within(fullView).getByText("Страх — убивця розуму.")).toBeVisible();
+  });
+});
+
 function filterChipTexts(): string[] {
   return within(screen.getByRole("radiogroup", { name: "Швидкі фільтри цитат" }))
     .getAllByRole("radio")
     .map((chip) => chip.textContent ?? "");
+}
+
+async function finishExitAnimation(element: HTMLElement) {
+  await act(async () => {
+    element.dispatchEvent(new AnimationEvent("animationend", { animationName: "" }));
+  });
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -362,16 +464,11 @@ function listUrl(): string {
 }
 
 function listUrls(): string[] {
-  return requestedUrls.filter(
-    (url) =>
-      url.includes("/api/quotes") &&
-      !url.includes("/api/quotes/summary") &&
-      !url.includes("/api/quotes/facets"),
-  );
+  return requestedUrls.filter((url) => pathnameOf(url) === "/api/quotes");
 }
 
 function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
-  const { facetsFor = () => FACETS, summaryStatus = 200 } = options;
+  const { facetsFor = () => FACETS, overview = EMPTY_OVERVIEW, summaryStatus = 200 } = options;
 
   vi.stubGlobal(
     "fetch",
@@ -381,6 +478,7 @@ function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
       if (url.includes("/api/quotes/summary")) {
         return Promise.resolve(jsonResponse(summaryStatus === 200 ? SUMMARY : {}, summaryStatus));
       }
+      if (url.includes("/api/quotes/overview")) return Promise.resolve(jsonResponse(overview));
       if (url.includes("/api/quotes/facets")) return Promise.resolve(jsonResponse(facetsFor(url)));
       if (url.includes("/api/quotes")) return Promise.resolve(jsonResponse(quotesPage(items, url)));
       if (url.includes("/api/books")) {
@@ -391,6 +489,14 @@ function mockQuotes(items: QuoteView[], options: QuotesMockOptions = {}) {
       return Promise.reject(new Error(`unexpected fetch: ${url}`));
     }),
   );
+}
+
+function overviewUrls(): string[] {
+  return requestedUrls.filter((url) => pathnameOf(url) === "/api/quotes/overview");
+}
+
+function pathnameOf(url: string): string {
+  return new URL(url, "http://localhost").pathname;
 }
 
 function quoteItem(index: number): QuoteView {
@@ -438,6 +544,28 @@ function renderQuotes(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
       <QuotesView />
     </NuqsTestingAdapter>,
   );
+}
+
+function sidebar() {
+  return within(sidebarElement());
+}
+
+function sidebarElement(): HTMLElement {
+  return screen.getByRole("complementary", { name: "Огляд цитат" });
+}
+
+function sidebarHeadings(): string[] {
+  return sidebar()
+    .getAllByRole("heading", { level: 2 })
+    .map((heading) => (heading.textContent ?? "").trim());
+}
+
+function stubMobileViewport() {
+  vi.stubGlobal("matchMedia", () => ({
+    addEventListener: vi.fn(),
+    matches: false,
+    removeEventListener: vi.fn(),
+  }));
 }
 
 function summaryCardTexts(): string[] {

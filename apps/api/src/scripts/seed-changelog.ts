@@ -967,6 +967,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Список видавництв не закривається",
     version: null,
   },
+  {
+    bodyEn:
+      "The quotes page has two new side blocks. The first brings back one quote a day from your own archive, saved at least 30 days ago, with the book, the page and how long ago you wrote it down, and a button to read it in full. The pick stays the same all day, skips the quotes you have seen recently and never takes one marked as a spoiler. The second, for a month after you finish a book, reminds you how many quotes you collected from it and how many of those are favorites or carry a comment, and takes you straight to that book's quotes. Both blocks are there on a phone too, in the page overview, and stay away when there is nothing to show.",
+    bodyUk:
+      "На сторінці цитат збоку з'явилися два блоки. Перший щодня повертає одну цитату з вашого архіву, збережену щонайменше 30 днів тому: книга, сторінка, як давно ви її записали, і кнопка, щоб прочитати її повністю. Вибір тримається цілий день, не повторює нещодавно показані цитати й ніколи не бере ті, що позначені спойлером. Другий протягом місяця після того, як ви дочитали книгу, нагадує, скільки цитат ви з неї зібрали і скільки з них улюблені чи з коментарем, та веде одразу до цитат саме цієї книги. Обидва блоки є і на телефоні, в огляді сторінки, і зникають, коли показувати нема чого.",
+    category: "feature",
+    publishedAt: "2026-09-11T00:00:00.000Z",
+    slug: "quote-rediscovery-and-recap",
+    titleEn: "Quotes that come back to you",
+    titleUk: "Цитати, які повертаються",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

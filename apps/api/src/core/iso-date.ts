@@ -21,7 +21,7 @@ export function daysBetweenIsoDates({
 }
 
 export function parseIsoDate(value: string): Date {
-  return fromZonedTime(`${value}T00:00:00.000`, UTC_TIME_ZONE);
+  return toZonedDayStart({ isoDate: value, timeZone: UTC_TIME_ZONE });
 }
 
 export function startOfUtcDay(date: Date): Date {
@@ -50,6 +50,16 @@ export function toNullableIsoDateTime(value: Nullable<Date>): Nullable<string> {
 
 export function toUpdateDate(value: Nullable<string> | undefined): Nullable<Date> | undefined {
   return value === undefined || value === null ? value : parseIsoDate(value);
+}
+
+export function toZonedDayStart({
+  isoDate,
+  timeZone,
+}: {
+  isoDate: string;
+  timeZone: string;
+}): Date {
+  return fromZonedTime(`${isoDate}T00:00:00.000`, timeZone);
 }
 
 export function toZonedIsoDate({ instant, timeZone }: { instant: Date; timeZone: string }): string {
