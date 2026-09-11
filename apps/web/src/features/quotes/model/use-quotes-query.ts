@@ -38,6 +38,7 @@ export type UseQuotesQueryResult = {
   setSearch: (value: string) => void;
   setSort: (value: QuoteSort) => void;
   setView: (value: QuotesViewMode) => void;
+  showBookOnly: (bookId: string) => void;
   state: QuotesQueryState;
 };
 
@@ -62,6 +63,7 @@ export function useQuotesQuery(): UseQuotesQueryResult {
     setSearch: (q) => void setState({ q }),
     setSort: (sort) => void setState({ sort }),
     setView: (view) => void setState({ view }),
+    showBookOnly: (bookId) => void setState({ ...QUOTES_FILTERS_RESET, book: [bookId] }),
     state,
   };
 }

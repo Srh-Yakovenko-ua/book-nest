@@ -6576,6 +6576,21 @@
         "recent": "Нещодавно додані",
         "clear": "Скинути фільтри"
       },
+      "rediscovery": {
+        "title": "Згадати цитату",
+        "favorite": "Улюблена",
+        "withComment": "Є коментар",
+        "savedAge": "Ви зберегли її {age}",
+        "cta": "Переглянути повністю"
+      },
+      "postFinish": {
+        "title": "Після завершення",
+        "finishedAge": "Завершено {age}",
+        "quotesCount": "{count, plural, one {# цитата} few {# цитати} many {# цитат} other {# цитат}}",
+        "favoritesCount": "{count, plural, one {# улюблена} few {# улюблені} many {# улюблених} other {# улюблених}}",
+        "withCommentCount": "{count} з коментарем",
+        "cta": "Переглянути цитати"
+      },
       "cta": {
         "title": "Додайте свою першу цитату",
         "description": "Зберігайте важливі фрази, які надихають, зворушують і залишають слід у серці."

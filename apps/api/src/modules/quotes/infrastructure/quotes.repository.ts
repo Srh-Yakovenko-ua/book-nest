@@ -237,6 +237,19 @@ export class QuotesRepository {
     });
   }
 
+  findOwnedQuoteById({
+    quoteId,
+    userId,
+  }: {
+    quoteId: string;
+    userId: string;
+  }): Promise<Nullable<QuoteWithBook>> {
+    return this.prisma.quote.findFirst({
+      where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, id: quoteId, userId },
+      ...quoteWithBook,
+    });
+  }
+
   findPurgeCandidates({
     limit,
     now,

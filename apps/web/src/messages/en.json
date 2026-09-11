@@ -6576,6 +6576,21 @@
         "recent": "Recently added",
         "clear": "Reset filters"
       },
+      "rediscovery": {
+        "title": "Rediscover a quote",
+        "favorite": "Favorite",
+        "withComment": "Has a comment",
+        "savedAge": "You saved it {age}",
+        "cta": "View in full"
+      },
+      "postFinish": {
+        "title": "After finishing",
+        "finishedAge": "Finished {age}",
+        "quotesCount": "{count, plural, one {# quote} other {# quotes}}",
+        "favoritesCount": "{count, plural, one {# favorite} other {# favorites}}",
+        "withCommentCount": "{count, plural, one {# with a comment} other {# with comments}}",
+        "cta": "View quotes"
+      },
       "cta": {
         "title": "Add your first quote",
         "description": "Keep the lines that inspire you, move you and leave a mark on your heart."

@@ -544,6 +544,155 @@ export const QuotesControllerFacetsResponse = zod.object({
 });
 
 /**
+ * @summary Get the quote the reader is invited to remember today and the recap of their latest unreviewed finished book, both read-only
+ */
+export const quotesControllerOverviewResponseMemoryQuotePageMin = -9007199254740991;
+export const quotesControllerOverviewResponseMemoryQuotePageMax = 9007199254740991;
+
+export const quotesControllerOverviewResponsePostFinishFavoritesCountMin = 0;
+export const quotesControllerOverviewResponsePostFinishFavoritesCountMax = 9007199254740991;
+
+export const quotesControllerOverviewResponsePostFinishFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const quotesControllerOverviewResponsePostFinishQuotesCountMin = 0;
+export const quotesControllerOverviewResponsePostFinishQuotesCountMax = 9007199254740991;
+
+export const quotesControllerOverviewResponsePostFinishReadingCycleIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const quotesControllerOverviewResponsePostFinishWithCommentCountMin = 0;
+export const quotesControllerOverviewResponsePostFinishWithCommentCountMax = 9007199254740991;
+
+export const QuotesControllerOverviewResponse = zod.object({
+  memoryQuote: zod
+    .object({
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        firstAuthorName: zod.string(),
+        id: zod.string(),
+        title: zod.string(),
+      }),
+      bookId: zod.string(),
+      chapter: zod.string().nullable(),
+      comment: zod.string().nullable(),
+      createdAt: zod.string(),
+      id: zod.string(),
+      isFavorite: zod.boolean(),
+      isSpoiler: zod.boolean(),
+      page: zod
+        .int()
+        .min(quotesControllerOverviewResponseMemoryQuotePageMin)
+        .max(quotesControllerOverviewResponseMemoryQuotePageMax)
+        .nullable(),
+      text: zod.string(),
+      updatedAt: zod.string(),
+    })
+    .nullable()
+    .describe(
+      "An older quote of the reader, picked once per local day, or null while the archive holds fewer than two rediscoverable quotes.",
+    ),
+  postFinish: zod
+    .object({
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        firstAuthorName: zod.string(),
+        id: zod.string(),
+        title: zod.string(),
+      }),
+      favoritesCount: zod
+        .int()
+        .min(quotesControllerOverviewResponsePostFinishFavoritesCountMin)
+        .max(quotesControllerOverviewResponsePostFinishFavoritesCountMax)
+        .describe("Quotes of the book the reader marked as favorite."),
+      finishedAt: zod.iso
+        .date()
+        .regex(quotesControllerOverviewResponsePostFinishFinishedAtRegExp)
+        .describe("The day the reading cycle was finished."),
+      quotesCount: zod
+        .int()
+        .min(quotesControllerOverviewResponsePostFinishQuotesCountMin)
+        .max(quotesControllerOverviewResponsePostFinishQuotesCountMax)
+        .describe(
+          "Active quotes of the book, spoilers included, matching what the book-only quotes destination lists.",
+        ),
+      readingCycleId: zod
+        .uuid()
+        .regex(quotesControllerOverviewResponsePostFinishReadingCycleIdRegExp)
+        .describe(
+          "The reading cycle this recap belongs to, and the key the review mutation takes.",
+        ),
+      withCommentCount: zod
+        .int()
+        .min(quotesControllerOverviewResponsePostFinishWithCommentCountMin)
+        .max(quotesControllerOverviewResponsePostFinishWithCommentCountMax)
+        .describe("Quotes of the book carrying a comment."),
+    })
+    .nullable()
+    .describe(
+      "The recap of a book finished within the last 30 days whose quotes the reader has not reviewed yet, or null when no reading cycle qualifies.",
+    ),
+});
+
+/**
+ * @summary Record that the rediscovered quote was shown to the reader today
+ */
+export const quotesControllerRecordRediscoveryImpressionBodyQuoteIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const QuotesControllerRecordRediscoveryImpressionBody = zod.object({
+  quoteId: zod.uuid().regex(quotesControllerRecordRediscoveryImpressionBodyQuoteIdRegExp),
+});
+
+export const QuotesControllerRecordRediscoveryImpressionResponse = zod.void();
+
+/**
+ * @summary Mark the quotes of one finished reading cycle as reviewed, so its recap stops being offered
+ */
+export const quotesControllerReviewPostFinishBodyReadingCycleIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const QuotesControllerReviewPostFinishBody = zod.object({
+  readingCycleId: zod.uuid().regex(quotesControllerReviewPostFinishBodyReadingCycleIdRegExp),
+});
+
+export const QuotesControllerReviewPostFinishResponse = zod.void();
+
+/**
  * @summary List all quotes across the current user's books
  */
 export const quotesControllerListQueryAuthorItemRegExp = new RegExp(

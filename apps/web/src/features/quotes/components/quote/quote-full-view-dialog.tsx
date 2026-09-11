@@ -25,7 +25,7 @@ type QuoteFullViewDialogProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
   quote: QuoteView;
-  triggerRef: RefObject<Nullable<HTMLButtonElement>>;
+  triggerRef?: RefObject<Nullable<HTMLButtonElement>>;
 };
 
 export function QuoteFullViewDialog({
@@ -56,7 +56,7 @@ export function QuoteFullViewDialog({
       <DialogContent
         className="max-h-[90dvh] gap-4 overflow-y-auto sm:max-w-2xl"
         onCloseAutoFocus={(event) => {
-          const trigger = triggerRef.current;
+          const trigger = triggerRef?.current ?? null;
           if (trigger === null || !trigger.isConnected) return;
           event.preventDefault();
           trigger.focus();
