@@ -6431,13 +6431,6 @@
       "openBook": "Go to the book",
       "retry": "Retry"
     },
-    "bookPicker": {
-      "clear": "Clear the selected book",
-      "empty": "No books found",
-      "heading": "Your books",
-      "loadMore": "Show more",
-      "searching": "Searching books..."
-    },
     "bookBlock": {
       "title": "Quotes from this book",
       "titleWithCount": "Quotes from this book · {count}",
@@ -6476,7 +6469,16 @@
       "editTitle": "Edit quote",
       "editDescription": "Update the quote text, chapter, page, comment or flags.",
       "book": "Book",
-      "bookPlaceholder": "Choose a book...",
+      "bookPicker": {
+        "change": "Change",
+        "collapse": "Collapse",
+        "empty": "No books found",
+        "loadError": "Could not load the books",
+        "loading": "Searching books...",
+        "results": "Your books",
+        "resultsCount": "Showing {count, plural, one {# book} other {# books}}",
+        "search": "Search by title or author"
+      },
       "text": "Quote text",
       "textPlaceholder": "Enter the quote text...",
       "chapter": "Chapter",
@@ -6495,6 +6497,7 @@
       "addSuccess": "Quote added",
       "editSuccess": "Quote updated",
       "errors": {
+        "bookRequired": "Choose a book",
         "textRequired": "Add the quote text",
         "textMax": "The quote text must be at most {max} characters long",
         "chapterMax": "The chapter must be at most {max} characters long",

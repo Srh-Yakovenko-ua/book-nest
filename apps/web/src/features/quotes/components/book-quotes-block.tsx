@@ -10,10 +10,10 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FormSection } from "@/features/books";
+import { toBookSelectOption } from "@/features/books/model/book-select-option";
 import { Link } from "@/i18n/navigation";
 
 import { useBookQuotes } from "../api/use-book-quotes";
-import { toQuoteBookOption } from "../model/quote-book";
 import { QuoteDialog } from "./quote-dialog";
 import { BookQuoteCard } from "./quote/book-quote-card";
 
@@ -64,7 +64,7 @@ export function BookQuotesBlock({ book }: { book: BookView }) {
       </FormSection>
 
       <QuoteDialog
-        book={toQuoteBookOption(book)}
+        book={toBookSelectOption(book)}
         maxPage={book.pagesCount ?? undefined}
         mode="create"
         onOpenChange={setAddOpen}
