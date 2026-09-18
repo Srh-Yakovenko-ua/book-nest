@@ -139,6 +139,22 @@ export function isLibraryRangeValid(source: LibraryRangeSource): boolean {
   return !pages && !rating && !year;
 }
 
+export function libraryListParams(overrides: Partial<LibraryListParams> = {}): LibraryListParams {
+  return {
+    ageCategory: [],
+    author: [],
+    format: [],
+    genre: [],
+    language: [],
+    owner: [],
+    pageSize: LIBRARY_PAGE_SIZE,
+    publisher: [],
+    status: [],
+    tag: [],
+    ...overrides,
+  };
+}
+
 export function libraryRangeFlags(source: LibraryRangeSource): LibraryRangeFlags {
   return {
     pages: isInvertedRange({ max: source.pagesMax, min: source.pagesMin }),

@@ -1,7 +1,7 @@
 "use client";
 
 import type { CreateQuoteInput, Nullable, QuoteView, UpdateQuoteInput } from "@app/shared";
-import type { ReactNode } from "react";
+import type { Control, FieldErrors } from "react-hook-form";
 
 import { QUOTE_PAGE_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
+import type { BookSelectOption } from "@/features/books/model/book-select-option";
 
 import { UiIcon } from "@/components/icons";
 import {
@@ -38,19 +40,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
+import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
+import {
+  BookSelectOptionSchema,
+  toBookSelectOption,
+} from "@/features/books/model/book-select-option";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
-import type { QuoteBookOption } from "../model/quote-book";
-
 import { useCreateQuote, useUpdateQuote } from "../api/use-quote-mutations";
-import { BookPicker } from "./book-picker";
 
 type QuoteDialogProps = (
-  | { book: QuoteBookOption; mode: "create" }
-  | { book: QuoteBookOption; mode: "edit"; quote: QuoteView }
+  | { book: BookSelectOption; mode: "create" }
+  | { book: BookSelectOption; mode: "edit"; quote: QuoteView }
   | { mode: "createWithBookPicker" }
 ) & {
   maxPage?: number;
@@ -59,6 +64,7 @@ type QuoteDialogProps = (
 };
 
 type QuoteFormValues = {
+  book: Nullable<BookSelectOption>;
   chapter: string;
   comment: string;
   isFavorite: boolean;
@@ -68,6 +74,7 @@ type QuoteFormValues = {
 };
 
 type QuoteMessages = {
+  bookRequired: string;
   chapterMax: string;
   commentMax: string;
   pageMax: string;
@@ -77,6 +84,7 @@ type QuoteMessages = {
   textRequired: string;
 };
 
+const QUOTE_BOOK_LABEL_ID = "quote-book-label";
 const QUOTE_TEXT_MAX = 1000;
 const QUOTE_CHAPTER_MAX = 80;
 const QUOTE_COMMENT_MAX = 500;
@@ -84,18 +92,13 @@ const QUOTE_PAGE_MIN = 1;
 
 export function QuoteDialog(props: QuoteDialogProps) {
   const { maxPage, onOpenChange, open } = props;
-  const t = useTranslations("quotes.dialog");
-  const [formDirty, setFormDirty] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const [pickedBook, setPickedBook] = useState<Nullable<QuoteBookOption>>(null);
 
-  const picksBook = props.mode === "createWithBookPicker";
-  const book = picksBook ? pickedBook : props.book;
-  const dirty = formDirty || (picksBook && pickedBook !== null);
+  const book = props.mode === "createWithBookPicker" ? null : props.book;
 
   function close() {
-    setFormDirty(false);
-    setPickedBook(null);
+    setDirty(false);
     onOpenChange(false);
   }
 
@@ -118,27 +121,9 @@ export function QuoteDialog(props: QuoteDialogProps) {
           <>
             <QuoteForm
               book={book}
-              bookField={
-                picksBook ? (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="quote-book">
-                      {t("book")}{" "}
-                      <span aria-hidden className="text-destructive">
-                        *
-                      </span>
-                    </Label>
-                    <BookPicker
-                      id="quote-book"
-                      onChange={setPickedBook}
-                      placeholder={t("bookPlaceholder")}
-                      value={pickedBook}
-                    />
-                  </div>
-                ) : null
-              }
               maxPage={maxPage}
               onCancel={() => handleOpenChange(false)}
-              onDirtyChange={setFormDirty}
+              onDirtyChange={setDirty}
               onDone={close}
               quote={props.mode === "edit" ? props.quote : undefined}
             />
@@ -176,6 +161,9 @@ function buildSchema(messages: QuoteMessages, pageMax: number) {
   const isBlank = (value: string) => value.trim().length === 0;
 
   return z.object({
+    book: BookSelectOptionSchema.nullable().refine((value) => value !== null, {
+      message: messages.bookRequired,
+    }),
     chapter: z.string().refine((value) => value.trim().length <= QUOTE_CHAPTER_MAX, {
       message: messages.chapterMax,
     }),
@@ -232,53 +220,64 @@ function DiscardQuoteDialog({
   );
 }
 
-function QuoteBookPreview({ book }: { book: QuoteBookOption }) {
-  const coverSrc = book.cover?.urls.thumb;
+function QuoteBookField({
+  control,
+  error,
+}: {
+  control: Control<QuoteFormValues>;
+  error: FieldErrors<QuoteFormValues>["book"];
+}) {
+  const t = useTranslations("quotes.dialog");
+  const tPicker = useTranslations("quotes.dialog.bookPicker");
 
   return (
-    <div className="flex items-center gap-4">
-      {coverSrc === undefined ? (
-        <div className="grid aspect-[3/4] w-16 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground/70">
-          <UiIcon name="book" size={22} />
-        </div>
-      ) : (
-        <div className="relative aspect-[3/4] w-16 shrink-0 overflow-hidden rounded-lg bg-accent">
-          <Image
-            alt={book.title}
-            className="object-cover"
-            fill
-            sizes="64px"
-            src={coverSrc}
-            unoptimized
+    <div className="flex flex-col gap-2">
+      <Label id={QUOTE_BOOK_LABEL_ID}>
+        {t("book")}{" "}
+        <span aria-hidden className="text-destructive">
+          *
+        </span>
+      </Label>
+      <Controller
+        control={control}
+        name="book"
+        render={({ field }) => (
+          <BookSingleSelectPicker
+            describedBy={error === undefined ? undefined : "quote-book-error"}
+            id="quote-book"
+            invalid={error !== undefined}
+            labelledBy={QUOTE_BOOK_LABEL_ID}
+            labels={{
+              change: tPicker("change"),
+              collapse: tPicker("collapse"),
+              empty: tPicker("empty"),
+              loadError: tPicker("loadError"),
+              loading: tPicker("loading"),
+              results: tPicker("results"),
+              resultsCount: (count) => tPicker("resultsCount", { count }),
+              search: tPicker("search"),
+            }}
+            onChange={(nextBook) => field.onChange(toBookSelectOption(nextBook))}
+            ref={field.ref}
+            required
+            value={field.value}
           />
-        </div>
-      )}
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="truncate font-heading text-base leading-tight font-bold text-ink">
-          {book.title}
-        </p>
-        {book.authorName.length === 0 ? null : (
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <UiIcon className="shrink-0" name="user" size={14} />
-            <span className="min-w-0 truncate">{book.authorName}</span>
-          </p>
         )}
-      </div>
+      />
+      <FieldError error={error} id="quote-book-error" />
     </div>
   );
 }
 
 function QuoteForm({
   book,
-  bookField,
   maxPage,
   onCancel,
   onDirtyChange,
   onDone,
   quote,
 }: {
-  book: Nullable<QuoteBookOption>;
-  bookField: ReactNode;
+  book: Nullable<BookSelectOption>;
   maxPage?: number;
   onCancel: () => void;
   onDirtyChange: (dirty: boolean) => void;
@@ -302,11 +301,12 @@ function QuoteForm({
     handleSubmit,
     register,
   } = useForm<QuoteFormValues>({
-    defaultValues: toDefaults(quote),
+    defaultValues: toDefaults(book, quote),
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema(
         {
+          bookRequired: tErrors("bookRequired"),
           chapterMax: tErrors("chapterMax", { max: QUOTE_CHAPTER_MAX }),
           commentMax: tErrors("commentMax", { max: QUOTE_COMMENT_MAX }),
           pageMax: tErrors("pageMax", { max: pageMax }),
@@ -344,10 +344,10 @@ function QuoteForm({
       return;
     }
 
-    if (book === null) return;
+    if (values.book === null) return;
 
     createQuote.mutate(
-      { bookId: book.id, input: payload },
+      { bookId: values.book.id, input: payload },
       {
         onError,
         onSuccess: () => {
@@ -358,8 +358,7 @@ function QuoteForm({
     );
   });
 
-  const hasErrors = Object.keys(errors).length > 0;
-  const submitDisabled = text.trim().length === 0 || book === null || hasErrors || pending;
+  const submitDisabled = text.trim().length === 0 || pending;
 
   return (
     <form className="flex flex-col gap-5" noValidate onSubmit={onSubmit}>
@@ -381,9 +380,14 @@ function QuoteForm({
         />
       </DialogHeader>
 
-      {bookField}
-
-      {book === null ? null : <QuoteBookPreview book={book} />}
+      {book === null ? (
+        <QuoteBookField control={control} error={errors.book} />
+      ) : (
+        <div aria-labelledby={QUOTE_BOOK_LABEL_ID} className="flex flex-col gap-2" role="group">
+          <Label id={QUOTE_BOOK_LABEL_ID}>{t("book")}</Label>
+          <BookSingleSelectValue book={book} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="quote-text">
@@ -396,6 +400,7 @@ function QuoteForm({
           <Textarea
             aria-describedby={errors.text ? "quote-text-error" : undefined}
             aria-invalid={errors.text !== undefined}
+            aria-required
             className="min-h-32 pb-7"
             id="quote-text"
             placeholder={t("textPlaceholder")}
@@ -526,8 +531,9 @@ function QuoteForm({
   );
 }
 
-function toDefaults(quote?: QuoteView): QuoteFormValues {
+function toDefaults(book: Nullable<BookSelectOption>, quote?: QuoteView): QuoteFormValues {
   return {
+    book,
     chapter: quote?.chapter ?? "",
     comment: quote?.comment ?? "",
     isFavorite: quote?.isFavorite ?? false,

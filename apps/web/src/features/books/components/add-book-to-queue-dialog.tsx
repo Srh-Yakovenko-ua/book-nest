@@ -26,11 +26,11 @@ import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
 
-import type { LibraryListParams } from "../model/library-query";
 import type { QueuePickerItem } from "../model/queue-placement";
 
 import { useLibraryBooks } from "../api/use-books";
 import { useAddToReadingQueue } from "../api/use-reading-queue";
+import { libraryListParams } from "../model/library-query";
 import { useAddToQueueForm } from "../model/use-add-to-queue-form";
 import { QueuePositionField } from "./queue-position-field";
 
@@ -76,20 +76,11 @@ function AddBookToQueueForm({
   const deferredSearch = useDeferredValue(search);
   const query = deferredSearch.trim();
 
-  const listParams: LibraryListParams = {
-    ageCategory: [],
-    author: [],
-    format: [],
-    genre: [],
-    language: [],
-    owner: [],
+  const listParams = libraryListParams({
     pageSize: PICKER_PAGE_SIZE,
-    publisher: [],
     sort: BooksControllerListSort.title_asc,
-    status: [],
-    tag: [],
     ...(query === "" ? {} : { q: query }),
-  };
+  });
   const books = useLibraryBooks(listParams);
   const items: BookView[] = (books.data?.pages ?? []).flatMap((page) => page.items);
 
