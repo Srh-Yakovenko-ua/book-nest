@@ -1,50 +1,31 @@
 import type {
-  NoteCategory,
-  NoteEntityFilter,
+  BookNoteSort,
   NoteEntityType,
   NoteFilter,
-  NoteSort,
   Nullable,
+  SeriesNoteSort,
 } from "@app/shared";
 
-import { NOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
-import { Prisma } from "../../../generated/prisma/client.js";
-import { buildBookTextSearchConditions } from "../../books/index.js";
 import {
+  BOOK_NOTE_SORT_ORDER_BY,
   BOOK_NOTES_ORDER_BY,
-  notesListOrderBy,
   SERIES_NOTES_ORDER_BY,
 } from "../domain/note-sort.js";
-import { type NoteSummaryCounts } from "../domain/note-summary.js";
-
-const NOTE_ENTITY_TYPE_BOOK = "book";
-
-const NoteSummaryCountsRowSchema = z.object({
-  bookNotesCount: z.number(),
-  booksWithNotesCount: z.number(),
-  favoriteCount: z.number(),
-  pinnedCount: z.number(),
-  seriesWithNotesCount: z.number(),
-  total: z.number(),
-  withSpoilerCount: z.number(),
-});
-
-const EMPTY_NOTE_COUNTS: z.infer<typeof NoteSummaryCountsRowSchema> = {
-  bookNotesCount: 0,
-  booksWithNotesCount: 0,
-  favoriteCount: 0,
-  pinnedCount: 0,
-  seriesWithNotesCount: 0,
-  total: 0,
-  withSpoilerCount: 0,
-};
+import { type BookNotesDataset, buildBookNotesWhere } from "./book-notes-where.js";
+import {
+  buildSeriesNotesCountQuery,
+  buildSeriesNotesPageQuery,
+  parseSeriesNotesTotal,
+  type SeriesNotesDataset,
+} from "./series-notes-sql.js";
 
 const NOTE_ON_ACTIVE_ENTITY: Prisma.NoteWhereInput = {
   AND: [
@@ -61,13 +42,20 @@ const noteEntityArgs = {
         _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
         authors: {
           orderBy: { author: { name: "asc" } },
-          select: { author: { select: { name: true } } },
+          select: { author: { select: { id: true, name: true } } },
         },
         books: {
-          orderBy: [{ partNumber: "asc" }, { createdAt: "asc" }],
-          select: { coverMedia: true },
-          take: 1,
-          where: { ...SOFT_DELETE_SCOPE.active, coverMediaId: { not: null } },
+          orderBy: [{ partNumber: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+          select: {
+            authors: {
+              orderBy: { position: "asc" },
+              select: { author: { select: { id: true, name: true } }, position: true },
+            },
+            coverMedia: true,
+            createdAt: true,
+            partNumber: true,
+          },
+          where: SOFT_DELETE_SCOPE.active,
         },
         id: true,
         name: true,
@@ -91,19 +79,6 @@ export type CreateNoteData = {
   userId: string;
 };
 
-export type NotesFilterInput = {
-  bookId: string | undefined;
-  category: NoteCategory | undefined;
-  customCategory: string | undefined;
-  entityType: NoteEntityFilter;
-  filter: NoteFilter;
-  hasChapter: boolean | undefined;
-  hasPage: boolean | undefined;
-  search: string | undefined;
-  seriesId: string | undefined;
-  userId: string;
-};
-
 export type NoteWithEntity = Prisma.NoteGetPayload<typeof noteEntityArgs>;
 
 export type UpdateNoteArgs = {
@@ -121,13 +96,26 @@ export type UpdateNoteFields = {
   isSpoiler?: boolean;
   page?: Nullable<number>;
   text?: string;
+  updatedAt?: Date;
 };
 
-type ListNotesInput = NotesFilterInput & {
+type ArchiveCountInput<TDataset> = {
+  dataset: TDataset;
+  quickFilter: NoteFilter;
+};
+
+type ArchivePageInput<TSort> = {
+  quickFilter: NoteFilter;
   skip: number;
-  sort: NoteSort;
+  sort: TSort;
   take: number;
 };
+
+type ListBookArchiveInput = ArchivePageInput<BookNoteSort> & { dataset: BookNotesDataset };
+
+type ListSeriesArchiveInput = ArchivePageInput<SeriesNoteSort> & { dataset: SeriesNotesDataset };
+
+const NoteIdRowSchema = z.object({ id: z.uuid() });
 
 const trashedNoteSelect = {
   book: { select: { title: true } },
@@ -147,8 +135,13 @@ type TrashedNoteSelection = Prisma.NoteGetPayload<{ select: typeof trashedNoteSe
 export class NotesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countNotes(filter: NotesFilterInput): Promise<number> {
-    return this.prisma.note.count({ where: buildNotesWhere(filter) });
+  countBookArchive(selection: ArchiveCountInput<BookNotesDataset>): Promise<number> {
+    return this.prisma.note.count({ where: buildBookNotesWhere(selection) });
+  }
+
+  async countSeriesArchive(selection: ArchiveCountInput<SeriesNotesDataset>): Promise<number> {
+    const rows = await this.prisma.$queryRaw(buildSeriesNotesCountQuery(selection));
+    return parseSeriesNotesTotal(rows);
   }
 
   countTrashed({ userId }: { userId: string }): Promise<number> {
@@ -211,6 +204,37 @@ export class NotesRepository {
     return purged.count;
   }
 
+  listActiveByIds({
+    noteIds,
+    userId,
+  }: {
+    noteIds: string[];
+    userId: string;
+  }): Promise<NoteWithEntity[]> {
+    return this.prisma.note.findMany({
+      where: {
+        AND: [{ ...SOFT_DELETE_SCOPE.active, id: { in: noteIds }, userId }, NOTE_ON_ACTIVE_ENTITY],
+      },
+      ...noteEntityArgs,
+    });
+  }
+
+  listBookArchive({
+    dataset,
+    quickFilter,
+    skip,
+    sort,
+    take,
+  }: ListBookArchiveInput): Promise<NoteWithEntity[]> {
+    return this.prisma.note.findMany({
+      orderBy: BOOK_NOTE_SORT_ORDER_BY[sort],
+      skip,
+      take,
+      where: buildBookNotesWhere({ dataset, quickFilter }),
+      ...noteEntityArgs,
+    });
+  }
+
   listByBook(userId: string, bookId: string): Promise<NoteWithEntity[]> {
     return this.prisma.note.findMany({
       orderBy: BOOK_NOTES_ORDER_BY,
@@ -227,13 +251,25 @@ export class NotesRepository {
     });
   }
 
-  listNotes({ skip, sort, take, ...filter }: ListNotesInput): Promise<NoteWithEntity[]> {
-    return this.prisma.note.findMany({
-      orderBy: notesListOrderBy(sort),
-      skip,
-      take,
-      where: buildNotesWhere(filter),
+  async listSeriesArchive(input: ListSeriesArchiveInput): Promise<NoteWithEntity[]> {
+    const rows = await this.prisma.$queryRaw(buildSeriesNotesPageQuery(input));
+    const orderedIds = z
+      .array(NoteIdRowSchema)
+      .parse(rows)
+      .map((row) => row.id);
+    if (orderedIds.length === 0) {
+      return [];
+    }
+
+    const notes = await this.prisma.note.findMany({
+      where: { id: { in: orderedIds } },
       ...noteEntityArgs,
+    });
+    const notesById = new Map(notes.map((note) => [note.id, note]));
+
+    return orderedIds.flatMap((id) => {
+      const note = notesById.get(id);
+      return note === undefined ? [] : [note];
     });
   }
 
@@ -280,54 +316,6 @@ export class NotesRepository {
     return deleted.count;
   }
 
-  async summaryCounts(userId: string): Promise<NoteSummaryCounts> {
-    const [countsRows, customCategoryRows] = await Promise.all([
-      this.prisma.$queryRaw(Prisma.sql`
-        SELECT
-          (count(*))::int AS "total",
-          (count(*) FILTER (WHERE note.entity_type = ${NOTE_ENTITY_TYPE_BOOK}))::int AS "bookNotesCount",
-          (count(*) FILTER (WHERE note.is_spoiler = true))::int AS "withSpoilerCount",
-          (count(*) FILTER (WHERE note.is_favorite = true))::int AS "favoriteCount",
-          (count(*) FILTER (WHERE note.is_pinned = true))::int AS "pinnedCount",
-          (count(DISTINCT note.book_id))::int AS "booksWithNotesCount",
-          (count(DISTINCT note.series_id))::int AS "seriesWithNotesCount"
-        FROM notes note
-        LEFT JOIN books book ON book.id = note.book_id
-        LEFT JOIN series series ON series.id = note.series_id
-        WHERE note.user_id = ${userId}::uuid
-          AND note.deleted_at IS NULL
-          AND (note.book_id IS NULL OR book.deleted_at IS NULL)
-          AND (note.series_id IS NULL OR series.deleted_at IS NULL)
-      `),
-      this.prisma.note.findMany({
-        distinct: ["customCategory"],
-        orderBy: { customCategory: "asc" },
-        select: { customCategory: true },
-        where: {
-          AND: [
-            { ...SOFT_DELETE_SCOPE.active, customCategory: { not: null }, userId },
-            NOTE_ON_ACTIVE_ENTITY,
-          ],
-        },
-      }),
-    ]);
-
-    const counts = z.array(NoteSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_NOTE_COUNTS;
-
-    return {
-      availableCustomCategories: customCategoryRows
-        .map((row) => row.customCategory)
-        .filter((value): value is string => value !== null),
-      bookNotesCount: counts.bookNotesCount,
-      booksWithNotesCount: counts.booksWithNotesCount,
-      favoriteCount: counts.favoriteCount,
-      pinnedCount: counts.pinnedCount,
-      seriesWithNotesCount: counts.seriesWithNotesCount,
-      total: counts.total,
-      withSpoilerCount: counts.withSpoilerCount,
-    };
-  }
-
   update({ fields, noteId, userId }: UpdateNoteArgs): Promise<NoteWithEntity> {
     return this.prisma.note.update({
       data: fields,
@@ -335,101 +323,4 @@ export class NotesRepository {
       ...noteEntityArgs,
     });
   }
-}
-
-function applyNoteFilter(filter: NoteFilter, where: Prisma.NoteWhereInput): void {
-  switch (filter) {
-    case "all":
-      return;
-    case "favorite":
-      where.isFavorite = true;
-      return;
-    case "no_spoiler":
-      where.isSpoiler = false;
-      return;
-    case "pinned":
-      where.isPinned = true;
-      return;
-    case "with_spoiler":
-      where.isSpoiler = true;
-      return;
-    default: {
-      const _exhaustiveCheck: never = filter;
-      return _exhaustiveCheck;
-    }
-  }
-}
-
-function buildNoteSearchConditions(search: string): Prisma.NoteWhereInput[] {
-  const contains = { contains: search, mode: "insensitive" } as const;
-  const conditions: Prisma.NoteWhereInput[] = [
-    { text: contains },
-    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
-    { category: contains },
-    { chapter: contains },
-    { customCategory: contains },
-    { series: { name: contains } },
-  ];
-
-  const parsedPage = Number.parseInt(search, 10);
-  if (
-    Number.isInteger(parsedPage) &&
-    parsedPage > 0 &&
-    parsedPage <= NOTE_PAGE_MAX &&
-    String(parsedPage) === search
-  ) {
-    conditions.push({ page: parsedPage });
-  }
-
-  return conditions;
-}
-
-function buildNotesWhere({
-  bookId,
-  category,
-  customCategory,
-  entityType,
-  filter,
-  hasChapter,
-  hasPage,
-  search,
-  seriesId,
-  userId,
-}: NotesFilterInput): Prisma.NoteWhereInput {
-  const where: Prisma.NoteWhereInput = {
-    AND: [NOTE_ON_ACTIVE_ENTITY],
-    ...SOFT_DELETE_SCOPE.active,
-    userId,
-  };
-
-  if (entityType !== "all") {
-    where.entityType = entityType;
-  }
-  if (category !== undefined) {
-    where.category = category;
-  }
-  if (customCategory !== undefined) {
-    where.customCategory = customCategory;
-  }
-  if (bookId !== undefined) {
-    where.bookId = bookId;
-  }
-  if (seriesId !== undefined) {
-    where.seriesId = seriesId;
-  }
-
-  if (hasPage !== undefined) {
-    where.page = hasPage ? { not: null } : null;
-  }
-  if (hasChapter !== undefined) {
-    where.chapter = hasChapter ? { not: null } : null;
-  }
-
-  applyNoteFilter(filter, where);
-
-  if (search !== undefined) {
-    where.OR = buildNoteSearchConditions(search);
-  }
-
-  return where;
 }

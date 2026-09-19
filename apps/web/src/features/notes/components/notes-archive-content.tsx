@@ -1,109 +1,83 @@
 "use client";
 
-import type { NoteView } from "@app/shared";
+import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-import { NoteCard } from "./note-card";
+import type {
+  NotesArchiveEmptyReason,
+  NotesArchiveListState,
+  NotesNextPageState,
+} from "../model/notes-archive-list-state";
+import type { NotesViewMode } from "../model/notes-archive-query";
+
+import { assertNever } from "../model/assert-never";
+import { NoteArchiveCard } from "./note-archive-card";
 import { NoteCardSkeleton } from "./note-card-skeleton";
 import { NotesErrorState } from "./notes-error-state";
 
-const SKELETON_COUNT = 6;
+const NOTES_ARCHIVE_LIST = {
+  firstCardControl: "a[href]:not([tabindex='-1']), button:not([tabindex='-1'])",
+  skeletonCount: 6,
+} as const;
 
 type NotesArchiveContentProps = {
-  hasActiveFilters: boolean;
-  hasActiveSearch: boolean;
-  hasAnyNotes: boolean;
-  hasNextPage: boolean;
-  isError: boolean;
-  isFetchingNextPage: boolean;
-  isPending: boolean;
-  notes: NoteView[];
   onAddNote: () => void;
   onClearFilters: () => void;
   onLoadMore: () => void;
   onRetry: () => void;
+  state: NotesArchiveListState;
+  view: NotesViewMode;
 };
 
 export function NotesArchiveContent({
-  hasActiveFilters,
-  hasActiveSearch,
-  hasAnyNotes,
-  hasNextPage,
-  isError,
-  isFetchingNextPage,
-  isPending,
-  notes,
   onAddNote,
   onClearFilters,
   onLoadMore,
   onRetry,
+  state,
+  view,
 }: NotesArchiveContentProps) {
-  const t = useTranslations("notes.archive");
-
-  if (isError) return <NotesErrorState onRetry={onRetry} />;
-
-  if (isPending) return <NotesArchiveSkeleton />;
-
-  if (notes.length === 0) {
-    return (
-      <NotesArchiveEmpty
-        hasActiveFilters={hasActiveFilters}
-        hasActiveSearch={hasActiveSearch}
-        hasAnyNotes={hasAnyNotes}
-        onAddNote={onAddNote}
-        onClearFilters={onClearFilters}
-      />
-    );
+  switch (state.kind) {
+    case "empty":
+      return (
+        <NotesArchiveEmpty
+          onAddNote={onAddNote}
+          onClearFilters={onClearFilters}
+          reason={state.reason}
+        />
+      );
+    case "error":
+      return <NotesErrorState onRetry={onRetry} />;
+    case "loading":
+      return <NotesArchiveSkeleton view={view} />;
+    case "ready":
+      return <NotesArchiveList onLoadMore={onLoadMore} state={state} view={view} />;
+    default:
+      return assertNever(state);
   }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {notes.map((note) => (
-          <li className="flex flex-col" key={note.id}>
-            <NoteCard note={note} showEntity />
-          </li>
-        ))}
-      </ul>
-
-      {hasNextPage ? (
-        <div className="flex justify-center">
-          <Button
-            disabled={isFetchingNextPage}
-            loading={isFetchingNextPage}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 function NotesArchiveEmpty({
-  hasActiveFilters,
-  hasActiveSearch,
-  hasAnyNotes,
   onAddNote,
   onClearFilters,
+  reason,
 }: {
-  hasActiveFilters: boolean;
-  hasActiveSearch: boolean;
-  hasAnyNotes: boolean;
   onAddNote: () => void;
   onClearFilters: () => void;
+  reason: NotesArchiveEmptyReason;
 }) {
   const t = useTranslations("notes.archive");
 
-  if (hasAnyNotes && hasActiveSearch) {
+  if (reason === "search") {
     const emptySearch: EmptyStateEntry = {
       desc: t("emptySearch.description"),
       illu: "empty-search",
@@ -113,7 +87,7 @@ function NotesArchiveEmpty({
     return <EmptyState onPrimary={onClearFilters} state={emptySearch} />;
   }
 
-  if (hasAnyNotes && hasActiveFilters) {
+  if (reason === "filters") {
     const emptyFilters: EmptyStateEntry = {
       desc: t("emptyFilters.description"),
       illu: "empty-search",
@@ -132,14 +106,111 @@ function NotesArchiveEmpty({
   return <EmptyState onPrimary={onAddNote} state={emptyArchive} />;
 }
 
-function NotesArchiveSkeleton() {
+function NotesArchiveList({
+  onLoadMore,
+  state,
+  view,
+}: {
+  onLoadMore: () => void;
+  state: Extract<NotesArchiveListState, { kind: "ready" }>;
+  view: NotesViewMode;
+}) {
+  const [firstNewNoteIndex, setFirstNewNoteIndex] = useState<Nullable<number>>(null);
+
+  function loadMore() {
+    setFirstNewNoteIndex(state.notes.length);
+    onLoadMore();
+  }
+
+  function focusFirstNewNote(item: Nullable<HTMLLIElement>) {
+    if (item === null) return;
+    item.querySelector<HTMLElement>(NOTES_ARCHIVE_LIST.firstCardControl)?.focus();
+    setFirstNewNoteIndex(null);
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <ul
+        aria-busy={state.isRefreshing}
+        className={cn(
+          notesGridClassName(view),
+          "transition-opacity duration-200",
+          state.isRefreshing && "opacity-60",
+        )}
+      >
+        {state.notes.map((note, index) => (
+          <li
+            className="flex min-w-0 flex-col"
+            key={note.id}
+            ref={index === firstNewNoteIndex ? focusFirstNewNote : undefined}
+          >
+            <NoteArchiveCard layout={view} note={note} />
+          </li>
+        ))}
+      </ul>
+
+      <NotesLoadMore onLoadMore={loadMore} state={state.nextPage} />
+    </div>
+  );
+}
+
+function NotesArchiveSkeleton({ view }: { view: NotesViewMode }) {
   const t = useTranslations("notes.states");
 
   return (
-    <div aria-busy aria-label={t("loading")} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+    <div aria-busy aria-label={t("loading")} className={notesGridClassName(view)}>
+      {Array.from({ length: NOTES_ARCHIVE_LIST.skeletonCount }, (_, index) => (
         <NoteCardSkeleton key={index} />
       ))}
     </div>
   );
+}
+
+function notesGridClassName(view: NotesViewMode): string {
+  return cn("grid grid-cols-1 gap-4", view === "grid" && "lg:grid-cols-2");
+}
+
+function NotesLoadMore({
+  onLoadMore,
+  state,
+}: {
+  onLoadMore: () => void;
+  state: NotesNextPageState;
+}) {
+  const t = useTranslations("notes.archive");
+  const tCommon = useTranslations("common");
+
+  switch (state) {
+    case "error":
+      return (
+        <div
+          className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center"
+          role="alert"
+        >
+          <p className="text-sm text-muted-foreground">{t("loadMoreError")}</p>
+          <Button onClick={onLoadMore} size="sm" variant="secondary">
+            <UiIcon name="refresh" size={14} />
+            {tCommon("retry")}
+          </Button>
+        </div>
+      );
+    case "idle":
+    case "loading":
+      return (
+        <div className="flex justify-center">
+          <Button
+            disabled={state === "loading"}
+            loading={state === "loading"}
+            onClick={onLoadMore}
+            variant="secondary"
+          >
+            {t("loadMore")}
+          </Button>
+        </div>
+      );
+    case "none":
+      return null;
+    default:
+      return assertNever(state);
+  }
 }

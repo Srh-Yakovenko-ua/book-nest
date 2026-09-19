@@ -24,6 +24,8 @@
     "loansHistory": "Історія позик",
     "lists": "Списки",
     "notes": "Нотатки",
+    "notesBooks": "Книги",
+    "notesSeries": "Серії",
     "delivery": "Доставки",
     "dedications": "Присвяти",
     "quotes": "Цитати",
@@ -5954,11 +5956,65 @@
   },
   "notes": {
     "archive": {
-      "metaTitle": "Нотатки",
-      "title": "Нотатки",
-      "subtitle": "Усі ваші думки, враження, питання та ідеї до книг і серій.",
       "addNote": "Додати нотатку",
-      "loadMore": "Завантажити ще",
+      "resultsTitle": "Список нотаток",
+      "loadMore": "Показати ще",
+      "loadMoreError": "Не вдалося завантажити наступні нотатки.",
+      "counter": "Показано {shown} із {total}",
+      "summaryFacts": {
+        "empty": "—",
+        "createdRecently": "{count, plural, one {# додано за останні 30 днів} few {# додано за останні 30 днів} many {# додано за останні 30 днів} other {# додано за останні 30 днів}}",
+        "createdRecentlyNone": "Нових за останні 30 днів немає",
+        "topAuthorLeaders": "{count, plural, one {# автор має максимум} few {# автори мають максимум} many {# авторів мають максимум} other {# автора мають максимум}}",
+        "noAuthorData": "Немає даних про авторів",
+        "noNotesYet": "Нотаток ще немає"
+      },
+      "books": {
+        "metaTitle": "Нотатки книг",
+        "title": "Нотатки книг",
+        "subtitle": "Думки, враження, питання та ідеї, збережені до окремих книг.",
+        "searchLabel": "Пошук у нотатках книг",
+        "searchPlaceholder": "Пошук за текстом, книгою, автором або власною категорією…",
+        "summary": {
+          "notes": "Нотаток",
+          "entities": "Книг із нотатками",
+          "topAuthor": "Найбільше в одного автора",
+          "topEntity": "Найбільше в одній книзі",
+          "dense": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}} із 5+ нотатками",
+          "denseNone": "Ще немає книг із 5+ нотатками",
+          "topEntityLeaders": "{count, plural, one {# книга має максимум} few {# книги мають максимум} many {# книг мають максимум} other {# книги мають максимум}}",
+          "allEntitiesSingleNote": "Усі книги з нотатками — по 1 нотатці",
+          "compact": {
+            "notes": "Нотаток",
+            "entities": "Книг",
+            "topAuthor": "Автор",
+            "topEntity": "Книга"
+          }
+        }
+      },
+      "series": {
+        "metaTitle": "Нотатки до серій",
+        "title": "Нотатки до серій",
+        "subtitle": "Ваш особистий архів думок, вражень, питань та ідей про книжкові серії.",
+        "searchLabel": "Пошук у нотатках до серій",
+        "searchPlaceholder": "Пошук за текстом, серією, автором або власною категорією…",
+        "summary": {
+          "notes": "Нотаток",
+          "entities": "Серій із нотатками",
+          "topAuthor": "Найбільше в одного автора",
+          "topEntity": "Найбільше в одній серії",
+          "dense": "{count, plural, one {# серія} few {# серії} many {# серій} other {# серії}} із 3+ нотатками",
+          "denseNone": "Ще немає серій із 3+ нотатками",
+          "topEntityLeaders": "{count, plural, one {# серія має максимум} few {# серії мають максимум} many {# серій мають максимум} other {# серії мають максимум}}",
+          "allEntitiesSingleNote": "Усі серії з нотатками — по 1 нотатці",
+          "compact": {
+            "notes": "Нотаток",
+            "entities": "Серій",
+            "topAuthor": "Автор",
+            "topEntity": "Серія"
+          }
+        }
+      },
       "empty": {
         "title": "У вас ще немає нотаток.",
         "description": "Додавайте думки до книг і серій, щоб створити власний читацький архів.",
@@ -5974,15 +6030,6 @@
         "description": "Спробуйте змінити або скинути фільтри.",
         "clear": "Скинути фільтри"
       },
-      "scope": {
-        "book": "Нотатки до книги: {name}",
-        "series": "Нотатки до серії: {name}",
-        "fallback": {
-          "book": "Нотатки до однієї книги",
-          "series": "Нотатки до однієї серії"
-        },
-        "clear": "Показати всі"
-      },
       "quickFilter": {
         "all": "Усі",
         "no_spoiler": "Без спойлерів",
@@ -5990,19 +6037,12 @@
         "favorite": "Улюблені",
         "pinned": "Закріплені"
       },
-      "entityFilter": {
-        "all": "Усі сутності",
-        "book": "Книги",
-        "series": "Серії"
-      },
       "presence": {
         "page": {
-          "any": "Сторінка: усі",
           "yes": "Зі сторінкою",
           "no": "Без сторінки"
         },
         "chapter": {
-          "any": "Розділ: усі",
           "yes": "З розділом",
           "no": "Без розділу"
         }
@@ -6011,14 +6051,10 @@
         "newest": "Нові спочатку",
         "oldest": "Старі спочатку",
         "recently_updated": "Нещодавно оновлені",
-        "title": "За назвою книги / серії",
-        "author": "За автором книги",
-        "category": "За категорією",
+        "title": "За назвою",
+        "author": "За автором",
         "page": "За сторінкою",
-        "pinned_first": "Спочатку закріплені",
-        "favorite_first": "Спочатку улюблені",
-        "no_spoiler_first": "Спочатку без спойлерів",
-        "with_spoiler_first": "Спочатку зі спойлерами"
+        "pinned_first": "Спочатку закріплені"
       },
       "sortMobile": {
         "title": "Сортування",
@@ -6030,94 +6066,81 @@
           "recently_updated": "Оновлені",
           "title": "Назва",
           "author": "Автор",
-          "category": "Категорія",
           "page": "Сторінка",
-          "pinned_first": "Закріплені",
-          "favorite_first": "Улюблені",
-          "no_spoiler_first": "Без спойлерів",
-          "with_spoiler_first": "Зі спойлерами"
+          "pinned_first": "Закріплені"
         }
       },
       "toolbar": {
-        "searchLabel": "Пошук у нотатках",
-        "searchPlaceholder": "Пошук у нотатках...",
         "searchClear": "Очистити пошук",
         "sortLabel": "Сортування",
-        "quickFilterLabel": "Швидкі фільтри",
-        "entityLabel": "Тип сутності",
-        "categoryLabel": "Категорія",
-        "categoryAny": "Усі категорії",
-        "pageLabel": "Сторінка",
-        "chapterLabel": "Розділ"
+        "quickFilterLabel": "Швидкі фільтри"
       },
-      "picker": {
-        "title": "Додати нотатку",
-        "description": "Спочатку оберіть, до чого буде нотатка.",
-        "typeHint": "До чого додати нотатку?",
-        "typeBook": "Книга",
-        "typeBookDescription": "Нотатка до конкретної книги з вашої бібліотеки.",
-        "typeSeries": "Серія",
-        "typeSeriesDescription": "Нотатка до серії загалом, а не до окремої книги.",
-        "back": "Назад",
-        "searchBookLabel": "Пошук книги",
-        "searchBookPlaceholder": "Знайдіть книгу...",
-        "searchSeriesLabel": "Пошук серії",
-        "searchSeriesPlaceholder": "Знайдіть серію...",
-        "searching": "Завантажуємо...",
-        "empty": "Нічого не знайдено."
+      "view": {
+        "label": "Вигляд",
+        "grid": "Сітка",
+        "list": "Список"
       },
-      "sidebar": {
-        "label": "Статистика та швидкі фільтри нотаток",
-        "stats": {
-          "title": "Статистика",
-          "total": "Усього нотаток",
-          "bookNotes": "До книг",
-          "seriesNotes": "До серій",
-          "withoutSpoiler": "Без спойлерів",
-          "withSpoiler": "Зі спойлерами",
-          "favorite": "Улюблених",
-          "pinned": "Закріплених",
-          "booksWithNotes": "Книг з нотатками",
-          "seriesWithNotes": "Серій з нотатками"
+      "advancedFilters": {
+        "trigger": "Фільтри",
+        "title": "Фільтри",
+        "description": "Уточніть, які нотатки показувати.",
+        "clear": "Очистити",
+        "apply": "Застосувати",
+        "selected": "Обрано: {count}",
+        "sections": {
+          "book": "Книги",
+          "series": "Серії",
+          "author": "Автори",
+          "genre": "Жанри",
+          "category": "Категорії",
+          "status": "Статус виходу",
+          "reading": "Стан читання",
+          "hasPage": "Сторінка",
+          "hasChapter": "Розділ"
         },
-        "quickFilters": {
-          "title": "Швидкі фільтри",
-          "favorite": "Лише улюблені",
-          "pinned": "Лише закріплені",
-          "no_spoiler": "Без спойлерів",
-          "with_spoiler": "Зі спойлерами",
-          "for_review": "Для рецензії",
-          "question": "Питання"
-        },
-        "tip": {
-          "title": "Порада",
-          "text": "Закріплюйте найважливіші нотатки, щоб швидко повернутися до головних думок перед рецензією або наступною книгою серії."
-        },
-        "quickAction": {
-          "title": "Не знайшли потрібну нотатку?",
-          "text": "Скористайтесь пошуком або додайте нову нотатку до книги чи серії.",
-          "cta": "Додати нотатку"
-        }
-      },
-      "summary": {
-        "mobile": {
-          "title": "Детальна статистика",
-          "compact": {
-            "total": "Усього",
-            "bookNotes": "До книг",
-            "seriesNotes": "До серій"
+        "fields": {
+          "book": {
+            "placeholder": "Оберіть книги...",
+            "search": "Пошук книги",
+            "empty": "Книг із нотатками не знайдено"
+          },
+          "series": {
+            "placeholder": "Оберіть серії...",
+            "search": "Пошук серії",
+            "empty": "Серій із нотатками не знайдено"
+          },
+          "author": {
+            "placeholder": "Оберіть авторів...",
+            "search": "Пошук автора",
+            "empty": "Авторів не знайдено"
+          },
+          "genre": {
+            "placeholder": "Оберіть жанри...",
+            "search": "Пошук жанру",
+            "empty": "Жанрів не знайдено"
+          },
+          "category": {
+            "placeholder": "Оберіть категорії...",
+            "search": "Пошук категорії",
+            "empty": "Категорій не знайдено"
           }
+        },
+        "presence": {
+          "any": "Усі",
+          "yes": "Є",
+          "no": "Немає"
         }
       },
-      "overviewPanel": {
-        "trigger": "Огляд нотаток",
-        "title": "Огляд нотаток",
-        "subtitle": "Статистика та швидкі фільтри",
-        "close": "Закрити огляд",
-        "tabs": {
-          "overview": "Огляд",
-          "filters": "Фільтри"
-        }
+      "activeFilters": {
+        "book": "Книга: {name}",
+        "series": "Серія: {name}",
+        "author": "Автор: {name}",
+        "genre": "Жанр: {name}",
+        "category": "Категорія: {name}",
+        "status": "Статус: {name}",
+        "reading": "Стан: {name}",
+        "loading": "завантаження…",
+        "notFound": "не знайдено"
       }
     },
     "categories": {
@@ -6134,8 +6157,6 @@
       "custom": "Інше: {value}"
     },
     "entity": {
-      "typeBook": "Книга",
-      "typeSeries": "Серія",
       "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "authorsUnknown": "Автор невідомий",
       "bookCoverAlt": "Обкладинка книги {title}",
@@ -6143,27 +6164,31 @@
     },
     "card": {
       "menu": "Дії з нотаткою",
-      "pinned": "Закріплено",
-      "spoiler": "Спойлер",
-      "spoilerHidden": "Ця нотатка містить спойлер.",
-      "spoilerShow": "Показати спойлер",
-      "spoilerHide": "Приховати спойлер",
-      "spoilerRevealAria": "Ця нотатка містить спойлер. Натисніть, щоб показати текст.",
-      "showMore": "Показати більше",
-      "showLess": "Показати менше",
       "page": "стор. {page}",
-      "updated": "Оновлено {date}",
-      "entityLink": {
-        "book": "До книги",
-        "series": "До серії"
+      "showFull": "Показати повністю",
+      "spoilerGate": {
+        "title": "Ця нотатка містить спойлер",
+        "description": {
+          "book": "Вона може розкрити важливі події книги.",
+          "series": "Вона може розкрити важливі події серії."
+        },
+        "show": "Показати нотатку"
       }
+    },
+    "fullView": {
+      "fallbackTitle": "Нотатка",
+      "textLabel": "Текст нотатки",
+      "spoiler": "Спойлер",
+      "chapter": "Розділ",
+      "page": "Сторінка",
+      "savedLocation": "Збережене місце",
+      "created": "Створено {date} о {time}",
+      "updated": "Оновлено {date} о {time}"
     },
     "actions": {
       "edit": "Редагувати",
-      "pin": "Закріпити нотатку",
-      "unpin": "Відкріпити нотатку",
-      "favorite": "Додати нотатку в улюблені",
-      "unfavorite": "Прибрати нотатку з улюблених",
+      "pin": "Закріплена нотатка",
+      "favorite": "Улюблена нотатка",
       "delete": "Видалити"
     },
     "form": {
@@ -6171,6 +6196,34 @@
       "createDescription": "Нотатка збережеться у вашому читацькому архіві.",
       "editTitle": "Редагувати нотатку",
       "editDescription": "Змініть потрібні поля та збережіть нотатку.",
+      "entityLabel": {
+        "book": "Книга",
+        "series": "Серія"
+      },
+      "bookPicker": {
+        "change": "Змінити",
+        "collapse": "Згорнути",
+        "empty": "Книг не знайдено",
+        "loadError": "Не вдалося завантажити книги",
+        "loadMoreError": "Не вдалося завантажити більше книг",
+        "loading": "Шукаємо книги...",
+        "results": "Ваші книги",
+        "resultsCount": "Показано {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
+        "retry": "Спробувати ще раз",
+        "search": "Пошук книги за назвою або автором"
+      },
+      "seriesPicker": {
+        "change": "Змінити",
+        "collapse": "Згорнути",
+        "empty": "Серій не знайдено",
+        "loadError": "Не вдалося завантажити серії",
+        "loadMoreError": "Не вдалося завантажити більше серій",
+        "loading": "Шукаємо серії...",
+        "results": "Ваші серії",
+        "resultsCount": "Показано {count, plural, one {# серію} few {# серії} many {# серій} other {# серії}}",
+        "retry": "Спробувати ще раз",
+        "search": "Пошук серії за назвою або автором"
+      },
       "optional": "(необовʼязково)",
       "text": "Текст нотатки",
       "textPlaceholder": "Запишіть свої думки, враження або важливі ідеї...",
@@ -6181,9 +6234,15 @@
       "customCategoryPlaceholder": "Наприклад: любовна лінія, фінал, улюблений момент...",
       "chapter": "Розділ",
       "chapterPlaceholder": "Наприклад: Розділ III",
-      "chapterPlaceholderSeries": "Наприклад: Книга 2, фінал або Арка Діани",
       "page": "Сторінка",
       "pagePlaceholder": "Наприклад: 87",
+      "savedLocation": {
+        "title": "Збережене місце",
+        "description": "Це місце збережене раніше. Нові нотатки до серії розділ і сторінку не використовують.",
+        "remove": "Прибрати збережене місце",
+        "restore": "Повернути збережене місце",
+        "removed": "Збережене місце буде прибрано після збереження."
+      },
       "spoiler": "Це спойлер",
       "spoilerHelp": "Позначте, якщо нотатка містить важливі сюжетні деталі.",
       "favorite": "Додати нотатку в улюблені",
@@ -6199,7 +6258,11 @@
       "textTooLong": "Нотатка не може бути довшою за {max} символів.",
       "pageNotPositive": "Номер сторінки має бути більшим за 0.",
       "chapterTooLong": "Назва розділу занадто довга.",
-      "customCategoryTooLong": "Назва власної категорії не може бути довшою за {max} символів."
+      "customCategoryTooLong": "Назва власної категорії не може бути довшою за {max} символів.",
+      "entityRequired": {
+        "book": "Оберіть книгу.",
+        "series": "Оберіть серію."
+      }
     },
     "deleteDialog": {
       "title": "Видалити нотатку?",
@@ -6242,6 +6305,66 @@
         "emptyTitle": "У вас ще немає нотаток до цієї серії.",
         "emptyDescription": "Зберігайте важливі деталі, арки персонажів, питання та події, які варто згадати перед наступною книгою.",
         "viewAll": "Переглянути всі нотатки серії ({count})"
+      }
+    },
+    "overview": {
+      "label": "Огляд нотаток",
+      "panel": {
+        "trigger": "Огляд нотаток",
+        "title": "Огляд нотаток",
+        "subtitle": "Статистика та нагадування",
+        "close": "Закрити огляд",
+        "summaryTitle": "Детальна статистика"
+      },
+      "source": {
+        "series": "Нотатка про серію",
+        "seriesBook": "Книга {position} · {title}"
+      },
+      "memory": {
+        "title": "Згадати нотатку",
+        "favorite": "Улюблена",
+        "pinned": "Закріплена",
+        "savedAge": "Збережено {age}",
+        "showFull": "Показати повністю",
+        "openNote": "Відкрити нотатку"
+      },
+      "postFinish": {
+        "title": "Після завершення",
+        "finishedAge": "Завершено {age}",
+        "notesCount": "{count, plural, one {# нотатка} few {# нотатки} many {# нотаток} other {# нотатки}}",
+        "favoritesCount": "{count, plural, one {# улюблена} few {# улюблені} many {# улюблених} other {# улюбленої}}",
+        "pinnedCount": "{count, plural, one {# закріплена} few {# закріплені} many {# закріплених} other {# закріпленої}}",
+        "cta": "Переглянути нотатки"
+      },
+      "beforeContinuation": {
+        "title": "Перед продовженням серії",
+        "subtitle": {
+          "notStarted": "Що варто згадати перед «{title}»",
+          "reading": "Що варто згадати під час читання «{title}»",
+          "rereading": "Що варто згадати під час перечитування «{title}»",
+          "paused": "Що варто згадати перед поверненням до «{title}»"
+        },
+        "status": {
+          "notStarted": "Наступна книга",
+          "reading": "Зараз читаєте",
+          "rereading": "Зараз перечитуєте",
+          "paused": "Читання призупинено"
+        },
+        "cta": {
+          "notStarted": "Перейти до книги",
+          "reading": "Продовжити читати",
+          "rereading": "Продовжити перечитування",
+          "paused": "Повернутися до книги"
+        },
+        "position": "{series} · Книга {position}",
+        "progress": {
+          "percent": "Прочитано {percentage}%",
+          "pagesOf": "Сторінка {current} з {total}",
+          "page": "Сторінка {current}"
+        },
+        "recapTitle": "Що варто згадати",
+        "recapSubtitle": "З ваших нотаток до попередніх частин",
+        "viewAll": "Переглянути всі нотатки серії"
       }
     }
   },
@@ -6428,7 +6551,6 @@
       "delete": "Видалити",
       "edit": "Редагувати",
       "menuLabel": "Дії для цитати",
-      "openBook": "Перейти до книги",
       "retry": "Повторити"
     },
     "bookBlock": {
@@ -6474,9 +6596,11 @@
         "collapse": "Згорнути",
         "empty": "Книг не знайдено",
         "loadError": "Не вдалося завантажити книги",
+        "loadMoreError": "Не вдалося завантажити більше книг",
         "loading": "Шукаємо книги...",
         "results": "Ваші книги",
         "resultsCount": "Показано {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
+        "retry": "Спробувати ще раз",
         "search": "Пошук за назвою або автором"
       },
       "text": "Текст цитати",

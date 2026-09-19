@@ -1,39 +1,40 @@
-import type { NoteSort } from "@app/shared";
+import type { BookNoteSort } from "@app/shared";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
-const ID_TIEBREAKER: Prisma.NoteOrderByWithRelationInput = { id: "asc" };
-const PINNED_FIRST: Prisma.NoteOrderByWithRelationInput = { isPinned: "desc" };
-const NEWEST: Prisma.NoteOrderByWithRelationInput = { createdAt: "desc" };
+type NoteOrderBy = Prisma.NoteOrderByWithRelationInput;
 
-const SORT_ORDER_BY: Record<NoteSort, Prisma.NoteOrderByWithRelationInput[]> = {
-  author: [{ book: { firstAuthorName: "asc" } }, NEWEST],
-  category: [{ category: { nulls: "last", sort: "asc" } }, NEWEST],
-  favorite_first: [{ isFavorite: "desc" }, NEWEST],
-  newest: [NEWEST],
-  no_spoiler_first: [{ isSpoiler: "asc" }, NEWEST],
-  oldest: [{ createdAt: "asc" }],
-  page: [{ page: { nulls: "last", sort: "asc" } }, NEWEST],
-  pinned_first: [NEWEST],
-  recently_updated: [{ updatedAt: "desc" }, NEWEST],
-  title: [{ book: { title: "asc" } }, { series: { name: "asc" } }, NEWEST],
-  with_spoiler_first: [{ isSpoiler: "desc" }, NEWEST],
+const NOTE_ORDER = {
+  bookAuthor: { book: { firstAuthorName: "asc" } },
+  bookTitle: { book: { title: "asc" } },
+  idTiebreaker: { id: "asc" },
+  newest: { createdAt: "desc" },
+  oldest: { createdAt: "asc" },
+  page: { page: { nulls: "last", sort: "asc" } },
+  pinnedFirst: { isPinned: "desc" },
+  recentlyUpdated: { updatedAt: "desc" },
+} as const satisfies Record<string, NoteOrderBy>;
+
+export const BOOK_NOTE_SORT_ORDER_BY: Record<BookNoteSort, NoteOrderBy[]> = {
+  author: [NOTE_ORDER.bookAuthor, NOTE_ORDER.bookTitle, NOTE_ORDER.idTiebreaker],
+  newest: [NOTE_ORDER.newest, NOTE_ORDER.idTiebreaker],
+  oldest: [NOTE_ORDER.oldest, NOTE_ORDER.idTiebreaker],
+  page: [NOTE_ORDER.bookTitle, NOTE_ORDER.page, NOTE_ORDER.idTiebreaker],
+  pinned_first: [NOTE_ORDER.pinnedFirst, NOTE_ORDER.newest, NOTE_ORDER.idTiebreaker],
+  recently_updated: [NOTE_ORDER.recentlyUpdated, NOTE_ORDER.newest, NOTE_ORDER.idTiebreaker],
+  title: [NOTE_ORDER.bookTitle, NOTE_ORDER.newest, NOTE_ORDER.idTiebreaker],
 };
 
-export const BOOK_NOTES_ORDER_BY: Prisma.NoteOrderByWithRelationInput[] = [
-  PINNED_FIRST,
-  { page: { nulls: "last", sort: "asc" } },
-  NEWEST,
-  ID_TIEBREAKER,
+export const BOOK_NOTES_ORDER_BY: NoteOrderBy[] = [
+  NOTE_ORDER.pinnedFirst,
+  NOTE_ORDER.page,
+  NOTE_ORDER.newest,
+  NOTE_ORDER.idTiebreaker,
 ];
 
-export const SERIES_NOTES_ORDER_BY: Prisma.NoteOrderByWithRelationInput[] = [
-  PINNED_FIRST,
-  { updatedAt: "desc" },
-  NEWEST,
-  ID_TIEBREAKER,
+export const SERIES_NOTES_ORDER_BY: NoteOrderBy[] = [
+  NOTE_ORDER.pinnedFirst,
+  NOTE_ORDER.recentlyUpdated,
+  NOTE_ORDER.newest,
+  NOTE_ORDER.idTiebreaker,
 ];
-
-export function notesListOrderBy(sort: NoteSort): Prisma.NoteOrderByWithRelationInput[] {
-  return [PINNED_FIRST, ...SORT_ORDER_BY[sort], ID_TIEBREAKER];
-}

@@ -3,7 +3,7 @@
 import type { BookView, Nullable } from "@app/shared";
 import type { FocusEvent, Ref } from "react";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,8 +35,10 @@ export type BookSingleSelectPickerLabels = {
   empty: string;
   loadError: string;
   loading: string;
+  loadMoreError: string;
   results: string;
   resultsCount: (count: number) => string;
+  retry: string;
   search: string;
 };
 
@@ -53,7 +55,7 @@ type BookSingleSelectPickerProps = {
   value: Nullable<BookSelectOption>;
 };
 
-type PendingFocus = "change" | "search";
+type PendingFocus = "change" | "search" | HTMLElement;
 
 type PickerView = "list" | "value";
 
@@ -74,7 +76,6 @@ export function BookSingleSelectPicker({
   const debouncedSearch = useDebouncedValue(search, BOOK_SINGLE_SELECT_PICKER.searchDebounceMs);
 
   const changeButtonRef = useRef<HTMLButtonElement>(null);
-  const listElementRef = useRef<Nullable<HTMLDivElement>>(null);
   const searchInputRef = useRef<Nullable<HTMLInputElement>>(null);
   const pendingFocusRef = useRef<Nullable<PendingFocus>>(null);
   const isPointerSelectionRef = useRef(false);
@@ -85,6 +86,7 @@ export function BookSingleSelectPicker({
     hasNextPage,
     isError,
     isFetchingNextPage,
+    isFetchNextPageError,
     isPending,
     isPlaceholderData,
   } = useLibraryBooks(searchParams(baseParams, debouncedSearch), {
@@ -93,24 +95,11 @@ export function BookSingleSelectPicker({
 
   const items = (data?.pages ?? []).flatMap((page) => page.items);
   const { onScroll, scrollRef } = useInfiniteScroll({
-    hasNextPage,
+    hasNextPage: hasNextPage && !isFetchNextPageError,
     isFetchingNextPage,
     itemCount: items.length,
     onLoadMore: fetchNextPage,
   });
-
-  const attachList = useCallback(
-    (element: HTMLDivElement | null) => {
-      listElementRef.current = element;
-      scrollRef(element);
-    },
-    [scrollRef],
-  );
-
-  useEffect(() => {
-    if (listElementRef.current === null) return;
-    listElementRef.current.scrollTop = 0;
-  }, [debouncedSearch]);
 
   useEffect(() => {
     const pending = pendingFocusRef.current;
@@ -118,6 +107,10 @@ export function BookSingleSelectPicker({
     pendingFocusRef.current = null;
     if (pending === "search") {
       searchInputRef.current?.focus();
+      return;
+    }
+    if (pending instanceof HTMLElement && pending.isConnected) {
+      pending.focus();
       return;
     }
     changeButtonRef.current?.focus();
@@ -148,7 +141,7 @@ export function BookSingleSelectPicker({
   function leavePicker(event: FocusEvent<HTMLDivElement>) {
     if (event.currentTarget.contains(event.relatedTarget)) return;
     if (value === null) return;
-    showSelected(null);
+    showSelected(event.relatedTarget instanceof HTMLElement ? event.relatedTarget : "change");
   }
 
   if (value !== null && view === "value") {
@@ -214,13 +207,7 @@ export function BookSingleSelectPicker({
       </div>
 
       <p className="sr-only" role="status">
-        {liveStatus({
-          isPending,
-          isPlaceholderData,
-          itemCount: items.length,
-          labels,
-          loadedPages: data?.pages.length ?? 0,
-        })}
+        {liveStatus({ isError, isPending, isPlaceholderData, itemCount: items.length, labels })}
       </p>
 
       <div
@@ -231,6 +218,7 @@ export function BookSingleSelectPicker({
             ? "border-dashed border-accent-border [&_[data-slot=book-thumb]]:opacity-40"
             : "border-border",
         )}
+        key={debouncedSearch}
         onKeyDownCapture={() => {
           isPointerSelectionRef.current = false;
         }}
@@ -238,7 +226,7 @@ export function BookSingleSelectPicker({
           isPointerSelectionRef.current = true;
         }}
         onScroll={onScroll}
-        ref={attachList}
+        ref={scrollRef}
       >
         {isPlaceholderData ? (
           <p className="py-2 text-center text-xs text-muted-foreground">{labels.loading}</p>
@@ -255,6 +243,17 @@ export function BookSingleSelectPicker({
         />
         {isFetchingNextPage ? (
           <p className="py-2 text-center text-xs text-muted-foreground">{labels.loading}</p>
+        ) : null}
+        {isFetchNextPageError ? (
+          <div
+            className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground"
+            role="alert"
+          >
+            <span>{labels.loadMoreError}</span>
+            <Button onClick={() => void fetchNextPage()} size="sm" type="button" variant="ghost">
+              {labels.retry}
+            </Button>
+          </div>
         ) : null}
       </div>
     </div>
@@ -297,7 +296,7 @@ function BookSingleSelectResults({
     );
   }
 
-  if (isError) {
+  if (isError && items.length === 0) {
     return (
       <p className="px-3 py-6 text-center text-sm text-muted-foreground" role="alert">
         {labels.loadError}
@@ -306,7 +305,11 @@ function BookSingleSelectResults({
   }
 
   if (items.length === 0) {
-    return <p className="px-3 py-6 text-center text-sm text-muted-foreground">{labels.empty}</p>;
+    return (
+      <p aria-hidden className="px-3 py-6 text-center text-sm text-muted-foreground">
+        {labels.empty}
+      </p>
+    );
   }
 
   return (
@@ -363,21 +366,22 @@ const BookSingleSelectRow = memo(function BookSingleSelectRow({
 });
 
 function liveStatus({
+  isError,
   isPending,
   isPlaceholderData,
   itemCount,
   labels,
-  loadedPages,
 }: {
+  isError: boolean;
   isPending: boolean;
   isPlaceholderData: boolean;
   itemCount: number;
   labels: BookSingleSelectPickerLabels;
-  loadedPages: number;
 }): string {
   if (isPending || isPlaceholderData) return labels.loading;
-  if (loadedPages <= 1) return "";
-  return labels.resultsCount(itemCount);
+  if (itemCount > 0) return labels.resultsCount(itemCount);
+  if (isError) return "";
+  return labels.empty;
 }
 
 function searchParams(

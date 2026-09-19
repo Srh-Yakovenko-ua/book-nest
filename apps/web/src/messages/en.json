@@ -24,6 +24,8 @@
     "loansHistory": "Loan history",
     "lists": "Lists",
     "notes": "Notes",
+    "notesBooks": "Books",
+    "notesSeries": "Series",
     "delivery": "Deliveries",
     "dedications": "Dedications",
     "quotes": "Quotes",
@@ -5954,11 +5956,65 @@
   },
   "notes": {
     "archive": {
-      "metaTitle": "Notes",
-      "title": "Notes",
-      "subtitle": "All your thoughts, impressions, questions and ideas about books and series.",
       "addNote": "Add note",
-      "loadMore": "Load more",
+      "resultsTitle": "Note list",
+      "loadMore": "Show more",
+      "loadMoreError": "Could not load more notes.",
+      "counter": "Showing {shown} of {total}",
+      "summaryFacts": {
+        "empty": "—",
+        "createdRecently": "{count, plural, one {# added in the last 30 days} other {# added in the last 30 days}}",
+        "createdRecentlyNone": "Nothing new in the last 30 days",
+        "topAuthorLeaders": "{count, plural, one {# author shares the top spot} other {# authors share the top spot}}",
+        "noAuthorData": "No author data",
+        "noNotesYet": "No notes yet"
+      },
+      "books": {
+        "metaTitle": "Book notes",
+        "title": "Book notes",
+        "subtitle": "Thoughts, impressions, questions and ideas saved to individual books.",
+        "searchLabel": "Search book notes",
+        "searchPlaceholder": "Search by text, book, author or custom category…",
+        "summary": {
+          "notes": "Notes",
+          "entities": "Books with notes",
+          "topAuthor": "Most for one author",
+          "topEntity": "Most in one book",
+          "dense": "{count, plural, one {# book} other {# books}} with 5+ notes",
+          "denseNone": "No books with 5+ notes yet",
+          "topEntityLeaders": "{count, plural, one {# book shares the top spot} other {# books share the top spot}}",
+          "allEntitiesSingleNote": "Every book with notes has 1 note",
+          "compact": {
+            "notes": "Notes",
+            "entities": "Books",
+            "topAuthor": "Author",
+            "topEntity": "Book"
+          }
+        }
+      },
+      "series": {
+        "metaTitle": "Series notes",
+        "title": "Series notes",
+        "subtitle": "Your personal archive of thoughts, impressions, questions and ideas about book series.",
+        "searchLabel": "Search series notes",
+        "searchPlaceholder": "Search by text, series, author or custom category…",
+        "summary": {
+          "notes": "Notes",
+          "entities": "Series with notes",
+          "topAuthor": "Most for one author",
+          "topEntity": "Most in one series",
+          "dense": "{count, plural, one {# series} other {# series}} with 3+ notes",
+          "denseNone": "No series with 3+ notes yet",
+          "topEntityLeaders": "{count, plural, one {# series shares the top spot} other {# series share the top spot}}",
+          "allEntitiesSingleNote": "Every series with notes has 1 note",
+          "compact": {
+            "notes": "Notes",
+            "entities": "Series",
+            "topAuthor": "Author",
+            "topEntity": "Series"
+          }
+        }
+      },
       "empty": {
         "title": "You have no notes yet.",
         "description": "Add thoughts about books and series to build your own reading archive.",
@@ -5974,15 +6030,6 @@
         "description": "Try changing or resetting the filters.",
         "clear": "Reset filters"
       },
-      "scope": {
-        "book": "Notes for the book: {name}",
-        "series": "Notes for the series: {name}",
-        "fallback": {
-          "book": "Notes for a single book",
-          "series": "Notes for a single series"
-        },
-        "clear": "Show all"
-      },
       "quickFilter": {
         "all": "All",
         "no_spoiler": "No spoilers",
@@ -5990,19 +6037,12 @@
         "favorite": "Favorites",
         "pinned": "Pinned"
       },
-      "entityFilter": {
-        "all": "All entities",
-        "book": "Books",
-        "series": "Series"
-      },
       "presence": {
         "page": {
-          "any": "Page: all",
           "yes": "With page",
           "no": "Without page"
         },
         "chapter": {
-          "any": "Chapter: all",
           "yes": "With chapter",
           "no": "Without chapter"
         }
@@ -6011,14 +6051,10 @@
         "newest": "Newest first",
         "oldest": "Oldest first",
         "recently_updated": "Recently updated",
-        "title": "By book / series title",
-        "author": "By book author",
-        "category": "By category",
+        "title": "By title",
+        "author": "By author",
         "page": "By page",
-        "pinned_first": "Pinned first",
-        "favorite_first": "Favorites first",
-        "no_spoiler_first": "Without spoilers first",
-        "with_spoiler_first": "With spoilers first"
+        "pinned_first": "Pinned first"
       },
       "sortMobile": {
         "title": "Sorting",
@@ -6030,94 +6066,81 @@
           "recently_updated": "Updated",
           "title": "Title",
           "author": "Author",
-          "category": "Category",
           "page": "Page",
-          "pinned_first": "Pinned",
-          "favorite_first": "Favorites",
-          "no_spoiler_first": "No spoilers",
-          "with_spoiler_first": "Spoilers"
+          "pinned_first": "Pinned"
         }
       },
       "toolbar": {
-        "searchLabel": "Search notes",
-        "searchPlaceholder": "Search notes...",
         "searchClear": "Clear search",
         "sortLabel": "Sorting",
-        "quickFilterLabel": "Quick filters",
-        "entityLabel": "Entity type",
-        "categoryLabel": "Category",
-        "categoryAny": "All categories",
-        "pageLabel": "Page",
-        "chapterLabel": "Chapter"
+        "quickFilterLabel": "Quick filters"
       },
-      "picker": {
-        "title": "Add note",
-        "description": "First choose what the note is about.",
-        "typeHint": "What is this note about?",
-        "typeBook": "Book",
-        "typeBookDescription": "A note about a specific book from your library.",
-        "typeSeries": "Series",
-        "typeSeriesDescription": "A note about the series as a whole, not a single book.",
-        "back": "Back",
-        "searchBookLabel": "Search for a book",
-        "searchBookPlaceholder": "Find a book...",
-        "searchSeriesLabel": "Search for a series",
-        "searchSeriesPlaceholder": "Find a series...",
-        "searching": "Loading...",
-        "empty": "Nothing found."
+      "view": {
+        "label": "View",
+        "grid": "Grid",
+        "list": "List"
       },
-      "sidebar": {
-        "label": "Notes statistics and quick filters",
-        "stats": {
-          "title": "Statistics",
-          "total": "Total notes",
-          "bookNotes": "For books",
-          "seriesNotes": "For series",
-          "withoutSpoiler": "Without spoilers",
-          "withSpoiler": "With spoilers",
-          "favorite": "Favorites",
-          "pinned": "Pinned",
-          "booksWithNotes": "Books with notes",
-          "seriesWithNotes": "Series with notes"
+      "advancedFilters": {
+        "trigger": "Filters",
+        "title": "Filters",
+        "description": "Narrow down which notes to show.",
+        "clear": "Clear",
+        "apply": "Apply",
+        "selected": "Selected: {count}",
+        "sections": {
+          "book": "Books",
+          "series": "Series",
+          "author": "Authors",
+          "genre": "Genres",
+          "category": "Categories",
+          "status": "Publication status",
+          "reading": "Reading state",
+          "hasPage": "Page",
+          "hasChapter": "Chapter"
         },
-        "quickFilters": {
-          "title": "Quick filters",
-          "favorite": "Favorites only",
-          "pinned": "Pinned only",
-          "no_spoiler": "Without spoilers",
-          "with_spoiler": "With spoilers",
-          "for_review": "For review",
-          "question": "Question"
-        },
-        "tip": {
-          "title": "Tip",
-          "text": "Pin your most important notes so you can quickly get back to the key thoughts before a review or the next book in a series."
-        },
-        "quickAction": {
-          "title": "Can't find the note you need?",
-          "text": "Use the search or add a new note to a book or series.",
-          "cta": "Add note"
-        }
-      },
-      "summary": {
-        "mobile": {
-          "title": "Detailed statistics",
-          "compact": {
-            "total": "Total",
-            "bookNotes": "Books",
-            "seriesNotes": "Series"
+        "fields": {
+          "book": {
+            "placeholder": "Choose books...",
+            "search": "Search books",
+            "empty": "No books with notes found"
+          },
+          "series": {
+            "placeholder": "Choose series...",
+            "search": "Search series",
+            "empty": "No series with notes found"
+          },
+          "author": {
+            "placeholder": "Choose authors...",
+            "search": "Search authors",
+            "empty": "No authors found"
+          },
+          "genre": {
+            "placeholder": "Choose genres...",
+            "search": "Search genres",
+            "empty": "No genres found"
+          },
+          "category": {
+            "placeholder": "Choose categories...",
+            "search": "Search categories",
+            "empty": "No categories found"
           }
+        },
+        "presence": {
+          "any": "Any",
+          "yes": "Has one",
+          "no": "None"
         }
       },
-      "overviewPanel": {
-        "trigger": "Notes overview",
-        "title": "Notes overview",
-        "subtitle": "Stats and quick filters",
-        "close": "Close overview",
-        "tabs": {
-          "overview": "Overview",
-          "filters": "Filters"
-        }
+      "activeFilters": {
+        "book": "Book: {name}",
+        "series": "Series: {name}",
+        "author": "Author: {name}",
+        "genre": "Genre: {name}",
+        "category": "Category: {name}",
+        "status": "Status: {name}",
+        "reading": "Reading: {name}",
+        "loading": "loading…",
+        "notFound": "not found"
       }
     },
     "categories": {
@@ -6134,8 +6157,6 @@
       "custom": "Other: {value}"
     },
     "entity": {
-      "typeBook": "Book",
-      "typeSeries": "Series",
       "books": "{count, plural, one {# book} other {# books}}",
       "authorsUnknown": "Unknown author",
       "bookCoverAlt": "Cover of book {title}",
@@ -6143,27 +6164,31 @@
     },
     "card": {
       "menu": "Note actions",
-      "pinned": "Pinned",
-      "spoiler": "Spoiler",
-      "spoilerHidden": "This note contains a spoiler.",
-      "spoilerShow": "Show spoiler",
-      "spoilerHide": "Hide spoiler",
-      "spoilerRevealAria": "This note contains a spoiler. Click to show the text.",
-      "showMore": "Show more",
-      "showLess": "Show less",
       "page": "p. {page}",
-      "updated": "Updated {date}",
-      "entityLink": {
-        "book": "Go to book",
-        "series": "Go to series"
+      "showFull": "Show in full",
+      "spoilerGate": {
+        "title": "This note contains a spoiler",
+        "description": {
+          "book": "It may reveal important events of the book.",
+          "series": "It may reveal important events of the series."
+        },
+        "show": "Show note"
       }
+    },
+    "fullView": {
+      "fallbackTitle": "Note",
+      "textLabel": "Note text",
+      "spoiler": "Spoiler",
+      "chapter": "Chapter",
+      "page": "Page",
+      "savedLocation": "Saved location",
+      "created": "Created {date} at {time}",
+      "updated": "Updated {date} at {time}"
     },
     "actions": {
       "edit": "Edit",
-      "pin": "Pin note",
-      "unpin": "Unpin note",
-      "favorite": "Add note to favorites",
-      "unfavorite": "Remove note from favorites",
+      "pin": "Pinned note",
+      "favorite": "Favorite note",
       "delete": "Delete"
     },
     "form": {
@@ -6171,6 +6196,34 @@
       "createDescription": "The note will be saved to your reading archive.",
       "editTitle": "Edit note",
       "editDescription": "Change the fields you need and save the note.",
+      "entityLabel": {
+        "book": "Book",
+        "series": "Series"
+      },
+      "bookPicker": {
+        "change": "Change",
+        "collapse": "Collapse",
+        "empty": "No books found",
+        "loadError": "Could not load books",
+        "loadMoreError": "Could not load more books",
+        "loading": "Searching books...",
+        "results": "Your books",
+        "resultsCount": "Showing {count, plural, one {# book} other {# books}}",
+        "retry": "Try again",
+        "search": "Search books by title or author"
+      },
+      "seriesPicker": {
+        "change": "Change",
+        "collapse": "Collapse",
+        "empty": "No series found",
+        "loadError": "Could not load series",
+        "loadMoreError": "Could not load more series",
+        "loading": "Searching series...",
+        "results": "Your series",
+        "resultsCount": "Showing {count, plural, one {# series} other {# series}}",
+        "retry": "Try again",
+        "search": "Search series by name or author"
+      },
       "optional": "(optional)",
       "text": "Note text",
       "textPlaceholder": "Write down your thoughts, impressions or important ideas...",
@@ -6181,9 +6234,15 @@
       "customCategoryPlaceholder": "For example: romance arc, finale, favorite moment...",
       "chapter": "Chapter",
       "chapterPlaceholder": "For example: Chapter III",
-      "chapterPlaceholderSeries": "For example: Book 2, finale or Diana's arc",
       "page": "Page",
       "pagePlaceholder": "For example: 87",
+      "savedLocation": {
+        "title": "Saved location",
+        "description": "This location was saved earlier. New series notes do not use a chapter or page.",
+        "remove": "Remove saved location",
+        "restore": "Restore saved location",
+        "removed": "The saved location will be removed when you save."
+      },
       "spoiler": "This is a spoiler",
       "spoilerHelp": "Mark this if the note contains important plot details.",
       "favorite": "Add note to favorites",
@@ -6199,7 +6258,11 @@
       "textTooLong": "A note cannot be longer than {max} characters.",
       "pageNotPositive": "The page number must be greater than 0.",
       "chapterTooLong": "The chapter name is too long.",
-      "customCategoryTooLong": "The custom category cannot be longer than {max} characters."
+      "customCategoryTooLong": "The custom category cannot be longer than {max} characters.",
+      "entityRequired": {
+        "book": "Choose a book.",
+        "series": "Choose a series."
+      }
     },
     "deleteDialog": {
       "title": "Delete note?",
@@ -6242,6 +6305,66 @@
         "emptyTitle": "You don’t have any notes for this series yet.",
         "emptyDescription": "Keep important details, character arcs, questions and events worth recalling before the next book.",
         "viewAll": "View all notes for this series ({count})"
+      }
+    },
+    "overview": {
+      "label": "Notes overview",
+      "panel": {
+        "trigger": "Notes overview",
+        "title": "Notes overview",
+        "subtitle": "Stats and reminders",
+        "close": "Close overview",
+        "summaryTitle": "Detailed stats"
+      },
+      "source": {
+        "series": "Note about the series",
+        "seriesBook": "Book {position} · {title}"
+      },
+      "memory": {
+        "title": "Revisit a note",
+        "favorite": "Favorite",
+        "pinned": "Pinned",
+        "savedAge": "Saved {age}",
+        "showFull": "Show in full",
+        "openNote": "Open note"
+      },
+      "postFinish": {
+        "title": "After finishing",
+        "finishedAge": "Finished {age}",
+        "notesCount": "{count, plural, one {# note} other {# notes}}",
+        "favoritesCount": "{count, plural, one {# favorite} other {# favorites}}",
+        "pinnedCount": "{count} pinned",
+        "cta": "Review notes"
+      },
+      "beforeContinuation": {
+        "title": "Before you continue the series",
+        "subtitle": {
+          "notStarted": "Worth recalling before “{title}”",
+          "reading": "Worth recalling while reading “{title}”",
+          "rereading": "Worth recalling while rereading “{title}”",
+          "paused": "Worth recalling before returning to “{title}”"
+        },
+        "status": {
+          "notStarted": "Next book",
+          "reading": "Reading now",
+          "rereading": "Rereading now",
+          "paused": "Reading paused"
+        },
+        "cta": {
+          "notStarted": "Go to book",
+          "reading": "Continue reading",
+          "rereading": "Continue rereading",
+          "paused": "Return to book"
+        },
+        "position": "{series} · Book {position}",
+        "progress": {
+          "percent": "{percentage}% read",
+          "pagesOf": "Page {current} of {total}",
+          "page": "Page {current}"
+        },
+        "recapTitle": "Worth recalling",
+        "recapSubtitle": "From your notes on earlier parts",
+        "viewAll": "View all series notes"
       }
     }
   },
@@ -6428,7 +6551,6 @@
       "delete": "Delete",
       "edit": "Edit",
       "menuLabel": "Quote actions",
-      "openBook": "Go to the book",
       "retry": "Retry"
     },
     "bookBlock": {
@@ -6474,9 +6596,11 @@
         "collapse": "Collapse",
         "empty": "No books found",
         "loadError": "Could not load the books",
+        "loadMoreError": "Could not load more books",
         "loading": "Searching books...",
         "results": "Your books",
         "resultsCount": "Showing {count, plural, one {# book} other {# books}}",
+        "retry": "Try again",
         "search": "Search by title or author"
       },
       "text": "Quote text",

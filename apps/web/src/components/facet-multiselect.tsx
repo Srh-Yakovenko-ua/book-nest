@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,9 @@ export function FacetMultiselect({
   selectedText,
   value,
 }: FacetMultiselectProps) {
+  const triggerId = useId();
+  const labelId = `${triggerId}-label`;
+  const valueId = `${triggerId}-value`;
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
   const selected = new Set(value);
@@ -77,8 +80,18 @@ export function FacetMultiselect({
   return (
     <Popover onOpenChange={handleOpenChange} open={open}>
       <PopoverTrigger asChild>
-        <Button aria-label={label} className="h-10 w-full justify-between" variant="secondary">
-          <span className={cn("truncate", value.length === 0 && "text-muted-foreground")}>
+        <Button
+          aria-labelledby={`${labelId} ${valueId}`}
+          className="h-10 w-full justify-between"
+          variant="secondary"
+        >
+          <span className="sr-only" id={labelId}>
+            {label}
+          </span>
+          <span
+            className={cn("truncate", value.length === 0 && "text-muted-foreground")}
+            id={valueId}
+          >
             {value.length === 0 ? placeholder : selectedText(value.length)}
           </span>
           <UiIcon
@@ -89,13 +102,13 @@ export function FacetMultiselect({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0">
-        <Command shouldFilter={!searchesOnServer}>
+        <Command label={label} shouldFilter={!searchesOnServer}>
           <CommandInput
             onValueChange={searchesOnServer ? handleTermChange : undefined}
             placeholder={searchPlaceholder}
             value={searchesOnServer ? term : undefined}
           />
-          <CommandList>
+          <CommandList label={label}>
             <CommandEmpty>
               {isSearching === true ? (searchingText ?? emptyText) : emptyText}
             </CommandEmpty>

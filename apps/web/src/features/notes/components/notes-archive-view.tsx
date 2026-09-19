@@ -1,160 +1,163 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { UiIcon } from "@/components/icons";
-import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
-import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
-
-import type { NotesSidebarFilter } from "../model/notes-archive-query";
+import type { NotesArchiveScope } from "../model/notes-archive-config";
+import type { UseNotesArchiveQueryResult } from "../model/use-notes-archive-query";
+import type { NotesContextualColumn } from "./notes-archive-page-shell";
 
 import { useNotesArchiveList } from "../api/use-notes-archive-list";
+import { useNotesFacets } from "../api/use-notes-facets";
+import { useNotesOverview } from "../api/use-notes-overview";
 import { useNotesSummary } from "../api/use-notes-summary";
-import { notesScopeFromQuery } from "../model/notes-archive-query";
-import { useNotesArchiveQuery } from "../model/use-notes-archive-query";
+import { useIsWideViewport } from "../hooks/use-is-wide-viewport";
+import { useNoteRediscoveryImpressions } from "../hooks/use-note-rediscovery-impression";
+import { usePostFinishReview } from "../hooks/use-post-finish-review";
+import { assertNever } from "../model/assert-never";
+import { notesArchiveListState } from "../model/notes-archive-list-state";
+import { hasContextualBlocks } from "../model/notes-overview";
+import {
+  useBookNotesArchiveQuery,
+  useSeriesNotesArchiveQuery,
+} from "../model/use-notes-archive-query";
 import { useNotesSummaryCards } from "../model/use-notes-summary-cards";
+import { NoteFormDialog } from "./note-form-dialog";
 import { NotesArchiveContent } from "./notes-archive-content";
-import { NotesArchiveCreateFlow } from "./notes-archive-create-flow";
-import { NotesArchiveOverviewPanel } from "./notes-archive-overview-panel";
-import { NotesArchiveScopeChip } from "./notes-archive-scope-chip";
-import { NotesArchiveSidebar } from "./notes-archive-sidebar";
+import { NotesArchivePageShell } from "./notes-archive-page-shell";
 import { NotesArchiveToolbar, NotesArchiveToolbarSkeleton } from "./notes-archive-toolbar";
+import { NotesContextualSidebar } from "./notes-contextual-sidebar";
+import { NotesOverviewPanel } from "./notes-overview-panel";
+import { NotesSummaryCards } from "./notes-summary-cards";
 
-const NOTES_MOBILE_TILE_COUNT = 3;
+type NotesArchiveViewProps = {
+  scope: NotesArchiveScope;
+};
 
-export function NotesArchiveView() {
-  const t = useTranslations("notes.archive");
-  const query = useNotesArchiveQuery();
-  const notes = useNotesArchiveList(query.listQuery);
-  const summary = useNotesSummary();
-
-  const [isCreateOpen, setCreateOpen] = useState(false);
-
-  const items = notes.data?.pages.flatMap((page) => page.items) ?? [];
-  const totalCount = notes.data?.pages[0]?.totalCount ?? 0;
-  const hasAnyNotes = (summary.data?.total ?? totalCount) > 0;
-  const scope = notesScopeFromQuery(query.listQuery, items);
-  const showOverview = !notes.isError && (notes.isPending || hasAnyNotes);
-  const summaryCards = useNotesSummaryCards(summary.data);
-
-  function onQuickFilter(filter: NotesSidebarFilter) {
-    if (filter.kind === "filter") {
-      query.setFilter(filter.value);
-      return;
-    }
-    query.setCategory({ kind: "category", value: filter.value });
+export function NotesArchiveView({ scope }: NotesArchiveViewProps) {
+  switch (scope) {
+    case "books":
+      return <BookNotesArchive />;
+    case "series":
+      return <SeriesNotesArchive />;
+    default:
+      return assertNever(scope);
   }
-
-  return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-4 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
-              {t("title")}
-            </h1>
-            <TitleLeaf />
-          </div>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-            {t("subtitle")}
-          </p>
-        </div>
-        <Button className="self-start sm:self-auto" onClick={() => setCreateOpen(true)}>
-          <UiIcon name="plus" size={16} />
-          {t("addNote")}
-        </Button>
-      </header>
-
-      {showOverview ? (
-        <LibrarySummaryMobile
-          action={
-            <NotesArchiveOverviewPanel
-              isLoading={summary.isPending}
-              onAddNote={() => setCreateOpen(true)}
-              onQuickFilter={onQuickFilter}
-              state={query.state}
-              summaryCards={summaryCards}
-            />
-          }
-          cards={summaryCards.slice(0, NOTES_MOBILE_TILE_COUNT)}
-          className="sm:hidden"
-          isLoading={summary.isPending}
-        />
-      ) : null}
-
-      <ToolbarSlot
-        hasAnyNotes={hasAnyNotes}
-        isError={notes.isError}
-        isPending={notes.isPending}
-        toolbar={
-          <NotesArchiveToolbar
-            availableCustomCategories={summary.data?.availableCustomCategories ?? []}
-            onCategoryChange={query.setCategory}
-            onEntityTypeChange={query.setEntityType}
-            onFilterChange={query.setFilter}
-            onHasChapterChange={query.setHasChapter}
-            onHasPageChange={query.setHasPage}
-            onSearchChange={query.setSearch}
-            onSortChange={query.setSort}
-            state={query.state}
-          />
-        }
-      />
-
-      <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          {scope === null ? null : (
-            <NotesArchiveScopeChip onClear={query.clearScope} scope={scope} />
-          )}
-          <NotesArchiveContent
-            hasActiveFilters={query.hasActiveFilters}
-            hasActiveSearch={query.hasActiveSearch}
-            hasAnyNotes={hasAnyNotes}
-            hasNextPage={notes.hasNextPage}
-            isError={notes.isError}
-            isFetchingNextPage={notes.isFetchingNextPage}
-            isPending={notes.isPending}
-            notes={items}
-            onAddNote={() => setCreateOpen(true)}
-            onClearFilters={query.clearFilters}
-            onLoadMore={() => void notes.fetchNextPage()}
-            onRetry={() => void notes.refetch()}
-          />
-        </div>
-
-        {showOverview ? (
-          <NotesArchiveSidebar
-            isLoading={summary.isPending}
-            onAddNote={() => setCreateOpen(true)}
-            onQuickFilter={onQuickFilter}
-            state={query.state}
-            summaryCards={summaryCards}
-          />
-        ) : null}
-      </div>
-
-      <NotesArchiveCreateFlow onOpenChange={setCreateOpen} open={isCreateOpen} />
-    </div>
-  );
 }
 
-function ToolbarSlot({
-  hasAnyNotes,
-  isError,
-  isPending,
-  toolbar,
-}: {
-  hasAnyNotes: boolean;
-  isError: boolean;
-  isPending: boolean;
-  toolbar: ReactNode;
-}) {
-  if (isError) return null;
-  if (isPending) return <NotesArchiveToolbarSkeleton />;
-  if (!hasAnyNotes) return null;
-  return toolbar;
+function BookNotesArchive() {
+  const query = useBookNotesArchiveQuery();
+  return <NotesArchive query={query} />;
+}
+
+function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
+  const t = useTranslations("notes.archive");
+  const { config } = query;
+  const notes = useNotesArchiveList(query.listParams);
+  const facets = useNotesFacets(config.scope, query.datasetParams);
+  const summary = useNotesSummary(config.scope);
+  const overview = useNotesOverview(
+    config.scope === "books" ? { scope: "books" } : { scope: "series", series: query.state.series },
+  );
+  const summaryCards = useNotesSummaryCards(config.scope, summary.data);
+  const recordImpression = useNoteRediscoveryImpressions();
+  const isWideViewport = useIsWideViewport();
+  const archiveRef = useRef<Nullable<HTMLDivElement>>(null);
+  const postFinishReview = usePostFinishReview((bookId) => {
+    query.showBookNotes(bookId);
+    if (!isWideViewport) archiveRef.current?.scrollIntoView({ block: "start" });
+  });
+  const [isCreateOpen, setCreateOpen] = useState(false);
+
+  const contextualOverview =
+    overview.data !== undefined && hasContextualBlocks(overview.data) ? overview.data : null;
+  const listState = notesArchiveListState({
+    hasActiveFilters: query.hasActiveFilters,
+    hasActiveSearch: query.hasActiveSearch,
+    list: notes,
+  });
+
+  const mobileOverview =
+    summary.isError && contextualOverview === null ? null : (
+      <NotesOverviewPanel
+        isLoading={summary.isPending || overview.isPending}
+        overview={contextualOverview}
+        postFinishReview={postFinishReview}
+        recordImpression={recordImpression}
+        summaryCards={summary.isError ? null : summaryCards}
+      />
+    );
+
+  return (
+    <NotesArchivePageShell
+      archive={
+        <NotesArchiveContent
+          onAddNote={() => setCreateOpen(true)}
+          onClearFilters={query.clearAll}
+          onLoadMore={() => void notes.fetchNextPage()}
+          onRetry={() => void notes.refetch()}
+          state={listState}
+          view={query.state.view}
+        />
+      }
+      archiveRef={archiveRef}
+      contextual={contextualColumn()}
+      createLabel={t("addNote")}
+      dialogs={
+        <NoteFormDialog
+          onOpenChange={setCreateOpen}
+          open={isCreateOpen}
+          target={{ entityType: config.entityType, mode: "pick" }}
+        />
+      }
+      onCreate={() => setCreateOpen(true)}
+      resultsTitle={t("resultsTitle")}
+      subtitle={t(`${config.scope}.subtitle`)}
+      summary={
+        <NotesSummaryCards
+          cards={summaryCards}
+          isError={summary.isError}
+          isLoading={summary.isPending}
+          mobileAction={mobileOverview}
+        />
+      }
+      title={t(`${config.scope}.title`)}
+      toolbar={
+        notes.isPending ? (
+          <NotesArchiveToolbarSkeleton />
+        ) : (
+          <NotesArchiveToolbar counter={archiveCounter()} facets={facets.data} query={query} />
+        )
+      }
+    />
+  );
+
+  function archiveCounter(): Nullable<string> {
+    if (listState.kind !== "ready") return null;
+    const total = notes.data?.pages[0]?.totalCount ?? listState.notes.length;
+    return t("counter", { shown: listState.notes.length, total });
+  }
+
+  function contextualColumn(): NotesContextualColumn {
+    if (!isWideViewport) return { kind: "hidden" };
+    if (overview.isPending) return { kind: "loading" };
+    if (contextualOverview === null) return { kind: "hidden" };
+    return {
+      content: (
+        <NotesContextualSidebar
+          overview={contextualOverview}
+          postFinishReview={postFinishReview}
+          recordImpression={recordImpression}
+        />
+      ),
+      kind: "visible",
+    };
+  }
+}
+
+function SeriesNotesArchive() {
+  const query = useSeriesNotesArchiveQuery();
+  return <NotesArchive query={query} />;
 }

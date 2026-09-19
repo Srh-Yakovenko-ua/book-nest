@@ -371,16 +371,11 @@ export const NoteControllerCreateSeriesNoteParams = zod.object({
   id: zod.string().describe("Series id"),
 });
 
-export const noteControllerCreateSeriesNoteBodyChapterMax = 100;
-
 export const noteControllerCreateSeriesNoteBodyCustomCategoryMax = 100;
 
 export const noteControllerCreateSeriesNoteBodyIsFavoriteDefault = false;
 export const noteControllerCreateSeriesNoteBodyIsPinnedDefault = false;
 export const noteControllerCreateSeriesNoteBodyIsSpoilerDefault = false;
-export const noteControllerCreateSeriesNoteBodyPageExclusiveMin = 0;
-export const noteControllerCreateSeriesNoteBodyPageMax = 2147483647;
-
 export const noteControllerCreateSeriesNoteBodyTextMax = 5000;
 
 export const NoteControllerCreateSeriesNoteBody = zod.object({
@@ -399,16 +394,10 @@ export const NoteControllerCreateSeriesNoteBody = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  chapter: zod.string().max(noteControllerCreateSeriesNoteBodyChapterMax).nullish(),
   customCategory: zod.string().max(noteControllerCreateSeriesNoteBodyCustomCategoryMax).nullish(),
   isFavorite: zod.boolean().default(noteControllerCreateSeriesNoteBodyIsFavoriteDefault),
   isPinned: zod.boolean().default(noteControllerCreateSeriesNoteBodyIsPinnedDefault),
   isSpoiler: zod.boolean().default(noteControllerCreateSeriesNoteBodyIsSpoilerDefault),
-  page: zod
-    .int()
-    .gt(noteControllerCreateSeriesNoteBodyPageExclusiveMin)
-    .max(noteControllerCreateSeriesNoteBodyPageMax)
-    .nullish(),
   text: zod.string().min(1).max(noteControllerCreateSeriesNoteBodyTextMax),
 });
 
@@ -744,171 +733,1359 @@ export const NotesControllerListTrashResponse = zod.object({
 });
 
 /**
- * @summary Get summary counts for the current user's notes
+ * @summary Get the contextual facets of the current user's book notes; every dimension ignores its own selection and the quick filter
  */
-export const notesControllerSummaryResponseBookNotesCountMin = 0;
-export const notesControllerSummaryResponseBookNotesCountMax = 9007199254740991;
+export const notesControllerBookFacetsQueryCategoryMax = 100;
 
-export const notesControllerSummaryResponseBooksWithNotesCountMin = 0;
-export const notesControllerSummaryResponseBooksWithNotesCountMax = 9007199254740991;
+export const notesControllerBookFacetsQueryCustomCategoryItemMax = 100;
 
-export const notesControllerSummaryResponseFavoriteCountMin = 0;
-export const notesControllerSummaryResponseFavoriteCountMax = 9007199254740991;
+export const notesControllerBookFacetsQueryCustomCategoryMax = 100;
 
-export const notesControllerSummaryResponsePinnedCountMin = 0;
-export const notesControllerSummaryResponsePinnedCountMax = 9007199254740991;
+export const notesControllerBookFacetsQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerBookFacetsQueryAuthorMax = 100;
 
-export const notesControllerSummaryResponseSeriesNotesCountMin = 0;
-export const notesControllerSummaryResponseSeriesNotesCountMax = 9007199254740991;
+export const notesControllerBookFacetsQueryBookItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerBookFacetsQueryBookMax = 100;
 
-export const notesControllerSummaryResponseSeriesWithNotesCountMin = 0;
-export const notesControllerSummaryResponseSeriesWithNotesCountMax = 9007199254740991;
+export const notesControllerBookFacetsQuerySearchMax = 100;
 
-export const notesControllerSummaryResponseTotalMin = 0;
-export const notesControllerSummaryResponseTotalMax = 9007199254740991;
+export const NotesControllerBookFacetsQueryParams = zod.object({
+  category: zod
+    .array(
+      zod.enum([
+        "general_impression",
+        "characters",
+        "plot",
+        "atmosphere",
+        "worldbuilding",
+        "theme_idea",
+        "author_style",
+        "for_review",
+        "question",
+        "other",
+      ]),
+    )
+    .max(notesControllerBookFacetsQueryCategoryMax)
+    .optional(),
+  customCategory: zod
+    .array(zod.string().min(1).max(notesControllerBookFacetsQueryCustomCategoryItemMax))
+    .max(notesControllerBookFacetsQueryCustomCategoryMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(notesControllerBookFacetsQueryAuthorItemRegExp))
+    .max(notesControllerBookFacetsQueryAuthorMax)
+    .optional(),
+  book: zod
+    .array(zod.uuid().regex(notesControllerBookFacetsQueryBookItemRegExp))
+    .max(notesControllerBookFacetsQueryBookMax)
+    .optional(),
+  hasChapter: zod.enum(["true", "false"]).optional(),
+  hasPage: zod.enum(["true", "false"]).optional(),
+  search: zod.string().max(notesControllerBookFacetsQuerySearchMax).optional(),
+});
 
-export const notesControllerSummaryResponseWithoutSpoilerCountMin = 0;
-export const notesControllerSummaryResponseWithoutSpoilerCountMax = 9007199254740991;
+export const notesControllerBookFacetsResponseCategoriesItemCountMin = 0;
+export const notesControllerBookFacetsResponseCategoriesItemCountMax = 9007199254740991;
 
-export const notesControllerSummaryResponseWithSpoilerCountMin = 0;
-export const notesControllerSummaryResponseWithSpoilerCountMax = 9007199254740991;
+export const notesControllerBookFacetsResponseCustomCategoriesItemCountMin = 0;
+export const notesControllerBookFacetsResponseCustomCategoriesItemCountMax = 9007199254740991;
 
-export const NotesControllerSummaryResponse = zod.object({
-  availableCustomCategories: zod.array(zod.string()),
-  bookNotesCount: zod
-    .int()
-    .min(notesControllerSummaryResponseBookNotesCountMin)
-    .max(notesControllerSummaryResponseBookNotesCountMax),
-  booksWithNotesCount: zod
-    .int()
-    .min(notesControllerSummaryResponseBooksWithNotesCountMin)
-    .max(notesControllerSummaryResponseBooksWithNotesCountMax),
-  favoriteCount: zod
-    .int()
-    .min(notesControllerSummaryResponseFavoriteCountMin)
-    .max(notesControllerSummaryResponseFavoriteCountMax),
-  pinnedCount: zod
-    .int()
-    .min(notesControllerSummaryResponsePinnedCountMin)
-    .max(notesControllerSummaryResponsePinnedCountMax),
-  seriesNotesCount: zod
-    .int()
-    .min(notesControllerSummaryResponseSeriesNotesCountMin)
-    .max(notesControllerSummaryResponseSeriesNotesCountMax),
-  seriesWithNotesCount: zod
-    .int()
-    .min(notesControllerSummaryResponseSeriesWithNotesCountMin)
-    .max(notesControllerSummaryResponseSeriesWithNotesCountMax),
-  total: zod
-    .int()
-    .min(notesControllerSummaryResponseTotalMin)
-    .max(notesControllerSummaryResponseTotalMax),
-  withoutSpoilerCount: zod
-    .int()
-    .min(notesControllerSummaryResponseWithoutSpoilerCountMin)
-    .max(notesControllerSummaryResponseWithoutSpoilerCountMax),
-  withSpoilerCount: zod
-    .int()
-    .min(notesControllerSummaryResponseWithSpoilerCountMin)
-    .max(notesControllerSummaryResponseWithSpoilerCountMax),
+export const notesControllerBookFacetsResponseQuickCountsAllMin = 0;
+export const notesControllerBookFacetsResponseQuickCountsAllMax = 9007199254740991;
+
+export const notesControllerBookFacetsResponseQuickCountsFavoriteMin = 0;
+export const notesControllerBookFacetsResponseQuickCountsFavoriteMax = 9007199254740991;
+
+export const notesControllerBookFacetsResponseQuickCountsNoSpoilerMin = 0;
+export const notesControllerBookFacetsResponseQuickCountsNoSpoilerMax = 9007199254740991;
+
+export const notesControllerBookFacetsResponseQuickCountsPinnedMin = 0;
+export const notesControllerBookFacetsResponseQuickCountsPinnedMax = 9007199254740991;
+
+export const notesControllerBookFacetsResponseQuickCountsWithSpoilerMin = 0;
+export const notesControllerBookFacetsResponseQuickCountsWithSpoilerMax = 9007199254740991;
+
+export const notesControllerBookFacetsResponseAuthorsItemCountMin = 0;
+export const notesControllerBookFacetsResponseAuthorsItemCountMax = 9007199254740991;
+
+export const notesControllerBookFacetsResponseBooksItemCountMin = 0;
+export const notesControllerBookFacetsResponseBooksItemCountMax = 9007199254740991;
+
+export const NotesControllerBookFacetsResponse = zod.object({
+  categories: zod
+    .array(
+      zod.object({
+        category: zod.enum([
+          "general_impression",
+          "characters",
+          "plot",
+          "atmosphere",
+          "worldbuilding",
+          "theme_idea",
+          "author_style",
+          "for_review",
+          "question",
+          "other",
+        ]),
+        count: zod
+          .int()
+          .min(notesControllerBookFacetsResponseCategoriesItemCountMin)
+          .max(notesControllerBookFacetsResponseCategoriesItemCountMax),
+      }),
+    )
+    .describe(
+      "Standard categories used by notes of the scope, with their note counts. Standard and custom categories are one logical dimension: both lists answer to search and every other advanced filter, never to the selected categories, custom categories or the quick filter.",
+    ),
+  customCategories: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerBookFacetsResponseCustomCategoriesItemCountMin)
+          .max(notesControllerBookFacetsResponseCustomCategoriesItemCountMax),
+        value: zod.string(),
+      }),
+    )
+    .describe(
+      "Custom categories used by notes of the scope, with their note counts. Standard and custom categories are one logical dimension: both lists answer to search and every other advanced filter, never to the selected categories, custom categories or the quick filter.",
+    ),
+  quickCounts: zod
+    .object({
+      all: zod
+        .int()
+        .min(notesControllerBookFacetsResponseQuickCountsAllMin)
+        .max(notesControllerBookFacetsResponseQuickCountsAllMax)
+        .describe("Notes of the scope, whatever their flags."),
+      favorite: zod
+        .int()
+        .min(notesControllerBookFacetsResponseQuickCountsFavoriteMin)
+        .max(notesControllerBookFacetsResponseQuickCountsFavoriteMax)
+        .describe("Notes of the scope marked as favorite."),
+      no_spoiler: zod
+        .int()
+        .min(notesControllerBookFacetsResponseQuickCountsNoSpoilerMin)
+        .max(notesControllerBookFacetsResponseQuickCountsNoSpoilerMax)
+        .describe("Notes of the scope not marked as a spoiler."),
+      pinned: zod
+        .int()
+        .min(notesControllerBookFacetsResponseQuickCountsPinnedMin)
+        .max(notesControllerBookFacetsResponseQuickCountsPinnedMax)
+        .describe("Notes of the scope that are pinned."),
+      with_spoiler: zod
+        .int()
+        .min(notesControllerBookFacetsResponseQuickCountsWithSpoilerMin)
+        .max(notesControllerBookFacetsResponseQuickCountsWithSpoilerMax)
+        .describe("Notes of the scope marked as a spoiler."),
+    })
+    .describe(
+      "Quick-filter chip counts keyed by the filter value. The scope answers to search and every advanced filter, never to the active quick filter, sort or pagination, so picking one chip never moves the number shown on another one.",
+    ),
+  authors: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerBookFacetsResponseAuthorsItemCountMin)
+          .max(notesControllerBookFacetsResponseAuthorsItemCountMax),
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .describe(
+      "Authors of books holding a note of the scope; a co-authored book credits its notes to every author. The list answers to search and every advanced filter except its own dimension and the quick filter, so picking one value never makes another value of the same dimension disappear.",
+    ),
+  books: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerBookFacetsResponseBooksItemCountMin)
+          .max(notesControllerBookFacetsResponseBooksItemCountMax),
+        id: zod.string(),
+        title: zod.string(),
+      }),
+    )
+    .describe(
+      "Books holding a note of the scope, with their note counts. The list answers to search and every advanced filter except its own dimension and the quick filter, so picking one value never makes another value of the same dimension disappear.",
+    ),
 });
 
 /**
- * @summary List and search the current user's notes archive
+ * @summary Get the stable summary of the current user's book notes, independent of search, filters, sort and pagination
  */
-export const notesControllerListQueryBookIdRegExp = new RegExp(
+export const notesControllerBookSummaryResponseBookNotesCountMin = 0;
+export const notesControllerBookSummaryResponseBookNotesCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseBooksWithFiveOrMoreNotesCountMin = 0;
+export const notesControllerBookSummaryResponseBooksWithFiveOrMoreNotesCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseBooksWithNotesCountMin = 0;
+export const notesControllerBookSummaryResponseBooksWithNotesCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseCreatedLast30DaysCountMin = 0;
+export const notesControllerBookSummaryResponseCreatedLast30DaysCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseTopAuthorLeadersCountExclusiveMin = 0;
+export const notesControllerBookSummaryResponseTopAuthorLeadersCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseTopAuthorNotesCountMin = 0;
+export const notesControllerBookSummaryResponseTopAuthorNotesCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseTopBookLeadersCountExclusiveMin = 0;
+export const notesControllerBookSummaryResponseTopBookLeadersCountMax = 9007199254740991;
+
+export const notesControllerBookSummaryResponseTopBookNotesCountMin = 0;
+export const notesControllerBookSummaryResponseTopBookNotesCountMax = 9007199254740991;
+
+export const NotesControllerBookSummaryResponse = zod.object({
+  bookNotesCount: zod
+    .int()
+    .min(notesControllerBookSummaryResponseBookNotesCountMin)
+    .max(notesControllerBookSummaryResponseBookNotesCountMax)
+    .describe("Active book notes on active books."),
+  booksWithFiveOrMoreNotesCount: zod
+    .int()
+    .min(notesControllerBookSummaryResponseBooksWithFiveOrMoreNotesCountMin)
+    .max(notesControllerBookSummaryResponseBooksWithFiveOrMoreNotesCountMax)
+    .describe("Books holding at least five notes."),
+  booksWithNotesCount: zod
+    .int()
+    .min(notesControllerBookSummaryResponseBooksWithNotesCountMin)
+    .max(notesControllerBookSummaryResponseBooksWithNotesCountMax)
+    .describe("Books holding at least one note."),
+  createdLast30DaysCount: zod
+    .int()
+    .min(notesControllerBookSummaryResponseCreatedLast30DaysCountMin)
+    .max(notesControllerBookSummaryResponseCreatedLast30DaysCountMax)
+    .describe("Book notes created in the rolling last 30 days."),
+  topAuthor: zod
+    .object({
+      leadersCount: zod
+        .int()
+        .gt(notesControllerBookSummaryResponseTopAuthorLeadersCountExclusiveMin)
+        .max(notesControllerBookSummaryResponseTopAuthorLeadersCountMax),
+      name: zod.string().nullable(),
+      notesCount: zod
+        .int()
+        .min(notesControllerBookSummaryResponseTopAuthorNotesCountMin)
+        .max(notesControllerBookSummaryResponseTopAuthorNotesCountMax),
+    })
+    .nullable()
+    .describe(
+      "Author whose books hold the most notes; name is null on a tie, the whole value is null without author data.",
+    ),
+  topBook: zod
+    .object({
+      leadersCount: zod
+        .int()
+        .gt(notesControllerBookSummaryResponseTopBookLeadersCountExclusiveMin)
+        .max(notesControllerBookSummaryResponseTopBookLeadersCountMax),
+      notesCount: zod
+        .int()
+        .min(notesControllerBookSummaryResponseTopBookNotesCountMin)
+        .max(notesControllerBookSummaryResponseTopBookNotesCountMax),
+      title: zod.string().nullable(),
+    })
+    .nullable()
+    .describe(
+      "Book holding the most notes; title is null on a tie, the whole value is null without notes.",
+    ),
+});
+
+/**
+ * @summary Get the contextual overview of the book notes page; read-only, it never records an impression or a review
+ */
+export const notesControllerBookOverviewResponseMemoryNoteImpressionKeyMax = 512;
+
+export const notesControllerBookOverviewResponseMemoryNoteNotePageMin = -9007199254740991;
+export const notesControllerBookOverviewResponseMemoryNoteNotePageMax = 9007199254740991;
+
+export const notesControllerBookOverviewResponseMemoryNoteNoteSeriesBooksCountMin = 0;
+export const notesControllerBookOverviewResponseMemoryNoteNoteSeriesBooksCountMax = 9007199254740991;
+
+export const notesControllerBookOverviewResponseMemoryNoteSourceOneSeriesPositionMin =
+  -9007199254740991;
+export const notesControllerBookOverviewResponseMemoryNoteSourceOneSeriesPositionMax = 9007199254740991;
+
+export const notesControllerBookOverviewResponsePostFinishFavoritesCountMin = 0;
+export const notesControllerBookOverviewResponsePostFinishFavoritesCountMax = 9007199254740991;
+
+export const notesControllerBookOverviewResponsePostFinishFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const notesControllerBookOverviewResponsePostFinishNotesCountMin = 0;
+export const notesControllerBookOverviewResponsePostFinishNotesCountMax = 9007199254740991;
+
+export const notesControllerBookOverviewResponsePostFinishPinnedCountMin = 0;
+export const notesControllerBookOverviewResponsePostFinishPinnedCountMax = 9007199254740991;
+
+export const notesControllerBookOverviewResponsePostFinishReadingCycleIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const notesControllerListQueryCustomCategoryMax = 100;
 
-export const notesControllerListQueryEntityTypeDefault = `all`;
-export const notesControllerListQueryFilterDefault = `all`;
-export const notesControllerListQueryPageNumberDefault = 1;
-export const notesControllerListQueryPageNumberMax = 21474836;
+export const NotesControllerBookOverviewResponse = zod.object({
+  memoryNote: zod
+    .object({
+      impressionKey: zod
+        .string()
+        .min(1)
+        .max(notesControllerBookOverviewResponseMemoryNoteImpressionKeyMax)
+        .describe(
+          "Opaque key of this rediscovery selection; send it back unchanged to record that the note was shown.",
+        ),
+      note: zod.object({
+        book: zod
+          .object({
+            author: zod.string().nullable(),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            title: zod.string(),
+          })
+          .nullable(),
+        category: zod
+          .union([
+            zod.literal("general_impression"),
+            zod.literal("characters"),
+            zod.literal("plot"),
+            zod.literal("atmosphere"),
+            zod.literal("worldbuilding"),
+            zod.literal("theme_idea"),
+            zod.literal("author_style"),
+            zod.literal("for_review"),
+            zod.literal("question"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        chapter: zod.string().nullable(),
+        createdAt: zod.string(),
+        customCategory: zod.string().nullable(),
+        entityType: zod.enum(["book", "series"]),
+        id: zod.string(),
+        isFavorite: zod.boolean(),
+        isPinned: zod.boolean(),
+        isSpoiler: zod.boolean(),
+        page: zod
+          .int()
+          .min(notesControllerBookOverviewResponseMemoryNoteNotePageMin)
+          .max(notesControllerBookOverviewResponseMemoryNoteNotePageMax)
+          .nullable(),
+        series: zod
+          .object({
+            authors: zod.array(zod.string()),
+            booksCount: zod
+              .int()
+              .min(notesControllerBookOverviewResponseMemoryNoteNoteSeriesBooksCountMin)
+              .max(notesControllerBookOverviewResponseMemoryNoteNoteSeriesBooksCountMax),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            name: zod.string(),
+          })
+          .nullable(),
+        text: zod.string(),
+        updatedAt: zod.string(),
+      }),
+      source: zod
+        .union([
+          zod.object({
+            authors: zod.array(
+              zod.object({
+                id: zod.string(),
+                name: zod.string(),
+              }),
+            ),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            seriesPosition: zod
+              .int()
+              .min(notesControllerBookOverviewResponseMemoryNoteSourceOneSeriesPositionMin)
+              .max(notesControllerBookOverviewResponseMemoryNoteSourceOneSeriesPositionMax)
+              .nullable(),
+            title: zod.string(),
+            type: zod.enum(["book"]),
+          }),
+          zod.object({
+            id: zod.string(),
+            title: zod.string(),
+            type: zod.enum(["series"]),
+          }),
+        ])
+        .describe(
+          "Where the note belongs, discriminated on type, so the client never infers it from nullable ids.",
+        ),
+    })
+    .nullable()
+    .describe(
+      "An older book note, picked once per local day, or null while fewer than two notes qualify.",
+    ),
+  postFinish: zod
+    .object({
+      book: zod.object({
+        author: zod.string().nullable(),
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        title: zod.string(),
+      }),
+      favoritesCount: zod
+        .int()
+        .min(notesControllerBookOverviewResponsePostFinishFavoritesCountMin)
+        .max(notesControllerBookOverviewResponsePostFinishFavoritesCountMax)
+        .describe("Notes of the book the reader marked as favorite."),
+      finishedAt: zod.iso
+        .date()
+        .regex(notesControllerBookOverviewResponsePostFinishFinishedAtRegExp)
+        .describe("The day the reading cycle was finished."),
+      notesCount: zod
+        .int()
+        .min(notesControllerBookOverviewResponsePostFinishNotesCountMin)
+        .max(notesControllerBookOverviewResponsePostFinishNotesCountMax)
+        .describe("Active notes of the book, spoilers included."),
+      pinnedCount: zod
+        .int()
+        .min(notesControllerBookOverviewResponsePostFinishPinnedCountMin)
+        .max(notesControllerBookOverviewResponsePostFinishPinnedCountMax)
+        .describe("Notes of the book the reader pinned."),
+      readingCycleId: zod
+        .uuid()
+        .regex(notesControllerBookOverviewResponsePostFinishReadingCycleIdRegExp)
+        .describe(
+          "The reading cycle this recap belongs to, and the key the review mutation takes.",
+        ),
+    })
+    .nullable()
+    .describe(
+      "The recap of a book finished within the last 30 days whose notes the reader has not reviewed yet, or null when no reading cycle qualifies.",
+    ),
+});
 
-export const notesControllerListQueryPageSizeDefault = 20;
-export const notesControllerListQueryPageSizeMax = 100;
-
-export const notesControllerListQuerySearchMax = 100;
-
-export const notesControllerListQuerySeriesIdRegExp = new RegExp(
+/**
+ * @summary Mark the notes of one finished reading cycle as reviewed, so the book notes recap stops offering it
+ */
+export const notesControllerReviewPostFinishBodyReadingCycleIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const notesControllerListQuerySortDefault = `pinned_first`;
 
-export const NotesControllerListQueryParams = zod.object({
-  bookId: zod.uuid().regex(notesControllerListQueryBookIdRegExp).optional(),
+export const NotesControllerReviewPostFinishBody = zod.object({
+  readingCycleId: zod.uuid().regex(notesControllerReviewPostFinishBodyReadingCycleIdRegExp),
+});
+
+export const NotesControllerReviewPostFinishResponse = zod.void();
+
+/**
+ * @summary Get the contextual overview of the series notes page for the series the backend resolves; read-only
+ */
+export const notesControllerSeriesOverviewQuerySeriesItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerSeriesOverviewQuerySeriesMax = 100;
+
+export const NotesControllerSeriesOverviewQueryParams = zod.object({
+  series: zod
+    .array(zod.uuid().regex(notesControllerSeriesOverviewQuerySeriesItemRegExp))
+    .max(notesControllerSeriesOverviewQuerySeriesMax)
+    .optional()
+    .describe(
+      "The series filter of the page. One id pins the overview to that series; several ids restrict the backend pick to them; none lets the backend pick among every series.",
+    ),
+});
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressCurrentPageMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressCurrentPageMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressPercentageMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressPercentageMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressTotalPagesMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressTotalPagesMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationSeriesPositionMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseBeforeNextBookContinuationSeriesPositionMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesItemPageMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesItemPageMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSeriesBooksCountMin = 0;
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSeriesBooksCountMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSourceBookSeriesPositionMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSourceBookSeriesPositionMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookNotesMax = 5;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookSeriesKnownBooksCountMin = 0;
+export const notesControllerSeriesOverviewResponseBeforeNextBookSeriesKnownBooksCountMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookSeriesTotalBooksMin = 0;
+export const notesControllerSeriesOverviewResponseBeforeNextBookSeriesTotalBooksMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseBeforeNextBookTotalCountMin = 0;
+export const notesControllerSeriesOverviewResponseBeforeNextBookTotalCountMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseMemoryNoteImpressionKeyMax = 512;
+
+export const notesControllerSeriesOverviewResponseMemoryNoteNotePageMin = -9007199254740991;
+export const notesControllerSeriesOverviewResponseMemoryNoteNotePageMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseMemoryNoteNoteSeriesBooksCountMin = 0;
+export const notesControllerSeriesOverviewResponseMemoryNoteNoteSeriesBooksCountMax = 9007199254740991;
+
+export const notesControllerSeriesOverviewResponseMemoryNoteSourceOneSeriesPositionMin =
+  -9007199254740991;
+export const notesControllerSeriesOverviewResponseMemoryNoteSourceOneSeriesPositionMax = 9007199254740991;
+
+export const NotesControllerSeriesOverviewResponse = zod.object({
+  beforeNextBook: zod
+    .object({
+      continuation: zod.object({
+        authors: zod.array(
+          zod.object({
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        ),
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        ownershipStatus: zod.enum([
+          "none",
+          "want_to_buy",
+          "in_transit",
+          "owned",
+          "borrowed_from_someone",
+          "lent_to_someone",
+        ]),
+        progress: zod
+          .object({
+            currentPage: zod
+              .int()
+              .min(
+                notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressCurrentPageMin,
+              )
+              .max(
+                notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressCurrentPageMax,
+              ),
+            percentage: zod
+              .int()
+              .min(
+                notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressPercentageMin,
+              )
+              .max(
+                notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressPercentageMax,
+              )
+              .nullable(),
+            totalPages: zod
+              .int()
+              .min(
+                notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressTotalPagesMin,
+              )
+              .max(
+                notesControllerSeriesOverviewResponseBeforeNextBookContinuationProgressTotalPagesMax,
+              )
+              .nullable(),
+          })
+          .nullable(),
+        readingStatus: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+        reason: zod.enum([
+          "reading",
+          "paused",
+          "available",
+          "lent",
+          "in_transit",
+          "want_to_buy",
+          "not_owned",
+        ]),
+        seriesPosition: zod
+          .int()
+          .min(notesControllerSeriesOverviewResponseBeforeNextBookContinuationSeriesPositionMin)
+          .max(notesControllerSeriesOverviewResponseBeforeNextBookContinuationSeriesPositionMax)
+          .nullable(),
+        title: zod.string(),
+      }),
+      notes: zod
+        .array(
+          zod.object({
+            book: zod
+              .object({
+                author: zod.string().nullable(),
+                cover: zod
+                  .object({
+                    contentType: zod.string(),
+                    createdAt: zod.string(),
+                    height: zod.number(),
+                    id: zod.string(),
+                    kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                    name: zod.string().nullable(),
+                    sizeBytes: zod.number(),
+                    urls: zod.object({
+                      card: zod.string(),
+                      full: zod.string(),
+                      thumb: zod.string(),
+                    }),
+                    width: zod.number(),
+                  })
+                  .nullable(),
+                id: zod.string(),
+                title: zod.string(),
+              })
+              .nullable(),
+            category: zod
+              .union([
+                zod.literal("general_impression"),
+                zod.literal("characters"),
+                zod.literal("plot"),
+                zod.literal("atmosphere"),
+                zod.literal("worldbuilding"),
+                zod.literal("theme_idea"),
+                zod.literal("author_style"),
+                zod.literal("for_review"),
+                zod.literal("question"),
+                zod.literal("other"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            chapter: zod.string().nullable(),
+            createdAt: zod.string(),
+            customCategory: zod.string().nullable(),
+            entityType: zod.enum(["book", "series"]),
+            id: zod.string(),
+            isFavorite: zod.boolean(),
+            isPinned: zod.boolean(),
+            isSpoiler: zod.boolean(),
+            page: zod
+              .int()
+              .min(notesControllerSeriesOverviewResponseBeforeNextBookNotesItemPageMin)
+              .max(notesControllerSeriesOverviewResponseBeforeNextBookNotesItemPageMax)
+              .nullable(),
+            series: zod
+              .object({
+                authors: zod.array(zod.string()),
+                booksCount: zod
+                  .int()
+                  .min(
+                    notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSeriesBooksCountMin,
+                  )
+                  .max(
+                    notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSeriesBooksCountMax,
+                  ),
+                cover: zod
+                  .object({
+                    contentType: zod.string(),
+                    createdAt: zod.string(),
+                    height: zod.number(),
+                    id: zod.string(),
+                    kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                    name: zod.string().nullable(),
+                    sizeBytes: zod.number(),
+                    urls: zod.object({
+                      card: zod.string(),
+                      full: zod.string(),
+                      thumb: zod.string(),
+                    }),
+                    width: zod.number(),
+                  })
+                  .nullable(),
+                id: zod.string(),
+                name: zod.string(),
+              })
+              .nullable(),
+            text: zod.string(),
+            updatedAt: zod.string(),
+            sourceBook: zod.object({
+              id: zod.string(),
+              seriesPosition: zod
+                .int()
+                .min(
+                  notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSourceBookSeriesPositionMin,
+                )
+                .max(
+                  notesControllerSeriesOverviewResponseBeforeNextBookNotesItemSourceBookSeriesPositionMax,
+                )
+                .nullable(),
+              title: zod.string(),
+            }),
+          }),
+        )
+        .max(notesControllerSeriesOverviewResponseBeforeNextBookNotesMax),
+      previewLimit: zod.literal(5),
+      series: zod.object({
+        id: zod.string(),
+        knownBooksCount: zod
+          .int()
+          .min(notesControllerSeriesOverviewResponseBeforeNextBookSeriesKnownBooksCountMin)
+          .max(notesControllerSeriesOverviewResponseBeforeNextBookSeriesKnownBooksCountMax),
+        title: zod.string(),
+        totalBooks: zod
+          .int()
+          .min(notesControllerSeriesOverviewResponseBeforeNextBookSeriesTotalBooksMin)
+          .max(notesControllerSeriesOverviewResponseBeforeNextBookSeriesTotalBooksMax)
+          .nullable(),
+      }),
+      totalCount: zod
+        .int()
+        .min(notesControllerSeriesOverviewResponseBeforeNextBookTotalCountMin)
+        .max(notesControllerSeriesOverviewResponseBeforeNextBookTotalCountMax)
+        .describe("Every note that qualifies for the recap, beyond the preview."),
+    })
+    .nullable()
+    .describe(
+      "Notes on the closed books before the series continuation, or null when nothing qualifies.",
+    ),
+  memoryNote: zod
+    .object({
+      impressionKey: zod
+        .string()
+        .min(1)
+        .max(notesControllerSeriesOverviewResponseMemoryNoteImpressionKeyMax)
+        .describe(
+          "Opaque key of this rediscovery selection; send it back unchanged to record that the note was shown.",
+        ),
+      note: zod.object({
+        book: zod
+          .object({
+            author: zod.string().nullable(),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            title: zod.string(),
+          })
+          .nullable(),
+        category: zod
+          .union([
+            zod.literal("general_impression"),
+            zod.literal("characters"),
+            zod.literal("plot"),
+            zod.literal("atmosphere"),
+            zod.literal("worldbuilding"),
+            zod.literal("theme_idea"),
+            zod.literal("author_style"),
+            zod.literal("for_review"),
+            zod.literal("question"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        chapter: zod.string().nullable(),
+        createdAt: zod.string(),
+        customCategory: zod.string().nullable(),
+        entityType: zod.enum(["book", "series"]),
+        id: zod.string(),
+        isFavorite: zod.boolean(),
+        isPinned: zod.boolean(),
+        isSpoiler: zod.boolean(),
+        page: zod
+          .int()
+          .min(notesControllerSeriesOverviewResponseMemoryNoteNotePageMin)
+          .max(notesControllerSeriesOverviewResponseMemoryNoteNotePageMax)
+          .nullable(),
+        series: zod
+          .object({
+            authors: zod.array(zod.string()),
+            booksCount: zod
+              .int()
+              .min(notesControllerSeriesOverviewResponseMemoryNoteNoteSeriesBooksCountMin)
+              .max(notesControllerSeriesOverviewResponseMemoryNoteNoteSeriesBooksCountMax),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            name: zod.string(),
+          })
+          .nullable(),
+        text: zod.string(),
+        updatedAt: zod.string(),
+      }),
+      source: zod
+        .union([
+          zod.object({
+            authors: zod.array(
+              zod.object({
+                id: zod.string(),
+                name: zod.string(),
+              }),
+            ),
+            cover: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            seriesPosition: zod
+              .int()
+              .min(notesControllerSeriesOverviewResponseMemoryNoteSourceOneSeriesPositionMin)
+              .max(notesControllerSeriesOverviewResponseMemoryNoteSourceOneSeriesPositionMax)
+              .nullable(),
+            title: zod.string(),
+            type: zod.enum(["book"]),
+          }),
+          zod.object({
+            id: zod.string(),
+            title: zod.string(),
+            type: zod.enum(["series"]),
+          }),
+        ])
+        .describe(
+          "Where the note belongs, discriminated on type, so the client never infers it from nullable ids.",
+        ),
+    })
+    .nullable()
+    .describe(
+      "An older note of the series or its books, picked once per local day, or null while fewer than two notes qualify.",
+    ),
+});
+
+/**
+ * @summary Record that a rediscovered note was shown today, on whichever notes page its impression key came from
+ */
+export const notesControllerRecordRediscoveryImpressionBodyImpressionKeyMax = 512;
+
+export const NotesControllerRecordRediscoveryImpressionBody = zod.object({
+  impressionKey: zod
+    .string()
+    .min(1)
+    .max(notesControllerRecordRediscoveryImpressionBodyImpressionKeyMax)
+    .describe(
+      "Opaque key of this rediscovery selection; send it back unchanged to record that the note was shown.",
+    ),
+});
+
+export const NotesControllerRecordRediscoveryImpressionResponse = zod.void();
+
+/**
+ * @summary Get the contextual facets of the current user's series notes; every dimension ignores its own selection and the quick filter
+ */
+export const notesControllerSeriesFacetsQueryCategoryMax = 100;
+
+export const notesControllerSeriesFacetsQueryCustomCategoryItemMax = 100;
+
+export const notesControllerSeriesFacetsQueryCustomCategoryMax = 100;
+
+export const notesControllerSeriesFacetsQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerSeriesFacetsQueryAuthorMax = 100;
+
+export const notesControllerSeriesFacetsQueryGenreItemMax = 64;
+
+export const notesControllerSeriesFacetsQueryGenreMax = 100;
+
+export const notesControllerSeriesFacetsQueryReadingMax = 100;
+
+export const notesControllerSeriesFacetsQuerySearchMax = 100;
+
+export const notesControllerSeriesFacetsQuerySeriesItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerSeriesFacetsQuerySeriesMax = 100;
+
+export const notesControllerSeriesFacetsQueryStatusMax = 100;
+
+export const NotesControllerSeriesFacetsQueryParams = zod.object({
   category: zod
-    .enum([
-      "general_impression",
-      "characters",
-      "plot",
-      "atmosphere",
-      "worldbuilding",
-      "theme_idea",
-      "author_style",
-      "for_review",
-      "question",
-      "other",
-    ])
+    .array(
+      zod.enum([
+        "general_impression",
+        "characters",
+        "plot",
+        "atmosphere",
+        "worldbuilding",
+        "theme_idea",
+        "author_style",
+        "for_review",
+        "question",
+        "other",
+      ]),
+    )
+    .max(notesControllerSeriesFacetsQueryCategoryMax)
     .optional(),
-  customCategory: zod.string().min(1).max(notesControllerListQueryCustomCategoryMax).optional(),
-  entityType: zod
-    .enum(["all", "book", "series"])
-    .default(notesControllerListQueryEntityTypeDefault),
-  filter: zod
-    .enum(["all", "no_spoiler", "with_spoiler", "favorite", "pinned"])
-    .default(notesControllerListQueryFilterDefault),
+  customCategory: zod
+    .array(zod.string().min(1).max(notesControllerSeriesFacetsQueryCustomCategoryItemMax))
+    .max(notesControllerSeriesFacetsQueryCustomCategoryMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(notesControllerSeriesFacetsQueryAuthorItemRegExp))
+    .max(notesControllerSeriesFacetsQueryAuthorMax)
+    .optional(),
+  genre: zod
+    .array(zod.string().min(1).max(notesControllerSeriesFacetsQueryGenreItemMax))
+    .max(notesControllerSeriesFacetsQueryGenreMax)
+    .optional(),
+  reading: zod
+    .array(zod.enum(["completed", "empty", "in_progress", "not_started"]))
+    .max(notesControllerSeriesFacetsQueryReadingMax)
+    .optional(),
+  search: zod.string().max(notesControllerSeriesFacetsQuerySearchMax).optional(),
+  series: zod
+    .array(zod.uuid().regex(notesControllerSeriesFacetsQuerySeriesItemRegExp))
+    .max(notesControllerSeriesFacetsQuerySeriesMax)
+    .optional(),
+  status: zod
+    .array(zod.enum(["completed", "ongoing", "unknown"]))
+    .max(notesControllerSeriesFacetsQueryStatusMax)
+    .optional(),
+});
+
+export const notesControllerSeriesFacetsResponseCategoriesItemCountMin = 0;
+export const notesControllerSeriesFacetsResponseCategoriesItemCountMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseCustomCategoriesItemCountMin = 0;
+export const notesControllerSeriesFacetsResponseCustomCategoriesItemCountMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseQuickCountsAllMin = 0;
+export const notesControllerSeriesFacetsResponseQuickCountsAllMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseQuickCountsFavoriteMin = 0;
+export const notesControllerSeriesFacetsResponseQuickCountsFavoriteMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseQuickCountsNoSpoilerMin = 0;
+export const notesControllerSeriesFacetsResponseQuickCountsNoSpoilerMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseQuickCountsPinnedMin = 0;
+export const notesControllerSeriesFacetsResponseQuickCountsPinnedMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseQuickCountsWithSpoilerMin = 0;
+export const notesControllerSeriesFacetsResponseQuickCountsWithSpoilerMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseAuthorsItemCountMin = 0;
+export const notesControllerSeriesFacetsResponseAuthorsItemCountMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseGenresItemCountMin = 0;
+export const notesControllerSeriesFacetsResponseGenresItemCountMax = 9007199254740991;
+
+export const notesControllerSeriesFacetsResponseSeriesItemCountMin = 0;
+export const notesControllerSeriesFacetsResponseSeriesItemCountMax = 9007199254740991;
+
+export const NotesControllerSeriesFacetsResponse = zod.object({
+  categories: zod
+    .array(
+      zod.object({
+        category: zod.enum([
+          "general_impression",
+          "characters",
+          "plot",
+          "atmosphere",
+          "worldbuilding",
+          "theme_idea",
+          "author_style",
+          "for_review",
+          "question",
+          "other",
+        ]),
+        count: zod
+          .int()
+          .min(notesControllerSeriesFacetsResponseCategoriesItemCountMin)
+          .max(notesControllerSeriesFacetsResponseCategoriesItemCountMax),
+      }),
+    )
+    .describe(
+      "Standard categories used by notes of the scope, with their note counts. Standard and custom categories are one logical dimension: both lists answer to search and every other advanced filter, never to the selected categories, custom categories or the quick filter.",
+    ),
+  customCategories: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerSeriesFacetsResponseCustomCategoriesItemCountMin)
+          .max(notesControllerSeriesFacetsResponseCustomCategoriesItemCountMax),
+        value: zod.string(),
+      }),
+    )
+    .describe(
+      "Custom categories used by notes of the scope, with their note counts. Standard and custom categories are one logical dimension: both lists answer to search and every other advanced filter, never to the selected categories, custom categories or the quick filter.",
+    ),
+  quickCounts: zod
+    .object({
+      all: zod
+        .int()
+        .min(notesControllerSeriesFacetsResponseQuickCountsAllMin)
+        .max(notesControllerSeriesFacetsResponseQuickCountsAllMax)
+        .describe("Notes of the scope, whatever their flags."),
+      favorite: zod
+        .int()
+        .min(notesControllerSeriesFacetsResponseQuickCountsFavoriteMin)
+        .max(notesControllerSeriesFacetsResponseQuickCountsFavoriteMax)
+        .describe("Notes of the scope marked as favorite."),
+      no_spoiler: zod
+        .int()
+        .min(notesControllerSeriesFacetsResponseQuickCountsNoSpoilerMin)
+        .max(notesControllerSeriesFacetsResponseQuickCountsNoSpoilerMax)
+        .describe("Notes of the scope not marked as a spoiler."),
+      pinned: zod
+        .int()
+        .min(notesControllerSeriesFacetsResponseQuickCountsPinnedMin)
+        .max(notesControllerSeriesFacetsResponseQuickCountsPinnedMax)
+        .describe("Notes of the scope that are pinned."),
+      with_spoiler: zod
+        .int()
+        .min(notesControllerSeriesFacetsResponseQuickCountsWithSpoilerMin)
+        .max(notesControllerSeriesFacetsResponseQuickCountsWithSpoilerMax)
+        .describe("Notes of the scope marked as a spoiler."),
+    })
+    .describe(
+      "Quick-filter chip counts keyed by the filter value. The scope answers to search and every advanced filter, never to the active quick filter, sort or pagination, so picking one chip never moves the number shown on another one.",
+    ),
+  authors: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerSeriesFacetsResponseAuthorsItemCountMin)
+          .max(notesControllerSeriesFacetsResponseAuthorsItemCountMax),
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .describe(
+      "Canonical authors of series holding a note of the scope; a series credits its notes to every canonical author. The list answers to search and every advanced filter except its own dimension and the quick filter, so picking one value never makes another value of the same dimension disappear.",
+    ),
+  genres: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerSeriesFacetsResponseGenresItemCountMin)
+          .max(notesControllerSeriesFacetsResponseGenresItemCountMax),
+        value: zod.string(),
+      }),
+    )
+    .describe(
+      "Genre keys of series holding a note of the scope, with their note counts. The list answers to search and every advanced filter except its own dimension and the quick filter, so picking one value never makes another value of the same dimension disappear.",
+    ),
+  series: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(notesControllerSeriesFacetsResponseSeriesItemCountMin)
+          .max(notesControllerSeriesFacetsResponseSeriesItemCountMax),
+        id: zod.string(),
+        name: zod.string(),
+      }),
+    )
+    .describe(
+      "Series holding a note of the scope, with their note counts. The list answers to search and every advanced filter except its own dimension and the quick filter, so picking one value never makes another value of the same dimension disappear.",
+    ),
+});
+
+/**
+ * @summary Get the stable summary of the current user's series notes, independent of search, filters, sort and pagination
+ */
+export const notesControllerSeriesSummaryResponseCreatedLast30DaysCountMin = 0;
+export const notesControllerSeriesSummaryResponseCreatedLast30DaysCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseSeriesNotesCountMin = 0;
+export const notesControllerSeriesSummaryResponseSeriesNotesCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseSeriesWithNotesCountMin = 0;
+export const notesControllerSeriesSummaryResponseSeriesWithNotesCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseSeriesWithThreeOrMoreNotesCountMin = 0;
+export const notesControllerSeriesSummaryResponseSeriesWithThreeOrMoreNotesCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseTopAuthorLeadersCountExclusiveMin = 0;
+export const notesControllerSeriesSummaryResponseTopAuthorLeadersCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseTopAuthorNotesCountMin = 0;
+export const notesControllerSeriesSummaryResponseTopAuthorNotesCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseTopSeriesLeadersCountExclusiveMin = 0;
+export const notesControllerSeriesSummaryResponseTopSeriesLeadersCountMax = 9007199254740991;
+
+export const notesControllerSeriesSummaryResponseTopSeriesNotesCountMin = 0;
+export const notesControllerSeriesSummaryResponseTopSeriesNotesCountMax = 9007199254740991;
+
+export const NotesControllerSeriesSummaryResponse = zod.object({
+  createdLast30DaysCount: zod
+    .int()
+    .min(notesControllerSeriesSummaryResponseCreatedLast30DaysCountMin)
+    .max(notesControllerSeriesSummaryResponseCreatedLast30DaysCountMax)
+    .describe("Series notes created in the rolling last 30 days."),
+  seriesNotesCount: zod
+    .int()
+    .min(notesControllerSeriesSummaryResponseSeriesNotesCountMin)
+    .max(notesControllerSeriesSummaryResponseSeriesNotesCountMax)
+    .describe("Active series notes on active series."),
+  seriesWithNotesCount: zod
+    .int()
+    .min(notesControllerSeriesSummaryResponseSeriesWithNotesCountMin)
+    .max(notesControllerSeriesSummaryResponseSeriesWithNotesCountMax)
+    .describe("Series holding at least one note."),
+  seriesWithThreeOrMoreNotesCount: zod
+    .int()
+    .min(notesControllerSeriesSummaryResponseSeriesWithThreeOrMoreNotesCountMin)
+    .max(notesControllerSeriesSummaryResponseSeriesWithThreeOrMoreNotesCountMax)
+    .describe("Series holding at least three notes."),
+  topAuthor: zod
+    .object({
+      leadersCount: zod
+        .int()
+        .gt(notesControllerSeriesSummaryResponseTopAuthorLeadersCountExclusiveMin)
+        .max(notesControllerSeriesSummaryResponseTopAuthorLeadersCountMax),
+      name: zod.string().nullable(),
+      notesCount: zod
+        .int()
+        .min(notesControllerSeriesSummaryResponseTopAuthorNotesCountMin)
+        .max(notesControllerSeriesSummaryResponseTopAuthorNotesCountMax),
+    })
+    .nullable()
+    .describe(
+      "Canonical author whose series hold the most notes; name is null on a tie, the whole value is null without author data.",
+    ),
+  topSeries: zod
+    .object({
+      leadersCount: zod
+        .int()
+        .gt(notesControllerSeriesSummaryResponseTopSeriesLeadersCountExclusiveMin)
+        .max(notesControllerSeriesSummaryResponseTopSeriesLeadersCountMax),
+      name: zod.string().nullable(),
+      notesCount: zod
+        .int()
+        .min(notesControllerSeriesSummaryResponseTopSeriesNotesCountMin)
+        .max(notesControllerSeriesSummaryResponseTopSeriesNotesCountMax),
+    })
+    .nullable()
+    .describe(
+      "Series holding the most notes; name is null on a tie, the whole value is null without notes.",
+    ),
+});
+
+/**
+ * @summary List and search the current user's book notes archive
+ */
+export const notesControllerListBookArchiveQueryCategoryMax = 100;
+
+export const notesControllerListBookArchiveQueryCustomCategoryItemMax = 100;
+
+export const notesControllerListBookArchiveQueryCustomCategoryMax = 100;
+
+export const notesControllerListBookArchiveQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerListBookArchiveQueryAuthorMax = 100;
+
+export const notesControllerListBookArchiveQueryBookItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerListBookArchiveQueryBookMax = 100;
+
+export const notesControllerListBookArchiveQuerySearchMax = 100;
+
+export const notesControllerListBookArchiveQueryFilterDefault = `all`;
+export const notesControllerListBookArchiveQueryPageNumberDefault = 1;
+export const notesControllerListBookArchiveQueryPageNumberMax = 21474836;
+
+export const notesControllerListBookArchiveQueryPageSizeDefault = 20;
+export const notesControllerListBookArchiveQueryPageSizeMax = 100;
+
+export const notesControllerListBookArchiveQuerySortDefault = `newest`;
+
+export const NotesControllerListBookArchiveQueryParams = zod.object({
+  category: zod
+    .array(
+      zod.enum([
+        "general_impression",
+        "characters",
+        "plot",
+        "atmosphere",
+        "worldbuilding",
+        "theme_idea",
+        "author_style",
+        "for_review",
+        "question",
+        "other",
+      ]),
+    )
+    .max(notesControllerListBookArchiveQueryCategoryMax)
+    .optional(),
+  customCategory: zod
+    .array(zod.string().min(1).max(notesControllerListBookArchiveQueryCustomCategoryItemMax))
+    .max(notesControllerListBookArchiveQueryCustomCategoryMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(notesControllerListBookArchiveQueryAuthorItemRegExp))
+    .max(notesControllerListBookArchiveQueryAuthorMax)
+    .optional(),
+  book: zod
+    .array(zod.uuid().regex(notesControllerListBookArchiveQueryBookItemRegExp))
+    .max(notesControllerListBookArchiveQueryBookMax)
+    .optional(),
   hasChapter: zod.enum(["true", "false"]).optional(),
   hasPage: zod.enum(["true", "false"]).optional(),
+  search: zod.string().max(notesControllerListBookArchiveQuerySearchMax).optional(),
+  filter: zod
+    .enum(["all", "no_spoiler", "with_spoiler", "favorite", "pinned"])
+    .default(notesControllerListBookArchiveQueryFilterDefault),
   pageNumber: zod
     .int()
     .min(1)
-    .max(notesControllerListQueryPageNumberMax)
-    .default(notesControllerListQueryPageNumberDefault),
+    .max(notesControllerListBookArchiveQueryPageNumberMax)
+    .default(notesControllerListBookArchiveQueryPageNumberDefault),
   pageSize: zod
     .int()
     .min(1)
-    .max(notesControllerListQueryPageSizeMax)
-    .default(notesControllerListQueryPageSizeDefault),
-  search: zod.string().max(notesControllerListQuerySearchMax).optional(),
-  seriesId: zod.uuid().regex(notesControllerListQuerySeriesIdRegExp).optional(),
+    .max(notesControllerListBookArchiveQueryPageSizeMax)
+    .default(notesControllerListBookArchiveQueryPageSizeDefault),
   sort: zod
-    .enum([
-      "newest",
-      "oldest",
-      "recently_updated",
-      "title",
-      "author",
-      "category",
-      "page",
-      "pinned_first",
-      "favorite_first",
-      "no_spoiler_first",
-      "with_spoiler_first",
-    ])
-    .default(notesControllerListQuerySortDefault),
+    .enum(["newest", "oldest", "recently_updated", "title", "author", "page", "pinned_first"])
+    .default(notesControllerListBookArchiveQuerySortDefault),
 });
 
-export const notesControllerListResponseItemsItemPageMin = -9007199254740991;
-export const notesControllerListResponseItemsItemPageMax = 9007199254740991;
+export const notesControllerListBookArchiveResponseItemsItemPageMin = -9007199254740991;
+export const notesControllerListBookArchiveResponseItemsItemPageMax = 9007199254740991;
 
-export const notesControllerListResponseItemsItemSeriesBooksCountMin = 0;
-export const notesControllerListResponseItemsItemSeriesBooksCountMax = 9007199254740991;
+export const notesControllerListBookArchiveResponseItemsItemSeriesBooksCountMin = 0;
+export const notesControllerListBookArchiveResponseItemsItemSeriesBooksCountMax = 9007199254740991;
 
-export const notesControllerListResponsePageMin = -9007199254740991;
-export const notesControllerListResponsePageMax = 9007199254740991;
+export const notesControllerListBookArchiveResponsePageMin = -9007199254740991;
+export const notesControllerListBookArchiveResponsePageMax = 9007199254740991;
 
-export const notesControllerListResponsePagesCountMin = -9007199254740991;
-export const notesControllerListResponsePagesCountMax = 9007199254740991;
+export const notesControllerListBookArchiveResponsePagesCountMin = -9007199254740991;
+export const notesControllerListBookArchiveResponsePagesCountMax = 9007199254740991;
 
-export const notesControllerListResponsePageSizeMin = -9007199254740991;
-export const notesControllerListResponsePageSizeMax = 9007199254740991;
+export const notesControllerListBookArchiveResponsePageSizeMin = -9007199254740991;
+export const notesControllerListBookArchiveResponsePageSizeMax = 9007199254740991;
 
-export const notesControllerListResponseTotalCountMin = -9007199254740991;
-export const notesControllerListResponseTotalCountMax = 9007199254740991;
+export const notesControllerListBookArchiveResponseTotalCountMin = -9007199254740991;
+export const notesControllerListBookArchiveResponseTotalCountMax = 9007199254740991;
 
-export const NotesControllerListResponse = zod.object({
+export const NotesControllerListBookArchiveResponse = zod.object({
   items: zod.array(
     zod.object({
       book: zod
@@ -960,16 +2137,16 @@ export const NotesControllerListResponse = zod.object({
       isSpoiler: zod.boolean(),
       page: zod
         .int()
-        .min(notesControllerListResponseItemsItemPageMin)
-        .max(notesControllerListResponseItemsItemPageMax)
+        .min(notesControllerListBookArchiveResponseItemsItemPageMin)
+        .max(notesControllerListBookArchiveResponseItemsItemPageMax)
         .nullable(),
       series: zod
         .object({
           authors: zod.array(zod.string()),
           booksCount: zod
             .int()
-            .min(notesControllerListResponseItemsItemSeriesBooksCountMin)
-            .max(notesControllerListResponseItemsItemSeriesBooksCountMax),
+            .min(notesControllerListBookArchiveResponseItemsItemSeriesBooksCountMin)
+            .max(notesControllerListBookArchiveResponseItemsItemSeriesBooksCountMax),
           cover: zod
             .object({
               contentType: zod.string(),
@@ -995,17 +2172,242 @@ export const NotesControllerListResponse = zod.object({
       updatedAt: zod.string(),
     }),
   ),
-  page: zod.int().min(notesControllerListResponsePageMin).max(notesControllerListResponsePageMax),
+  page: zod
+    .int()
+    .min(notesControllerListBookArchiveResponsePageMin)
+    .max(notesControllerListBookArchiveResponsePageMax),
   pagesCount: zod
     .int()
-    .min(notesControllerListResponsePagesCountMin)
-    .max(notesControllerListResponsePagesCountMax),
+    .min(notesControllerListBookArchiveResponsePagesCountMin)
+    .max(notesControllerListBookArchiveResponsePagesCountMax),
   pageSize: zod
     .int()
-    .min(notesControllerListResponsePageSizeMin)
-    .max(notesControllerListResponsePageSizeMax),
+    .min(notesControllerListBookArchiveResponsePageSizeMin)
+    .max(notesControllerListBookArchiveResponsePageSizeMax),
   totalCount: zod
     .int()
-    .min(notesControllerListResponseTotalCountMin)
-    .max(notesControllerListResponseTotalCountMax),
+    .min(notesControllerListBookArchiveResponseTotalCountMin)
+    .max(notesControllerListBookArchiveResponseTotalCountMax),
+});
+
+/**
+ * @summary List and search the current user's series notes archive
+ */
+export const notesControllerListSeriesArchiveQueryCategoryMax = 100;
+
+export const notesControllerListSeriesArchiveQueryCustomCategoryItemMax = 100;
+
+export const notesControllerListSeriesArchiveQueryCustomCategoryMax = 100;
+
+export const notesControllerListSeriesArchiveQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerListSeriesArchiveQueryAuthorMax = 100;
+
+export const notesControllerListSeriesArchiveQueryGenreItemMax = 64;
+
+export const notesControllerListSeriesArchiveQueryGenreMax = 100;
+
+export const notesControllerListSeriesArchiveQueryReadingMax = 100;
+
+export const notesControllerListSeriesArchiveQuerySearchMax = 100;
+
+export const notesControllerListSeriesArchiveQuerySeriesItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const notesControllerListSeriesArchiveQuerySeriesMax = 100;
+
+export const notesControllerListSeriesArchiveQueryStatusMax = 100;
+
+export const notesControllerListSeriesArchiveQueryFilterDefault = `all`;
+export const notesControllerListSeriesArchiveQueryPageNumberDefault = 1;
+export const notesControllerListSeriesArchiveQueryPageNumberMax = 21474836;
+
+export const notesControllerListSeriesArchiveQueryPageSizeDefault = 20;
+export const notesControllerListSeriesArchiveQueryPageSizeMax = 100;
+
+export const notesControllerListSeriesArchiveQuerySortDefault = `newest`;
+
+export const NotesControllerListSeriesArchiveQueryParams = zod.object({
+  category: zod
+    .array(
+      zod.enum([
+        "general_impression",
+        "characters",
+        "plot",
+        "atmosphere",
+        "worldbuilding",
+        "theme_idea",
+        "author_style",
+        "for_review",
+        "question",
+        "other",
+      ]),
+    )
+    .max(notesControllerListSeriesArchiveQueryCategoryMax)
+    .optional(),
+  customCategory: zod
+    .array(zod.string().min(1).max(notesControllerListSeriesArchiveQueryCustomCategoryItemMax))
+    .max(notesControllerListSeriesArchiveQueryCustomCategoryMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(notesControllerListSeriesArchiveQueryAuthorItemRegExp))
+    .max(notesControllerListSeriesArchiveQueryAuthorMax)
+    .optional(),
+  genre: zod
+    .array(zod.string().min(1).max(notesControllerListSeriesArchiveQueryGenreItemMax))
+    .max(notesControllerListSeriesArchiveQueryGenreMax)
+    .optional(),
+  reading: zod
+    .array(zod.enum(["completed", "empty", "in_progress", "not_started"]))
+    .max(notesControllerListSeriesArchiveQueryReadingMax)
+    .optional(),
+  search: zod.string().max(notesControllerListSeriesArchiveQuerySearchMax).optional(),
+  series: zod
+    .array(zod.uuid().regex(notesControllerListSeriesArchiveQuerySeriesItemRegExp))
+    .max(notesControllerListSeriesArchiveQuerySeriesMax)
+    .optional(),
+  status: zod
+    .array(zod.enum(["completed", "ongoing", "unknown"]))
+    .max(notesControllerListSeriesArchiveQueryStatusMax)
+    .optional(),
+  filter: zod
+    .enum(["all", "no_spoiler", "with_spoiler", "favorite", "pinned"])
+    .default(notesControllerListSeriesArchiveQueryFilterDefault),
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(notesControllerListSeriesArchiveQueryPageNumberMax)
+    .default(notesControllerListSeriesArchiveQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(notesControllerListSeriesArchiveQueryPageSizeMax)
+    .default(notesControllerListSeriesArchiveQueryPageSizeDefault),
+  sort: zod
+    .enum(["newest", "oldest", "recently_updated", "title", "author", "pinned_first"])
+    .default(notesControllerListSeriesArchiveQuerySortDefault),
+});
+
+export const notesControllerListSeriesArchiveResponseItemsItemPageMin = -9007199254740991;
+export const notesControllerListSeriesArchiveResponseItemsItemPageMax = 9007199254740991;
+
+export const notesControllerListSeriesArchiveResponseItemsItemSeriesBooksCountMin = 0;
+export const notesControllerListSeriesArchiveResponseItemsItemSeriesBooksCountMax = 9007199254740991;
+
+export const notesControllerListSeriesArchiveResponsePageMin = -9007199254740991;
+export const notesControllerListSeriesArchiveResponsePageMax = 9007199254740991;
+
+export const notesControllerListSeriesArchiveResponsePagesCountMin = -9007199254740991;
+export const notesControllerListSeriesArchiveResponsePagesCountMax = 9007199254740991;
+
+export const notesControllerListSeriesArchiveResponsePageSizeMin = -9007199254740991;
+export const notesControllerListSeriesArchiveResponsePageSizeMax = 9007199254740991;
+
+export const notesControllerListSeriesArchiveResponseTotalCountMin = -9007199254740991;
+export const notesControllerListSeriesArchiveResponseTotalCountMax = 9007199254740991;
+
+export const NotesControllerListSeriesArchiveResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      book: zod
+        .object({
+          author: zod.string().nullable(),
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          id: zod.string(),
+          title: zod.string(),
+        })
+        .nullable(),
+      category: zod
+        .union([
+          zod.literal("general_impression"),
+          zod.literal("characters"),
+          zod.literal("plot"),
+          zod.literal("atmosphere"),
+          zod.literal("worldbuilding"),
+          zod.literal("theme_idea"),
+          zod.literal("author_style"),
+          zod.literal("for_review"),
+          zod.literal("question"),
+          zod.literal("other"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      chapter: zod.string().nullable(),
+      createdAt: zod.string(),
+      customCategory: zod.string().nullable(),
+      entityType: zod.enum(["book", "series"]),
+      id: zod.string(),
+      isFavorite: zod.boolean(),
+      isPinned: zod.boolean(),
+      isSpoiler: zod.boolean(),
+      page: zod
+        .int()
+        .min(notesControllerListSeriesArchiveResponseItemsItemPageMin)
+        .max(notesControllerListSeriesArchiveResponseItemsItemPageMax)
+        .nullable(),
+      series: zod
+        .object({
+          authors: zod.array(zod.string()),
+          booksCount: zod
+            .int()
+            .min(notesControllerListSeriesArchiveResponseItemsItemSeriesBooksCountMin)
+            .max(notesControllerListSeriesArchiveResponseItemsItemSeriesBooksCountMax),
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      text: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(notesControllerListSeriesArchiveResponsePageMin)
+    .max(notesControllerListSeriesArchiveResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(notesControllerListSeriesArchiveResponsePagesCountMin)
+    .max(notesControllerListSeriesArchiveResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(notesControllerListSeriesArchiveResponsePageSizeMin)
+    .max(notesControllerListSeriesArchiveResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(notesControllerListSeriesArchiveResponseTotalCountMin)
+    .max(notesControllerListSeriesArchiveResponseTotalCountMax),
 });

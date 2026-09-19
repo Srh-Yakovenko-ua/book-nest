@@ -20,6 +20,7 @@ import {
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
 import type { SeriesAggregateBookRow } from "./series-aggregates.js";
+import type { SeriesAuthorRef } from "./series-canonical-authors.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
@@ -27,14 +28,13 @@ import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { toActiveBookDeliveryView } from "../../delivery/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
 import { summarizeSeriesAggregates } from "./series-aggregates.js";
+import { resolveSeriesCanonicalAuthors } from "./series-canonical-authors.js";
 import {
   computeSeriesLastActivityAt,
   summarizeSeriesBooks,
   toSeriesBookPreview,
 } from "./series-preview.js";
 import { computeSeriesStats } from "./series-stats.js";
-
-type SeriesAuthorRef = { id: string; name: string };
 
 type SeriesDetailBook = SeriesWithDetails["books"][number];
 
@@ -101,7 +101,7 @@ export function toSeriesView({
 
   return {
     ...summarizeSeriesAggregates(series.books),
-    authors: resolveSeriesAuthors(series),
+    authors: resolveSeriesCanonicalAuthors(series),
     booksInSeries: series._count.books,
     covers: buildSeriesCoverPreviews({ books: series.books, coverByBookId }),
     createdAt: series.createdAt.toISOString(),
@@ -158,29 +158,6 @@ function collectSeriesPublishers(
   return Array.from(publishersById.values()).sort((first, second) =>
     UKRAINIAN_COLLATION.compare(first.name, second.name),
   );
-}
-
-function resolveSeriesAuthors(series: {
-  authors: { author: SeriesAuthorRef }[];
-  books: SeriesViewBookRow[];
-}): SeriesAuthorRef[] {
-  if (series.books.length === 0) {
-    return series.authors.map(({ author }) => ({ id: author.id, name: author.name }));
-  }
-
-  const authorsById = new Map<string, SeriesAuthorRef>();
-  for (const book of [...series.books].sort(compareByPartThenCreated)) {
-    const orderedAuthors = [...book.authors].sort(
-      (first, second) => first.position - second.position,
-    );
-    for (const { author } of orderedAuthors) {
-      if (!authorsById.has(author.id)) {
-        authorsById.set(author.id, { id: author.id, name: author.name });
-      }
-    }
-  }
-
-  return [...authorsById.values()];
 }
 
 function toSeriesBookView({

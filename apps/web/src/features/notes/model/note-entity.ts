@@ -1,10 +1,13 @@
 import type {
   NoteBookPreview,
   NoteEntityType,
+  NoteMemoryBookSource,
   NoteSeriesPreview,
   NoteView,
   Nullable,
 } from "@app/shared";
+
+import { assertNever } from "./assert-never";
 
 export type NoteEntityRef =
   | NoteEntityRefOf<"book", { book: NoteBookPreview }>
@@ -16,6 +19,17 @@ const NOTE_ENTITY_SECTIONS = {
   book: "/books",
   series: "/series",
 } as const satisfies Record<NoteEntityType, string>;
+
+export function bookPreviewFromMemorySource(source: NoteMemoryBookSource): NoteBookPreview {
+  const author = source.authors.map(({ name }) => name).join(", ");
+
+  return {
+    author: author.length === 0 ? null : author,
+    cover: source.cover,
+    id: source.id,
+    title: source.title,
+  };
+}
 
 export function noteEntityHref(entity: NoteEntityRef): string {
   return `${NOTE_ENTITY_SECTIONS[entity.type]}/${noteEntityId(entity)}`;
@@ -41,8 +55,4 @@ export function noteEntityRefFromNote(note: NoteView): Nullable<NoteEntityRef> {
     default:
       return assertNever(note.entityType);
   }
-}
-
-function assertNever(value: never): never {
-  throw new Error(`Unhandled note entity: ${String(value)}`);
 }

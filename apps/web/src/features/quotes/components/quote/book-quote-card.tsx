@@ -25,7 +25,7 @@ export function BookQuoteCard({ maxPage, quote }: BookQuoteCardProps) {
     <article className={cn(QUOTE_CARD_SHELL.base, QUOTE_CARD_SHELL.interactive)}>
       <div className="flex items-start gap-2">
         {quote.isSpoiler ? <QuoteSpoilerBadge /> : null}
-        <QuoteActions bookHref={null} className="ml-auto" maxPage={maxPage} quote={quote} />
+        <QuoteActions className="ml-auto" maxPage={maxPage} quote={quote} />
       </div>
 
       <QuoteBody onExpand={fullView.openFrom} quote={quote} />

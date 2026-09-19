@@ -1,6 +1,6 @@
 "use client";
 
-import type { Nullable, QuoteView } from "@app/shared";
+import type { QuoteView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -15,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Link } from "@/i18n/navigation";
 import { copyText } from "@/lib/copy-text";
 import { cn } from "@/lib/utils";
 
@@ -24,13 +23,12 @@ import { DeleteQuoteDialog } from "../delete-quote-dialog";
 import { QuoteDialog } from "../quote-dialog";
 
 type QuoteActionsProps = {
-  bookHref: Nullable<string>;
   className?: string;
   maxPage?: number;
   quote: QuoteView;
 };
 
-export function QuoteActions({ bookHref, className, maxPage, quote }: QuoteActionsProps) {
+export function QuoteActions({ className, maxPage, quote }: QuoteActionsProps) {
   const tActions = useTranslations("quotes.actions");
   const tCopy = useTranslations("quotes.copy");
   const tDelete = useTranslations("quotes.delete");
@@ -109,14 +107,6 @@ export function QuoteActions({ bookHref, className, maxPage, quote }: QuoteActio
             <UiIcon name="edit" size={14} />
             {tActions("edit")}
           </DropdownMenuItem>
-          {bookHref === null ? null : (
-            <DropdownMenuItem asChild>
-              <Link href={bookHref}>
-                <UiIcon name="book" size={14} />
-                {tActions("openBook")}
-              </Link>
-            </DropdownMenuItem>
-          )}
           <DropdownMenuItem onSelect={() => void copyQuote()}>
             <UiIcon name="copy" size={14} />
             {tActions("copy")}
