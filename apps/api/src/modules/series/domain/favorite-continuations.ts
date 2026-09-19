@@ -10,10 +10,14 @@ import type {
   SeriesStatus,
 } from "@app/shared";
 
-import { compareByPartThenCreated } from "@app/shared";
 import { compareDesc, max } from "date-fns";
 
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
+import {
+  resolveContinuationReason,
+  resolveSeriesContinuation,
+  toContinuationProgress,
+} from "./series-continuation.js";
 
 export type ContinuationBook = {
   authors: { id: string; name: string }[];
@@ -67,23 +71,6 @@ type ContinuationSeriesView = {
 };
 
 const MIN_SERIES_BOOKS = 2;
-const FULL_PERCENTAGE = 100;
-
-const CLOSED_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>(["dnf", "finished"]);
-
-const READING_STATUSES_AS_READING: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
-  "reading",
-  "rereading",
-]);
-
-const OWNERSHIP_RANK_REASON: Record<OwnershipStatus, SeriesContinuationRankReason> = {
-  borrowed_from_someone: "available",
-  in_transit: "in_transit",
-  lent_to_someone: "lent",
-  none: "not_owned",
-  owned: "available",
-  want_to_buy: "want_to_buy",
-};
 
 const RANK_PRIORITY: Record<SeriesContinuationRankReason, number> = {
   available: 2,
@@ -120,18 +107,18 @@ function assembleGroup(group: ContinuationSeriesGroup): Nullable<AssembledContin
     return null;
   }
 
-  const ordered = [...books].sort(compareByPartThenCreated);
-  const nextBook = ordered.find((book) => !CLOSED_STATUSES.has(book.readingStatus));
-  if (nextBook === undefined) {
+  const resolved = resolveSeriesContinuation(books);
+  if (resolved === null) {
     return null;
   }
+  const nextBook = resolved.continuation;
 
   return {
     favoriteBooksCount: favorites.length,
     lastFavoriteAddedAt: computeLastFavoriteAddedAt(favorites),
     nextBook,
     progress: computeProgress(books),
-    rankReason: resolveRankReason(nextBook),
+    rankReason: resolveContinuationReason(nextBook),
     series: {
       id: series.id,
       status: series.status,
@@ -195,16 +182,6 @@ function computeProgress(books: ContinuationBook[]): ContinuationProgress {
   return { closedBooks, finishedBooks, totalBooks: books.length };
 }
 
-function resolveRankReason(book: ContinuationBook): SeriesContinuationRankReason {
-  if (READING_STATUSES_AS_READING.has(book.readingStatus)) {
-    return "reading";
-  }
-  if (book.readingStatus === "paused") {
-    return "paused";
-  }
-  return OWNERSHIP_RANK_REASON[book.ownershipStatus];
-}
-
 function toContinuationItem(continuation: AssembledContinuation): FavoriteSeriesContinuationItem {
   return {
     favoriteBooksCount: continuation.favoriteBooksCount,
@@ -228,27 +205,9 @@ function toNextBookView(book: ContinuationBook): SeriesContinuationNextBook {
       book.queuePosition === null
         ? null
         : { position: book.queuePosition, priority: book.queuePriority },
-    readingProgress: toReadingProgressView(book),
+    readingProgress: toContinuationProgress(book),
     readingStatus: book.readingStatus,
     seriesPosition: book.partNumber,
     title: book.title,
   };
-}
-
-function toReadingProgressView(
-  book: ContinuationBook,
-): SeriesContinuationNextBook["readingProgress"] {
-  if (book.currentPage === null) {
-    return null;
-  }
-
-  const percentage =
-    book.pagesCount !== null && book.pagesCount > 0
-      ? Math.min(
-          FULL_PERCENTAGE,
-          Math.round((book.currentPage / book.pagesCount) * FULL_PERCENTAGE),
-        )
-      : null;
-
-  return { currentPage: book.currentPage, percentage, totalPages: book.pagesCount };
 }

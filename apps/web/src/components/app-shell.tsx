@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   ArrowUpRight,
   BookCopy,
+  BookOpen,
   ChartColumnBig,
   ChevronDown,
   ChevronLeft,
@@ -99,7 +100,10 @@ type NavMessageKey =
   | "nav.loansBorrowed"
   | "nav.loansContacts"
   | "nav.loansHistory"
-  | "nav.loansLent";
+  | "nav.loansLent"
+  | "nav.notes"
+  | "nav.notesBooks"
+  | "nav.notesSeries";
 
 type NavSection = {
   children: readonly [NavSectionChild, ...NavSectionChild[]];
@@ -160,7 +164,17 @@ const NAV_ITEMS = [
   { icon: Landmark, key: "publishers", kind: "link", to: "/publishers" },
   { icon: Tags, key: "genresTags", kind: "link", to: "/genres-tags" },
   { icon: ListChecks, key: "lists", kind: "link", to: "/lists" },
-  { icon: NotebookPen, key: "notes", kind: "link", to: "/notes" },
+  {
+    children: [
+      { icon: BookOpen, labelKey: "nav.notesBooks", to: "/notes/books" },
+      { icon: BookCopy, labelKey: "nav.notesSeries", to: "/notes/series" },
+    ],
+    icon: NotebookPen,
+    key: "notes",
+    kind: "section",
+    listLabelKey: "nav.notes",
+    pathPrefix: "/notes",
+  },
   { icon: Settings, key: "settings", kind: "link", to: "/settings" },
 ] satisfies readonly NavItem[];
 

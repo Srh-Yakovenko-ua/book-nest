@@ -1099,6 +1099,30 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Смуги доставки показують справжню частку",
     version: null,
   },
+  {
+    bodyEn:
+      "Notes now have their own section in the sidebar with two pages, Book notes and Series notes, and your old links to notes still open. Each page has its own summary cards, search, sorting and a Filters panel whose counts update as you pick other filters. Quick chips show all notes, favorites, pinned notes, notes without spoilers or only those with spoilers, and you can switch between a grid and a list. Cards have a new look and open in full in a separate window, and a note marked as a spoiler stays hidden until you choose to reveal it. A series note no longer asks for a chapter or page.",
+    bodyUk:
+      "Нотатки тепер мають окремий розділ у бічному меню з двома сторінками: «Нотатки книг» і «Нотатки до серій», а ваші старі посилання на нотатки й далі відкриваються. На кожній сторінці є свої картки підсумків, пошук, сортування та панель «Фільтри», лічильники в якій оновлюються, коли ви обираєте інші фільтри. Швидкі фільтри показують усі нотатки, улюблені, закріплені, без спойлерів або лише зі спойлерами, а вигляд можна перемикати між сіткою та списком. Картки отримали новий вигляд і відкриваються повністю в окремому вікні, а нотатка зі спойлером лишається прихованою, доки ви її не відкриєте. Нотатка до серії більше не просить вказати розділ чи сторінку.",
+    category: "improvement",
+    publishedAt: "2026-09-19T00:00:00.000Z",
+    slug: "notes-books-and-series-pages",
+    titleEn: "Separate pages for book and series notes",
+    titleUk: "Окремі сторінки нотаток книг і серій",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The book notes page has two new side blocks. Revisit a note brings back one of your earlier notes, and After finishing shows how many notes, favorites and pinned notes you left on a book you recently finished, with a link to them. On the series notes page, Before you continue the series gathers what to recall from the previous parts before you start the next book or while you are reading it.",
+    bodyUk:
+      "На сторінці нотаток книг збоку з'явилися два блоки. «Згадати нотатку» повертає одну з ваших давніших нотаток, а «Після завершення» показує, скільки нотаток, улюблених і закріплених ви залишили до нещодавно дочитаної книги, і веде до них. На сторінці нотаток до серій блок «Перед продовженням серії» збирає те, що варто згадати з попередніх частин перед наступною книгою або під час її читання.",
+    category: "feature",
+    publishedAt: "2026-09-19T00:00:01.000Z",
+    slug: "notes-contextual-reminders",
+    titleEn: "Notes that remind you in time",
+    titleUk: "Нотатки, що нагадують вчасно",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

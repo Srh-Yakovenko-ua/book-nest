@@ -253,8 +253,10 @@ function QuoteBookField({
               empty: tPicker("empty"),
               loadError: tPicker("loadError"),
               loading: tPicker("loading"),
+              loadMoreError: tPicker("loadMoreError"),
               results: tPicker("results"),
               resultsCount: (count) => tPicker("resultsCount", { count }),
+              retry: tPicker("retry"),
               search: tPicker("search"),
             }}
             onChange={(nextBook) => field.onChange(toBookSelectOption(nextBook))}

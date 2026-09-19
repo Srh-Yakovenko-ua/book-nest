@@ -1,12 +1,14 @@
 "use client";
 
-import type { NoteEntityFilter, NoteFilter, NoteSort, Nullable } from "@app/shared";
+import type { Nullable } from "@app/shared";
 
+import { NOTE_ARCHIVE_SORT_DEFAULT } from "@app/shared";
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
-import { ChipGroup } from "@/components/ui/chip-group";
 import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -16,195 +18,134 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type {
-  NotesArchiveQueryState,
-  NotesCategorySelection,
-  NotesPresence,
-} from "../model/notes-archive-query";
+import type { NotesArchiveFacets } from "../api/use-notes-facets";
+import type { UseNotesArchiveQueryResult } from "../model/use-notes-archive-query";
 
-import { NOTE_CATEGORY_OPTIONS } from "../model/note-categories";
 import {
-  customCategorySelectValue,
-  NOTES_CATEGORY_ANY,
-  NOTES_ENTITY_FILTER_OPTIONS,
-  NOTES_PRESENCE_OPTIONS,
-  NOTES_QUICK_FILTER_OPTIONS,
-  NOTES_SORT_DEFAULT,
-  NOTES_SORT_OPTIONS,
-  notesCategorySelectValue,
-  parseCategorySelectValue,
-  presenceToFlag,
-  presenceValue,
+  isNotesSearchCommittable,
+  NOTES_ARCHIVE,
+  notesAdvancedValues,
 } from "../model/notes-archive-query";
+import { NotesActiveFilters } from "./notes-active-filters";
+import { NotesAdvancedFilters } from "./notes-advanced-filters";
+import { NotesQuickChips } from "./notes-quick-chips";
 
 type NotesArchiveToolbarProps = {
-  availableCustomCategories: string[];
-  onCategoryChange: (selection: NotesCategorySelection) => void;
-  onEntityTypeChange: (value: NoteEntityFilter) => void;
-  onFilterChange: (value: NoteFilter) => void;
-  onHasChapterChange: (value: Nullable<boolean>) => void;
-  onHasPageChange: (value: Nullable<boolean>) => void;
-  onSearchChange: (value: string) => void;
-  onSortChange: (value: NoteSort) => void;
-  state: NotesArchiveQueryState;
+  counter: Nullable<string>;
+  facets: NotesArchiveFacets | undefined;
+  query: UseNotesArchiveQueryResult;
 };
 
-export function NotesArchiveToolbar({
-  availableCustomCategories,
-  onCategoryChange,
-  onEntityTypeChange,
-  onFilterChange,
-  onHasChapterChange,
-  onHasPageChange,
-  onSearchChange,
-  onSortChange,
-  state,
-}: NotesArchiveToolbarProps) {
-  const t = useTranslations("notes.archive.toolbar");
+export function NotesArchiveToolbar({ counter, facets, query }: NotesArchiveToolbarProps) {
+  const t = useTranslations("notes.archive");
   const tCommon = useTranslations("common");
-  const tCategories = useTranslations("notes.categories");
-  const tEntity = useTranslations("notes.archive.entityFilter");
-  const tFilter = useTranslations("notes.archive.quickFilter");
-  const tPresence = useTranslations("notes.archive.presence");
-  const tSort = useTranslations("notes.archive.sort");
-  const tSortMobile = useTranslations("notes.archive.sortMobile");
+  const { config, state } = query;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-1.5 lg:flex-row lg:items-center lg:gap-3">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 lg:flex-1">
           <DebouncedSearchInput
-            clearLabel={t("searchClear")}
-            label={t("searchLabel")}
-            onClear={() => onSearchChange("")}
-            onSearch={onSearchChange}
-            placeholder={t("searchPlaceholder")}
-            value={state.search}
+            clearLabel={t("toolbar.searchClear")}
+            isCommittable={(value) => isNotesSearchCommittable(config.searchRule, value)}
+            label={t(`${config.scope}.searchLabel`)}
+            onClear={() => query.setSearch("")}
+            onSearch={query.setSearch}
+            placeholder={t(`${config.scope}.searchPlaceholder`)}
+            value={state.q}
           />
         </div>
 
-        <MobileSortSheet
-          className="max-w-[9.5rem] sm:hidden"
-          closeLabel={tSortMobile("close")}
-          description={tSortMobile("description")}
-          groups={[
-            {
-              key: "sort",
-              options: NOTES_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
-            },
-          ]}
-          id="notes-sort"
-          label={t("sortLabel")}
-          onChange={onSortChange}
-          title={tSortMobile("title")}
-          triggerLabel={tSortMobile(`trigger.${state.sort}`)}
-          value={state.sort}
-        />
-
-        <div className="hidden sm:block sm:w-64 lg:w-64">
-          <Select
-            onValueChange={(next) => {
-              const match = NOTES_SORT_OPTIONS.find((option) => option === next);
-              if (match !== undefined) onSortChange(match);
-            }}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <MobileSortSheet
+            className="max-w-[9.5rem] sm:hidden"
+            closeLabel={t("sortMobile.close")}
+            description={t("sortMobile.description")}
+            groups={[
+              {
+                key: "sort",
+                options: config.sortOptions.map((value) => ({
+                  label: t(`sort.${value}`),
+                  value,
+                })),
+              },
+            ]}
+            id={`notes-${config.scope}-sort`}
+            label={t("toolbar.sortLabel")}
+            onChange={query.setSort}
+            title={t("sortMobile.title")}
+            triggerLabel={t(`sortMobile.trigger.${state.sort}`)}
             value={state.sort}
-          >
-            <SelectTrigger
-              aria-label={t("sortLabel")}
-              className="w-full data-[size=default]:h-10"
-              clearLabel={tCommon("clear")}
-              isClearable={state.sort !== NOTES_SORT_DEFAULT}
-              onClear={() => onSortChange(NOTES_SORT_DEFAULT)}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {NOTES_SORT_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {tSort(option)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
+
+          <div className="hidden sm:block sm:w-56 xl:w-64">
+            <Select onValueChange={query.setSort} value={state.sort}>
+              <SelectTrigger
+                aria-label={t("toolbar.sortLabel")}
+                className="w-full data-[size=default]:h-10"
+                clearLabel={tCommon("clear")}
+                isClearable={state.sort !== NOTE_ARCHIVE_SORT_DEFAULT}
+                onClear={() => query.setSort(NOTE_ARCHIVE_SORT_DEFAULT)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {config.sortOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {t(`sort.${option}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <NotesAdvancedFilters
+            activeCount={query.activeDimensionCount}
+            config={config}
+            facets={facets}
+            onApply={query.applyAdvanced}
+            values={notesAdvancedValues(state)}
+          />
+
+          <Segmented
+            className="ml-auto h-10 shrink-0 items-stretch [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+            label={t("view.label")}
+            onValueChange={(next) => query.setView(next === "list" ? "list" : "grid")}
+            options={[
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{t("view.grid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{t("view.list")}</span>,
+                value: "list",
+              },
+            ]}
+            value={state.view}
+          />
         </div>
       </div>
 
-      <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
-        <ChipGroup
-          className="flex-nowrap"
-          label={t("quickFilterLabel")}
-          mode="single"
-          onValueChange={(next) => {
-            const match = NOTES_QUICK_FILTER_OPTIONS.find((option) => option === next);
-            if (match !== undefined) onFilterChange(match);
-          }}
-          options={NOTES_QUICK_FILTER_OPTIONS.map((option) => ({
-            label: tFilter(option),
-            value: option,
-          }))}
-          size="sm"
-          value={state.filter}
-        />
-      </div>
+      <NotesQuickChips
+        counts={facets?.quickCounts}
+        onChange={query.setFilter}
+        value={state.filter}
+      />
 
-      <div className="-mx-1 -my-1 no-scrollbar flex items-center gap-1.5 overflow-x-auto px-1 py-1 sm:flex-wrap sm:gap-2.5">
-        <ToolbarSelect
-          label={t("entityLabel")}
-          onValueChange={(next) => {
-            const match = NOTES_ENTITY_FILTER_OPTIONS.find((option) => option === next);
-            if (match !== undefined) onEntityTypeChange(match);
-          }}
-          value={state.entityType}
-        >
-          {NOTES_ENTITY_FILTER_OPTIONS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {tEntity(option)}
-            </SelectItem>
-          ))}
-        </ToolbarSelect>
+      <NotesActiveFilters
+        entries={query.activeFilters}
+        facets={facets}
+        onClearAll={query.clearAll}
+        onRemove={query.removeFilter}
+      />
 
-        <ToolbarSelect
-          label={t("categoryLabel")}
-          onValueChange={(next) => onCategoryChange(parseCategorySelectValue(next))}
-          value={notesCategorySelectValue(state)}
-        >
-          <SelectItem value={NOTES_CATEGORY_ANY}>{t("categoryAny")}</SelectItem>
-          {NOTE_CATEGORY_OPTIONS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {tCategories(option)}
-            </SelectItem>
-          ))}
-          {availableCustomCategories.map((custom) => (
-            <SelectItem key={custom} value={customCategorySelectValue(custom)}>
-              {tCategories("custom", { value: custom })}
-            </SelectItem>
-          ))}
-        </ToolbarSelect>
-
-        <ToolbarSelect
-          label={t("pageLabel")}
-          onValueChange={(next) => onHasPageChange(presenceToFlag(toPresence(next)))}
-          value={presenceValue(state.hasPage)}
-        >
-          {NOTES_PRESENCE_OPTIONS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {tPresence(`page.${option}`)}
-            </SelectItem>
-          ))}
-        </ToolbarSelect>
-
-        <ToolbarSelect
-          label={t("chapterLabel")}
-          onValueChange={(next) => onHasChapterChange(presenceToFlag(toPresence(next)))}
-          value={presenceValue(state.hasChapter)}
-        >
-          {NOTES_PRESENCE_OPTIONS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {tPresence(`chapter.${option}`)}
-            </SelectItem>
-          ))}
-        </ToolbarSelect>
-      </div>
+      {counter === null ? null : (
+        <p aria-live="polite" className="text-sm text-muted-foreground">
+          {counter}
+        </p>
+      )}
     </div>
   );
 }
@@ -213,49 +154,19 @@ export function NotesArchiveToolbarSkeleton() {
   return (
     <div aria-busy className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <Skeleton className="h-10 w-full rounded-md lg:flex-1" />
-        <Skeleton className="h-10 w-full rounded-md lg:w-64" />
+        <Skeleton className="h-10 min-w-0 rounded-md lg:flex-1" />
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
+          <Skeleton className="hidden h-10 rounded-md sm:block sm:w-56 xl:w-64" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
+          <Skeleton className="ml-auto h-10 w-20 shrink-0 rounded-full sm:w-40" />
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {NOTES_QUICK_FILTER_OPTIONS.map((option) => (
+        {NOTES_ARCHIVE.quickFilters.map((option) => (
           <Skeleton className="h-8 w-24 rounded-full" key={option} />
         ))}
       </div>
-      <div className="flex gap-1.5 overflow-hidden sm:flex-wrap sm:gap-2.5">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton className="h-9 w-28 shrink-0 rounded-md sm:h-10 sm:w-52" key={index} />
-        ))}
-      </div>
     </div>
   );
-}
-
-function ToolbarSelect({
-  children,
-  label,
-  onValueChange,
-  value,
-}: {
-  children: React.ReactNode;
-  label: string;
-  onValueChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <div className="shrink-0 sm:w-52">
-      <Select onValueChange={onValueChange} value={value}>
-        <SelectTrigger
-          aria-label={label}
-          className="w-full data-[size=default]:h-10 max-sm:text-xs max-sm:data-[size=default]:h-9"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>{children}</SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-function toPresence(value: string): NotesPresence {
-  return NOTES_PRESENCE_OPTIONS.find((option) => option === value) ?? "any";
 }

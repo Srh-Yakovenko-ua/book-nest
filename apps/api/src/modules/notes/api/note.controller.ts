@@ -1,6 +1,10 @@
 import type { EntityNotesView, NoteDeletionResult, NoteView } from "@app/shared";
 
-import { CreateNoteInputSchema, UpdateNoteInputSchema } from "@app/shared";
+import {
+  CreateNoteInputSchema,
+  CreateSeriesNoteInputSchema,
+  UpdateNoteInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
@@ -34,6 +38,7 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { NoteLifecycleService } from "../application/note-lifecycle.service.js";
 import { NotesService } from "../application/notes.service.js";
 import { CreateNoteInputDto } from "./input-dto/create-note.input-dto.js";
+import { CreateSeriesNoteInputDto } from "./input-dto/create-series-note.input-dto.js";
 import { UpdateNoteInputDto } from "./input-dto/update-note.input-dto.js";
 import { EntityNotesViewDto } from "./view-dto/entity-notes.view-dto.js";
 import { NoteDeletionResultDto } from "./view-dto/note-deletion-result.view-dto.js";
@@ -95,7 +100,7 @@ export class NoteController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBody({ type: CreateNoteInputDto })
+  @ApiBody({ type: CreateSeriesNoteInputDto })
   @ApiCreatedResponse({ description: "The created note", type: NoteViewDto })
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOperation({ summary: "Create a note for a series" })
@@ -105,7 +110,7 @@ export class NoteController {
   createSeriesNote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
-    @Body(new ZodBodyPipe(CreateNoteInputSchema)) body: CreateNoteInputDto,
+    @Body(new ZodBodyPipe(CreateSeriesNoteInputSchema)) body: CreateSeriesNoteInputDto,
   ): Promise<NoteView> {
     return this.notesService.createSeriesNote(user.id, id, body);
   }

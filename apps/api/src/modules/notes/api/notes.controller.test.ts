@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { NOTE_ERROR_CODES } from "@app/shared";
 import { HttpStatus } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -56,6 +57,16 @@ async function addAlternateAuthorName(
       normalizedName: alternate.normalizedName,
     },
   });
+}
+
+async function archiveTotals(token: string): Promise<{ books: number; series: number }> {
+  const [books, series] = await Promise.all([
+    authed("get", "/api/notes/books", token),
+    authed("get", "/api/notes/series", token),
+  ]);
+  expect(books.status).toBe(HttpStatus.OK);
+  expect(series.status).toBe(HttpStatus.OK);
+  return { books: books.body.totalCount, series: series.body.totalCount };
 }
 
 function authed(
@@ -157,6 +168,124 @@ describe("book notes CRUD", () => {
 
     const list = await authed("get", `/api/series/${seriesId}/notes`, accessToken);
     expect(list.body.totalCount).toBe(1);
+  });
+});
+
+describe("note updatedAt on edit", () => {
+  const STALE_UPDATED_AT = new Date("2026-01-02T03:04:05.000Z");
+
+  async function createNoteWithStaleUpdatedAt(token: string): Promise<string> {
+    const bookId = await createBook(token);
+    const created = await createBookNote(token, bookId, noteBody());
+    expect(created.status).toBe(HttpStatus.CREATED);
+    await prisma.note.update({
+      data: { updatedAt: STALE_UPDATED_AT },
+      where: { id: created.body.id },
+    });
+    return created.body.id;
+  }
+
+  async function storedUpdatedAt(noteId: string): Promise<Date> {
+    const stored = await prisma.note.findUniqueOrThrow({ where: { id: noteId } });
+    return stored.updatedAt;
+  }
+
+  it("keeps updatedAt when only the pin and favorite flags change", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const noteId = await createNoteWithStaleUpdatedAt(accessToken);
+
+    const pinned = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      isPinned: true,
+    });
+    expect(pinned.status).toBe(HttpStatus.OK);
+    expect(pinned.body).toMatchObject({
+      isPinned: true,
+      updatedAt: STALE_UPDATED_AT.toISOString(),
+    });
+
+    const favorited = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      isFavorite: true,
+      isPinned: false,
+    });
+    expect(favorited.status).toBe(HttpStatus.OK);
+    expect(favorited.body).toMatchObject({
+      isFavorite: true,
+      isPinned: false,
+      updatedAt: STALE_UPDATED_AT.toISOString(),
+    });
+    expect(await storedUpdatedAt(noteId)).toEqual(STALE_UPDATED_AT);
+  });
+
+  it("advances updatedAt on a text edit", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const noteId = await createNoteWithStaleUpdatedAt(accessToken);
+
+    const edited = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      isPinned: true,
+      text: "Revised thought",
+    });
+    expect(edited.status).toBe(HttpStatus.OK);
+    expect(edited.body.updatedAt).not.toBe(STALE_UPDATED_AT.toISOString());
+    expect(await storedUpdatedAt(noteId)).not.toEqual(STALE_UPDATED_AT);
+  });
+
+  it("advances updatedAt on a spoiler change", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const noteId = await createNoteWithStaleUpdatedAt(accessToken);
+
+    const edited = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      isSpoiler: true,
+    });
+    expect(edited.status).toBe(HttpStatus.OK);
+    expect(edited.body.updatedAt).not.toBe(STALE_UPDATED_AT.toISOString());
+    expect(await storedUpdatedAt(noteId)).not.toEqual(STALE_UPDATED_AT);
+  });
+});
+
+describe("series note location on edit", () => {
+  async function createLegacySeriesNoteWithLocation(token: string): Promise<string> {
+    const seriesId = await createSeries(token);
+    const created = await authed("post", `/api/series/${seriesId}/notes`, token).send(noteBody());
+    expect(created.status).toBe(HttpStatus.CREATED);
+    await prisma.note.update({
+      data: { chapter: "Book 2, finale", page: 42 },
+      where: { id: created.body.id },
+    });
+    return created.body.id;
+  }
+
+  it("rejects adding a page or a chapter to a series note", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const noteId = await createLegacySeriesNoteWithLocation(accessToken);
+
+    const withPage = await authed("patch", `/api/notes/${noteId}`, accessToken).send({ page: 5 });
+    expect(withPage.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(withPage.body.code).toBe(NOTE_ERROR_CODES.seriesNoteLocationUnsupported);
+
+    const withChapter = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      chapter: "Prologue",
+    });
+    expect(withChapter.status).toBe(HttpStatus.BAD_REQUEST);
+
+    const stored = await prisma.note.findUniqueOrThrow({ where: { id: noteId } });
+    expect(stored).toMatchObject({ chapter: "Book 2, finale", page: 42 });
+  });
+
+  it("preserves an omitted location and clears an explicit null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const noteId = await createLegacySeriesNoteWithLocation(accessToken);
+
+    const preserved = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      text: "Revised thought",
+    });
+    expect(preserved.status).toBe(HttpStatus.OK);
+    expect(preserved.body).toMatchObject({ chapter: "Book 2, finale", page: 42 });
+
+    const cleared = await authed("patch", `/api/notes/${noteId}`, accessToken).send({
+      page: null,
+    });
+    expect(cleared.status).toBe(HttpStatus.OK);
+    expect(cleared.body).toMatchObject({ chapter: "Book 2, finale", page: null });
   });
 });
 
@@ -271,8 +400,7 @@ describe("note ownership (IDOR)", () => {
     const deleteForeignNote = await authed("delete", `/api/notes/${noteId}`, intruder.accessToken);
     expect(deleteForeignNote.status).toBe(HttpStatus.NOT_FOUND);
 
-    const intruderArchive = await authed("get", "/api/notes", intruder.accessToken);
-    expect(intruderArchive.body.totalCount).toBe(0);
+    expect(await archiveTotals(intruder.accessToken)).toEqual({ books: 0, series: 0 });
   });
 
   it("returns 404 for a well-formed but missing note or book", async () => {
@@ -289,31 +417,7 @@ describe("note ownership (IDOR)", () => {
 });
 
 describe("notes archive", () => {
-  it("returns the sidebar summary and treats summary as a static route", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const bookId = await createBook(accessToken);
-    const seriesId = await createSeries(accessToken);
-
-    await createBookNote(accessToken, bookId, noteBody({ isFavorite: true, isSpoiler: true }));
-    await createBookNote(accessToken, bookId, noteBody({ isPinned: true }));
-    await authed("post", `/api/series/${seriesId}/notes`, accessToken).send(noteBody());
-
-    const summary = await authed("get", "/api/notes/summary", accessToken);
-    expect(summary.status).toBe(HttpStatus.OK);
-    expect(summary.body).toMatchObject({
-      bookNotesCount: 2,
-      booksWithNotesCount: 1,
-      favoriteCount: 1,
-      pinnedCount: 1,
-      seriesNotesCount: 1,
-      seriesWithNotesCount: 1,
-      total: 3,
-      withoutSpoilerCount: 2,
-      withSpoilerCount: 1,
-    });
-  });
-
-  it("paginates, filters, sorts and searches the archive", async () => {
+  it("paginates, filters and sorts the book notes archive", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken, { title: "Hyperion" });
     const seriesId = await createSeries(accessToken, "Broken Empire");
@@ -328,51 +432,29 @@ describe("notes archive", () => {
       bookId,
       noteBody({ isSpoiler: true, page: 200, text: "beta spoiler" }),
     );
+    await createBookNote(accessToken, bookId, noteBody({ text: "delta thought" }));
     await authed("post", `/api/series/${seriesId}/notes`, accessToken).send(
       noteBody({ text: "gamma series thought" }),
     );
-    await authed("patch", `/api/notes/${spoiler.body.id}`, accessToken).send({ isPinned: true });
 
-    const page = await authed("get", "/api/notes?pageSize=2&pageNumber=1", accessToken);
+    const page = await authed("get", "/api/notes/books?pageSize=2&pageNumber=1", accessToken);
     expect(page.body.totalCount).toBe(3);
     expect(page.body.items).toHaveLength(2);
     expect(page.body.pagesCount).toBe(2);
 
-    const pinnedFirst = await authed("get", "/api/notes", accessToken);
-    expect(pinnedFirst.body.items[0].id).toBe(spoiler.body.id);
-
-    const spoilerOnly = await authed("get", "/api/notes?filter=with_spoiler", accessToken);
+    const spoilerOnly = await authed("get", "/api/notes/books?filter=with_spoiler", accessToken);
     expect(spoilerOnly.body.totalCount).toBe(1);
     expect(spoilerOnly.body.items[0].isSpoiler).toBe(true);
 
-    const booksOnly = await authed("get", "/api/notes?entityType=book", accessToken);
-    expect(booksOnly.body.totalCount).toBe(2);
+    const oldestFirst = await authed("get", "/api/notes/books?sort=oldest", accessToken);
+    expect(oldestFirst.body.items[0].id).toBe(first.body.id);
+    expect(oldestFirst.body.items[1].id).toBe(spoiler.body.id);
 
-    const seriesOnly = await authed("get", "/api/notes?entityType=series", accessToken);
-    expect(seriesOnly.body.totalCount).toBe(1);
+    const byTitle = await authed("get", "/api/notes/books?search=Hyperion", accessToken);
+    expect(byTitle.body.totalCount).toBe(3);
 
-    const oldestFirst = await authed("get", "/api/notes?sort=oldest", accessToken);
-    expect(oldestFirst.body.items[0].id).toBe(spoiler.body.id);
-    expect(oldestFirst.body.items[1].id).toBe(first.body.id);
-
-    const byTitle = await authed("get", "/api/notes?search=Hyperion", accessToken);
-    expect(byTitle.body.totalCount).toBe(2);
-
-    const bySeriesName = await authed("get", "/api/notes?search=Broken", accessToken);
+    const bySeriesName = await authed("get", "/api/notes/series?search=Broken", accessToken);
     expect(bySeriesName.body.totalCount).toBe(1);
-
-    const byText = await authed("get", "/api/notes?search=gamma", accessToken);
-    expect(byText.body.totalCount).toBe(1);
-
-    const byPage = await authed("get", "/api/notes?search=200", accessToken);
-    expect(byPage.body.totalCount).toBe(1);
-    expect(byPage.body.items[0].id).toBe(spoiler.body.id);
-
-    const withPage = await authed("get", "/api/notes?hasPage=true", accessToken);
-    expect(withPage.body.totalCount).toBe(2);
-
-    const withoutPage = await authed("get", "/api/notes?hasPage=false", accessToken);
-    expect(withoutPage.body.totalCount).toBe(1);
   });
 
   it("finds book notes by an alternate-locale author name", async () => {
@@ -390,7 +472,7 @@ describe("notes archive", () => {
 
     const res = await authed(
       "get",
-      `/api/notes?search=${encodeURIComponent("Сапковський")}`,
+      `/api/notes/books?search=${encodeURIComponent("Сапковський")}`,
       accessToken,
     );
 
@@ -427,7 +509,7 @@ describe("note page bounds (int4)", () => {
     const bookId = await createBook(accessToken);
     await createBookNote(accessToken, bookId, noteBody({ page: 200 }));
 
-    const res = await authed("get", "/api/notes?search=9999999999", accessToken);
+    const res = await authed("get", "/api/notes/books?search=9999999999", accessToken);
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.totalCount).toBe(0);
   });
@@ -466,7 +548,7 @@ describe("note entity previews", () => {
     expect(seriesNotes.body.notes[0].series.authors).toEqual(["Ursula Le Guin"]);
     expect(seriesNotes.body.notes[0].series.booksCount).toBe(1);
 
-    const archive = await authed("get", "/api/notes?entityType=series", accessToken);
+    const archive = await authed("get", "/api/notes/series", accessToken);
     expect(archive.body.items[0].series.authors).toEqual(["Ursula Le Guin"]);
     expect(archive.body.items[0].series.booksCount).toBe(1);
   });
@@ -496,7 +578,7 @@ describe("custom category filter", () => {
 
     const filtered = await authed(
       "get",
-      "/api/notes?customCategory=translation notes",
+      `/api/notes/books?customCategory=${encodeURIComponent("translation notes")}`,
       accessToken,
     );
     expect(filtered.body.totalCount).toBe(2);
@@ -506,8 +588,10 @@ describe("custom category filter", () => {
       ),
     ).toBe(true);
 
-    const summary = await authed("get", "/api/notes/summary", accessToken);
-    expect(summary.body.availableCustomCategories).toEqual(["cover design", "translation notes"]);
+    const facets = await authed("get", "/api/notes/books/facets", accessToken);
+    expect(
+      facets.body.customCategories.map((facet: { value: string }) => facet.value).sort(),
+    ).toEqual(["cover design", "translation notes"]);
   });
 });
 
@@ -519,19 +603,19 @@ describe("cascade and invariants", () => {
     await createBookNote(accessToken, bookId, noteBody());
     await authed("post", `/api/series/${seriesId}/notes`, accessToken).send(noteBody());
 
-    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
+    expect(await archiveTotals(accessToken)).toEqual({ books: 1, series: 1 });
 
     await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.OK);
-    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(1);
+    expect(await archiveTotals(accessToken)).toEqual({ books: 0, series: 1 });
 
     await authed("post", `/api/books/${bookId}/restore`, accessToken).expect(HttpStatus.CREATED);
-    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
+    expect(await archiveTotals(accessToken)).toEqual({ books: 1, series: 1 });
 
     await authed("delete", `/api/series/${seriesId}`, accessToken).expect(HttpStatus.OK);
-    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(1);
+    expect(await archiveTotals(accessToken)).toEqual({ books: 1, series: 0 });
 
     await authed("post", `/api/series/${seriesId}/restore`, accessToken).expect(HttpStatus.CREATED);
-    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
+    expect(await archiveTotals(accessToken)).toEqual({ books: 1, series: 1 });
   });
 
   it("cascades note deletion when the owning user is removed", async () => {

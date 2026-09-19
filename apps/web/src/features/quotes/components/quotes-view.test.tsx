@@ -223,7 +223,7 @@ describe("QuotesView advanced filters", () => {
     await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
 
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByRole("button", { name: "Книги" })).toHaveTextContent(
+    expect(within(sheet).getByRole("button", { name: /^Книги / })).toHaveTextContent(
       "Обрано книг: 1",
     );
   });
@@ -237,7 +237,7 @@ describe("QuotesView advanced filters", () => {
     expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
     const sheet = await screen.findByRole("dialog");
-    await userEvent.click(within(sheet).getByRole("button", { name: "Книги" }));
+    await userEvent.click(within(sheet).getByRole("button", { name: /^Книги / }));
     await userEvent.click(await screen.findByRole("option", { name: /Дюна 8/ }));
     await userEvent.click(await screen.findByRole("option", { name: /Месія Дюни 5/ }));
     await userEvent.keyboard("{Escape}");
@@ -256,7 +256,7 @@ describe("QuotesView advanced filters", () => {
     expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
     const sheet = await screen.findByRole("dialog");
-    await userEvent.click(within(sheet).getByRole("button", { name: "Автори" }));
+    await userEvent.click(within(sheet).getByRole("button", { name: /^Автори / }));
     await userEvent.click(await screen.findByRole("option", { name: /Френк Герберт 8/ }));
     await userEvent.keyboard("{Escape}");
     await userEvent.keyboard("{Escape}");

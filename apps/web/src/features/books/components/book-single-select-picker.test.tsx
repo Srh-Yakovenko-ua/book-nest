@@ -20,12 +20,16 @@ const LABELS: BookSingleSelectPickerLabels = {
   empty: "Книг не знайдено",
   loadError: "Не вдалося завантажити книги",
   loading: "Шукаємо книги...",
+  loadMoreError: "Не вдалося завантажити більше книг",
   results: "Ваші книги",
   resultsCount: (count: number) => `Показано ${count} книг`,
+  retry: "Спробувати ще раз",
   search: "Пошук за назвою або автором",
 };
 
 const PICKER_FIELD_LABEL = "Книга";
+
+const VISIBLE_COPY = "p:not([role=status])";
 
 const bookOptionName = (index: number) => `Книга ${index} Автор ${index}`;
 
@@ -218,8 +222,8 @@ describe("BookSingleSelectPicker results", () => {
 
     renderWithProviders(<PickerHarness />);
 
-    await screen.findByText("Книг не знайдено");
-    expect(screen.getAllByText("Книг не знайдено")).toHaveLength(1);
+    await screen.findByText("Книг не знайдено", { selector: VISIBLE_COPY });
+    expect(screen.getAllByText("Книг не знайдено", { selector: VISIBLE_COPY })).toHaveLength(1);
   });
 
   it("shows the load error when the library request fails", async () => {
@@ -318,6 +322,30 @@ describe("BookSingleSelectPicker paging", () => {
     expect(screen.queryByRole("radio", { name: bookOptionName(1) })).not.toBeInTheDocument();
     expect(screen.queryByText("Книга 2")).not.toBeInTheDocument();
   });
+
+  it("keeps the loaded rows and offers a retry when the next page fails", async () => {
+    let isNextPageBroken = true;
+    respondToBooks = (params) => {
+      if (params.get("pageNumber") !== "2") return booksPage([makeBook(1), makeBook(2)], 1, 2);
+      if (isNextPageBroken) return new Response("boom", { status: 500 });
+      return booksPage([makeBook(21)], 2, 2);
+    };
+
+    renderWithProviders(<PickerHarness />);
+    await bookRow(1);
+    await scrollListToBottom();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(LABELS.loadMoreError);
+    expect(screen.queryByText(LABELS.loadError)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+
+    isNextPageBroken = false;
+    await userEvent.click(screen.getByRole("button", { name: LABELS.retry }));
+
+    expect(await bookRow(21)).toBeInTheDocument();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
 
 describe("BookSingleSelectPicker keyboard browsing", () => {
@@ -374,11 +402,19 @@ describe("BookSingleSelectPicker announcements", () => {
     expect(group).toContainElement(searchInput());
   });
 
-  it("mounts the live region empty, before anything it must announce", async () => {
+  it("announces the result count of the first page", async () => {
     renderWithProviders(<PickerHarness />);
     await bookRow(1);
 
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(screen.getByRole("status")).toHaveTextContent("Показано 2 книг");
+  });
+
+  it("announces an empty result", async () => {
+    respondToBooks = () => booksPage([]);
+
+    renderWithProviders(<PickerHarness />);
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(LABELS.empty));
   });
 
   it("announces the search while the stale rows stay in the list", async () => {
@@ -400,7 +436,7 @@ describe("BookSingleSelectPicker announcements", () => {
 
     renderWithProviders(<PickerHarness />);
     await bookRow(1);
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(screen.getByRole("status")).toHaveTextContent("Показано 2 книг");
 
     await scrollListToBottom();
 
