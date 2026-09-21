@@ -331,13 +331,7 @@ export function OwnershipStatusSection({
                 placeholder="0"
                 step="0.01"
                 type="number"
-                {...register("deliveryInfo.price", {
-                  setValueAs: (value) => {
-                    if (typeof value !== "string" || value.trim().length === 0) return undefined;
-                    const parsed = Number(value);
-                    return Number.isFinite(parsed) ? Math.min(parsed, PRICE_MAX) : undefined;
-                  },
-                })}
+                {...register("deliveryInfo.price", { setValueAs: emptyToClampedPrice })}
               />
               <FieldError error={errors.deliveryInfo?.price} id="delivery-price-error" />
             </div>
@@ -726,6 +720,17 @@ export function OwnershipStatusSection({
       ) : null}
     </FormSection>
   );
+}
+
+function emptyToClampedPrice(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? Math.min(value, PRICE_MAX) : undefined;
+  }
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? Math.min(parsed, PRICE_MAX) : undefined;
 }
 
 function emptyToUndefined(value: unknown): string | undefined {
