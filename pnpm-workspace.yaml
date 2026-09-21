@@ -56,7 +56,7 @@ catalog:
   "@vitest/browser-playwright": ^4.1.10
   "@vitest/coverage-v8": ^4.1.10
   "@vitest/eslint-plugin": ^1.6.24
-  "@vitest/ui": ^4.1.10
+  "@vitest/ui": ^5.0.1
   bcryptjs: ^3.0.2
   bullmq: ^5.81.2
   class-variance-authority: ^0.7.1
