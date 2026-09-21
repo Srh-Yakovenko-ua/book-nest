@@ -4,8 +4,8 @@ packages:
 
 catalog:
   "@aws-sdk/client-s3": ^3.1095.0
-  "@commitlint/cli": ^21.2.1
-  "@commitlint/config-conventional": ^21.2.0
+  "@commitlint/cli": ^21.2.2
+  "@commitlint/config-conventional": ^21.2.2
   "@eslint/js": ^10.0.1
   "@fontsource-variable/geist-mono": ^5.2.8
   "@fontsource-variable/manrope": ^5.3.0
@@ -22,7 +22,7 @@ catalog:
   "@nestjs/testing": ^11.1.28
   "@nestjs/throttler": ^6.5.0
   "@nestjs/websockets": ^11.1.28
-  "@next/eslint-plugin-next": ^16.2.12
+  "@next/eslint-plugin-next": ^16.3.5
   "@opentelemetry/auto-instrumentations-node": ^0.79.0
   "@opentelemetry/sdk-node": ^0.221.0
   "@prisma/adapter-pg": ^7.9.1
@@ -55,7 +55,7 @@ catalog:
   "@vitejs/plugin-react-swc": ^4.3.2
   "@vitest/browser-playwright": ^4.1.10
   "@vitest/coverage-v8": ^4.1.10
-  "@vitest/eslint-plugin": ^1.6.24
+  "@vitest/eslint-plugin": ^1.6.27
   "@vitest/ui": ^4.1.10
   bcryptjs: ^3.0.2
   bullmq: ^5.81.2
@@ -68,27 +68,27 @@ catalog:
   date-fns-tz: ^3.2.0
   dotenv: ^17.4.2
   dotenv-cli: ^11.0.0
-  eslint: ^10.8.0
+  eslint: ^10.10.0
   eslint-config-prettier: ^10.1.8
   eslint-import-resolver-typescript: ^4.4.5
   eslint-plugin-better-tailwindcss: ^4.6.1
-  eslint-plugin-boundaries: ^7.1.0
+  eslint-plugin-boundaries: ^7.2.0
   eslint-plugin-import-x: ^4.17.1
   eslint-plugin-jsx-a11y: ^6.10.2
-  eslint-plugin-perfectionist: ^5.10.0
+  eslint-plugin-perfectionist: ^5.11.1
   eslint-plugin-react: ^7.37.5
   eslint-plugin-react-hooks: ^7.1.1
   eslint-plugin-testing-library: ^7.16.2
   file-type: ^22.0.1
-  globals: ^17.8.0
+  globals: ^17.12.0
   happy-dom: ^20.11.1
   heic-to: ^1.5.2
   helmet: ^8.3.0
   husky: ^9.1.7
   input-otp: ^1.4.2
   jose: ^6.2.4
-  knip: ^6.29.0
-  lint-staged: ^17.2.0
+  knip: ^6.35.1
+  lint-staged: ^17.5.1
   lucide-react: ^1.27.0
   motion: ^12.42.2
   nanoid: ^6.0.0
@@ -120,7 +120,7 @@ catalog:
   reflect-metadata: ^0.2.2
   rxjs: ^7.8.2
   shadcn: ^4.15.0
-  sharp: ^0.35.3
+  sharp: ^0.35.4
   socket.io: ^4.8.3
   socket.io-client: ^4.8.3
   sonner: ^2.0.7
