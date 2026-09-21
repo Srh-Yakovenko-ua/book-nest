@@ -210,6 +210,7 @@ function emptyToNull(value: unknown): Nullable<string> {
 }
 
 function emptyToNullableInteger(value: unknown): Nullable<number> {
+  if (typeof value === "number") return Number.isInteger(value) ? value : null;
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
