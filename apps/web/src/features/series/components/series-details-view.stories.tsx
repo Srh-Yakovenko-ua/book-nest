@@ -123,3 +123,21 @@ export const AllRead: Story = {
     await expect(canvas.queryByRole("heading", { name: "Наступна книга" })).not.toBeInTheDocument();
   },
 };
+
+export const SeveralPublishers: Story = {
+  args: {
+    details: makeSeriesDetailsView({
+      publishers: [
+        { bookCount: 5, id: "p1", name: "Vivat" },
+        { bookCount: 2, id: "p2", name: "КСД" },
+        { bookCount: 1, id: "p3", name: "Bloomsbury" },
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Vivat (5), КСД (2), Bloomsbury (1)")).toBeInTheDocument();
+    await expect(
+      canvas.getByLabelText("Видавництва: Vivat — 5 книг, КСД — 2 книги, Bloomsbury — 1 книга"),
+    ).toBeInTheDocument();
+  },
+};

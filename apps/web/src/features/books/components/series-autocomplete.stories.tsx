@@ -85,6 +85,7 @@ function seriesView(seed: SeriesSeed): SeriesView {
     covers: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
+    dominantPublisher: null,
     finishedInSeries: 0,
     formats: [],
     genres: [],

@@ -172,13 +172,13 @@ describe("authorsDifferFromSeries", () => {
 });
 
 describe("publisherDiffersFromSeries", () => {
-  const publisher = { id: "publisher-1", name: "Vivat" };
+  const publisher = { bookCount: 2, id: "publisher-1", name: "Vivat" };
 
   it("shows a book publisher only when the series spreads across several publishers", () => {
     expect(
       publisherDiffersFromSeries({
         bookPublisher: publisher,
-        seriesPublishers: [publisher, { id: "publisher-2", name: "Ранок" }],
+        seriesPublishers: [publisher, { bookCount: 1, id: "publisher-2", name: "Ранок" }],
       }),
     ).toBe(true);
   });
@@ -193,7 +193,7 @@ describe("publisherDiffersFromSeries", () => {
     expect(
       publisherDiffersFromSeries({
         bookPublisher: null,
-        seriesPublishers: [publisher, { id: "publisher-2", name: "Ранок" }],
+        seriesPublishers: [publisher, { bookCount: 1, id: "publisher-2", name: "Ранок" }],
       }),
     ).toBe(false);
   });

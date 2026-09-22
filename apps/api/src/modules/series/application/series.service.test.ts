@@ -38,7 +38,7 @@ type BookRowInput = {
   pagesCount?: Nullable<number>;
   partNumber?: Nullable<number>;
   publicationYear?: Nullable<number>;
-  publisherId?: Nullable<string>;
+  publisher?: Nullable<{ id: string; name: string }>;
   rating?: Nullable<number>;
   readingStatus?: string;
   tags?: { id: string; name: string }[];
@@ -87,7 +87,7 @@ function bookRow(overrides: BookRowInput = {}): BookRow {
     pagesCount: null,
     partNumber: 1,
     publicationYear: null,
-    publisherId: null,
+    publisher: null,
     readingProgress: rating === undefined ? null : { rating },
     readingStatus: "not_started",
     tags: (tags ?? []).map((tag) =>
@@ -593,6 +593,7 @@ describe("SeriesService.search", () => {
           covers: [],
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
+          dominantPublisher: null,
           finishedInSeries: 0,
           formats: [],
           genres: [],
@@ -631,7 +632,7 @@ describe("SeriesService.search", () => {
               ownershipStatus: "owned",
               partNumber: 1,
               publicationYear: 2012,
-              publisherId: "publisher-vivat",
+              publisher: { id: "publisher-vivat", name: "Vivat" },
               readingStatus: "finished",
             }),
             bookRow({ id: "part-3", partNumber: 3 }),
@@ -661,6 +662,7 @@ describe("SeriesService.search", () => {
         covers: [],
         createdAt: "2026-02-01T10:00:00.000Z",
         description: null,
+        dominantPublisher: { bookCount: 1, id: "publisher-vivat", name: "Vivat" },
         finishedInSeries: 1,
         formats: [],
         genres: [],
@@ -756,6 +758,7 @@ describe("SeriesService.search", () => {
         covers: [],
         createdAt: "2026-02-01T10:00:00.000Z",
         description: null,
+        dominantPublisher: null,
         finishedInSeries: 1,
         formats: ["paper", "ebook", "audiobook"],
         genres: [],
@@ -839,7 +842,7 @@ describe("SeriesService.search", () => {
     const { service } = buildService({
       searchOwned: [
         ownedWithCount({
-          books: [bookRow({ id: "part-1", partNumber: 1, publisherId: null })],
+          books: [bookRow({ id: "part-1", partNumber: 1, publisher: null })],
           id: SERIES_ID,
         }),
       ],
@@ -1955,7 +1958,7 @@ describe("SeriesService.getById", () => {
     expect(details.books[0]?.isInReadingQueue).toBe(false);
   });
 
-  it("dedupes the series publishers by id and sorts them by name", async () => {
+  it("counts the series publishers by id and orders them by book count", async () => {
     const repository = {
       findOwnedDetailsById: vi.fn().mockResolvedValue(
         detailedSeries({
@@ -1974,8 +1977,9 @@ describe("SeriesService.getById", () => {
     const details = await service.getById(USER_ID, SERIES_ID);
 
     expect(details.publishers).toEqual([
-      { id: "pub-abab", name: "A-BA-BA-HA" },
-      { id: "pub-vivat", name: "Vivat" },
+      { bookCount: 2, id: "pub-vivat", name: "Vivat" },
+      { bookCount: 1, id: "pub-abab", name: "A-BA-BA-HA" },
     ]);
+    expect(details.dominantPublisher).toEqual({ bookCount: 2, id: "pub-vivat", name: "Vivat" });
   });
 });

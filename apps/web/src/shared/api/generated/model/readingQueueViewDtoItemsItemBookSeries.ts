@@ -8,6 +8,7 @@
 import type { ReadingQueueViewDtoItemsItemBookSeriesAgeCategoriesItem } from "./readingQueueViewDtoItemsItemBookSeriesAgeCategoriesItem";
 import type { ReadingQueueViewDtoItemsItemBookSeriesAuthorsItem } from "./readingQueueViewDtoItemsItemBookSeriesAuthorsItem";
 import type { ReadingQueueViewDtoItemsItemBookSeriesCoversItem } from "./readingQueueViewDtoItemsItemBookSeriesCoversItem";
+import type { ReadingQueueViewDtoItemsItemBookSeriesDominantPublisher } from "./readingQueueViewDtoItemsItemBookSeriesDominantPublisher";
 import type { ReadingQueueViewDtoItemsItemBookSeriesFormatsItem } from "./readingQueueViewDtoItemsItemBookSeriesFormatsItem";
 import type { ReadingQueueViewDtoItemsItemBookSeriesLanguagesItem } from "./readingQueueViewDtoItemsItemBookSeriesLanguagesItem";
 import type { ReadingQueueViewDtoItemsItemBookSeriesNextBook } from "./readingQueueViewDtoItemsItemBookSeriesNextBook";
@@ -30,6 +31,8 @@ export type ReadingQueueViewDtoItemsItemBookSeries = {
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: ReadingQueueViewDtoItemsItemBookSeriesDominantPublisher;
   finishedInSeries: number;
   formats?: ReadingQueueViewDtoItemsItemBookSeriesFormatsItem[];
   genres: string[];

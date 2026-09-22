@@ -8,6 +8,7 @@
 import type { BookViewDtoSeriesAgeCategoriesItem } from "./bookViewDtoSeriesAgeCategoriesItem";
 import type { BookViewDtoSeriesAuthorsItem } from "./bookViewDtoSeriesAuthorsItem";
 import type { BookViewDtoSeriesCoversItem } from "./bookViewDtoSeriesCoversItem";
+import type { BookViewDtoSeriesDominantPublisher } from "./bookViewDtoSeriesDominantPublisher";
 import type { BookViewDtoSeriesFormatsItem } from "./bookViewDtoSeriesFormatsItem";
 import type { BookViewDtoSeriesLanguagesItem } from "./bookViewDtoSeriesLanguagesItem";
 import type { BookViewDtoSeriesNextBook } from "./bookViewDtoSeriesNextBook";
@@ -30,6 +31,8 @@ export type BookViewDtoSeries = {
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: BookViewDtoSeriesDominantPublisher;
   finishedInSeries: number;
   formats?: BookViewDtoSeriesFormatsItem[];
   genres: string[];

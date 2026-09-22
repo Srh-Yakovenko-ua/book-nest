@@ -216,7 +216,7 @@ export function withRelations(userId: string) {
             pagesCount: true,
             partNumber: true,
             publicationYear: true,
-            publisherId: true,
+            publisher: { select: { id: true, name: true } },
             readingProgress: { select: { rating: true } },
             readingStatus: true,
             tags: { select: { tag: { select: { id: true, name: true } } } },

@@ -501,7 +501,7 @@ describe("GET /api/series/:id", () => {
     });
   });
 
-  it("exposes the card fields on each book and the deduped sorted series publishers", async () => {
+  it("exposes the card fields on each book and the series publishers ranked by book count", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const seriesId = await seedCardFieldsSeries(accessToken);
 
@@ -517,11 +517,17 @@ describe("GET /api/series/:id", () => {
       publicationYear: 2018,
       tags: [expect.objectContaining({ name: "Epic" })],
     });
-    expect(res.body.publishers.map((publisher: { name: string }) => publisher.name)).toEqual([
-      "A-BA-BA-HA",
-      "Vivat",
+    expect(
+      res.body.publishers.map((publisher: { bookCount: number; name: string }) => [
+        publisher.name,
+        publisher.bookCount,
+      ]),
+    ).toEqual([
+      ["Vivat", 2],
+      ["A-BA-BA-HA", 1],
     ]);
     expect(res.body.publishers[0].id).toMatch(UUID);
+    expect(res.body.dominantPublisher).toMatchObject({ bookCount: 2, name: "Vivat" });
   });
 
   it("orders a linked book without a part number last", async () => {

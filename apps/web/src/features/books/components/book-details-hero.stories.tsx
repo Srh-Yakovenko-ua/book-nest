@@ -70,6 +70,7 @@ export const SeriesPartWithProgress: Story = {
         covers: [],
         createdAt: "2026-01-01T00:00:00.000Z",
         description: null,
+        dominantPublisher: null,
         finishedInSeries: 2,
         formats: ["paper"],
         genres: [],

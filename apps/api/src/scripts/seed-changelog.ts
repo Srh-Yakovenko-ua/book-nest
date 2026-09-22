@@ -1123,6 +1123,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Нотатки, що нагадують вчасно",
     version: null,
   },
+  {
+    bodyEn:
+      'When you add a book to a series, the publisher field now fills in on its own: we take the publisher that most books of that series already have, and a note under the field says which one it is and how many books it covers. You can change it or clear it. On the series page, a publisher shared by several books now shows how many, like "Vivat (5), КСД (2)".',
+    bodyUk:
+      "Коли ви додаєте книгу до серії, поле видавництва тепер заповнюється автоматично: підставляємо те, яке стоїть у більшості книг цієї серії, а під полем видно, яке саме і скільки книг воно охоплює. Значення можна змінити або очистити. На сторінці серії біля видавництва, спільного для кількох книг, тепер видно їхню кількість, наприклад «Vivat (5), КСД (2)».",
+    category: "feature",
+    publishedAt: "2026-09-22T00:00:00.000Z",
+    slug: "series-publisher-suggestion",
+    titleEn: "Series publisher suggestion",
+    titleUk: "Підказка видавництва серії",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

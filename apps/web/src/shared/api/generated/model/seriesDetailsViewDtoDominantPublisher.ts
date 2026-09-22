@@ -6,7 +6,10 @@
  * OpenAPI spec version: 1.0
  */
 
-export type SeriesDetailsViewDtoPublishersItem = {
+/**
+ * @nullable
+ */
+export type SeriesDetailsViewDtoDominantPublisher = {
   id: string;
   name: string;
   /**
@@ -14,4 +17,4 @@ export type SeriesDetailsViewDtoPublishersItem = {
    * @maximum 9007199254740991
    */
   bookCount: number;
-};
+} | null;

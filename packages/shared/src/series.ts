@@ -188,6 +188,12 @@ export const SeriesOwnershipSchema = z.object({
 
 export type SeriesOwnership = z.infer<typeof SeriesOwnershipSchema>;
 
+export const SeriesPublisherRefSchema = BookPublisherRefSchema.extend({
+  bookCount: z.number().int(),
+});
+
+export type SeriesPublisherRef = z.infer<typeof SeriesPublisherRefSchema>;
+
 export const SeriesViewSchema = z.object({
   ageCategories: z.array(AgeCategorySchema).default([]),
   authors: z.array(BookAuthorRefSchema),
@@ -197,6 +203,7 @@ export const SeriesViewSchema = z.object({
   covers: z.array(SeriesCoverPreviewSchema),
   createdAt: z.string(),
   description: z.string().nullable(),
+  dominantPublisher: SeriesPublisherRefSchema.nullable().default(null),
   finishedInSeries: z.number(),
   formats: z.array(BookFormatSchema).default([]),
   genres: z.array(z.string()),
@@ -268,7 +275,7 @@ export type SeriesStatsView = z.infer<typeof SeriesStatsViewSchema>;
 
 export const SeriesDetailsViewSchema = SeriesViewSchema.extend({
   books: z.array(SeriesBookViewSchema),
-  publishers: z.array(BookPublisherRefSchema),
+  publishers: z.array(SeriesPublisherRefSchema),
   stats: SeriesStatsViewSchema,
 });
 
