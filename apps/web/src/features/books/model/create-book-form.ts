@@ -2,6 +2,8 @@ import {
   type BookAuthorReference,
   CreateBookInputSchema,
   NewSeriesInputSchema,
+  type Nullable,
+  type SeriesPublisherRef,
   UpdateBookInputSchema,
 } from "@app/shared";
 import { z } from "zod";
@@ -36,15 +38,16 @@ export type SeriesPartNumberConflict = {
 };
 
 export type SeriesSelection =
-  | { authors: AuthorSelection[]; draft: NewSeriesDraft; kind: "new"; name: string }
   | {
       authors: AuthorSelection[];
+      dominantPublisher: Nullable<SeriesPublisherRef>;
       genres: string[];
       id: string;
       kind: "existing";
       name: string;
       totalBooks?: number;
-    };
+    }
+  | { authors: AuthorSelection[]; draft: NewSeriesDraft; kind: "new"; name: string };
 
 type NewSeriesDraft = {
   authors?: BookAuthorReference[];

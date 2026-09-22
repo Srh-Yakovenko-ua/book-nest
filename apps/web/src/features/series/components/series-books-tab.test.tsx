@@ -267,8 +267,8 @@ describe("SeriesBooksTab", () => {
         makeSeriesBookView({ id: "a", partNumber: 1, publisher: { id: "p2", name: "Ранок" } }),
       ],
       publishers: [
-        { id: "p1", name: "Vivat" },
-        { id: "p2", name: "Ранок" },
+        { bookCount: 2, id: "p1", name: "Vivat" },
+        { bookCount: 1, id: "p2", name: "Ранок" },
       ],
     });
 

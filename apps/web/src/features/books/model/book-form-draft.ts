@@ -15,6 +15,7 @@ type BookFormDraft = {
   authorSelections: AuthorSelection[];
   loanContactSelection: LoanContactSelection | null;
   locale: string;
+  publisherEdited: boolean;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
   values: CreateBookFormValues;
@@ -59,6 +60,10 @@ const seriesSelectionSchema = z.union([
   }),
   z.object({
     authors: z.array(authorSelectionSchema),
+    dominantPublisher: z
+      .object({ bookCount: z.number(), id: z.string(), name: z.string() })
+      .nullable()
+      .default(null),
     genres: z.array(z.string()).default([]),
     id: z.string(),
     kind: z.literal("existing"),
@@ -71,6 +76,7 @@ const draftSchema = z.object({
   authorSelections: z.array(authorSelectionSchema),
   loanContactSelection: loanContactSelectionSchema.nullable().default(null),
   locale: z.string(),
+  publisherEdited: z.boolean().default(false),
   publisherSelection: publisherSelectionSchema.nullable(),
   seriesSelection: seriesSelectionSchema.nullable(),
   values: z.record(z.string(), z.unknown()),
@@ -100,6 +106,7 @@ function parseBookFormDraft(raw: string): BookFormDraft | null {
     authorSelections: parsed.data.authorSelections,
     loanContactSelection: parsed.data.loanContactSelection,
     locale: parsed.data.locale,
+    publisherEdited: parsed.data.publisherEdited,
     publisherSelection: parsed.data.publisherSelection,
     seriesSelection: parsed.data.seriesSelection,
     values: parsed.data.values as CreateBookFormValues,

@@ -143,7 +143,7 @@ export function makeSeriesDetailsView(
         title: "Оніксове полум'я",
       }),
     ],
-    publishers: publishers ?? [{ id: "publisher-1", name: "Vivat" }],
+    publishers: publishers ?? [{ bookCount: 3, id: "publisher-1", name: "Vivat" }],
     stats: stats ?? makeSeriesStats(),
   };
 }
@@ -231,6 +231,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     ],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
+    dominantPublisher: { bookCount: 3, id: "publisher-1", name: "Vivat" },
     finishedInSeries: 1,
     formats: ["paper"],
     genres: [],

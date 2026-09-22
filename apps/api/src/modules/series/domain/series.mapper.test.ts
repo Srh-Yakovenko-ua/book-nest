@@ -15,6 +15,7 @@ type SeriesAuthorLink = SeriesWithDetails["authors"][number];
 type SeriesDetailAuthor = SeriesDetailBook["authors"][number]["author"];
 type SeriesDetailBook = SeriesWithDetails["books"][number];
 type SeriesDetailLoan = SeriesDetailBook["loans"][number];
+type SeriesDetailPublisher = NonNullable<SeriesDetailBook["publisher"]>;
 
 function makeAuthor(id: string, name: string): SeriesDetailAuthor {
   return fakeOf<SeriesDetailAuthor>({ id, name });
@@ -35,10 +36,20 @@ function detailsFor(
   book: SeriesDetailBook,
   covers: Map<string, Nullable<MediaView>>,
 ): SeriesDetailsView {
+  return detailsForBooks({ books: [book], covers });
+}
+
+function detailsForBooks({
+  books,
+  covers = new Map(),
+}: {
+  books: SeriesDetailBook[];
+  covers?: Map<string, Nullable<MediaView>>;
+}): SeriesDetailsView {
   const series = fakeOf<SeriesWithDetails>({
-    _count: { books: 1 },
+    _count: { books: books.length },
     authors: [makeSeriesAuthor("author-1", "Author One")],
-    books: [book],
+    books,
     createdAt: BASE_CREATED_AT,
     description: null,
     genres: [],
@@ -149,6 +160,10 @@ function makeOrderedBook({
     updatedAt: BASE_CREATED_AT,
     ...item,
   });
+}
+
+function makePublisher(id: string, name: string): SeriesDetailPublisher {
+  return fakeOf<SeriesDetailPublisher>({ id, name });
 }
 
 function mapSingleBook(book: SeriesDetailBook): SeriesBookView {
@@ -323,5 +338,69 @@ describe("toSeriesDetailsView nextBook cover", () => {
     );
 
     expect(details.nextBook?.cover).toBeNull();
+  });
+});
+
+describe("toSeriesDetailsView publisher summary", () => {
+  it("reports no publisher when no book carries one", () => {
+    const details = detailsForBooks({
+      books: [
+        makeBook({ id: "book-1", partNumber: 1, publisher: null }),
+        makeBook({ id: "book-2", partNumber: 2, publisher: null }),
+      ],
+    });
+
+    expect(details.hasPublisher).toBe(false);
+    expect(details.publishers).toEqual([]);
+    expect(details.dominantPublisher).toBeNull();
+  });
+
+  it("reports a publisher when only some books carry one", () => {
+    const details = detailsForBooks({
+      books: [
+        makeBook({ id: "book-1", partNumber: 1, publisher: null }),
+        makeBook({
+          id: "book-2",
+          partNumber: 2,
+          publisher: makePublisher("publisher-vivat", "Vivat"),
+        }),
+      ],
+    });
+
+    expect(details.hasPublisher).toBe(true);
+    expect(details.publishers).toEqual([{ bookCount: 1, id: "publisher-vivat", name: "Vivat" }]);
+  });
+
+  it("derives the breakdown and the dominant publisher from the same counts", () => {
+    const details = detailsForBooks({
+      books: [
+        makeBook({
+          id: "book-1",
+          partNumber: 1,
+          publisher: makePublisher("publisher-vivat", "Vivat"),
+        }),
+        makeBook({
+          id: "book-2",
+          partNumber: 2,
+          publisher: makePublisher("publisher-vivat", "Vivat"),
+        }),
+        makeBook({
+          id: "book-3",
+          partNumber: 3,
+          publisher: makePublisher("publisher-abab", "A-BA-BA"),
+        }),
+      ],
+    });
+
+    expect(details.publishers).toEqual([
+      { bookCount: 2, id: "publisher-vivat", name: "Vivat" },
+      { bookCount: 1, id: "publisher-abab", name: "A-BA-BA" },
+    ]);
+    expect(details.dominantPublisher).toEqual({
+      bookCount: 2,
+      id: "publisher-vivat",
+      name: "Vivat",
+    });
+    expect(details.hasPublisher).toBe(true);
   });
 });

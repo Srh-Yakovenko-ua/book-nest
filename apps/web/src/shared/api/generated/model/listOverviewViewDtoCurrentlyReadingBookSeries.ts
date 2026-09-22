@@ -8,6 +8,7 @@
 import type { ListOverviewViewDtoCurrentlyReadingBookSeriesAgeCategoriesItem } from "./listOverviewViewDtoCurrentlyReadingBookSeriesAgeCategoriesItem";
 import type { ListOverviewViewDtoCurrentlyReadingBookSeriesAuthorsItem } from "./listOverviewViewDtoCurrentlyReadingBookSeriesAuthorsItem";
 import type { ListOverviewViewDtoCurrentlyReadingBookSeriesCoversItem } from "./listOverviewViewDtoCurrentlyReadingBookSeriesCoversItem";
+import type { ListOverviewViewDtoCurrentlyReadingBookSeriesDominantPublisher } from "./listOverviewViewDtoCurrentlyReadingBookSeriesDominantPublisher";
 import type { ListOverviewViewDtoCurrentlyReadingBookSeriesFormatsItem } from "./listOverviewViewDtoCurrentlyReadingBookSeriesFormatsItem";
 import type { ListOverviewViewDtoCurrentlyReadingBookSeriesLanguagesItem } from "./listOverviewViewDtoCurrentlyReadingBookSeriesLanguagesItem";
 import type { ListOverviewViewDtoCurrentlyReadingBookSeriesNextBook } from "./listOverviewViewDtoCurrentlyReadingBookSeriesNextBook";
@@ -30,6 +31,8 @@ export type ListOverviewViewDtoCurrentlyReadingBookSeries = {
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: ListOverviewViewDtoCurrentlyReadingBookSeriesDominantPublisher;
   finishedInSeries: number;
   formats?: ListOverviewViewDtoCurrentlyReadingBookSeriesFormatsItem[];
   genres: string[];

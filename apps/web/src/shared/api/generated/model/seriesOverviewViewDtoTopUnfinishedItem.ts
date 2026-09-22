@@ -8,6 +8,7 @@
 import type { SeriesOverviewViewDtoTopUnfinishedItemAgeCategoriesItem } from "./seriesOverviewViewDtoTopUnfinishedItemAgeCategoriesItem";
 import type { SeriesOverviewViewDtoTopUnfinishedItemAuthorsItem } from "./seriesOverviewViewDtoTopUnfinishedItemAuthorsItem";
 import type { SeriesOverviewViewDtoTopUnfinishedItemCoversItem } from "./seriesOverviewViewDtoTopUnfinishedItemCoversItem";
+import type { SeriesOverviewViewDtoTopUnfinishedItemDominantPublisher } from "./seriesOverviewViewDtoTopUnfinishedItemDominantPublisher";
 import type { SeriesOverviewViewDtoTopUnfinishedItemFormatsItem } from "./seriesOverviewViewDtoTopUnfinishedItemFormatsItem";
 import type { SeriesOverviewViewDtoTopUnfinishedItemLanguagesItem } from "./seriesOverviewViewDtoTopUnfinishedItemLanguagesItem";
 import type { SeriesOverviewViewDtoTopUnfinishedItemNextBook } from "./seriesOverviewViewDtoTopUnfinishedItemNextBook";
@@ -27,6 +28,8 @@ export type SeriesOverviewViewDtoTopUnfinishedItem = {
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: SeriesOverviewViewDtoTopUnfinishedItemDominantPublisher;
   finishedInSeries: number;
   formats?: SeriesOverviewViewDtoTopUnfinishedItemFormatsItem[];
   genres: string[];

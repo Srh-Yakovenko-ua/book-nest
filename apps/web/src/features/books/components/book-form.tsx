@@ -66,6 +66,10 @@ import {
 } from "../model/create-book-form";
 import { buildQueuePriorityPayload } from "../model/queue-priority";
 import { BASIC_INFO_FIELDS } from "../model/section-completeness";
+import {
+  resolveSeriesPublisherSuggestion,
+  type SeriesPublisherSuggestion,
+} from "../model/series-publisher-suggestion";
 import { AuthorsField } from "./authors-field";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
@@ -126,6 +130,18 @@ export function BookForm(props: BookFormProps) {
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
   const initialSeries = props.mode === "create" ? (props.initialSeries ?? null) : null;
   const initialPublisher = props.mode === "create" ? (props.initialPublisher ?? null) : null;
+
+  const locale = useLocale();
+  const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
+  const [restoredDraft] = useState(() => readBookFormDraft(draftKey, locale));
+
+  const publisherOwnedByUser = restoredDraft?.publisherEdited ?? initialPublisher !== null;
+  const initialPublisherSuggestion = resolveSeriesPublisherSuggestion({
+    isPublisherEdited: publisherOwnedByUser,
+    publisherSelection: restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? null,
+    seriesSelection: initialSeries?.selection ?? null,
+  });
+
   const createSeriesDefaults = initialSeries
     ? ({
         ...createBookFormDefaults,
@@ -135,17 +151,19 @@ export function BookForm(props: BookFormProps) {
         seriesId: initialSeries.selection.id,
       } satisfies Partial<CreateBookFormValues>)
     : createBookFormDefaults;
+  const defaultPublisherId =
+    initialPublisher?.kind === "catalog"
+      ? initialPublisher.id
+      : initialPublisherSuggestion.kind === "apply"
+        ? initialPublisherSuggestion.publisher.id
+        : undefined;
   const createDefaults =
-    initialPublisher !== null && initialPublisher.kind === "catalog"
-      ? ({
+    defaultPublisherId === undefined
+      ? createSeriesDefaults
+      : ({
           ...createSeriesDefaults,
-          publisherId: initialPublisher.id,
-        } satisfies Partial<CreateBookFormValues>)
-      : createSeriesDefaults;
-
-  const locale = useLocale();
-  const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
-  const [restoredDraft] = useState(() => readBookFormDraft(draftKey, locale));
+          publisherId: defaultPublisherId,
+        } satisfies Partial<CreateBookFormValues>);
 
   const createBook = useCreateBook();
   const updateBook = useUpdateBook(bookId ?? "");
@@ -162,8 +180,15 @@ export function BookForm(props: BookFormProps) {
       [],
   );
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
-    restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? initialPublisher ?? null,
+    restoredDraft?.publisherSelection ??
+      initial?.publisherSelection ??
+      initialPublisher ??
+      (initialPublisherSuggestion.kind === "apply" ? initialPublisherSuggestion.publisher : null),
   );
+  const [publisherSuggestion, setPublisherSuggestion] = useState<SeriesPublisherSuggestion>(
+    initialPublisherSuggestion,
+  );
+  const [publisherEdited, setPublisherEdited] = useState(publisherOwnedByUser);
   const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(
     restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? initialSeries?.selection ?? null,
   );
@@ -255,6 +280,7 @@ export function BookForm(props: BookFormProps) {
             authorSelections,
             loanContactSelection,
             locale,
+            publisherEdited,
             publisherSelection,
             seriesSelection,
             values: getValues(),
@@ -273,6 +299,7 @@ export function BookForm(props: BookFormProps) {
     getValues,
     loanContactSelection,
     locale,
+    publisherEdited,
     publisherSelection,
     seriesSelection,
     subscribe,
@@ -298,10 +325,38 @@ export function BookForm(props: BookFormProps) {
     setSeriesGenresHintName(null);
   }
 
+  function clearSuggestedPublisher() {
+    setPublisherSuggestion({ kind: "none" });
+    setPublisherSelection(null);
+    setValue("publisherId", undefined, { shouldDirty: false });
+    setValue("publisherName", undefined, { shouldDirty: false });
+  }
+
+  function syncPublisherSuggestion(selection: null | SeriesSelection) {
+    if (mode !== "create") return;
+    const suggestion = resolveSeriesPublisherSuggestion({
+      isPublisherEdited: publisherEdited,
+      publisherSelection: publisherSuggestion.kind === "apply" ? null : publisherSelection,
+      seriesSelection: selection,
+    });
+
+    if (suggestion.kind === "none") {
+      if (publisherSuggestion.kind === "none") return;
+      clearSuggestedPublisher();
+      return;
+    }
+
+    setPublisherSuggestion(suggestion);
+    setPublisherSelection(suggestion.publisher);
+    setValue("publisherId", suggestion.publisher.id, { shouldDirty: false });
+    setValue("publisherName", undefined, { shouldDirty: false });
+  }
+
   function handleSeriesSelectionChange(selection: null | SeriesSelection) {
     setSeriesConflict(null);
     setSeriesClearedByAuthors(false);
     setSeriesSelection(selection);
+    syncPublisherSuggestion(selection);
     if (selection !== null && selection.authors.length > 0) {
       setAuthorSelections(selection.authors);
       setValue("authors", selection.authors.map(authorSelectionToReference), {
@@ -376,6 +431,7 @@ export function BookForm(props: BookFormProps) {
     });
     if (clearSeries) {
       setSeriesSelection(null);
+      syncPublisherSuggestion(null);
       setValue("seriesId", undefined);
       setValue("newSeries", undefined, { shouldValidate: true });
       clearErrors(["partNumber", "seriesId", "newSeries"]);
@@ -686,11 +742,17 @@ export function BookForm(props: BookFormProps) {
               </span>
             </Label>
             <PublisherAutocomplete
-              describedBy={errors.publisherName ? "book-publisher-error" : undefined}
+              describedBy={
+                errors.publisherName
+                  ? "book-publisher-hint book-publisher-error"
+                  : "book-publisher-hint"
+              }
               id="book-publisher"
               invalid={errors.publisherName !== undefined}
               label={t("fields.publisher")}
               onChange={(selection: null | PublisherSelection) => {
+                setPublisherEdited(true);
+                setPublisherSuggestion({ kind: "none" });
                 setPublisherSelection(selection);
                 if (selection === null) {
                   setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
@@ -714,7 +776,18 @@ export function BookForm(props: BookFormProps) {
               placeholder={t("fields.publisherPlaceholder")}
               value={publisherSelection}
             />
-            <p className="text-xs text-muted-foreground">{t("fields.publisherHint")}</p>
+            <p
+              aria-live="polite"
+              className="text-xs text-muted-foreground"
+              id="book-publisher-hint"
+            >
+              {publisherSuggestion.kind === "apply"
+                ? t("fields.publisherSeriesHint", {
+                    count: publisherSuggestion.bookCount,
+                    name: publisherSuggestion.publisher.name,
+                  })
+                : t("fields.publisherHint")}
+            </p>
             <FieldError error={errors.publisherName} id="book-publisher-error" />
           </div>
 

@@ -9,6 +9,7 @@ import type { SeriesDetailsViewDtoAgeCategoriesItem } from "./seriesDetailsViewD
 import type { SeriesDetailsViewDtoAuthorsItem } from "./seriesDetailsViewDtoAuthorsItem";
 import type { SeriesDetailsViewDtoBooksItem } from "./seriesDetailsViewDtoBooksItem";
 import type { SeriesDetailsViewDtoCoversItem } from "./seriesDetailsViewDtoCoversItem";
+import type { SeriesDetailsViewDtoDominantPublisher } from "./seriesDetailsViewDtoDominantPublisher";
 import type { SeriesDetailsViewDtoFormatsItem } from "./seriesDetailsViewDtoFormatsItem";
 import type { SeriesDetailsViewDtoLanguagesItem } from "./seriesDetailsViewDtoLanguagesItem";
 import type { SeriesDetailsViewDtoNextBook } from "./seriesDetailsViewDtoNextBook";
@@ -30,6 +31,8 @@ export interface SeriesDetailsViewDto {
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: SeriesDetailsViewDtoDominantPublisher;
   finishedInSeries: number;
   formats?: SeriesDetailsViewDtoFormatsItem[];
   genres: string[];

@@ -77,6 +77,7 @@ function CreateBookInSeries({
         kind: "catalog",
         name: author.name,
       })),
+      dominantPublisher: series.dominantPublisher,
       genres: series.genres,
       id: series.id,
       kind: "existing",
