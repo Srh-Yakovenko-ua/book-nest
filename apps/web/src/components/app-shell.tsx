@@ -26,6 +26,7 @@ import {
   NotebookPen,
   Quote,
   Settings,
+  Shapes,
   ShoppingBag,
   Tags,
   Truck,
@@ -71,7 +72,7 @@ type NavKey =
   | "dedications"
   | "delivery"
   | "favorites"
-  | "genresTags"
+  | "genres"
   | "home"
   | "lists"
   | "loans"
@@ -82,7 +83,8 @@ type NavKey =
   | "readingQueue"
   | "series"
   | "settings"
-  | "statistics";
+  | "statistics"
+  | "tags";
 
 type NavLink = {
   icon: React.ElementType;
@@ -162,7 +164,8 @@ const NAV_ITEMS = [
   { icon: Feather, key: "dedications", kind: "link", to: "/dedications" },
   { icon: BookCopy, key: "series", kind: "link", to: "/series" },
   { icon: Landmark, key: "publishers", kind: "link", to: "/publishers" },
-  { icon: Tags, key: "genresTags", kind: "link", to: "/genres-tags" },
+  { icon: Shapes, key: "genres", kind: "link", to: "/genres" },
+  { icon: Tags, key: "tags", kind: "link", to: "/tags" },
   { icon: ListChecks, key: "lists", kind: "link", to: "/lists" },
   {
     children: [

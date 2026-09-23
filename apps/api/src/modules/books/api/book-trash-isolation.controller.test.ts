@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -72,10 +73,24 @@ async function createBook(token: string, overrides: Record<string, unknown> = {}
   return res.body.id;
 }
 
-async function createGenre(token: string): Promise<string> {
-  const res = await authed("post", "/api/genres", token).send({ name: "Space opera" });
-  expect(res.status).toBe(HttpStatus.CREATED);
-  return res.body.key;
+function genreCountsOf(items: { booksCount: number; key: string }[]): Record<string, number> {
+  return Object.fromEntries(items.map((genre) => [genre.key, genre.booksCount]));
+}
+
+async function seedSystemGenre({ key, name }: { key: string; name: string }): Promise<string> {
+  const genre = await app.get(PrismaService).genre.create({
+    data: {
+      groupKey: "fiction",
+      groupName: "Fiction",
+      isDefault: true,
+      key,
+      name,
+      normalizedName: name.toLowerCase(),
+      userId: null,
+    },
+    select: { key: true },
+  });
+  return genre.key;
 }
 
 describe("a trashed book disappears from every derived surface", () => {
@@ -114,18 +129,22 @@ describe("a trashed book disappears from every derived surface", () => {
 
   it("stops counting towards genre and tag statistics", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    const genreKey = await createGenre(accessToken);
-    const bookId = await createBook(accessToken, { genres: [genreKey] });
+    const trashedGenreKey = await seedSystemGenre({ key: "space-opera", name: "Space opera" });
+    const liveGenreKey = await seedSystemGenre({ key: "cozy-mystery", name: "Cozy mystery" });
+    const bookId = await createBook(accessToken, { genres: [trashedGenreKey, liveGenreKey] });
+    await createBook(accessToken, { genres: [liveGenreKey], tags: [], title: "Live" });
 
     const genresBefore = await authed("get", "/api/genres/stats", accessToken);
-    expect(genresBefore.body.length).toBeGreaterThan(0);
+    expect(genreCountsOf(genresBefore.body.items)).toEqual({
+      [liveGenreKey]: 2,
+      [trashedGenreKey]: 1,
+    });
 
     await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.OK);
 
     const genresAfter = await authed("get", "/api/genres/stats", accessToken);
-    expect(genresAfter.body.every((genre: { booksCount: number }) => genre.booksCount === 0)).toBe(
-      true,
-    );
+    expect(genresAfter.body.totalCount).toBe(1);
+    expect(genreCountsOf(genresAfter.body.items)).toEqual({ [liveGenreKey]: 1 });
 
     const tagsAfter = await authed("get", "/api/tags/stats", accessToken);
     expect(tagsAfter.body.every((tag: { booksCount: number }) => tag.booksCount === 0)).toBe(true);

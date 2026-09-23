@@ -52,9 +52,7 @@ export class BookLibraryReadService {
     const { pageNumber, pageSize, sort } = query;
     const search = normalizeSearchQuery(query.q);
     const searchGenreKeys =
-      search === undefined
-        ? undefined
-        : await this.genresService.searchKeys({ query: search, userId });
+      search === undefined ? undefined : await this.genresService.searchKeys(search);
 
     const filter: LibraryFilter = {
       ageCategories: query.ageCategory,
@@ -131,10 +129,9 @@ export class BookLibraryReadService {
       }),
     ]);
 
-    const genreNames = await this.genresService.findNamesByKeys({
-      keys: topGenreKeys.map((genre) => genre.key),
-      userId,
-    });
+    const genreNames = await this.genresService.findNamesByKeys(
+      topGenreKeys.map((genre) => genre.key),
+    );
     const nameByKey = new Map(genreNames.map((genre) => [genre.key, genre.name]));
     const topGenres = topGenreKeys.map((genre) => ({
       count: genre.count,

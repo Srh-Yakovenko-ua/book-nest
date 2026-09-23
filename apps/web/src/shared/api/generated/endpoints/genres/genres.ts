@@ -18,7 +18,15 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { CreateGenreDto, GenreStatsViewDto, GenresControllerRecentParams } from "../../model";
+import type {
+  GenreFacetsViewDto,
+  GenreSummaryViewDto,
+  GenresControllerFacetsParams,
+  GenresControllerRecentParams,
+  GenresControllerStatsParams,
+  GenresOverviewViewDto,
+  PaginatedGenreStatsDto,
+} from "../../model";
 
 import { customInstance } from "../../../mutator";
 
@@ -64,7 +72,7 @@ export const getGenresControllerListUrl = () => {
 };
 
 /**
- * @summary List the global default genres and the current user custom genres
+ * @summary List the predefined system genre catalog
  */
 export const genresControllerList = async (
   options?: Parameters<typeof customInstance>[1],
@@ -158,7 +166,7 @@ export function useGenresControllerList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the global default genres and the current user custom genres
+ * @summary List the predefined system genre catalog
  */
 
 export function useGenresControllerList<
@@ -174,175 +182,6 @@ export function useGenresControllerList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGenresControllerListQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-export type genresControllerCreateResponse201 = {
-  data: void;
-  status: 201;
-};
-
-export type genresControllerCreateResponse400 = {
-  data: void;
-  status: 400;
-};
-
-export type genresControllerCreateResponse401 = {
-  data: void;
-  status: 401;
-};
-
-export type genresControllerCreateResponse409 = {
-  data: void;
-  status: 409;
-};
-
-export type genresControllerCreateResponseSuccess = genresControllerCreateResponse201 & {
-  headers: Headers;
-};
-export type genresControllerCreateResponseError = (
-  | genresControllerCreateResponse400
-  | genresControllerCreateResponse401
-  | genresControllerCreateResponse409
-) & {
-  headers: Headers;
-};
-
-export type genresControllerCreateResponse =
-  genresControllerCreateResponseSuccess | genresControllerCreateResponseError;
-
-export const getGenresControllerCreateUrl = () => {
-  return `/api/genres`;
-};
-
-/**
- * @summary Create a custom genre for the current user
- */
-export const genresControllerCreate = async (
-  createGenreDto: CreateGenreDto,
-  options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerCreateResponse> => {
-  return customInstance<genresControllerCreateResponse>(getGenresControllerCreateUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createGenreDto),
-  });
-};
-
-export const getGenresControllerCreateQueryKey = (createGenreDto?: CreateGenreDto) => {
-  return ["POST", `/api/genres`, createGenreDto] as const;
-};
-
-export const getGenresControllerCreateQueryOptions = <
-  TData = Awaited<ReturnType<typeof genresControllerCreate>>,
-  TError = void,
->(
-  createGenreDto: CreateGenreDto,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerCreate>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGenresControllerCreateQueryKey(createGenreDto);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerCreate>>> = ({ signal }) =>
-    genresControllerCreate(createGenreDto, { signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof genresControllerCreate>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GenresControllerCreateQueryResult = NonNullable<
-  Awaited<ReturnType<typeof genresControllerCreate>>
->;
-export type GenresControllerCreateQueryError = void;
-
-export function useGenresControllerCreate<
-  TData = Awaited<ReturnType<typeof genresControllerCreate>>,
-  TError = void,
->(
-  createGenreDto: CreateGenreDto,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerCreate>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof genresControllerCreate>>,
-          TError,
-          Awaited<ReturnType<typeof genresControllerCreate>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGenresControllerCreate<
-  TData = Awaited<ReturnType<typeof genresControllerCreate>>,
-  TError = void,
->(
-  createGenreDto: CreateGenreDto,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerCreate>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof genresControllerCreate>>,
-          TError,
-          Awaited<ReturnType<typeof genresControllerCreate>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGenresControllerCreate<
-  TData = Awaited<ReturnType<typeof genresControllerCreate>>,
-  TError = void,
->(
-  createGenreDto: CreateGenreDto,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerCreate>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-/**
- * @summary Create a custom genre for the current user
- */
-
-export function useGenresControllerCreate<
-  TData = Awaited<ReturnType<typeof genresControllerCreate>>,
-  TError = void,
->(
-  createGenreDto: CreateGenreDto,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerCreate>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGenresControllerCreateQueryOptions(createGenreDto, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -388,7 +227,7 @@ export const getGenresControllerRecentUrl = (params?: GenresControllerRecentPara
 };
 
 /**
- * @summary List recently used genres for the current user
+ * @summary List recently used system genres for the current user
  */
 export const genresControllerRecent = async (
   params?: GenresControllerRecentParams,
@@ -491,7 +330,7 @@ export function useGenresControllerRecent<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List recently used genres for the current user
+ * @summary List recently used system genres for the current user
  */
 
 export function useGenresControllerRecent<
@@ -517,8 +356,13 @@ export function useGenresControllerRecent<
 }
 
 export type genresControllerStatsResponse200 = {
-  data: GenreStatsViewDto[];
+  data: PaginatedGenreStatsDto;
   status: 200;
+};
+
+export type genresControllerStatsResponse400 = {
+  data: void;
+  status: 400;
 };
 
 export type genresControllerStatsResponse401 = {
@@ -529,48 +373,75 @@ export type genresControllerStatsResponse401 = {
 export type genresControllerStatsResponseSuccess = genresControllerStatsResponse200 & {
   headers: Headers;
 };
-export type genresControllerStatsResponseError = genresControllerStatsResponse401 & {
+export type genresControllerStatsResponseError = (
+  genresControllerStatsResponse400 | genresControllerStatsResponse401
+) & {
   headers: Headers;
 };
 
 export type genresControllerStatsResponse =
   genresControllerStatsResponseSuccess | genresControllerStatsResponseError;
 
-export const getGenresControllerStatsUrl = () => {
-  return `/api/genres/stats`;
+export const getGenresControllerStatsUrl = (params?: GenresControllerStatsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["group"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/genres/stats?${stringifiedParams}`
+    : `/api/genres/stats`;
 };
 
 /**
- * @summary Get per-genre statistics for the current user library
+ * @summary List the current user's genres with search, advanced filters, a quick filter, sort and pagination
  */
 export const genresControllerStats = async (
+  params?: GenresControllerStatsParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<genresControllerStatsResponse> => {
-  return customInstance<genresControllerStatsResponse>(getGenresControllerStatsUrl(), {
+  return customInstance<genresControllerStatsResponse>(getGenresControllerStatsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGenresControllerStatsQueryKey = () => {
-  return [`/api/genres/stats`] as const;
+export const getGenresControllerStatsQueryKey = (params?: GenresControllerStatsParams) => {
+  return [`/api/genres/stats`, ...(params ? [params] : [])] as const;
 };
 
 export const getGenresControllerStatsQueryOptions = <
   TData = Awaited<ReturnType<typeof genresControllerStats>>,
   TError = void,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof genresControllerStats>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: GenresControllerStatsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerStats>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGenresControllerStatsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGenresControllerStatsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerStats>>> = ({ signal }) =>
-    genresControllerStats({ signal, ...requestOptions });
+    genresControllerStats(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof genresControllerStats>>,
@@ -588,6 +459,7 @@ export function useGenresControllerStats<
   TData = Awaited<ReturnType<typeof genresControllerStats>>,
   TError = void,
 >(
+  params: undefined | GenresControllerStatsParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof genresControllerStats>>, TError, TData>
@@ -608,6 +480,7 @@ export function useGenresControllerStats<
   TData = Awaited<ReturnType<typeof genresControllerStats>>,
   TError = void,
 >(
+  params?: GenresControllerStatsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof genresControllerStats>>, TError, TData>
@@ -628,6 +501,7 @@ export function useGenresControllerStats<
   TData = Awaited<ReturnType<typeof genresControllerStats>>,
   TError = void,
 >(
+  params?: GenresControllerStatsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof genresControllerStats>>, TError, TData>
@@ -637,13 +511,14 @@ export function useGenresControllerStats<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get per-genre statistics for the current user library
+ * @summary List the current user's genres with search, advanced filters, a quick filter, sort and pagination
  */
 
 export function useGenresControllerStats<
   TData = Awaited<ReturnType<typeof genresControllerStats>>,
   TError = void,
 >(
+  params?: GenresControllerStatsParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof genresControllerStats>>, TError, TData>
@@ -652,7 +527,7 @@ export function useGenresControllerStats<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGenresControllerStatsQueryOptions(options);
+  const queryOptions = getGenresControllerStatsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -661,102 +536,120 @@ export function useGenresControllerStats<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type genresControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
+export type genresControllerFacetsResponse200 = {
+  data: GenreFacetsViewDto;
+  status: 200;
 };
 
-export type genresControllerDeleteResponse401 = {
+export type genresControllerFacetsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type genresControllerFacetsResponse401 = {
   data: void;
   status: 401;
 };
 
-export type genresControllerDeleteResponse404 = {
-  data: void;
-  status: 404;
-};
-
-export type genresControllerDeleteResponseSuccess = genresControllerDeleteResponse204 & {
+export type genresControllerFacetsResponseSuccess = genresControllerFacetsResponse200 & {
   headers: Headers;
 };
-export type genresControllerDeleteResponseError = (
-  genresControllerDeleteResponse401 | genresControllerDeleteResponse404
+export type genresControllerFacetsResponseError = (
+  genresControllerFacetsResponse400 | genresControllerFacetsResponse401
 ) & {
   headers: Headers;
 };
 
-export type genresControllerDeleteResponse =
-  genresControllerDeleteResponseSuccess | genresControllerDeleteResponseError;
+export type genresControllerFacetsResponse =
+  genresControllerFacetsResponseSuccess | genresControllerFacetsResponseError;
 
-export const getGenresControllerDeleteUrl = (id: string) => {
-  return `/api/genres/${id}`;
+export const getGenresControllerFacetsUrl = (params?: GenresControllerFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["group"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/genres/facets?${stringifiedParams}`
+    : `/api/genres/facets`;
 };
 
 /**
- * @summary Delete a custom genre of the current user
+ * @summary Get the Genres page facets; quick counts honour search and advanced filters but ignore the quick filter, sort and pagination
  */
-export const genresControllerDelete = async (
-  id: string,
+export const genresControllerFacets = async (
+  params?: GenresControllerFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<genresControllerDeleteResponse> => {
-  return customInstance<genresControllerDeleteResponse>(getGenresControllerDeleteUrl(id), {
+): Promise<genresControllerFacetsResponse> => {
+  return customInstance<genresControllerFacetsResponse>(getGenresControllerFacetsUrl(params), {
     ...options,
-    method: "DELETE",
+    method: "GET",
   });
 };
 
-export const getGenresControllerDeleteQueryKey = (id: string) => {
-  return ["DELETE", `/api/genres/${id}`] as const;
+export const getGenresControllerFacetsQueryKey = (params?: GenresControllerFacetsParams) => {
+  return [`/api/genres/facets`, ...(params ? [params] : [])] as const;
 };
 
-export const getGenresControllerDeleteQueryOptions = <
-  TData = Awaited<ReturnType<typeof genresControllerDelete>>,
+export const getGenresControllerFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof genresControllerFacets>>,
   TError = void,
 >(
-  id: string,
+  params?: GenresControllerFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerDelete>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerFacets>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGenresControllerDeleteQueryKey(id);
+  const queryKey = queryOptions?.queryKey ?? getGenresControllerFacetsQueryKey(params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerDelete>>> = ({ signal }) =>
-    genresControllerDelete(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerFacets>>> = ({ signal }) =>
+    genresControllerFacets(params, { signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: id !== null && id !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof genresControllerDelete>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData, TError>;
-  };
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof genresControllerFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type GenresControllerDeleteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof genresControllerDelete>>
+export type GenresControllerFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof genresControllerFacets>>
 >;
-export type GenresControllerDeleteQueryError = void;
+export type GenresControllerFacetsQueryError = void;
 
-export function useGenresControllerDelete<
-  TData = Awaited<ReturnType<typeof genresControllerDelete>>,
+export function useGenresControllerFacets<
+  TData = Awaited<ReturnType<typeof genresControllerFacets>>,
   TError = void,
 >(
-  id: string,
+  params: undefined | GenresControllerFacetsParams,
   options: {
     query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerDelete>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerFacets>>, TError, TData>
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof genresControllerDelete>>,
+          Awaited<ReturnType<typeof genresControllerFacets>>,
           TError,
-          Awaited<ReturnType<typeof genresControllerDelete>>
+          Awaited<ReturnType<typeof genresControllerFacets>>
         >,
         "initialData"
       >;
@@ -764,20 +657,20 @@ export function useGenresControllerDelete<
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGenresControllerDelete<
-  TData = Awaited<ReturnType<typeof genresControllerDelete>>,
+export function useGenresControllerFacets<
+  TData = Awaited<ReturnType<typeof genresControllerFacets>>,
   TError = void,
 >(
-  id: string,
+  params?: GenresControllerFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerDelete>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerFacets>>, TError, TData>
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof genresControllerDelete>>,
+          Awaited<ReturnType<typeof genresControllerFacets>>,
           TError,
-          Awaited<ReturnType<typeof genresControllerDelete>>
+          Awaited<ReturnType<typeof genresControllerFacets>>
         >,
         "initialData"
       >;
@@ -785,37 +678,329 @@ export function useGenresControllerDelete<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGenresControllerDelete<
-  TData = Awaited<ReturnType<typeof genresControllerDelete>>,
+export function useGenresControllerFacets<
+  TData = Awaited<ReturnType<typeof genresControllerFacets>>,
   TError = void,
 >(
-  id: string,
+  params?: GenresControllerFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerDelete>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerFacets>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Delete a custom genre of the current user
+ * @summary Get the Genres page facets; quick counts honour search and advanced filters but ignore the quick filter, sort and pagination
  */
 
-export function useGenresControllerDelete<
-  TData = Awaited<ReturnType<typeof genresControllerDelete>>,
+export function useGenresControllerFacets<
+  TData = Awaited<ReturnType<typeof genresControllerFacets>>,
   TError = void,
 >(
-  id: string,
+  params?: GenresControllerFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof genresControllerDelete>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerFacets>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getGenresControllerDeleteQueryOptions(id, options);
+  const queryOptions = getGenresControllerFacetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type genresControllerSummaryResponse200 = {
+  data: GenreSummaryViewDto;
+  status: 200;
+};
+
+export type genresControllerSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type genresControllerSummaryResponseSuccess = genresControllerSummaryResponse200 & {
+  headers: Headers;
+};
+export type genresControllerSummaryResponseError = genresControllerSummaryResponse401 & {
+  headers: Headers;
+};
+
+export type genresControllerSummaryResponse =
+  genresControllerSummaryResponseSuccess | genresControllerSummaryResponseError;
+
+export const getGenresControllerSummaryUrl = () => {
+  return `/api/genres/summary`;
+};
+
+/**
+ * @summary Get the Genres summary, independent of search, filters, sort and pagination
+ */
+export const genresControllerSummary = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<genresControllerSummaryResponse> => {
+  return customInstance<genresControllerSummaryResponse>(getGenresControllerSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGenresControllerSummaryQueryKey = () => {
+  return [`/api/genres/summary`] as const;
+};
+
+export const getGenresControllerSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof genresControllerSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof genresControllerSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGenresControllerSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerSummary>>> = ({
+    signal,
+  }) => genresControllerSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof genresControllerSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GenresControllerSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof genresControllerSummary>>
+>;
+export type GenresControllerSummaryQueryError = void;
+
+export function useGenresControllerSummary<
+  TData = Awaited<ReturnType<typeof genresControllerSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof genresControllerSummary>>,
+          TError,
+          Awaited<ReturnType<typeof genresControllerSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGenresControllerSummary<
+  TData = Awaited<ReturnType<typeof genresControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof genresControllerSummary>>,
+          TError,
+          Awaited<ReturnType<typeof genresControllerSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGenresControllerSummary<
+  TData = Awaited<ReturnType<typeof genresControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the Genres summary, independent of search, filters, sort and pagination
+ */
+
+export function useGenresControllerSummary<
+  TData = Awaited<ReturnType<typeof genresControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGenresControllerSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type genresControllerOverviewResponse200 = {
+  data: GenresOverviewViewDto;
+  status: 200;
+};
+
+export type genresControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type genresControllerOverviewResponseSuccess = genresControllerOverviewResponse200 & {
+  headers: Headers;
+};
+export type genresControllerOverviewResponseError = genresControllerOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type genresControllerOverviewResponse =
+  genresControllerOverviewResponseSuccess | genresControllerOverviewResponseError;
+
+export const getGenresControllerOverviewUrl = () => {
+  return `/api/genres/overview`;
+};
+
+/**
+ * @summary Get the contextual Genres overview, independent of search, filters, sort and pagination
+ */
+export const genresControllerOverview = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<genresControllerOverviewResponse> => {
+  return customInstance<genresControllerOverviewResponse>(getGenresControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGenresControllerOverviewQueryKey = () => {
+  return [`/api/genres/overview`] as const;
+};
+
+export const getGenresControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof genresControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof genresControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGenresControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerOverview>>> = ({
+    signal,
+  }) => genresControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof genresControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GenresControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof genresControllerOverview>>
+>;
+export type GenresControllerOverviewQueryError = void;
+
+export function useGenresControllerOverview<
+  TData = Awaited<ReturnType<typeof genresControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof genresControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof genresControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGenresControllerOverview<
+  TData = Awaited<ReturnType<typeof genresControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof genresControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof genresControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGenresControllerOverview<
+  TData = Awaited<ReturnType<typeof genresControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the contextual Genres overview, independent of search, filters, sort and pagination
+ */
+
+export function useGenresControllerOverview<
+  TData = Awaited<ReturnType<typeof genresControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGenresControllerOverviewQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -1378,7 +1378,7 @@ describe("SeriesService.create", () => {
       status: "unknown",
     });
 
-    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy", "romance"]);
+    expect(assertGenresSelectable).toHaveBeenCalledWith(["fantasy", "romance"]);
   });
 
   it("propagates a BadRequestError and never inserts when a genre is not in the catalog", async () => {
@@ -1593,7 +1593,7 @@ describe("SeriesService.update", () => {
 
     await service.update(USER_ID, SERIES_ID, { genres: ["fantasy"] });
 
-    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy"]);
+    expect(assertGenresSelectable).toHaveBeenCalledWith(["fantasy"]);
   });
 
   it("propagates a BadRequestError and never updates when a genre is not in the catalog", async () => {

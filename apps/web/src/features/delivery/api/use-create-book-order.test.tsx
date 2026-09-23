@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { genresKeys } from "@/features/genres/api/genres-keys";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useCreateBookOrder } from "./use-create-book-order";
@@ -12,6 +13,12 @@ import { useCreateBookOrder } from "./use-create-book-order";
 const BOOK_ID = "11111111-1111-4111-8111-111111111111";
 const ORDER_ID = "22222222-2222-4222-8222-222222222222";
 const createMock = vi.fn();
+
+const SEEDED_KEYS = {
+  delivery: ["/api/delivery/in-transit"],
+  genreSummary: genresKeys.summary,
+  settings: ["/api/settings"],
+} as const;
 
 vi.mock("@/shared/api/generated/endpoints/book-orders/book-orders", () => ({
   bookOrdersControllerCreate: (...args: unknown[]) => createMock(...args),
@@ -76,17 +83,20 @@ describe("useCreateBookOrder", () => {
     expect(result.current.data).toEqual(response);
   });
 
-  it("invalidates delivery data but leaves unrelated queries intact", async () => {
-    const client = createTestQueryClient();
-    const invalidateSpy = vi.spyOn(client, "invalidateQueries");
+  it("invalidates delivery data and Genre analytics but leaves unrelated queries intact", async () => {
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    for (const key of Object.values(SEEDED_KEYS)) client.setQueryData(key, {});
     const { result } = renderHook(() => useCreateBookOrder(), { wrapper: makeWrapper(client) });
 
     act(() => result.current.mutate(payload));
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(invalidateSpy).toHaveBeenCalledOnce();
-    const options = invalidateSpy.mock.calls[0]?.[0];
-    expect(options?.predicate?.({ queryKey: ["/api/delivery/in-transit"] } as never)).toBe(true);
-    expect(options?.predicate?.({ queryKey: ["/api/settings"] } as never)).toBe(false);
+    expect(isInvalidated(client, SEEDED_KEYS.delivery)).toBe(true);
+    expect(isInvalidated(client, SEEDED_KEYS.genreSummary)).toBe(true);
+    expect(isInvalidated(client, SEEDED_KEYS.settings)).toBe(false);
   });
 });
+
+function isInvalidated(client: QueryClient, queryKey: readonly unknown[]): boolean {
+  return client.getQueryState(queryKey)?.isInvalidated ?? false;
+}

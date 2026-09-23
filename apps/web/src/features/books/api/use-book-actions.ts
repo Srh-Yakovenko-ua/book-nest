@@ -4,6 +4,7 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { BulkActionResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 import { listKeys } from "@/features/lists/api/list-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
@@ -24,6 +25,7 @@ import type { ListDraft } from "../model/book-organization-fields";
 import type { LibraryBooksPage } from "./use-books";
 
 import { bookKeys, matchesBooksExceptDetail } from "./book-keys";
+import { RECENT_GENRES_KEY } from "./use-recent-genres";
 
 const LIST_KEY = ["/api/books", "list"];
 
@@ -72,6 +74,7 @@ export function useBulkAddToReadingQueue() {
       BulkActionResultSchema.parse(await bulkBooksControllerReadingQueue({ bookIds })),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void invalidateGenreDerivedQueries(queryClient);
     },
   });
 }
@@ -86,6 +89,8 @@ export function useBulkDeleteBooks() {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
+      void invalidateGenreDerivedQueries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
     },
   });
 }
@@ -99,6 +104,7 @@ export function useBulkOwnershipStatus() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void invalidateStatisticsQueries(queryClient);
+      void invalidateGenreDerivedQueries(queryClient);
     },
   });
 }
@@ -113,6 +119,7 @@ export function useBulkReadingStatus() {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
+      void invalidateGenreDerivedQueries(queryClient);
     },
   });
 }
@@ -138,6 +145,8 @@ export function useDeleteBook() {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
+      void invalidateGenreDerivedQueries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
     },
   });
 }
@@ -152,6 +161,7 @@ export function useRemoveFromReadingQueue() {
       void queryClient.invalidateQueries({
         queryKey: getReadingQueueControllerGetQueueQueryKey(),
       });
+      void invalidateGenreDerivedQueries(queryClient);
     },
   });
 }
