@@ -133,6 +133,7 @@ export function makeCharacterSummary(
     id: "book-char-1",
     importance: "central",
     isFavorite: false,
+    isPovCharacter: false,
     name: "Ґеральт",
     portrait: null,
     status: null,

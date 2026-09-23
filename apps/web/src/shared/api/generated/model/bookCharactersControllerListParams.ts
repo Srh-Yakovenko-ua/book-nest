@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { BookCharactersControllerListSort } from "./bookCharactersControllerListSort";
 
 export type BookCharactersControllerListParams = {
   /**
@@ -21,4 +22,5 @@ export type BookCharactersControllerListParams = {
    * @maxLength 100
    */
   search?: string;
+  sort?: BookCharactersControllerListSort;
 };

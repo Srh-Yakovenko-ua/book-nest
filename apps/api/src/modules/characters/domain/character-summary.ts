@@ -14,15 +14,7 @@ import {
 } from "@app/shared";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
-
-const IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
-  central: 0,
-  episodic: 3,
-  major: 1,
-  mentioned: 4,
-  not_specified: 5,
-  supporting: 2,
-};
+import { BOOK_CHARACTER_IMPORTANCE_RANK } from "./character-importance-order.js";
 
 const TOP_IMPORTANCES: ReadonlySet<BookCharacterImportance> = new Set(["central", "major"]);
 
@@ -133,7 +125,8 @@ function selectTopCharacters(candidates: CharacterSummaryView[]): CharacterSumma
     .filter((candidate) => TOP_IMPORTANCES.has(candidate.importance))
     .sort(
       (left, right) =>
-        IMPORTANCE_RANK[left.importance] - IMPORTANCE_RANK[right.importance] ||
+        BOOK_CHARACTER_IMPORTANCE_RANK[left.importance] -
+          BOOK_CHARACTER_IMPORTANCE_RANK[right.importance] ||
         UKRAINIAN_COLLATION.compare(left.name, right.name),
     )
     .slice(0, CHARACTER_SUMMARY_TOP_LIMIT);

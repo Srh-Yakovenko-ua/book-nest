@@ -357,9 +357,14 @@ export const UpdateCharacterFormSchema = z
 
 export type UpdateCharacterForm = z.infer<typeof UpdateCharacterFormSchema>;
 
+export const BookCharactersSortSchema = z.enum(["importance", "manual", "name"]);
+
+export type BookCharactersSort = z.infer<typeof BookCharactersSortSchema>;
+
 export const BookCharactersQuerySchema = z.object({
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
+  sort: BookCharactersSortSchema.default("manual"),
 });
 
 export type BookCharactersQuery = z.infer<typeof BookCharactersQuerySchema>;
@@ -495,6 +500,7 @@ export const CharacterSummaryViewSchema = z.object({
   id: z.string(),
   importance: BookCharacterImportanceSchema,
   isFavorite: z.boolean(),
+  isPovCharacter: z.boolean(),
   name: z.string(),
   portrait: MediaViewSchema.nullable(),
   status: BookCharacterStatusSchema.nullable(),

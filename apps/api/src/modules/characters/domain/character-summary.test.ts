@@ -18,6 +18,7 @@ function summary(overrides: Partial<CharacterSummaryView>): CharacterSummaryView
     id: "book-character",
     importance: "supporting",
     isFavorite: false,
+    isPovCharacter: false,
     name: "Name",
     portrait: null,
     status: "active",

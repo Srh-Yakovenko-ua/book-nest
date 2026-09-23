@@ -3894,6 +3894,7 @@ export const BookCharactersControllerListQueryParams = zod.object({
     .max(bookCharactersControllerListQueryPageSizeMax)
     .default(bookCharactersControllerListQueryPageSizeDefault),
   search: zod.string().max(bookCharactersControllerListQuerySearchMax).optional(),
+  sort: zod.enum(["importance", "manual", "name"]).optional(),
 });
 
 export const bookCharactersControllerListResponsePageMin = -9007199254740991;
@@ -3942,6 +3943,7 @@ export const BookCharactersControllerListResponse = zod.object({
         "not_specified",
       ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -5649,6 +5651,7 @@ export const BookCharacterSummaryControllerGetResponse = zod.object({
         "not_specified",
       ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -5773,6 +5776,7 @@ export const SeriesCharactersControllerListResponse = zod.object({
         "not_specified",
       ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -6112,6 +6116,7 @@ export const SeriesCharacterSummaryControllerGetResponse = zod.object({
         "not_specified",
       ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({

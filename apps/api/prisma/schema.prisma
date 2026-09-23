@@ -1121,6 +1121,7 @@ model BookCharacter {
   characterId                 String              @map("character_id") @db.Uuid
   displayName                 String?             @map("display_name")
   importance                  String              @default("not_specified")
+  importanceRank              Int                 @default(5) @map("importance_rank")
   status                      String              @default("not_specified")
   statusCustomText            String?             @map("status_custom_text")
   description                 String?
@@ -1155,6 +1156,7 @@ model BookCharacter {
   @@index([bookId])
   @@index([characterId])
   @@index([bookId, importance])
+  @@index([bookId, importanceRank])
   @@index([portraitMediaId])
   @@map("book_characters")
 }

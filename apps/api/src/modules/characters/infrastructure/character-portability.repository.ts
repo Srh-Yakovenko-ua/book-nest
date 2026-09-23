@@ -11,6 +11,7 @@ import type {
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { bookCharacterImportanceRank } from "../domain/character-importance-order.js";
 
 const aliasSelect = {
   bookId: true,
@@ -190,7 +191,12 @@ export class CharacterPortabilityRepository {
       await client.characterAlias.createMany({ data: plan.aliases });
     }
     if (plan.bookCharacters.length > 0) {
-      await client.bookCharacter.createMany({ data: plan.bookCharacters });
+      await client.bookCharacter.createMany({
+        data: plan.bookCharacters.map((bookCharacter) => ({
+          ...bookCharacter,
+          importanceRank: bookCharacterImportanceRank(bookCharacter.importance),
+        })),
+      });
     }
     if (plan.roles.length > 0) {
       await client.bookCharacterRole.createMany({ data: plan.roles });

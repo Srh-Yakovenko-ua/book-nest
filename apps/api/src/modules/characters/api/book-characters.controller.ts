@@ -7,6 +7,7 @@ import type {
 
 import {
   BookCharactersQuerySchema,
+  BookCharactersSortSchema,
   CreateCharacterInBookSchema,
   UpdateBookCharacterSchema,
 } from "@app/shared";
@@ -65,6 +66,7 @@ export class BookCharactersController {
   @ApiOperation({ summary: "List the current user's characters for a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiQuery({ name: "search", required: false })
+  @ApiQuery({ enum: BookCharactersSortSchema.options, name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @Get()

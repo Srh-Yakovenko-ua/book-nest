@@ -1,4 +1,4 @@
-import type { CharacterListSort, Nullable } from "@app/shared";
+import type { BookCharactersSort, CharacterListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import type { BookCharacterModel, CharacterModel } from "../../../generated/pris
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { bookCharacterImportanceRank } from "../domain/character-importance-order.js";
 
 const CHARACTER_IMPORTANCE_CENTRAL = "central";
 const CHARACTER_IMPORTANCE_MAJOR = "major";
@@ -104,6 +105,13 @@ const GLOBAL_CHARACTER_ORDER_BY: Record<
   recently_added: [{ createdAt: "desc" }, { name: "asc" }],
   recently_updated: [{ updatedAt: "desc" }, { name: "asc" }],
 };
+
+const ROSTER_ORDER_BY: Record<BookCharactersSort, Prisma.BookCharacterOrderByWithRelationInput[]> =
+  {
+    importance: [{ importanceRank: "asc" }, { character: { name: "asc" } }, { createdAt: "asc" }],
+    manual: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    name: [{ character: { name: "asc" } }, { createdAt: "asc" }],
+  };
 
 export type BookCharacterSummaryAggregate = {
   byImportance: { count: number; importance: string }[];
@@ -308,6 +316,7 @@ export type UpdateCharacterData = {
 
 type ListRosterInput = RosterFilter & {
   skip: number;
+  sort: BookCharactersSort;
   take: number;
 };
 
@@ -425,7 +434,11 @@ export class CharactersRepository {
   ): Promise<BookCharacterModel> {
     const { roles, ...rest } = data;
     return client.bookCharacter.create({
-      data: { ...rest, roles: { create: roles.map((role) => ({ ...role })) } },
+      data: {
+        ...rest,
+        importanceRank: bookCharacterImportanceRank(rest.importance),
+        roles: { create: roles.map((role) => ({ ...role })) },
+      },
     });
   }
 
@@ -748,10 +761,10 @@ export class CharactersRepository {
     });
   }
 
-  listRoster({ skip, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
+  listRoster({ skip, sort, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
     return this.prisma.bookCharacter.findMany({
       include: rosterInclude,
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: ROSTER_ORDER_BY[sort],
       skip,
       take,
       where: buildRosterWhere(filter),
@@ -908,7 +921,7 @@ export class CharactersRepository {
   }): Promise<RosterRow[]> {
     return this.prisma.bookCharacter.findMany({
       include: rosterInclude,
-      orderBy: [{ importance: "asc" }, { character: { name: "asc" } }],
+      orderBy: [{ importanceRank: "asc" }, { character: { name: "asc" } }],
       take: limit,
       where: {
         bookId,
@@ -985,7 +998,10 @@ export class CharactersRepository {
     { bookCharacterId, data }: { bookCharacterId: string; data: UpdateBookCharacterData },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<BookCharacterModel> {
-    return client.bookCharacter.update({ data, where: { id: bookCharacterId } });
+    return client.bookCharacter.update({
+      data: withImportanceRank(data),
+      where: { id: bookCharacterId },
+    });
   }
 
   updateCharacter(
@@ -1189,8 +1205,28 @@ function buildRosterWhere({
     where.OR = [
       { character: { name: contains } },
       { displayName: contains, displayNameIsSpoiler: false },
+      {
+        character: {
+          aliases: {
+            some: {
+              isSpoiler: false,
+              name: contains,
+              OR: [{ bookId: null }, { bookId }],
+            },
+          },
+        },
+      },
     ];
   }
 
   return where;
+}
+
+function withImportanceRank(
+  data: UpdateBookCharacterData,
+): Prisma.BookCharacterUncheckedUpdateInput {
+  if (data.importance === undefined) {
+    return data;
+  }
+  return { ...data, importanceRank: bookCharacterImportanceRank(data.importance) };
 }

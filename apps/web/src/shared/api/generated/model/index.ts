@@ -38,6 +38,7 @@ export * from "./bookCharacterGraphControllerGetParams";
 export * from "./bookCharacterGraphControllerGetRelationshipTypesItem";
 export * from "./bookCharacterRelationshipsControllerListParams";
 export * from "./bookCharactersControllerListParams";
+export * from "./bookCharactersControllerListSort";
 export * from "./bookCharacterSuggestionsControllerListParams";
 export * from "./bookCharacterSummaryViewDto";
 export * from "./bookCharacterSummaryViewDtoByImportance";

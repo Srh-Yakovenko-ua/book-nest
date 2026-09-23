@@ -155,6 +155,7 @@ export type SummaryAppearanceSource = SpoilerFlags & {
   displayName: Nullable<string>;
   id: string;
   importance: string;
+  isPovCharacter: boolean;
   status: string;
 };
 
@@ -387,6 +388,7 @@ export function toCharacterSummaryView({
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isFavorite: character.isFavorite,
+    isPovCharacter: appearance.isPovCharacter,
     name: character.name,
     portrait: appearance.portraitIsSpoiler ? null : portrait,
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),

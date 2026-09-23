@@ -182,6 +182,7 @@ export class BookCharactersService {
       this.charactersRepository.listRoster({
         ...filter,
         ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
+        sort: query.sort,
       }),
       this.charactersRepository.countRoster(filter),
     ]);
