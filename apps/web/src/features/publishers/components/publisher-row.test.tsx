@@ -32,17 +32,42 @@ describe("PublisherRow", () => {
     renderWithProviders(<PublisherRow publisher={makePublisherListItem({ isCustom: true })} />);
 
     expect(screen.getByText("Власне")).toBeInTheDocument();
+  });
+
+  it("shows no source marker for a global publisher", () => {
+    renderWithProviders(<PublisherRow publisher={makePublisherListItem({ isCustom: false })} />);
+
+    expect(screen.queryByText("Власне")).not.toBeInTheDocument();
     expect(screen.queryByText("Загальне")).not.toBeInTheDocument();
   });
 
-  it("marks a global publisher as shared", () => {
-    renderWithProviders(<PublisherRow publisher={makePublisherListItem({ isCustom: false })} />);
+  it("renders the metric blocks in order without a table", () => {
+    renderWithProviders(
+      <PublisherRow
+        publisher={makePublisherListItem({
+          stats: makePublisherStats({
+            booksCount: 8,
+            readCount: 5,
+            seriesCount: 2,
+            wantToBuyCount: 3,
+          }),
+        })}
+      />,
+    );
 
-    expect(screen.getByText("Загальне")).toBeInTheDocument();
-    expect(screen.queryByText("Власне")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("term").map((term) => term.textContent)).toEqual([
+      "Книги",
+      "Прочитано",
+      "Список бажань",
+      "Серії",
+      "Рейтинг",
+      "Останнє поповнення",
+    ]);
+    expect(screen.getByText("Серії").nextElementSibling).toHaveTextContent("2");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
-  it("shows a dash rating for an unrated publisher", () => {
+  it("shows the no-rating copy for an unrated publisher", () => {
     renderWithProviders(
       <PublisherRow
         publisher={makePublisherListItem({
@@ -56,12 +81,12 @@ describe("PublisherRow", () => {
     );
 
     expect(screen.getByText("Рейтинг")).toBeInTheDocument();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText("Без оцінок")).toBeInTheDocument();
   });
 
   it("labels an unknown country when the code is missing", () => {
     renderWithProviders(<PublisherRow publisher={makePublisherListItem({ countryCode: null })} />);
 
-    expect(screen.getByText("Країна невідома")).toBeInTheDocument();
+    expect(screen.getByText("Без країни")).toBeInTheDocument();
   });
 });

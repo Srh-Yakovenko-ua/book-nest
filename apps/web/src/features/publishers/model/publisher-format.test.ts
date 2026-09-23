@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { publisherCountryLabel, publisherPriceLabel } from "./publisher-format";
+import {
+  formatCoveragePercent,
+  publisherCountryLabel,
+  publisherPriceLabel,
+} from "./publisher-format";
 
 describe("publisherCountryLabel", () => {
   it("falls back when the country code is missing", () => {
@@ -27,5 +31,17 @@ describe("publisherPriceLabel", () => {
 
   it("falls back to a plain amount and code for an unknown currency", () => {
     expect(publisherPriceLabel(450, "INVALID", "uk")).toBe("450 INVALID");
+  });
+});
+
+describe("formatCoveragePercent", () => {
+  it("renders a positive share below one percent as <1", () => {
+    expect(formatCoveragePercent(0.4, "uk")).toBe("<1");
+  });
+
+  it("rounds any other share to a whole percent", () => {
+    expect(formatCoveragePercent(0, "uk")).toBe("0");
+    expect(formatCoveragePercent(1, "uk")).toBe("1");
+    expect(formatCoveragePercent(62.6, "uk")).toBe("63");
   });
 });
