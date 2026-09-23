@@ -3,6 +3,7 @@ import type { TagView } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
+import { tagsKeys } from "@/features/tags/api/tags-keys";
 import { tagsControllerSearch } from "@/shared/api/generated/endpoints/tags/tags";
 
 const tagViewSchema = z.object({
@@ -38,7 +39,7 @@ export function useTagsSearch(search: string) {
       });
       return tagsSearchResultSchema.parse(response);
     },
-    queryKey: ["tags", "search", trimmed],
+    queryKey: tagsKeys.picker(trimmed),
     select: (data) => data.pages.flatMap((page) => page.items),
   });
 }

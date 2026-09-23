@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useGenres } from "@/features/books";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type { NotesArchiveFacets } from "../api/use-notes-facets";
@@ -35,7 +36,6 @@ import type {
 } from "../model/notes-archive-config";
 import type { NotesAdvancedValues } from "../model/notes-archive-query";
 
-import { assertNever } from "../model/assert-never";
 import { NOTES_ARCHIVE } from "../model/notes-archive-query";
 import {
   customCategorySelectionValue,

@@ -3,7 +3,7 @@ import type {
   Nullable,
   Paginator,
   TagCatalogView,
-  TagStatsView,
+  TagDeletionPreviewView,
   TagType,
   TagView,
   TaxonomySearchPaginationQuery,
@@ -20,7 +20,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
-import { toTagCatalogView, toTagStatsView, toTagView } from "../domain/tag.mapper.js";
+import { toTagCatalogView, toTagView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
 type TagUpdateData = {
@@ -94,6 +94,20 @@ export class TagsService {
     }
   }
 
+  async deletionPreview({
+    tagId,
+    userId,
+  }: {
+    tagId: string;
+    userId: string;
+  }): Promise<TagDeletionPreviewView> {
+    const tag = await this.tagsRepository.findOwnedById(userId, tagId);
+    if (tag === null) {
+      throw new NotFoundError("Tag not found");
+    }
+    return this.tagsRepository.countLinks({ tagId: tag.id, userId });
+  }
+
   async resolveOrCreateMany(
     userId: string,
     names: string[],
@@ -135,15 +149,6 @@ export class TagsService {
       pageSize,
       totalCount,
     });
-  }
-
-  async stats(userId: string): Promise<TagStatsView[]> {
-    const [tags, counts] = await Promise.all([
-      this.tagsRepository.listOwned(userId),
-      this.tagsRepository.countBooksByTag(userId),
-    ]);
-    const countByTagId = new Map(counts.map((entry) => [entry.tagId, entry.count]));
-    return tags.map((tag) => toTagStatsView({ booksCount: countByTagId.get(tag.id) ?? 0, tag }));
   }
 
   async update(userId: string, tagId: string, input: UpdateTagInput): Promise<TagCatalogView> {

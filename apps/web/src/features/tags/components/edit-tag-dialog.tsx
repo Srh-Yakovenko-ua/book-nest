@@ -1,6 +1,6 @@
 "use client";
 
-import type { UpdateTagInput } from "@app/shared";
+import type { Nullable, TagCatalogListItem } from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -17,20 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ApiError } from "@/lib/http-client";
 
 import type { TagFormValues } from "../model/tag-form";
-import type { TagCardItem } from "../model/tags-derive";
 
 import { useUpdateTag } from "../api/use-update-tag";
-import { createTagFormSchema } from "../model/tag-form";
+import { createTagFormSchema, isDuplicateTagNameError, toTagUpdatePatch } from "../model/tag-form";
 import { TagFormFields } from "./tag-form-fields";
-
-const DUPLICATE_STATUS = 409;
 
 type EditTagDialogProps = {
   onOpenChange: (open: boolean) => void;
-  tag: null | TagCardItem;
+  tag: Nullable<TagCatalogListItem>;
 };
 
 export function EditTagDialog({ onOpenChange, tag }: EditTagDialogProps) {
@@ -43,23 +39,26 @@ export function EditTagDialog({ onOpenChange, tag }: EditTagDialogProps) {
           <DialogTitle>{t("editTitle")}</DialogTitle>
           <DialogDescription>{t("editSubtitle")}</DialogDescription>
         </DialogHeader>
-        {tag === null ? null : <EditTagForm onDone={() => onOpenChange(false)} tag={tag} />}
+        {tag === null ? null : (
+          <EditTagForm key={tag.id} onDone={() => onOpenChange(false)} tag={tag} />
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCardItem }) {
+function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCatalogListItem }) {
   const t = useTranslations("tags.tagDialog");
   const tErrors = useTranslations("tags.errors");
   const updateTag = useUpdateTag();
-  const [serverError, setServerError] = useState<null | string>(null);
+  const [formError, setFormError] = useState<Nullable<string>>(null);
 
   const {
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
     register,
+    setError,
   } = useForm<TagFormValues>({
     defaultValues: {
       color: tag.color,
@@ -80,23 +79,29 @@ function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCardItem }) 
   });
 
   const onSubmit = handleSubmit((values) => {
-    setServerError(null);
-    const input: UpdateTagInput = {
-      color: values.color,
-      description: values.description === "" ? null : values.description,
-      name: values.name,
-      type: values.type,
-    };
+    if (updateTag.isPending) return;
+    setFormError(null);
+    const input = toTagUpdatePatch(values, tag);
+
+    if (Object.keys(input).length === 0) {
+      onDone();
+      return;
+    }
 
     updateTag.mutate(
       { id: tag.id, input },
       {
-        onError: (error) =>
-          setServerError(
-            error instanceof ApiError && error.status === DUPLICATE_STATUS
-              ? tErrors("duplicate")
-              : tErrors("updateFailed"),
-          ),
+        onError: (error) => {
+          if (isDuplicateTagNameError(error)) {
+            setError(
+              "name",
+              { message: tErrors("duplicate"), type: "server" },
+              { shouldFocus: true },
+            );
+            return;
+          }
+          setFormError(tErrors("updateFailed"));
+        },
         onSuccess: () => {
           toast.success(t("editSuccess"));
           onDone();
@@ -109,9 +114,9 @@ function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCardItem }) 
     <form className="flex flex-col gap-4" noValidate onSubmit={onSubmit}>
       <TagFormFields control={control} errors={errors} idPrefix="edit-tag" register={register} />
 
-      {serverError === null ? null : (
+      {formError === null ? null : (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-          {serverError}
+          {formError}
         </p>
       )}
 
@@ -119,7 +124,11 @@ function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCardItem }) 
         <Button onClick={onDone} type="button" variant="secondary">
           {t("cancel")}
         </Button>
-        <Button disabled={updateTag.isPending} loading={updateTag.isPending} type="submit">
+        <Button
+          disabled={!isDirty || updateTag.isPending}
+          loading={updateTag.isPending}
+          type="submit"
+        >
           {t("editSubmit")}
         </Button>
       </DialogFooter>

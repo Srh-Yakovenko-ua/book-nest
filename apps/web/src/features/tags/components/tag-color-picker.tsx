@@ -1,26 +1,53 @@
 "use client";
 
+import type { TagColor } from "@app/shared";
+import type { KeyboardEvent } from "react";
+
+import { TAG_COLORS } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-import type { TagColor } from "../model/tag-color";
-
-import { TAG_COLORS, tagColorStyle } from "../model/tag-color";
+import { tagColorStyle } from "../model/tag-color";
 
 type TagColorPickerProps = {
-  id: string;
+  labelledBy: string;
   onChange: (color: TagColor) => void;
   value: TagColor;
 };
 
-export function TagColorPicker({ id, onChange, value }: TagColorPickerProps) {
+const COLOR_STEP_BY_KEY: Partial<Record<string, number>> = {
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowRight: 1,
+  ArrowUp: -1,
+};
+
+export function TagColorPicker({ labelledBy, onChange, value }: TagColorPickerProps) {
   const t = useTranslations("tags.colors");
-  const tField = useTranslations("tags.tagDialog");
+
+  function colorForKey(key: string): TagColor | undefined {
+    if (key === "Home") return TAG_COLORS[0];
+    if (key === "End") return TAG_COLORS.at(-1);
+    const step = COLOR_STEP_BY_KEY[key];
+    if (step === undefined) return undefined;
+    const count = TAG_COLORS.length;
+    return TAG_COLORS[(TAG_COLORS.indexOf(value) + step + count) % count];
+  }
+
+  function moveSelection(event: KeyboardEvent<HTMLButtonElement>) {
+    const next = colorForKey(event.key);
+    if (next === undefined) return;
+    event.preventDefault();
+    onChange(next);
+    event.currentTarget.parentElement
+      ?.querySelector<HTMLButtonElement>(`[data-color="${next}"]`)
+      ?.focus();
+  }
 
   return (
-    <div aria-label={tField("color")} className="grid grid-cols-2 gap-2" id={id} role="radiogroup">
+    <div aria-labelledby={labelledBy} className="grid grid-cols-2 gap-2" role="radiogroup">
       {TAG_COLORS.map((color) => {
         const selected = color === value;
         return (
@@ -31,10 +58,13 @@ export function TagColorPicker({ id, onChange, value }: TagColorPickerProps) {
               "focus-visible:ring-[3px] focus-visible:ring-ring/50",
               selected ? "border-ring ring-[3px] ring-ring/30" : "hover:border-accent-border",
             )}
+            data-color={color}
             key={color}
             onClick={() => onChange(color)}
+            onKeyDown={moveSelection}
             role="radio"
             style={tagColorStyle(color)}
+            tabIndex={selected ? 0 : -1}
             type="button"
           >
             <span

@@ -1,9 +1,10 @@
 "use client";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { NoteEntityRef } from "../model/note-entity";
 import type { NoteEntityPlacement } from "./note-entity-placement";
 
-import { assertNever } from "../model/assert-never";
 import { BookNoteEntityHeader } from "./book-note-entity-header";
 import { SeriesNoteEntityHeader } from "./series-note-entity-header";
 

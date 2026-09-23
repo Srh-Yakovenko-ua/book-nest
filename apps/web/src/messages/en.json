@@ -1202,13 +1202,6 @@
       "tagsTooShort": "A tag must be at least 2 characters long.",
       "tagsTooLong": "A tag can be at most 30 characters long.",
       "tagsInvalidChars": "Only letters, digits, spaces, hyphens and apostrophes are allowed.",
-      "tagsDeleteSaved": "Delete saved tag “{name}”",
-      "tagsDeleteTitle": "Delete tag?",
-      "tagsDeleteDescription": "The tag “{name}” will be permanently deleted and removed from every book that uses it. This action cannot be undone.",
-      "tagsDeleteConfirm": "Delete tag",
-      "tagsDeleteCancel": "Cancel",
-      "tagsDeleteSuccess": "Tag deleted",
-      "tagsDeleteError": "Could not delete the tag",
       "ageCategory": "Age rating",
       "ageCategoryLabels": {
         "not_specified": "Not specified",
@@ -6546,49 +6539,123 @@
     "page": {
       "metaTitle": "Tags",
       "title": "Tags",
-      "subtitle": "Create tags to mark the tropes, mood and themes of your books",
-      "addTag": "Add tag",
-      "hint": "Genres come from your books automatically, while tags are yours to create."
+      "subtitle": "Create and organise your own tag system for books and characters",
+      "addTag": "Add tag"
     },
     "summary": {
-      "tags": "Tags"
+      "cards": {
+        "totalTags": "Total tags",
+        "taggedBooks": "Tagged books",
+        "taggedCharacters": "Tagged characters",
+        "mostUsed": "Most used tag"
+      },
+      "facts": {
+        "unused": "{count} unused",
+        "allUsed": "None unused",
+        "booksShare": "{percent} of the library",
+        "charactersShare": "{percent} of all characters",
+        "leaderBreakdown": "Books: {books} · Characters: {characters}",
+        "tieMore": "{count, plural, one {# more tag} other {# more tags}}",
+        "noLeader": "No tags in use yet"
+      },
+      "error": {
+        "title": "Couldn’t load the tags overview.",
+        "retry": "Try again"
+      },
+      "panel": {
+        "trigger": "Tags overview",
+        "title": "Tags overview",
+        "subtitle": "Totals, structure and tags that need attention",
+        "close": "Close overview",
+        "detailsTitle": "Summary",
+        "tabs": {
+          "overview": "Overview",
+          "structure": "Structure",
+          "attention": "Attention"
+        }
+      }
+    },
+    "sidebar": {
+      "label": "Tags overview",
+      "attention": {
+        "title": "Needs attention",
+        "unused": "{count, plural, one {# tag isn’t used yet} other {# tags aren’t used yet}}",
+        "action": "Show unused",
+        "allUsed": "Every tag is in use, nothing needs attention."
+      },
+      "structure": {
+        "title": "Tag structure",
+        "row": "{type}: {count, plural, one {# tag} other {# tags}}, {share}"
+      },
+      "usage": {
+        "title": "Where they’re used",
+        "booksOnly": "Books only",
+        "charactersOnly": "Characters only",
+        "both": "Books and characters",
+        "unused": "Unused"
+      },
+      "palette": {
+        "title": "Tag palette",
+        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}"
+      }
     },
     "toolbar": {
       "searchTagsLabel": "Search tags",
-      "searchTagsPlaceholder": "Search a tag…",
+      "searchTagsPlaceholder": "Search by name or description…",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
-      "tagFilterLabel": "Tag filter"
+      "quickFilterLabel": "Quick tag filters"
     },
     "sortMobile": {
       "title": "Sorting",
       "tagDescription": "Choose the order of tags.",
       "close": "Close",
-      "tagTrigger": {
+      "trigger": {
+        "usage_count_desc": "Usage ↓",
         "books_count_desc": "Books ↓",
+        "characters_count_desc": "Characters ↓",
         "name_asc": "Name",
-        "type_asc": "Type"
+        "type_asc": "Type",
+        "created_desc": "Newest"
       }
     },
-    "tagSort": {
+    "sort": {
+      "usage_count_desc": "By usage",
       "books_count_desc": "By number of books",
+      "characters_count_desc": "By number of characters",
       "name_asc": "By name",
-      "type_asc": "By tag type"
+      "type_asc": "By type",
+      "created_desc": "Newest first"
     },
-    "tagFilter": {
-      "all": "All tags",
+    "quickFilter": {
+      "all": "All",
+      "used": "In use",
+      "books": "On books",
+      "characters": "On characters",
+      "unused": "Unused"
+    },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "activeCount": "({count} active)",
+      "title": "Tag filters",
+      "description": "Narrow the list by tag type and colour.",
+      "sections": {
+        "types": "Tag type",
+        "colors": "Tag colour"
+      },
+      "reset": "Reset",
+      "apply": "Apply"
+    },
+    "activeFilters": {
+      "label": "Active filters",
+      "clearAll": "Clear all",
+      "remove": "Remove filter {label}",
+      "search": "Search: {query}"
+    },
+    "types": {
       "trope": "Tropes",
       "atmosphere": "Atmosphere",
       "theme": "Themes",
-      "character": "Characters",
-      "format": "Format",
-      "custom": "Custom tags",
-      "unused": "Unused tags"
-    },
-    "types": {
-      "trope": "Trope",
-      "atmosphere": "Atmosphere",
-      "theme": "Theme",
       "character": "Characters",
       "format": "Format",
       "custom": "Custom tag"
@@ -6603,34 +6670,31 @@
       "lavender": "Lavender",
       "rose": "Dusty rose"
     },
-    "tags": {
-      "popularTitle": "Popular tags",
-      "allTitle": "All tags",
-      "chipLabel": "{name}, {count, plural, one {# book} other {# books}}",
-      "menu": "Actions for tag “{name}”",
-      "edit": "Edit",
-      "delete": "Delete",
-      "showAll": "Show all tags ({count})",
-      "showLess": "Show less",
-      "empty": {
-        "title": "You have no tags yet",
-        "description": "Create your own tags to mark books by mood, tropes, themes or favourite storylines.",
-        "action": "Add tag"
-      },
-      "noResults": {
-        "title": "No tags match this search",
-        "description": "Try another name or create a new tag."
-      }
+    "catalog": {
+      "title": "Tag catalog",
+      "loading": "Loading tags",
+      "counter": "Showing {shown} of {total} tags",
+      "loadMore": "Show more",
+      "loadMoreError": "Could not load more tags.",
+      "retry": "Try again"
+    },
+    "row": {
+      "books": "Books",
+      "characters": "Characters",
+      "usage": "Total",
+      "color": "Colour: {color}",
+      "edit": "Edit tag “{name}”",
+      "delete": "Delete tag “{name}”"
     },
     "tagDialog": {
       "addTitle": "Add tag",
       "addSubtitle": "Create your own tag for a mood, trope, theme or any book detail.",
       "addSubmit": "Add tag",
-      "addSuccess": "Tag created",
+      "addSuccess": "Tag added",
       "editTitle": "Edit tag",
       "editSubtitle": "Change the tag name, type, colour or description.",
       "editSubmit": "Save",
-      "editSuccess": "Tag updated",
+      "editSuccess": "Changes saved",
       "cancel": "Cancel",
       "name": "Tag name",
       "namePlaceholder": "For example, slow burn",
@@ -6641,14 +6705,22 @@
       "optional": "optional"
     },
     "deleteDialog": {
-      "title": "Delete tag?",
-      "bodyUnused": "This tag is not used by any book yet. It will be deleted permanently.",
-      "bodyUsed": "This tag will be removed from every book that uses it. The books themselves will not be deleted.",
-      "booksCount": "{count, plural, one {# book uses this tag} other {# books use this tag}}",
+      "title": "Delete tag “{name}”?",
+      "description": "The tag will be deleted together with all of its links.",
+      "previewLoading": "Checking where the tag is used…",
+      "previewError": "Could not check where the tag is used. Deletion becomes available once the check succeeds.",
+      "previewRetry": "Try again",
+      "bookLinks": "{count, plural, one {Its link to # book will be removed} other {Its links to # books will be removed}}",
+      "characterLinks": "{count, plural, one {Its link to # character will be removed} other {Its links to # characters will be removed}}",
+      "noLinks": "The tag is not attached to any book or character.",
+      "booksRemain": "Your books stay in your library.",
+      "charactersRemain": "Your characters stay unchanged.",
+      "irreversible": "This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete tag",
       "deleting": "Deleting…",
-      "success": "Tag deleted"
+      "success": "Tag deleted",
+      "failed": "Could not delete the tag. Please try again."
     },
     "errors": {
       "nameRequired": "Enter a tag name",
@@ -6658,8 +6730,7 @@
       "descriptionTooLong": "Description must be at most 300 characters long",
       "duplicate": "This tag already exists",
       "createFailed": "Could not create the tag",
-      "updateFailed": "Could not update the tag",
-      "deleteFailed": "Could not delete the tag"
+      "updateFailed": "Could not update the tag"
     },
     "states": {
       "error": {
@@ -6667,8 +6738,21 @@
         "description": "Try refreshing the page or repeating the request.",
         "retry": "Try again"
       },
-      "noResults": {
-        "clear": "Clear filters"
+      "firstUse": {
+        "title": "You have no tags yet",
+        "description": "Create your own tags to mark books and characters by trope, atmosphere, theme or format.",
+        "action": "Add tag"
+      },
+      "allUsed": {
+        "title": "Every tag is in use",
+        "description": "Each tag is attached to a book or a character, so nothing needs attention right now.",
+        "action": "Show all tags"
+      },
+      "contextualEmpty": {
+        "title": "No tags match these conditions",
+        "description": "Change the search or filters to see tags.",
+        "clearAll": "Clear all",
+        "clearSearch": "Clear search"
       }
     }
   },

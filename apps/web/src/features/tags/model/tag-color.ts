@@ -1,23 +1,4 @@
-import type { Nullable } from "@app/shared";
-
-import { z } from "zod";
-
-export const TAG_COLORS = [
-  "parchment",
-  "terracotta",
-  "honey",
-  "sage",
-  "forest",
-  "sky",
-  "lavender",
-  "rose",
-] as const;
-
-export type TagColor = (typeof TAG_COLORS)[number];
-
-export const TAG_COLOR_DEFAULT: TagColor = "parchment";
-
-export const TagColorSchema = z.enum(TAG_COLORS);
+import type { TagColor } from "@app/shared";
 
 export type TagColorStyle = {
   bg: string;
@@ -67,11 +48,6 @@ export const TAG_COLOR_STYLES = {
     text: "oklch(0.42 0.085 53.5)",
   },
 } as const satisfies Record<TagColor, TagColorStyle>;
-
-export function resolveTagColor(value: Nullable<string> | undefined): TagColor {
-  const parsed = TagColorSchema.safeParse(value);
-  return parsed.success ? parsed.data : TAG_COLOR_DEFAULT;
-}
 
 export function tagColorStyle(color: TagColor): {
   backgroundColor: string;

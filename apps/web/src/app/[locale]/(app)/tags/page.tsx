@@ -4,7 +4,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { Tags } from "@/features/tags";
+import { TagsView } from "@/features/tags";
 import { routing } from "@/i18n/routing";
 
 type Props = {
@@ -25,7 +25,7 @@ export default async function TagsPage({ params }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
-      <Tags />
+      <TagsView />
     </main>
   );
 }

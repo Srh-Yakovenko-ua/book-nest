@@ -5,6 +5,8 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { NotesArchiveScope } from "../model/notes-archive-config";
 import type { UseNotesArchiveQueryResult } from "../model/use-notes-archive-query";
 import type { NotesContextualColumn } from "./notes-archive-page-shell";
@@ -16,7 +18,6 @@ import { useNotesSummary } from "../api/use-notes-summary";
 import { useIsWideViewport } from "../hooks/use-is-wide-viewport";
 import { useNoteRediscoveryImpressions } from "../hooks/use-note-rediscovery-impression";
 import { usePostFinishReview } from "../hooks/use-post-finish-review";
-import { assertNever } from "../model/assert-never";
 import { notesArchiveListState } from "../model/notes-archive-list-state";
 import { hasContextualBlocks } from "../model/notes-overview";
 import {

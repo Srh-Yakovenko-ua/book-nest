@@ -3,6 +3,7 @@ import type { NoteView } from "@app/shared";
 import { NoteViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { assertNever } from "@/lib/assert-never";
 import {
   noteControllerCreateBookNote,
   noteControllerCreateSeriesNote,
@@ -10,7 +11,6 @@ import {
 
 import type { NoteCreateRequest } from "../model/note-form-schema";
 
-import { assertNever } from "../model/assert-never";
 import { refreshAfterNoteMutation } from "./note-mutation-effects";
 
 export function useCreateNote() {

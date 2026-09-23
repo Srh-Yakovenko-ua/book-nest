@@ -13,7 +13,9 @@ import * as zod from "zod";
 export const tagsControllerCreateBodyTypeDefault = `custom`;
 
 export const TagsControllerCreateBody = zod.object({
-  color: zod.string().optional(),
+  color: zod
+    .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+    .optional(),
   description: zod.string().optional(),
   name: zod.string(),
   type: zod
@@ -61,25 +63,332 @@ export const TagsControllerSearchQueryParams = zod.object({
 export const TagsControllerSearchResponse = zod.unknown();
 
 /**
- * @summary Get per-tag usage statistics for the current user
+ * @summary List the current user's tags for management with search, a quick filter, type and color filters, sort and pagination
  */
-export const tagsControllerStatsResponseBooksCountMin = -9007199254740991;
-export const tagsControllerStatsResponseBooksCountMax = 9007199254740991;
+export const tagsControllerCatalogQueryQMax = 100;
 
-export const TagsControllerStatsResponseItem = zod.object({
-  booksCount: zod
+export const tagsControllerCatalogQueryPageNumberDefault = 1;
+export const tagsControllerCatalogQueryPageNumberMax = 1000;
+
+export const tagsControllerCatalogQueryPageSizeDefault = 20;
+export const tagsControllerCatalogQueryPageSizeMax = 100;
+
+export const TagsControllerCatalogQueryParams = zod.object({
+  color: zod
+    .array(
+      zod.enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"]),
+    )
+    .optional(),
+  q: zod.string().max(tagsControllerCatalogQueryQMax).optional(),
+  type: zod
+    .array(zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]))
+    .optional(),
+  filter: zod.enum(["all", "used", "books", "characters", "unused"]).optional(),
+  pageNumber: zod
     .int()
-    .min(tagsControllerStatsResponseBooksCountMin)
-    .max(tagsControllerStatsResponseBooksCountMax),
-  color: zod.string().nullable(),
-  description: zod.string().nullable(),
-  id: zod.string(),
-  lastUsedAt: zod.string().nullable(),
-  name: zod.string(),
-  normalizedName: zod.string(),
-  type: zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]),
+    .min(1)
+    .max(tagsControllerCatalogQueryPageNumberMax)
+    .default(tagsControllerCatalogQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(tagsControllerCatalogQueryPageSizeMax)
+    .default(tagsControllerCatalogQueryPageSizeDefault),
+  sort: zod
+    .enum([
+      "usage_count_desc",
+      "books_count_desc",
+      "characters_count_desc",
+      "name_asc",
+      "type_asc",
+      "created_desc",
+    ])
+    .optional(),
 });
-export const TagsControllerStatsResponse = zod.array(TagsControllerStatsResponseItem);
+
+export const tagsControllerCatalogResponseItemsItemBooksCountMin = 0;
+export const tagsControllerCatalogResponseItemsItemBooksCountMax = 9007199254740991;
+
+export const tagsControllerCatalogResponseItemsItemCharactersCountMin = 0;
+export const tagsControllerCatalogResponseItemsItemCharactersCountMax = 9007199254740991;
+
+export const tagsControllerCatalogResponseItemsItemUsageCountMin = 0;
+export const tagsControllerCatalogResponseItemsItemUsageCountMax = 9007199254740991;
+
+export const tagsControllerCatalogResponsePageMin = -9007199254740991;
+export const tagsControllerCatalogResponsePageMax = 9007199254740991;
+
+export const tagsControllerCatalogResponsePagesCountMin = -9007199254740991;
+export const tagsControllerCatalogResponsePagesCountMax = 9007199254740991;
+
+export const tagsControllerCatalogResponsePageSizeMin = -9007199254740991;
+export const tagsControllerCatalogResponsePageSizeMax = 9007199254740991;
+
+export const tagsControllerCatalogResponseTotalCountMin = -9007199254740991;
+export const tagsControllerCatalogResponseTotalCountMax = 9007199254740991;
+
+export const TagsControllerCatalogResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      booksCount: zod
+        .int()
+        .min(tagsControllerCatalogResponseItemsItemBooksCountMin)
+        .max(tagsControllerCatalogResponseItemsItemBooksCountMax),
+      charactersCount: zod
+        .int()
+        .min(tagsControllerCatalogResponseItemsItemCharactersCountMin)
+        .max(tagsControllerCatalogResponseItemsItemCharactersCountMax),
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
+      description: zod.string().nullable(),
+      id: zod.string(),
+      name: zod.string(),
+      type: zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]),
+      usageCount: zod
+        .int()
+        .min(tagsControllerCatalogResponseItemsItemUsageCountMin)
+        .max(tagsControllerCatalogResponseItemsItemUsageCountMax)
+        .describe("booksCount + charactersCount"),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(tagsControllerCatalogResponsePageMin)
+    .max(tagsControllerCatalogResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(tagsControllerCatalogResponsePagesCountMin)
+    .max(tagsControllerCatalogResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(tagsControllerCatalogResponsePageSizeMin)
+    .max(tagsControllerCatalogResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(tagsControllerCatalogResponseTotalCountMin)
+    .max(tagsControllerCatalogResponseTotalCountMax),
+});
+
+/**
+ * @summary Get the Tags catalog quick-filter counts; they honour search, type and color but ignore the quick filter, sort and pagination
+ */
+export const tagsControllerCatalogFacetsQueryQMax = 100;
+
+export const TagsControllerCatalogFacetsQueryParams = zod.object({
+  color: zod
+    .array(
+      zod.enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"]),
+    )
+    .optional(),
+  q: zod.string().max(tagsControllerCatalogFacetsQueryQMax).optional(),
+  type: zod
+    .array(zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]))
+    .optional(),
+});
+
+export const tagsControllerCatalogFacetsResponseQuickCountsAllMin = 0;
+export const tagsControllerCatalogFacetsResponseQuickCountsAllMax = 9007199254740991;
+
+export const tagsControllerCatalogFacetsResponseQuickCountsBooksMin = 0;
+export const tagsControllerCatalogFacetsResponseQuickCountsBooksMax = 9007199254740991;
+
+export const tagsControllerCatalogFacetsResponseQuickCountsCharactersMin = 0;
+export const tagsControllerCatalogFacetsResponseQuickCountsCharactersMax = 9007199254740991;
+
+export const tagsControllerCatalogFacetsResponseQuickCountsUnusedMin = 0;
+export const tagsControllerCatalogFacetsResponseQuickCountsUnusedMax = 9007199254740991;
+
+export const tagsControllerCatalogFacetsResponseQuickCountsUsedMin = 0;
+export const tagsControllerCatalogFacetsResponseQuickCountsUsedMax = 9007199254740991;
+
+export const TagsControllerCatalogFacetsResponse = zod.object({
+  quickCounts: zod
+    .object({
+      all: zod
+        .int()
+        .min(tagsControllerCatalogFacetsResponseQuickCountsAllMin)
+        .max(tagsControllerCatalogFacetsResponseQuickCountsAllMax),
+      books: zod
+        .int()
+        .min(tagsControllerCatalogFacetsResponseQuickCountsBooksMin)
+        .max(tagsControllerCatalogFacetsResponseQuickCountsBooksMax),
+      characters: zod
+        .int()
+        .min(tagsControllerCatalogFacetsResponseQuickCountsCharactersMin)
+        .max(tagsControllerCatalogFacetsResponseQuickCountsCharactersMax),
+      unused: zod
+        .int()
+        .min(tagsControllerCatalogFacetsResponseQuickCountsUnusedMin)
+        .max(tagsControllerCatalogFacetsResponseQuickCountsUnusedMax),
+      used: zod
+        .int()
+        .min(tagsControllerCatalogFacetsResponseQuickCountsUsedMin)
+        .max(tagsControllerCatalogFacetsResponseQuickCountsUsedMax),
+    })
+    .describe(
+      "Quick-filter counts under the committed search, type and color; books and characters may overlap.",
+    ),
+});
+
+/**
+ * @summary Get the Tags summary, independent of search, filters, sort and pagination
+ */
+export const tagsControllerSummaryResponseColorCountsMinOne = 0;
+export const tagsControllerSummaryResponseColorCountsMaxOne = 9007199254740991;
+
+export const tagsControllerSummaryResponseMostUsedLeadersItemBooksCountMin = 0;
+export const tagsControllerSummaryResponseMostUsedLeadersItemBooksCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseMostUsedLeadersItemCharactersCountMin = 0;
+export const tagsControllerSummaryResponseMostUsedLeadersItemCharactersCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseMostUsedLeadersMax = 2;
+
+export const tagsControllerSummaryResponseMostUsedLeadersCountExclusiveMin = 0;
+export const tagsControllerSummaryResponseMostUsedLeadersCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseMostUsedUsageCountMin = 0;
+export const tagsControllerSummaryResponseMostUsedUsageCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseTaggedBooksCountMin = 0;
+export const tagsControllerSummaryResponseTaggedBooksCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseTaggedCharactersCountMin = 0;
+export const tagsControllerSummaryResponseTaggedCharactersCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseTotalBooksCountMin = 0;
+export const tagsControllerSummaryResponseTotalBooksCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseTotalCharactersCountMin = 0;
+export const tagsControllerSummaryResponseTotalCharactersCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseTotalTagsCountMin = 0;
+export const tagsControllerSummaryResponseTotalTagsCountMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseTypeCountsMinOne = 0;
+export const tagsControllerSummaryResponseTypeCountsMaxOne = 9007199254740991;
+
+export const tagsControllerSummaryResponseUsageDistributionBooksOnlyMin = 0;
+export const tagsControllerSummaryResponseUsageDistributionBooksOnlyMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseUsageDistributionBothMin = 0;
+export const tagsControllerSummaryResponseUsageDistributionBothMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseUsageDistributionCharactersOnlyMin = 0;
+export const tagsControllerSummaryResponseUsageDistributionCharactersOnlyMax = 9007199254740991;
+
+export const tagsControllerSummaryResponseUsageDistributionUnusedMin = 0;
+export const tagsControllerSummaryResponseUsageDistributionUnusedMax = 9007199254740991;
+
+export const TagsControllerSummaryResponse = zod.object({
+  colorCounts: zod.record(
+    zod.string(),
+    zod
+      .int()
+      .min(tagsControllerSummaryResponseColorCountsMinOne)
+      .max(tagsControllerSummaryResponseColorCountsMaxOne),
+  ),
+  mostUsed: zod
+    .object({
+      leaders: zod
+        .array(
+          zod.object({
+            booksCount: zod
+              .int()
+              .min(tagsControllerSummaryResponseMostUsedLeadersItemBooksCountMin)
+              .max(tagsControllerSummaryResponseMostUsedLeadersItemBooksCountMax),
+            charactersCount: zod
+              .int()
+              .min(tagsControllerSummaryResponseMostUsedLeadersItemCharactersCountMin)
+              .max(tagsControllerSummaryResponseMostUsedLeadersItemCharactersCountMax),
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        )
+        .max(tagsControllerSummaryResponseMostUsedLeadersMax)
+        .describe("At most two tied leaders ordered by name, then id."),
+      leadersCount: zod
+        .int()
+        .gt(tagsControllerSummaryResponseMostUsedLeadersCountExclusiveMin)
+        .max(tagsControllerSummaryResponseMostUsedLeadersCountMax)
+        .describe("Total number of tied leaders."),
+      usageCount: zod
+        .int()
+        .min(tagsControllerSummaryResponseMostUsedUsageCountMin)
+        .max(tagsControllerSummaryResponseMostUsedUsageCountMax),
+    })
+    .nullable(),
+  taggedBooksCount: zod
+    .int()
+    .min(tagsControllerSummaryResponseTaggedBooksCountMin)
+    .max(tagsControllerSummaryResponseTaggedBooksCountMax),
+  taggedCharactersCount: zod
+    .int()
+    .min(tagsControllerSummaryResponseTaggedCharactersCountMin)
+    .max(tagsControllerSummaryResponseTaggedCharactersCountMax),
+  totalBooksCount: zod
+    .int()
+    .min(tagsControllerSummaryResponseTotalBooksCountMin)
+    .max(tagsControllerSummaryResponseTotalBooksCountMax),
+  totalCharactersCount: zod
+    .int()
+    .min(tagsControllerSummaryResponseTotalCharactersCountMin)
+    .max(tagsControllerSummaryResponseTotalCharactersCountMax),
+  totalTagsCount: zod
+    .int()
+    .min(tagsControllerSummaryResponseTotalTagsCountMin)
+    .max(tagsControllerSummaryResponseTotalTagsCountMax),
+  typeCounts: zod.record(
+    zod.string(),
+    zod
+      .int()
+      .min(tagsControllerSummaryResponseTypeCountsMinOne)
+      .max(tagsControllerSummaryResponseTypeCountsMaxOne),
+  ),
+  usageDistribution: zod.object({
+    booksOnly: zod
+      .int()
+      .min(tagsControllerSummaryResponseUsageDistributionBooksOnlyMin)
+      .max(tagsControllerSummaryResponseUsageDistributionBooksOnlyMax),
+    both: zod
+      .int()
+      .min(tagsControllerSummaryResponseUsageDistributionBothMin)
+      .max(tagsControllerSummaryResponseUsageDistributionBothMax),
+    charactersOnly: zod
+      .int()
+      .min(tagsControllerSummaryResponseUsageDistributionCharactersOnlyMin)
+      .max(tagsControllerSummaryResponseUsageDistributionCharactersOnlyMax),
+    unused: zod
+      .int()
+      .min(tagsControllerSummaryResponseUsageDistributionUnusedMin)
+      .max(tagsControllerSummaryResponseUsageDistributionUnusedMax),
+  }),
+});
+
+/**
+ * @summary Preview the links removed by deleting a tag of the current user
+ */
+export const TagsControllerDeletionPreviewParams = zod.object({
+  id: zod.string(),
+});
+
+export const tagsControllerDeletionPreviewResponseBookLinksCountMin = 0;
+export const tagsControllerDeletionPreviewResponseBookLinksCountMax = 9007199254740991;
+
+export const tagsControllerDeletionPreviewResponseCharacterLinksCountMin = 0;
+export const tagsControllerDeletionPreviewResponseCharacterLinksCountMax = 9007199254740991;
+
+export const TagsControllerDeletionPreviewResponse = zod.object({
+  bookLinksCount: zod
+    .int()
+    .min(tagsControllerDeletionPreviewResponseBookLinksCountMin)
+    .max(tagsControllerDeletionPreviewResponseBookLinksCountMax),
+  characterLinksCount: zod
+    .int()
+    .min(tagsControllerDeletionPreviewResponseCharacterLinksCountMin)
+    .max(tagsControllerDeletionPreviewResponseCharacterLinksCountMax),
+});
 
 /**
  * @summary Update a tag of the current user
@@ -89,7 +398,19 @@ export const TagsControllerUpdateParams = zod.object({
 });
 
 export const TagsControllerUpdateBody = zod.object({
-  color: zod.string().nullish(),
+  color: zod
+    .union([
+      zod.literal("parchment"),
+      zod.literal("terracotta"),
+      zod.literal("honey"),
+      zod.literal("sage"),
+      zod.literal("forest"),
+      zod.literal("sky"),
+      zod.literal("lavender"),
+      zod.literal("rose"),
+      zod.literal(null),
+    ])
+    .nullish(),
   description: zod.string().nullish(),
   name: zod.string().optional(),
   type: zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]).optional(),

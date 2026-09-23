@@ -1,10 +1,11 @@
 import type { EntityNotesView, NoteEntityType, NoteView, Nullable, Paginator } from "@app/shared";
 import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { NotesArchiveScope } from "../model/notes-archive-config";
 import type { NotesArchivePart } from "./notes-keys";
 
-import { assertNever } from "../model/assert-never";
 import { noteEntityRefFromNote } from "../model/note-entity";
 import { NOTES_ARCHIVE_SCOPE_BY_ENTITY } from "../model/notes-archive-config";
 import { notesKeys } from "./notes-keys";

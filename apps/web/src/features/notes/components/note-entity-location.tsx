@@ -2,9 +2,10 @@
 
 import type { NoteView } from "@app/shared";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { NoteEntityPlacement } from "./note-entity-placement";
 
-import { assertNever } from "../model/assert-never";
 import { BookNoteLocation } from "./book-note-location";
 import { SeriesNoteSavedLocation } from "./series-note-saved-location";
 

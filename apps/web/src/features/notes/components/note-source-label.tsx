@@ -7,8 +7,7 @@ import { useTranslations } from "next-intl";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
-
-import { assertNever } from "../model/assert-never";
+import { assertNever } from "@/lib/assert-never";
 
 type SourceBook = { seriesPosition: Nullable<number>; title: string };
 

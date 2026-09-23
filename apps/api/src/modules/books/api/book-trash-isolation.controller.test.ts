@@ -146,8 +146,13 @@ describe("a trashed book disappears from every derived surface", () => {
     expect(genresAfter.body.totalCount).toBe(1);
     expect(genreCountsOf(genresAfter.body.items)).toEqual({ [liveGenreKey]: 1 });
 
-    const tagsAfter = await authed("get", "/api/tags/stats", accessToken);
-    expect(tagsAfter.body.every((tag: { booksCount: number }) => tag.booksCount === 0)).toBe(true);
+    const tagsAfter = await authed("get", "/api/tags/catalog", accessToken);
+    expect(
+      tagsAfter.body.items.map((tag: { booksCount: number; name: string }) => ({
+        booksCount: tag.booksCount,
+        name: tag.name,
+      })),
+    ).toEqual([{ booksCount: 0, name: "classic" }]);
   });
 
   it("stops counting towards the publishers summary", async () => {

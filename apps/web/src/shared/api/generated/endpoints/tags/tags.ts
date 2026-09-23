@@ -20,9 +20,14 @@ import type {
 
 import type {
   CreateTagDto,
+  PaginatedTagCatalogDto,
   TagCatalogViewDto,
-  TagStatsViewDto,
+  TagDeletionPreviewViewDto,
+  TagsCatalogFacetsViewDto,
+  TagsControllerCatalogFacetsParams,
+  TagsControllerCatalogParams,
   TagsControllerSearchParams,
+  TagsSummaryViewDto,
   UpdateTagDto,
 } from "../../model";
 
@@ -377,85 +382,120 @@ export function useTagsControllerSearch<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type tagsControllerStatsResponse200 = {
-  data: TagStatsViewDto[];
+export type tagsControllerCatalogResponse200 = {
+  data: PaginatedTagCatalogDto;
   status: 200;
 };
 
-export type tagsControllerStatsResponse401 = {
+export type tagsControllerCatalogResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type tagsControllerCatalogResponse401 = {
   data: void;
   status: 401;
 };
 
-export type tagsControllerStatsResponseSuccess = tagsControllerStatsResponse200 & {
+export type tagsControllerCatalogResponseSuccess = tagsControllerCatalogResponse200 & {
   headers: Headers;
 };
-export type tagsControllerStatsResponseError = tagsControllerStatsResponse401 & {
+export type tagsControllerCatalogResponseError = (
+  tagsControllerCatalogResponse400 | tagsControllerCatalogResponse401
+) & {
   headers: Headers;
 };
 
-export type tagsControllerStatsResponse =
-  tagsControllerStatsResponseSuccess | tagsControllerStatsResponseError;
+export type tagsControllerCatalogResponse =
+  tagsControllerCatalogResponseSuccess | tagsControllerCatalogResponseError;
 
-export const getTagsControllerStatsUrl = () => {
-  return `/api/tags/stats`;
+export const getTagsControllerCatalogUrl = (params?: TagsControllerCatalogParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["color", "type"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tags/catalog?${stringifiedParams}`
+    : `/api/tags/catalog`;
 };
 
 /**
- * @summary Get per-tag usage statistics for the current user
+ * @summary List the current user's tags for management with search, a quick filter, type and color filters, sort and pagination
  */
-export const tagsControllerStats = async (
+export const tagsControllerCatalog = async (
+  params?: TagsControllerCatalogParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<tagsControllerStatsResponse> => {
-  return customInstance<tagsControllerStatsResponse>(getTagsControllerStatsUrl(), {
+): Promise<tagsControllerCatalogResponse> => {
+  return customInstance<tagsControllerCatalogResponse>(getTagsControllerCatalogUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getTagsControllerStatsQueryKey = () => {
-  return [`/api/tags/stats`] as const;
+export const getTagsControllerCatalogQueryKey = (params?: TagsControllerCatalogParams) => {
+  return [`/api/tags/catalog`, ...(params ? [params] : [])] as const;
 };
 
-export const getTagsControllerStatsQueryOptions = <
-  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+export const getTagsControllerCatalogQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerCatalog>>,
   TError = void,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>>;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: TagsControllerCatalogParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalog>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getTagsControllerStatsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerCatalogQueryKey(params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerStats>>> = ({ signal }) =>
-    tagsControllerStats({ signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerCatalog>>> = ({ signal }) =>
+    tagsControllerCatalog(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof tagsControllerStats>>,
+    Awaited<ReturnType<typeof tagsControllerCatalog>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type TagsControllerStatsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof tagsControllerStats>>
+export type TagsControllerCatalogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerCatalog>>
 >;
-export type TagsControllerStatsQueryError = void;
+export type TagsControllerCatalogQueryError = void;
 
-export function useTagsControllerStats<
-  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+export function useTagsControllerCatalog<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalog>>,
   TError = void,
 >(
+  params: undefined | TagsControllerCatalogParams,
   options: {
     query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalog>>, TError, TData>
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof tagsControllerStats>>,
+          Awaited<ReturnType<typeof tagsControllerCatalog>>,
           TError,
-          Awaited<ReturnType<typeof tagsControllerStats>>
+          Awaited<ReturnType<typeof tagsControllerCatalog>>
         >,
         "initialData"
       >;
@@ -463,19 +503,20 @@ export function useTagsControllerStats<
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useTagsControllerStats<
-  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+export function useTagsControllerCatalog<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalog>>,
   TError = void,
 >(
+  params?: TagsControllerCatalogParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalog>>, TError, TData>
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof tagsControllerStats>>,
+          Awaited<ReturnType<typeof tagsControllerCatalog>>,
           TError,
-          Awaited<ReturnType<typeof tagsControllerStats>>
+          Awaited<ReturnType<typeof tagsControllerCatalog>>
         >,
         "initialData"
       >;
@@ -483,35 +524,537 @@ export function useTagsControllerStats<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useTagsControllerStats<
-  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+export function useTagsControllerCatalog<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalog>>,
   TError = void,
 >(
+  params?: TagsControllerCatalogParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalog>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get per-tag usage statistics for the current user
+ * @summary List the current user's tags for management with search, a quick filter, type and color filters, sort and pagination
  */
 
-export function useTagsControllerStats<
-  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+export function useTagsControllerCatalog<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalog>>,
   TError = void,
 >(
+  params?: TagsControllerCatalogParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalog>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getTagsControllerStatsQueryOptions(options);
+  const queryOptions = getTagsControllerCatalogQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type tagsControllerCatalogFacetsResponse200 = {
+  data: TagsCatalogFacetsViewDto;
+  status: 200;
+};
+
+export type tagsControllerCatalogFacetsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type tagsControllerCatalogFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerCatalogFacetsResponseSuccess = tagsControllerCatalogFacetsResponse200 & {
+  headers: Headers;
+};
+export type tagsControllerCatalogFacetsResponseError = (
+  tagsControllerCatalogFacetsResponse400 | tagsControllerCatalogFacetsResponse401
+) & {
+  headers: Headers;
+};
+
+export type tagsControllerCatalogFacetsResponse =
+  tagsControllerCatalogFacetsResponseSuccess | tagsControllerCatalogFacetsResponseError;
+
+export const getTagsControllerCatalogFacetsUrl = (params?: TagsControllerCatalogFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["color", "type"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tags/catalog/facets?${stringifiedParams}`
+    : `/api/tags/catalog/facets`;
+};
+
+/**
+ * @summary Get the Tags catalog quick-filter counts; they honour search, type and color but ignore the quick filter, sort and pagination
+ */
+export const tagsControllerCatalogFacets = async (
+  params?: TagsControllerCatalogFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<tagsControllerCatalogFacetsResponse> => {
+  return customInstance<tagsControllerCatalogFacetsResponse>(
+    getTagsControllerCatalogFacetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getTagsControllerCatalogFacetsQueryKey = (
+  params?: TagsControllerCatalogFacetsParams,
+) => {
+  return [`/api/tags/catalog/facets`, ...(params ? [params] : [])] as const;
+};
+
+export const getTagsControllerCatalogFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+  TError = void,
+>(
+  params?: TagsControllerCatalogFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalogFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerCatalogFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerCatalogFacets>>> = ({
+    signal,
+  }) => tagsControllerCatalogFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TagsControllerCatalogFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerCatalogFacets>>
+>;
+export type TagsControllerCatalogFacetsQueryError = void;
+
+export function useTagsControllerCatalogFacets<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+  TError = void,
+>(
+  params: undefined | TagsControllerCatalogFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalogFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerCatalogFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerCatalogFacets<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+  TError = void,
+>(
+  params?: TagsControllerCatalogFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalogFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerCatalogFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerCatalogFacets<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+  TError = void,
+>(
+  params?: TagsControllerCatalogFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalogFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the Tags catalog quick-filter counts; they honour search, type and color but ignore the quick filter, sort and pagination
+ */
+
+export function useTagsControllerCatalogFacets<
+  TData = Awaited<ReturnType<typeof tagsControllerCatalogFacets>>,
+  TError = void,
+>(
+  params?: TagsControllerCatalogFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCatalogFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerCatalogFacetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type tagsControllerSummaryResponse200 = {
+  data: TagsSummaryViewDto;
+  status: 200;
+};
+
+export type tagsControllerSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerSummaryResponseSuccess = tagsControllerSummaryResponse200 & {
+  headers: Headers;
+};
+export type tagsControllerSummaryResponseError = tagsControllerSummaryResponse401 & {
+  headers: Headers;
+};
+
+export type tagsControllerSummaryResponse =
+  tagsControllerSummaryResponseSuccess | tagsControllerSummaryResponseError;
+
+export const getTagsControllerSummaryUrl = () => {
+  return `/api/tags/summary`;
+};
+
+/**
+ * @summary Get the Tags summary, independent of search, filters, sort and pagination
+ */
+export const tagsControllerSummary = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<tagsControllerSummaryResponse> => {
+  return customInstance<tagsControllerSummaryResponse>(getTagsControllerSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getTagsControllerSummaryQueryKey = () => {
+  return [`/api/tags/summary`] as const;
+};
+
+export const getTagsControllerSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof tagsControllerSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerSummary>>> = ({ signal }) =>
+    tagsControllerSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof tagsControllerSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TagsControllerSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerSummary>>
+>;
+export type TagsControllerSummaryQueryError = void;
+
+export function useTagsControllerSummary<
+  TData = Awaited<ReturnType<typeof tagsControllerSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerSummary>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerSummary<
+  TData = Awaited<ReturnType<typeof tagsControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerSummary>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerSummary<
+  TData = Awaited<ReturnType<typeof tagsControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the Tags summary, independent of search, filters, sort and pagination
+ */
+
+export function useTagsControllerSummary<
+  TData = Awaited<ReturnType<typeof tagsControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type tagsControllerDeletionPreviewResponse200 = {
+  data: TagDeletionPreviewViewDto;
+  status: 200;
+};
+
+export type tagsControllerDeletionPreviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerDeletionPreviewResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type tagsControllerDeletionPreviewResponseSuccess =
+  tagsControllerDeletionPreviewResponse200 & {
+    headers: Headers;
+  };
+export type tagsControllerDeletionPreviewResponseError = (
+  tagsControllerDeletionPreviewResponse401 | tagsControllerDeletionPreviewResponse404
+) & {
+  headers: Headers;
+};
+
+export type tagsControllerDeletionPreviewResponse =
+  tagsControllerDeletionPreviewResponseSuccess | tagsControllerDeletionPreviewResponseError;
+
+export const getTagsControllerDeletionPreviewUrl = (id: string) => {
+  return `/api/tags/${id}/deletion-preview`;
+};
+
+/**
+ * @summary Preview the links removed by deleting a tag of the current user
+ */
+export const tagsControllerDeletionPreview = async (
+  id: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<tagsControllerDeletionPreviewResponse> => {
+  return customInstance<tagsControllerDeletionPreviewResponse>(
+    getTagsControllerDeletionPreviewUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getTagsControllerDeletionPreviewQueryKey = (id: string) => {
+  return [`/api/tags/${id}/deletion-preview`] as const;
+};
+
+export const getTagsControllerDeletionPreviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerDeletionPreviewQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>> = ({
+    signal,
+  }) => tagsControllerDeletionPreview(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type TagsControllerDeletionPreviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerDeletionPreview>>
+>;
+export type TagsControllerDeletionPreviewQueryError = void;
+
+export function useTagsControllerDeletionPreview<
+  TData = Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerDeletionPreview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerDeletionPreview<
+  TData = Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerDeletionPreview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerDeletionPreview<
+  TData = Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Preview the links removed by deleting a tag of the current user
+ */
+
+export function useTagsControllerDeletionPreview<
+  TData = Awaited<ReturnType<typeof tagsControllerDeletionPreview>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDeletionPreview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerDeletionPreviewQueryOptions(id, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

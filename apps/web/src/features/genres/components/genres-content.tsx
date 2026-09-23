@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -19,7 +20,6 @@ import type {
   GenresNextPageState,
 } from "../model/genres-list-state";
 
-import { assertNever } from "../model/assert-never";
 import { GenreCard } from "./genre-card";
 
 const GENRES_GRID = {
