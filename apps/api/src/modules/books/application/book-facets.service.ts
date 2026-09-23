@@ -29,10 +29,7 @@ export class BookFacetsService {
       return { authors, genres: [] };
     }
 
-    const names = await this.genresService.findNamesByKeys({
-      keys: genreRows.map((row) => row.key),
-      userId,
-    });
+    const names = await this.genresService.findNamesByKeys(genreRows.map((row) => row.key));
     const nameByKey = new Map(names.map((entry) => [entry.key, entry.name]));
 
     return { authors, genres: nameGenreFacets({ nameByKey, rows: genreRows }) };

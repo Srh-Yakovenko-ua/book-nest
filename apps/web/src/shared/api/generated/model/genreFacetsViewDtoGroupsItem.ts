@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export interface CreateGenreDto {
-  name: string;
-}
+export type GenreFacetsViewDtoGroupsItem = {
+  key: string;
+  label: string;
+};

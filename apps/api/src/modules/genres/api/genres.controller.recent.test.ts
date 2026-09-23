@@ -282,8 +282,9 @@ describe("GET /api/genres/recent", () => {
     expect(recentKeys(res.body)).toEqual(["fantasy"]);
   });
 
-  it("includes a custom genre the user owns and used in a book", async () => {
+  it("excludes a genre row the user owns because only system genres count", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedGenre({ key: "fantasy", name: "Fantasy" });
     await seedGenre({
       groupKey: "custom",
       groupName: "Custom",
@@ -292,12 +293,20 @@ describe("GET /api/genres/recent", () => {
       name: "Comfort Reads",
       userId,
     });
-    await seedBook({ genres: ["comfort-reads"], userId });
+    await seedBook({
+      createdAt: new Date("2026-03-01T10:00:00.000Z"),
+      genres: ["comfort-reads"],
+      userId,
+    });
+    await seedBook({
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      genres: ["fantasy"],
+      userId,
+    });
 
-    const res = await getRecent(accessToken);
+    const res = await getRecent(accessToken, "limit=1");
 
     expect(res.status).toBe(200);
-    expect(recentKeys(res.body)).toEqual(["comfort-reads"]);
-    expect(res.body[0].isDefault).toBe(false);
+    expect(recentKeys(res.body)).toEqual(["fantasy"]);
   });
 });

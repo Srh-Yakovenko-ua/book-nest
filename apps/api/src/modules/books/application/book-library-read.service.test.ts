@@ -181,7 +181,7 @@ describe("BookLibraryReadService.list", () => {
       userId: USER_ID,
     });
 
-    expect(genresService.searchKeys).toHaveBeenCalledWith({ query: "9", userId: USER_ID });
+    expect(genresService.searchKeys).toHaveBeenCalledWith("9");
     expect(repository.listForLibrary).toHaveBeenCalledWith(
       expect.objectContaining({ filter: expect.objectContaining({ search: "9" }) }),
     );
@@ -197,7 +197,7 @@ describe("BookLibraryReadService.list", () => {
       userId: USER_ID,
     });
 
-    expect(genresService.searchKeys).toHaveBeenCalledWith({ query: "ab", userId: USER_ID });
+    expect(genresService.searchKeys).toHaveBeenCalledWith("ab");
     expect(repository.listForLibrary).toHaveBeenCalledWith(
       expect.objectContaining({ filter: expect.objectContaining({ search: "ab" }) }),
     );

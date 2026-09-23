@@ -6,30 +6,34 @@
  * OpenAPI spec version: 1.0
  */
 
-export interface GenreStatsViewDto {
+export type GenreSummaryViewDtoMostFrequentLeadersItem = {
   /** @nullable */
   averageRating: number | null;
   /**
-   * @minimum -9007199254740991
+   * @minimum 0
    * @maximum 9007199254740991
    */
   booksCount: number;
-  coverUrls: string[];
   key: string;
   label: string;
   /**
-   * @minimum -9007199254740991
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  ratedBooksCount: number;
+  /**
+   * @minimum 0
    * @maximum 9007199254740991
    */
   readCount: number;
   /**
-   * @minimum -9007199254740991
+   * @minimum 0
    * @maximum 9007199254740991
    */
   readingQueueCount: number;
   /**
-   * @minimum -9007199254740991
+   * @minimum 0
    * @maximum 9007199254740991
    */
   wantToBuyCount: number;
-}
+};

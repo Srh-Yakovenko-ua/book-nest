@@ -285,10 +285,7 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
       userId: USER_ID,
     });
 
-    expect(genresService.assertGenresSelectable).toHaveBeenCalledWith(USER_ID, [
-      "fentezi",
-      "romantyka",
-    ]);
+    expect(genresService.assertGenresSelectable).toHaveBeenCalledWith(["fentezi", "romantyka"]);
   });
 
   it("propagates a genres validation rejection", async () => {
@@ -894,10 +891,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       userId: USER_ID,
     });
 
-    expect(genresService.assertGenresSelectable).toHaveBeenCalledWith(USER_ID, [
-      "fentezi",
-      "romantyka",
-    ]);
+    expect(genresService.assertGenresSelectable).toHaveBeenCalledWith(["fentezi", "romantyka"]);
   });
 
   it("does not assert genres when the genres field is absent", async () => {
