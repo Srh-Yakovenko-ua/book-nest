@@ -1,0 +1,1314 @@
+{
+  "spec": "docs/11_booknest-tags-refactor-final/ (00-README.md .. 07-CONTEXT-MANIFEST.md)",
+  "generatedAt": "2026-09-23T13:29:58Z",
+  "baseCommit": "3a3974dd (origin/dev, Merge PR #218 fix/genres)",
+  "worktree": ".claude/worktrees/fix-tags (branch fix/tags)",
+  "scope": {
+    "included": [
+      "01 FINAL product contract (all sections)",
+      "02 backend contract (catalog, facets, summary, deletion preview, validation, OpenAPI, TagType invariant)",
+      "03 frontend contract (features/tags rebuild on URL state + server read models)",
+      "04 integrations (central invalidation, picker, Book/Character consumers, /genres-tags removal)",
+      "05 acceptance matrix as verification contract",
+      "06 seven-phase order and gates"
+    ],
+    "excluded": [
+      "Frontend CharacterTag assignment UI: no FE code sends tagIds today (only BE PATCH book-character accepts it, packages/shared/src/characters.ts:321; book-characters.service.ts:277-281). 01 §26 excludes Character management redesign, so I-CHAR-01 is verified on the backend only and the FE relation-invalidation part has no caller to wire.",
+      "FE Book restore/purge invalidation: no FE caller of booksControllerRestore or purge exists (grep over apps/web/src, generated excluded). Nothing to wire.",
+      "Character archive invalidation: no endpoint writes Character.archivedAt except portability import (character-portability.ts:494), which has no FE caller.",
+      "Persisted color normalization migration: 01 §11 and 02 §6 choose runtime resolution to parchment, not a data rewrite.",
+      "lastUsedAt sort/tracking changes: 01 §12, 02 §19 reject it. Existing touchLastUsed stays as is.",
+      "Tag detail routes, merge, hierarchy, AI classification, bulk destructive actions, realtime sync, analytics history: 01 §26."
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "phase": 1,
+      "title": "Move the 8-color Tag palette into @app/shared",
+      "specRef": "01 §11; 02 §6, §13",
+      "layer": "shared",
+      "files": ["packages/shared/src/tags.ts", "apps/web/src/features/tags/model/tag-color.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "packages/shared/src/tags.ts exports TAG_COLORS = [parchment, terracotta, honey, sage, forest, sky, lavender, rose] (exact order), a palette z.enum schema and TAG_COLOR_DEFAULT = 'parchment'",
+        "apps/web/src/features/tags/model/tag-color.ts no longer declares its own TAG_COLORS / z.enum; it imports them from @app/shared and keeps only the style map",
+        "resolve-to-effective-color logic (null/unsupported -> parchment) lives in shared or api/domain exactly once for the backend; the FE keeps no second resolver once read models return effective color (checked again in T61)",
+        "if D3=tighten: CreateTagSchema.color and UpdateTagSchema.color validate against the palette enum; tags.controller.test.ts hex fixtures ('#A96E47' at lines 110,118,200,279,298) are updated as superseded assertions only"
+      ],
+      "acceptanceRows": ["B-CAT-04", "B-DIM-04", "B-SUM-09", "B-SUM-10"],
+      "status": "done",
+      "evidence": "packages/shared/src/tags.ts exports TAG_COLORS (exact order), TagColorSchema = z.enum(TAG_COLORS), TagColor, TAG_COLOR_DEFAULT='parchment' and the single resolveTagColor; web tag-color.ts keeps only TAG_COLOR_STYLES/tagColorStyle, callers import palette + resolver from @app/shared. D3: CreateTagSchema/UpdateTagSchema.color = palette enum (update stays nullable); '#A96E47' fixtures in tags.controller.test.ts and tags.service.test.ts -> 'terracotta'. Live POST color '#A96E47' -> 400."
+    },
+    {
+      "id": "T2",
+      "phase": 1,
+      "title": "Shared catalog/facets query schemas and enums",
+      "specRef": "01 §7-§9, §12, §15; 02 §8, §9, §11",
+      "layer": "shared",
+      "files": ["packages/shared/src/tags.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "TagQuickFilterSchema = enum [all, used, books, characters, unused] with default 'all' exported as one grouped constant object or named default, following GENRE_QUICK_FILTER_DEFAULT precedent (packages/shared/src/genres.ts:64-74)",
+        "TagSortSchema = enum [usage_count_desc, books_count_desc, characters_count_desc, name_asc, type_asc, created_desc], default usage_count_desc",
+        "TAGS_PAGE_SIZE = 20; catalog query uses paginationQueryFields({ pageSizeDefault: 20 }) so pageSize max = LIST_PAGE_SIZE_MAX (100, common.ts:43)",
+        "TagsCatalogQuerySchema fields: q (trim; whitespace-only parses to absent), filter, type (queryStringArray(TagTypeSchema)), color (queryStringArray(palette enum)), sort, pageNumber, pageSize; param names per D4",
+        "TagsCatalogFacetsQuerySchema has exactly q, type, color (no filter/sort/pageNumber/pageSize)",
+        "no lastUsedAt sort value exists"
+      ],
+      "acceptanceRows": ["B-CAT-05", "B-SRCH-04", "B-SORT-01", "F-URL-06"],
+      "status": "done",
+      "evidence": "TagQuickFilterSchema + TAG_QUICK_FILTER_DEFAULT, TagSortSchema + TAG_SORT_DEFAULT (no lastUsedAt), TAGS_PAGE_SIZE=20, TagsCatalogQuerySchema (q blank->undefined via preprocess, filter, type/color queryStringArray, sort, paginationQueryFields) and TagsCatalogFacetsQuerySchema (q,type,color only). OpenAPI: pageSize max 100 default 20; ?q=%20%20 returns full list."
+    },
+    {
+      "id": "T3",
+      "phase": 1,
+      "title": "Shared response schemas: catalog item, paginated catalog, facets, summary, deletion preview",
+      "specRef": "02 §10, §11, §12, §15",
+      "layer": "shared",
+      "files": ["packages/shared/src/tags.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "catalog item schema (new name, not the existing TagCatalogView which stays the create/update response) has exactly id, name, description nullable, type TagTypeSchema, color palette enum (non-null), booksCount, charactersCount, usageCount; no lastUsedAt",
+        "paginated catalog schema built with createPaginatedSchema (same helper as PaginatedGenreStatsSchema, genres.ts:140)",
+        "facets schema = { quickCounts: { all, used, books, characters, unused } } with CountSchema values",
+        "summary schema: totalTagsCount, taggedBooksCount, totalBooksCount, taggedCharactersCount, totalCharactersCount, mostUsed nullable { usageCount, leadersCount int positive, leaders max(2) of { id, name, booksCount, charactersCount } }, typeCounts object with all 6 TagType keys required, usageDistribution { booksOnly, charactersOnly, both, unused }, colorCounts object with all 8 palette keys required",
+        "typeCounts/colorCounts keys are derived from TagTypeSchema.options / TAG_COLORS, not re-typed by hand",
+        "deletion preview schema = { bookLinksCount, characterLinksCount } and nothing else (no relation IDs)"
+      ],
+      "acceptanceRows": ["B-SUM-08", "B-SUM-09", "B-DEL-P-01", "I-CACHE-01", "G-API-03"],
+      "status": "done",
+      "evidence": "TagCatalogListItemSchema, PaginatedTagCatalogSchema (createPaginatedSchema), TagsCatalogFacetsViewSchema, TagsSummaryViewSchema (typeCounts/colorCounts = z.record(TagTypeSchema|TagColorSchema, CountSchema) -> all keys required in OpenAPI), TagsMostUsedSummarySchema (leaders max 2, leadersCount positive), TagDeletionPreviewViewSchema {bookLinksCount, characterLinksCount}."
+    },
+    {
+      "id": "T4",
+      "phase": 1,
+      "title": "Prove or enforce the persisted Tag.type invariant",
+      "specRef": "02 §7; 06 §6 Gate 1",
+      "layer": "db",
+      "files": [
+        "apps/api/prisma/migrations/<new>_normalize_tag_types/migration.sql (only if D2 = migration)"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "evidence recorded: read-only SELECT type, count(*) FROM tags GROUP BY type against local booknest_dev and (if reachable) dev DB; never prod",
+        "if D2 = migration: SQL is exactly an idempotent UPDATE tags SET type = 'custom' WHERE type NOT IN ('trope','atmosphere','theme','character','format','custom'); created via db:migrate --name, reviewed by migration-reviewer, no DROP INDEX lines, raw-sql-indexes.test.ts still green",
+        "no runtime fallback for invalid type is added in mappers/SQL (tag.mapper.ts keeps TagTypeSchema.parse)",
+        "schema.prisma Tag.type unchanged unless D2 option (c) adds a CHECK constraint in raw SQL"
+      ],
+      "acceptanceRows": ["B-TYPE-01", "B-TYPE-02", "B-TYPE-03"],
+      "status": "done",
+      "evidence": "Pre-migration local booknest_dev: SELECT type, count(*) FROM tags GROUP BY type -> 0 rows (0 tags). Dev DB not queried. Migration 20260923135007_normalize_tag_types = idempotent UPDATE only, no DROP INDEX; applied via db:migrate:deploy (also applied cleanly to the test template). Folder hand-created: migrate dev --create-only refused on drift from the characters branch migrations in the shared booknest_dev (asked for a reset, declined). raw-sql-indexes.test.ts 26/26 green. tag.mapper keeps TagTypeSchema.parse, schema.prisma unchanged. migration-reviewer not run (no agent tool in this session)."
+    },
+    {
+      "id": "T5",
+      "phase": 1,
+      "title": "Canonical Tag usage aggregation + catalog query in the repository",
+      "specRef": "01 §3, §22; 02 §4, §5, §6, §8, §9, §17",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/tags/infrastructure/tags.repository.ts or a new tags-catalog.repository.ts in the same folder"
+      ],
+      "dependsOn": ["T2", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "one SQL fragment/CTE defines per-tag booksCount = count(DISTINCT book_tags.book_id) over books with deleted_at IS NULL, and charactersCount = count(DISTINCT character_tags.character_id) over characters matching the D1 visible predicate; it is reused by catalog, facets and summary (grep shows a single definition)",
+        "character usage joins character_tags -> characters directly, never through book_characters",
+        "effective color computed in SQL as CASE color IN (8 palette values) THEN color ELSE 'parchment' END, and color filter compares against the effective value",
+        "search: name ILIKE OR description ILIKE on the tag only; whitespace-only q ignored",
+        "filter/type/color/search compose with AND; values inside type and color with OR (IN)",
+        "ORDER BY per sort with name then id tie-breakers; type_asc uses explicit CASE rank trope=1..custom=6; created_desc falls back to id; name uses the column's uk-UA-x-icu collation (migration 20260812115219 line 28)",
+        "LIMIT/OFFSET + total count come from the DB; no per-tag query loop; Prisma.sql with parameters only; rows parsed with Zod like genre-stats.repository.ts",
+        "scoped by tags.user_id = caller"
+      ],
+      "acceptanceRows": [
+        "B-CAT-01",
+        "B-CAT-02",
+        "B-CAT-03",
+        "B-CAT-04",
+        "B-SRCH-01",
+        "B-SRCH-02",
+        "B-SRCH-03",
+        "B-SRCH-04",
+        "B-FLT-01",
+        "B-FLT-02",
+        "B-FLT-03",
+        "B-FLT-04",
+        "B-DIM-01",
+        "B-DIM-02",
+        "B-DIM-03",
+        "B-DIM-04",
+        "B-SORT-01",
+        "B-SORT-02",
+        "B-SORT-03",
+        "B-SORT-04",
+        "B-SORT-05",
+        "B-SORT-06"
+      ],
+      "status": "done",
+      "evidence": "infrastructure/tags-catalog.repository.ts: tagUsageCte() is the single usage definition (book_usage count(DISTINCT book_id) over deleted_at IS NULL books; character_usage count(DISTINCT character_id) joining character_tags->characters directly with deleted_at IS NULL AND archived_at IS NULL; effective color CASE in SQL) reused by list/countQuickFilters/aggregateAll. WHERE/ORDER BY/LIMIT/OFFSET + count in Postgres, Prisma.sql params, Zod-parsed rows. Live curl: trashed book and archived character excluded, spoiler character counted, legacy hex -> parchment and matched by color=parchment."
+    },
+    {
+      "id": "T6",
+      "phase": 1,
+      "title": "Facets query: five quick counts over q + type + color in one round-trip",
+      "specRef": "02 §11",
+      "layer": "api",
+      "files": ["apps/api/src/modules/tags/infrastructure/*"],
+      "dependsOn": ["T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "single SQL statement returns all/used/books/characters/unused via count(*) FILTER over the T5 aggregate, base = q + type + color only",
+        "books and characters counts can overlap for a tag used by both",
+        "no dependency on filter, sort or pagination parameters"
+      ],
+      "acceptanceRows": ["B-FAC-01", "B-FAC-02", "B-FAC-03", "B-FAC-04", "B-FAC-05"],
+      "status": "done",
+      "evidence": "countQuickFilters: one statement, count(*) FILTER per QUICK_FILTER_CONDITION (same map the catalog WHERE uses) over q+type+color only. Live: {all:4,books:2,characters:2,unused:1,used:3}."
+    },
+    {
+      "id": "T7",
+      "phase": 1,
+      "title": "Summary: repository reads + pure domain assembly",
+      "specRef": "01 §6, §17; 02 §12",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/tags/infrastructure/*",
+        "apps/api/src/modules/tags/domain/tags-summary.ts (new)",
+        "apps/api/src/modules/tags/domain/tags-summary.test.ts (new)"
+      ],
+      "dependsOn": ["T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "taggedBooksCount = distinct active books with >=1 tag; totalBooksCount = active books of the user (deleted_at IS NULL, same population as genre summary countLibraryBooks, genre-stats.repository.ts:160-176)",
+        "taggedCharactersCount / totalCharactersCount use the D1 visible predicate and count distinct characters",
+        "domain function zero-fills typeCounts for all 6 types and colorCounts for all 8 effective colors",
+        "usageDistribution buckets are exclusive; unit test asserts sum(typeCounts) = sum(colorCounts) = booksOnly+charactersOnly+both+unused = totalTagsCount",
+        "mostUsed = null when every tag usage is 0; otherwise usageCount = max, leadersCount = full tie size, leaders = first two by name then id",
+        "summary takes no query params"
+      ],
+      "acceptanceRows": [
+        "B-SUM-01",
+        "B-SUM-02",
+        "B-SUM-03",
+        "B-SUM-04",
+        "B-SUM-05",
+        "B-SUM-06",
+        "B-SUM-07",
+        "B-SUM-08",
+        "B-SUM-09",
+        "B-SUM-10",
+        "B-SUM-11",
+        "B-SUM-12",
+        "B-SUM-13"
+      ],
+      "status": "done",
+      "evidence": "Repository aggregateAll (same CTE) + countTaggedEntities (active books / visible characters, distinct via EXISTS); pure domain/tags-summary.ts zero-fills types/colors, exclusive buckets, mostUsed with full tie size and first two by uk collation then id. domain/tags-summary.test.ts (6 tests) asserts sum(typeCounts)=sum(colorCounts)=distribution sum=totalTagsCount."
+    },
+    {
+      "id": "T8",
+      "phase": 1,
+      "title": "Deletion preview: physical link counts with ownership check",
+      "specRef": "01 §21, §22; 02 §15",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/tags/infrastructure/tags.repository.ts",
+        "apps/api/src/modules/tags/application/tags.service.ts"
+      ],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "repository counts book_tags and character_tags rows by tag_id with no deleted_at/archived_at/hidden filter",
+        "service throws NotFoundError('Tag not found') when findOwnedById returns null (same as update, tags.service.ts:153-156)",
+        "DELETE /api/tags/:id remains unchanged: deleteMany by id+userId, cascades via FK ON DELETE CASCADE (book_tags migration line 37, character_tags migration), 204"
+      ],
+      "acceptanceRows": [
+        "B-DEL-P-01",
+        "B-DEL-P-02",
+        "B-DEL-P-03",
+        "B-DEL-01",
+        "B-DEL-02",
+        "B-DEL-03",
+        "B-DEL-04"
+      ],
+      "status": "done",
+      "evidence": "TagsRepository.countLinks counts book_tags/character_tags by tag_id without lifecycle filters; TagsService.deletionPreview throws NotFoundError('Tag not found') on findOwnedById null. Live: 3 book links (incl. trashed) / 2 character links (incl. archived); unknown id -> 404. DELETE unchanged."
+    },
+    {
+      "id": "T9",
+      "phase": 1,
+      "title": "Service + controller endpoints with full Swagger",
+      "specRef": "02 §3, §18",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/tags/api/tags.controller.ts",
+        "apps/api/src/modules/tags/api/input-dto/*",
+        "apps/api/src/modules/tags/api/view-dto/*",
+        "apps/api/src/modules/tags/application/*"
+      ],
+      "dependsOn": ["T5", "T6", "T7", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "GET /api/tags/catalog, GET /api/tags/catalog/facets, GET /api/tags/summary, GET /api/tags/:id/deletion-preview exist, @JwtProtected, ZodQueryPipe with the T2 schemas, ParseUUIDPipe on :id",
+        "each has @ApiOperation, @ApiOkResponse with a createZodDto view DTO type, @ApiQuery per query param, @ApiBadRequestResponse where it takes a query, @ApiNotFoundResponse on deletion-preview",
+        "throttles follow genres: READ_THROTTLE for catalog/facets/preview, HEAVY_READ_THROTTLE for summary (genres.controller.ts:88,112,128)",
+        "controller has no Prisma and no logic; service has no PrismaService; repository returns rows not view models",
+        "GET /api/tags (picker) signature, params and TagView output unchanged; no aggregation added to it",
+        "no code comments; no process.env; date handling via date-fns if any"
+      ],
+      "acceptanceRows": ["B-PICK-01", "B-PICK-02", "G-API-01", "G-API-04"],
+      "status": "done",
+      "evidence": "GET /api/tags/catalog, /catalog/facets, /summary, /:id/deletion-preview with @JwtProtected, ZodQueryPipe, ParseUUIDPipe, ApiOperation/ApiOkResponse(createZodDto)/ApiQuery/ApiBadRequest/ApiNotFound; READ_THROTTLE catalog/facets/preview, HEAVY_READ_THROTTLE summary. TagsCatalogService holds no PrismaService. GET /api/tags unchanged. generate:openapi lists the 4 paths. typecheck + lint green; tags tests 57/57."
+    },
+    {
+      "id": "T10",
+      "phase": 1,
+      "title": "Backend integration tests for the new read surface and delete integrity",
+      "specRef": "05 Backend rows; 06 Gate 1",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/tags/api/tags.controller.catalog.test.ts (new, split like genres.controller.*.test.ts)",
+        "apps/api/src/modules/tags/api/tags.controller.summary.test.ts (new)",
+        "apps/api/src/modules/tags/api/tags.controller.test.ts"
+      ],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "tests seed books, a trashed book, characters (one linked to 2 books), an archived/trashed character per D1, a null-color and a legacy non-palette color row (via repository/SQL, since the API may reject it after D3)",
+        "each B-CAT/B-SRCH/B-FLT/B-DIM/B-SORT/B-FAC/B-SUM/B-DEL-P row has a named assertion",
+        "delete test asserts character_tags rows removed and characters row remains (B-DEL-02 for Characters is not covered today; only book cascade at tags.controller.test.ts:443)",
+        "cross-user: catalog/facets/summary never show another user's tags; preview for another user's tag = 404",
+        "pnpm exec vitest run on the touched API test files passes locally against booknest_test"
+      ],
+      "acceptanceRows": [
+        "B-CAT-01",
+        "B-CAT-02",
+        "B-CAT-03",
+        "B-CAT-04",
+        "B-CAT-05",
+        "B-SRCH-01",
+        "B-SRCH-02",
+        "B-SRCH-03",
+        "B-SRCH-04",
+        "B-FLT-01",
+        "B-FLT-02",
+        "B-FLT-03",
+        "B-FLT-04",
+        "B-DIM-01",
+        "B-DIM-02",
+        "B-DIM-03",
+        "B-DIM-04",
+        "B-SORT-01",
+        "B-SORT-02",
+        "B-SORT-03",
+        "B-SORT-04",
+        "B-SORT-05",
+        "B-SORT-06",
+        "B-FAC-01",
+        "B-FAC-02",
+        "B-FAC-03",
+        "B-FAC-04",
+        "B-FAC-05",
+        "B-SUM-01",
+        "B-SUM-02",
+        "B-SUM-03",
+        "B-SUM-04",
+        "B-SUM-05",
+        "B-SUM-06",
+        "B-SUM-07",
+        "B-DEL-P-01",
+        "B-DEL-P-02",
+        "B-DEL-P-03",
+        "B-DEL-01",
+        "B-DEL-02",
+        "B-DEL-03",
+        "B-DEL-04",
+        "B-PICK-01",
+        "B-PICK-02",
+        "I-CHAR-02",
+        "I-CHAR-03",
+        "I-CHAR-04",
+        "I-BOOK-02"
+      ],
+      "status": "done",
+      "evidence": "New api/tags.controller.catalog.test.ts (37: B-CAT-01..05, B-SRCH-01..04, B-FLT-01..04, B-DIM-01..04, B-SORT-01..06, B-FAC-01..05, I-CHAR-02, visible-scope: trashed book / archived+deleted character excluded, spoiler-hidden counted), tags.controller.summary.test.ts (13: B-SUM-01..13), tags.controller.deletion.test.ts (13: B-DEL-P-01..03, B-DEL-01..04 incl. character_tags removed + characters/book_characters kept, I-BOOK-02, I-CHAR-04, cross-user preview/delete 404), tags.controller.character-unlink.test.ts (1: I-CHAR-03 via real DELETE /api/books/:bookId/characters/:characterId), B-PICK-01/02 appended to tags.controller.test.ts; shared seed helper api/tags-usage.fixtures.ts seeds null + legacy #A96E47 colors via Prisma. vitest run src/modules/tags: 7 files, 123 passed against booknest_test; pnpm typecheck + pnpm lint green (0 errors). Mutation check: dropping archived_at from visibleCharacter turns the visibility rows red. No implementation defects found."
+    },
+    {
+      "id": "T11",
+      "phase": 1,
+      "title": "Gate 1: backend typecheck, lint, blast-radius, live curl",
+      "specRef": "06 §6 Gate 1",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T4", "T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm typecheck and pnpm lint green",
+        "/blast-radius run for packages/shared/src/tags.ts changes (consumers: apps/web features/tags, features/books tags-field/use-tags-search, characters tag views)",
+        "pnpm dev:api + curl of /api/tags, /api/tags/catalog?filter=unused, /api/tags/catalog/facets, /api/tags/summary, /api/tags/<id>/deletion-preview captured with 200 bodies"
+      ],
+      "acceptanceRows": [],
+      "status": "done",
+      "evidence": "typecheck+lint green; blast-radius: 14 files / 223 tests green (tags module + 6 external consumer files of /api/tags + raw-sql-indexes); live curl done in Phase-1 run before SQL refactor, re-curl deferred to T71"
+    },
+    {
+      "id": "T20",
+      "phase": 2,
+      "title": "Central Tag query-key factory and invalidation helpers",
+      "specRef": "03 §4, §24; 04 §10, §12",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/api/tags-keys.ts",
+        "apps/web/src/features/books/api/use-tags-search.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "tags-keys.ts exposes catalog(params), facets(params), summary, deletionPreview(id) and the picker family used by use-tags-search, all under one root",
+        "use-tags-search.ts takes its key from the factory; the raw ['tags','search',trimmed] literal (use-tags-search.ts:41) is gone",
+        "helpers exist for: management aggregates (catalog+facets+summary) and picker; modeled on invalidateGenreDerivedQueries (genres-keys.ts:27-33)",
+        "grep -rn \"queryKey: \\[\\\"tags\\\"\" apps/web/src returns nothing outside generated code (today: use-book-actions.ts:44, features/tags use-create/update/delete-tag, books use-delete-tag)"
+      ],
+      "acceptanceRows": ["F-ARCH-05", "I-PICK-02", "I-PICK-03"],
+      "status": "done",
+      "evidence": "tags-keys.ts: tagsKeys {root,catalog,facets,summary,deletionPreview,picker,stats} under /api/tags; invalidateTagAggregateQueries, invalidateTagPickerQueries, invalidateTagCollectionQueries, invalidateTagMetadataQueries. use-tags-search/use-delete-tag/use-book-actions routed through factory; grep queryKey: [\"tags\" returns nothing. typecheck+lint green."
+    },
+    {
+      "id": "T21",
+      "phase": 2,
+      "title": "useTagQuery: the single nuqs URL-state owner",
+      "specRef": "01 §7, §13; 03 §2, §3, §25",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/model/tags-query.ts (new)",
+        "apps/web/src/features/tags/model/use-tag-query.ts (new)",
+        "apps/web/src/features/tags/model/tags-query.test.ts (new)"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "parsers follow GENRES_QUERY_PARSERS (genres-query.ts:86-95): q string default '', filter literal default all, type/color parseAsArrayOf over shared enums default [], sort literal default usage_count_desc; history mode per D5",
+        "committed search = trim + collapse whitespace, committed only when length >= 2; shorter clears q",
+        "array setters dedupe and write null for empty arrays so the key disappears from the URL",
+        "clear-all patch resets q/filter/type/color and leaves sort",
+        "derived catalogParams (q, filter, type, color, sort) and facetsParams (q, type, color) come from here only; no pageNumber/view in URL",
+        "unit tests cover F-URL-04/05/06, F-SRCH-02/03/05, F-FLT-05",
+        "grep shows no other useQueryState(s) in features/tags"
+      ],
+      "acceptanceRows": [
+        "F-URL-01",
+        "F-URL-04",
+        "F-URL-05",
+        "F-URL-06",
+        "F-URL-07",
+        "F-SRCH-02",
+        "F-SRCH-03",
+        "F-SRCH-05",
+        "F-FLT-05",
+        "F-ARCH-04"
+      ],
+      "status": "done",
+      "evidence": "model/tags-query.ts (TAGS_QUERY_PARSERS, committedTagSearch, toArrayPatch, toggleArrayValue, clearAllTagsFiltersPatch, toTagsCatalogParams, toTagsFacetsParams) + use-tag-query.ts (sole useQueryStates, history push). tags-query.test.ts 17/17 green."
+    },
+    {
+      "id": "T30",
+      "phase": 3,
+      "title": "Regenerate the typed API client",
+      "specRef": "00 Generated API; 06 §8",
+      "layer": "web",
+      "files": ["apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm gen:api run once after backend is final; generated tags.ts contains tagsControllerCatalog, ...Facets, ...Summary, ...DeletionPreview and still tagsControllerSearch",
+        "git diff on generated/** is produced only by the generator (re-running gen:api yields no further diff)",
+        "pnpm typecheck green against the regenerated client"
+      ],
+      "acceptanceRows": ["G-API-01", "G-API-02", "G-API-04"],
+      "status": "done",
+      "evidence": "pnpm gen:api exit 0; generated catalog/facets/summary/deletion-preview endpoints+models; TagsControllerCatalogParams has type/color as enum arrays, filter/sort enums, pageNumber max 1000; picker getTagsControllerSearch unchanged; web typecheck green"
+    },
+    {
+      "id": "T40",
+      "phase": 4,
+      "title": "Read hooks: catalog (infinite), facets, summary, deletion preview",
+      "specRef": "03 §5-§9, §22",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/api/use-tags-catalog.ts",
+        "apps/web/src/features/tags/api/use-tags-facets.ts",
+        "apps/web/src/features/tags/api/use-tags-summary.ts",
+        "apps/web/src/features/tags/api/use-tag-deletion-preview.ts"
+      ],
+      "dependsOn": ["T20", "T21", "T30"],
+      "mandatory": true,
+      "doneWhen": [
+        "catalog uses useInfiniteQuery like use-genres-list.ts: initialPageParam 1, pageSize 20, getNextPageParam from page/pagesCount, key = tagsKeys.catalog(catalogParams)",
+        "facets key depends only on q/type/color; summary key has no params",
+        "deletion preview query is enabled only while the dialog has a tag id; no per-row prefetch",
+        "responses parsed with the @app/shared schemas from T3; no hand-written response Zod in features/tags"
+      ],
+      "acceptanceRows": ["F-PAGE-01", "F-ARCH-03", "F-ARCH-06", "G-API-03"],
+      "status": "done",
+      "evidence": "use-tags-catalog (useInfiniteQuery, TAGS_PAGE_SIZE, PaginatedTagCatalogSchema), use-tags-facets, use-tags-summary, use-tag-deletion-preview (skipToken while id null). Parsed with @app/shared schemas."
+    },
+    {
+      "id": "T41",
+      "phase": 4,
+      "title": "Mutation hooks with central invalidation",
+      "specRef": "03 §23, §24; 04 §10, §11",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/api/use-create-tag.ts",
+        "apps/web/src/features/tags/api/use-update-tag.ts",
+        "apps/web/src/features/tags/api/use-delete-tag.ts"
+      ],
+      "dependsOn": ["T20", "T30"],
+      "mandatory": true,
+      "doneWhen": [
+        "create invalidates aggregates + picker",
+        "update invalidates aggregates + picker + bookKeys.root + characterKeys.all (embedded TagView in BookView books.ts:1174 and CharacterGlobalSummaryView characters.ts:661)",
+        "delete invalidates aggregates + picker + bookKeys.root + characterKeys.all",
+        "no genresKeys invalidation in any tag mutation",
+        "no 'as CreateTagDto' / 'as UpdateTagDto' casts remain if the regenerated types line up; otherwise one cast with reason is flagged in review"
+      ],
+      "acceptanceRows": [
+        "F-ADD-04",
+        "F-EDIT-04",
+        "F-DEL-06",
+        "I-GEN-02",
+        "I-PICK-02",
+        "I-CACHE-01"
+      ],
+      "status": "done",
+      "evidence": "create -> invalidateTagCollectionQueries; update/delete -> invalidateTagMetadataQueries (aggregates+picker+bookKeys.root+characterKeys.all). No genresKeys, DTO casts removed, typecheck green."
+    },
+    {
+      "id": "T42",
+      "phase": 4,
+      "title": "TagsView orchestrator and header",
+      "specRef": "01 §5; 03 §1, §10, §23, §26",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/tags-view.tsx (replaces components/tags.tsx)",
+        "apps/web/src/features/tags/index.ts",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T40", "T41"],
+      "mandatory": true,
+      "doneWhen": [
+        "one client orchestrator wires useTagQuery, catalog, facets, summary and dialog identity; it holds no mutation reducer",
+        "header: title 'Теги', subtitle 'Створюйте та впорядковуйте власну систему тегів для книг і персонажів' (uk.json tags.page.subtitle currently differs), CTA '+ Додати тег'; no Genres/Tags tabs; en.json updated in the same change",
+        "no import from features/books or features/characters components for usage calculation (LibrarySummaryCards/overview primitives allowed as shared UI, as genres-summary.tsx does)"
+      ],
+      "acceptanceRows": ["F-ARCH-01", "F-ARCH-03", "R-01"],
+      "status": "done",
+      "evidence": "components/tags-view.tsx (TagsView: useTagQuery + useTagsCatalog + useTagFacets + useTagsSummary + TagDialog union for dialog identity, no mutation reducer); header uk.json tags.page.subtitle = spec copy, CTA plus icon + 'Додати тег', no tabs; en.json in step; index.ts exports TagsView; /tags page.tsx renders <TagsView />; no features/books or features/characters import. Old tags.tsx, tags-tab.tsx, tags.test.tsx deleted because the rewritten row/toolbar/dialog props no longer fit them (pulled forward from T61). tags-view.test.tsx 'renders the header...'. Gates: web typecheck green, pnpm lint 0 errors, format:check clean outside docs/**, vitest --project unit src/features/tags 4 files / 49 tests green."
+    },
+    {
+      "id": "T43",
+      "phase": 4,
+      "title": "Summary cards",
+      "specRef": "01 §6; 03 §11",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/tags-summary.tsx (new)",
+        "apps/web/src/features/tags/model/tags-summary-cards.ts (new)"
+      ],
+      "dependsOn": ["T42"],
+      "mandatory": true,
+      "doneWhen": [
+        "four non-clickable cards: Усього тегів (+ unused microfact), Книг із тегами (+ % of totalBooksCount), Персонажів із тегами (+ % of totalCharactersCount), Найуживаніший тег (leaders[0] + books/characters breakdown + 'ще N тегів' when leadersCount > 1)",
+        "percent helper returns a defined zero presentation for denominator 0; unit test proves no NaN/Infinity",
+        "summary pending/error renders a local placeholder/retry; catalog render does not depend on summary state"
+      ],
+      "acceptanceRows": ["F-SUM-01", "F-SUM-02", "F-SUM-03", "F-SUM-04", "F-STATE-02"],
+      "status": "done",
+      "evidence": "TagsSummaryCards (components/tags-summary.tsx) renders four LibrarySummaryCards/StatCard cards from useTagsSummaryCards (model/use-tags-summary-cards.tsx, mirrors genres): total + unused microfact, tagged books/characters + share, most used = leaders[0] + books/characters breakdown + non-clickable \"ще N тегів\" (N = leadersCount - 1), \"—\" when mostUsed is null. shareOf/formatTagShare in model/tags-summary.ts return 0 for a zero, negative or non-finite denominator (tags-summary.test.ts). Pending uses the shared skeleton, error renders a local alert with retry; catalog renders independently (tags-view.test.tsx: summary fails, catalog heading visible, retry refetches). Files differ from the plan: model/use-tags-summary-cards.tsx + model/tags-summary.ts instead of model/tags-summary-cards.ts, to mirror use-genre-summary-cards."
+    },
+    {
+      "id": "T44",
+      "phase": 4,
+      "title": "Toolbar: search, sort, quick filters with facet counts, advanced Sheet, active chips",
+      "specRef": "01 §7-§9, §16; 03 §3, §12-§15",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/tags-toolbar.tsx",
+        "apps/web/src/features/tags/components/tags-advanced-filters.tsx (new)",
+        "apps/web/src/features/tags/components/tags-active-chips.tsx (new)"
+      ],
+      "dependsOn": ["T42"],
+      "mandatory": true,
+      "doneWhen": [
+        "search uses DebouncedSearchInput (components/debounced-search-input.tsx, 300 ms) with the T21 commit rule",
+        "quick filter ChipGroup shows counts from facets only; on facets pending/error the chips still work without numbers",
+        "advanced Sheet multi-selects 6 types and 8 colors, writes type/color through useTagQuery",
+        "chips for committed q, each type, each color; no chip for quick filter; Clear all via the T21 patch",
+        "no grid/list toggle"
+      ],
+      "acceptanceRows": [
+        "F-SRCH-01",
+        "F-SRCH-04",
+        "F-SRCH-06",
+        "F-FLT-01",
+        "F-FLT-02",
+        "F-FLT-03",
+        "F-FLT-04",
+        "F-FLT-05",
+        "F-STATE-03",
+        "F-ARCH-07"
+      ],
+      "status": "done",
+      "evidence": "components/tags-toolbar.tsx (DebouncedSearchInput -> query.setSearch/clearSearch, sort Select + MobileSortSheet over TagSortSchema.options, ChipGroup quick filters with facets.quickCounts only), tags-advanced-filters.tsx (Sheet, multi ChipGroup for 6 types and 8 colors, apply -> setTypes/setColors), tags-active-chips.tsx (q/type/color chips, no quick-filter chip, Clear all -> query.clearAll). No grid/list toggle. Tests: facets counts + facets-failure chip click writes ?filter=unused; chips + Clear all keeps ?sort=name_asc. Gates: web typecheck green, pnpm lint 0 errors, format:check clean outside docs/**, vitest --project unit src/features/tags 4 files / 49 tests green."
+    },
+    {
+      "id": "T45",
+      "phase": 4,
+      "title": "List-only catalog with progressive loading and state model",
+      "specRef": "01 §14, §15, §24; 03 §6, §9, §16, §19",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/tags-catalog.tsx (new)",
+        "apps/web/src/features/tags/components/tag-row.tsx",
+        "apps/web/src/features/tags/model/tags-list-state.ts (new, like genres-list-state.ts)"
+      ],
+      "dependsOn": ["T42"],
+      "mandatory": true,
+      "doneWhen": [
+        "row shows name, truncated description, type label, effective color chip, booksCount, charactersCount, usageCount from server, Edit and Delete",
+        "'Показати ще' calls fetchNextPage only when hasNextPage && !isFetchingNextPage; hidden when no next page",
+        "next-page failure keeps loaded items and shows localized retry",
+        "counter 'Показано {shown} із {total} тегів' with shown = sum of loaded items, total = last page totalCount",
+        "pure list-state function returns loading | error | first-use | all-used (filter=unused, no q/type/color, summary unused = 0) | contextual-empty | list; unit tested",
+        "no client-side filter/sort over rows (grep for .filter/.sort over catalog items in features/tags is empty)"
+      ],
+      "acceptanceRows": [
+        "F-PAGE-01",
+        "F-PAGE-02",
+        "F-PAGE-03",
+        "F-PAGE-04",
+        "F-PAGE-05",
+        "F-PAGE-06",
+        "F-PAGE-07",
+        "F-STATE-01",
+        "F-STATE-04",
+        "F-STATE-05",
+        "F-EMPTY-01",
+        "F-EMPTY-02",
+        "F-EMPTY-03",
+        "F-EMPTY-04",
+        "F-ARCH-06",
+        "F-ARCH-07"
+      ],
+      "status": "done",
+      "evidence": "components/tags-catalog.tsx + tag-row.tsx (name chip in effective color, truncated description, type label, sr-only color, books/characters/usage from server, Edit/Delete buttons), model/tags-list-state.ts (loading|error|first-use|all-used|contextual-empty|list; total = last page totalCount) + tags-list-state.test.ts 13 cases. TagsView.loadMore guards hasNextPage && !isFetchingNextPage; next-page error keeps rows with retry. grep: no .filter/.sort over catalog items in live features/tags code (only tags-derive.ts, which has no importers). Tests: load-more append/hide, next-page failure retry, first-use, all-used vs contextual. Gates: web typecheck green, pnpm lint 0 errors, format:check clean outside docs/**, vitest --project unit src/features/tags 4 files / 49 tests green."
+    },
+    {
+      "id": "T46",
+      "phase": 4,
+      "title": "Desktop sidebar: attention, structure, usage distribution, palette",
+      "specRef": "01 §17; 03 §17",
+      "layer": "web",
+      "files": ["apps/web/src/features/tags/components/tags-sidebar.tsx (new)"],
+      "dependsOn": ["T43"],
+      "mandatory": true,
+      "doneWhen": [
+        "Потребують уваги shows summary unused count; action sets filter=unused keeping q/type/color/sort",
+        "Структура тегів lists all 6 types (zero rows muted) with count + share; row toggles type in URL",
+        "Де використовуються shows booksOnly/charactersOnly/both/unused, not interactive",
+        "Палітра тегів renders 8 swatches in a 4x2 grid with counts; swatch toggles color in URL",
+        "clickable custom elements carry cursor-pointer and are keyboard-operable"
+      ],
+      "acceptanceRows": [
+        "F-SIDE-01",
+        "F-SIDE-02",
+        "F-SIDE-03",
+        "F-SIDE-04",
+        "F-SIDE-05",
+        "F-SIDE-06"
+      ],
+      "status": "done",
+      "evidence": "TagsSidebar (components/tags-sidebar.tsx) with blocks in components/tags-overview-blocks.tsx: attention uses usageDistribution.unused and query.setFilter(\"unused\") (URL keeps q/type/color/sort, tested), or the all-used message with no action at 0; structure lists all six types with count, share and bar, zero rows muted, aria-pressed toggle buttons calling query.toggleType; usage distribution is a plain list, no buttons (tested); palette is a 4x2 grid of eight aria-pressed swatches with accessible names calling query.toggleColor (tested). Toggles are native buttons with cursor-pointer and focus ring. Sidebar is max-sm:hidden, two-column grid under the catalog between sm and xl, right column at xl."
+    },
+    {
+      "id": "T47",
+      "phase": 4,
+      "title": "Mobile overview via MobilePageOverviewPanel",
+      "specRef": "01 §18; 03 §18",
+      "layer": "web",
+      "files": ["apps/web/src/features/tags/components/tags-overview-panel.tsx (new)"],
+      "dependsOn": ["T46"],
+      "mandatory": true,
+      "doneWhen": [
+        "uses MobilePageOverviewPanel (components/ui/mobile-page-overview-panel.tsx:109) with tabs Огляд / Структура / Увага",
+        "reuses the same summary query and the same useTagQuery handlers as the sidebar; no second query",
+        "sidebar hidden below the desktop breakpoint; no duplicate sidebar under the catalog"
+      ],
+      "acceptanceRows": ["F-MOB-01", "F-MOB-02"],
+      "status": "done",
+      "evidence": "TagsOverviewPanel (components/tags-overview-panel.tsx) uses MobilePageOverviewPanel with tabs Огляд (LibrarySummaryDetails + usage), Структура (structure + palette), Увага (attention, badge = unused count), fed by the same useTagsSummary result and the same useTagQuery handlers passed from TagsView; loading/error go through the panel loading/error props. Wrapper is sm:hidden, sidebar is max-sm:hidden, so each width shows one surface and nothing is duplicated under the catalog."
+    },
+    {
+      "id": "T48",
+      "phase": 4,
+      "title": "Add Tag dialog",
+      "specRef": "01 §19; 03 §20",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/add-tag-dialog.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T41"],
+      "mandatory": true,
+      "doneWhen": [
+        "defaults name '', type custom, color parchment, description '' (already true at add-tag-dialog.tsx:64-69)",
+        "409 calls setError('name', ...) and keeps values; today it sets a form-level serverError (add-tag-dialog.tsx:91-96)",
+        "other errors stay form-level, dialog stays open",
+        "success toast text 'Тег додано' (uk tags.tagDialog.addSuccess is 'Тег створено' today), dialog closes, no reload"
+      ],
+      "acceptanceRows": ["F-ADD-01", "F-ADD-02", "F-ADD-03", "F-ADD-04"],
+      "status": "done",
+      "evidence": "components/add-tag-dialog.tsx: defaults name '', type DEFAULT_TAG_TYPE (custom), color TAG_COLOR_DEFAULT (parchment), description ''; 409 -> setError('name') via model/tag-form.ts isDuplicateTagNameError, values kept; other errors form-level alert, dialog stays open; success toast tags.tagDialog.addSuccess 'Тег додано' + close. Tests: defaults + 409, 500 form-level, success body/toast/close. Gates: web typecheck green, pnpm lint 0 errors, format:check clean outside docs/**, vitest --project unit src/features/tags 4 files / 49 tests green."
+    },
+    {
+      "id": "T49",
+      "phase": 4,
+      "title": "Edit Tag dialog",
+      "specRef": "01 §20; 03 §21",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/edit-tag-dialog.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T41"],
+      "mandatory": true,
+      "doneWhen": [
+        "submit disabled while !formState.isDirty",
+        "PATCH body contains only dirty fields (today all four are always sent, edit-tag-dialog.tsx:83-88)",
+        "409 maps to the name field",
+        "cancel closes without a discard-confirm",
+        "success toast 'Зміни збережено' (uk editSuccess is 'Тег оновлено' today)"
+      ],
+      "acceptanceRows": ["F-EDIT-01", "F-EDIT-02", "F-EDIT-03", "F-EDIT-04", "B-MUT-06"],
+      "status": "done",
+      "evidence": "components/edit-tag-dialog.tsx: submit disabled while !isDirty or pending; PATCH body from model/tag-form.ts toTagUpdatePatch (only fields that differ from the tag after normalization; empty patch closes without a request); 409 -> name field; cancel closes, no discard-confirm; toast 'Зміни збережено'. Tests: tag-form.test.ts + tags-view.test.tsx edit cases (body {description} only). Gates: web typecheck green, pnpm lint 0 errors, format:check clean outside docs/**, vitest --project unit src/features/tags 4 files / 49 tests green."
+    },
+    {
+      "id": "T50",
+      "phase": 4,
+      "title": "Delete Tag dialog backed by deletion preview",
+      "specRef": "01 §21; 03 §22",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/tags/components/delete-tag-dialog.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T40", "T41"],
+      "mandatory": true,
+      "doneWhen": [
+        "dialog owns the delete mutation (today it lives in tags.tsx:31,55-64)",
+        "confirm disabled until preview succeeds and while mutation pending",
+        "preview error shows retry; no read of row booksCount/usageCount anywhere in the dialog",
+        "copy states links removed (non-zero Book/Character link counts), Books remain, Characters remain, irreversible",
+        "success closes + toast + invalidation; failure keeps dialog open with error"
+      ],
+      "acceptanceRows": [
+        "F-DEL-01",
+        "F-DEL-02",
+        "F-DEL-03",
+        "F-DEL-04",
+        "F-DEL-05",
+        "F-DEL-06",
+        "F-DEL-07"
+      ],
+      "status": "done",
+      "evidence": "components/delete-tag-dialog.tsx: DeleteTagContent (keyed by tag id) owns useTagDeletionPreview + useDeleteTag; confirm enabled only when preview.isSuccess && !isFetching && !isPending; preview error -> alert + retry, no row counts read; copy lists non-zero book/character link counts, Books remain, Characters remain, irreversible; success toast + close, invalidation in useDeleteTag; failure keeps dialog open with alert. Tests: disabled before preview, failure + retry, double click sends one DELETE, failure stays open. Gates: web typecheck green, pnpm lint 0 errors, format:check clean outside docs/**, vitest --project unit src/features/tags 4 files / 49 tests green."
+    },
+    {
+      "id": "T51",
+      "phase": 4,
+      "title": "Books consumers invalidate Tag aggregates",
+      "specRef": "04 §6, §9, §10; 06 §9",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/api/use-book-actions.ts",
+        "apps/web/src/features/books/api/use-book-mutation-sync.ts",
+        "apps/web/src/features/books/api/use-create-book.ts",
+        "apps/web/src/features/books/api/use-update-book.ts"
+      ],
+      "dependsOn": ["T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "useBulkAddTags invalidates aggregates via helper; picker invalidation kept only because bulk-add creates tags by name (resolveOrCreateMany, tags.service.ts:97-118)",
+        "useDeleteBook, useBulkDeleteBooks, useCreateBook, useUpdateBook (or useBookMutationSync) invalidate aggregates next to their existing invalidateGenreDerivedQueries calls",
+        "no other Books files changed"
+      ],
+      "acceptanceRows": ["I-BOOK-01", "I-PICK-03"],
+      "status": "done",
+      "evidence": "useBulkAddTags already calls invalidateTagCollectionQueries (aggregates + picker; bulk-add creates tags by name). useDeleteBook and useBulkDeleteBooks add invalidateTagAggregateQueries next to invalidateGenreDerivedQueries. useCreateBook and useUpdateBook add invalidateTagCollectionQueries, because BookTagsInputSchema is tag names and create/update can create tags, so the picker must refresh too. useBookMutationSync left alone: its callers (delivery, loan, ownership, reading progress) never change tags. No book restore/purge mutation exists in apps/web. invalidateTagMetadataQueries now also invalidates seriesKeys.root, since SeriesView and SeriesBookView embed TagView. Gates: web typecheck clean, pnpm lint 0 errors (8 pre-existing warnings, none in changed files), vitest --project unit books/api + characters + tags: 12 files / 55 tests passed."
+    },
+    {
+      "id": "T52",
+      "phase": 4,
+      "title": "Characters lifecycle consumers invalidate Tag aggregates",
+      "specRef": "04 §7-§9; 06 §9",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/api/use-soft-delete-character.ts",
+        "apps/web/src/features/characters/api/use-restore-character.ts",
+        "apps/web/src/features/characters/api/use-create-character-in-book.ts",
+        "apps/web/src/features/characters/api/use-update-book-character.ts",
+        "apps/web/src/features/characters/api/use-update-character.ts (only if D1 = exclude hidden profiles)"
+      ],
+      "dependsOn": ["T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "soft-delete, restore and create-in-book call the aggregate helper",
+        "use-update-book-character calls it only because PATCH book-character can carry tagIds (characters.ts:321); if that field is never sent from FE, record the call as defensive or drop it per review",
+        "use-unlink-character.ts is NOT changed (04 §8; visibility does not depend on BookCharacter under D1 a/b)"
+      ],
+      "acceptanceRows": ["I-CHAR-01", "I-CHAR-03"],
+      "status": "done",
+      "evidence": "useSoftDeleteCharacter, useRestoreCharacter, useCreateCharacterInBook and useUpdateBookCharacter call invalidateTagAggregateQueries after characterKeys.all. The use-update-book-character call is defensive: PATCH book-character accepts tagIds (characters.ts:321) but no FE code sends it today. use-update-character not changed (D1 = a, spoiler flag does not move counts). use-unlink-character not changed. No archive/unarchive/merge mutation exists in apps/web. Gates as T51."
+    },
+    {
+      "id": "T60",
+      "phase": 5,
+      "title": "Remove /genres-tags and keep /tags thin",
+      "specRef": "01 §1; 04 §2, §4; 06 §10",
+      "layer": "web",
+      "files": [
+        "apps/web/src/app/[locale]/(app)/genres-tags/page.tsx (delete)",
+        "apps/web/src/features/genres/model/legacy-genres-tags-href.ts (delete)",
+        "apps/web/src/features/genres/model/legacy-genres-tags-href.test.ts (delete)",
+        "apps/web/src/features/genres/index.ts",
+        "apps/web/src/app/[locale]/(app)/tags/page.tsx"
+      ],
+      "dependsOn": ["T42", "T43", "T44", "T45", "T46", "T47", "T48", "T49", "T50", "T51", "T52"],
+      "mandatory": true,
+      "doneWhen": [
+        "genres-tags route directory gone; no redirect anywhere (proxy.ts, next.config.ts, middleware)",
+        "legacyGenresTagsHref and its export (features/genres/index.ts:2) and test removed",
+        "tags/page.tsx only resolves locale, sets metadata, renders the orchestrator",
+        "git grep -n 'genres-tags' -- ':!docs' returns nothing",
+        "nav already points to /tags (app-shell.tsx:168); unchanged"
+      ],
+      "acceptanceRows": ["R-01", "R-02", "R-03", "R-04", "R-05", "F-ARCH-02", "I-GEN-01"],
+      "status": "done",
+      "evidence": "Deleted app/[locale]/(app)/genres-tags/ (the only redirect; proxy.ts and next.config.ts never had one), features/genres/model/legacy-genres-tags-href.ts + test, and the export at features/genres/index.ts. tags/page.tsx only resolves locale, sets metadata, renders <TagsView /> (unchanged). git grep -n genres-tags -- :!docs returns nothing. app-shell.tsx nav to /tags unchanged. No sitemap/messages key referenced the route."
+    },
+    {
+      "id": "T61",
+      "phase": 6,
+      "title": "Delete the superseded client-side Tags implementation",
+      "specRef": "06 §11, §17; 05 REG-03, REG-04",
+      "layer": "cleanup",
+      "files": [
+        "apps/web/src/features/tags/model/tags-derive.ts",
+        "apps/web/src/features/tags/components/tags-tab.tsx",
+        "apps/web/src/features/tags/components/tags.tsx",
+        "apps/web/src/features/tags/api/use-tag-stats.ts",
+        "apps/web/src/features/tags/model/library-links.ts (if zero consumers)",
+        "apps/web/src/features/tags/components/tags.test.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T60"],
+      "mandatory": true,
+      "doneWhen": [
+        "filterTags/sortTags/popularTags/toTagCards and TagSort/TagFilter local unions gone",
+        "tagsKeys.tagStats gone; no FE import of tagsControllerStats",
+        "unused i18n keys (tags.tagFilter.* type entries, tags.tagSort, tags.page.hint if unused, summary.tags) removed from both locales",
+        "pnpm knip reports nothing new under features/tags"
+      ],
+      "acceptanceRows": ["REG-03", "REG-04", "F-ARCH-06"],
+      "status": "done",
+      "evidence": "Deleted model/tags-derive.ts (filterTags/sortTags/popularTags/toTagCards, TagSort/TagFilter unions), api/use-tag-stats.ts, and the dead TagChip (components/tag-chip.tsx) with its only helper model/library-links.ts (grep: zero consumers; tag-row replaced it). tagsKeys.stats and the stats family removed from tags-keys.ts and from invalidateTagAggregateQueries. i18n removed from uk+en: tags.page.hint, tags.tagSort, tags.tagFilter, tags.sortMobile.tagTrigger, tags.toolbar.tagFilterLabel, tags.tags.* (summary.tags was already gone). pnpm knip: no findings."
+    },
+    {
+      "id": "T62",
+      "phase": 6,
+      "title": "Remove global Delete Tag from the book-form picker",
+      "specRef": "04 §5, §15; 06 §11",
+      "layer": "cleanup",
+      "files": [
+        "apps/web/src/features/books/components/tags-field.tsx",
+        "apps/web/src/features/books/api/use-delete-tag.ts (delete)",
+        "apps/web/src/features/books/components/create-book-form.stories.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T60"],
+      "mandatory": true,
+      "doneWhen": [
+        "tags-field.tsx has no tagPendingDelete state, AlertDialog or delete button (today lines 50-62, 170-175, 216-240)",
+        "features/books/api/use-delete-tag.ts deleted",
+        "books.classification.tagsDelete* keys removed from uk.json (lines 1205-1211) and en.json",
+        "selection and inline creation of tags in the picker still work"
+      ],
+      "acceptanceRows": ["I-PICK-01", "I-PICK-04"],
+      "status": "done",
+      "evidence": "tags-field.tsx: removed tagPendingDelete state, confirmDeleteTag, the per-suggestion delete button and the AlertDialog; selection and inline create untouched. Deleted features/books/api/use-delete-tag.ts. books.classification.tagsDelete* (7 keys) removed from uk+en. create-book-form.stories.tsx: DeleteSavedTagFromSuggestions replaced by SavedTagSuggestionHasNoDeleteControl; TagSuggestionAddsExisting still covers selection. Web unit tests for features/tags, books, genres: 76 files, 1000 passed."
+    },
+    {
+      "id": "T63",
+      "phase": 6,
+      "title": "Retire GET /api/tags/stats (per D6)",
+      "specRef": "02 §19 (management-only duplicates); 05 REG-03",
+      "layer": "cleanup",
+      "files": [
+        "apps/api/src/modules/tags/api/tags.controller.ts",
+        "apps/api/src/modules/tags/api/view-dto/tag-stats.view-dto.ts",
+        "apps/api/src/modules/tags/application/tags.service.ts",
+        "apps/api/src/modules/tags/domain/tag.mapper.ts",
+        "apps/api/src/modules/tags/infrastructure/tags.repository.ts",
+        "packages/shared/src/tags.ts",
+        "apps/api/src/modules/tags/api/tags.controller.test.ts",
+        "apps/api/src/modules/tags/application/tags.service.test.ts",
+        "apps/api/src/modules/books/api/book-trash-isolation.controller.test.ts",
+        "apps/web/src/shared/api/generated/**"
+      ],
+      "dependsOn": ["T61"],
+      "mandatory": true,
+      "doneWhen": [
+        "only if D6 = remove: stats route, TagStatsViewSchema, toTagStatsView, countBooksByTag/listOwned (if unused) removed",
+        "book-trash-isolation.controller.test.ts:149-150 asserts the same trash exclusion through /api/tags/catalog",
+        "pnpm gen:api rerun; generated stats functions disappear by regeneration only"
+      ],
+      "acceptanceRows": ["REG-03", "G-API-02"],
+      "status": "done",
+      "evidence": "D6 = remove (user decision). Removed GET /api/tags/stats, view-dto/tag-stats.view-dto.ts, TagStatsViewSchema/TagStatsView (packages/shared), toTagStatsView, TagsService.stats, TagsRepository.countBooksByTag and listOwned (stats-only; now-unused SOFT_DELETE_SCOPE import dropped), the stats controller and service tests (catalog tests already cover booksCount, owner isolation and trash exclusion). book-trash-isolation test now asserts /api/tags/catalog items equal [{ name: classic, booksCount: 0 }] after trashing the book. pnpm gen:api rerun: tagsControllerStats, tagStatsViewDto(.Type) disappeared by regeneration. API tests src/modules/tags + book-trash-isolation: 8 files, 124 passed."
+    },
+    {
+      "id": "T64",
+      "phase": 6,
+      "title": "Structural search per 06 §17",
+      "specRef": "06 §17",
+      "layer": "cleanup",
+      "files": [],
+      "dependsOn": ["T61", "T62"],
+      "mandatory": true,
+      "doneWhen": [
+        "recorded output of greps for: genres-tags; tags-derive/tags-tab; useQueryStates in features/tags (exactly one owner); queryKey literals containing 'tags'; hand-written Zod response schemas in features/tags and features/books/api/use-tags-search.ts; .filter/.sort over catalog items; tagsControllerDelete outside features/tags",
+        "every remaining match is justified in the PR description"
+      ],
+      "acceptanceRows": ["REG-02", "REG-03", "REG-04", "F-ARCH-04", "F-ARCH-05", "G-API-03"],
+      "status": "done",
+      "evidence": "Greps (apps/web/src unless noted): genres-tags (repo, :!docs) = 0; tags-derive/tags-tab/TagsTab/GenresTags = 0; useQueryStates in features/tags = 1 (model/use-tag-query.ts, the single owner); raw [\"tags\" keys = 0, the only /api/tags literal is TAGS_ROOT in tags-keys.ts (intentional root), others are fetch-URL matchers in stories/tests; Zod parses in features/tags use @app/shared schemas (TagCatalogView, PaginatedTagCatalog, TagsCatalogFacetsView, TagsSummaryView, TagDeletionPreviewView) and tag-form.ts builds the form schema (input, not a response DTO); features/books/api/use-tags-search.ts keeps a hand-written {id,name} paginator schema because GET /api/tags has no typed response (generated TagsControllerSearchResponse is zod.unknown()) and it is the picker contract, not a management DTO; .filter over catalog items = 0 (the two matches filter option lists in tags-advanced-filters.tsx:137 and toggle values in tags-query.ts:78); tagsControllerDelete outside features/tags = 0; tagsControllerStats/TagStats/tags/stats across web, api, shared = 0."
+    },
+    {
+      "id": "T70",
+      "phase": 7,
+      "title": "Frontend behavior tests at the fetch boundary",
+      "specRef": "05 Frontend rows",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/tags/components/tags-view.test.tsx (new)",
+        "apps/web/src/features/tags/components/*-dialog.test.tsx (new)",
+        "apps/web/src/features/tags/model/*.test.ts"
+      ],
+      "dependsOn": ["T61"],
+      "mandatory": true,
+      "doneWhen": [
+        "fetch mocked at the boundary, no RQ hook mocks",
+        "named tests for F-URL-02/03, F-SRCH-01/04/06, F-FLT-01..04, F-PAGE-02..07, F-STATE-01..05, F-EMPTY-01..04, F-SUM-02..04, F-SIDE-02/04/06, F-MOB-02, F-ADD-01..04, F-EDIT-01..04, F-DEL-01..07",
+        "a cross-feature test asserts Books bulk-tag and character soft-delete invalidate tags catalog/facets/summary keys but not the picker (pattern: features/books/api/genre-invalidation.test.tsx)",
+        "vitest --project unit run on these files passes"
+      ],
+      "acceptanceRows": [
+        "F-URL-02",
+        "F-URL-03",
+        "F-SRCH-01",
+        "F-SRCH-04",
+        "F-SRCH-06",
+        "F-FLT-01",
+        "F-FLT-02",
+        "F-FLT-03",
+        "F-FLT-04",
+        "F-PAGE-02",
+        "F-PAGE-03",
+        "F-PAGE-04",
+        "F-PAGE-05",
+        "F-PAGE-06",
+        "F-PAGE-07",
+        "F-STATE-01",
+        "F-STATE-02",
+        "F-STATE-03",
+        "F-STATE-04",
+        "F-STATE-05",
+        "F-EMPTY-01",
+        "F-EMPTY-02",
+        "F-EMPTY-03",
+        "F-EMPTY-04",
+        "F-SUM-01",
+        "F-SUM-02",
+        "F-SUM-03",
+        "F-SUM-04",
+        "F-SIDE-01",
+        "F-SIDE-02",
+        "F-SIDE-03",
+        "F-SIDE-04",
+        "F-SIDE-05",
+        "F-SIDE-06",
+        "F-MOB-01",
+        "F-MOB-02",
+        "F-ADD-01",
+        "F-ADD-02",
+        "F-ADD-03",
+        "F-ADD-04",
+        "F-EDIT-01",
+        "F-EDIT-02",
+        "F-EDIT-03",
+        "F-EDIT-04",
+        "F-DEL-01",
+        "F-DEL-02",
+        "F-DEL-03",
+        "F-DEL-04",
+        "F-DEL-05",
+        "F-DEL-06",
+        "F-DEL-07",
+        "I-BOOK-01",
+        "I-CHAR-01",
+        "I-PICK-03",
+        "I-GEN-02"
+      ],
+      "status": "done",
+      "evidence": "fetch mocked at the boundary, no RQ hook mocks; vitest --project unit on features/tags + books/components/tags-field.test.tsx: 7 files / 106 tests passed; web typecheck clean; pnpm lint 0 errors (8 pre-existing warnings); prettier clean. tags-view.test.tsx (20 -> 44 tests): F-URL-02 \"reconstructs search, quick filter, type, color and sort from a deep link\"; F-URL-03 \"pushes URL changes to history and restores URL-owned state on back and forward\"; F-SRCH-01/05 \"commits a normalized search only once 300 ms have passed\"; F-SRCH-02 \"never sends a single-character search\"; F-SRCH-04 \"clears the committed search immediately without waiting for the debounce\"; F-SRCH-06 \"keeps filters and sort and restarts paging from the first page when the search changes\"; F-FLT-01 \"keeps q, type, color and sort when the quick filter changes\"; F-FLT-02 \"applies the type and color selected in the filters sheet to the URL\" + sidebar \"lists all six types, toggles type[] and color[]...\"; F-FLT-03 \"keeps filters and restarts paging from the first page when the sort changes\"; F-FLT-04/05 \"renders chips for q/type/color only and clears them while keeping sort\"; F-PAGE-02/05 \"appends the next page on Показати ще and hides it on the last page\"; F-PAGE-03 \"keeps the loaded rows and a busy load-more while the next page is pending\"; F-PAGE-04 \"keeps loaded rows and offers a retry when the next page fails\" + \"retries a failed next page and appends it\"; F-PAGE-06 \"sends one next-page request however often load-more is pressed while pending\"; F-PAGE-07 \"counts accumulated rows against the backend total\"; F-STATE-01 \"keeps the header and shows a catalog skeleton while the first page loads\"; F-STATE-02 \"keeps the catalog usable while the summary is still loading\" + \"...offers a local retry when the summary fails\"; F-STATE-03 \"keeps the catalog usable without invented counts while facets are loading\" + \"shows quick-filter counts from facets and keeps the chips usable when facets fail\"; F-STATE-04 \"shows a critical retry state when the first page fails and recovers on retry\"; F-STATE-05 \"keeps the current rows visible and marked busy while new criteria load\"; F-EMPTY-01 \"shows the first-use state when no tags exist\" + \"opens the Add dialog from the first-use state\"; F-EMPTY-02 \"shows a contextual empty state whose Clear all resets filters but keeps sort\"; F-EMPTY-03/04 \"shows the positive all-used state only for filter=unused without q/type/color\"; F-SUM-01/02 \"renders four summary cards with a non-clickable tie indicator\"; F-SUM-03/04 \"never renders NaN or Infinity for an empty library and character population\"; F-SIDE-01..06 \"sets filter=unused from the attention block...\" + \"lists all six types, toggles type[] and color[], and keeps usage informational\"; F-MOB-02 \"drives the same filter handlers from the Structure and Attention tabs\"; F-ADD-01/02 \"opens with custom type and parchment color, maps a duplicate name to the field\"; F-ADD-03 \"keeps the dialog open with a form-level error on an unexpected failure\"; F-ADD-04 \"creates the tag, closes and announces Тег додано\" + \"refetches catalog, facets and summary after creating a tag\"; F-EDIT-01 \"keeps save disabled while pristine and sends only the changed fields\"; F-EDIT-02/03 \"maps a duplicate name to the name field and closes on cancel without a confirm\"; F-EDIT-04 \"closes the Edit dialog and refetches catalog, facets and summary after saving\"; F-DEL-01..04 \"keeps confirm disabled until the preview succeeds and never falls back to row counts\"; F-DEL-05 \"deletes once, closes and announces success\"; F-DEL-06 \"removes the deleted tag once the catalog is refetched\"; F-DEL-07 \"keeps the dialog open with an error when deletion fails\". tags/api/tag-invalidation.test.tsx (8 tests): I-BOOK-01 + I-PICK-03 \"refreshes catalog, facets and summary after deleting a book\" (picker untouched) and bulk-tag/book-edit tests (picker refreshed because BookTags input is tag names that can create tags, per T51); I-CHAR-01 + I-PICK-03 \"...after re-tagging a character\" / \"...after soft-deleting a character\" (picker untouched); I-PICK-02 + I-GEN-02 \"refresh the picker and aggregates but never Genres after a create / rename / delete\". books/components/tags-field.test.tsx: I-PICK-04 \"offers saved tags without any control that deletes a tag globally\"; I-PICK-01 \"adds a saved tag to the book when it is picked\". Left to structural verification: F-MOB-01, F-SIDE-05 layout, F-URL-01/04..07 and F-SRCH-02/03/05 also covered in model/tags-query.test.ts."
+    },
+    {
+      "id": "T71",
+      "phase": 7,
+      "title": "Final gates and live verification",
+      "specRef": "05 Final verification; 06 §12, §16, §18",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T63", "T64", "T70"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm gen:api produces no diff; pnpm typecheck, pnpm lint, pnpm format:check, pnpm build green",
+        "full test evidence per D9 (local pnpm test once, or green CI run URL)",
+        "/tags checked in pnpm dev with dev-DB data: deep link /tags?filter=unused&type=trope&sort=name_asc reloads into the same state, back/forward restores state, screenshots desktop + mobile, no console errors",
+        "every 05 row marked pass/n-a with proof in the VERIFY report"
+      ],
+      "acceptanceRows": [
+        "R-01",
+        "R-02",
+        "F-URL-02",
+        "F-URL-03",
+        "REG-01",
+        "REG-02",
+        "REG-05",
+        "G-API-01",
+        "G-API-02"
+      ],
+      "status": "partial",
+      "evidence": "gen:api no new diff; typecheck 3/3, lint 0 errors, format:check clean; API :4010 health 200 + x-request-id, curl picker/catalog(filter,type,sort)/facets/summary/deletion-preview 200 with expected numbers, /api/tags/stats 404; web :3010 /uk/tags 200, /uk/genres-tags 404; browser: desktop render, deep link reconstruct, quick filter push + back restores, delete dialog shows preview 2/1, no console errors. Pending: mobile viewport visual (window resize unavailable), CI green run (push needs consent), pnpm build left to CI per D8."
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Which Characters are 'visible' for charactersCount, taggedCharactersCount and totalCharactersCount?",
+      "options": [
+        "a) deleted_at IS NULL AND archived_at IS NULL (global list defaults), hidden-profile characters included",
+        "b) a) plus hide_profile_as_spoiler = false (exact default of GET /api/characters)",
+        "c) deleted_at IS NULL only"
+      ],
+      "codebaseFacts": "Global list defaults archived=false and includeHiddenProfiles=false (global-character-filter.ts:17,27; characters.repository.ts:1025-1031). hideProfileAsSpoiler is a spoiler mask toggled by PATCH /api/characters/:id (characters.ts UpdateCharacterSchema). archivedAt is only written by portability import.",
+      "recommendation": "a). Archive and trash are lifecycle states; the spoiler mask is presentation. Under b) a spoiler toggle would move tag counts and force use-update-character to invalidate Tag aggregates.",
+      "specRef": "02 §5",
+      "blocks": ["T5", "T7", "T52"],
+      "answer": "a — spoiler-hidden Characters count if not deleted/archived; the spoiler flag only masks the profile",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D2",
+      "question": "How to satisfy the Tag.type invariant when dev/prod data cannot be inspected from here",
+      "options": [
+        "a) open the dev tunnel (:5532), SELECT type counts read-only, add a migration only if a bad row exists",
+        "b) ship an idempotent data migration UPDATE ... SET type='custom' WHERE type NOT IN (6 values) regardless; no-op on clean DBs",
+        "c) b) plus a raw-SQL CHECK constraint on tags.type"
+      ],
+      "codebaseFacts": "Column is TEXT NOT NULL DEFAULT 'custom' (20260716184304_enrich_tags), so null is impossible. Every code writer is canonical (CreateTagSchema/UpdateTagSchema via TagTypeSchema; upsertByNormalized uses the default). Local booknest_dev has 0 tags; dev port 5532 refused.",
+      "recommendation": "b). Cheap, env-independent, and proves the invariant at deploy time in every environment. c) adds a raw-SQL object Prisma cannot see, for a risk no code path produces.",
+      "specRef": "02 §7; 05 B-TYPE-01..03",
+      "blocks": ["T4"],
+      "answer": "b — idempotent data migration: non-canonical type -> custom",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D3",
+      "question": "Should POST/PATCH reject colors outside the 8-color palette?",
+      "options": [
+        "a) tighten shared color schema to the palette enum",
+        "b) keep the permissive hex/token schema; only read models resolve to parchment"
+      ],
+      "codebaseFacts": "TagColorSchema accepts any hex or token up to 32 chars (tags.ts:40-49). The only FE writer sends palette values. Existing API tests post '#A96E47'.",
+      "recommendation": "a). 02 §13 lists 'canonical palette color' under validation, and it stops new non-palette rows from appearing. Cost: five superseded test fixtures.",
+      "specRef": "02 §13",
+      "blocks": ["T1"],
+      "answer": "a — POST/PATCH accept only the 8 canonical colors; legacy read as parchment",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D4",
+      "question": "Literal 'type[]' / 'color[]' parameter names, or the repo's multi-value convention?",
+      "options": [
+        "a) names 'type' and 'color', nuqs parseAsArrayOf (comma) in URL, queryStringArray on the API (repeated or comma)",
+        "b) literal bracket names 'type[]' and 'color[]' in URL and API"
+      ],
+      "codebaseFacts": "Genres uses 'group' with parseAsArrayOf (genres-query.ts:90) and queryStringArray (genres.ts:81). No bracket-named params exist in the repo.",
+      "recommendation": "a). Treat '[]' in the spec as notation for multi-value; b) needs custom nuqs keys and Orval param names for no user benefit.",
+      "specRef": "01 §9, §13; 02 §8",
+      "blocks": ["T2", "T21"],
+      "answer": "a — same as Genres: parseAsArrayOf comma format ?type=trope,theme (user confirmed 2026-09-23 after correction)",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D5",
+      "question": "nuqs history mode for committed Tags state",
+      "options": [
+        "a) history: 'push' for committed q/filter/type/color/sort changes",
+        "b) default 'replace' like Genres"
+      ],
+      "codebaseFacts": "Genres uses default replace; notes uses push for one transition (use-notes-archive-query.ts:58). F-URL-03 requires back/forward to restore state.",
+      "recommendation": "a). With replace, Back leaves /tags instead of restoring the previous filter, which fails F-URL-03.",
+      "specRef": "03 §25; 05 F-URL-03",
+      "blocks": ["T21"],
+      "answer": "a — history push for committed q/filter/type/color/sort",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D6",
+      "question": "Remove GET /api/tags/stats and TagStatsView after the new page ships?",
+      "options": [
+        "a) remove in Phase 6 and move the trash-isolation assertion to /api/tags/catalog",
+        "b) keep it"
+      ],
+      "codebaseFacts": "Only consumer is features/tags/api/use-tag-stats.ts; tests at tags.controller.test.ts:258-330, tags.service.test.ts:258, book-trash-isolation.controller.test.ts:149.",
+      "recommendation": "a). After T61 it has zero runtime consumers and duplicates the catalog with Book-only usage, which 02 §19 rejects.",
+      "specRef": "02 §19; 05 REG-03",
+      "blocks": ["T63"],
+      "answer": "a — delete GET /api/tags/stats in cleanup once no consumers",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D7",
+      "question": "Where catalog filtering/sorting/pagination runs",
+      "options": [
+        "a) in SQL: one aggregate CTE, WHERE/ORDER BY/LIMIT in Postgres",
+        "b) Genres pattern: load one aggregate row per tag, filter/sort/page in a pure domain module"
+      ],
+      "codebaseFacts": "Genres does b) (genre-list.ts) over a bounded system catalog. tags.name already has uk-UA-x-icu collation, so SQL name ordering matches the Ukrainian collator.",
+      "recommendation": "a) for catalog and facets, since 02 §17 says not to load every tag into memory to filter/count. Summary can assemble in a pure domain function from one GROUP BY result for testability.",
+      "specRef": "02 §17",
+      "blocks": ["T5", "T6", "T7"],
+      "answer": "a — catalog/filter/sort/pagination/facets in SQL; summary one centralized implementation with the same usage semantics",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D8",
+      "question": "The spec's final verification lists 'pnpm test' and 'pnpm build'; CLAUDE.md §9 makes the local full suite opt-in",
+      "options": [
+        "a) run pnpm test locally once at the end",
+        "b) push the branch and use the green CI run as evidence"
+      ],
+      "codebaseFacts": "Full suite takes about 7 minutes and saturates the machine (CLAUDE.md §9).",
+      "recommendation": "b), plus targeted vitest locally per slice. Pick a) if you want local proof before pushing.",
+      "specRef": "05 Final verification",
+      "blocks": ["T71"],
+      "answer": "b — local typecheck, lint, targeted tests, /blast-radius; full suite in CI after push, push only with explicit consent",
+      "answeredAt": "2026-09-23"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Tags module has api/application/domain/infrastructure + tags.module.ts",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/tags/{api,application,domain,infrastructure}, tags.module.ts:8-14"
+    },
+    {
+      "claim": "Controller endpoints POST, GET, GET stats, PATCH :id, DELETE :id",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "tags.controller.ts:58,71,85,98,110"
+    },
+    {
+      "claim": "GET /api/tags uses search, pageNumber, pageSize",
+      "specRef": "02 §2",
+      "verdict": "CONFIRMED",
+      "evidence": "tags.controller.ts:68-78; packages/shared/src/taxonomy.ts:19-22 (pageSize default 10, max 100)"
+    },
+    {
+      "claim": "Picker GET /api/tags searches only by name",
+      "specRef": "implicit 04 §5",
+      "verdict": "FALSE",
+      "evidence": "tags.repository.ts:163-175 also matches description; tested at tags.controller.test.ts:368. Keep as is (compat)."
+    },
+    {
+      "claim": "DELETE returns 204 and cascades",
+      "specRef": "02 §16",
+      "verdict": "ALREADY DONE",
+      "evidence": "tags.controller.ts:107-118 (HTTP 204); tags.repository.ts:90-92; FK CASCADE book_tags migration 20260610194646 line 37, character_tags migration 20260717202056; book cascade tested tags.controller.test.ts:443"
+    },
+    {
+      "claim": "Tag.type is String @default(\"custom\")",
+      "specRef": "02 §7; 07",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:592; DB column NOT NULL (20260716184304_enrich_tags)"
+    },
+    {
+      "claim": "Persisted type may be null",
+      "specRef": "02 §7",
+      "verdict": "FALSE",
+      "evidence": "column is NOT NULL DEFAULT 'custom'; only non-canonical strings are theoretically possible"
+    },
+    {
+      "claim": "Tag.color nullable",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:593"
+    },
+    {
+      "claim": "CharacterTag is global (characterId, tagId)",
+      "specRef": "01 §4",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:1178-1187"
+    },
+    {
+      "claim": "Shared tags.ts: 6 types, default custom, name 2-40, description 300, create/update schemas, catalog/stats schemas",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/tags.ts:6-8,15-26,56-77,94-119"
+    },
+    {
+      "claim": "Canonical colors are shared",
+      "specRef": "01 §11",
+      "verdict": "FALSE",
+      "evidence": "palette exists only in apps/web/src/features/tags/model/tag-color.ts:5-20; shared TagColorSchema is free-form hex/token (tags.ts:40-49)"
+    },
+    {
+      "claim": "Existing input/view DTO files",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "api/input-dto/{create-tag,update-tag,taxonomy-search-query}.input-dto.ts, api/view-dto/{tag-catalog,tag-stats}.view-dto.ts"
+    },
+    {
+      "claim": "OpenAPI at apps/api/src/core/openapi.ts; gen:api = openapi + orval",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "package.json:47; apps/api/package.json:13; apps/web/package.json:20"
+    },
+    {
+      "claim": "Orval outputs model/endpoints/zod",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/orval.config.ts:29,56; apps/web/src/shared/api/generated/{endpoints,model,zod}"
+    },
+    {
+      "claim": "Legacy route genres-tags/page.tsx exists",
+      "specRef": "07",
+      "verdict": "CONFIRMED (now a redirect)",
+      "evidence": "apps/web/src/app/[locale]/(app)/genres-tags/page.tsx:17 redirects via legacyGenresTagsHref (features/genres/model/legacy-genres-tags-href.ts)"
+    },
+    {
+      "claim": "Combined feature apps/web/src/features/genres-tags/ with listed files",
+      "specRef": "07",
+      "verdict": "STALE",
+      "evidence": "directory does not exist; split into features/tags and features/genres by PR #218"
+    },
+    {
+      "claim": "/tags route needs to be created in Phase 5",
+      "specRef": "06 §10",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/app/[locale]/(app)/tags/page.tsx:21-31 (thin, renders <Tags />)"
+    },
+    {
+      "claim": "Navigation points to combined Genres/Tags",
+      "specRef": "07 Navigation",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/components/app-shell.tsx:167-168 separate /genres and /tags"
+    },
+    {
+      "claim": "Books tag consumers use-tags-search, use-delete-tag, tags-field, book-tags-dialog",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/api/use-tags-search.ts, use-delete-tag.ts; components/tags-field.tsx, book-tags-dialog.tsx"
+    },
+    {
+      "claim": "A picker exposes global Delete Tag",
+      "specRef": "04 §5",
+      "verdict": "CONFIRMED",
+      "evidence": "tags-field.tsx:50-62,170-175,216-240 calls tagsControllerDelete via books/api/use-delete-tag.ts:12"
+    },
+    {
+      "claim": "Books Library references exist",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "features/books/components/books-library.tsx, books-library-view.tsx, app/[locale]/(app)/books/page.tsx"
+    },
+    {
+      "claim": "MobilePageOverviewPanel exists",
+      "specRef": "01 §18",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/mobile-page-overview-panel.tsx:109"
+    },
+    {
+      "claim": "nuqs is the URL-state library",
+      "specRef": "03 §2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/package.json:45; NuqsAdapter app-shell.tsx:210; canonical parsers genres-query.ts:86-95"
+    },
+    {
+      "claim": "Current /tags uses nuqs URL state and server filtering",
+      "specRef": "03 §2",
+      "verdict": "FALSE",
+      "evidence": "features/tags/components/tags.tsx:33-44 uses useState and client filterTags/sortTags (model/tags-derive.ts:43-70) over GET /api/tags/stats"
+    },
+    {
+      "claim": "Character usage/Tag management UI for CharacterTag assignment exists in features/characters",
+      "specRef": "07 Character integration",
+      "verdict": "FALSE",
+      "evidence": "no FE sender of tagIds (grep apps/web/src); BE writes via book-characters.service.ts:277-281, merge, portability"
+    },
+    {
+      "claim": "Current copy matches spec",
+      "specRef": "01 §5, §19, §20",
+      "verdict": "STALE",
+      "evidence": "uk.json tags.page.subtitle differs; tagDialog.addSuccess='Тег створено', editSuccess='Тег оновлено'; tagFilter.custom='Власні теги'"
+    },
+    {
+      "claim": "Existing tests at tags.controller.test.ts and tags.service.test.ts",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "B-MUT-01..05 covered at tags.controller.test.ts:80-165; partial PATCH at tags.service.test.ts:230"
+    },
+    {
+      "claim": "Tag migrations 20260610194646_book_tags, 20260716184304_enrich_tags, 20260717202056_add_character_tags",
+      "specRef": "07",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/migrations/"
+    },
+    {
+      "claim": "Canonical active Book",
+      "specRef": "02 §5",
+      "verdict": "CONFIRMED",
+      "evidence": "books.deleted_at IS NULL: SOFT_DELETE_SCOPE.active (core/database/soft-delete.ts:4), genre summary countLibraryBooks (genre-stats.repository.ts:175-176), existing tag stats (tags.repository.ts:69), trash isolation test (book-trash-isolation.controller.test.ts:149-150). Book has no archivedAt."
+    },
+    {
+      "claim": "Canonical visible Character",
+      "specRef": "02 §5",
+      "verdict": "OPEN (D1)",
+      "evidence": "deleted_at IS NULL + archived_at IS NULL by default (global-character-filter.ts:17; characters.repository.ts:1025-1027); hide_profile_as_spoiler excluded by default (global-character-filter.ts:27; characters.repository.ts:1029-1031)"
+    }
+  ]
+}
