@@ -23,8 +23,8 @@ type TagRowProps = {
 };
 
 export function TagRow({ onDelete, onEdit, tag }: TagRowProps) {
-  const t = useTranslations("genresTags.tags");
-  const tType = useTranslations("genresTags.types");
+  const t = useTranslations("tags.tags");
+  const tType = useTranslations("tags.types");
 
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 shadow-card transition-colors duration-150 hover:border-accent-border">

@@ -2,6 +2,8 @@ import type { QueryKey } from "@tanstack/react-query";
 
 import { useQueryClient } from "@tanstack/react-query";
 
+import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
+
 const IMPACTED_PREFIXES = ["/api/delivery", "/api/books", "/api/series"];
 
 export function matchesDeliveryImpacted(query: { queryKey: QueryKey }): boolean {
@@ -12,5 +14,8 @@ export function matchesDeliveryImpacted(query: { queryKey: QueryKey }): boolean 
 
 export function useDeliverySync() {
   const queryClient = useQueryClient();
-  return () => void queryClient.invalidateQueries({ predicate: matchesDeliveryImpacted });
+  return () => {
+    void queryClient.invalidateQueries({ predicate: matchesDeliveryImpacted });
+    void invalidateGenreDerivedQueries(queryClient);
+  };
 }

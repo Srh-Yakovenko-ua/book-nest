@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { tagsControllerStats } from "@/shared/api/generated/endpoints/tags/tags";
 
-import { genresTagsKeys } from "./genres-tags-keys";
+import { tagsKeys } from "./tags-keys";
 
 const TagStatsListSchema = z.array(TagStatsViewSchema);
 
@@ -16,6 +16,6 @@ export function useTagStats() {
       const response = await tagsControllerStats();
       return TagStatsListSchema.parse(response);
     },
-    queryKey: genresTagsKeys.tagStats,
+    queryKey: tagsKeys.tagStats,
   });
 }

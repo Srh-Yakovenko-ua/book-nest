@@ -7,7 +7,7 @@ import type { UpdateTagDto } from "@/shared/api/generated/model";
 
 import { tagsControllerUpdate } from "@/shared/api/generated/endpoints/tags/tags";
 
-import { genresTagsKeys } from "./genres-tags-keys";
+import { tagsKeys } from "./tags-keys";
 
 export type UpdateTagVariables = {
   id: string;
@@ -23,7 +23,7 @@ export function useUpdateTag() {
       return TagCatalogViewSchema.parse(response);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: genresTagsKeys.tagStats });
+      void queryClient.invalidateQueries({ queryKey: tagsKeys.tagStats });
       void queryClient.invalidateQueries({ queryKey: ["tags"] });
     },
   });

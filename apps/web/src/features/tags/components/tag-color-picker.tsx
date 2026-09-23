@@ -16,8 +16,8 @@ type TagColorPickerProps = {
 };
 
 export function TagColorPicker({ id, onChange, value }: TagColorPickerProps) {
-  const t = useTranslations("genresTags.colors");
-  const tField = useTranslations("genresTags.tagDialog");
+  const t = useTranslations("tags.colors");
+  const tField = useTranslations("tags.tagDialog");
 
   return (
     <div aria-label={tField("color")} className="grid grid-cols-2 gap-2" id={id} role="radiogroup">

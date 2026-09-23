@@ -34,7 +34,7 @@ type AddTagDialogProps = {
 };
 
 export function AddTagDialog({ onOpenChange, open }: AddTagDialogProps) {
-  const t = useTranslations("genresTags.tagDialog");
+  const t = useTranslations("tags.tagDialog");
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -50,8 +50,8 @@ export function AddTagDialog({ onOpenChange, open }: AddTagDialogProps) {
 }
 
 function AddTagForm({ onDone }: { onDone: () => void }) {
-  const t = useTranslations("genresTags.tagDialog");
-  const tErrors = useTranslations("genresTags.errors");
+  const t = useTranslations("tags.tagDialog");
+  const tErrors = useTranslations("tags.errors");
   const createTag = useCreateTag();
   const [serverError, setServerError] = useState<null | string>(null);
 

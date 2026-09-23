@@ -17,7 +17,8 @@
     "allBooks": "All books",
     "buyList": "Wishlist",
     "series": "Series",
-    "genresTags": "Genres / Tags",
+    "genres": "Genres",
+    "tags": "Tags",
     "loans": "Borrowed books",
     "loansBorrowed": "To return",
     "loansLent": "Lent out",
@@ -6372,64 +6373,202 @@
       }
     }
   },
-  "genresTags": {
+  "genres": {
     "page": {
-      "metaTitle": "Genres / Tags",
-      "title": "Genres / Tags",
-      "subtitle": "Manage the genres, tags and mood of your library",
+      "metaTitle": "Genres",
+      "title": "Genres",
+      "subtitle": "The genres your library is made of: what you have read, what waits in the queue and what you want to buy",
+      "resultsTitle": "Genre list"
+    },
+    "summary": {
+      "cards": {
+        "usedGenres": "Genres in your library",
+        "mostFrequent": "Most frequent genre",
+        "highestRated": "Rated highest",
+        "mostRead": "Most read",
+        "mostQueued": "Most in queue",
+        "mostWantedToBuy": "Most wanted to buy"
+      },
+      "facts": {
+        "emptyLibrary": "Your library is still empty",
+        "noGenresOnBooks": "Your books have no genres yet",
+        "inBooks": "{count, plural, one {in # book} other {in # books}}",
+        "booksSingle": "{count, plural, one {# book} other {# books}} in this genre",
+        "booksTie": "{count, plural, one {# book} other {# books}} each",
+        "booksTieMore": "{extra, plural, one {# more genre has} other {# more genres have}} {count, plural, one {# book} other {# books}} each",
+        "ratingSingle": "Average rating {rating} · {count, plural, one {# rated book} other {# rated books}}",
+        "ratingTie": "Average rating {rating} · {count, plural, one {# rated book} other {# rated books}} each",
+        "ratingTieMore": "{extra, plural, one {# more genre} other {# more genres}} · average rating {rating} · {count, plural, one {# rated book} other {# rated books}} each",
+        "noRatings": "No rated books yet",
+        "noRatedWithGenres": "No rated books with genres",
+        "ratingSampleTooSmall": "Needs at least {min, plural, one {# rated book} other {# rated books}} in one genre",
+        "readSingle": "{count, plural, one {# book read} other {# books read}} of {total}",
+        "readTie": "{count, plural, one {# book read} other {# books read}} each",
+        "readTieMore": "{extra, plural, one {# more genre has} other {# more genres have}} {count, plural, one {# book read} other {# books read}} each",
+        "noFinished": "No finished books yet",
+        "finishedWithoutGenres": "Your finished books have no genres yet",
+        "queueSingle": "{count} of the genre's {total, plural, one {# book} other {# books}} in queue",
+        "queueTie": "{count, plural, one {# book} other {# books}} in queue each",
+        "queueTieMore": "{extra, plural, one {# more genre has} other {# more genres have}} {count, plural, one {# book} other {# books}} in queue each",
+        "queueEmpty": "Your reading queue is still empty",
+        "queueWithoutGenres": "Books in your queue have no genres yet",
+        "wishSingle": "{count} of the genre's {total, plural, one {# book} other {# books}} on your wishlist",
+        "wishTie": "{count, plural, one {# book} other {# books}} to buy each",
+        "wishTieMore": "{extra, plural, one {# more genre has} other {# more genres have}} {count, plural, one {# book} other {# books}} to buy each",
+        "noWantToBuy": "No books you want to buy yet",
+        "wantToBuyWithoutGenres": "Books you want to buy have no genres yet"
+      },
+      "panel": {
+        "trigger": "Genres overview",
+        "title": "Genres overview",
+        "subtitle": "Six genre figures from your library",
+        "detailsTitle": "Genres in numbers",
+        "close": "Close"
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Search genres",
+      "searchPlaceholder": "Search a genre…",
+      "searchClear": "Clear search",
+      "sortLabel": "Sorting",
+      "quickFilterLabel": "Genre quick filters"
+    },
+    "sort": {
+      "books_count_desc": "Most books",
+      "name_asc": "Name: A–Z",
+      "read_count_desc": "Most read",
+      "queue_count_desc": "Most in queue",
+      "rating_desc": "Highest average rating"
+    },
+    "sortMobile": {
+      "title": "Sorting",
+      "description": "Choose the order of genres.",
+      "close": "Close",
+      "trigger": {
+        "books_count_desc": "Books ↓",
+        "name_asc": "Name A–Z",
+        "read_count_desc": "Read ↓",
+        "queue_count_desc": "In queue ↓",
+        "rating_desc": "Rating ↓"
+      }
+    },
+    "quickFilter": {
+      "all": "All",
+      "unread": "Has unread",
+      "in_queue": "In queue",
+      "finished": "Has read",
+      "want_to_buy": "Wishlisted"
+    },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "activeCount": "({count} active)",
+      "title": "Genre filters",
+      "description": "Narrow the list by genre group, number of books and average rating.",
+      "sections": {
+        "groups": "Genre groups",
+        "books": "Number of books",
+        "rating": "Average rating"
+      },
+      "books": {
+        "min": "From",
+        "max": "To"
+      },
+      "rating": {
+        "any": "Any",
+        "minLabel": "Minimum average rating",
+        "maxLabel": "Maximum average rating"
+      },
+      "invalidRange": "The minimum cannot be greater than the maximum",
+      "reset": "Reset",
+      "apply": "Apply"
+    },
+    "card": {
+      "booksCount": "{count, plural, one {# book} other {# books}}",
+      "progress": "{read} of {total} read",
+      "inQueue": "{count} in queue",
+      "ratingContext": "Average rating {rating} · {count, plural, one {# rated book} other {# rated books}}"
+    },
+    "list": {
+      "loading": "Loading genres",
+      "shown": "{count, plural, one {Showing # genre} other {Showing # genres}}",
+      "loadMore": "Show more",
+      "loadMoreError": "Could not load more genres.",
+      "retry": "Try again"
+    },
+    "states": {
+      "error": {
+        "title": "Could not load genres",
+        "description": "Try refreshing the page or repeating the request.",
+        "retry": "Try again"
+      },
+      "empty": {
+        "title": "Your books have no genres yet",
+        "description": "Add genres while creating or editing a book, and this page will show your library by genre.",
+        "action": "Go to library"
+      },
+      "emptySearch": {
+        "title": "No genres match this search",
+        "description": "Check the spelling or try another genre name.",
+        "action": "Clear search"
+      },
+      "emptyFilters": {
+        "title": "No genres match these conditions",
+        "description": "Change the conditions or reset the filters to see genres.",
+        "action": "Reset filters"
+      }
+    },
+    "insights": {
+      "trigger": "For you",
+      "title": "For you",
+      "subtitle": "Personal suggestions from your library",
+      "close": "Close",
+      "dormant": {
+        "title": "Not visited in a while",
+        "progress": "{read} of {total} read"
+      },
+      "newForYou": {
+        "title": "New for you",
+        "booksCount": "{count, plural, one {# book} other {# books}}",
+        "tenure": {
+          "day": "In your library for {count, plural, one {# day} other {# days}}",
+          "week": "In your library for {count, plural, one {# week} other {# weeks}}",
+          "month": "In your library for {count, plural, one {# month} other {# months}}"
+        }
+      },
+      "unrated": {
+        "title": "Something to rate",
+        "description": "Finished books without your rating",
+        "count": "{count, plural, one {# book without a rating} other {# books without a rating}}"
+      }
+    }
+  },
+  "tags": {
+    "page": {
+      "metaTitle": "Tags",
+      "title": "Tags",
+      "subtitle": "Create tags to mark the tropes, mood and themes of your books",
       "addTag": "Add tag",
       "hint": "Genres come from your books automatically, while tags are yours to create."
     },
     "summary": {
-      "genres": "Genres",
-      "tags": "Tags"
-    },
-    "tabs": {
-      "genres": "Genres",
       "tags": "Tags"
     },
     "toolbar": {
-      "searchGenresLabel": "Search genres",
-      "searchGenresPlaceholder": "Search a genre…",
       "searchTagsLabel": "Search tags",
       "searchTagsPlaceholder": "Search a tag…",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
-      "genreFilterLabel": "Genre filter",
-      "genreGroupLabel": "Genre group",
-      "genreGroupAll": "All groups",
       "tagFilterLabel": "Tag filter"
     },
     "sortMobile": {
       "title": "Sorting",
-      "genreDescription": "Choose the order of genres.",
       "tagDescription": "Choose the order of tags.",
       "close": "Close",
-      "genreTrigger": {
-        "books_count_desc": "Books ↓",
-        "name_asc": "Name",
-        "read_count_desc": "Read ↓",
-        "queue_count_desc": "In queue ↓",
-        "rating_desc": "Rating ↓"
-      },
       "tagTrigger": {
         "books_count_desc": "Books ↓",
         "name_asc": "Name",
         "type_asc": "Type"
       }
-    },
-    "genreSort": {
-      "books_count_desc": "By number of books",
-      "name_asc": "By name",
-      "read_count_desc": "By books read",
-      "queue_count_desc": "By books in queue",
-      "rating_desc": "By average rating"
-    },
-    "genreFilter": {
-      "all": "All genres",
-      "unread": "With unread books",
-      "in_queue": "In reading queue",
-      "finished": "With finished books"
     },
     "tagSort": {
       "books_count_desc": "By number of books",
@@ -6463,18 +6602,6 @@
       "sky": "Sky",
       "lavender": "Lavender",
       "rose": "Dusty rose"
-    },
-    "genres": {
-      "booksCount": "{count, plural, one {# book} other {# books}}",
-      "progress": "{read} of {total} read",
-      "inQueue": "{count} in queue",
-      "showAll": "Show all genres ({count})",
-      "showLess": "Show less",
-      "empty": {
-        "title": "Your books have no genres yet",
-        "description": "Add genres while creating or editing a book to find your books faster by mood and category.",
-        "action": "Go to library"
-      }
     },
     "tags": {
       "popularTitle": "Popular tags",
@@ -6536,13 +6663,11 @@
     },
     "states": {
       "error": {
-        "title": "Could not load genres and tags",
+        "title": "Could not load tags",
         "description": "Try refreshing the page or repeating the request.",
         "retry": "Try again"
       },
       "noResults": {
-        "title": "Nothing found",
-        "description": "Try changing your search or clearing the filters.",
         "clear": "Clear filters"
       }
     }

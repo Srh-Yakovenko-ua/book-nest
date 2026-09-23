@@ -30,7 +30,7 @@ export function DeleteTagDialog({
   onOpenChange,
   tag,
 }: DeleteTagDialogProps) {
-  const t = useTranslations("genresTags.deleteDialog");
+  const t = useTranslations("tags.deleteDialog");
   const isUsed = (tag?.booksCount ?? 0) > 0;
 
   return (

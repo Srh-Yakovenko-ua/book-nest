@@ -40,8 +40,8 @@ export function TagsTab({
   onRetry,
   tags,
 }: TagsTabProps) {
-  const t = useTranslations("genresTags.tags");
-  const tStates = useTranslations("genresTags.states");
+  const t = useTranslations("tags.tags");
+  const tStates = useTranslations("tags.states");
   const [expanded, setExpanded] = useState(false);
 
   if (isError) {

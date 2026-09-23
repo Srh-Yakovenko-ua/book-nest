@@ -29,8 +29,8 @@ type TagFormFieldsProps = {
 };
 
 export function TagFormFields({ control, errors, idPrefix, register }: TagFormFieldsProps) {
-  const t = useTranslations("genresTags.tagDialog");
-  const tType = useTranslations("genresTags.types");
+  const t = useTranslations("tags.tagDialog");
+  const tType = useTranslations("tags.types");
 
   return (
     <>

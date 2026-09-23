@@ -34,7 +34,7 @@ type EditTagDialogProps = {
 };
 
 export function EditTagDialog({ onOpenChange, tag }: EditTagDialogProps) {
-  const t = useTranslations("genresTags.tagDialog");
+  const t = useTranslations("tags.tagDialog");
 
   return (
     <Dialog onOpenChange={onOpenChange} open={tag !== null}>
@@ -50,8 +50,8 @@ export function EditTagDialog({ onOpenChange, tag }: EditTagDialogProps) {
 }
 
 function EditTagForm({ onDone, tag }: { onDone: () => void; tag: TagCardItem }) {
-  const t = useTranslations("genresTags.tagDialog");
-  const tErrors = useTranslations("genresTags.errors");
+  const t = useTranslations("tags.tagDialog");
+  const tErrors = useTranslations("tags.errors");
   const updateTag = useUpdateTag();
   const [serverError, setServerError] = useState<null | string>(null);
 

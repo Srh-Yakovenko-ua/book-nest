@@ -16,7 +16,7 @@ type TagChipProps = {
 };
 
 export function TagChip({ className, tag }: TagChipProps) {
-  const t = useTranslations("genresTags.tags");
+  const t = useTranslations("tags.tags");
 
   return (
     <Link
