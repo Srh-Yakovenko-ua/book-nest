@@ -29,6 +29,7 @@ type BookRowProps = {
   rowLink?: boolean;
   selected?: boolean;
   selectionControl?: React.ReactNode;
+  showPublisher?: boolean;
   statusPlacement?: "column" | "note";
   statusSlot?: React.ReactNode;
   tone?: BookRowTone;
@@ -79,6 +80,7 @@ export function BookRow({
   rowLink = true,
   selected,
   selectionControl,
+  showPublisher = true,
   statusPlacement = "column",
   statusSlot,
   tone,
@@ -121,6 +123,7 @@ export function BookRow({
           mobileKebab={compact === null ? undefined : kebab}
           note={note}
           rowLink={rowLink}
+          showPublisher={showPublisher}
         />
 
         {detailsSlot === undefined ? null : (
@@ -279,6 +282,7 @@ function BookRowMeta({
   mobileKebab,
   note,
   rowLink,
+  showPublisher,
 }: {
   ageBadgeClassName?: string;
   book: BookRowBook;
@@ -289,6 +293,7 @@ function BookRowMeta({
   mobileKebab?: React.ReactNode;
   note?: React.ReactNode;
   rowLink: boolean;
+  showPublisher: boolean;
 }) {
   const headingLayout = mobileKebab === undefined ? "contents" : "flex items-start gap-2";
   const headingTextLayout =
@@ -344,7 +349,7 @@ function BookRowMeta({
         </LinkComp>
       )}
 
-      {book.publisher === undefined ? null : (
+      {!showPublisher || book.publisher === undefined ? null : (
         <p
           className={cn(
             "flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground",

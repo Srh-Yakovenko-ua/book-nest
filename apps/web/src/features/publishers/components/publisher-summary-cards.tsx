@@ -12,9 +12,13 @@ import { Button } from "@/components/ui/button";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { formatNumber } from "@/lib/format";
 
-import { publisherPriceLabel } from "../model/publisher-format";
+import { formatCoveragePercent } from "../model/publisher-format";
 
-const SUMMARY_CARD_COUNT = 4;
+const SUMMARY_CARDS = {
+  count: 4,
+  nameValueClassName: "line-clamp-2 text-xl leading-tight",
+  topCoverageThreshold: 5,
+} as const;
 
 type PublisherSummaryCardsProps = {
   cards: LibrarySummaryCard[];
@@ -23,6 +27,8 @@ type PublisherSummaryCardsProps = {
   mobileAction?: ReactNode;
   onRetry: () => void;
 };
+
+type SummaryMobileKey = "inPlans" | "mostRead" | "mostRepresented" | "publishers";
 
 export function PublisherSummaryCards({
   cards,
@@ -57,7 +63,7 @@ export function PublisherSummaryCards({
       isLoading={isLoading}
       mobileAction={mobileAction}
       mobileLayout="compact"
-      skeletonCount={SUMMARY_CARD_COUNT}
+      skeletonCount={SUMMARY_CARDS.count}
     />
   );
 }
@@ -68,63 +74,69 @@ export function usePublisherSummaryCards(
   const t = useTranslations("publishers.summary");
   const locale = useLocale();
 
-  const mobileLabels = (key: "averageRating" | "booksWithPublisher" | "publishers" | "toBuy") => ({
+  const mobileLabels = (key: SummaryMobileKey) => ({
     compact: t(`mobile.compact.${key}`),
     detailed: t(`mobile.detailed.${key}`),
   });
 
   if (summary === undefined) return [];
 
-  const priceTotals: ReactNode =
-    summary.expectedPriceTotals.length === 0 ? undefined : (
-      <ul className="flex flex-wrap gap-x-3 gap-y-1">
-        {summary.expectedPriceTotals.map((total) => (
-          <li className="tabular-nums" key={total.currency}>
-            {t("priceTotal", {
-              count: total.pricedBooksCount,
-              price: publisherPriceLabel(total.amount, total.currency, locale),
-            })}
-          </li>
-        ))}
-      </ul>
-    );
+  const mostRead = summary.mostReadPublisher;
+  const mostRepresented = summary.mostRepresentedPublisher;
+
+  const coverageMicrofact = (): string => {
+    const count = summary.publishersCount;
+    if (count === 0) return t("coverage.none");
+    if (count === 1) return t("coverage.single");
+    if (count <= SUMMARY_CARDS.topCoverageThreshold) return t("coverage.all", { count });
+    return t("coverage.top", {
+      percentage: formatCoveragePercent(summary.topFiveBooksCoveragePercent, locale),
+    });
+  };
 
   return [
     {
       icon: "building",
       iconTone: "primary",
       label: t("publishers"),
+      microfact: coverageMicrofact(),
       mobileLabels: mobileLabels("publishers"),
       value: formatNumber(summary.publishersCount, locale),
     },
     {
-      icon: "book",
-      iconTone: "info",
-      label: t("booksWithPublisher"),
-      mobileLabels: mobileLabels("booksWithPublisher"),
-      value: formatNumber(summary.booksWithPublisherCount, locale),
+      icon: "crown",
+      iconTone: "genre",
+      label: t("mostRepresented"),
+      microfact:
+        mostRepresented === null
+          ? t("coverage.none")
+          : t("mostRepresentedBooks", { count: mostRepresented.booksCount }),
+      mobileLabels: mobileLabels("mostRepresented"),
+      value: mostRepresented?.name ?? t("noValue"),
+      valueClassName: SUMMARY_CARDS.nameValueClassName,
+      valueKind: "name",
     },
     {
-      icon: "star",
-      iconTone: "favorite",
-      label: t("averageRating"),
-      microfact: t("ratedBooks", { count: summary.ratedBooksCount }),
-      mobileLabels: mobileLabels("averageRating"),
-      value:
-        summary.averageBookRating === null
-          ? t("noRating")
-          : formatNumber(summary.averageBookRating, locale, {
-              maximumFractionDigits: 1,
-              minimumFractionDigits: 1,
-            }),
-    },
-    {
-      icon: "cart",
+      icon: "shopping-bag",
       iconTone: "success",
-      label: t("toBuy"),
-      microfact: priceTotals,
-      mobileLabels: mobileLabels("toBuy"),
-      value: formatNumber(summary.wantToBuyBooksCount, locale),
+      label: t("inPlans"),
+      microfact:
+        summary.publishersInPlansCount === 0
+          ? t("inPlansEmpty")
+          : t("inPlansBooks", { count: summary.booksToBuyWithPublisherCount }),
+      mobileLabels: mobileLabels("inPlans"),
+      value: formatNumber(summary.publishersInPlansCount, locale),
+    },
+    {
+      icon: "book-open-text",
+      iconTone: "info",
+      label: t("mostRead"),
+      microfact:
+        mostRead === null ? t("mostReadEmpty") : t("mostReadBooks", { count: mostRead.readCount }),
+      mobileLabels: mobileLabels("mostRead"),
+      value: mostRead?.name ?? t("noValue"),
+      valueClassName: SUMMARY_CARDS.nameValueClassName,
+      valueKind: "name",
     },
   ];
 }

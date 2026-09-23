@@ -20,10 +20,12 @@ import type {
 
 import type {
   LibraryPublisherDetailDto,
+  LibraryPublisherOverviewDto,
   LibraryPublishersPageDto,
   LibraryPublishersSummaryDto,
   PublishersControllerLibraryDetailParams,
   PublishersControllerLibraryListParams,
+  PublishersControllerLibrarySummaryParams,
   PublishersControllerRecentParams,
   PublishersControllerSearchParams,
   UpdatePublisherDto,
@@ -71,18 +73,33 @@ export type publishersControllerLibrarySummaryResponse =
   | publishersControllerLibrarySummaryResponseSuccess
   | publishersControllerLibrarySummaryResponseError;
 
-export const getPublishersControllerLibrarySummaryUrl = () => {
-  return `/api/publishers/library/summary`;
+export const getPublishersControllerLibrarySummaryUrl = (
+  params?: PublishersControllerLibrarySummaryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/publishers/library/summary?${stringifiedParams}`
+    : `/api/publishers/library/summary`;
 };
 
 /**
  * @summary Get the publishers summary for the current user library
  */
 export const publishersControllerLibrarySummary = async (
+  params?: PublishersControllerLibrarySummaryParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<publishersControllerLibrarySummaryResponse> => {
   return customInstance<publishersControllerLibrarySummaryResponse>(
-    getPublishersControllerLibrarySummaryUrl(),
+    getPublishersControllerLibrarySummaryUrl(params),
     {
       ...options,
       method: "GET",
@@ -90,26 +107,31 @@ export const publishersControllerLibrarySummary = async (
   );
 };
 
-export const getPublishersControllerLibrarySummaryQueryKey = () => {
-  return [`/api/publishers/library/summary`] as const;
+export const getPublishersControllerLibrarySummaryQueryKey = (
+  params?: PublishersControllerLibrarySummaryParams,
+) => {
+  return [`/api/publishers/library/summary`, ...(params ? [params] : [])] as const;
 };
 
 export const getPublishersControllerLibrarySummaryQueryOptions = <
   TData = Awaited<ReturnType<typeof publishersControllerLibrarySummary>>,
   TError = void,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: PublishersControllerLibrarySummaryParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getPublishersControllerLibrarySummaryQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getPublishersControllerLibrarySummaryQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>> = ({
     signal,
-  }) => publishersControllerLibrarySummary({ signal, ...requestOptions });
+  }) => publishersControllerLibrarySummary(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof publishersControllerLibrarySummary>>,
@@ -127,6 +149,7 @@ export function usePublishersControllerLibrarySummary<
   TData = Awaited<ReturnType<typeof publishersControllerLibrarySummary>>,
   TError = void,
 >(
+  params: undefined | PublishersControllerLibrarySummaryParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>, TError, TData>
@@ -147,6 +170,7 @@ export function usePublishersControllerLibrarySummary<
   TData = Awaited<ReturnType<typeof publishersControllerLibrarySummary>>,
   TError = void,
 >(
+  params?: PublishersControllerLibrarySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>, TError, TData>
@@ -167,6 +191,7 @@ export function usePublishersControllerLibrarySummary<
   TData = Awaited<ReturnType<typeof publishersControllerLibrarySummary>>,
   TError = void,
 >(
+  params?: PublishersControllerLibrarySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>, TError, TData>
@@ -183,6 +208,7 @@ export function usePublishersControllerLibrarySummary<
   TData = Awaited<ReturnType<typeof publishersControllerLibrarySummary>>,
   TError = void,
 >(
+  params?: PublishersControllerLibrarySummaryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof publishersControllerLibrarySummary>>, TError, TData>
@@ -191,7 +217,7 @@ export function usePublishersControllerLibrarySummary<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getPublishersControllerLibrarySummaryQueryOptions(options);
+  const queryOptions = getPublishersControllerLibrarySummaryQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -906,6 +932,198 @@ export function usePublishersControllerLibraryDetail<
     params,
     options,
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type publishersControllerLibraryOverviewResponse200 = {
+  data: LibraryPublisherOverviewDto;
+  status: 200;
+};
+
+export type publishersControllerLibraryOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type publishersControllerLibraryOverviewResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type publishersControllerLibraryOverviewResponseSuccess =
+  publishersControllerLibraryOverviewResponse200 & {
+    headers: Headers;
+  };
+export type publishersControllerLibraryOverviewResponseError = (
+  publishersControllerLibraryOverviewResponse401 | publishersControllerLibraryOverviewResponse404
+) & {
+  headers: Headers;
+};
+
+export type publishersControllerLibraryOverviewResponse =
+  | publishersControllerLibraryOverviewResponseSuccess
+  | publishersControllerLibraryOverviewResponseError;
+
+export const getPublishersControllerLibraryOverviewUrl = (publisherId: string) => {
+  return `/api/publishers/${publisherId}/library-overview`;
+};
+
+/**
+ * @summary Get the publisher overview for the current user library
+ */
+export const publishersControllerLibraryOverview = async (
+  publisherId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<publishersControllerLibraryOverviewResponse> => {
+  return customInstance<publishersControllerLibraryOverviewResponse>(
+    getPublishersControllerLibraryOverviewUrl(publisherId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getPublishersControllerLibraryOverviewQueryKey = (publisherId: string) => {
+  return [`/api/publishers/${publisherId}/library-overview`] as const;
+};
+
+export const getPublishersControllerLibraryOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+  TError = void,
+>(
+  publisherId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getPublishersControllerLibraryOverviewQueryKey(publisherId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof publishersControllerLibraryOverview>>> = ({
+    signal,
+  }) => publishersControllerLibraryOverview(publisherId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: publisherId !== null && publisherId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type PublishersControllerLibraryOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof publishersControllerLibraryOverview>>
+>;
+export type PublishersControllerLibraryOverviewQueryError = void;
+
+export function usePublishersControllerLibraryOverview<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+  TError = void,
+>(
+  publisherId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerLibraryOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerLibraryOverview<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+  TError = void,
+>(
+  publisherId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerLibraryOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerLibraryOverview<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+  TError = void,
+>(
+  publisherId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the publisher overview for the current user library
+ */
+
+export function usePublishersControllerLibraryOverview<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+  TError = void,
+>(
+  publisherId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryOverview>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getPublishersControllerLibraryOverviewQueryOptions(publisherId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

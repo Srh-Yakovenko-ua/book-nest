@@ -5,11 +5,22 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { LibraryPublishersSummaryDtoBestRatedPublishersItem } from "./libraryPublishersSummaryDtoBestRatedPublishersItem";
 import type { LibraryPublishersSummaryDtoExpectedPriceTotalsItem } from "./libraryPublishersSummaryDtoExpectedPriceTotalsItem";
+import type { LibraryPublishersSummaryDtoMostReadPublisher } from "./libraryPublishersSummaryDtoMostReadPublisher";
+import type { LibraryPublishersSummaryDtoMostRepresentedPublisher } from "./libraryPublishersSummaryDtoMostRepresentedPublisher";
+import type { LibraryPublishersSummaryDtoUnreadPublishersItem } from "./libraryPublishersSummaryDtoUnreadPublishersItem";
 
 export interface LibraryPublishersSummaryDto {
   /** @nullable */
   averageBookRating: number | null;
+  /** @maxItems 3 */
+  bestRatedPublishers: LibraryPublishersSummaryDtoBestRatedPublishersItem[];
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  booksToBuyWithPublisherCount: number;
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991
@@ -21,6 +32,10 @@ export interface LibraryPublishersSummaryDto {
    */
   booksWithPublisherCount: number;
   expectedPriceTotals: LibraryPublishersSummaryDtoExpectedPriceTotalsItem[];
+  /** @nullable */
+  mostReadPublisher: LibraryPublishersSummaryDtoMostReadPublisher;
+  /** @nullable */
+  mostRepresentedPublisher: LibraryPublishersSummaryDtoMostRepresentedPublisher;
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991
@@ -30,7 +45,15 @@ export interface LibraryPublishersSummaryDto {
    * @minimum -9007199254740991
    * @maximum 9007199254740991
    */
+  publishersInPlansCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
   ratedBooksCount: number;
+  topFiveBooksCoveragePercent: number;
+  /** @maxItems 3 */
+  unreadPublishers: LibraryPublishersSummaryDtoUnreadPublishersItem[];
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991

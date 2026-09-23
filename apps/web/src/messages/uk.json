@@ -921,7 +921,11 @@
         "yearRange": "{min}–{max}",
         "pagesFrom": "Від {value} стор.",
         "pagesTo": "До {value} стор.",
-        "pagesRange": "{min}–{max} стор."
+        "pagesRange": "{min}–{max} стор.",
+        "publisherPresence": {
+          "assigned": "З видавництвом",
+          "missing": "Без видавництва"
+        }
       },
       "actions": {
         "favorite": "Додати до улюблених",
@@ -7272,18 +7276,27 @@
     "page": {
       "metaTitle": "Видавництва",
       "title": "Видавництва",
-      "subtitle": "Переглядай видавництва своєї бібліотеки, стеж за рейтингами й покупками",
+      "subtitle": "Переглядай видавництва своєї бібліотеки, їхні книги, рейтинги та список бажань",
       "resultsTitle": "Список видавництв",
       "addBook": "Додати книгу"
     },
     "summary": {
       "publishers": "Видавництв",
-      "booksWithPublisher": "Книг із видавництвом",
-      "averageRating": "Середній рейтинг",
-      "ratedBooks": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
-      "noRating": "—",
-      "toBuy": "У списку бажань",
-      "priceTotal": "{price} · {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "coverage": {
+        "none": "Ще немає книг із видавництвом",
+        "single": "Усі книги — одного видавництва",
+        "all": "Усі {count} охоплюють 100% книг",
+        "top": "Топ-5 охоплюють {percentage}% книг"
+      },
+      "mostRepresented": "Найбільше в бібліотеці",
+      "mostRepresentedBooks": "{count, plural, one {# книга у бібліотеці} few {# книги у бібліотеці} many {# книг у бібліотеці} other {# книги у бібліотеці}}",
+      "inPlans": "Видавництва у планах",
+      "inPlansBooks": "{count, plural, one {# книга у списку бажань} few {# книги у списку бажань} many {# книг у списку бажань} other {# книги у списку бажань}}",
+      "inPlansEmpty": "Немає книг у списку бажань із видавництвом",
+      "mostRead": "Найбільше прочитано",
+      "mostReadBooks": "{count, plural, one {# прочитана книга} few {# прочитані книги} many {# прочитаних книг} other {# прочитаної книги}}",
+      "mostReadEmpty": "Ще немає прочитаних книг",
+      "noValue": "—",
       "error": {
         "title": "Не вдалося завантажити зведення",
         "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
@@ -7293,15 +7306,15 @@
         "title": "Детальна статистика",
         "compact": {
           "publishers": "Видавництв",
-          "booksWithPublisher": "Книг",
-          "averageRating": "Рейтинг",
-          "toBuy": "Бажані"
+          "mostRepresented": "Лідер",
+          "inPlans": "У планах",
+          "mostRead": "Прочитано"
         },
         "detailed": {
           "publishers": "Видавництв",
-          "booksWithPublisher": "Книг із видавництвом",
-          "averageRating": "Середній рейтинг",
-          "toBuy": "У списку бажань"
+          "mostRepresented": "Найбільше в бібліотеці",
+          "inPlans": "Видавництва у планах",
+          "mostRead": "Найбільше прочитано"
         }
       }
     },
@@ -7309,106 +7322,154 @@
       "trigger": "Огляд видавництв",
       "title": "Огляд видавництв",
       "subtitle": "Повна статистика розділу",
-      "close": "Закрити огляд"
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "insights": "Інсайти"
+      }
     },
     "toolbar": {
       "searchLabel": "Пошук видавництв",
-      "searchPlaceholder": "Пошук за назвою",
+      "searchPlaceholder": "Пошук за назвою видавництва",
       "searchClear": "Очистити пошук",
       "sortLabel": "Сортування",
-      "orderLabel": "Порядок",
       "viewLabel": "Вигляд",
       "viewGrid": "Сітка",
       "viewList": "Список",
-      "geographyLabel": "Географія",
-      "sourceLabel": "Джерело",
-      "clearFilters": "Скинути фільтри",
-      "order": {
-        "asc": "За зростанням",
-        "desc": "За спаданням"
-      },
       "sort": {
-        "name": "Назва",
-        "booksCount": "Найбільше книг",
-        "readCount": "Найбільше прочитано",
-        "wantToBuyCount": "Найбільше бажаних",
-        "averageRating": "Найвищий рейтинг",
-        "lastBookAddedAt": "Нещодавно додані"
+        "books_desc": "Найбільше книг",
+        "books_asc": "Найменше книг",
+        "read_desc": "Найбільше прочитано",
+        "read_asc": "Найменше прочитано",
+        "to_buy_desc": "Найбільше у списку бажань",
+        "to_buy_asc": "Найменше у списку бажань",
+        "rating_desc": "Найвищий рейтинг",
+        "rating_asc": "Найнижчий рейтинг",
+        "recent_desc": "Нещодавно поповнені",
+        "recent_asc": "Найдавніше поповнені",
+        "name_asc": "Назва: А–Я",
+        "name_desc": "Назва: Я–А"
       },
       "sortMobile": {
         "title": "Сортування",
-        "description": "Виберіть порядок видавництв.",
+        "description": "Вибери порядок видавництв.",
         "close": "Закрити",
-        "trigger": {
-          "name": "Назва",
-          "booksCount": "Книг ↓",
-          "readCount": "Прочитано ↓",
-          "wantToBuyCount": "Бажані ↓",
-          "averageRating": "Рейтинг ↓",
-          "lastBookAddedAt": "Нові"
+        "groups": {
+          "books": "Книги",
+          "read": "Прочитано",
+          "to_buy": "Список бажань",
+          "rating": "Рейтинг",
+          "recent": "Поповнення",
+          "name": "Назва"
         }
-      },
-      "geography": {
-        "all": "Уся географія",
-        "ua": "Україна",
-        "foreign": "Іноземні",
-        "unknown": "Невідомо"
-      },
-      "source": {
-        "all": "Усі джерела",
-        "global": "Загальні",
-        "custom": "Власні"
-      },
-      "filters": {
-        "hasBooksToBuy": "Є бажані книги",
-        "hasRatedBooks": "Є оцінені книги",
-        "hasSeries": "Є серії"
       }
     },
-    "card": {
-      "geographyUnknown": "Країна невідома",
-      "custom": "Власне",
-      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
-      "read": "Прочитано: {count}",
-      "toBuy": "Бажані: {count}",
-      "noRating": "Без оцінок",
-      "noRatingShort": "—",
-      "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
-      "lastAdded": "Додано {date}",
-      "view": "Переглянути"
+    "quickFilters": {
+      "label": "Швидкі фільтри видавництв",
+      "all": "Усі",
+      "reading": "Читаю зараз",
+      "read": "Є прочитані книги",
+      "to_buy": "Є книги у списку бажань",
+      "series": "Є серії"
     },
-    "row": {
-      "sourceCustom": "Власне",
-      "sourceGlobal": "Загальне",
-      "books": "Книги",
+    "advancedFilters": {
+      "trigger": "Фільтри",
+      "title": "Фільтри видавництв",
+      "description": "Уточни, які видавництва показувати.",
+      "geography": "Географія",
+      "source": "Джерело",
+      "books": "Книги видавництва",
+      "clear": "Очистити",
+      "apply": "Застосувати",
+      "geographyOptions": {
+        "all": "Усі",
+        "ua": "Українські",
+        "foreign": "Іноземні",
+        "unknown": "Без країни"
+      },
+      "sourceOptions": {
+        "all": "Усі",
+        "global": "З каталогу",
+        "custom": "Власні"
+      },
+      "booleans": {
+        "hasRatedBooks": "Є оцінені книги",
+        "hasWantToRead": "Хочу прочитати",
+        "hasQueue": "Є книги в черзі"
+      }
+    },
+    "activeFilters": {
+      "search": "Пошук: {query}",
+      "geography": "Географія: {label}",
+      "source": "Джерело: {label}"
+    },
+    "results": {
+      "counter": "Показано {shown} із {total, plural, one {# видавництва} few {# видавництв} many {# видавництв} other {# видавництва}}",
+      "loadMore": "Завантажити ще",
+      "loadMoreError": "Не вдалося завантажити ще видавництва",
+      "loadMoreRetry": "Спробувати ще раз",
+      "loading": "Завантаження видавництв…",
+      "noSearchResultsAnnouncement": "За цим запитом видавництв не знайдено",
+      "noFilteredResultsAnnouncement": "Жодне видавництво не відповідає цим умовам"
+    },
+    "card": {
+      "geographyUnknown": "Без країни",
+      "custom": "Власне",
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "booksInLibrary": "у бібліотеці",
       "read": "Прочитано",
-      "toBuy": "Бажані",
-      "rating": "Рейтинг",
-      "ratingCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
-      "lastAdded": "Додано",
+      "toBuy": "У списку бажань",
+      "series": "Серії",
+      "noRating": "Без оцінок",
+      "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
+      "lastAdded": "Останнє поповнення {date}",
       "lastAddedNever": "—"
     },
-    "pagination": {
-      "label": "Сторінки видавництв",
-      "previous": "Назад",
-      "next": "Далі",
-      "goToPage": "Сторінка {page}"
+    "row": {
+      "custom": "Власне",
+      "books": "Книги",
+      "read": "Прочитано",
+      "toBuy": "Список бажань",
+      "series": "Серії",
+      "rating": "Рейтинг",
+      "ratingCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
+      "noRating": "Без оцінок",
+      "lastAdded": "Останнє поповнення",
+      "lastAddedNever": "—"
     },
-    "banner": {
-      "title": "{count, plural, one {# книга без видавництва} few {# книги без видавництва} many {# книг без видавництва} other {# книг без видавництва}}",
-      "description": "Признач їм видавництво, щоб бачити повнішу статистику.",
-      "action": "Переглянути книги"
+    "insights": {
+      "label": "Інсайти видавництв",
+      "attention": {
+        "title": "Потребують уваги",
+        "count": "{count, plural, one {# книга без видавництва} few {# книги без видавництва} many {# книг без видавництва} other {# книги без видавництва}}",
+        "description": "Додай видавництво, щоб статистика та фільтри були точнішими.",
+        "action": "Переглянути книги"
+      },
+      "unread": {
+        "title": "Ще не прочитано",
+        "count": "{count, plural, one {# книга залишилась} few {# книги залишилось} many {# книг залишилось} other {# книги залишилось}}"
+      },
+      "bestRated": {
+        "title": "Найкраще оцінено",
+        "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}"
+      }
     },
     "states": {
       "empty": {
         "title": "Видавництв поки немає",
-        "description": "Додай першу книгу з указаним видавництвом, і воно автоматично зʼявиться тут.",
+        "description": "Додай першу книгу з указаним видавництвом, і воно автоматично з’явиться тут.",
         "addBook": "Додати книгу"
       },
-      "noResults": {
-        "title": "Нічого не знайдено",
-        "description": "Спробуй змінити пошук або скинути активні фільтри.",
-        "clear": "Скинути фільтри"
+      "noSearchResults": {
+        "title": "Видавництв не знайдено",
+        "description": "Спробуй змінити пошуковий запит або очистити його.",
+        "clear": "Очистити пошук"
+      },
+      "noFilteredResults": {
+        "title": "Немає видавництв за цими умовами",
+        "description": "Спробуй змінити або скинути активні фільтри.",
+        "reset": "Скинути фільтри",
+        "clearAll": "Очистити все"
       },
       "error": {
         "title": "Не вдалося завантажити видавництва",
@@ -7418,85 +7479,78 @@
     },
     "details": {
       "metaTitle": "Видавництво",
-      "breadcrumb": "Усі видавництва",
-      "countryUnknown": "Країна невідома",
-      "customBadge": "Власне",
-      "foundedYear": "Засновано {year}",
-      "website": "Сайт",
-      "editCustom": "Редагувати",
-      "delete": "Видалити",
-      "addBook": "Додати книгу",
+      "hero": {
+        "foundedYear": "Засновано у {year} році.",
+        "website": "Сайт",
+        "websiteLabel": "Сайт видавництва (відкривається в новій вкладці)",
+        "addBook": "Додати книгу",
+        "menu": "Дії з видавництвом",
+        "edit": "Редагувати",
+        "delete": "Видалити"
+      },
       "states": {
         "loading": "Завантаження видавництва",
         "notFoundTitle": "Видавництво не знайдено",
         "notFoundDescription": "Можливо, його видалено або воно недоступне.",
         "errorTitle": "Не вдалося завантажити видавництво",
         "errorDescription": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
-        "back": "До видавництв"
+        "back": "До видавництв",
+        "retry": "Спробувати ще раз"
       },
       "tabs": {
+        "ariaLabel": "Розділи видавництва",
         "overview": "Огляд",
-        "books": "Книги",
-        "toBuy": "Бажані"
+        "books": "Книги"
       },
       "kpi": {
-        "books": "Книги",
+        "books": "Книг у бібліотеці",
+        "lastAdded": "Останню додано {date}",
         "read": "Прочитано",
-        "reading": "Читаю",
-        "wantToRead": "Хочу прочитати",
-        "toBuy": "Бажані",
-        "queue": "У черзі",
-        "rating": "Рейтинг",
-        "ratedCount": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+        "readPercent": "{percent}% від усіх книг",
+        "wishlist": "У списку бажань",
+        "withoutPrice": "{count} без ціни",
+        "rating": "Середній рейтинг",
+        "ratedCaption": "Серед книг цього видавництва з оцінкою",
         "noRating": "—",
-        "lastAdded": "Останнє додано",
-        "lastAddedNever": "—"
+        "noRatedBooks": "Немає оцінених книг"
       },
       "overview": {
-        "latestBookTitle": "Остання книга",
-        "toBuyPreviewTitle": "Бажані",
-        "viewAllBooks": "Усі книги",
-        "viewAllToBuy": "Усі бажані",
-        "emptyLatest": "Ще немає книг цього видавництва.",
-        "emptyToBuy": "Немає бажаних книг від цього видавництва."
-      },
-      "booksTab": {
-        "searchLabel": "Пошук книг",
-        "searchPlaceholder": "Пошук за назвою або автором",
-        "searchClear": "Очистити пошук",
-        "sortLabel": "Сортування",
-        "viewLabel": "Вигляд",
-        "viewGrid": "Сітка",
-        "viewList": "Список",
-        "counter": "Показано {shown} з {total}",
-        "loadMore": "Показати ще",
         "empty": {
-          "title": "Ще немає книг",
-          "description": "Додай книгу з цим видавництвом, і вона зʼявиться тут.",
+          "title": "Ще немає книг цього видавництва",
+          "description": "Додайте першу книгу цього видавництва до своєї бібліотеки.",
           "cta": "Додати книгу"
         },
-        "noResults": {
-          "title": "Нічого не знайдено",
-          "description": "Спробуй змінити пошук або скинути фільтри.",
-          "clear": "Скинути фільтри"
+        "sections": {
+          "latest": "Остання додана книга",
+          "reading": "Зараз читаю",
+          "series": "Серії",
+          "wishlist": "У списку бажань"
         },
+        "regionLabel": "Огляд видавництва",
+        "addedAt": "Додано {date}",
+        "seriesPart": "{name} · книга {part}",
+        "seriesPartOfTotal": "{name} · книга {part} з {total}",
+        "progress": "{current} з {total} стор.",
+        "progressAriaLabel": "Прогрес читання: {current} з {total}",
+        "noPrice": "Без ціни",
+        "seriesBooks": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "seriesReadSome": "{count} прочитано",
+        "seriesReadAll": "усі прочитані",
+        "seriesReadNone": "ще не прочитано",
         "error": {
-          "title": "Не вдалося завантажити книги",
-          "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+          "title": "Не вдалося завантажити огляд",
           "retry": "Спробувати ще раз"
         }
       },
-      "toBuyTab": {
-        "count": "{count, plural, one {# бажана книга} few {# бажані книги} many {# бажаних книг} other {# бажаних книг}}",
-        "withoutPrice": "{count, plural, one {# без ціни} few {# без ціни} many {# без ціни} other {# без ціни}}",
+      "booksTab": {
         "empty": {
-          "title": "Немає бажаних книг",
-          "description": "Від цього видавництва поки немає книг у вашому списку бажань.",
+          "title": "Ще немає книг цього видавництва",
+          "description": "Додайте першу книгу цього видавництва до своєї бібліотеки.",
           "cta": "Додати книгу"
         },
         "error": {
-          "title": "Не вдалося завантажити список",
-          "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+          "title": "Не вдалося завантажити книги",
+          "description": "Спробуй повторити запит трохи пізніше.",
           "retry": "Спробувати ще раз"
         }
       },
@@ -7505,8 +7559,11 @@
         "description": "Онови назву та додаткові дані видавництва.",
         "name": "Назва",
         "namePlaceholder": "Назва видавництва",
-        "countryCode": "Код країни",
-        "countryCodePlaceholder": "UA",
+        "country": "Країна",
+        "countryPlaceholder": "Оберіть країну",
+        "countrySearch": "Пошук країни",
+        "countryEmpty": "Країну не знайдено",
+        "countryClear": "Очистити країну",
         "website": "Сайт",
         "websitePlaceholder": "https://",
         "foundedYear": "Рік заснування",
@@ -7516,7 +7573,6 @@
         "cancel": "Скасувати",
         "duplicate": "Видавництво з такою назвою вже існує",
         "invalidUrl": "Введи коректне посилання",
-        "invalidCountry": "Код країни — це дві латинські літери",
         "invalidYear": "Введи коректний рік",
         "invalidName": "Назва має містити щонайменше 2 символи",
         "genericError": "Не вдалося зберегти зміни. Спробуй ще раз.",
@@ -7529,7 +7585,10 @@
         "confirm": "Видалити",
         "cancel": "Скасувати",
         "deleting": "Видалення…",
-        "linkedBooksError": "Не можна видалити видавництво, до якого привʼязані книги. Спочатку відвʼяжи книги.",
+        "blockedTitle": "Видавництво не можна видалити",
+        "blockedDescription": "До видавництва «{name}» привʼязані книги. Спершу признач їм інше видавництво або видали їх.",
+        "goToBooks": "Перейти до книг",
+        "close": "Закрити",
         "genericError": "Не вдалося видалити видавництво. Спробуй ще раз."
       },
       "toast": {

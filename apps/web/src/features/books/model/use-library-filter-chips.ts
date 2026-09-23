@@ -7,6 +7,9 @@ import type { LibraryQueryState } from "./library-query";
 import type { UseLibraryQueryResult } from "./use-library-query";
 
 import { rangeLabel } from "./filter-chips";
+import { LIBRARY_PUBLISHER_PRESENCE_DEFAULT } from "./library-query";
+
+const ADVANCED_BADGE_EXCLUDED_CHIP_KEYS: ReadonlySet<string> = new Set(["publisherPresence", "q"]);
 
 type UseLibraryFilterChipsOptions = {
   genreName: (key: string) => string;
@@ -14,6 +17,10 @@ type UseLibraryFilterChipsOptions = {
   setState: UseLibraryQueryResult["setState"];
   state: LibraryQueryState;
 };
+
+export function countAdvancedFilterChips(chips: ActiveFilterChip[]): number {
+  return chips.filter((chip) => !ADVANCED_BADGE_EXCLUDED_CHIP_KEYS.has(chip.key)).length;
+}
 
 export function useLibraryFilterChips({
   genreName,
@@ -111,6 +118,14 @@ export function useLibraryFilterChips({
       label: t("publisher", { name: resolveEntityName(value) ?? t("unknown") }),
       onRemove: () =>
         void setState({ publisher: state.publisher.filter((item) => item !== value) }),
+    });
+  }
+
+  if (state.publisherPresence !== LIBRARY_PUBLISHER_PRESENCE_DEFAULT) {
+    chips.push({
+      key: "publisherPresence",
+      label: t(`publisherPresence.${state.publisherPresence}`),
+      onRemove: () => void setState({ publisherPresence: null }),
     });
   }
 

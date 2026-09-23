@@ -66,6 +66,16 @@ export const Unrated: Story = {
 export const UnknownCountry: Story = {
   args: { publisher: makePublisherListItem({ countryCode: null }) },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Країна невідома")).toBeVisible();
+    await expect(canvas.getByText("Без країни")).toBeVisible();
+  },
+};
+
+export const NeverAdded: Story = {
+  args: {
+    publisher: makePublisherListItem({ stats: makePublisherStats({ lastBookAddedAt: null }) }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("—")).toBeVisible();
+    await expect(canvas.queryByText("Переглянути")).toBeNull();
   },
 };

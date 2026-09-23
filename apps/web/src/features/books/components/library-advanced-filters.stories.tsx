@@ -93,6 +93,7 @@ const DEFAULT_STATE: LibraryQueryState = {
   pagesMax: null,
   pagesMin: null,
   publisher: [],
+  publisherPresence: "all",
   q: "",
   ratingMax: null,
   ratingMin: null,

@@ -22,7 +22,7 @@ export function PublisherCard({ publisher }: PublisherCardProps) {
   const countryLabel = publisherCountryLabel(publisher.countryCode, locale, t("geographyUnknown"));
 
   return (
-    <article className="group/publisher-card relative flex h-full flex-col gap-3.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
+    <article className="group/publisher-card relative flex h-full w-full flex-col gap-3.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
       <div className="flex items-start gap-3.5">
         <span
           aria-hidden
@@ -33,7 +33,7 @@ export function PublisherCard({ publisher }: PublisherCardProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <h3 className="font-heading text-[1.0625rem] leading-tight font-bold text-ink">
             <Link
-              className="text-ink no-underline transition-colors outline-none group-hover/publisher-card:text-primary after:absolute after:inset-0 focus-visible:text-primary"
+              className="text-ink no-underline transition-colors outline-none group-hover/publisher-card:text-primary after:absolute after:inset-0 after:rounded-xl focus-visible:text-primary focus-visible:after:ring-3 focus-visible:after:ring-ring"
               href={`/publishers/${publisher.id}`}
             >
               {publisher.name}
@@ -49,17 +49,24 @@ export function PublisherCard({ publisher }: PublisherCardProps) {
         </div>
       </div>
 
-      <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
-        <PublisherStat icon="book" label={t("books", { count: stats.booksCount })} />
-        <PublisherStat icon="check-circle" label={t("read", { count: stats.readCount })} />
-        <PublisherStat icon="cart" label={t("toBuy", { count: stats.wantToBuyCount })} />
-      </ul>
+      <p className="flex items-baseline gap-1.5">
+        <span className="font-heading text-xl font-bold text-ink tabular-nums">
+          {t("books", { count: stats.booksCount })}
+        </span>
+        <span className="text-[0.8125rem] text-muted-foreground">{t("booksInLibrary")}</span>
+      </p>
 
-      <div className="flex items-center gap-1.5 text-[0.8125rem]">
+      <dl className="grid grid-cols-3 gap-2 rounded-lg bg-secondary/50 px-3 py-2">
+        <CardStat label={t("read")} value={formatNumber(stats.readCount, locale)} />
+        <CardStat label={t("toBuy")} value={formatNumber(stats.wantToBuyCount, locale)} />
+        <CardStat label={t("series")} value={formatNumber(stats.seriesCount, locale)} />
+      </dl>
+
+      <div className="mt-auto flex flex-col gap-1.5 text-[0.8125rem]">
         {stats.averageRating === null ? (
-          <span className="text-muted-foreground">{t("noRating")}</span>
+          <p className="text-muted-foreground">{t("noRating")}</p>
         ) : (
-          <>
+          <p className="flex items-center gap-1.5">
             <UiIcon aria-hidden className="shrink-0 text-favorite" name="star-fill" size={15} />
             <span className="font-medium text-ink tabular-nums">
               {formatNumber(stats.averageRating, locale, {
@@ -70,35 +77,24 @@ export function PublisherCard({ publisher }: PublisherCardProps) {
             <span className="text-muted-foreground">
               {t("ratedCount", { count: stats.ratedBooksCount })}
             </span>
-          </>
+          </p>
         )}
-      </div>
-
-      {stats.lastBookAddedAt === null ? null : (
-        <p className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
+        <p className="flex items-center gap-1.5 text-muted-foreground">
           <UiIcon aria-hidden className="shrink-0 text-icon" name="calendar" size={14} />
-          {t("lastAdded", { date: formatDate(stats.lastBookAddedAt, locale) })}
+          {stats.lastBookAddedAt === null
+            ? t("lastAddedNever")
+            : t("lastAdded", { date: formatDate(stats.lastBookAddedAt, locale) })}
         </p>
-      )}
-
-      <p className="mt-auto inline-flex items-center gap-1.5 pt-0.5 text-sm font-medium text-primary">
-        {t("view")}
-        <UiIcon
-          aria-hidden
-          className="transition-transform duration-200 group-hover/publisher-card:translate-x-0.5"
-          name="arrow-right"
-          size={15}
-        />
-      </p>
+      </div>
     </article>
   );
 }
 
-function PublisherStat({ icon, label }: { icon: "book" | "cart" | "check-circle"; label: string }) {
+function CardStat({ label, value }: { label: string; value: string }) {
   return (
-    <li className="inline-flex items-center gap-1.5 text-[0.8125rem] text-foreground/85">
-      <UiIcon aria-hidden className="shrink-0 text-icon" name={icon} size={15} />
-      <span>{label}</span>
-    </li>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="truncate text-[0.6875rem] text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-semibold text-ink tabular-nums">{value}</dd>
+    </div>
   );
 }

@@ -2,6 +2,11 @@ import type { Nullable } from "@app/shared";
 
 import { formatNumber } from "@/lib/format";
 
+export function formatCoveragePercent(percent: number, locale: string): string {
+  if (percent > 0 && percent < 1) return "<1";
+  return formatNumber(Math.round(percent), locale);
+}
+
 export function publisherCountryLabel(
   countryCode: Nullable<string>,
   locale: string,

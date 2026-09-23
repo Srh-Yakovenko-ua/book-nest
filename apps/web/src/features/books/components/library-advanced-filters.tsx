@@ -34,7 +34,11 @@ import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
-import type { LibraryQueryState, LibraryScope } from "../model/library-query";
+import type {
+  LibraryPublisherContext,
+  LibraryQueryState,
+  LibraryScope,
+} from "../model/library-query";
 import type { UseLibraryQueryResult } from "../model/use-library-query";
 
 import { useBookFacets } from "../api/use-book-facets";
@@ -46,6 +50,7 @@ import {
   LIBRARY_BOOK_TYPE_VALUES,
   LIBRARY_FORMAT_VALUES,
   LIBRARY_LANGUAGE_VALUES,
+  LIBRARY_PUBLISHER_PRESENCE_DEFAULT,
   LIBRARY_STATUS_VALUES,
   libraryRangeFlags,
   scopedOwnerValues,
@@ -98,6 +103,7 @@ const EMPTY_FILTERS: LibraryFiltersDraft = {
 type LibraryAdvancedFiltersProps = {
   activeCount: number;
   onRememberEntity: (id: string, name: string) => void;
+  publisherContext?: LibraryPublisherContext;
   resolveEntityName: (id: string) => string | undefined;
   scope: LibraryScope;
   setState: UseLibraryQueryResult["setState"];
@@ -109,6 +115,7 @@ const FACET_SEARCH_DEBOUNCE_MS = 250;
 export function LibraryAdvancedFilters({
   activeCount,
   onRememberEntity,
+  publisherContext,
   resolveEntityName,
   scope,
   setState,
@@ -126,7 +133,11 @@ export function LibraryAdvancedFilters({
 
   const [authorTerm, setAuthorTerm] = useState("");
   const debouncedAuthorTerm = useDebouncedValue(authorTerm, FACET_SEARCH_DEBOUNCE_MS);
-  const facets = useBookFacets(scope === "favorites" ? "favorites" : scope, debouncedAuthorTerm);
+  const facets = useBookFacets(
+    scope === "favorites" ? "favorites" : scope,
+    debouncedAuthorTerm,
+    publisherContext,
+  );
   const authorFacetOptions = (facets.data?.authors ?? []).map((author) => ({
     count: author.count,
     label: author.name,
@@ -323,29 +334,34 @@ export function LibraryAdvancedFilters({
             />
           </FilterSection>
 
-          <FilterSection title={t("sections.publisher")}>
-            <LibraryEntityMultiselect
-              allHeading={tPublisher("allHeading")}
-              empty={t("publisherEmpty")}
-              icon="building"
-              id="library-filter-publisher"
-              onAdd={(item) => {
-                onRememberEntity(item.id, item.name);
-                setDraft((prev) => ({ ...prev, publisher: [...prev.publisher, item.id] }));
-              }}
-              onRemove={(id) =>
-                setDraft((prev) => ({ ...prev, publisher: prev.publisher.filter((v) => v !== id) }))
-              }
-              placeholder={t("publisherPlaceholder")}
-              recentHeading={tPublisher("recentHeading")}
-              removeLabel={(name) => t("removePublisher", { name })}
-              resolveName={resolveEntityName}
-              searching={t("publisherSearching")}
-              useRecent={useRecentPublishers}
-              useSearch={usePublishersSearch}
-              value={draft.publisher}
-            />
-          </FilterSection>
+          {publisherContext === undefined ? (
+            <FilterSection title={t("sections.publisher")}>
+              <LibraryEntityMultiselect
+                allHeading={tPublisher("allHeading")}
+                empty={t("publisherEmpty")}
+                icon="building"
+                id="library-filter-publisher"
+                onAdd={(item) => {
+                  onRememberEntity(item.id, item.name);
+                  setDraft((prev) => ({ ...prev, publisher: [...prev.publisher, item.id] }));
+                }}
+                onRemove={(id) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    publisher: prev.publisher.filter((v) => v !== id),
+                  }))
+                }
+                placeholder={t("publisherPlaceholder")}
+                recentHeading={tPublisher("recentHeading")}
+                removeLabel={(name) => t("removePublisher", { name })}
+                resolveName={resolveEntityName}
+                searching={t("publisherSearching")}
+                useRecent={useRecentPublishers}
+                useSearch={usePublishersSearch}
+                value={draft.publisher}
+              />
+            </FilterSection>
+          ) : null}
 
           <FilterSection title={t("sections.bookType")}>
             <Select
@@ -487,7 +503,13 @@ export function LibraryAdvancedFilters({
 
         <SheetFooter>
           <Button
-            disabled={!hasActiveLibraryFilters({ ...state, ...draft })}
+            disabled={
+              !hasActiveLibraryFilters({
+                ...state,
+                ...draft,
+                publisherPresence: LIBRARY_PUBLISHER_PRESENCE_DEFAULT,
+              })
+            }
             onClick={() => setDraft(EMPTY_FILTERS)}
             type="button"
             variant="ghost"

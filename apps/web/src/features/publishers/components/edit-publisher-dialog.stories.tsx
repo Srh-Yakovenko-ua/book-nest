@@ -11,6 +11,7 @@ function Harness() {
   return (
     <EditPublisherDialog
       details={makePublisherDetail({ isCustom: true, name: "Vivat" })}
+      onCloseAutoFocus={() => undefined}
       onOpenChange={setOpen}
       open={open}
     />
@@ -31,6 +32,7 @@ function mockFetch(status: number, body: unknown) {
 const meta = {
   args: {
     details: makePublisherDetail({ isCustom: true, name: "Vivat" }),
+    onCloseAutoFocus: () => {},
     onOpenChange: () => {},
     open: true,
   },

@@ -14,6 +14,7 @@ export { BookDateField } from "./components/book-date-field";
 export { BookDetails } from "./components/book-details";
 export { BookFormatFilter } from "./components/book-format-filter";
 export { BookRow } from "./components/book-row";
+export { BooksArchive } from "./components/books-archive";
 export { BooksLibrary } from "./components/books-library";
 export { CreateBookForm } from "./components/create-book-form";
 export { DiscardConfirmDialog } from "./components/discard-confirm-dialog";
@@ -37,10 +38,12 @@ export { type AuthorSelection, authorSelectionToReference } from "./model/create
 export { type LibraryBook, type LibraryBookLabels, toLibraryBook } from "./model/library-book";
 export {
   LIBRARY_PAGE_SIZE,
+  LIBRARY_PUBLISHER_PRESENCE_MISSING,
   LIBRARY_SORT_DEFAULT,
   LIBRARY_SORT_ORDER,
   LIBRARY_STATUS_VALUES,
   type LibraryListParams,
+  libraryQueryParsers,
 } from "./model/library-query";
 export { todayIso } from "./model/reading-progress";
 export {

@@ -10,6 +10,20 @@ import * as zod from "zod";
 /**
  * @summary Get the publishers summary for the current user library
  */
+export const PublishersControllerLibrarySummaryQueryParams = zod.object({
+  locale: zod.enum(["en", "uk"]).optional(),
+});
+
+export const publishersControllerLibrarySummaryResponseBestRatedPublishersItemRatedBooksCountMin =
+  -9007199254740991;
+export const publishersControllerLibrarySummaryResponseBestRatedPublishersItemRatedBooksCountMax = 9007199254740991;
+
+export const publishersControllerLibrarySummaryResponseBestRatedPublishersMax = 3;
+
+export const publishersControllerLibrarySummaryResponseBooksToBuyWithPublisherCountMin =
+  -9007199254740991;
+export const publishersControllerLibrarySummaryResponseBooksToBuyWithPublisherCountMax = 9007199254740991;
+
 export const publishersControllerLibrarySummaryResponseBooksWithoutPublisherCountMin =
   -9007199254740991;
 export const publishersControllerLibrarySummaryResponseBooksWithoutPublisherCountMax = 9007199254740991;
@@ -22,17 +36,52 @@ export const publishersControllerLibrarySummaryResponseExpectedPriceTotalsItemPr
   -9007199254740991;
 export const publishersControllerLibrarySummaryResponseExpectedPriceTotalsItemPricedBooksCountMax = 9007199254740991;
 
+export const publishersControllerLibrarySummaryResponseMostReadPublisherReadCountMin =
+  -9007199254740991;
+export const publishersControllerLibrarySummaryResponseMostReadPublisherReadCountMax = 9007199254740991;
+
+export const publishersControllerLibrarySummaryResponseMostRepresentedPublisherBooksCountMin =
+  -9007199254740991;
+export const publishersControllerLibrarySummaryResponseMostRepresentedPublisherBooksCountMax = 9007199254740991;
+
 export const publishersControllerLibrarySummaryResponsePublishersCountMin = -9007199254740991;
 export const publishersControllerLibrarySummaryResponsePublishersCountMax = 9007199254740991;
 
+export const publishersControllerLibrarySummaryResponsePublishersInPlansCountMin =
+  -9007199254740991;
+export const publishersControllerLibrarySummaryResponsePublishersInPlansCountMax = 9007199254740991;
+
 export const publishersControllerLibrarySummaryResponseRatedBooksCountMin = -9007199254740991;
 export const publishersControllerLibrarySummaryResponseRatedBooksCountMax = 9007199254740991;
+
+export const publishersControllerLibrarySummaryResponseUnreadPublishersItemUnreadCountMin =
+  -9007199254740991;
+export const publishersControllerLibrarySummaryResponseUnreadPublishersItemUnreadCountMax = 9007199254740991;
+
+export const publishersControllerLibrarySummaryResponseUnreadPublishersMax = 3;
 
 export const publishersControllerLibrarySummaryResponseWantToBuyBooksCountMin = -9007199254740991;
 export const publishersControllerLibrarySummaryResponseWantToBuyBooksCountMax = 9007199254740991;
 
 export const PublishersControllerLibrarySummaryResponse = zod.object({
   averageBookRating: zod.number().nullable(),
+  bestRatedPublishers: zod
+    .array(
+      zod.object({
+        averageRating: zod.number(),
+        id: zod.string(),
+        name: zod.string(),
+        ratedBooksCount: zod
+          .int()
+          .min(publishersControllerLibrarySummaryResponseBestRatedPublishersItemRatedBooksCountMin)
+          .max(publishersControllerLibrarySummaryResponseBestRatedPublishersItemRatedBooksCountMax),
+      }),
+    )
+    .max(publishersControllerLibrarySummaryResponseBestRatedPublishersMax),
+  booksToBuyWithPublisherCount: zod
+    .int()
+    .min(publishersControllerLibrarySummaryResponseBooksToBuyWithPublisherCountMin)
+    .max(publishersControllerLibrarySummaryResponseBooksToBuyWithPublisherCountMax),
   booksWithoutPublisherCount: zod
     .int()
     .min(publishersControllerLibrarySummaryResponseBooksWithoutPublisherCountMin)
@@ -51,14 +100,51 @@ export const PublishersControllerLibrarySummaryResponse = zod.object({
         .max(publishersControllerLibrarySummaryResponseExpectedPriceTotalsItemPricedBooksCountMax),
     }),
   ),
+  mostReadPublisher: zod
+    .object({
+      id: zod.string(),
+      name: zod.string(),
+      readCount: zod
+        .int()
+        .min(publishersControllerLibrarySummaryResponseMostReadPublisherReadCountMin)
+        .max(publishersControllerLibrarySummaryResponseMostReadPublisherReadCountMax),
+    })
+    .nullable(),
+  mostRepresentedPublisher: zod
+    .object({
+      booksCount: zod
+        .int()
+        .min(publishersControllerLibrarySummaryResponseMostRepresentedPublisherBooksCountMin)
+        .max(publishersControllerLibrarySummaryResponseMostRepresentedPublisherBooksCountMax),
+      id: zod.string(),
+      name: zod.string(),
+    })
+    .nullable(),
   publishersCount: zod
     .int()
     .min(publishersControllerLibrarySummaryResponsePublishersCountMin)
     .max(publishersControllerLibrarySummaryResponsePublishersCountMax),
+  publishersInPlansCount: zod
+    .int()
+    .min(publishersControllerLibrarySummaryResponsePublishersInPlansCountMin)
+    .max(publishersControllerLibrarySummaryResponsePublishersInPlansCountMax),
   ratedBooksCount: zod
     .int()
     .min(publishersControllerLibrarySummaryResponseRatedBooksCountMin)
     .max(publishersControllerLibrarySummaryResponseRatedBooksCountMax),
+  topFiveBooksCoveragePercent: zod.number(),
+  unreadPublishers: zod
+    .array(
+      zod.object({
+        id: zod.string(),
+        name: zod.string(),
+        unreadCount: zod
+          .int()
+          .min(publishersControllerLibrarySummaryResponseUnreadPublishersItemUnreadCountMin)
+          .max(publishersControllerLibrarySummaryResponseUnreadPublishersItemUnreadCountMax),
+      }),
+    )
+    .max(publishersControllerLibrarySummaryResponseUnreadPublishersMax),
   wantToBuyBooksCount: zod
     .int()
     .min(publishersControllerLibrarySummaryResponseWantToBuyBooksCountMin)
@@ -88,10 +174,13 @@ export const PublishersControllerLibraryListQueryParams = zod.object({
     .max(publishersControllerLibraryListQueryPageSizeMax)
     .default(publishersControllerLibraryListQueryPageSizeDefault),
   search: zod.string().max(publishersControllerLibraryListQuerySearchMax).optional(),
+  filter: zod.enum(["all", "reading", "read", "to_buy", "series"]).optional(),
   geography: zod.enum(["all", "ua", "foreign", "unknown"]).optional(),
   hasBooksToBuy: zod.string().optional(),
+  hasQueue: zod.string().optional(),
   hasRatedBooks: zod.string().optional(),
   hasSeries: zod.string().optional(),
+  hasWantToRead: zod.string().optional(),
   locale: zod.enum(["en", "uk"]).optional(),
   order: zod.enum(["asc", "desc"]).optional(),
   sort: zod
@@ -297,6 +386,10 @@ export const publishersControllerLibraryDetailResponseStatsWantToBuyCountMax = 9
 export const publishersControllerLibraryDetailResponseStatsWantToReadCountMin = -9007199254740991;
 export const publishersControllerLibraryDetailResponseStatsWantToReadCountMax = 9007199254740991;
 
+export const publishersControllerLibraryDetailResponseStatsWishlistWithoutPriceCountMin =
+  -9007199254740991;
+export const publishersControllerLibraryDetailResponseStatsWishlistWithoutPriceCountMax = 9007199254740991;
+
 export const PublishersControllerLibraryDetailResponse = zod.object({
   countryCode: zod.string().nullable(),
   foundedYear: zod
@@ -343,8 +436,227 @@ export const PublishersControllerLibraryDetailResponse = zod.object({
       .int()
       .min(publishersControllerLibraryDetailResponseStatsWantToReadCountMin)
       .max(publishersControllerLibraryDetailResponseStatsWantToReadCountMax),
+    wishlistWithoutPriceCount: zod
+      .int()
+      .min(publishersControllerLibraryDetailResponseStatsWishlistWithoutPriceCountMin)
+      .max(publishersControllerLibraryDetailResponseStatsWishlistWithoutPriceCountMax),
   }),
   websiteUrl: zod.string().nullable(),
+});
+
+/**
+ * @summary Get the publisher overview for the current user library
+ */
+export const PublishersControllerLibraryOverviewParams = zod.object({
+  publisherId: zod.string(),
+});
+
+export const publishersControllerLibraryOverviewResponseActiveReadingItemProgressCurrentPageMin =
+  -9007199254740991;
+export const publishersControllerLibraryOverviewResponseActiveReadingItemProgressCurrentPageMax = 9007199254740991;
+
+export const publishersControllerLibraryOverviewResponseActiveReadingItemProgressPagesCountExclusiveMin = 0;
+export const publishersControllerLibraryOverviewResponseActiveReadingItemProgressPagesCountMax = 9007199254740991;
+
+export const publishersControllerLibraryOverviewResponseActiveReadingMax = 3;
+
+export const publishersControllerLibraryOverviewResponseLatestBookSeriesPartNumberMin =
+  -9007199254740991;
+export const publishersControllerLibraryOverviewResponseLatestBookSeriesPartNumberMax = 9007199254740991;
+
+export const publishersControllerLibraryOverviewResponseLatestBookSeriesTotalBooksMin =
+  -9007199254740991;
+export const publishersControllerLibraryOverviewResponseLatestBookSeriesTotalBooksMax = 9007199254740991;
+
+export const publishersControllerLibraryOverviewResponseSeriesItemBooksCountMin = -9007199254740991;
+export const publishersControllerLibraryOverviewResponseSeriesItemBooksCountMax = 9007199254740991;
+
+export const publishersControllerLibraryOverviewResponseSeriesItemReadCountMin = -9007199254740991;
+export const publishersControllerLibraryOverviewResponseSeriesItemReadCountMax = 9007199254740991;
+
+export const publishersControllerLibraryOverviewResponseSeriesMax = 3;
+
+export const publishersControllerLibraryOverviewResponseWishlistMax = 3;
+
+export const PublishersControllerLibraryOverviewResponse = zod.object({
+  activeReading: zod
+    .array(
+      zod.object({
+        authors: zod.array(
+          zod.object({
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        ),
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        title: zod.string(),
+        progress: zod
+          .object({
+            currentPage: zod
+              .int()
+              .min(
+                publishersControllerLibraryOverviewResponseActiveReadingItemProgressCurrentPageMin,
+              )
+              .max(
+                publishersControllerLibraryOverviewResponseActiveReadingItemProgressCurrentPageMax,
+              ),
+            pagesCount: zod
+              .int()
+              .gt(
+                publishersControllerLibraryOverviewResponseActiveReadingItemProgressPagesCountExclusiveMin,
+              )
+              .max(
+                publishersControllerLibraryOverviewResponseActiveReadingItemProgressPagesCountMax,
+              ),
+          })
+          .nullable(),
+        readingStatus: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+      }),
+    )
+    .max(publishersControllerLibraryOverviewResponseActiveReadingMax),
+  latestBook: zod
+    .object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      id: zod.string(),
+      title: zod.string(),
+      createdAt: zod.string(),
+      formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      readingStatus: zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+      series: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+          partNumber: zod
+            .int()
+            .min(publishersControllerLibraryOverviewResponseLatestBookSeriesPartNumberMin)
+            .max(publishersControllerLibraryOverviewResponseLatestBookSeriesPartNumberMax)
+            .nullable(),
+          totalBooks: zod
+            .int()
+            .min(publishersControllerLibraryOverviewResponseLatestBookSeriesTotalBooksMin)
+            .max(publishersControllerLibraryOverviewResponseLatestBookSeriesTotalBooksMax)
+            .nullable(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+  series: zod
+    .array(
+      zod.object({
+        booksCount: zod
+          .int()
+          .min(publishersControllerLibraryOverviewResponseSeriesItemBooksCountMin)
+          .max(publishersControllerLibraryOverviewResponseSeriesItemBooksCountMax),
+        id: zod.string(),
+        name: zod.string(),
+        readCount: zod
+          .int()
+          .min(publishersControllerLibraryOverviewResponseSeriesItemReadCountMin)
+          .max(publishersControllerLibraryOverviewResponseSeriesItemReadCountMax),
+        status: zod.enum(["completed", "ongoing", "unknown"]),
+      }),
+    )
+    .max(publishersControllerLibraryOverviewResponseSeriesMax),
+  wishlist: zod
+    .array(
+      zod.object({
+        authors: zod.array(
+          zod.object({
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        ),
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        title: zod.string(),
+        bestOffer: zod
+          .object({
+            currency: zod.enum(["UAH", "EUR", "USD"]),
+            price: zod.number(),
+          })
+          .nullable(),
+      }),
+    )
+    .max(publishersControllerLibraryOverviewResponseWishlistMax),
 });
 
 /**
@@ -397,6 +709,10 @@ export const publishersControllerUpdateCustomResponseStatsWantToBuyCountMax = 90
 export const publishersControllerUpdateCustomResponseStatsWantToReadCountMin = -9007199254740991;
 export const publishersControllerUpdateCustomResponseStatsWantToReadCountMax = 9007199254740991;
 
+export const publishersControllerUpdateCustomResponseStatsWishlistWithoutPriceCountMin =
+  -9007199254740991;
+export const publishersControllerUpdateCustomResponseStatsWishlistWithoutPriceCountMax = 9007199254740991;
+
 export const PublishersControllerUpdateCustomResponse = zod.object({
   countryCode: zod.string().nullable(),
   foundedYear: zod
@@ -443,6 +759,10 @@ export const PublishersControllerUpdateCustomResponse = zod.object({
       .int()
       .min(publishersControllerUpdateCustomResponseStatsWantToReadCountMin)
       .max(publishersControllerUpdateCustomResponseStatsWantToReadCountMax),
+    wishlistWithoutPriceCount: zod
+      .int()
+      .min(publishersControllerUpdateCustomResponseStatsWishlistWithoutPriceCountMin)
+      .max(publishersControllerUpdateCustomResponseStatsWishlistWithoutPriceCountMax),
   }),
   websiteUrl: zod.string().nullable(),
 });
