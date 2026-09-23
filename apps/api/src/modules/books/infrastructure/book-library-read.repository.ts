@@ -79,6 +79,12 @@ type ListForLibraryInput = {
   take: number;
 };
 
+type OverviewScope = {
+  ownershipStatuses?: OwnershipStatus[];
+  publisherId?: string;
+  userId: string;
+};
+
 @Injectable()
 export class BookLibraryReadRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -86,41 +92,39 @@ export class BookLibraryReadRepository {
   countByReadingStatuses({
     isFavorite,
     ownershipStatuses,
+    publisherId,
     statuses,
     userId,
-  }: {
+  }: OverviewScope & {
     isFavorite?: boolean;
-    ownershipStatuses?: OwnershipStatus[];
     statuses: ReadingStatus[];
-    userId: string;
   }): Promise<number> {
     return this.prisma.book.count({
       where: buildLibraryWhere({
         isFavorite,
         ownershipStatuses,
+        publisherIds: toPublisherIds(publisherId),
         readingStatuses: statuses,
         userId,
       }),
     });
   }
 
-  countByUser({
-    ownershipStatuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
-    return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
+  countByUser({ ownershipStatuses, publisherId, userId }: OverviewScope): Promise<number> {
+    return this.prisma.book.count({
+      where: buildLibraryWhere({
+        ownershipStatuses,
+        publisherIds: toPublisherIds(publisherId),
+        userId,
+      }),
+    });
   }
 
   async countDistinctAuthors({
     ownershipStatuses,
+    publisherId,
     userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
+  }: OverviewScope): Promise<number> {
     const ownershipFilter =
       ownershipStatuses === undefined
         ? Prisma.empty
@@ -132,17 +136,16 @@ export class BookLibraryReadRepository {
       WHERE book.user_id = ${userId}::uuid
           ${ACTIVE_BOOK_SQL}
         ${ownershipFilter}
+        ${publisherFilter(publisherId)}
     `);
     return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
   }
 
   async countDistinctSeries({
     ownershipStatuses,
+    publisherId,
     userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
+  }: OverviewScope): Promise<number> {
     const ownershipFilter =
       ownershipStatuses === undefined
         ? Prisma.empty
@@ -154,19 +157,19 @@ export class BookLibraryReadRepository {
           ${ACTIVE_BOOK_SQL}
         AND book.series_id IS NOT NULL
         ${ownershipFilter}
+        ${publisherFilter(publisherId)}
     `);
     return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
   }
 
-  countFavorites({
-    ownershipStatuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
+  countFavorites({ ownershipStatuses, publisherId, userId }: OverviewScope): Promise<number> {
     return this.prisma.book.count({
-      where: buildLibraryWhere({ isFavorite: true, ownershipStatuses, userId }),
+      where: buildLibraryWhere({
+        isFavorite: true,
+        ownershipStatuses,
+        publisherIds: toPublisherIds(publisherId),
+        userId,
+      }),
     });
   }
 
@@ -401,4 +404,14 @@ export class BookLibraryReadRepository {
       return name === undefined ? [] : [{ count: entry._count.tagId, id: entry.tagId, name }];
     });
   }
+}
+
+function publisherFilter(publisherId: string | undefined): Prisma.Sql {
+  return publisherId === undefined
+    ? Prisma.empty
+    : Prisma.sql`AND book.publisher_id = ${publisherId}::uuid`;
+}
+
+function toPublisherIds(publisherId: string | undefined): string[] | undefined {
+  return publisherId === undefined ? undefined : [publisherId];
 }
