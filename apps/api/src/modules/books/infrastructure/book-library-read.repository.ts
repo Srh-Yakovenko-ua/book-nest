@@ -3,12 +3,12 @@ import type { LibrarySort, Nullable, OwnershipStatus, ReadingStatus } from "@app
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import { ACTIVE_BOOK_SQL } from "../../../core/database/active-book-sql.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildLibraryWhere, type LibraryFilter } from "./book-where.js";
 import {
-  ACTIVE_BOOK_SQL,
   type BookWithRelations,
   GenreCountRowSchema,
   LIBRARY_ORDER_BY,

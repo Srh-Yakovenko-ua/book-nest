@@ -22,6 +22,7 @@ import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
 
+import { ACTIVE_BOOK_SQL } from "../../../core/database/active-book-sql.js";
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
@@ -39,8 +40,6 @@ import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
 const log = createLogger("books.repository");
-
-export const ACTIVE_BOOK_SQL = Prisma.sql`AND book.deleted_at IS NULL`;
 
 const CLEARED_QUEUE_PLACEMENT = {
   queuePosition: null,

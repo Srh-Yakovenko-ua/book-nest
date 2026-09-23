@@ -7,7 +7,6 @@ import type { TagModel } from "../../../generated/prisma/models.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 type CountTagsInput = {
   query: string | undefined;
@@ -61,14 +60,18 @@ export class TagsRepository {
     );
   }
 
-  countBooksByTag(userId: string): Promise<{ count: number; tagId: string }[]> {
-    return this.prisma.bookTag
-      .groupBy({
-        _count: { bookId: true },
-        by: ["tagId"],
-        where: { book: SOFT_DELETE_SCOPE.active, tag: { userId } },
-      })
-      .then((rows) => rows.map((row) => ({ count: row._count.bookId, tagId: row.tagId })));
+  async countLinks({
+    tagId,
+    userId,
+  }: {
+    tagId: string;
+    userId: string;
+  }): Promise<{ bookLinksCount: number; characterLinksCount: number }> {
+    const [bookLinksCount, characterLinksCount] = await Promise.all([
+      this.prisma.bookTag.count({ where: { tag: { userId }, tagId } }),
+      this.prisma.characterTag.count({ where: { tag: { userId }, tagId } }),
+    ]);
+    return { bookLinksCount, characterLinksCount };
   }
 
   countOwned({ query, userId }: CountTagsInput): Promise<number> {
@@ -116,10 +119,6 @@ export class TagsRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<TagModel>> {
     return client.tag.findFirst({ where: { id, userId } });
-  }
-
-  listOwned(userId: string): Promise<TagModel[]> {
-    return this.prisma.tag.findMany({ orderBy: { name: "asc" }, where: { userId } });
   }
 
   searchOwned({ query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
