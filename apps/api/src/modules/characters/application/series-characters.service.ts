@@ -19,6 +19,7 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { buildSeriesCharacterSummary, isTopImportance } from "../domain/character-summary.js";
 import { toCharacterSeriesProfileView } from "../domain/character.mapper.js";
+import { warnOnAmbiguousSeriesOrder } from "../domain/series-order-warning.js";
 import {
   pickSeriesRepresentatives,
   resolveAllowedBookIds,
@@ -28,7 +29,6 @@ import {
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterViewMapper } from "./character-view.mapper.js";
-import { warnOnAmbiguousSeriesOrder } from "./series-order-warning.js";
 
 @Injectable()
 export class SeriesCharactersService {

@@ -58,9 +58,9 @@ import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto
 export class BookCharactersController {
   constructor(private readonly bookCharactersService: BookCharactersService) {}
 
-  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiNotFoundResponse({ description: "Book or context book not found" })
   @ApiOkResponse({
-    description: "A spoiler-safe roster of the book's characters",
+    description: "A spoiler-safe roster of the book's characters at the current reading position",
     type: PaginatedCharactersDto,
   })
   @ApiOperation({ summary: "List the current user's characters for a book" })
@@ -69,6 +69,10 @@ export class BookCharactersController {
   @ApiQuery({ enum: BookCharactersSortSchema.options, name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "contextChapter", required: false })
+  @ApiQuery({ name: "contextPage", required: false })
+  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,

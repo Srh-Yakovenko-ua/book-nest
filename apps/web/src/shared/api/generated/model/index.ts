@@ -40,6 +40,7 @@ export * from "./bookCharacterRelationshipsControllerListParams";
 export * from "./bookCharactersControllerListParams";
 export * from "./bookCharactersControllerListSort";
 export * from "./bookCharacterSuggestionsControllerListParams";
+export * from "./bookCharacterSummaryControllerGetParams";
 export * from "./bookCharacterSummaryViewDto";
 export * from "./bookCharacterSummaryViewDtoByImportance";
 export * from "./bookCharacterSummaryViewDtoTopItem";

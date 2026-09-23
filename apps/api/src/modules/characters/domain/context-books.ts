@@ -3,6 +3,7 @@ import type { Nullable } from "@app/shared";
 import type { ReadingPositionGate } from "./reading-position.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { warnOnAmbiguousSeriesOrder } from "./series-order-warning.js";
 import { resolveAllowedBookIds } from "./series-representative.js";
 
 export type ContextBookReader = {
@@ -59,6 +60,7 @@ export async function resolveReadingContext({
     };
   }
   const seriesBooks = await reader.listSeriesBooks({ seriesId: contextBook.seriesId, userId });
+  warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId: contextBook.seriesId });
   return {
     allowedBookIds: resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks }),
     partNumberById: new Map(seriesBooks.map((book) => [book.id, book.partNumber])),

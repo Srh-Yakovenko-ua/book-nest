@@ -139,6 +139,9 @@ export class CharactersController {
     return this.charactersService.duplicateCandidates({ query, userId: user.id });
   }
 
+  @ApiBadRequestResponse({
+    description: "A reading position was supplied without contextBookId",
+  })
   @ApiNotFoundResponse({ description: "Character or context book not found" })
   @ApiOkResponse({
     description:

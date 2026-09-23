@@ -1,5 +1,6 @@
+import type { Nullable } from "@app/shared";
+
 import { createLogger } from "../../../core/logger.js";
-import { type SeriesBookRow } from "../infrastructure/characters.repository.js";
 
 const log = createLogger("characters");
 
@@ -7,7 +8,7 @@ export function warnOnAmbiguousSeriesOrder({
   seriesBooks,
   seriesId,
 }: {
-  seriesBooks: SeriesBookRow[];
+  seriesBooks: { partNumber: Nullable<number> }[];
   seriesId: string;
 }): void {
   const missingPartNumber = seriesBooks.filter((book) => book.partNumber === null).length;

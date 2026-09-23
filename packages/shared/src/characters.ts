@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createPaginatedSchema,
   paginationQueryFields,
+  readingPositionFromQuery,
   readingPositionQueryFields,
 } from "./common.js";
 import { queryStringArray } from "./internal.js";
@@ -361,13 +362,38 @@ export const BookCharactersSortSchema = z.enum(["importance", "manual", "name"])
 
 export type BookCharactersSort = z.infer<typeof BookCharactersSortSchema>;
 
-export const BookCharactersQuerySchema = z.object({
+const ReadingContextQuerySchema = z.object({
+  ...readingPositionQueryFields,
+  contextBookId: z.string().uuid().optional(),
+});
+
+export type ReadingContextQuery = z.infer<typeof ReadingContextQuerySchema>;
+
+const requireContextBookForReadingPosition = (
+  value: ReadingContextQuery,
+  ctx: z.RefinementCtx,
+): void => {
+  if (value.contextBookId !== undefined || readingPositionFromQuery(value) === undefined) {
+    return;
+  }
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: "contextBookId is required when a reading position is supplied",
+    path: ["contextBookId"],
+  });
+};
+
+export const BookCharactersQuerySchema = ReadingContextQuerySchema.extend({
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   sort: BookCharactersSortSchema.default("manual"),
 });
 
 export type BookCharactersQuery = z.infer<typeof BookCharactersQuerySchema>;
+
+export const BookCharacterSummaryQuerySchema = ReadingContextQuerySchema;
+
+export type BookCharacterSummaryQuery = z.infer<typeof BookCharacterSummaryQuerySchema>;
 
 export const DeleteCharacterQuerySchema = z.object({
   confirm: z.literal("true"),
@@ -631,12 +657,10 @@ export const CharacterRevealFieldKeySchema = z.enum([
 
 export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySchema>;
 
-export const CharacterDetailsQuerySchema = z.object({
-  ...readingPositionQueryFields,
-  contextBookId: z.string().uuid().optional(),
+export const CharacterDetailsQuerySchema = ReadingContextQuerySchema.extend({
   includeHiddenProfiles: z.stringbool().optional(),
   revealFieldIds: queryStringArray(CharacterRevealFieldKeySchema),
-});
+}).superRefine(requireContextBookForReadingPosition);
 
 export type CharacterDetailsQuery = z.infer<typeof CharacterDetailsQuerySchema>;
 

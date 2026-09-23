@@ -4,17 +4,15 @@ import { CHARACTER_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type {
-  BookContextRow,
-  CharacterDetailsRow,
-} from "../infrastructure/characters.repository.js";
+import type { CharacterDetailsRow } from "../infrastructure/characters.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { buildReadingPositionGate, isHiddenByReadingPosition } from "../domain/reading-position.js";
-import { resolveAllowedBookIds } from "../domain/series-representative.js";
+import {
+  isAppearanceRevealable,
+  resolveReadingContextWindow,
+} from "../domain/reading-context-window.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterViewMapper } from "./character-view.mapper.js";
-import { warnOnAmbiguousSeriesOrder } from "./series-order-warning.js";
 
 @Injectable()
 export class CharacterDetailsAssembler {
@@ -65,16 +63,14 @@ export class CharacterDetailsAssembler {
     revealHiddenProfile: boolean;
     userId: string;
   }): Promise<CharacterDetailsView> {
-    const contextBook = await this.charactersRepository.findOwnedBookContext({
-      bookId: contextBookId,
+    const window = await resolveReadingContextWindow({
+      bookReader: this.charactersRepository,
+      contextBookId,
+      notFoundCode: CHARACTER_ERROR_CODES.bookNotFound,
+      readingPosition: reader,
       userId,
     });
-    if (contextBook === null) {
-      throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
-    }
-
-    const allowedBookIds = await this.resolveContextAllowedBookIds({ contextBook, userId });
-    const positionGate = buildReadingPositionGate({ contextBookId, reader });
+    const allowedBookIds = [...window.allowedBookIds];
     const row =
       allowedBookIds.length === 0
         ? null
@@ -89,27 +85,17 @@ export class CharacterDetailsAssembler {
     const visibleAppearances =
       row === null
         ? []
-        : row.bookAppearances.filter(
-            (appearance) =>
-              !appearance.hidePresenceAsSpoiler &&
-              !isHiddenByReadingPosition({
-                content: {
-                  audioSeconds: appearance.firstAppearanceAudioSeconds,
-                  chapter: appearance.firstAppearanceChapter,
-                  page: appearance.firstAppearancePage,
-                },
-                contentBookId: appearance.bookId,
-                gate: positionGate,
-              }),
+        : row.bookAppearances.filter((appearance) =>
+            isAppearanceRevealable({ appearance, window }),
           );
     if (row === null || visibleAppearances.length === 0) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
 
     const revealedFields = new Set(revealFieldIds);
-    const allowedBookIdSet = new Set(allowedBookIds);
     const aliases = row.aliases.filter(
-      (alias) => !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
+      (alias) =>
+        !alias.isSpoiler && (alias.bookId === null || window.allowedBookIds.has(alias.bookId)),
     );
     return this.viewMapper.toMaskedDetailsView({
       aliases,
@@ -117,23 +103,5 @@ export class CharacterDetailsAssembler {
       row,
       visibleAppearances,
     });
-  }
-
-  private async resolveContextAllowedBookIds({
-    contextBook,
-    userId,
-  }: {
-    contextBook: BookContextRow;
-    userId: string;
-  }): Promise<string[]> {
-    if (contextBook.seriesId === null) {
-      return [contextBook.id];
-    }
-    const seriesBooks = await this.charactersRepository.listSeriesBooks({
-      seriesId: contextBook.seriesId,
-      userId,
-    });
-    warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId: contextBook.seriesId });
-    return resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks });
   }
 }

@@ -96,7 +96,9 @@ export function resolveAllowedBookIds({
   }
   const limit = contextBook.partNumber;
   return seriesBooks
-    .filter((book) => book.partNumber !== null && book.partNumber <= limit)
+    .filter(
+      (book) => book.id === contextBook.id || (book.partNumber !== null && book.partNumber < limit),
+    )
     .map((book) => book.id);
 }
 

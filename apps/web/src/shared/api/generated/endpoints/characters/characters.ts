@@ -20,6 +20,7 @@ import type {
 
 import type {
   BookCharacterSuggestionsControllerListParams,
+  BookCharacterSummaryControllerGetParams,
   BookCharacterSummaryViewDto,
   BookCharactersControllerListParams,
   CharacterBundleDto,
@@ -1036,6 +1037,11 @@ export type charactersControllerGetByIdResponse200 = {
   status: 200;
 };
 
+export type charactersControllerGetByIdResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type charactersControllerGetByIdResponse401 = {
   data: void;
   status: 401;
@@ -1050,7 +1056,9 @@ export type charactersControllerGetByIdResponseSuccess = charactersControllerGet
   headers: Headers;
 };
 export type charactersControllerGetByIdResponseError = (
-  charactersControllerGetByIdResponse401 | charactersControllerGetByIdResponse404
+  | charactersControllerGetByIdResponse400
+  | charactersControllerGetByIdResponse401
+  | charactersControllerGetByIdResponse404
 ) & {
   headers: Headers;
 };
@@ -3631,8 +3639,23 @@ export type bookCharacterSummaryControllerGetResponseError = (
 export type bookCharacterSummaryControllerGetResponse =
   bookCharacterSummaryControllerGetResponseSuccess | bookCharacterSummaryControllerGetResponseError;
 
-export const getBookCharacterSummaryControllerGetUrl = (bookId: string) => {
-  return `/api/books/${bookId}/character-summary`;
+export const getBookCharacterSummaryControllerGetUrl = (
+  bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${bookId}/character-summary?${stringifiedParams}`
+    : `/api/books/${bookId}/character-summary`;
 };
 
 /**
@@ -3640,10 +3663,11 @@ export const getBookCharacterSummaryControllerGetUrl = (bookId: string) => {
  */
 export const bookCharacterSummaryControllerGet = async (
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<bookCharacterSummaryControllerGetResponse> => {
   return customInstance<bookCharacterSummaryControllerGetResponse>(
-    getBookCharacterSummaryControllerGetUrl(bookId),
+    getBookCharacterSummaryControllerGetUrl(bookId, params),
     {
       ...options,
       method: "GET",
@@ -3651,8 +3675,11 @@ export const bookCharacterSummaryControllerGet = async (
   );
 };
 
-export const getBookCharacterSummaryControllerGetQueryKey = (bookId: string) => {
-  return [`/api/books/${bookId}/character-summary`] as const;
+export const getBookCharacterSummaryControllerGetQueryKey = (
+  bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
+) => {
+  return [`/api/books/${bookId}/character-summary`, ...(params ? [params] : [])] as const;
 };
 
 export const getBookCharacterSummaryControllerGetQueryOptions = <
@@ -3660,6 +3687,7 @@ export const getBookCharacterSummaryControllerGetQueryOptions = <
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3669,11 +3697,12 @@ export const getBookCharacterSummaryControllerGetQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getBookCharacterSummaryControllerGetQueryKey(bookId);
+  const queryKey =
+    queryOptions?.queryKey ?? getBookCharacterSummaryControllerGetQueryKey(bookId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>> = ({
     signal,
-  }) => bookCharacterSummaryControllerGet(bookId, { signal, ...requestOptions });
+  }) => bookCharacterSummaryControllerGet(bookId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -3697,6 +3726,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params: undefined | BookCharacterSummaryControllerGetParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3718,6 +3748,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3739,6 +3770,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3756,6 +3788,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3764,7 +3797,7 @@ export function useBookCharacterSummaryControllerGet<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookCharacterSummaryControllerGetQueryOptions(bookId, options);
+  const queryOptions = getBookCharacterSummaryControllerGetQueryOptions(bookId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
