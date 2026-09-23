@@ -312,6 +312,7 @@ export const CharacterRelationshipsControllerFindPathResponse = zod.object({
           zod.literal("supporting"),
           zod.literal("episodic"),
           zod.literal("mentioned"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -1965,7 +1966,14 @@ export const BookCharacterGraphControllerGetResponse = zod.object({
       }),
       zod.object({
         id: zod.string(),
-        importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+        importance: zod.enum([
+          "central",
+          "major",
+          "supporting",
+          "episodic",
+          "mentioned",
+          "not_specified",
+        ]),
         kind: zod.enum(["importance"]),
         size: zod
           .int()
@@ -2122,6 +2130,7 @@ export const BookCharacterGraphControllerGetResponse = zod.object({
           zod.literal("supporting"),
           zod.literal("episodic"),
           zod.literal("mentioned"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -2341,7 +2350,14 @@ export const SeriesCharacterGraphControllerGetResponse = zod.object({
       }),
       zod.object({
         id: zod.string(),
-        importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+        importance: zod.enum([
+          "central",
+          "major",
+          "supporting",
+          "episodic",
+          "mentioned",
+          "not_specified",
+        ]),
         kind: zod.enum(["importance"]),
         size: zod
           .int()
@@ -2498,6 +2514,7 @@ export const SeriesCharacterGraphControllerGetResponse = zod.object({
           zod.literal("supporting"),
           zod.literal("episodic"),
           zod.literal("mentioned"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),

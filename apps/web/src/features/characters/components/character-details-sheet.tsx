@@ -26,6 +26,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useCharacterDetails } from "../api/use-character-details";
+import {
+  BOOK_CHARACTER_STATUS,
+  explicitImportance,
+  explicitStatus,
+} from "../model/character-options";
 import { addRevealKey, isFieldHidden, toRevealKey } from "../model/character-spoiler";
 import { CharacterSpoilerField } from "./character-spoiler-field";
 import { CharactersErrorState } from "./characters-error-state";
@@ -88,13 +93,21 @@ function BookSection({
 
   const visibleRoles = appearance.roles.filter((role) => !role.isSpoiler);
   const hiddenRoleCount = appearance.roles.length - visibleRoles.length;
+  const importance = explicitImportance(appearance.importance);
+  const status = explicitStatus(appearance.status);
+  const statusText =
+    status === null
+      ? null
+      : status === BOOK_CHARACTER_STATUS.custom
+        ? (appearance.statusCustomText ?? tStatus(status))
+        : tStatus(status);
 
   return (
     <section className="flex flex-col gap-4 border-t border-border pt-5">
       <h4 className="text-sm font-semibold text-ink">{t("bookSection")}</h4>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <Badge variant="primary">{tImportance(appearance.importance)}</Badge>
+        {importance === null ? null : <Badge variant="primary">{tImportance(importance)}</Badge>}
         {appearance.isPovCharacter ? (
           <Badge variant="info">
             <UiIcon name="eye" size={12} />
@@ -134,13 +147,7 @@ function BookSection({
         label={t("status")}
         onReveal={onReveal}
         revealing={revealing}
-        value={
-          appearance.status === null
-            ? null
-            : appearance.status === "other" && appearance.statusCustomText !== null
-              ? appearance.statusCustomText
-              : tStatus(appearance.status)
-        }
+        value={statusText}
       />
 
       <SpoilerText

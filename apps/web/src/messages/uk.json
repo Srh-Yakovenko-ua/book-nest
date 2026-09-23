@@ -7470,12 +7470,14 @@
       "episodic": "Епізодичний",
       "major": "Головний",
       "mentioned": "Згаданий",
+      "not_specified": "Не вказано",
       "supporting": "Другорядний"
     },
     "status": {
       "active": "Живий",
       "dead": "Мертвий",
       "missing": "Зниклий",
+      "not_specified": "Не вказано",
       "other": "Інше",
       "transformed": "Перевтілений",
       "unknown": "Невідомо"

@@ -62,13 +62,12 @@ import {
 } from "../model/character-form-schema";
 import {
   ATTITUDE_OPTIONS,
+  BOOK_CHARACTER_IMPORTANCE,
+  BOOK_CHARACTER_STATUS,
   ENTITY_KIND_OPTIONS,
   GENDER_CUSTOM,
   GENDER_OPTIONS,
-  IMPORTANCE_OPTIONS,
   NARRATOR_TYPE_OPTIONS,
-  STATUS_CUSTOM,
-  STATUS_OPTIONS,
 } from "../model/character-options";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
 import { CharacterAliasEditor } from "./character-alias-editor";
@@ -389,7 +388,7 @@ function CharacterForm({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <EnumSelectField control={control} label={t("importance")} name="importance">
-            {IMPORTANCE_OPTIONS.map((option) => (
+            {BOOK_CHARACTER_IMPORTANCE.options.map((option) => (
               <SelectItem key={option} value={option}>
                 {tImportance(option)}
               </SelectItem>
@@ -397,7 +396,7 @@ function CharacterForm({
           </EnumSelectField>
 
           <EnumSelectField control={control} label={t("status")} name="status">
-            {STATUS_OPTIONS.map((option) => (
+            {BOOK_CHARACTER_STATUS.options.map((option) => (
               <SelectItem key={option} value={option}>
                 {tStatus(option)}
               </SelectItem>
@@ -405,7 +404,7 @@ function CharacterForm({
           </EnumSelectField>
         </div>
 
-        {status === STATUS_CUSTOM ? (
+        {status === BOOK_CHARACTER_STATUS.custom ? (
           <LabeledField htmlFor="character-status-custom" label={t("statusCustom")} optional>
             <Input
               className="h-10"

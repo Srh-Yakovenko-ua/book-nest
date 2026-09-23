@@ -44,6 +44,7 @@ const SERIES_IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
   episodic: 3,
   major: 1,
   mentioned: 4,
+  not_specified: 5,
   supporting: 2,
 };
 

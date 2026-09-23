@@ -1120,8 +1120,8 @@ model BookCharacter {
   bookId                      String              @map("book_id") @db.Uuid
   characterId                 String              @map("character_id") @db.Uuid
   displayName                 String?             @map("display_name")
-  importance                  String              @default("supporting")
-  status                      String              @default("active")
+  importance                  String              @default("not_specified")
+  status                      String              @default("not_specified")
   statusCustomText            String?             @map("status_custom_text")
   description                 String?
   personalImpression          String?             @map("personal_impression")

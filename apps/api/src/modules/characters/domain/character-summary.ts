@@ -7,7 +7,11 @@ import type {
   SeriesCharacterSummaryView,
 } from "@app/shared";
 
-import { BookCharacterImportanceSchema, CHARACTER_SUMMARY_TOP_LIMIT } from "@app/shared";
+import {
+  BOOK_CHARACTER_UNSPECIFIED,
+  BookCharacterImportanceSchema,
+  CHARACTER_SUMMARY_TOP_LIMIT,
+} from "@app/shared";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 
@@ -16,6 +20,7 @@ const IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
   episodic: 3,
   major: 1,
   mentioned: 4,
+  not_specified: 5,
   supporting: 2,
 };
 
@@ -143,7 +148,11 @@ function toImportanceCounts(entries: ImportanceCountEntry[]): BookCharacterImpor
     supporting: 0,
   };
   for (const entry of entries) {
-    counts[BookCharacterImportanceSchema.parse(entry.importance)] += entry.count;
+    const importance = BookCharacterImportanceSchema.parse(entry.importance);
+    if (importance === BOOK_CHARACTER_UNSPECIFIED.importance) {
+      continue;
+    }
+    counts[importance] += entry.count;
   }
   return counts;
 }

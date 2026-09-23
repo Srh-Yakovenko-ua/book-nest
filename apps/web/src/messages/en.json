@@ -7470,12 +7470,14 @@
       "episodic": "Episodic",
       "major": "Major",
       "mentioned": "Mentioned",
+      "not_specified": "Not specified",
       "supporting": "Supporting"
     },
     "status": {
       "active": "Alive",
       "dead": "Dead",
       "missing": "Missing",
+      "not_specified": "Not specified",
       "other": "Other",
       "transformed": "Transformed",
       "unknown": "Unknown"

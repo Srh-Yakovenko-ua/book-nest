@@ -32,6 +32,7 @@ describe("isTopImportance", () => {
     expect(isTopImportance("supporting")).toBe(false);
     expect(isTopImportance("episodic")).toBe(false);
     expect(isTopImportance("mentioned")).toBe(false);
+    expect(isTopImportance("not_specified")).toBe(false);
   });
 });
 
@@ -61,6 +62,30 @@ describe("buildBookCharacterSummary", () => {
     expect(view.favoritesCount).toBe(1);
     expect(view.povCount).toBe(3);
     expect(view.totalVisibleCharacters).toBe(3);
+  });
+
+  it("keeps unspecified characters out of the breakdown but inside the total", () => {
+    const view = buildBookCharacterSummary({
+      bookId: "book",
+      byImportanceEntries: [
+        { count: 1, importance: "central" },
+        { count: 4, importance: "not_specified" },
+      ],
+      favoritesCount: 0,
+      hasHiddenRecords: false,
+      povCount: 0,
+      topCandidates: [],
+      totalVisibleCharacters: 5,
+    });
+
+    expect(view.byImportance).toEqual({
+      central: 1,
+      episodic: 0,
+      major: 0,
+      mentioned: 0,
+      supporting: 0,
+    });
+    expect(view.totalVisibleCharacters).toBe(5);
   });
 
   it("keeps only central and major in the top list, ranked then limited", () => {

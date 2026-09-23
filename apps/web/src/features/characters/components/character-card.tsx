@@ -18,7 +18,11 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useUpdateCharacter } from "../api/use-update-character";
-import { IMPORTANCE_BADGE_VARIANT } from "../model/character-options";
+import {
+  BOOK_CHARACTER_IMPORTANCE,
+  explicitImportance,
+  explicitStatus,
+} from "../model/character-options";
 
 type CharacterCardProps = {
   character: CharacterSummaryView;
@@ -42,7 +46,8 @@ export function CharacterCard({
 
   const name = character.displayName ?? character.name;
   const media = character.portrait ?? character.avatar;
-  const statusLabel = character.status === null ? undefined : tStatus(character.status);
+  const importance = explicitImportance(character.importance);
+  const status = explicitStatus(character.status);
   const hiddenCount = character.hiddenFields.length;
 
   function onToggleFavorite() {
@@ -119,11 +124,15 @@ export function CharacterCard({
       }
       avatar={media === null ? undefined : { alt: name, src: media.urls.card }}
       name={name}
-      role={{
-        label: tImportance(character.importance),
-        variant: IMPORTANCE_BADGE_VARIANT[character.importance],
-      }}
-      traits={statusLabel === undefined ? undefined : [statusLabel]}
+      role={
+        importance === null
+          ? undefined
+          : {
+              label: tImportance(importance),
+              variant: BOOK_CHARACTER_IMPORTANCE.badgeVariant[importance],
+            }
+      }
+      traits={status === null ? undefined : [tStatus(status)]}
     />
   );
 }

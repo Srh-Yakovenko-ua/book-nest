@@ -101,12 +101,18 @@ export const CharacterFormTypeSchema = z.enum([
 
 export type CharacterFormType = z.infer<typeof CharacterFormTypeSchema>;
 
+export const BOOK_CHARACTER_UNSPECIFIED = {
+  importance: "not_specified",
+  status: "not_specified",
+} as const;
+
 export const BookCharacterImportanceSchema = z.enum([
   "central",
   "major",
   "supporting",
   "episodic",
   "mentioned",
+  BOOK_CHARACTER_UNSPECIFIED.importance,
 ]);
 
 export type BookCharacterImportance = z.infer<typeof BookCharacterImportanceSchema>;
@@ -118,6 +124,7 @@ export const BookCharacterStatusSchema = z.enum([
   "unknown",
   "transformed",
   "other",
+  BOOK_CHARACTER_UNSPECIFIED.status,
 ]);
 
 export type BookCharacterStatus = z.infer<typeof BookCharacterStatusSchema>;
@@ -207,7 +214,7 @@ export const BookCharacterProfileInputSchema = z.object({
   firstAppearanceNote: optionalText(CHARACTER_SHORT_TEXT_MAX),
   firstAppearancePage: optionalInt4(),
   hidePresenceAsSpoiler: z.boolean().default(false),
-  importance: BookCharacterImportanceSchema.default("supporting"),
+  importance: BookCharacterImportanceSchema.default(BOOK_CHARACTER_UNSPECIFIED.importance),
   isPovCharacter: z.boolean().default(false),
   narratorType: BookCharacterNarratorTypeSchema.nullish(),
   personalImpression: optionalText(CHARACTER_LONG_TEXT_MAX),
@@ -218,7 +225,7 @@ export const BookCharacterProfileInputSchema = z.object({
   sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
   speciesOverride: optionalText(CHARACTER_SHORT_TEXT_MAX),
   speciesOverrideIsSpoiler: z.boolean().default(false),
-  status: BookCharacterStatusSchema.default("active"),
+  status: BookCharacterStatusSchema.default(BOOK_CHARACTER_UNSPECIFIED.status),
   statusCustomText: optionalText(CHARACTER_SHORT_TEXT_MAX),
   statusIsSpoiler: z.boolean().default(false),
 });

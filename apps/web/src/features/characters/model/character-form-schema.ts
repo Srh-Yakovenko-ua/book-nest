@@ -7,6 +7,7 @@ import type {
 } from "@app/shared";
 
 import {
+  BOOK_CHARACTER_UNSPECIFIED,
   BookCharacterImportanceSchema,
   BookCharacterNarratorTypeSchema,
   BookCharacterRoleTypeSchema,
@@ -159,7 +160,7 @@ export function characterToFormValues(
     })),
     speciesOverride: appearance.speciesOverride ?? "",
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
-    status: appearance.status ?? "active",
+    status: appearance.status ?? BOOK_CHARACTER_UNSPECIFIED.status,
     statusCustomText: appearance.statusCustomText ?? "",
     statusIsSpoiler: appearance.statusIsSpoiler,
   };
@@ -184,7 +185,7 @@ export function emptyCharacterFormValues(prefill?: { name?: string }): Character
     gender: "unknown",
     globalAttitude: "",
     hidePresenceAsSpoiler: false,
-    importance: "supporting",
+    importance: BOOK_CHARACTER_UNSPECIFIED.importance,
     isFavorite: false,
     isPovCharacter: false,
     name: prefill?.name ?? "",
@@ -199,7 +200,7 @@ export function emptyCharacterFormValues(prefill?: { name?: string }): Character
     species: "",
     speciesOverride: "",
     speciesOverrideIsSpoiler: false,
-    status: "active",
+    status: BOOK_CHARACTER_UNSPECIFIED.status,
     statusCustomText: "",
     statusIsSpoiler: false,
   };

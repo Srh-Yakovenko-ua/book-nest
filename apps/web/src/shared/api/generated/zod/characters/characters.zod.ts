@@ -307,7 +307,14 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 )
                 .nullable(),
               hidePresenceAsSpoiler: zod.boolean(),
-              importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+              importance: zod.enum([
+                "central",
+                "major",
+                "supporting",
+                "episodic",
+                "mentioned",
+                "not_specified",
+              ]),
               isPovCharacter: zod.boolean(),
               narratorType: zod
                 .union([
@@ -382,7 +389,15 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
-              status: zod.enum(["active", "missing", "dead", "unknown", "transformed", "other"]),
+              status: zod.enum([
+                "active",
+                "missing",
+                "dead",
+                "unknown",
+                "transformed",
+                "other",
+                "not_specified",
+              ]),
               statusCustomText: zod
                 .string()
                 .max(
@@ -1069,7 +1084,14 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 )
                 .nullable(),
               hidePresenceAsSpoiler: zod.boolean(),
-              importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+              importance: zod.enum([
+                "central",
+                "major",
+                "supporting",
+                "episodic",
+                "mentioned",
+                "not_specified",
+              ]),
               isPovCharacter: zod.boolean(),
               narratorType: zod
                 .union([
@@ -1144,7 +1166,15 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
-              status: zod.enum(["active", "missing", "dead", "unknown", "transformed", "other"]),
+              status: zod.enum([
+                "active",
+                "missing",
+                "dead",
+                "unknown",
+                "transformed",
+                "other",
+                "not_specified",
+              ]),
               statusCustomText: zod
                 .string()
                 .max(
@@ -1741,7 +1771,7 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileFirstAppear
 export const charactersControllerCreateBodyFirstAppearanceBookProfileFirstAppearancePageMax = 2147483647;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileHidePresenceAsSpoilerDefault = false;
-export const charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault = `supporting`;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileIsPovCharacterDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfilePersonalImpressionMax = 5000;
 
@@ -1766,7 +1796,7 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMa
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideMax = 200;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIsSpoilerDefault = false;
-export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault = `active`;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusCustomTextMax = 200;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusIsSpoilerDefault = false;
@@ -1915,7 +1945,7 @@ export const CharactersControllerCreateBody = zod.object({
             charactersControllerCreateBodyFirstAppearanceBookProfileHidePresenceAsSpoilerDefault,
           ),
         importance: zod
-          .enum(["central", "major", "supporting", "episodic", "mentioned"])
+          .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
           .default(charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault),
         isPovCharacter: zod
           .boolean()
@@ -1994,7 +2024,7 @@ export const CharactersControllerCreateBody = zod.object({
             charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIsSpoilerDefault,
           ),
         status: zod
-          .enum(["active", "missing", "dead", "unknown", "transformed", "other"])
+          .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
           .default(charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault),
         statusCustomText: zod
           .string()
@@ -2089,7 +2119,14 @@ export const CharactersControllerCreateResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -2157,6 +2194,7 @@ export const CharactersControllerCreateResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -2312,7 +2350,7 @@ export const CharactersControllerListQueryParams = zod.object({
     .optional(),
   hasSpoilers: zod.string().optional(),
   importance: zod
-    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned"]))
+    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"]))
     .max(charactersControllerListQueryImportanceMax)
     .optional(),
   includeHiddenProfiles: zod
@@ -2681,7 +2719,14 @@ export const CharactersControllerGetByIdResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -2749,6 +2794,7 @@ export const CharactersControllerGetByIdResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3013,7 +3059,14 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -3081,6 +3134,7 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3331,7 +3385,14 @@ export const CharactersControllerRestoreResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -3399,6 +3460,7 @@ export const CharactersControllerRestoreResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3871,7 +3933,14 @@ export const BookCharactersControllerListResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
       name: zod.string(),
       portrait: zod
@@ -3899,6 +3968,7 @@ export const BookCharactersControllerListResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3949,7 +4019,7 @@ export const bookCharactersControllerCreateBodyOneBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyOneBookProfileFirstAppearancePageMax = 2147483647;
 
 export const bookCharactersControllerCreateBodyOneBookProfileHidePresenceAsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyOneBookProfileImportanceDefault = `supporting`;
+export const bookCharactersControllerCreateBodyOneBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileIsPovCharacterDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfilePersonalImpressionMax = 5000;
 
@@ -3973,7 +4043,7 @@ export const bookCharactersControllerCreateBodyOneBookProfileSortOrderMax = 2147
 export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideMax = 200;
 
 export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyOneBookProfileStatusDefault = `active`;
+export const bookCharactersControllerCreateBodyOneBookProfileStatusDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileStatusCustomTextMax = 200;
 
 export const bookCharactersControllerCreateBodyOneBookProfileStatusIsSpoilerDefault = false;
@@ -4000,7 +4070,7 @@ export const bookCharactersControllerCreateBodyTwoBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyTwoBookProfileFirstAppearancePageMax = 2147483647;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileHidePresenceAsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault = `supporting`;
+export const bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileIsPovCharacterDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfilePersonalImpressionMax = 5000;
 
@@ -4024,7 +4094,7 @@ export const bookCharactersControllerCreateBodyTwoBookProfileSortOrderMax = 2147
 export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideMax = 200;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyTwoBookProfileStatusDefault = `active`;
+export const bookCharactersControllerCreateBodyTwoBookProfileStatusDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusCustomTextMax = 200;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusIsSpoilerDefault = false;
@@ -4116,7 +4186,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileHidePresenceAsSpoilerDefault),
       importance: zod
-        .enum(["central", "major", "supporting", "episodic", "mentioned"])
+        .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
         .default(bookCharactersControllerCreateBodyOneBookProfileImportanceDefault),
       isPovCharacter: zod
         .boolean()
@@ -4189,7 +4259,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault),
       status: zod
-        .enum(["active", "missing", "dead", "unknown", "transformed", "other"])
+        .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
         .default(bookCharactersControllerCreateBodyOneBookProfileStatusDefault),
       statusCustomText: zod
         .string()
@@ -4259,7 +4329,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileHidePresenceAsSpoilerDefault),
       importance: zod
-        .enum(["central", "major", "supporting", "episodic", "mentioned"])
+        .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
         .default(bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault),
       isPovCharacter: zod
         .boolean()
@@ -4332,7 +4402,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault),
       status: zod
-        .enum(["active", "missing", "dead", "unknown", "transformed", "other"])
+        .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
         .default(bookCharactersControllerCreateBodyTwoBookProfileStatusDefault),
       statusCustomText: zod
         .string()
@@ -4505,7 +4575,14 @@ export const BookCharactersControllerCreateResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -4573,6 +4650,7 @@ export const BookCharactersControllerCreateResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -4755,7 +4833,14 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -4823,6 +4908,7 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5042,7 +5128,9 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .max(bookCharactersControllerUpdateInBookBodyFirstAppearancePageMax)
     .nullish(),
   hidePresenceAsSpoiler: zod.boolean().optional(),
-  importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]).optional(),
+  importance: zod
+    .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
+    .optional(),
   isPovCharacter: zod.boolean().optional(),
   narratorType: zod
     .union([
@@ -5103,7 +5191,9 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .max(bookCharactersControllerUpdateInBookBodySpeciesOverrideMax)
     .nullish(),
   speciesOverrideIsSpoiler: zod.boolean().optional(),
-  status: zod.enum(["active", "missing", "dead", "unknown", "transformed", "other"]).optional(),
+  status: zod
+    .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
+    .optional(),
   statusCustomText: zod
     .string()
     .max(bookCharactersControllerUpdateInBookBodyStatusCustomTextMax)
@@ -5201,7 +5291,14 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -5269,6 +5366,7 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5542,7 +5640,14 @@ export const BookCharacterSummaryControllerGetResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
       name: zod.string(),
       portrait: zod
@@ -5570,6 +5675,7 @@ export const BookCharacterSummaryControllerGetResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5658,7 +5764,14 @@ export const SeriesCharactersControllerListResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
       name: zod.string(),
       portrait: zod
@@ -5686,6 +5799,7 @@ export const SeriesCharactersControllerListResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5781,7 +5895,14 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
       bookId: zod.string(),
       displayName: zod.string().nullable(),
       hiddenFields: zod.array(zod.string()),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       importanceChangedFromPrevious: zod.boolean(),
       partNumber: zod
         .int()
@@ -5834,6 +5955,7 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5981,7 +6103,14 @@ export const SeriesCharacterSummaryControllerGetResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
       name: zod.string(),
       portrait: zod
@@ -6009,6 +6138,7 @@ export const SeriesCharacterSummaryControllerGetResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),

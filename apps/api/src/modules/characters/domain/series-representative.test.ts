@@ -302,4 +302,16 @@ describe("sortSeriesSummaries", () => {
       "supporting:Chani",
     ]);
   });
+
+  it("places unspecified importance after every explicit importance", () => {
+    const result = sortSeriesSummaries({
+      sort: "importance",
+      summaries: [
+        summary({ importance: "not_specified", name: "Alia" }),
+        summary({ importance: "mentioned", name: "Zed" }),
+        summary({ importance: "central", name: "Chani" }),
+      ],
+    });
+    expect(result.map((row) => row.importance)).toEqual(["central", "mentioned", "not_specified"]);
+  });
 });
