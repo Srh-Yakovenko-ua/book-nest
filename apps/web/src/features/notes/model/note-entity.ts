@@ -7,7 +7,7 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { assertNever } from "./assert-never";
+import { assertNever } from "@/lib/assert-never";
 
 export type NoteEntityRef =
   | NoteEntityRefOf<"book", { book: NoteBookPreview }>

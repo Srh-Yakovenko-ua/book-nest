@@ -8,6 +8,7 @@ import { useRef } from "react";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
+import { assertNever } from "@/lib/assert-never";
 
 import type { GenresEmptyReason, GenresListState } from "../model/genres-list-state";
 
@@ -15,7 +16,6 @@ import { useGenreFacets } from "../api/use-genre-facets";
 import { useGenreSummary } from "../api/use-genre-summary";
 import { useGenresList } from "../api/use-genres-list";
 import { useGenresOverview } from "../api/use-genres-overview";
-import { assertNever } from "../model/assert-never";
 import { hasGenreInsights } from "../model/genre-insights";
 import { genresListState } from "../model/genres-list-state";
 import { useGenreSummaryCards } from "../model/use-genre-summary-cards";

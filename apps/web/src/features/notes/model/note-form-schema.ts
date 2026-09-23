@@ -13,9 +13,10 @@ import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { NOTE_INPUT_LIMITS, NoteCategorySchema } from "@app/shared";
 import { z } from "zod";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { NoteEntityRef } from "./note-entity";
 
-import { assertNever } from "./assert-never";
 import { NOTE_CUSTOM_CATEGORY } from "./note-categories";
 
 export type NoteCreateRequest =

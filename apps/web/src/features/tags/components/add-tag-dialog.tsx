@@ -1,7 +1,8 @@
 "use client";
 
-import type { CreateTagInput } from "@app/shared";
+import type { CreateTagInput, Nullable } from "@app/shared";
 
+import { DEFAULT_TAG_TYPE, TAG_COLOR_DEFAULT } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -17,16 +18,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ApiError } from "@/lib/http-client";
 
 import type { TagFormValues } from "../model/tag-form";
 
 import { useCreateTag } from "../api/use-create-tag";
-import { TAG_COLOR_DEFAULT } from "../model/tag-color";
-import { createTagFormSchema } from "../model/tag-form";
+import { createTagFormSchema, isDuplicateTagNameError } from "../model/tag-form";
 import { TagFormFields } from "./tag-form-fields";
-
-const DUPLICATE_STATUS = 409;
 
 type AddTagDialogProps = {
   onOpenChange: (open: boolean) => void;
@@ -53,19 +50,20 @@ function AddTagForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations("tags.tagDialog");
   const tErrors = useTranslations("tags.errors");
   const createTag = useCreateTag();
-  const [serverError, setServerError] = useState<null | string>(null);
+  const [formError, setFormError] = useState<Nullable<string>>(null);
 
   const {
     control,
     formState: { errors },
     handleSubmit,
     register,
+    setError,
   } = useForm<TagFormValues>({
     defaultValues: {
       color: TAG_COLOR_DEFAULT,
       description: "",
       name: "",
-      type: "custom",
+      type: DEFAULT_TAG_TYPE,
     },
     mode: "onTouched",
     resolver: zodResolver(
@@ -80,7 +78,8 @@ function AddTagForm({ onDone }: { onDone: () => void }) {
   });
 
   const onSubmit = handleSubmit((values) => {
-    setServerError(null);
+    if (createTag.isPending) return;
+    setFormError(null);
     const payload: CreateTagInput = {
       color: values.color,
       name: values.name,
@@ -89,12 +88,17 @@ function AddTagForm({ onDone }: { onDone: () => void }) {
     };
 
     createTag.mutate(payload, {
-      onError: (error) =>
-        setServerError(
-          error instanceof ApiError && error.status === DUPLICATE_STATUS
-            ? tErrors("duplicate")
-            : tErrors("createFailed"),
-        ),
+      onError: (error) => {
+        if (isDuplicateTagNameError(error)) {
+          setError(
+            "name",
+            { message: tErrors("duplicate"), type: "server" },
+            { shouldFocus: true },
+          );
+          return;
+        }
+        setFormError(tErrors("createFailed"));
+      },
       onSuccess: () => {
         toast.success(t("addSuccess"));
         onDone();
@@ -106,9 +110,9 @@ function AddTagForm({ onDone }: { onDone: () => void }) {
     <form className="flex flex-col gap-4" noValidate onSubmit={onSubmit}>
       <TagFormFields control={control} errors={errors} idPrefix="add-tag" register={register} />
 
-      {serverError === null ? null : (
+      {formError === null ? null : (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-          {serverError}
+          {formError}
         </p>
       )}
 

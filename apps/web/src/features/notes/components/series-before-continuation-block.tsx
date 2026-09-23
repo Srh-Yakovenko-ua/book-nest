@@ -15,10 +15,10 @@ import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
+import { assertNever } from "@/lib/assert-never";
 
 import type { OpenNoteFullView } from "../hooks/use-note-full-view";
 
-import { assertNever } from "../model/assert-never";
 import { noteCategoryLabel } from "../model/note-category-label";
 import { noteEntityHref } from "../model/note-entity";
 import { notesArchiveHref } from "../model/notes-archive-href";

@@ -5,6 +5,7 @@ import type {
   NotesControllerSeriesFacetsParams,
 } from "@/shared/api/generated/model";
 
+import { assertNever } from "@/lib/assert-never";
 import {
   notesControllerBookFacets,
   notesControllerBookSummary,
@@ -16,8 +17,6 @@ import {
 
 import type { NotesArchiveScope } from "../model/notes-archive-config";
 import type { NotesDatasetParams, NotesListParams } from "../model/notes-archive-query";
-
-import { assertNever } from "../model/assert-never";
 
 type NotesArchivePageRequest = {
   pageNumber: number;

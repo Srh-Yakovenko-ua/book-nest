@@ -3,23 +3,18 @@ import type { CreateTagInput, TagCatalogView } from "@app/shared";
 import { TagCatalogViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { CreateTagDto } from "@/shared/api/generated/model";
-
 import { tagsControllerCreate } from "@/shared/api/generated/endpoints/tags/tags";
 
-import { tagsKeys } from "./tags-keys";
+import { invalidateTagCollectionQueries } from "./tags-keys";
 
 export function useCreateTag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateTagInput): Promise<TagCatalogView> => {
-      const response = await tagsControllerCreate(input as CreateTagDto);
-      return TagCatalogViewSchema.parse(response);
-    },
+    mutationFn: async (input: CreateTagInput): Promise<TagCatalogView> =>
+      TagCatalogViewSchema.parse(await tagsControllerCreate(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: tagsKeys.tagStats });
-      void queryClient.invalidateQueries({ queryKey: ["tags"] });
+      void invalidateTagCollectionQueries(queryClient);
     },
   });
 }

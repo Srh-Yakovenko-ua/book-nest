@@ -6,11 +6,11 @@ import { useTranslations } from "next-intl";
 
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
+import { assertNever } from "@/lib/assert-never";
 
 import type { NoteEntityRef } from "../model/note-entity";
 import type { NoteFormControl, NoteFormErrors, NoteFormRegister } from "../model/note-form-schema";
 
-import { assertNever } from "../model/assert-never";
 import {
   BookNoteLinkedEntity,
   BookNoteLocationFields,

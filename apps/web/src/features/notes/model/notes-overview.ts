@@ -1,6 +1,6 @@
 import type { BookNotesOverviewView, SeriesNotesOverviewView } from "@app/shared";
 
-import { assertNever } from "./assert-never";
+import { assertNever } from "@/lib/assert-never";
 
 export type NotesOverview =
   (BookNotesOverviewView & { scope: "books" }) | (SeriesNotesOverviewView & { scope: "series" });

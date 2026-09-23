@@ -6,11 +6,10 @@ import { useTranslations } from "next-intl";
 import type { ActiveFilterChip } from "@/features/books";
 
 import { LibraryActiveFilters, useGenres } from "@/features/books";
+import { assertNever } from "@/lib/assert-never";
 
 import type { NotesArchiveFacets } from "../api/use-notes-facets";
 import type { NotesActiveFilterEntry } from "../model/notes-archive-query";
-
-import { assertNever } from "../model/assert-never";
 
 type ActiveFiltersWithGenresProps = NotesActiveFiltersProps & {
   genreNames: ReadonlyMap<string, string>;

@@ -20,6 +20,8 @@ import {
 } from "nuqs/server";
 import { z } from "zod";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type {
   NotesArchiveConfig,
   NotesArchiveDimension,
@@ -30,7 +32,6 @@ import type {
   NotesSearchRule,
 } from "./notes-archive-config";
 
-import { assertNever } from "./assert-never";
 import { NOTES_ARCHIVE_CONFIG } from "./notes-archive-config";
 
 export type NotesValueDimension = "category" | "customCategory" | NotesMultiDimension;

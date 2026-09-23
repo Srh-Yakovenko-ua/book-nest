@@ -6,9 +6,10 @@
  * OpenAPI spec version: 1.0
  */
 
-export type TagStatsViewDtoType = (typeof TagStatsViewDtoType)[keyof typeof TagStatsViewDtoType];
+export type PaginatedTagCatalogDtoItemsItemType =
+  (typeof PaginatedTagCatalogDtoItemsItemType)[keyof typeof PaginatedTagCatalogDtoItemsItemType];
 
-export const TagStatsViewDtoType = {
+export const PaginatedTagCatalogDtoItemsItemType = {
   trope: "trope",
   atmosphere: "atmosphere",
   theme: "theme",

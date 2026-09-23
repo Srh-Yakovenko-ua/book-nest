@@ -1,8 +1,12 @@
 "use client";
 
+import type { TagQuickCounts } from "@app/shared";
+
+import { TAG_SORT_DEFAULT, TagQuickFilterSchema, TagSortSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
+import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { ChipGroup } from "@/components/ui/chip-group";
 import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
@@ -11,147 +15,148 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import type { TagFilter, TagSort } from "../model/tags-derive";
+import type { UseTagQueryResult } from "../model/use-tag-query";
 
-import { TAG_FILTERS, TAG_SORT_DEFAULT, TAG_SORT_OPTIONS } from "../model/tags-derive";
+import { TagsActiveChips } from "./tags-active-chips";
+import { TagsAdvancedFilters } from "./tags-advanced-filters";
 
 type TagsToolbarProps = {
-  onSearchChange: (value: string) => void;
-  onTagFilterChange: (value: TagFilter) => void;
-  onTagSortChange: (value: TagSort) => void;
-  search: string;
-  tagFilter: TagFilter;
-  tagSort: TagSort;
+  query: UseTagQueryResult;
+  quickCounts: TagQuickCounts | undefined;
 };
 
-export function TagsToolbar({
-  onSearchChange,
-  onTagFilterChange,
-  onTagSortChange,
-  search,
-  tagFilter,
-  tagSort,
-}: TagsToolbarProps) {
-  const t = useTranslations("tags.toolbar");
+export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
+  const t = useTranslations("tags");
   const tCommon = useTranslations("common");
-  const tTagSort = useTranslations("tags.tagSort");
-  const tTagFilter = useTranslations("tags.tagFilter");
-  const tSortMobile = useTranslations("tags.sortMobile");
+  const { state } = query;
+
+  function selectSort(value: string) {
+    const parsed = TagSortSchema.safeParse(value);
+    if (parsed.success) query.setSort(parsed.data);
+  }
+
+  function selectQuickFilter(value: string) {
+    const parsed = TagQuickFilterSchema.safeParse(value);
+    if (parsed.success) query.setFilter(parsed.data);
+  }
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-      <div className="flex items-center gap-1.5 lg:flex-1">
-        <div className="relative flex min-w-0 flex-1 items-center">
-          <UiIcon
-            aria-hidden
-            className="pointer-events-none absolute left-3 text-muted-foreground"
-            name="search"
-            size={18}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-0 lg:flex-1">
+          <DebouncedSearchInput
+            clearLabel={t("toolbar.searchClear")}
+            label={t("toolbar.searchTagsLabel")}
+            onClear={query.clearSearch}
+            onSearch={query.setSearch}
+            placeholder={t("toolbar.searchTagsPlaceholder")}
+            value={state.q}
           />
-          <input
-            aria-label={t("searchTagsLabel")}
-            autoComplete="off"
-            className="h-10 w-full rounded-md border border-input bg-field pr-10 pl-10 text-sm text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            enterKeyHint="search"
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={t("searchTagsPlaceholder")}
-            type="text"
-            value={search}
-          />
-          {search.length > 0 ? (
-            <button
-              aria-label={t("searchClear")}
-              className="absolute right-2 grid size-6 cursor-pointer place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-              onClick={() => onSearchChange("")}
-              type="button"
-            >
-              <UiIcon name="x" size={16} />
-            </button>
-          ) : null}
         </div>
 
-        <MobileSortSheet
-          className="max-w-[9.5rem] sm:hidden"
-          closeLabel={tSortMobile("close")}
-          description={tSortMobile("tagDescription")}
-          groups={[
-            {
-              key: "tagSort",
-              options: TAG_SORT_OPTIONS.map((value) => ({ label: tTagSort(value), value })),
-            },
-          ]}
-          id="tags-sort"
-          label={t("sortLabel")}
-          onChange={onTagSortChange}
-          title={tSortMobile("title")}
-          triggerLabel={tSortMobile(`tagTrigger.${tagSort}`)}
-          value={tagSort}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <MobileSortSheet
+            className="max-w-[9.5rem] flex-1 sm:hidden"
+            closeLabel={t("sortMobile.close")}
+            description={t("sortMobile.tagDescription")}
+            groups={[
+              {
+                key: "sort",
+                options: TagSortSchema.options.map((value) => ({
+                  label: t(`sort.${value}`),
+                  value,
+                })),
+              },
+            ]}
+            id="tags-sort"
+            label={t("toolbar.sortLabel")}
+            onChange={query.setSort}
+            title={t("sortMobile.title")}
+            triggerLabel={t(`sortMobile.trigger.${state.sort}`)}
+            value={state.sort}
+          />
+
+          <div className="hidden sm:block sm:w-64">
+            <Select onValueChange={selectSort} value={state.sort}>
+              <SelectTrigger
+                aria-label={t("toolbar.sortLabel")}
+                className="w-full data-[size=default]:h-10"
+                clearLabel={tCommon("clear")}
+                isClearable={state.sort !== TAG_SORT_DEFAULT}
+                onClear={() => query.setSort(TAG_SORT_DEFAULT)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TagSortSchema.options.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {t(`sort.${option}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <TagsAdvancedFilters
+            onApply={query.setAdvancedFilters}
+            value={{ color: state.color, type: state.type }}
+          />
+        </div>
+      </div>
+
+      <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
+        <ChipGroup
+          className="flex-nowrap"
+          label={t("toolbar.quickFilterLabel")}
+          mode="single"
+          onValueChange={selectQuickFilter}
+          options={TagQuickFilterSchema.options.map((option) => ({
+            label: (
+              <QuickFilterLabel count={quickCounts?.[option]} label={t(`quickFilter.${option}`)} />
+            ),
+            value: option,
+          }))}
+          size="sm"
+          value={state.filter}
         />
       </div>
 
-      <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-2.5">
-        <ToolbarSelect
-          label={t("tagFilterLabel")}
-          onChange={onTagFilterChange}
-          options={TAG_FILTERS.map((value) => ({ label: tTagFilter(value), value }))}
-          value={tagFilter}
-        />
-        <ToolbarSelect
-          className="max-sm:hidden"
-          clearable={tagSort !== TAG_SORT_DEFAULT}
-          clearLabel={tCommon("clear")}
-          label={t("sortLabel")}
-          onChange={onTagSortChange}
-          onClear={() => onTagSortChange(TAG_SORT_DEFAULT)}
-          options={TAG_SORT_OPTIONS.map((value) => ({ label: tTagSort(value), value }))}
-          value={tagSort}
-        />
+      <TagsActiveChips query={query} />
+    </div>
+  );
+}
+
+export function TagsToolbarSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <Skeleton className="h-10 min-w-0 rounded-md lg:flex-1" />
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
+          <Skeleton className="hidden h-10 rounded-md sm:block sm:w-64" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {TagQuickFilterSchema.options.map((option) => (
+          <Skeleton className="h-8 w-24 rounded-full" key={option} />
+        ))}
       </div>
     </div>
   );
 }
 
-function ToolbarSelect<TValue extends string>({
-  className,
-  clearable = false,
-  clearLabel,
-  label,
-  onChange,
-  onClear,
-  options,
-  value,
-}: {
-  className?: string;
-  clearable?: boolean;
-  clearLabel?: string;
-  label: string;
-  onChange: (value: TValue) => void;
-  onClear?: () => void;
-  options: { label: string; value: TValue }[];
-  value: TValue;
-}) {
+function QuickFilterLabel({ count, label }: { count: number | undefined; label: string }) {
   return (
-    <div className={cn("min-w-0 max-sm:flex-1 sm:w-52", className)}>
-      <Select onValueChange={(next) => onChange(next as TValue)} value={value}>
-        <SelectTrigger
-          aria-label={label}
-          className="w-full data-[size=default]:h-10 max-sm:text-xs max-sm:data-[size=default]:h-9"
-          clearLabel={clearLabel}
-          isClearable={clearable}
-          onClear={onClear}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <>
+      {label}
+      {count === undefined ? null : (
+        <span className="text-muted-foreground tabular-nums in-data-[state=on]:text-primary-foreground">
+          {count}
+        </span>
+      )}
+    </>
   );
 }

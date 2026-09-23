@@ -3,11 +3,9 @@ import type { TagCatalogView, UpdateTagInput } from "@app/shared";
 import { TagCatalogViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { UpdateTagDto } from "@/shared/api/generated/model";
-
 import { tagsControllerUpdate } from "@/shared/api/generated/endpoints/tags/tags";
 
-import { tagsKeys } from "./tags-keys";
+import { invalidateTagMetadataQueries } from "./tags-keys";
 
 export type UpdateTagVariables = {
   id: string;
@@ -18,13 +16,10 @@ export function useUpdateTag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, input }: UpdateTagVariables): Promise<TagCatalogView> => {
-      const response = await tagsControllerUpdate(id, input as UpdateTagDto);
-      return TagCatalogViewSchema.parse(response);
-    },
+    mutationFn: async ({ id, input }: UpdateTagVariables): Promise<TagCatalogView> =>
+      TagCatalogViewSchema.parse(await tagsControllerUpdate(id, input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: tagsKeys.tagStats });
-      void queryClient.invalidateQueries({ queryKey: ["tags"] });
+      void invalidateTagMetadataQueries(queryClient);
     },
   });
 }

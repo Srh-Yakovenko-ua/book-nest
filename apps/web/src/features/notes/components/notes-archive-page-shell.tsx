@@ -4,8 +4,8 @@ import type { ReactNode, RefObject } from "react";
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
+import { assertNever } from "@/lib/assert-never";
 
-import { assertNever } from "../model/assert-never";
 import { NotesContextualSidebarSkeleton } from "./notes-contextual-sidebar";
 
 export type NotesContextualColumn =

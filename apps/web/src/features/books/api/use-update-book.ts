@@ -6,6 +6,7 @@ import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys
 import { listKeys } from "@/features/lists/api/list-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
+import { invalidateTagCollectionQueries } from "@/features/tags/api/tags-keys";
 import { booksControllerUpdate } from "@/shared/api/generated/endpoints/books/books";
 
 import { matchesReadingQueueKey } from "./reading-queue-keys";
@@ -16,13 +17,14 @@ export function useUpdateBook(id: string) {
 
   return useMutation({
     mutationFn: (input: UpdateBookInput) => booksControllerUpdate(id, input),
-    onSuccess: () => {
+    onSuccess: (_book, input) => {
       void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       void queryClient.invalidateQueries({ queryKey: listKeys.root });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
+      if (input.tags !== undefined) void invalidateTagCollectionQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
     },
   });

@@ -9,6 +9,10 @@ import { listKeys } from "@/features/lists/api/list-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import {
+  invalidateTagAggregateQueries,
+  invalidateTagCollectionQueries,
+} from "@/features/tags/api/tags-keys";
+import {
   booksControllerDelete,
   booksControllerUpdate,
   bulkBooksControllerDelete,
@@ -41,7 +45,7 @@ export function useBulkAddTags() {
       BulkActionResultSchema.parse(await bulkBooksControllerTags(input)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: ["tags"] });
+      void invalidateTagCollectionQueries(queryClient);
     },
   });
 }
@@ -90,6 +94,7 @@ export function useBulkDeleteBooks() {
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
+      void invalidateTagAggregateQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
     },
   });
@@ -146,6 +151,7 @@ export function useDeleteBook() {
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
+      void invalidateTagAggregateQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
     },
   });

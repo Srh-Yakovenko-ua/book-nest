@@ -5,10 +5,11 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { CreateTagDtoColor } from "./createTagDtoColor";
 import type { CreateTagDtoType } from "./createTagDtoType";
 
 export interface CreateTagDto {
-  color?: string;
+  color?: CreateTagDtoColor;
   description?: string;
   name: string;
   type?: CreateTagDtoType;
