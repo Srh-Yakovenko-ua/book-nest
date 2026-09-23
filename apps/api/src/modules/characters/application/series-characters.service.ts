@@ -3,6 +3,7 @@ import type {
   CharacterSummaryView,
   Nullable,
   Paginator,
+  ReadingContextQuery,
   SeriesCharacterProfileQuery,
   SeriesCharactersQuery,
   SeriesCharacterSummaryQuery,
@@ -10,15 +11,23 @@ import type {
   SeriesReadingContextDefaultView,
 } from "@app/shared";
 
-import { CHARACTER_ERROR_CODES, normalizeSearch } from "@app/shared";
+import { CHARACTER_ERROR_CODES, normalizeSearch, readingPositionFromQuery } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type {
+  ContextualAppearance,
+  ReadingContextWindow,
+} from "../domain/reading-context-window.js";
 import type { BookContextRow } from "../infrastructure/characters.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { buildSeriesCharacterSummary, isTopImportance } from "../domain/character-summary.js";
 import { toCharacterSeriesProfileView } from "../domain/character.mapper.js";
+import {
+  buildReadingContextWindow,
+  isAppearanceRevealable,
+} from "../domain/reading-context-window.js";
 import { warnOnAmbiguousSeriesOrder } from "../domain/series-order-warning.js";
 import {
   pickSeriesRepresentatives,
@@ -29,6 +38,13 @@ import {
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterViewMapper } from "./character-view.mapper.js";
+
+type SeriesReadingContext = {
+  allowedBookIds: string[];
+  contextBookId: Nullable<string>;
+  partNumberByBookId: Map<string, Nullable<number>>;
+  window: ReadingContextWindow;
+};
 
 @Injectable()
 export class SeriesCharactersService {
@@ -72,54 +88,53 @@ export class SeriesCharactersService {
     seriesId: string;
     userId: string;
   }): Promise<CharacterSeriesProfileView> {
-    await this.accessAsserter.assertSeriesOwned({ seriesId, userId });
-
-    let contextBook: Nullable<BookContextRow> = null;
-    if (query.contextBookId !== undefined) {
-      const resolved = await this.charactersRepository.findOwnedBookContext({
-        bookId: query.contextBookId,
-        userId,
-      });
-      if (resolved === null || resolved.seriesId !== seriesId) {
-        throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
-      }
-      contextBook = resolved;
-    }
-
-    const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
-    warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
-
-    const allowedBookIds = resolveAllowedBookIds({
-      contextBook,
+    const context = await this.resolveSeriesReadingContext({
       includeFuture: query.includeFuture ?? false,
-      seriesBooks,
+      query,
+      seriesId,
+      userId,
     });
 
     const character =
-      allowedBookIds.length === 0
+      context.allowedBookIds.length === 0
         ? null
         : await this.charactersRepository.findSeriesCharacterProfile({
-            allowedBookIds,
+            allowedBookIds: context.allowedBookIds,
             characterId,
             userId,
           });
+    const revealableAppearances =
+      character === null
+        ? []
+        : character.bookAppearances.filter((appearance) =>
+            isAppearanceRevealable({ appearance, window: context.window }),
+          );
     if (
       character === null ||
       character.hideProfileAsSpoiler ||
-      character.bookAppearances.length === 0
+      revealableAppearances.length === 0
     ) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
 
-    const allowedBookIdSet = new Set(allowedBookIds);
-    const partNumberByBookId = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
+    const allowedBookIdSet = new Set(context.allowedBookIds);
+    const revealableAppearanceIds = new Set(
+      revealableAppearances.map((appearance) => appearance.id),
+    );
+    const maskedBookIds = new Set(
+      character.bookAppearances
+        .filter((appearance) => !revealableAppearanceIds.has(appearance.id))
+        .map((appearance) => appearance.bookId),
+    );
 
     return toCharacterSeriesProfileView({
       aliases: character.aliases.filter(
         (alias) =>
-          !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
+          !alias.isSpoiler &&
+          (alias.bookId === null ||
+            (allowedBookIdSet.has(alias.bookId) && !maskedBookIds.has(alias.bookId))),
       ),
-      appearances: character.bookAppearances.map((appearance) => ({
+      appearances: revealableAppearances.map((appearance) => ({
         attitude: appearance.attitude,
         bookId: appearance.bookId,
         createdAt: appearance.createdAt,
@@ -135,7 +150,7 @@ export class SeriesCharactersService {
       })),
       avatar: this.viewMapper.mediaViewOf(character.avatarMedia),
       character,
-      partNumberByBookId,
+      partNumberByBookId: context.partNumberByBookId,
     });
   }
 
@@ -148,29 +163,13 @@ export class SeriesCharactersService {
     seriesId: string;
     userId: string;
   }): Promise<Paginator<CharacterSummaryView>> {
-    await this.accessAsserter.assertSeriesOwned({ seriesId, userId });
-
-    let contextBook: Nullable<BookContextRow> = null;
-    if (query.contextBookId !== undefined) {
-      const resolved = await this.charactersRepository.findOwnedBookContext({
-        bookId: query.contextBookId,
-        userId,
-      });
-      if (resolved === null || resolved.seriesId !== seriesId) {
-        throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
-      }
-      contextBook = resolved;
-    }
-
-    const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
-    warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
-
-    const allowedBookIds = resolveAllowedBookIds({
-      contextBook,
+    const context = await this.resolveSeriesReadingContext({
       includeFuture: query.includeFuture ?? false,
-      seriesBooks,
+      query,
+      seriesId,
+      userId,
     });
-    if (allowedBookIds.length === 0) {
+    if (context.allowedBookIds.length === 0) {
       return buildPaginator({
         items: [],
         pageNumber: query.pageNumber,
@@ -180,15 +179,14 @@ export class SeriesCharactersService {
     }
 
     const appearances = await this.charactersRepository.listSeriesAppearances({
-      bookIds: allowedBookIds,
+      bookIds: context.allowedBookIds,
       search: normalizeSearch(query.q),
       userId,
     });
-    const partNumberByBookId = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
     const representatives = pickSeriesRepresentatives({
-      appearances,
+      appearances: revealableAppearancesIn({ appearances, window: context.window }),
       contextBookId: query.contextBookId,
-      partNumberByBookId,
+      partNumberByBookId: context.partNumberByBookId,
     });
     const summaries = representatives.map((row) => this.viewMapper.toSummaryView(row));
     const sorted = sortSeriesSummaries({ sort: query.sort, summaries });
@@ -214,6 +212,71 @@ export class SeriesCharactersService {
     seriesId: string;
     userId: string;
   }): Promise<SeriesCharacterSummaryView> {
+    const context = await this.resolveSeriesReadingContext({
+      includeFuture: false,
+      query,
+      seriesId,
+      userId,
+    });
+    if (context.allowedBookIds.length === 0) {
+      return buildSeriesCharacterSummary({
+        byImportanceEntries: [],
+        contextBookId: context.contextBookId,
+        favoritesCount: 0,
+        hasHiddenRecords: false,
+        povCount: 0,
+        seriesId,
+        topCandidates: [],
+        totalVisibleCharacters: 0,
+      });
+    }
+
+    const [appearances, hiddenCharacterIds] = await Promise.all([
+      this.charactersRepository.listSeriesAppearances({
+        bookIds: context.allowedBookIds,
+        search: undefined,
+        userId,
+      }),
+      this.charactersRepository.listSeriesHiddenCharacterIds({
+        bookIds: context.allowedBookIds,
+        userId,
+      }),
+    ]);
+
+    const representatives = pickSeriesRepresentatives({
+      appearances: revealableAppearancesIn({ appearances, window: context.window }),
+      contextBookId: query.contextBookId,
+      partNumberByBookId: context.partNumberByBookId,
+    });
+    const visibleCharacterIds = new Set(representatives.map((row) => row.characterId));
+
+    return buildSeriesCharacterSummary({
+      byImportanceEntries: representatives.map((row) => ({ count: 1, importance: row.importance })),
+      contextBookId: context.contextBookId,
+      favoritesCount: representatives.filter((row) => row.character.isFavorite).length,
+      hasHiddenRecords:
+        hiddenCharacterIds.some((row) => !visibleCharacterIds.has(row.characterId)) ||
+        appearances.some((row) => !visibleCharacterIds.has(row.characterId)),
+      povCount: representatives.filter((row) => row.isPovCharacter).length,
+      seriesId,
+      topCandidates: representatives
+        .filter((row) => isTopImportance(row.importance))
+        .map((row) => this.viewMapper.toSummaryView(row)),
+      totalVisibleCharacters: representatives.length,
+    });
+  }
+
+  private async resolveSeriesReadingContext({
+    includeFuture,
+    query,
+    seriesId,
+    userId,
+  }: {
+    includeFuture: boolean;
+    query: ReadingContextQuery;
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesReadingContext> {
     await this.accessAsserter.assertSeriesOwned({ seriesId, userId });
 
     let contextBook: Nullable<BookContextRow> = null;
@@ -231,53 +294,28 @@ export class SeriesCharactersService {
     const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
     warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
 
-    const allowedBookIds = resolveAllowedBookIds({
-      contextBook,
-      includeFuture: false,
-      seriesBooks,
-    });
+    const allowedBookIds = resolveAllowedBookIds({ contextBook, includeFuture, seriesBooks });
     const contextBookId = contextBook?.id ?? null;
-    if (allowedBookIds.length === 0) {
-      return buildSeriesCharacterSummary({
-        byImportanceEntries: [],
-        contextBookId,
-        favoritesCount: 0,
-        hasHiddenRecords: false,
-        povCount: 0,
-        seriesId,
-        topCandidates: [],
-        totalVisibleCharacters: 0,
-      });
-    }
 
-    const [appearances, hiddenCharacterIds] = await Promise.all([
-      this.charactersRepository.listSeriesAppearances({
-        bookIds: allowedBookIds,
-        search: undefined,
-        userId,
-      }),
-      this.charactersRepository.listSeriesHiddenCharacterIds({ bookIds: allowedBookIds, userId }),
-    ]);
-
-    const partNumberByBookId = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
-    const representatives = pickSeriesRepresentatives({
-      appearances,
-      contextBookId: query.contextBookId,
-      partNumberByBookId,
-    });
-    const visibleCharacterIds = new Set(representatives.map((row) => row.characterId));
-
-    return buildSeriesCharacterSummary({
-      byImportanceEntries: representatives.map((row) => ({ count: 1, importance: row.importance })),
+    return {
+      allowedBookIds,
       contextBookId,
-      favoritesCount: representatives.filter((row) => row.character.isFavorite).length,
-      hasHiddenRecords: hiddenCharacterIds.some((row) => !visibleCharacterIds.has(row.characterId)),
-      povCount: representatives.filter((row) => row.isPovCharacter).length,
-      seriesId,
-      topCandidates: representatives
-        .filter((row) => isTopImportance(row.importance))
-        .map((row) => this.viewMapper.toSummaryView(row)),
-      totalVisibleCharacters: representatives.length,
-    });
+      partNumberByBookId: new Map(seriesBooks.map((book) => [book.id, book.partNumber])),
+      window: buildReadingContextWindow({
+        allowedBookIds,
+        contextBookId,
+        readingPosition: readingPositionFromQuery(query),
+      }),
+    };
   }
+}
+
+function revealableAppearancesIn<Appearance extends ContextualAppearance>({
+  appearances,
+  window,
+}: {
+  appearances: Appearance[];
+  window: ReadingContextWindow;
+}): Appearance[] {
+  return appearances.filter((appearance) => isAppearanceRevealable({ appearance, window }));
 }

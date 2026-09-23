@@ -9,6 +9,21 @@ import type { SeriesCharactersControllerListSort } from "./seriesCharactersContr
 
 export type SeriesCharactersControllerListParams = {
   /**
+   * @minimum 0
+   * @maximum 2147483647
+   */
+  contextAudioSeconds?: number;
+  /**
+   * @minimum 0
+   * @maximum 2147483647
+   */
+  contextChapter?: number;
+  /**
+   * @minimum 0
+   * @maximum 2147483647
+   */
+  contextPage?: number;
+  /**
    * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
   contextBookId?: string;

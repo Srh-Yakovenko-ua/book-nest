@@ -35,6 +35,9 @@ export class SeriesCharacterSummaryController {
   })
   @ApiParam({ description: "Series id", name: "seriesId" })
   @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "contextChapter", required: false })
+  @ApiQuery({ name: "contextPage", required: false })
+  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @Get()
   get(
     @CurrentUser() user: AuthenticatedUser,

@@ -628,20 +628,18 @@ export const SeriesCharactersSortSchema = z.enum(["name", "importance"]);
 
 export type SeriesCharactersSort = z.infer<typeof SeriesCharactersSortSchema>;
 
-export const SeriesCharactersQuerySchema = z.object({
-  contextBookId: z.string().uuid().optional(),
+export const SeriesCharactersQuerySchema = ReadingContextQuerySchema.extend({
   includeFuture: z.stringbool().optional(),
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   sort: SeriesCharactersSortSchema.default("name"),
-});
+}).superRefine(requireContextBookForReadingPosition);
 
 export type SeriesCharactersQuery = z.infer<typeof SeriesCharactersQuerySchema>;
 
-export const SeriesCharacterProfileQuerySchema = z.object({
-  contextBookId: z.string().uuid().optional(),
+export const SeriesCharacterProfileQuerySchema = ReadingContextQuerySchema.extend({
   includeFuture: z.stringbool().optional(),
-});
+}).superRefine(requireContextBookForReadingPosition);
 
 export type SeriesCharacterProfileQuery = z.infer<typeof SeriesCharacterProfileQuerySchema>;
 
@@ -742,9 +740,9 @@ export const BookCharacterSummaryViewSchema = z.object({
 
 export type BookCharacterSummaryView = z.infer<typeof BookCharacterSummaryViewSchema>;
 
-export const SeriesCharacterSummaryQuerySchema = z.object({
-  contextBookId: z.string().uuid().optional(),
-});
+export const SeriesCharacterSummaryQuerySchema = ReadingContextQuerySchema.superRefine(
+  requireContextBookForReadingPosition,
+);
 
 export type SeriesCharacterSummaryQuery = z.infer<typeof SeriesCharacterSummaryQuerySchema>;
 

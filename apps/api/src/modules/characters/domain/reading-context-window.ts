@@ -33,6 +33,25 @@ type PositionedReadingContextWindow = {
   positionGate: Nullable<ReadingPositionGate>;
 };
 
+export function buildReadingContextWindow({
+  allowedBookIds,
+  contextBookId,
+  readingPosition,
+}: {
+  allowedBookIds: string[];
+  contextBookId: Nullable<string>;
+  readingPosition: ReadingPosition | undefined;
+}): PositionedReadingContextWindow {
+  return {
+    allowedBookIds: new Set(allowedBookIds),
+    kind: "reading_position",
+    positionGate:
+      contextBookId === null
+        ? null
+        : buildReadingPositionGate({ contextBookId, reader: readingPosition }),
+  };
+}
+
 export function collectPositionHiddenAppearanceIds<Appearance extends ContextualAppearance>({
   appearances,
   window,
@@ -101,9 +120,9 @@ export async function resolveReadingContextWindow({
     reader: bookReader,
     userId,
   });
-  return {
-    allowedBookIds: new Set(context.allowedBookIds),
-    kind: "reading_position",
-    positionGate: buildReadingPositionGate({ contextBookId, reader: readingPosition }),
-  };
+  return buildReadingContextWindow({
+    allowedBookIds: context.allowedBookIds,
+    contextBookId,
+    readingPosition,
+  });
 }
