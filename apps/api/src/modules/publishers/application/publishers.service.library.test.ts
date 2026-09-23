@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { PublisherModel } from "../../../generated/prisma/models.js";
-import type { LibraryStatsRow } from "../domain/publisher-library.mapper.js";
+import type { MediaService } from "../../media/index.js";
+import type { LibraryDetailStatsRow, LibraryStatsRow } from "../domain/publisher-library.mapper.js";
+import type { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
 import type { PublishersRepository } from "../infrastructure/publishers.repository.js";
 
 import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
@@ -32,7 +34,7 @@ type RepositoryMock = {
 
 type ServiceOverrides = {
   aggregateLibrary?: LibraryStatsRow[];
-  aggregateLibraryDetail?: Nullable<LibraryStatsRow>;
+  aggregateLibraryDetail?: Nullable<LibraryDetailStatsRow>;
   countBooks?: number;
   countLibrary?: number;
   findById?: Nullable<PublisherModel>;
@@ -67,6 +69,8 @@ function buildService(overrides: ServiceOverrides = {}): {
   const service = new PublishersService(
     repository as unknown as PublishersRepository,
     transactionRunner as unknown as TransactionRunner,
+    {} as PublisherOverviewRepository,
+    {} as MediaService,
   );
 
   return { repository, service, txClient };
@@ -93,7 +97,7 @@ function publisher(overrides: Partial<PublisherModel> = {}): PublisherModel {
   };
 }
 
-function statsRow(overrides: Partial<LibraryStatsRow> = {}): LibraryStatsRow {
+function statsRow(overrides: Partial<LibraryDetailStatsRow> = {}): LibraryDetailStatsRow {
   return {
     averageRating: null,
     booksCount: 3,
@@ -112,6 +116,7 @@ function statsRow(overrides: Partial<LibraryStatsRow> = {}): LibraryStatsRow {
     wantToBuyCount: 0,
     wantToReadCount: 0,
     websiteUrl: null,
+    wishlistWithoutPriceCount: 0,
     ...overrides,
   };
 }
@@ -266,21 +271,19 @@ describe("PublishersService.updateCustom", () => {
     expect(detail).toMatchObject({ name: "Renamed Press", stats: { booksCount: 4 } });
   });
 
-  it("falls back to the model with zeroed stats when the publisher has no books", async () => {
+  it("throws NotFoundError when the publisher disappears before the detail is read", async () => {
     const { service } = buildService({
       aggregateLibraryDetail: null,
       findById: publisher(),
-      updateCustom: publisher({ name: "Renamed Press" }),
     });
 
-    const detail = await service.updateCustom(renameInput);
-
-    expect(detail).toMatchObject({ name: "Renamed Press", stats: { booksCount: 0 } });
+    await expect(service.updateCustom(renameInput)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
 describe("PublishersService.libraryList", () => {
   const baseQuery = {
+    filter: "all",
     geography: "all",
     locale: "uk",
     order: "desc",
@@ -311,6 +314,33 @@ describe("PublishersService.libraryList", () => {
     expect(repository.aggregateLibrary).toHaveBeenCalledWith(
       expect.objectContaining({ hasBooksToBuy: true, hasRatedBooks: true, hasSeries: true }),
     );
+  });
+
+  it("treats absent hasWantToRead and hasQueue flags as false", async () => {
+    const { repository, service } = buildService();
+
+    await service.libraryList({ query: { ...baseQuery }, userId: USER_ID });
+
+    expect(repository.aggregateLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ hasQueue: false, hasWantToRead: false }),
+    );
+  });
+
+  it("forwards the quick filter and the new advanced flags to both the page and the count", async () => {
+    const { repository, service } = buildService();
+
+    await service.libraryList({
+      query: { ...baseQuery, filter: "series", hasQueue: true, hasWantToRead: true },
+      userId: USER_ID,
+    });
+
+    const expected = expect.objectContaining({
+      filter: "series",
+      hasQueue: true,
+      hasWantToRead: true,
+    });
+    expect(repository.aggregateLibrary).toHaveBeenCalledWith(expected);
+    expect(repository.countLibrary).toHaveBeenCalledWith(expected);
   });
 
   it("computes skip and take from the page coordinates", async () => {

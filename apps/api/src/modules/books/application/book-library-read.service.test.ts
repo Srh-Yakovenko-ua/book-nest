@@ -141,7 +141,7 @@ describe("BookLibraryReadService.list", () => {
     });
 
     const page = await service.list({
-      query: { pageNumber: 1, pageSize: 2, sort: "created_desc" },
+      query: { pageNumber: 1, pageSize: 2, searchPublisher: true, sort: "created_desc" },
       userId: USER_ID,
     });
 
@@ -161,7 +161,7 @@ describe("BookLibraryReadService.list", () => {
     });
 
     await service.list({
-      query: { pageNumber: 1, pageSize: 20, q: "a", sort: "created_desc" },
+      query: { pageNumber: 1, pageSize: 20, q: "a", searchPublisher: true, sort: "created_desc" },
       userId: USER_ID,
     });
 
@@ -177,7 +177,7 @@ describe("BookLibraryReadService.list", () => {
     });
 
     await service.list({
-      query: { pageNumber: 1, pageSize: 20, q: "9", sort: "created_desc" },
+      query: { pageNumber: 1, pageSize: 20, q: "9", searchPublisher: true, sort: "created_desc" },
       userId: USER_ID,
     });
 
@@ -193,7 +193,7 @@ describe("BookLibraryReadService.list", () => {
     });
 
     await service.list({
-      query: { pageNumber: 1, pageSize: 20, q: "ab", sort: "created_desc" },
+      query: { pageNumber: 1, pageSize: 20, q: "ab", searchPublisher: true, sort: "created_desc" },
       userId: USER_ID,
     });
 
