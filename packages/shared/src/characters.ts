@@ -3,8 +3,8 @@ import { z } from "zod";
 import {
   createPaginatedSchema,
   paginationQueryFields,
-  readingPositionFromQuery,
   readingPositionQueryFields,
+  requireContextBookForReadingPosition,
 } from "./common.js";
 import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
@@ -368,20 +368,6 @@ const ReadingContextQuerySchema = z.object({
 });
 
 export type ReadingContextQuery = z.infer<typeof ReadingContextQuerySchema>;
-
-const requireContextBookForReadingPosition = (
-  value: ReadingContextQuery,
-  ctx: z.RefinementCtx,
-): void => {
-  if (value.contextBookId !== undefined || readingPositionFromQuery(value) === undefined) {
-    return;
-  }
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    message: "contextBookId is required when a reading position is supplied",
-    path: ["contextBookId"],
-  });
-};
 
 export const BookCharactersQuerySchema = ReadingContextQuerySchema.extend({
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),

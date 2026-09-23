@@ -596,9 +596,9 @@ function computeGroupClusters({
   const nodeIds = new Set(nodes.map((node) => node.id));
   const context = {
     allowedBookIds,
-    hiddenPresenceCharacterIds: presenceHiddenIds,
-    hiddenProfileCharacterIds: new Set<string>(),
-    revealedCharacterIds: nodeIds,
+    unreachableCharacterIds: new Set(
+      [...presenceHiddenIds].filter((characterId) => !nodeIds.has(characterId)),
+    ),
   };
 
   const visibleByCharacter = new Map<string, GraphMembershipSource[]>();

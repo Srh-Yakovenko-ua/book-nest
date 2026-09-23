@@ -23,6 +23,11 @@ const rosterPositionCandidateSelect = {
   id: true,
 } satisfies Prisma.BookCharacterSelect;
 
+const characterScopedAppearanceSelect = {
+  ...rosterPositionCandidateSelect,
+  characterId: true,
+} satisfies Prisma.BookCharacterSelect;
+
 const detailsInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
   avatarMedia: true,
@@ -143,6 +148,10 @@ export type CharacterGlobalSummaryRow = Prisma.CharacterGetPayload<{
 }>;
 
 export type CharacterPurgeRow = Prisma.CharacterGetPayload<{ select: typeof purgeSelect }>;
+
+export type CharacterScopedAppearanceRow = Prisma.BookCharacterGetPayload<{
+  select: typeof characterScopedAppearanceSelect;
+}>;
 
 export type CharacterSeriesProfileRow = Prisma.CharacterGetPayload<{
   include: typeof seriesProfileInclude;
@@ -687,6 +696,26 @@ export class CharactersRepository {
       where: { ...SOFT_DELETE_SCOPE.overdue(now), id: characterId, userId },
     });
     return result.count;
+  }
+
+  listAppearancesForCharacters({
+    characterIds,
+    userId,
+  }: {
+    characterIds: string[];
+    userId: string;
+  }): Promise<CharacterScopedAppearanceRow[]> {
+    if (characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.bookCharacter.findMany({
+      select: characterScopedAppearanceSelect,
+      where: {
+        book: SOFT_DELETE_SCOPE.active,
+        character: { deletedAt: null, userId },
+        characterId: { in: characterIds },
+      },
+    });
   }
 
   listGlobalSummaries({

@@ -6,6 +6,8 @@ import type { ReadingPositionGate } from "./reading-position.js";
 import { resolveReadingContext } from "./context-books.js";
 import { buildReadingPositionGate, isHiddenByReadingPosition } from "./reading-position.js";
 
+export type CharacterScopedAppearance = ContextualAppearance & { characterId: string };
+
 export type ContextualAppearance = {
   bookId: string;
   firstAppearanceAudioSeconds: Nullable<number>;
@@ -62,6 +64,24 @@ export function collectPositionHiddenAppearanceIds<Appearance extends Contextual
   return appearances
     .filter((appearance) => !isAppearanceRevealable({ appearance, window }))
     .map((appearance) => appearance.id);
+}
+
+export function collectUnreachableCharacterIds({
+  appearances,
+  characterIds,
+  window,
+}: {
+  appearances: CharacterScopedAppearance[];
+  characterIds: string[];
+  window: ReadingContextWindow;
+}): Set<string> {
+  const unreachable = new Set(characterIds);
+  for (const appearance of appearances) {
+    if (isAppearanceRevealable({ appearance, window })) {
+      unreachable.delete(appearance.characterId);
+    }
+  }
+  return unreachable;
 }
 
 export function isAppearanceRevealable({

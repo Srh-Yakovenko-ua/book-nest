@@ -53,6 +53,15 @@ export const CharacterTheoriesControllerCreateResponse = zod.object({
 /**
  * @summary List and filter the current user's theories
  */
+export const characterTheoriesControllerListQueryContextAudioSecondsMin = 0;
+export const characterTheoriesControllerListQueryContextAudioSecondsMax = 2147483647;
+
+export const characterTheoriesControllerListQueryContextChapterMin = 0;
+export const characterTheoriesControllerListQueryContextChapterMax = 2147483647;
+
+export const characterTheoriesControllerListQueryContextPageMin = 0;
+export const characterTheoriesControllerListQueryContextPageMax = 2147483647;
+
 export const characterTheoriesControllerListQueryBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
@@ -76,6 +85,21 @@ export const characterTheoriesControllerListQuerySeriesIdRegExp = new RegExp(
 export const characterTheoriesControllerListQuerySortDefault = `newest`;
 
 export const CharacterTheoriesControllerListQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(characterTheoriesControllerListQueryContextAudioSecondsMin)
+    .max(characterTheoriesControllerListQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(characterTheoriesControllerListQueryContextChapterMin)
+    .max(characterTheoriesControllerListQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(characterTheoriesControllerListQueryContextPageMin)
+    .max(characterTheoriesControllerListQueryContextPageMax)
+    .optional(),
   bookId: zod.uuid().regex(characterTheoriesControllerListQueryBookIdRegExp).optional(),
   characterId: zod.uuid().regex(characterTheoriesControllerListQueryCharacterIdRegExp).optional(),
   contextBookId: zod

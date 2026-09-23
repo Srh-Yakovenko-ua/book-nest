@@ -23,21 +23,6 @@ export type ResolvedReadingContext = {
   positionGate?: Nullable<ReadingPositionGate>;
 };
 
-export async function resolveContextAllowedBookIds({
-  contextBookId,
-  notFoundCode,
-  reader,
-  userId,
-}: {
-  contextBookId: string;
-  notFoundCode: string;
-  reader: ContextBookReader;
-  userId: string;
-}): Promise<string[]> {
-  const context = await resolveReadingContext({ contextBookId, notFoundCode, reader, userId });
-  return context.allowedBookIds;
-}
-
 export async function resolveReadingContext({
   contextBookId,
   notFoundCode,

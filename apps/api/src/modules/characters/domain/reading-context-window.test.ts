@@ -4,6 +4,7 @@ import type { ContextualAppearance, ReadingContextWindow } from "./reading-conte
 
 import {
   collectPositionHiddenAppearanceIds,
+  collectUnreachableCharacterIds,
   isAppearanceRevealable,
   isBookWithinReadingContextWindow,
   resolveReadingContextWindow,
@@ -147,6 +148,54 @@ describe("collectPositionHiddenAppearanceIds", () => {
       window: UNRESTRICTED_READING_CONTEXT_WINDOW,
     });
     expect(hidden).toEqual([]);
+  });
+});
+
+describe("collectUnreachableCharacterIds", () => {
+  it("keeps a character reachable when any of its appearances is revealable", () => {
+    const unreachable = collectUnreachableCharacterIds({
+      appearances: [
+        { ...appearance({ bookId: EARLIER_BOOK }), characterId: "known-from-part-one" },
+        { ...appearance({ firstAppearanceChapter: "40" }), characterId: "known-from-part-one" },
+      ],
+      characterIds: ["known-from-part-one"],
+      window: windowAt({ chapter: 5 }),
+    });
+    expect([...unreachable]).toEqual([]);
+  });
+
+  it("reports a character whose every appearance is out of reach", () => {
+    const unreachable = collectUnreachableCharacterIds({
+      appearances: [
+        { ...appearance({ firstAppearanceChapter: "40" }), characterId: "later-chapter" },
+        { ...appearance({ bookId: LATER_BOOK }), characterId: "future-part" },
+        { ...appearance({ hidePresenceAsSpoiler: true }), characterId: "presence-hidden" },
+        { ...appearance({ firstAppearanceChapter: "2" }), characterId: "reached" },
+      ],
+      characterIds: ["later-chapter", "future-part", "presence-hidden", "reached"],
+      window: windowAt({ chapter: 5 }),
+    });
+    expect([...unreachable].sort()).toEqual(["future-part", "later-chapter", "presence-hidden"]);
+  });
+
+  it("reports every character whose appearances are unknown", () => {
+    expect([
+      ...collectUnreachableCharacterIds({
+        appearances: [],
+        characterIds: ["unlinked", "only-in-a-trashed-book"],
+        window: windowAt({ page: 1 }),
+      }),
+    ]).toEqual(["unlinked", "only-in-a-trashed-book"]);
+  });
+
+  it("reports nobody when no character is under consideration", () => {
+    expect([
+      ...collectUnreachableCharacterIds({
+        appearances: [],
+        characterIds: [],
+        window: windowAt({ page: 1 }),
+      }),
+    ]).toEqual([]);
   });
 });
 
