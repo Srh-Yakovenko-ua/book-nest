@@ -1,6 +1,6 @@
 "use client";
 
-import type { LibraryPublisherDetail, UpdatePublisherInput } from "@app/shared";
+import type { LibraryPublisherDetail, Nullable, UpdatePublisherInput } from "@app/shared";
 
 import {
   PublisherCountryCodeSchema,
@@ -11,10 +11,11 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { CountrySelect } from "@/components/country-select";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,34 +28,39 @@ import {
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { YearPicker } from "@/components/ui/year-picker";
 import { DiscardConfirmDialog } from "@/features/books";
-import {
-  blockNegativeNumberKeys,
-  blockNegativeNumberPaste,
-} from "@/lib/block-negative-number-keys";
 import { ApiError } from "@/lib/http-client";
 
 import { useUpdatePublisher } from "../api/use-update-publisher";
 
-const DUPLICATE_STATUS = 409;
-const UNPROCESSABLE_STATUS = 422;
-const COUNTRY_CODE_LENGTH = 2;
-const WEBSITE_MAX = 300;
+const EDIT_PUBLISHER_FORM = {
+  duplicateStatus: 409,
+  foundedYearMax: 2100,
+  foundedYearMin: 1400,
+  websiteMaxLength: 300,
+} as const;
 
 type EditPublisherDialogProps = {
   details: LibraryPublisherDetail;
+  onCloseAutoFocus: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
 type EditPublisherFormValues = {
-  countryCode: string;
-  foundedYear: string;
+  countryCode: Nullable<string>;
+  foundedYear: Nullable<number>;
   name: string;
   websiteUrl: string;
 };
 
-export function EditPublisherDialog({ details, onOpenChange, open }: EditPublisherDialogProps) {
+export function EditPublisherDialog({
+  details,
+  onCloseAutoFocus,
+  onOpenChange,
+  open,
+}: EditPublisherDialogProps) {
   const t = useTranslations("publishers.details.editDialog");
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -79,7 +85,10 @@ export function EditPublisherDialog({ details, onOpenChange, open }: EditPublish
         }}
         open={open}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md"
+          onCloseAutoFocus={onCloseAutoFocus}
+        >
           <DialogHeader>
             <DialogTitle>{t("title")}</DialogTitle>
             <DialogDescription>{t("description")}</DialogDescription>
@@ -124,26 +133,19 @@ function EditPublisherForm({
   onDone: () => void;
 }) {
   const t = useTranslations("publishers.details.editDialog");
+  const tYearPicker = useTranslations("books.library.filters.yearPicker");
   const tToast = useTranslations("publishers.details.toast");
   const updatePublisher = useUpdatePublisher(details.id);
-  const [serverError, setServerError] = useState<null | string>(null);
+  const [serverError, setServerError] = useState<Nullable<string>>(null);
 
   const formSchema = z.object({
-    countryCode: z
-      .string()
-      .refine(
-        (value) => value.trim() === "" || PublisherCountryCodeSchema.safeParse(value).success,
-        {
-          message: t("invalidCountry"),
-        },
-      ),
+    countryCode: z.string().nullable(),
     foundedYear: z
-      .string()
-      .refine(
-        (value) =>
-          value.trim() === "" || PublisherFoundedYearSchema.safeParse(Number(value)).success,
-        { message: t("invalidYear") },
-      ),
+      .number()
+      .nullable()
+      .refine((year) => year === null || PublisherFoundedYearSchema.safeParse(year).success, {
+        message: t("invalidYear"),
+      }),
     name: z.string().refine((value) => TaxonomyNameSchema.safeParse(value).success, {
       message: t("invalidName"),
     }),
@@ -158,14 +160,15 @@ function EditPublisherForm({
   });
 
   const {
-    formState: { errors, isDirty },
+    control,
+    formState: { dirtyFields, errors, isDirty },
     handleSubmit,
     register,
     setError,
   } = useForm<EditPublisherFormValues>({
     defaultValues: {
-      countryCode: details.countryCode ?? "",
-      foundedYear: details.foundedYear === null ? "" : String(details.foundedYear),
+      countryCode: details.countryCode,
+      foundedYear: details.foundedYear,
       name: details.name,
       websiteUrl: details.websiteUrl ?? "",
     },
@@ -180,24 +183,24 @@ function EditPublisherForm({
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     const payload: UpdatePublisherInput = {
-      countryCode:
-        values.countryCode.trim() === ""
-          ? null
-          : PublisherCountryCodeSchema.parse(values.countryCode),
-      foundedYear: values.foundedYear.trim() === "" ? null : Number(values.foundedYear),
+      foundedYear: values.foundedYear,
       name: TaxonomyNameSchema.parse(values.name),
       websiteUrl:
         values.websiteUrl.trim() === "" ? null : PublisherWebsiteUrlSchema.parse(values.websiteUrl),
+      ...(dirtyFields.countryCode === true
+        ? {
+            countryCode:
+              values.countryCode === null
+                ? null
+                : PublisherCountryCodeSchema.parse(values.countryCode),
+          }
+        : {}),
     };
 
     updatePublisher.mutate(payload, {
       onError: (error) => {
-        if (error instanceof ApiError && error.status === DUPLICATE_STATUS) {
+        if (error instanceof ApiError && error.status === EDIT_PUBLISHER_FORM.duplicateStatus) {
           setError("name", { message: t("duplicate") });
-          return;
-        }
-        if (error instanceof ApiError && error.status === UNPROCESSABLE_STATUS) {
-          setServerError(t("genericError"));
           return;
         }
         setServerError(t("genericError"));
@@ -227,20 +230,26 @@ function EditPublisherForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="edit-publisher-country">
-          {t("countryCode")}{" "}
+          {t("country")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
         </Label>
-        <Input
-          aria-describedby={errors.countryCode ? "edit-publisher-country-error" : undefined}
-          aria-invalid={errors.countryCode !== undefined}
-          autoComplete="off"
-          className="h-10 uppercase sm:w-32"
-          id="edit-publisher-country"
-          maxLength={COUNTRY_CODE_LENGTH}
-          placeholder={t("countryCodePlaceholder")}
-          {...register("countryCode")}
+        <Controller
+          control={control}
+          name="countryCode"
+          render={({ field }) => (
+            <CountrySelect
+              id="edit-publisher-country"
+              labels={{
+                clear: t("countryClear"),
+                empty: t("countryEmpty"),
+                placeholder: t("countryPlaceholder"),
+                search: t("countrySearch"),
+              }}
+              onChange={field.onChange}
+              value={field.value}
+            />
+          )}
         />
-        <FieldError error={errors.countryCode} id="edit-publisher-country-error" />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -255,7 +264,7 @@ function EditPublisherForm({
           className="h-10"
           id="edit-publisher-website"
           inputMode="url"
-          maxLength={WEBSITE_MAX}
+          maxLength={EDIT_PUBLISHER_FORM.websiteMaxLength}
           placeholder={t("websitePlaceholder")}
           {...register("websiteUrl")}
         />
@@ -267,18 +276,24 @@ function EditPublisherForm({
           {t("foundedYear")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
         </Label>
-        <Input
-          aria-describedby={errors.foundedYear ? "edit-publisher-founded-error" : undefined}
-          aria-invalid={errors.foundedYear !== undefined}
-          autoComplete="off"
-          className="h-10 sm:w-40"
-          id="edit-publisher-founded"
-          inputMode="numeric"
-          onKeyDown={blockNegativeNumberKeys}
-          onPaste={blockNegativeNumberPaste}
-          placeholder={t("foundedYearPlaceholder")}
-          type="number"
-          {...register("foundedYear")}
+        <Controller
+          control={control}
+          name="foundedYear"
+          render={({ field }) => (
+            <YearPicker
+              ariaLabel={t("foundedYear")}
+              clearLabel={tYearPicker("clear")}
+              id="edit-publisher-founded"
+              invalid={errors.foundedYear !== undefined}
+              max={EDIT_PUBLISHER_FORM.foundedYearMax}
+              min={EDIT_PUBLISHER_FORM.foundedYearMin}
+              nextLabel={tYearPicker("next")}
+              onChange={field.onChange}
+              placeholder={t("foundedYearPlaceholder")}
+              prevLabel={tYearPicker("prev")}
+              value={field.value}
+            />
+          )}
         />
         <FieldError error={errors.foundedYear} id="edit-publisher-founded-error" />
       </div>

@@ -18,6 +18,7 @@ import {
   BooksControllerListFormatItem,
   BooksControllerListLanguageItem,
   BooksControllerListOwnerItem,
+  BooksControllerListPublisherPresence,
   BooksControllerListSort,
   BooksControllerListStatusItem,
 } from "@/shared/api/generated/model";
@@ -50,6 +51,11 @@ export const LIBRARY_FORMAT_VALUES = Object.values(BooksControllerListFormatItem
 export const LIBRARY_AGE_CATEGORY_VALUES = Object.values(BooksControllerListAgeCategoryItem);
 export const LIBRARY_LANGUAGE_VALUES = Object.values(BooksControllerListLanguageItem);
 export const LIBRARY_BOOK_TYPE_VALUES = Object.values(BooksControllerListBookType);
+export const LIBRARY_PUBLISHER_PRESENCE_VALUES = Object.values(
+  BooksControllerListPublisherPresence,
+);
+export const LIBRARY_PUBLISHER_PRESENCE_DEFAULT = BooksControllerListPublisherPresence.all;
+export const LIBRARY_PUBLISHER_PRESENCE_MISSING = BooksControllerListPublisherPresence.missing;
 const sortValues = Object.values(BooksControllerListSort);
 
 export const libraryQueryParsers = {
@@ -66,6 +72,9 @@ export const libraryQueryParsers = {
   pagesMax: parseAsInteger,
   pagesMin: parseAsInteger,
   publisher: parseAsArrayOf(parseAsString).withDefault([]),
+  publisherPresence: parseAsStringLiteral(LIBRARY_PUBLISHER_PRESENCE_VALUES).withDefault(
+    LIBRARY_PUBLISHER_PRESENCE_DEFAULT,
+  ),
   q: parseAsString.withDefault(""),
   ratingMax: parseAsFloat,
   ratingMin: parseAsFloat,
@@ -83,6 +92,10 @@ export const favoritesQueryParsers = {
 };
 
 export type LibraryListParams = Omit<BooksControllerListParams, "pageNumber">;
+
+export type LibraryPublisherContext = {
+  publisherId: string;
+};
 
 export type LibraryQueryState = inferParserType<typeof libraryQueryParsers>;
 
@@ -115,6 +128,7 @@ export function hasActiveLibraryFilters(state: LibraryQueryState): boolean {
     state.tag.length > 0 ||
     state.author.length > 0 ||
     state.publisher.length > 0 ||
+    state.publisherPresence !== LIBRARY_PUBLISHER_PRESENCE_DEFAULT ||
     state.ageCategory.length > 0 ||
     state.language.length > 0 ||
     state.bookType !== null ||
@@ -171,9 +185,11 @@ export function scopedOwnerValues(scope: LibraryScope): BooksControllerListOwner
 }
 
 export function toLibraryListParams(
-  state: LibraryQueryState,
+  source: LibraryQueryState,
   scope: LibraryScope,
+  context?: LibraryPublisherContext,
 ): LibraryListParams {
+  const state = context === undefined ? source : withoutPublisherFilters(source);
   const search = state.q.trim();
   const isFavorite = resolveIsFavoriteParam(state, scope);
 
@@ -185,12 +201,16 @@ export function toLibraryListParams(
     language: state.language,
     owner: scopedOwner(state.owner, scope),
     pageSize: LIBRARY_PAGE_SIZE,
-    publisher: state.publisher,
+    publisher: context === undefined ? state.publisher : [context.publisherId],
     sort: state.sort,
     status: state.status,
     tag: state.tag,
     ...(search === "" ? {} : { q: search }),
+    ...(context === undefined ? {} : { searchPublisher: String(false) }),
     ...(state.bookType === null ? {} : { bookType: state.bookType }),
+    ...(state.publisherPresence === LIBRARY_PUBLISHER_PRESENCE_DEFAULT
+      ? {}
+      : { publisherPresence: state.publisherPresence }),
     ...(isFavorite === undefined ? {} : { isFavorite }),
     ...(state.hasCover === null ? {} : { hasCover: String(state.hasCover) }),
     ...(state.hasRating === null ? {} : { hasRating: String(state.hasRating) }),
@@ -201,6 +221,10 @@ export function toLibraryListParams(
     ...(state.pagesMin === null ? {} : { pagesMin: state.pagesMin }),
     ...(state.pagesMax === null ? {} : { pagesMax: state.pagesMax }),
   };
+}
+
+export function withoutPublisherFilters(state: LibraryQueryState): LibraryQueryState {
+  return { ...state, publisher: [], publisherPresence: LIBRARY_PUBLISHER_PRESENCE_DEFAULT };
 }
 
 function isInvertedRange({ max, min }: LibraryRange): boolean {
@@ -238,6 +262,7 @@ export const LIBRARY_FILTERS_RESET = {
   pagesMax: null,
   pagesMin: null,
   publisher: null,
+  publisherPresence: null,
   ratingMax: null,
   ratingMin: null,
   status: null,

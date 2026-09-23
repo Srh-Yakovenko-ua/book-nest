@@ -885,6 +885,7 @@ export const BooksControllerListQueryParams = zod.object({
     .max(booksControllerListQueryRatingMinMax)
     .multipleOf(booksControllerListQueryRatingMinMultipleOf)
     .optional(),
+  searchPublisher: zod.string().optional(),
   sort: zod
     .enum([
       "created_desc",
@@ -1383,6 +1384,10 @@ export const BooksControllerListResponse = zod.object({
 /**
  * @summary Get the current user library overview
  */
+export const booksControllerOverviewQueryPublisherRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
 export const BooksControllerOverviewQueryParams = zod.object({
   owner: zod
     .array(
@@ -1397,6 +1402,11 @@ export const BooksControllerOverviewQueryParams = zod.object({
     )
     .optional()
     .describe("Scope the overview to these ownership statuses (physical library)"),
+  publisher: zod
+    .uuid()
+    .regex(booksControllerOverviewQueryPublisherRegExp)
+    .optional()
+    .describe("Scope every summary count to the current user books of this publisher"),
 });
 
 export const booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMin =
@@ -2549,9 +2559,13 @@ export const BooksControllerWishlistResponse = zod.object({
 /**
  * @summary Get the author and genre filter facets of a book scope, authors optionally searched
  */
+export const booksControllerFacetsQueryPublisherRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerFacetsQueryQMax = 200;
 
 export const BooksControllerFacetsQueryParams = zod.object({
+  publisher: zod.uuid().regex(booksControllerFacetsQueryPublisherRegExp).optional(),
   q: zod.string().min(1).max(booksControllerFacetsQueryQMax).optional(),
   scope: zod.enum(["all", "favorites", "my", "queue", "series", "wishlist"]),
 });

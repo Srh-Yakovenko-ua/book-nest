@@ -206,6 +206,18 @@ describe("PATCH /api/publishers/:id validation", () => {
     );
   });
 
+  it("returns 400 for a two-letter code outside ISO 3166-1", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const publisher = await seedPublisher({ name: "Old", normalizedName: "old", prisma, userId });
+
+    const res = await patchPublisher(accessToken, publisher.id, { countryCode: "XX" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "countryCode" })]),
+    );
+  });
+
   it("returns 400 for an invalid website url", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const publisher = await seedPublisher({ name: "Old", normalizedName: "old", prisma, userId });

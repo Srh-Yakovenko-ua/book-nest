@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 import { listKeys } from "@/features/lists/api/list-keys";
+import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import {
@@ -79,6 +80,7 @@ export function useBulkAddToReadingQueue() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void invalidateGenreDerivedQueries(queryClient);
+      void invalidatePublisherQueries(queryClient);
     },
   });
 }
@@ -91,6 +93,7 @@ export function useBulkDeleteBooks() {
       BulkActionResultSchema.parse(await bulkBooksControllerDelete({ bookIds })),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void invalidatePublisherQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
@@ -108,6 +111,7 @@ export function useBulkOwnershipStatus() {
       BulkActionResultSchema.parse(await bulkBooksControllerOwnershipStatus(input)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void invalidatePublisherQueries(queryClient);
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
     },
@@ -122,6 +126,7 @@ export function useBulkReadingStatus() {
       BulkActionResultSchema.parse(await bulkBooksControllerReadingStatus(input)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void invalidatePublisherQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
@@ -148,6 +153,7 @@ export function useDeleteBook() {
     mutationFn: (id: string) => booksControllerDelete(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void invalidatePublisherQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void invalidateStatisticsQueries(queryClient);
       void invalidateGenreDerivedQueries(queryClient);
@@ -164,6 +170,7 @@ export function useRemoveFromReadingQueue() {
     mutationFn: (id: string) => booksControllerUpdate(id, { addToReadingQueue: false }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void invalidatePublisherQueries(queryClient);
       void queryClient.invalidateQueries({
         queryKey: getReadingQueueControllerGetQueueQueryKey(),
       });

@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -707,5 +708,249 @@ describe("GET /api/publishers/library validation", () => {
     const res = await listLibrary(accessToken, "hasSeries=maybe");
 
     expect(res.status).toBe(400);
+  });
+});
+
+function seedGlobal(name: string): Promise<{ id: string }> {
+  return seedPublisher({ name, normalizedName: name.toLowerCase(), prisma, userId: null });
+}
+
+async function seedTrashedSeries(userId: string, name: string): Promise<{ id: string }> {
+  const series = await seedSeries({ name, prisma, userId });
+  await prisma.series.update({ data: TRASH_RETENTION.stamp(), where: { id: series.id } });
+  return series;
+}
+
+function sortedNamesOf(body: { items: { name: string }[] }): string[] {
+  return namesOf(body).sort();
+}
+
+describe("GET /api/publishers/library read and reading semantics", () => {
+  it("counts a rereading book toward both readCount and readingCount", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const publisher = await seedGlobal("Penguin");
+    await seedBook({ prisma, publisherId: publisher.id, readingStatus: "finished", userId });
+    await seedBook({ prisma, publisherId: publisher.id, readingStatus: "reading", userId });
+    await seedBook({ prisma, publisherId: publisher.id, readingStatus: "rereading", userId });
+
+    const res = await listLibrary(accessToken);
+
+    expect(res.body.items[0].stats).toMatchObject({ booksCount: 3, readCount: 2, readingCount: 2 });
+  });
+
+  it("excludes a book in a soft-deleted series from seriesCount", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const publisher = await seedGlobal("Penguin");
+    const active = await seedSeries({ name: "Active Saga", prisma, userId });
+    const trashed = await seedTrashedSeries(userId, "Trashed Saga");
+    await seedBook({
+      partNumber: 1,
+      prisma,
+      publisherId: publisher.id,
+      seriesId: active.id,
+      userId,
+    });
+    await seedBook({
+      partNumber: 1,
+      prisma,
+      publisherId: publisher.id,
+      seriesId: trashed.id,
+      userId,
+    });
+
+    const res = await listLibrary(accessToken);
+
+    expect(res.body.items[0].stats).toMatchObject({ booksCount: 2, seriesCount: 1 });
+  });
+
+  it("does not keep a publisher whose only series is soft-deleted under hasSeries", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const publisher = await seedGlobal("Trashed Series Press");
+    const trashed = await seedTrashedSeries(userId, "Trashed Saga");
+    await seedBook({
+      partNumber: 1,
+      prisma,
+      publisherId: publisher.id,
+      seriesId: trashed.id,
+      userId,
+    });
+
+    const res = await listLibrary(accessToken, "hasSeries=true");
+
+    expect(res.body).toMatchObject({ items: [], totalCount: 0 });
+  });
+});
+
+describe("GET /api/publishers/library quick filter", () => {
+  async function seedQuickFilterLibrary(userId: string): Promise<void> {
+    const reading = await seedGlobal("Reading Press");
+    const rereading = await seedGlobal("Rereading Press");
+    const finished = await seedGlobal("Finished Press");
+    const wishlist = await seedGlobal("Wishlist Press");
+    const activeSeries = await seedGlobal("Active Series Press");
+    const trashedSeries = await seedGlobal("Trashed Series Press");
+    const saga = await seedSeries({ name: "Saga", prisma, userId });
+    const trashedSaga = await seedTrashedSeries(userId, "Trashed Saga");
+    await seedBook({ prisma, publisherId: reading.id, readingStatus: "reading", userId });
+    await seedBook({ prisma, publisherId: rereading.id, readingStatus: "rereading", userId });
+    await seedBook({ prisma, publisherId: finished.id, readingStatus: "finished", userId });
+    await seedBook({ ownershipStatus: "want_to_buy", prisma, publisherId: wishlist.id, userId });
+    await seedBook({
+      partNumber: 1,
+      prisma,
+      publisherId: activeSeries.id,
+      seriesId: saga.id,
+      userId,
+    });
+    await seedBook({
+      partNumber: 1,
+      prisma,
+      publisherId: trashedSeries.id,
+      seriesId: trashedSaga.id,
+      userId,
+    });
+  }
+
+  it("returns every represented publisher when filter is all", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQuickFilterLibrary(userId);
+
+    const res = await listLibrary(accessToken, "filter=all");
+
+    expect(res.body.totalCount).toBe(6);
+    expect(res.body.items).toHaveLength(6);
+  });
+
+  it("keeps publishers with a reading or rereading book when filter is reading", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQuickFilterLibrary(userId);
+
+    const res = await listLibrary(accessToken, "filter=reading");
+
+    expect(sortedNamesOf(res.body)).toEqual(["Reading Press", "Rereading Press"]);
+    expect(res.body.totalCount).toBe(2);
+  });
+
+  it("keeps publishers with a finished or rereading book when filter is read", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQuickFilterLibrary(userId);
+
+    const res = await listLibrary(accessToken, "filter=read");
+
+    expect(sortedNamesOf(res.body)).toEqual(["Finished Press", "Rereading Press"]);
+    expect(res.body.totalCount).toBe(2);
+  });
+
+  it("keeps only publishers with a want-to-buy book when filter is to_buy", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQuickFilterLibrary(userId);
+
+    const res = await listLibrary(accessToken, "filter=to_buy");
+
+    expect(namesOf(res.body)).toEqual(["Wishlist Press"]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it("keeps only publishers with a book in an active series when filter is series", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQuickFilterLibrary(userId);
+
+    const res = await listLibrary(accessToken, "filter=series");
+
+    expect(namesOf(res.body)).toEqual(["Active Series Press"]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it("combines the quick filter with an advanced flag using AND semantics", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const queuedReader = await seedGlobal("Queued Reader Press");
+    const unqueuedReader = await seedGlobal("Unqueued Reader Press");
+    const queuedUnread = await seedGlobal("Queued Unread Press");
+    await seedBook({
+      prisma,
+      publisherId: queuedReader.id,
+      queuePosition: 1,
+      readingStatus: "finished",
+      userId,
+    });
+    await seedBook({ prisma, publisherId: unqueuedReader.id, readingStatus: "finished", userId });
+    await seedBook({ prisma, publisherId: queuedUnread.id, queuePosition: 2, userId });
+
+    const res = await listLibrary(accessToken, "filter=read&hasQueue=true");
+
+    expect(namesOf(res.body)).toEqual(["Queued Reader Press"]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it("rejects an unknown quick filter value with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listLibrary(accessToken, "filter=unread");
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/publishers/library advanced flags", () => {
+  async function seedWantToReadLibrary(userId: string): Promise<void> {
+    const wanted = await seedGlobal("Wanted Press");
+    const started = await seedGlobal("Started Press");
+    await seedBook({ prisma, publisherId: wanted.id, readingStatus: "want_to_read", userId });
+    await seedBook({ prisma, publisherId: started.id, readingStatus: "reading", userId });
+  }
+
+  async function seedQueueLibrary(userId: string): Promise<void> {
+    const queued = await seedGlobal("Queued Press");
+    const idle = await seedGlobal("Idle Press");
+    await seedBook({ prisma, publisherId: queued.id, queuePosition: 1, userId });
+    await seedBook({ prisma, publisherId: idle.id, userId });
+  }
+
+  it("keeps only publishers with a want-to-read book when hasWantToRead is true", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedWantToReadLibrary(userId);
+
+    const res = await listLibrary(accessToken, "hasWantToRead=true");
+
+    expect(namesOf(res.body)).toEqual(["Wanted Press"]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it("keeps publishers without a want-to-read book when hasWantToRead is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedWantToReadLibrary(userId);
+
+    const res = await listLibrary(accessToken, "hasWantToRead=false");
+
+    expect(sortedNamesOf(res.body)).toEqual(["Started Press", "Wanted Press"]);
+  });
+
+  it("keeps only publishers with a queued book when hasQueue is true", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQueueLibrary(userId);
+
+    const res = await listLibrary(accessToken, "hasQueue=true");
+
+    expect(namesOf(res.body)).toEqual(["Queued Press"]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
+  it("keeps publishers without a queued book when hasQueue is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQueueLibrary(userId);
+
+    const res = await listLibrary(accessToken, "hasQueue=false");
+
+    expect(sortedNamesOf(res.body)).toEqual(["Idle Press", "Queued Press"]);
+  });
+
+  it("keeps an unrated publisher when hasRatedBooks is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const unrated = await seedGlobal("Unrated Press");
+    await seedBook({ prisma, publisherId: unrated.id, rating: null, userId });
+
+    const res = await listLibrary(accessToken, "hasRatedBooks=false");
+
+    expect(namesOf(res.body)).toEqual(["Unrated Press"]);
   });
 });

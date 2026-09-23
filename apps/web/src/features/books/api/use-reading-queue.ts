@@ -12,6 +12,7 @@ import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-q
 import type { ReadingQueueControllerGetQueueParams } from "@/shared/api/generated/model";
 
 import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
+import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
   getReadingQueueControllerGetQueueQueryKey,
@@ -139,6 +140,7 @@ function applyReadingQueueView(queryClient: QueryClient, view: ReadingQueueView)
   void queryClient.invalidateQueries({
     queryKey: getReadingQueueControllerSummaryQueryKey(),
   });
+  void invalidatePublisherQueries(queryClient);
 }
 
 function reorderQueueView(view: ReadingQueueView, order: string[]): ReadingQueueView {

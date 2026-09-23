@@ -921,7 +921,11 @@
         "yearRange": "{min}–{max}",
         "pagesFrom": "From {value} pp.",
         "pagesTo": "Up to {value} pp.",
-        "pagesRange": "{min}–{max} pp."
+        "pagesRange": "{min}–{max} pp.",
+        "publisherPresence": {
+          "assigned": "With a publisher",
+          "missing": "No publisher"
+        }
       },
       "actions": {
         "favorite": "Add to favorites",
@@ -7356,18 +7360,27 @@
     "page": {
       "metaTitle": "Publishers",
       "title": "Publishers",
-      "subtitle": "Browse the publishers in your library and track ratings and purchases",
+      "subtitle": "Browse the publishers in your library, their books, ratings and wishlist",
       "resultsTitle": "Publishers list",
       "addBook": "Add book"
     },
     "summary": {
       "publishers": "Publishers",
-      "booksWithPublisher": "Books with a publisher",
-      "averageRating": "Average rating",
-      "ratedBooks": "{count, plural, one {# rating} other {# ratings}}",
-      "noRating": "—",
-      "toBuy": "On the wishlist",
-      "priceTotal": "{price} · {count, plural, one {# book} other {# books}}",
+      "coverage": {
+        "none": "No books with a publisher yet",
+        "single": "All books are from one publisher",
+        "all": "All {count} cover 100% of books",
+        "top": "Top 5 cover {percentage}% of books"
+      },
+      "mostRepresented": "Most in the library",
+      "mostRepresentedBooks": "{count, plural, one {# book in the library} other {# books in the library}}",
+      "inPlans": "Publishers in plans",
+      "inPlansBooks": "{count, plural, one {# book on the wishlist} other {# books on the wishlist}}",
+      "inPlansEmpty": "No wishlist books with a publisher",
+      "mostRead": "Most read",
+      "mostReadBooks": "{count, plural, one {# book read} other {# books read}}",
+      "mostReadEmpty": "No books read yet",
+      "noValue": "—",
       "error": {
         "title": "Couldn't load the summary",
         "description": "Try refreshing the page or come back a little later.",
@@ -7377,15 +7390,15 @@
         "title": "Detailed stats",
         "compact": {
           "publishers": "Publishers",
-          "booksWithPublisher": "Books",
-          "averageRating": "Rating",
-          "toBuy": "Wishlist"
+          "mostRepresented": "Top",
+          "inPlans": "In plans",
+          "mostRead": "Read"
         },
         "detailed": {
           "publishers": "Publishers",
-          "booksWithPublisher": "Books with a publisher",
-          "averageRating": "Average rating",
-          "toBuy": "On the wishlist"
+          "mostRepresented": "Most in the library",
+          "inPlans": "Publishers in plans",
+          "mostRead": "Most read"
         }
       }
     },
@@ -7393,95 +7406,137 @@
       "trigger": "Publishers overview",
       "title": "Publishers overview",
       "subtitle": "Full stats for this section",
-      "close": "Close overview"
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "insights": "Insights"
+      }
     },
     "toolbar": {
       "searchLabel": "Search publishers",
-      "searchPlaceholder": "Search by name",
+      "searchPlaceholder": "Search by publisher name",
       "searchClear": "Clear search",
       "sortLabel": "Sort",
-      "orderLabel": "Order",
       "viewLabel": "View",
       "viewGrid": "Grid",
       "viewList": "List",
-      "geographyLabel": "Geography",
-      "sourceLabel": "Source",
-      "clearFilters": "Clear filters",
-      "order": {
-        "asc": "Ascending",
-        "desc": "Descending"
-      },
       "sort": {
-        "name": "Name",
-        "booksCount": "Most books",
-        "readCount": "Most read",
-        "wantToBuyCount": "Most wishlisted",
-        "averageRating": "Highest rating",
-        "lastBookAddedAt": "Recently added"
+        "books_desc": "Most books",
+        "books_asc": "Fewest books",
+        "read_desc": "Most read",
+        "read_asc": "Least read",
+        "to_buy_desc": "Most on the wishlist",
+        "to_buy_asc": "Fewest on the wishlist",
+        "rating_desc": "Highest rating",
+        "rating_asc": "Lowest rating",
+        "recent_desc": "Recently added to",
+        "recent_asc": "Least recently added to",
+        "name_asc": "Name: A–Z",
+        "name_desc": "Name: Z–A"
       },
       "sortMobile": {
         "title": "Sorting",
         "description": "Choose the order of publishers.",
         "close": "Close",
-        "trigger": {
-          "name": "Name",
-          "booksCount": "Books ↓",
-          "readCount": "Read ↓",
-          "wantToBuyCount": "Wishlisted ↓",
-          "averageRating": "Rating ↓",
-          "lastBookAddedAt": "Recent"
+        "groups": {
+          "books": "Books",
+          "read": "Read",
+          "to_buy": "Wishlist",
+          "rating": "Rating",
+          "recent": "Latest addition",
+          "name": "Name"
         }
-      },
-      "geography": {
-        "all": "All geographies",
-        "ua": "Ukraine",
-        "foreign": "Foreign",
-        "unknown": "Unknown"
-      },
-      "source": {
-        "all": "All sources",
-        "global": "Global",
-        "custom": "Custom"
-      },
-      "filters": {
-        "hasBooksToBuy": "Has wishlisted books",
-        "hasRatedBooks": "Has rated books",
-        "hasSeries": "Has series"
       }
     },
+    "quickFilters": {
+      "label": "Publisher quick filters",
+      "all": "All",
+      "reading": "Reading now",
+      "read": "Has read books",
+      "to_buy": "Has wishlist books",
+      "series": "Has series"
+    },
+    "advancedFilters": {
+      "trigger": "Filters",
+      "title": "Publisher filters",
+      "description": "Narrow down which publishers to show.",
+      "geography": "Geography",
+      "source": "Source",
+      "books": "Publisher's books",
+      "clear": "Clear",
+      "apply": "Apply",
+      "geographyOptions": {
+        "all": "All",
+        "ua": "Ukrainian",
+        "foreign": "Foreign",
+        "unknown": "No country"
+      },
+      "sourceOptions": {
+        "all": "All",
+        "global": "From the catalog",
+        "custom": "Custom"
+      },
+      "booleans": {
+        "hasRatedBooks": "Has rated books",
+        "hasWantToRead": "Want to read",
+        "hasQueue": "Has books in the queue"
+      }
+    },
+    "activeFilters": {
+      "search": "Search: {query}",
+      "geography": "Geography: {label}",
+      "source": "Source: {label}"
+    },
+    "results": {
+      "counter": "Showing {shown} of {total, plural, one {# publisher} other {# publishers}}",
+      "loadMore": "Load more",
+      "loadMoreError": "Couldn't load more publishers",
+      "loadMoreRetry": "Try again",
+      "loading": "Loading publishers…",
+      "noSearchResultsAnnouncement": "No publishers match this search",
+      "noFilteredResultsAnnouncement": "No publisher matches these conditions"
+    },
     "card": {
-      "geographyUnknown": "Country unknown",
+      "geographyUnknown": "No country",
       "custom": "Custom",
       "books": "{count, plural, one {# book} other {# books}}",
-      "read": "Read: {count}",
-      "toBuy": "Wishlist: {count}",
+      "booksInLibrary": "in the library",
+      "read": "Read",
+      "toBuy": "On the wishlist",
+      "series": "Series",
       "noRating": "No ratings",
-      "noRatingShort": "—",
       "ratedCount": "· {count, plural, one {# rating} other {# ratings}}",
-      "lastAdded": "Added {date}",
-      "view": "View"
+      "lastAdded": "Last added {date}",
+      "lastAddedNever": "—"
     },
     "row": {
-      "sourceCustom": "Custom",
-      "sourceGlobal": "Global",
+      "custom": "Custom",
       "books": "Books",
       "read": "Read",
       "toBuy": "Wishlist",
+      "series": "Series",
       "rating": "Rating",
       "ratingCount": "· {count, plural, one {# rating} other {# ratings}}",
-      "lastAdded": "Added",
+      "noRating": "No ratings",
+      "lastAdded": "Last added",
       "lastAddedNever": "—"
     },
-    "pagination": {
-      "label": "Publisher pages",
-      "previous": "Previous",
-      "next": "Next",
-      "goToPage": "Page {page}"
-    },
-    "banner": {
-      "title": "{count, plural, one {# book without a publisher} other {# books without a publisher}}",
-      "description": "Assign them a publisher to see fuller statistics.",
-      "action": "View books"
+    "insights": {
+      "label": "Publisher insights",
+      "attention": {
+        "title": "Needs attention",
+        "count": "{count, plural, one {# book without a publisher} other {# books without a publisher}}",
+        "description": "Add a publisher so your stats and filters are more accurate.",
+        "action": "View books"
+      },
+      "unread": {
+        "title": "Still unread",
+        "count": "{count, plural, one {# book left} other {# books left}}"
+      },
+      "bestRated": {
+        "title": "Best rated",
+        "ratedCount": "· {count, plural, one {# rating} other {# ratings}}"
+      }
     },
     "states": {
       "empty": {
@@ -7489,10 +7544,16 @@
         "description": "Add your first book with a publisher, and it will show up here automatically.",
         "addBook": "Add book"
       },
-      "noResults": {
-        "title": "Nothing found",
-        "description": "Try changing your search or clearing the active filters.",
-        "clear": "Clear filters"
+      "noSearchResults": {
+        "title": "No publishers found",
+        "description": "Try a different search or clear it.",
+        "clear": "Clear search"
+      },
+      "noFilteredResults": {
+        "title": "No publishers match these conditions",
+        "description": "Try changing or resetting the active filters.",
+        "reset": "Reset filters",
+        "clearAll": "Clear all"
       },
       "error": {
         "title": "Couldn't load publishers",
@@ -7502,85 +7563,78 @@
     },
     "details": {
       "metaTitle": "Publisher",
-      "breadcrumb": "All publishers",
-      "countryUnknown": "Country unknown",
-      "customBadge": "Custom",
-      "foundedYear": "Founded {year}",
-      "website": "Website",
-      "editCustom": "Edit",
-      "delete": "Delete",
-      "addBook": "Add book",
+      "hero": {
+        "foundedYear": "Founded in {year}.",
+        "website": "Website",
+        "websiteLabel": "Publisher website (opens in a new tab)",
+        "addBook": "Add book",
+        "menu": "Publisher actions",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
       "states": {
         "loading": "Loading publisher",
         "notFoundTitle": "Publisher not found",
         "notFoundDescription": "It may have been deleted or is unavailable.",
         "errorTitle": "Couldn't load the publisher",
         "errorDescription": "Try refreshing the page or come back a little later.",
-        "back": "Back to publishers"
+        "back": "Back to publishers",
+        "retry": "Try again"
       },
       "tabs": {
+        "ariaLabel": "Publisher sections",
         "overview": "Overview",
-        "books": "Books",
-        "toBuy": "Wishlist"
+        "books": "Books"
       },
       "kpi": {
-        "books": "Books",
+        "books": "Books in library",
+        "lastAdded": "Last added {date}",
         "read": "Read",
-        "reading": "Reading",
-        "wantToRead": "Want to read",
-        "toBuy": "Wishlist",
-        "queue": "In queue",
-        "rating": "Rating",
-        "ratedCount": "{count, plural, one {# rating} other {# ratings}}",
+        "readPercent": "{percent}% of all books",
+        "wishlist": "On the wishlist",
+        "withoutPrice": "{count} without a price",
+        "rating": "Average rating",
+        "ratedCaption": "Across this publisher's rated books",
         "noRating": "—",
-        "lastAdded": "Last added",
-        "lastAddedNever": "—"
+        "noRatedBooks": "No rated books"
       },
       "overview": {
-        "latestBookTitle": "Latest book",
-        "toBuyPreviewTitle": "Wishlist",
-        "viewAllBooks": "All books",
-        "viewAllToBuy": "All wishlisted",
-        "emptyLatest": "No books from this publisher yet.",
-        "emptyToBuy": "No wishlisted books from this publisher."
-      },
-      "booksTab": {
-        "searchLabel": "Search books",
-        "searchPlaceholder": "Search by title or author",
-        "searchClear": "Clear search",
-        "sortLabel": "Sort",
-        "viewLabel": "View",
-        "viewGrid": "Grid",
-        "viewList": "List",
-        "counter": "Showing {shown} of {total}",
-        "loadMore": "Load more",
         "empty": {
-          "title": "No books yet",
-          "description": "Add a book with this publisher and it will show up here.",
+          "title": "No books from this publisher yet",
+          "description": "Add the first book from this publisher to your library.",
           "cta": "Add book"
         },
-        "noResults": {
-          "title": "Nothing found",
-          "description": "Try changing the search or clearing the filters.",
-          "clear": "Clear filters"
+        "sections": {
+          "latest": "Latest added book",
+          "reading": "Currently reading",
+          "series": "Series",
+          "wishlist": "On the wishlist"
         },
+        "regionLabel": "Publisher overview",
+        "addedAt": "Added {date}",
+        "seriesPart": "{name} · book {part}",
+        "seriesPartOfTotal": "{name} · book {part} of {total}",
+        "progress": "{current} of {total} pages",
+        "progressAriaLabel": "Reading progress: {current} of {total}",
+        "noPrice": "No price",
+        "seriesBooks": "{count, plural, one {# book} other {# books}}",
+        "seriesReadSome": "{count} read",
+        "seriesReadAll": "all read",
+        "seriesReadNone": "not read yet",
         "error": {
-          "title": "Couldn't load the books",
-          "description": "Try refreshing the page or come back a little later.",
+          "title": "Couldn't load the overview",
           "retry": "Try again"
         }
       },
-      "toBuyTab": {
-        "count": "{count, plural, one {# wishlisted book} other {# wishlisted books}}",
-        "withoutPrice": "{count, plural, one {# without a price} other {# without a price}}",
+      "booksTab": {
         "empty": {
-          "title": "No wishlisted books",
-          "description": "There are no books from this publisher on your wishlist yet.",
+          "title": "No books from this publisher yet",
+          "description": "Add the first book from this publisher to your library.",
           "cta": "Add book"
         },
         "error": {
-          "title": "Couldn't load the list",
-          "description": "Try refreshing the page or come back a little later.",
+          "title": "Couldn't load the books",
+          "description": "Try again a little later.",
           "retry": "Try again"
         }
       },
@@ -7589,8 +7643,11 @@
         "description": "Update the publisher's name and extra details.",
         "name": "Name",
         "namePlaceholder": "Publisher name",
-        "countryCode": "Country code",
-        "countryCodePlaceholder": "UA",
+        "country": "Country",
+        "countryPlaceholder": "Select a country",
+        "countrySearch": "Search countries",
+        "countryEmpty": "No country found",
+        "countryClear": "Clear country",
         "website": "Website",
         "websitePlaceholder": "https://",
         "foundedYear": "Founded year",
@@ -7600,7 +7657,6 @@
         "cancel": "Cancel",
         "duplicate": "A publisher with this name already exists",
         "invalidUrl": "Enter a valid link",
-        "invalidCountry": "Country code must be two Latin letters",
         "invalidYear": "Enter a valid year",
         "invalidName": "Name must be at least 2 characters long",
         "genericError": "Couldn't save the changes. Try again.",
@@ -7613,7 +7669,10 @@
         "confirm": "Delete",
         "cancel": "Cancel",
         "deleting": "Deleting…",
-        "linkedBooksError": "You can't delete a publisher that still has linked books. Unlink the books first.",
+        "blockedTitle": "This publisher can't be deleted",
+        "blockedDescription": "Books are still linked to “{name}”. Assign them another publisher or delete them first.",
+        "goToBooks": "Go to books",
+        "close": "Close",
         "genericError": "Couldn't delete the publisher. Try again."
       },
       "toast": {

@@ -1,88 +1,34 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { useTranslations } from "next-intl";
-import { type ReactNode, useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { Progress } from "@/components/ui/progress";
 import { Link, useRouter } from "@/i18n/navigation";
 
-import type { LibraryBook } from "../model/library-book";
+import type { LibraryScope } from "../model/library-query";
 
-import { useLibraryBooks } from "../api/use-books";
 import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
-import { useTagsSearch } from "../api/use-tags-search";
-import { useLibraryActions } from "../hooks/use-library-actions";
-import { useLibraryBookLabels } from "../hooks/use-library-book-labels";
-import { toLibraryBook } from "../model/library-book";
-import { LIBRARY_SORT_ORDER, type LibraryScope } from "../model/library-query";
-import {
-  activeQuickFilter,
-  quickFilterCounts,
-  quickFilterPatch,
-} from "../model/library-quick-filters";
-import { useLibraryFilterChips } from "../model/use-library-filter-chips";
-import { useLibraryQuery } from "../model/use-library-query";
-import { BooksLibraryView } from "./books-library-view";
-import { LibraryActiveFilters } from "./library-active-filters";
-import { LibraryAdvancedFilters } from "./library-advanced-filters";
+import { BooksArchive } from "./books-archive";
 import { LibraryOverviewPanel } from "./library-overview-panel";
-import { LibraryQuickFilters } from "./library-quick-filters";
-import { LibrarySearchInput } from "./library-search-input";
+import { LibraryPageHeader } from "./library-page-header";
 import { type LibrarySummaryCard } from "./library-summary-cards";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
 export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorites"> }) {
   const t = useTranslations("books.library");
-  const tCover = useTranslations("books.cover");
-  const tSortOptions = useTranslations("books.library.sort.options");
   const router = useRouter();
 
-  const library = useLibraryQuery(scope);
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isError,
-    isFetchingNextPage,
-    isFetchNextPageError,
-    isPending,
-    refetch,
-  } = useLibraryBooks(library.listParams);
   const overview = useLibraryOverview(scope);
   const genres = useGenres();
-  const tags = useTagsSearch("");
-  const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
-
-  const actions = useLibraryActions();
-  const labels = useLibraryBookLabels();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
 
-  function rememberEntity(id: string, name: string) {
-    setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
-  }
-
-  function resolveEntityName(id: string): string | undefined {
-    return entityLabels[id] ?? tagNameById.get(id);
-  }
-
-  const filterChips = useLibraryFilterChips({
-    genreName: (key) => genreNameByKey.get(key) ?? key,
-    resolveEntityName,
-    setState: library.setState,
-    state: library.state,
-  });
-  const advancedFiltersCount = filterChips.filter((chip) => chip.key !== "q").length;
-
-  const pages = data?.pages ?? [];
-  const totalCount = pages[0]?.totalCount ?? 0;
-  const books: LibraryBook[] = pages
-    .flatMap((page) => page.items)
-    .map((book) => toLibraryBook(book, labels));
+  const onAddBook = () => router.push("/books/new");
 
   const summary = overview.data?.summary;
   const activeReading = overview.data?.activeReading;
@@ -194,8 +140,6 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     },
   ];
 
-  const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
-
   const emptyState: EmptyStateEntry = {
     desc: t(`empty.${scope}.description`),
     illu: scope === "all" ? "empty-all-books" : "empty-library",
@@ -210,22 +154,6 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     illu: "error-generic",
     primary: { icon: "refresh", label: t("error.retry") },
     title: t("error.title"),
-  };
-
-  const noSearchResultsState: EmptyStateEntry = {
-    desc: t("noSearchResults.description"),
-    illu: "empty-search",
-    illuSize: "sm",
-    primary: { icon: "x", label: t("noSearchResults.clearSearch") },
-    title: t("noSearchResults.title"),
-  };
-
-  const noFilteredResultsState: EmptyStateEntry = {
-    desc: t("noFilteredResults.description"),
-    illu: "empty-search",
-    primary: { icon: "x", label: t("noFilteredResults.clearFilters") },
-    secondary: { icon: "refresh", label: t("noFilteredResults.clearAll") },
-    title: t("noFilteredResults.title"),
   };
 
   const recentlyAdded = (overview.data?.recentlyAdded ?? []).map((book) => ({
@@ -254,84 +182,33 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   );
 
   return (
-    <BooksLibraryView
-      actions={actions}
-      activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
-      addBookLabel={t("addBook")}
-      advancedFilters={
-        <LibraryAdvancedFilters
-          activeCount={advancedFiltersCount}
-          onRememberEntity={rememberEntity}
-          resolveEntityName={resolveEntityName}
-          scope={scope}
-          setState={library.setState}
-          state={library.state}
-        />
-      }
-      allShownLabel={t("allShown")}
-      books={books}
-      counterLabel={t("counter", { shown: books.length, total: totalCount })}
-      coverViewLabel={tCover("viewer.open")}
+    <BooksArchive
       emptyState={emptyState}
       errorState={errorState}
-      hasActiveFilters={library.hasActiveFilters}
-      hasActiveSearch={library.hasActiveSearch}
-      hasNextPage={hasNextPage}
-      isError={isError}
-      isFetchingNextPage={isFetchingNextPage}
-      isLoadMoreError={isFetchNextPageError}
-      isPending={isPending}
-      libraryTotal={summary?.total ?? 0}
-      linkComponent={Link}
-      loadingLabel={t("loading")}
-      loadMoreErrorLabel={t("loadMoreError")}
-      loadMoreLabel={t("loadMore")}
-      noFilteredResultsState={noFilteredResultsState}
-      noSearchResultsState={noSearchResultsState}
-      onAddBook={() => router.push("/books/new")}
-      onClearAll={library.clearAll}
-      onClearFilters={library.clearFilters}
-      onClearSearch={library.clearSearch}
-      onEmptySecondary={scope === "my" ? () => router.push("/books") : undefined}
-      onLoadMore={() => void fetchNextPage()}
-      onRetry={() => void refetch()}
-      onSortChange={library.setSort}
-      onViewChange={library.setView}
-      quickFilters={
-        <LibraryQuickFilters
-          counts={summary === undefined ? undefined : quickFilterCounts(summary)}
-          onSelect={(key) => void library.setState(quickFilterPatch(key))}
-          scope={scope}
-          value={activeQuickFilter(library.state)}
-        />
-      }
-      searchControl={
-        <LibrarySearchInput
-          onClear={library.clearSearch}
-          onSearch={library.setSearch}
-          value={library.state.q}
-        />
-      }
-      sidebar={sidebar}
-      sort={library.sort}
-      sortLabel={t("sort.label")}
-      sortOptions={sortOptions}
-      subtitle={t(`${scope}.subtitle`)}
-      summaryCards={summaryCards}
-      summaryLoading={overview.isPending}
-      summaryMobileAction={
-        <LibraryOverviewPanel
-          isLoading={overview.isPending}
-          recentlyAdded={recentlyAdded}
+      header={
+        <LibraryPageHeader
+          addBookLabel={t("addBook")}
+          onAddBook={onAddBook}
+          subtitle={t(`${scope}.subtitle`)}
           summaryCards={summaryCards}
-          topGenres={topGenres}
-          topTags={topTags}
+          summaryLoading={overview.isPending}
+          summaryMobileAction={
+            <LibraryOverviewPanel
+              isLoading={overview.isPending}
+              recentlyAdded={recentlyAdded}
+              summaryCards={summaryCards}
+              topGenres={topGenres}
+              topTags={topTags}
+            />
+          }
+          summaryMobileLayout="compact"
+          title={t(`${scope}.title`)}
         />
       }
-      summaryMobileLayout="compact"
-      title={t(`${scope}.title`)}
-      view={library.view}
-      viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}
+      onAddBook={onAddBook}
+      onEmptySecondary={scope === "my" ? () => router.push("/books") : undefined}
+      scope={scope}
+      sidebar={sidebar}
     />
   );
 }

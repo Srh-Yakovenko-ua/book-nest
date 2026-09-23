@@ -35,7 +35,7 @@ import {
   quickFilterCounts,
   quickFilterPatch,
 } from "../model/library-quick-filters";
-import { useLibraryFilterChips } from "../model/use-library-filter-chips";
+import { countAdvancedFilterChips, useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
 import { FavoritesOverviewPanel } from "./favorites-overview-panel";
@@ -104,7 +104,7 @@ export function FavoritesView() {
     setState: library.setState,
     state: library.state,
   });
-  const advancedFiltersCount = filterChips.filter((chip) => chip.key !== "q").length;
+  const advancedFiltersCount = countAdvancedFilterChips(filterChips);
 
   const pages = data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;

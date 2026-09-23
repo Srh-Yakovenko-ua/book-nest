@@ -474,6 +474,10 @@ export const getBooksControllerOverviewUrl = (params?: BooksControllerOverviewPa
       });
       return;
     }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
   });
 
   const stringifiedParams = normalizedParams.toString();

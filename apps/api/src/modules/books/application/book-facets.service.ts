@@ -7,6 +7,7 @@ import { nameGenreFacets } from "../domain/list-overview.js";
 import { BookFacetsRepository } from "../infrastructure/book-facets.repository.js";
 
 type FacetsInput = {
+  publisherId: string | undefined;
   scope: BookFacetScope;
   search: string | undefined;
   userId: string;
@@ -19,10 +20,15 @@ export class BookFacetsService {
     private readonly genresService: GenresService,
   ) {}
 
-  async facets({ scope, search, userId }: FacetsInput): Promise<BookFacetsView> {
+  async facets({ publisherId, scope, search, userId }: FacetsInput): Promise<BookFacetsView> {
     const [authors, genreRows] = await Promise.all([
-      this.bookFacetsRepository.authorFacets({ scope, search, userId }),
-      this.bookFacetsRepository.genreFacets({ scope, search: undefined, userId }),
+      this.bookFacetsRepository.authorFacets({ publisherId, scope, search, userId }),
+      this.bookFacetsRepository.genreFacets({
+        publisherId,
+        scope,
+        search: undefined,
+        userId,
+      }),
     ]);
 
     if (genreRows.length === 0) {

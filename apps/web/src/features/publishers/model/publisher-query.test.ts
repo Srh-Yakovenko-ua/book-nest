@@ -1,73 +1,168 @@
+import { createSerializer } from "nuqs/server";
 import { describe, expect, it } from "vitest";
 
-import type { PublisherQueryState } from "./publisher-query";
+import type { PublisherQueryState, PublishersSort } from "./publisher-query";
 
 import {
+  countActivePublisherAdvancedFilters,
+  EMPTY_PUBLISHERS_ADVANCED_FILTERS,
   hasActivePublisherFilters,
   hasActivePublisherSearch,
-  PUBLISHERS_BOOLEAN_FILTERS,
+  publisherQueryParsers,
+  PUBLISHERS_CLEAR_ALL,
   PUBLISHERS_FILTERS_RESET,
   PUBLISHERS_PAGE_SIZE,
-  toLibraryPublishersParams,
+  toBackendPublishersSort,
+  toPublishersAdvancedFilters,
+  toPublishersAdvancedPatch,
+  toPublishersListQuery,
 } from "./publisher-query";
 
 function makeState(overrides: Partial<PublisherQueryState> = {}): PublisherQueryState {
   return {
+    filter: "all",
     geography: "all",
-    hasBooksToBuy: null,
+    hasQueue: null,
     hasRatedBooks: null,
-    hasSeries: null,
-    order: "desc",
-    page: 1,
-    search: "",
-    sort: "booksCount",
+    hasWantToRead: null,
+    q: "",
+    sort: "books_desc",
     source: "all",
     view: "grid",
     ...overrides,
   };
 }
 
-describe("toLibraryPublishersParams", () => {
-  it("sends the defaults without an empty search or boolean filters", () => {
-    expect(toLibraryPublishersParams(makeState())).toEqual({
-      geography: "all",
+const serialize = createSerializer(publisherQueryParsers);
+
+describe("toBackendPublishersSort", () => {
+  it.each<[PublishersSort, string, "asc" | "desc"]>([
+    ["books_desc", "booksCount", "desc"],
+    ["books_asc", "booksCount", "asc"],
+    ["read_desc", "readCount", "desc"],
+    ["read_asc", "readCount", "asc"],
+    ["to_buy_desc", "wantToBuyCount", "desc"],
+    ["to_buy_asc", "wantToBuyCount", "asc"],
+    ["rating_desc", "averageRating", "desc"],
+    ["rating_asc", "averageRating", "asc"],
+    ["recent_desc", "lastBookAddedAt", "desc"],
+    ["recent_asc", "lastBookAddedAt", "asc"],
+    ["name_asc", "name", "asc"],
+    ["name_desc", "name", "desc"],
+  ])("maps %s to %s %s", (semantic, sort, order) => {
+    expect(toBackendPublishersSort(semantic)).toEqual({ order, sort });
+  });
+});
+
+describe("publisherQueryParsers", () => {
+  it("falls back to books_desc for an unknown sort", () => {
+    expect(publisherQueryParsers.sort.parseServerSide("booksCount")).toBe("books_desc");
+    expect(publisherQueryParsers.sort.parseServerSide(undefined)).toBe("books_desc");
+  });
+
+  it("parses only the approved quick filters", () => {
+    expect(publisherQueryParsers.filter.parseServerSide("to_buy")).toBe("to_buy");
+    expect(publisherQueryParsers.filter.parseServerSide("hasSeries")).toBe("all");
+  });
+
+  it("has no page, order, search or legacy boolean keys", () => {
+    expect(Object.keys(publisherQueryParsers).sort()).toEqual([
+      "filter",
+      "geography",
+      "hasQueue",
+      "hasRatedBooks",
+      "hasWantToRead",
+      "q",
+      "sort",
+      "source",
+      "view",
+    ]);
+  });
+
+  it("omits every default from the URL", () => {
+    expect(serialize(makeState())).toBe("");
+  });
+
+  it("writes booleans only as true", () => {
+    const url = serialize(
+      toPublishersAdvancedPatch({ ...EMPTY_PUBLISHERS_ADVANCED_FILTERS, hasQueue: true }),
+    );
+    expect(url).toBe("?hasQueue=true");
+  });
+});
+
+describe("toPublishersListQuery", () => {
+  it("sends the default sort and page size without view, filter or empty search", () => {
+    expect(toPublishersListQuery(makeState({ view: "list" }))).toEqual({
       order: "desc",
-      pageNumber: 1,
       pageSize: PUBLISHERS_PAGE_SIZE,
       sort: "booksCount",
-      source: "all",
     });
   });
 
-  it("trims the search before sending it to the server", () => {
-    expect(toLibraryPublishersParams(makeState({ search: "  видав  " }))).toMatchObject({
+  it("sends q as the backend search, trimmed", () => {
+    expect(toPublishersListQuery(makeState({ q: "  видав  " }))).toMatchObject({
       search: "видав",
     });
   });
 
-  it("omits a search that is only whitespace", () => {
-    expect(toLibraryPublishersParams(makeState({ search: "   " }))).not.toHaveProperty("search");
-  });
-
-  it("serializes boolean filters as strings", () => {
+  it("forwards the quick filter, advanced filters and mapped sort", () => {
     expect(
-      toLibraryPublishersParams(
-        makeState({ hasBooksToBuy: true, hasRatedBooks: false, hasSeries: true }),
+      toPublishersListQuery(
+        makeState({
+          filter: "reading",
+          geography: "foreign",
+          hasQueue: true,
+          hasRatedBooks: true,
+          hasWantToRead: true,
+          sort: "name_asc",
+          source: "custom",
+        }),
       ),
-    ).toMatchObject({
-      hasBooksToBuy: "true",
-      hasRatedBooks: "false",
-      hasSeries: "true",
+    ).toEqual({
+      filter: "reading",
+      geography: "foreign",
+      hasQueue: "true",
+      hasRatedBooks: "true",
+      hasWantToRead: "true",
+      order: "asc",
+      pageSize: PUBLISHERS_PAGE_SIZE,
+      sort: "name",
+      source: "custom",
     });
   });
 
-  it("maps the page number and forwards sort and order", () => {
+  it("ignores a boolean that is false in the URL", () => {
+    expect(toPublishersListQuery(makeState({ hasQueue: false }))).not.toHaveProperty("hasQueue");
+  });
+});
+
+describe("advanced filters", () => {
+  it("counts non-default geography, source and each true boolean", () => {
+    expect(countActivePublisherAdvancedFilters(EMPTY_PUBLISHERS_ADVANCED_FILTERS)).toBe(0);
     expect(
-      toLibraryPublishersParams(makeState({ order: "asc", page: 4, sort: "name" })),
-    ).toMatchObject({
-      order: "asc",
-      pageNumber: 4,
-      sort: "name",
+      countActivePublisherAdvancedFilters({
+        geography: "ua",
+        hasQueue: true,
+        hasRatedBooks: false,
+        hasWantToRead: true,
+        source: "global",
+      }),
+    ).toBe(4);
+  });
+
+  it("does not count q or the quick filter", () => {
+    const state = makeState({ filter: "series", q: "видав" });
+    expect(countActivePublisherAdvancedFilters(toPublishersAdvancedFilters(state))).toBe(0);
+  });
+
+  it("clears defaults and false booleans from the URL on apply", () => {
+    expect(toPublishersAdvancedPatch(EMPTY_PUBLISHERS_ADVANCED_FILTERS)).toEqual({
+      geography: null,
+      hasQueue: null,
+      hasRatedBooks: null,
+      hasWantToRead: null,
+      source: null,
     });
   });
 });
@@ -78,52 +173,48 @@ describe("hasActivePublisherFilters", () => {
   });
 
   it.each([
-    ["geography", makeState({ geography: "ua" })],
+    ["quick filter", makeState({ filter: "read" })],
+    ["geography", makeState({ geography: "unknown" })],
     ["source", makeState({ source: "custom" })],
-    ["hasBooksToBuy", makeState({ hasBooksToBuy: true })],
     ["hasRatedBooks", makeState({ hasRatedBooks: true })],
-    ["hasSeries", makeState({ hasSeries: true })],
-  ])("reports an active %s filter", (_name, state) => {
+    ["hasWantToRead", makeState({ hasWantToRead: true })],
+    ["hasQueue", makeState({ hasQueue: true })],
+  ])("reports an active %s", (_name, state) => {
     expect(hasActivePublisherFilters(state)).toBe(true);
   });
 
-  it("does not treat sort or search as a filter", () => {
-    expect(hasActivePublisherFilters(makeState({ search: "видав", sort: "name" }))).toBe(false);
+  it("does not treat q, sort or view as a filter", () => {
+    expect(
+      hasActivePublisherFilters(makeState({ q: "видав", sort: "name_asc", view: "list" })),
+    ).toBe(false);
   });
 });
 
 describe("hasActivePublisherSearch", () => {
-  it("ignores a whitespace-only search", () => {
-    expect(hasActivePublisherSearch(makeState({ search: "   " }))).toBe(false);
+  it("ignores a whitespace-only q", () => {
+    expect(hasActivePublisherSearch(makeState({ q: "   " }))).toBe(false);
   });
 
-  it("detects a real search", () => {
-    expect(hasActivePublisherSearch(makeState({ search: "видав" }))).toBe(true);
-  });
-});
-
-describe("PUBLISHERS_BOOLEAN_FILTERS", () => {
-  it("offers exactly the three documented boolean filters", () => {
-    expect(PUBLISHERS_BOOLEAN_FILTERS).toEqual(["hasBooksToBuy", "hasRatedBooks", "hasSeries"]);
+  it("detects a real q", () => {
+    expect(hasActivePublisherSearch(makeState({ q: "видав" }))).toBe(true);
   });
 });
 
-describe("PUBLISHERS_FILTERS_RESET", () => {
-  it("clears every filter and the page number", () => {
-    expect(PUBLISHERS_FILTERS_RESET).toEqual({
-      geography: null,
-      hasBooksToBuy: null,
-      hasRatedBooks: null,
-      hasSeries: null,
-      page: null,
-      source: null,
-    });
+describe("resets", () => {
+  it("resetFilters clears the quick filter and Advanced but keeps q, sort and view", () => {
+    expect(Object.keys(PUBLISHERS_FILTERS_RESET).sort()).toEqual([
+      "filter",
+      "geography",
+      "hasQueue",
+      "hasRatedBooks",
+      "hasWantToRead",
+      "source",
+    ]);
   });
 
-  it("leaves the search, sort, order and view untouched", () => {
-    expect(PUBLISHERS_FILTERS_RESET).not.toHaveProperty("search");
-    expect(PUBLISHERS_FILTERS_RESET).not.toHaveProperty("sort");
-    expect(PUBLISHERS_FILTERS_RESET).not.toHaveProperty("order");
-    expect(PUBLISHERS_FILTERS_RESET).not.toHaveProperty("view");
+  it("clearAll also clears q but keeps sort and view", () => {
+    expect(PUBLISHERS_CLEAR_ALL).toHaveProperty("q", null);
+    expect(PUBLISHERS_CLEAR_ALL).not.toHaveProperty("sort");
+    expect(PUBLISHERS_CLEAR_ALL).not.toHaveProperty("view");
   });
 });

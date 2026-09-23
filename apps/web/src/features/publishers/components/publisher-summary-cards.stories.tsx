@@ -3,13 +3,16 @@ import type { ComponentProps } from "react";
 
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import { makePublisherPriceTotal, makePublishersSummary } from "../model/publisher.fixtures";
+import { LONG_PUBLISHER_NAME, makePublishersSummary } from "../model/publisher.fixtures";
 import { PublisherSummaryCards, usePublisherSummaryCards } from "./publisher-summary-cards";
 
 const SUMMARY = makePublishersSummary({
-  booksWithPublisherCount: 340,
-  expectedPriceTotals: [makePublisherPriceTotal()],
+  booksToBuyWithPublisherCount: 7,
+  mostReadPublisher: { id: "ranok", name: "Ранок", readCount: 21 },
+  mostRepresentedPublisher: { booksCount: 48, id: "lev", name: LONG_PUBLISHER_NAME },
   publishersCount: 12,
+  publishersInPlansCount: 3,
+  topFiveBooksCoveragePercent: 62.4,
 });
 
 function PublisherSummaryCardsHarness(props: ComponentProps<typeof PublisherSummaryCards>) {
@@ -33,8 +36,13 @@ export const Loaded: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Видавництв")).toBeVisible());
     await expect(canvas.getByText("12")).toBeVisible();
-    await expect(canvas.getByText("Книг із видавництвом")).toBeVisible();
-    await expect(canvas.getByText("340")).toBeVisible();
+    await expect(canvas.getByText("Топ-5 охоплюють 62% книг")).toBeVisible();
+    await expect(canvas.getByText("Найбільше в бібліотеці")).toBeVisible();
+    await expect(canvas.getByText(LONG_PUBLISHER_NAME)).toBeVisible();
+    await expect(canvas.getByText("48 книг у бібліотеці")).toBeVisible();
+    await expect(canvas.getByText("Видавництва у планах")).toBeVisible();
+    await expect(canvas.getByText("7 книг у списку бажань")).toBeVisible();
+    await expect(canvas.getByText("21 прочитана книга")).toBeVisible();
   },
 };
 

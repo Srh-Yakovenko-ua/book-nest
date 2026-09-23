@@ -342,3 +342,117 @@ describe("GET /api/books/facets author search", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("GET /api/books/facets publisher context", () => {
+  function getPublisherFacets(
+    accessToken: string,
+    query: { publisher: string; q?: string; scope: string },
+  ): request.Test {
+    return request(app.getHttpServer())
+      .get("/api/books/facets")
+      .query(query)
+      .set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  async function seedPublisherFacets(
+    userId: string,
+  ): Promise<{ beckett: string; gibson: string; publisherId: string }> {
+    await createGenre("fantasy", "Fantasy");
+    await createGenre("thriller", "Thriller");
+    const publisher = await prisma.publisher.create({
+      data: { name: "Penguin", normalizedName: "penguin", searchText: "penguin", userId: null },
+    });
+    const beckett = await createAuthor(userId, "Simon Beckett");
+    const gibson = await createAuthor(userId, "William Gibson");
+    const scoped = await createBook({ genres: ["thriller"], title: "Whispers", userId });
+    const unscoped = await createBook({ genres: ["fantasy"], title: "Neuromancer", userId });
+    await linkAuthor(scoped, beckett);
+    await linkAuthor(unscoped, gibson);
+    await prisma.book.update({ data: { publisherId: publisher.id }, where: { id: scoped } });
+    return { beckett, gibson, publisherId: publisher.id };
+  }
+
+  it("scopes author and genre facets to the publisher", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { beckett, publisherId } = await seedPublisherFacets(userId);
+
+    const res = await request(app.getHttpServer())
+      .get("/api/books/facets")
+      .query({ publisher: publisherId, scope: "all" })
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      authors: [{ count: 1, id: beckett, name: "Simon Beckett" }],
+      genres: [{ count: 1, key: "thriller", name: "Thriller" }],
+    });
+  });
+
+  it("keeps every author and genre when publisher is omitted", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { beckett, gibson } = await seedPublisherFacets(userId);
+
+    const res = await getFacets(accessToken, "all");
+
+    expect(res.body).toEqual({
+      authors: [
+        { count: 1, id: beckett, name: "Simon Beckett" },
+        { count: 1, id: gibson, name: "William Gibson" },
+      ],
+      genres: [
+        { count: 1, key: "fantasy", name: "Fantasy" },
+        { count: 1, key: "thriller", name: "Thriller" },
+      ],
+    });
+  });
+
+  it("applies the scope condition together with the publisher", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { beckett, publisherId } = await seedPublisherFacets(userId);
+    const plain = await createAuthor(userId, "Plain Author");
+    const unfavored = await createBook({ genres: ["fantasy"], title: "Unfavored", userId });
+    await linkAuthor(unfavored, plain);
+    await prisma.book.update({ data: { publisherId }, where: { id: unfavored } });
+    await prisma.book.updateMany({
+      data: { isFavorite: true },
+      where: { title: { in: ["Whispers", "Neuromancer"] }, userId },
+    });
+
+    const res = await getPublisherFacets(accessToken, {
+      publisher: publisherId,
+      scope: "favorites",
+    });
+
+    expect(res.body).toEqual({
+      authors: [{ count: 1, id: beckett, name: "Simon Beckett" }],
+      genres: [{ count: 1, key: "thriller", name: "Thriller" }],
+    });
+  });
+
+  it("applies the author search together with the publisher", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { beckett, publisherId } = await seedPublisherFacets(userId);
+
+    const outside = await getPublisherFacets(accessToken, {
+      publisher: publisherId,
+      q: "Gibson",
+      scope: "all",
+    });
+    const inside = await getPublisherFacets(accessToken, {
+      publisher: publisherId,
+      q: "Beck",
+      scope: "all",
+    });
+
+    expect(outside.body.authors).toEqual([]);
+    expect(inside.body.authors).toEqual([{ count: 1, id: beckett, name: "Simon Beckett" }]);
+  });
+
+  it("returns 400 when publisher is not a uuid", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getPublisherFacets(accessToken, { publisher: "not-a-uuid", scope: "all" });
+
+    expect(res.status).toBe(400);
+  });
+});

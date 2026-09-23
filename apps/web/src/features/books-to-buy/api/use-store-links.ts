@@ -7,6 +7,7 @@ import type {
 import { BookStoreLinkViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
 import {
   bookStoreLinkControllerAddLink,
   bookStoreLinkControllerDeleteLink,
@@ -64,5 +65,6 @@ function useStoreLinkSync() {
   return (bookId: string) => {
     void queryClient.invalidateQueries({ queryKey: wishlistKeys.root });
     void queryClient.invalidateQueries({ queryKey: storeLinkKeys.forBook(bookId) });
+    void invalidatePublisherQueries(queryClient);
   };
 }

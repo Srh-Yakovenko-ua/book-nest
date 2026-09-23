@@ -362,6 +362,53 @@ describe("GET /api/books search", () => {
     expect(titlesOf(res.body)).toEqual(["Dune"]);
   });
 
+  it("excludes the publisher identity from search when searchPublisher is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const publisher = await seedPublisher({
+      name: "Penguin Books",
+      names: [{ locale: "uk", name: "Пінгвін" }],
+      userId,
+    });
+    await seedBook({ authorId: author.id, publisherId: publisher.id, title: "Dune", userId });
+
+    const byName = await listBooks(
+      accessToken,
+      `q=penguin&searchPublisher=false&publisher=${publisher.id}`,
+    );
+    const byLocalizedName = await listBooks(
+      accessToken,
+      `q=${encodeURIComponent("Пінгвін")}&searchPublisher=false`,
+    );
+    const byTitle = await listBooks(accessToken, `q=dune&searchPublisher=false`);
+    const publisherScopedOnly = await listBooks(accessToken, `q=penguin&publisher=${publisher.id}`);
+
+    expect(byName.body.totalCount).toBe(0);
+    expect(byLocalizedName.body.totalCount).toBe(0);
+    expect(titlesOf(byTitle.body)).toEqual(["Dune"]);
+    expect(titlesOf(publisherScopedOnly.body)).toEqual(["Dune"]);
+  });
+
+  it("keeps matching the publisher name when searchPublisher is explicitly true", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const publisher = await seedPublisher({ name: "Penguin Books", userId });
+    await seedBook({ authorId: author.id, publisherId: publisher.id, title: "Dune", userId });
+    await seedBook({ authorId: author.id, title: "Foundation", userId });
+
+    const res = await listBooks(accessToken, "q=penguin&searchPublisher=true");
+
+    expect(titlesOf(res.body)).toEqual(["Dune"]);
+  });
+
+  it("rejects a non-boolean searchPublisher with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listBooks(accessToken, "q=penguin&searchPublisher=maybe");
+
+    expect(res.status).toBe(400);
+  });
+
   it("matches a tag name", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });

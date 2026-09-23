@@ -6,8 +6,9 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeWishlistSummary } from "@/features/books-to-buy/model/books-to-buy.fixtures";
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { createTestQueryClient, renderWithProviders, screen, userEvent } from "@/test-utils";
 
+import { publisherKeys } from "../api/publisher-keys";
 import { makePublisherDetail } from "../model/publisher.fixtures";
 import { PublisherDetails } from "./publisher-details";
 
@@ -94,13 +95,69 @@ describe("PublisherDetails", () => {
     expect(alert).toHaveTextContent("Видавництво не знайдено");
   });
 
-  it("returns to the publishers list from the not-found panel", async () => {
+  it("links back to the publishers list from the not-found panel", async () => {
     respondToDetail = () => Promise.resolve(jsonResponse({ message: "not found" }, 404));
 
     renderDetails();
 
-    await userEvent.click(await screen.findByRole("button", { name: "До видавництв" }));
+    expect(await screen.findByRole("link", { name: "До видавництв" })).toHaveAttribute(
+      "href",
+      "/publishers",
+    );
+    expect(screen.queryByRole("button", { name: "Спробувати ще раз" })).not.toBeInTheDocument();
+  });
 
-    expect(pushMock).toHaveBeenCalledWith("/publishers");
+  it("retries a failed initial load through a refetch", async () => {
+    let attempts = 0;
+    respondToDetail = () => {
+      attempts += 1;
+      return Promise.resolve(
+        attempts === 1
+          ? jsonResponse({ message: "boom" }, 500)
+          : jsonResponse(makePublisherDetail({ name: "Vivat" })),
+      );
+    };
+
+    renderDetails();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Не вдалося завантажити видавництво",
+    );
+    expect(screen.getByRole("link", { name: "До видавництв" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Спробувати ще раз" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Vivat" })).toBeInTheDocument();
+    expect(attempts).toBe(2);
+  });
+
+  it("does not start book requests while the publisher is pending", () => {
+    respondToDetail = () => new Promise<Response>(() => {});
+
+    renderDetails();
+
+    const urls = fetchMock.mock.calls.map(([input]) => String(input));
+    expect(urls.every((url) => url.includes("/library-detail"))).toBe(true);
+  });
+
+  it("keeps the page rendered when a background refetch fails", async () => {
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(
+      publisherKeys.detail("publisher-1"),
+      makePublisherDetail({ name: "Vivat" }),
+    );
+    respondToDetail = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
+
+    renderWithProviders(
+      <NuqsTestingAdapter>
+        <PublisherDetails id="publisher-1" />
+      </NuqsTestingAdapter>,
+      { queryClient },
+    );
+
+    await queryClient.refetchQueries({ queryKey: publisherKeys.detail("publisher-1") });
+
+    expect(screen.getByRole("heading", { level: 1, name: "Vivat" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

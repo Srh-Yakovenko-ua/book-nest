@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 import { listKeys } from "@/features/lists/api/list-keys";
+import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import { invalidateTagCollectionQueries } from "@/features/tags/api/tags-keys";
@@ -26,6 +27,7 @@ export function useUpdateBook(id: string) {
       void invalidateGenreDerivedQueries(queryClient);
       if (input.tags !== undefined) void invalidateTagCollectionQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: RECENT_GENRES_KEY });
+      void invalidatePublisherQueries(queryClient);
     },
   });
 }
