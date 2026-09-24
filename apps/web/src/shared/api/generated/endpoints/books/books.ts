@@ -27,6 +27,7 @@ import type {
   BookStoreLinksViewDto,
   BookViewDto,
   BooksControllerDedicationsParams,
+  BooksControllerDedicationsQuickCountsParams,
   BooksControllerFacetsParams,
   BooksControllerListParams,
   BooksControllerListTrashParams,
@@ -51,6 +52,7 @@ import type {
   CreateLoanInputDto,
   CreateLoansBatchInputDto,
   CreateLoansBatchResultDto,
+  DedicationsQuickCountsViewDto,
   DedicationsSummaryViewDto,
   DeliveryViewDto,
   ExtendLoanInputDto,
@@ -1805,6 +1807,210 @@ export function useBooksControllerDedications<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerDedicationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type booksControllerDedicationsQuickCountsResponse200 = {
+  data: DedicationsQuickCountsViewDto;
+  status: 200;
+};
+
+export type booksControllerDedicationsQuickCountsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type booksControllerDedicationsQuickCountsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerDedicationsQuickCountsResponseSuccess =
+  booksControllerDedicationsQuickCountsResponse200 & {
+    headers: Headers;
+  };
+export type booksControllerDedicationsQuickCountsResponseError = (
+  | booksControllerDedicationsQuickCountsResponse400
+  | booksControllerDedicationsQuickCountsResponse401
+) & {
+  headers: Headers;
+};
+
+export type booksControllerDedicationsQuickCountsResponse =
+  | booksControllerDedicationsQuickCountsResponseSuccess
+  | booksControllerDedicationsQuickCountsResponseError;
+
+export const getBooksControllerDedicationsQuickCountsUrl = (
+  params?: BooksControllerDedicationsQuickCountsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/dedications/quick-counts?${stringifiedParams}`
+    : `/api/books/dedications/quick-counts`;
+};
+
+/**
+ * @summary Count the current user dedications per quick filter
+ */
+export const booksControllerDedicationsQuickCounts = async (
+  params?: BooksControllerDedicationsQuickCountsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<booksControllerDedicationsQuickCountsResponse> => {
+  return customInstance<booksControllerDedicationsQuickCountsResponse>(
+    getBooksControllerDedicationsQuickCountsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerDedicationsQuickCountsQueryKey = (
+  params?: BooksControllerDedicationsQuickCountsParams,
+) => {
+  return [`/api/books/dedications/quick-counts`, ...(params ? [params] : [])] as const;
+};
+
+export const getBooksControllerDedicationsQuickCountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBooksControllerDedicationsQuickCountsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>
+  > = ({ signal }) => booksControllerDedicationsQuickCounts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerDedicationsQuickCountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>
+>;
+export type BooksControllerDedicationsQuickCountsQueryError = void;
+
+export function useBooksControllerDedicationsQuickCounts<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+  TError = void,
+>(
+  params: undefined | BooksControllerDedicationsQuickCountsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerDedicationsQuickCounts<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerDedicationsQuickCounts<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the current user dedications per quick filter
+ */
+
+export function useBooksControllerDedicationsQuickCounts<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof booksControllerDedicationsQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerDedicationsQuickCountsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

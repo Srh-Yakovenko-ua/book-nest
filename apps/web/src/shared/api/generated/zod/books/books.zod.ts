@@ -3331,6 +3331,49 @@ export const BooksControllerDedicationsResponse = zod.object({
 });
 
 /**
+ * @summary Count the current user dedications per quick filter
+ */
+export const booksControllerDedicationsQuickCountsQueryGenreMax = 64;
+
+export const booksControllerDedicationsQuickCountsQueryQMax = 200;
+
+export const BooksControllerDedicationsQuickCountsQueryParams = zod.object({
+  genre: zod.string().min(1).max(booksControllerDedicationsQuickCountsQueryGenreMax).optional(),
+  q: zod.string().max(booksControllerDedicationsQuickCountsQueryQMax).optional(),
+});
+
+export const booksControllerDedicationsQuickCountsResponseAllMin = 0;
+export const booksControllerDedicationsQuickCountsResponseAllMax = 9007199254740991;
+
+export const booksControllerDedicationsQuickCountsResponseFavoritesMin = 0;
+export const booksControllerDedicationsQuickCountsResponseFavoritesMax = 9007199254740991;
+
+export const booksControllerDedicationsQuickCountsResponseFinishedMin = 0;
+export const booksControllerDedicationsQuickCountsResponseFinishedMax = 9007199254740991;
+
+export const booksControllerDedicationsQuickCountsResponseUnfinishedMin = 0;
+export const booksControllerDedicationsQuickCountsResponseUnfinishedMax = 9007199254740991;
+
+export const BooksControllerDedicationsQuickCountsResponse = zod.object({
+  all: zod
+    .int()
+    .min(booksControllerDedicationsQuickCountsResponseAllMin)
+    .max(booksControllerDedicationsQuickCountsResponseAllMax),
+  favorites: zod
+    .int()
+    .min(booksControllerDedicationsQuickCountsResponseFavoritesMin)
+    .max(booksControllerDedicationsQuickCountsResponseFavoritesMax),
+  finished: zod
+    .int()
+    .min(booksControllerDedicationsQuickCountsResponseFinishedMin)
+    .max(booksControllerDedicationsQuickCountsResponseFinishedMax),
+  unfinished: zod
+    .int()
+    .min(booksControllerDedicationsQuickCountsResponseUnfinishedMin)
+    .max(booksControllerDedicationsQuickCountsResponseUnfinishedMax),
+});
+
+/**
  * @summary Get the current user dedications summary
  */
 export const booksControllerDedicationsSummaryResponseAvailableGenresItemMax = 64;

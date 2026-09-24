@@ -2,6 +2,7 @@ import type {
   BookDeletionResult,
   BookFacetsView,
   BookView,
+  DedicationsQuickCounts,
   DedicationsSummaryView,
   FavoritesSummaryView,
   LibraryOverviewView,
@@ -18,6 +19,7 @@ import {
   BookFacetsQuerySchema,
   CreateBookInputSchema,
   DedicationsQuerySchema,
+  DedicationsQuickCountsQuerySchema,
   LibraryBooksQuerySchema,
   LibraryOverviewQuerySchema,
   LibraryQuickCountsQuerySchema,
@@ -65,6 +67,7 @@ import { WishlistService } from "../application/wishlist.service.js";
 import { BookFacetsQueryDto } from "./input-dto/book-facets.input-dto.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { DedicationsQueryDto } from "./input-dto/dedications-query.input-dto.js";
+import { DedicationsQuickCountsQueryDto } from "./input-dto/dedications-quick-counts-query.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
 import { LibraryQuickCountsQueryDto } from "./input-dto/library-quick-counts-query.input-dto.js";
@@ -75,6 +78,7 @@ import { WishlistQueryDto } from "./input-dto/wishlist-query.input-dto.js";
 import { BookDeletionResultDto } from "./view-dto/book-deletion-result.view-dto.js";
 import { BookFacetsViewDto } from "./view-dto/book-facets.view-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
+import { DedicationsQuickCountsViewDto } from "./view-dto/dedications-quick-counts.view-dto.js";
 import { DedicationsSummaryViewDto } from "./view-dto/dedications.view-dto.js";
 import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
@@ -248,6 +252,23 @@ export class BooksController {
     @Query(new ZodQueryPipe(DedicationsQuerySchema)) query: DedicationsQueryDto,
   ): Promise<Paginator<BookView>> {
     return this.dedicationsService.getDedications({ query, userId: user.id });
+  }
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "How many dedications each quick filter would show under the given search and genre, ignoring the selected quick filter",
+    type: DedicationsQuickCountsViewDto,
+  })
+  @ApiOperation({ summary: "Count the current user dedications per quick filter" })
+  @Get("dedications/quick-counts")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  dedicationsQuickCounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(DedicationsQuickCountsQuerySchema))
+    query: DedicationsQuickCountsQueryDto,
+  ): Promise<DedicationsQuickCounts> {
+    return this.dedicationsService.getDedicationsQuickCounts({ query, userId: user.id });
   }
   @ApiOkResponse({
     description: "Dedications summary for the current user",
