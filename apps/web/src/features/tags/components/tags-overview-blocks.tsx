@@ -184,7 +184,7 @@ function OverviewBlock({ children, title }: { children: ReactNode; title: string
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
+      className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card"
     >
       <h2 className="font-heading text-sm font-semibold text-ink" id={headingId}>
         {title}
