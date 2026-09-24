@@ -4,6 +4,8 @@ import type {
   LibraryPublisherListItem,
   LibraryPublisherOverview,
   LibraryPublishersQuery,
+  LibraryPublishersQuickCounts,
+  LibraryPublishersQuickCountsQuery,
   LibraryPublishersSummary,
   Nullable,
   Paginator,
@@ -23,6 +25,7 @@ import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exce
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
+import { toLibraryPublisherCriteria } from "../domain/publisher-library-criteria.js";
 import {
   toLibraryPublisherDetail,
   toLibraryPublisherListItem,
@@ -43,6 +46,11 @@ type LibraryDetailInput = {
 
 type LibraryListInput = {
   query: LibraryPublishersQuery;
+  userId: string;
+};
+
+type LibraryQuickCountsInput = {
+  query: LibraryPublishersQuickCountsQuery;
   userId: string;
 };
 
@@ -128,27 +136,18 @@ export class PublishersService {
     query,
     userId,
   }: LibraryListInput): Promise<Paginator<LibraryPublisherListItem>> {
-    const { filter, geography, locale, order, pageNumber, pageSize, search, sort, source } = query;
-    const filters = { geography, search, source, userId };
-    const having = {
-      filter,
-      hasBooksToBuy: query.hasBooksToBuy === true,
-      hasQueue: query.hasQueue === true,
-      hasRatedBooks: query.hasRatedBooks === true,
-      hasSeries: query.hasSeries === true,
-      hasWantToRead: query.hasWantToRead === true,
-    };
+    const { filter, locale, order, pageNumber, pageSize, sort } = query;
+    const criteria = { ...toLibraryPublisherCriteria({ query, userId }), filter };
 
     const [rows, totalCount] = await Promise.all([
       this.publishersRepository.aggregateLibrary({
-        ...filters,
-        ...having,
+        ...criteria,
         locale,
         order,
         sort,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.publishersRepository.countLibrary({ ...filters, ...having }),
+      this.publishersRepository.countLibrary(criteria),
     ]);
 
     return buildPaginator({
@@ -180,6 +179,15 @@ export class PublishersService {
       buildCover: (asset) => this.mediaService.buildViewOrNull(asset),
       rows: { activeReading, latestBook, series, wishlist },
     });
+  }
+
+  libraryQuickCounts({
+    query,
+    userId,
+  }: LibraryQuickCountsInput): Promise<LibraryPublishersQuickCounts> {
+    return this.publishersRepository.countLibraryQuickFilters(
+      toLibraryPublisherCriteria({ query, userId }),
+    );
   }
 
   async librarySummary({ locale, userId }: LibrarySummaryInput): Promise<LibraryPublishersSummary> {

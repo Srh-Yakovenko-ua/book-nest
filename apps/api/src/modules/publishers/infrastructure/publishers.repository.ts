@@ -8,11 +8,12 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { LIBRARY_PUBLISHERS_INSIGHT_LIMITS } from "@app/shared";
+import { LIBRARY_PUBLISHERS_INSIGHT_LIMITS, LibraryPublishersQuickFilterSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import type { PublisherModel } from "../../../generated/prisma/models.js";
+import type { LibraryQuickCountTotals } from "../domain/publisher-library-quick-counts.js";
 import type {
   LibraryDetailStatsRow,
   LibraryStatsRow,
@@ -37,6 +38,13 @@ const PUBLISHER_STAT_SQL = {
   wantToBuyCount: Prisma.sql`count(b.id) FILTER (WHERE b.ownership_status = ${PUBLISHER_BOOK_STATUSES.wantToBuy})`,
   wantToReadCount: Prisma.sql`count(b.id) FILTER (WHERE b.reading_status = ${PUBLISHER_BOOK_STATUSES.wantToRead})`,
 };
+
+const LIBRARY_BOOKS_SOURCE_SQL = Prisma.sql`
+  FROM books b
+  JOIN publishers p ON p.id = b.publisher_id
+  LEFT JOIN book_reading_progress bp ON bp.book_id = b.id
+  LEFT JOIN series s ON s.id = b.series_id
+`;
 
 const SUMMARY_INSIGHT_LIMITS = {
   bestRatedMinRatedBooks: 3,
@@ -88,6 +96,14 @@ const SummaryCountsRowSchema = z.object({
 });
 
 const LibraryCountRowSchema = z.object({ count: z.number() });
+
+const LibraryQuickCountsRowSchema = z.object({
+  all: z.number(),
+  read: z.number(),
+  reading: z.number(),
+  series: z.number(),
+  to_buy: z.number(),
+} satisfies Record<LibraryPublishersQuickFilter, z.ZodNumber>);
 
 const InsightPublisherSchema = z.object({ id: z.string(), name: z.string() });
 
@@ -162,6 +178,8 @@ type AggregateLibraryInput = LibraryFilters &
 
 type CountLibraryInput = LibraryFilters & LibraryHavingFlags;
 
+type CountLibraryQuickFiltersInput = LibraryFilters & Omit<LibraryHavingFlags, "filter">;
+
 type LibraryDetailInput = {
   locale: CatalogLocale;
   publisherId: string;
@@ -235,6 +253,14 @@ type VisibleByIdsInput = {
   userId: string;
 };
 
+const LIBRARY_QUICK_COUNT_COLUMN: Record<LibraryPublishersQuickFilter, Prisma.Sql> = {
+  all: Prisma.sql`"all"`,
+  read: Prisma.sql`"read"`,
+  reading: Prisma.sql`"reading"`,
+  series: Prisma.sql`"series"`,
+  to_buy: Prisma.sql`"to_buy"`,
+};
+
 const LIBRARY_SORT_COLUMN: Record<LibraryPublishersSort, Prisma.Sql> = {
   averageRating: Prisma.sql`"averageRating"`,
   booksCount: Prisma.sql`"booksCount"`,
@@ -304,6 +330,35 @@ export class PublishersRepository {
         where: buildLibraryWhere(input),
       }),
     );
+  }
+
+  async countLibraryQuickFilters(
+    input: CountLibraryQuickFiltersInput,
+  ): Promise<LibraryQuickCountTotals> {
+    const keys = LibraryPublishersQuickFilterSchema.options;
+    const rows = await timeQuery("countLibraryQuickFilters", () =>
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT ${Prisma.join(
+          keys.map(
+            (key) =>
+              Prisma.sql`(count(*) FILTER (WHERE grouped.${LIBRARY_QUICK_COUNT_COLUMN[key]}))::int AS ${LIBRARY_QUICK_COUNT_COLUMN[key]}`,
+          ),
+        )}
+        FROM (
+          SELECT ${Prisma.join(
+            keys.map(
+              (key) =>
+                Prisma.sql`(${quickFilterCondition(key) ?? Prisma.sql`true`}) AS ${LIBRARY_QUICK_COUNT_COLUMN[key]}`,
+            ),
+          )}
+          ${LIBRARY_BOOKS_SOURCE_SQL}
+          WHERE ${buildLibraryWhere(input)}
+          GROUP BY b.publisher_id
+          ${buildLibraryHaving({ ...input, filter: "all" })}
+        ) grouped
+      `),
+    );
+    return z.tuple([LibraryQuickCountsRowSchema]).parse(rows)[0];
   }
 
   countVisible(userId: string, query: string | undefined): Promise<number> {
@@ -715,10 +770,7 @@ async function runLibraryAggregate(
 ): Promise<LibraryStatsRow[]> {
   const rows = await prisma.$queryRaw(Prisma.sql`
     SELECT ${libraryStatsColumns(locale)}
-    FROM books b
-    JOIN publishers p ON p.id = b.publisher_id
-    LEFT JOIN book_reading_progress bp ON bp.book_id = b.id
-    LEFT JOIN series s ON s.id = b.series_id
+    ${LIBRARY_BOOKS_SOURCE_SQL}
     WHERE ${where}
     GROUP BY p.id
     ${having}
@@ -736,10 +788,7 @@ async function runLibraryCount(
     SELECT (count(*))::int AS "count"
     FROM (
       SELECT b.publisher_id
-      FROM books b
-      JOIN publishers p ON p.id = b.publisher_id
-      LEFT JOIN book_reading_progress bp ON bp.book_id = b.id
-      LEFT JOIN series s ON s.id = b.series_id
+      ${LIBRARY_BOOKS_SOURCE_SQL}
       WHERE ${where}
       GROUP BY b.publisher_id
       ${having}
