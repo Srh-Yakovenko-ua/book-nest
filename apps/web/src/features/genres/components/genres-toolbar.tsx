@@ -114,12 +114,8 @@ export function GenresToolbar({ facets, query }: GenresToolbarProps) {
             if (filter !== undefined) query.setFilter(filter);
           }}
           options={GENRES_QUERY.quickFilters.map((option) => ({
-            label: (
-              <QuickFilterLabel
-                count={facets?.quickCounts[option]}
-                label={t(`quickFilter.${option}`)}
-              />
-            ),
+            count: facets?.quickCounts[option],
+            label: t(`quickFilter.${option}`),
             value: option,
           }))}
           size="sm"
@@ -147,18 +143,5 @@ export function GenresToolbarSkeleton() {
         ))}
       </div>
     </div>
-  );
-}
-
-function QuickFilterLabel({ count, label }: { count: number | undefined; label: string }) {
-  return (
-    <>
-      {label}
-      {count === undefined ? null : (
-        <span className="text-muted-foreground tabular-nums in-data-[state=on]:text-primary-foreground">
-          {count}
-        </span>
-      )}
-    </>
   );
 }

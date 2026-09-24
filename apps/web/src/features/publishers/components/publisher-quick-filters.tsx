@@ -19,7 +19,7 @@ export function PublisherQuickFilters({ onChange, value }: PublisherQuickFilters
   return (
     <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
       <ChipGroup
-        className="flex-nowrap max-sm:[&_[data-slot=chip]]:min-h-11"
+        className="flex-nowrap"
         label={t("label")}
         mode="single"
         onValueChange={(next) => {
