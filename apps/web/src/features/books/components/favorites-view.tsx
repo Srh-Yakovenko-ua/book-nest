@@ -27,13 +27,14 @@ import {
 import { useLibraryBooks } from "../api/use-books";
 import { useFavoritesSummary } from "../api/use-favorites-summary";
 import { useGenres } from "../api/use-genres";
+import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
 import { useTagsSearch } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
 import {
   activeQuickFilter,
-  quickFilterCounts,
   quickFilterPatch,
+  toLibraryQuickCountsParams,
 } from "../model/library-quick-filters";
 import { countAdvancedFilterChips, useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
@@ -71,6 +72,9 @@ export function FavoritesView() {
     isPending,
     refetch,
   } = useLibraryBooks(library.listParams);
+  const quickCounts = useLibraryQuickCounts(
+    toLibraryQuickCountsParams(library.listParams, FAVORITES_SCOPE),
+  );
   const summary = useFavoritesSummary();
   const genres = useGenres();
   const tags = useTagsSearch("");
@@ -448,7 +452,7 @@ export function FavoritesView() {
         onViewChange={library.setView}
         quickFilters={
           <LibraryQuickFilters
-            counts={summary.data === undefined ? undefined : quickFilterCounts(summary.data)}
+            counts={quickCounts.data}
             onSelect={(key) => void library.setState(quickFilterPatch(key))}
             scope={FAVORITES_SCOPE}
             value={activeQuickFilter(library.state)}

@@ -39,6 +39,9 @@ function mockApi({ books, total }: { books: BookView[]; total: number }) {
     const url = new URL(String(input), "http://localhost");
     if (url.pathname === "/api/books/overview")
       return Promise.resolve(jsonResponse(overview(total)));
+    if (url.pathname === "/api/books/quick-counts") {
+      return Promise.resolve(jsonResponse(quickCounts(total)));
+    }
     if (url.pathname === "/api/books/facets") {
       return Promise.resolve(jsonResponse({ authors: [], genres: [] }));
     }
@@ -64,6 +67,21 @@ function overview(total: number) {
     },
     topGenres: [],
     topTags: [],
+  };
+}
+
+function quickCounts(total: number) {
+  return {
+    all: total,
+    borrowed: 0,
+    favorites: 0,
+    finished: 0,
+    in_transit: 0,
+    reading: 0,
+    series: 0,
+    solo: total,
+    want_to_buy: 0,
+    want_to_read: 0,
   };
 }
 
@@ -105,6 +123,18 @@ describe("PublisherBooksTab", () => {
   });
 
   it("scopes the quick-filter counts to the fixed publisher", async () => {
+    mockApi({ books: [makeBookView()], total: 1 });
+    renderTab("?publisher=other&q=дюна");
+
+    await waitFor(() => expect(requests("/api/books/quick-counts")).not.toHaveLength(0));
+    const [request] = requests("/api/books/quick-counts");
+    expect(request?.searchParams.getAll("publisher")).toEqual([PUBLISHER_ID]);
+    expect(request?.searchParams.get("searchPublisher")).toBe("false");
+    expect(request?.searchParams.get("q")).toBe("дюна");
+    expect(request?.searchParams.get("scope")).toBe("all");
+  });
+
+  it("keeps the library total on the overview scoped to the fixed publisher", async () => {
     mockApi({ books: [makeBookView()], total: 1 });
     renderTab();
 
