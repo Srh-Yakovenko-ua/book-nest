@@ -310,3 +310,38 @@ describe("CharacterEditPage aliases", () => {
     expect(patchCount()).toBe(0);
   });
 });
+
+describe("CharacterEditPage narrative metadata", () => {
+  it("reveals the narrator control only while the character is a point of view", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(screen.queryByText("Тип наратора")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("switch", { name: "POV-персонаж" }));
+
+    expect(await screen.findByText("Тип наратора")).toBeInTheDocument();
+  });
+
+  it("refuses a page that is not a number and sends nothing", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: "Сторінка" }), "сорок");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    expect(await screen.findByText("Вкажіть номер сторінки числом")).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("keeps a non-numeric chapter exactly as typed", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: "Розділ" }), "Пролог");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("firstAppearanceChapter", "Пролог");
+  });
+});

@@ -35,6 +35,7 @@ import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
 import {
   BookCharacterInheritanceSection,
   BookCharacterMainSection,
+  BookCharacterNarrativeSection,
   CharacterAliasesSection,
   CharacterGlobalSection,
 } from "./character-edit-sections";
@@ -106,6 +107,7 @@ function CharacterEditForm({
         aliasReservedBook: tAliases("errorSameAsDisplayName"),
         aliasReservedGlobal: tAliases("errorSameAsName"),
         customGenderRequired: tErrors("customGenderRequired"),
+        firstAppearancePageInvalid: t("firstAppearancePageInvalid"),
         nameRequired: tErrors("nameRequired"),
         nameTooLong: tErrors("nameTooLong", { max: CHARACTER_NAME_MAX }),
       }),
@@ -180,6 +182,16 @@ function CharacterEditForm({
     <form className="flex flex-col gap-6" noValidate onSubmit={onSubmit}>
       {contextBookId === null ? null : (
         <BookCharacterMainSection control={control} register={register} />
+      )}
+
+      {contextBookId === null ? null : (
+        <BookCharacterNarrativeSection
+          control={control}
+          pageError={
+            <FieldError error={errors.book?.firstAppearancePage} id="character-first-page-error" />
+          }
+          register={register}
+        />
       )}
 
       {contextBookId === null ? null : (

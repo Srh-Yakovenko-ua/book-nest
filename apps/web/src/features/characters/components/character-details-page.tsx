@@ -182,6 +182,7 @@ function BookContextSection({
   revealing: boolean;
 }) {
   const t = useTranslations("characters.page");
+  const tNarrator = useTranslations("characters.narratorType");
   const tRole = useTranslations("characters.roleType");
   const tStatus = useTranslations("characters.status");
 
@@ -255,6 +256,12 @@ function BookContextSection({
         revealing={revealing}
         value={appearance.speciesOverride}
       />
+
+      {appearance.isPovCharacter && appearance.narratorType !== null ? (
+        <dl>
+          <Field label={t("narratorType")}>{tNarrator(appearance.narratorType)}</Field>
+        </dl>
+      ) : null}
 
       <FirstAppearance appearance={appearance} />
 
@@ -481,8 +488,13 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 function FirstAppearance({ appearance }: { appearance: BookCharacterView }) {
   const t = useTranslations("characters.page");
 
+  const chapter = appearance.firstAppearanceChapter;
   const parts = [
-    appearance.firstAppearanceChapter,
+    chapter === null
+      ? null
+      : /^\d+$/.test(chapter)
+        ? t("firstAppearanceChapter", { chapter })
+        : chapter,
     appearance.firstAppearancePage === null
       ? null
       : t("firstAppearancePage", { page: appearance.firstAppearancePage }),

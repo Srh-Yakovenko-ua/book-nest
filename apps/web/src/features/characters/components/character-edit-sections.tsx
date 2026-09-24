@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 import type { CharacterEditValues } from "../model/character-edit-form";
@@ -28,6 +29,7 @@ import {
   ENTITY_KIND_OPTIONS,
   GENDER_CUSTOM,
   GENDER_OPTIONS,
+  NARRATOR_TYPE_OPTIONS,
 } from "../model/character-options";
 import { CharacterAliasGroup } from "./character-alias-group";
 import {
@@ -227,6 +229,97 @@ export function BookCharacterMainSection({
           id="character-personal-impression"
           rows={3}
           {...register("book.personalImpression")}
+        />
+      </LabeledField>
+    </EditSection>
+  );
+}
+
+export function BookCharacterNarrativeSection({
+  control,
+  pageError,
+  register,
+}: {
+  control: EditControl;
+  pageError: ReactNode;
+  register: EditRegister;
+}) {
+  const t = useTranslations("characters.edit");
+  const tNarrator = useTranslations("characters.narratorType");
+
+  const isPov = useWatch({ control, name: "book.isPovCharacter" });
+
+  return (
+    <EditSection description={t("narrativeSectionHint")} title={t("narrativeSection")}>
+      <Controller
+        control={control}
+        name="book.isPovCharacter"
+        render={({ field }) => (
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <Switch checked={field.value} onCheckedChange={field.onChange} />
+            {t("pov")}
+          </label>
+        )}
+      />
+
+      {isPov ? (
+        <Controller
+          control={control}
+          name="book.narratorType"
+          render={({ field }) => (
+            <LabeledField htmlFor="character-narrator-type" label={t("narratorType")}>
+              <Select
+                onValueChange={(next) => field.onChange(toNarratorType(next))}
+                value={field.value ?? ""}
+              >
+                <SelectTrigger
+                  className="w-full data-[size=default]:h-10"
+                  clearLabel={t("clearNarratorType")}
+                  id="character-narrator-type"
+                  isClearable={field.value !== null}
+                  onClear={() => field.onChange(null)}
+                >
+                  <SelectValue placeholder={t("narratorTypePlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {NARRATOR_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {tNarrator(option)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </LabeledField>
+          )}
+        />
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <LabeledField htmlFor="character-first-chapter" label={t("firstAppearanceChapter")}>
+          <Input
+            className="h-10"
+            id="character-first-chapter"
+            placeholder={t("firstAppearanceChapterPlaceholder")}
+            {...register("book.firstAppearanceChapter")}
+          />
+        </LabeledField>
+
+        <LabeledField htmlFor="character-first-page" label={t("firstAppearancePage")}>
+          <Input
+            className="h-10"
+            id="character-first-page"
+            inputMode="numeric"
+            {...register("book.firstAppearancePage")}
+          />
+          {pageError}
+        </LabeledField>
+      </div>
+
+      <LabeledField htmlFor="character-first-note" label={t("firstAppearanceNote")}>
+        <Input
+          className="h-10"
+          id="character-first-note"
+          {...register("book.firstAppearanceNote")}
         />
       </LabeledField>
     </EditSection>
@@ -484,4 +577,8 @@ function MaskedOr({
 function textOrNull(value: string): null | string {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function toNarratorType(value: string): CharacterEditValues["book"]["narratorType"] {
+  return NARRATOR_TYPE_OPTIONS.find((option) => option === value) ?? null;
 }

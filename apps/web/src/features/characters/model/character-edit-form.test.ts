@@ -121,3 +121,53 @@ describe("resolveInherited", () => {
     });
   });
 });
+
+describe("first appearance", () => {
+  it("round-trips a non-numeric chapter and keeps the page optional", () => {
+    const values = toCharacterEditValues(character, "book-1");
+
+    expect(toBookUpdate({ ...values.book, firstAppearanceChapter: "Пролог" })).toMatchObject({
+      firstAppearanceChapter: "Пролог",
+      firstAppearancePage: null,
+    });
+  });
+
+  it("accepts a positive page and rejects anything else", () => {
+    const values = toCharacterEditValues(character, "book-1");
+
+    expect(toBookUpdate({ ...values.book, firstAppearancePage: "47" })).toMatchObject({
+      firstAppearancePage: 47,
+    });
+    expect(toBookUpdate({ ...values.book, firstAppearancePage: "0" })).toMatchObject({
+      firstAppearancePage: null,
+    });
+    expect(toBookUpdate({ ...values.book, firstAppearancePage: "сорок" })).toMatchObject({
+      firstAppearancePage: null,
+    });
+  });
+
+  it("does not require one first-appearance field because another is filled", () => {
+    const values = toCharacterEditValues(character, "book-1");
+
+    expect(
+      toBookUpdate({ ...values.book, firstAppearanceNote: "З'являється у трактирі" }),
+    ).toMatchObject({
+      firstAppearanceChapter: null,
+      firstAppearanceNote: "З'являється у трактирі",
+      firstAppearancePage: null,
+    });
+  });
+});
+
+describe("point of view", () => {
+  it("clears the narrator type once the character stops being a point of view", () => {
+    const values = toCharacterEditValues(character, "book-1");
+    const pov = { ...values.book, isPovCharacter: true, narratorType: "unreliable" } as const;
+
+    expect(toBookUpdate(pov)).toMatchObject({ isPovCharacter: true, narratorType: "unreliable" });
+    expect(toBookUpdate({ ...pov, isPovCharacter: false })).toMatchObject({
+      isPovCharacter: false,
+      narratorType: null,
+    });
+  });
+});

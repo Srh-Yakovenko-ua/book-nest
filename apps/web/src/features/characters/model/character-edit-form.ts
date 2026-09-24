@@ -3,6 +3,7 @@ import type { CharacterDetailsView, UpdateBookCharacter, UpdateCharacter } from 
 import {
   BOOK_CHARACTER_UNSPECIFIED,
   BookCharacterImportanceSchema,
+  BookCharacterNarratorTypeSchema,
   BookCharacterRoleTypeSchema,
   BookCharacterStatusSchema,
   CharacterAliasTypeSchema,
@@ -23,6 +24,7 @@ export type CharacterEditMessages = {
   aliasReservedBook: string;
   aliasReservedGlobal: string;
   customGenderRequired: string;
+  firstAppearancePageInvalid: string;
   nameRequired: string;
   nameTooLong: string;
 };
@@ -44,7 +46,12 @@ const BookScopeSchema = z.object({
   attitude: CharacterAttitudeSchema.nullable(),
   description: z.string(),
   displayName: z.string().nullable(),
+  firstAppearanceChapter: z.string(),
+  firstAppearanceNote: z.string(),
+  firstAppearancePage: z.string(),
   importance: BookCharacterImportanceSchema,
+  isPovCharacter: z.boolean(),
+  narratorType: BookCharacterNarratorTypeSchema.nullable(),
   personalImpression: z.string(),
   portraitMediaId: z.string().nullable(),
   roles: z.array(
@@ -90,6 +97,14 @@ export function buildCharacterEditSchema(messages: CharacterEditMessages) {
         }),
     })
     .superRefine((value, ctx) => {
+      if (parseFirstAppearancePage(value.book.firstAppearancePage) === "invalid") {
+        ctx.addIssue({
+          code: "custom",
+          message: messages.firstAppearancePageInvalid,
+          path: ["book", "firstAppearancePage"],
+        });
+      }
+
       addAliasIssues({
         aliases: value.global.aliases,
         ctx,
@@ -116,7 +131,12 @@ export function emptyBookScopeValues(): CharacterEditValues["book"] {
     attitude: null,
     description: "",
     displayName: null,
+    firstAppearanceChapter: "",
+    firstAppearanceNote: "",
+    firstAppearancePage: "",
     importance: BOOK_CHARACTER_UNSPECIFIED.importance,
+    isPovCharacter: false,
+    narratorType: null,
     personalImpression: "",
     portraitMediaId: null,
     roles: [],
@@ -157,10 +177,17 @@ export function toBookUpdate(
     speciesOverride: values.speciesOverride === null ? null : textOrNull(values.speciesOverride),
   };
 
+  const page = parseFirstAppearancePage(values.firstAppearancePage);
+
   return {
     aliases: toAliasPayload(values.aliases),
     description: textOrNull(values.description),
+    firstAppearanceChapter: textOrNull(values.firstAppearanceChapter),
+    firstAppearanceNote: textOrNull(values.firstAppearanceNote),
+    firstAppearancePage: page === "invalid" ? null : page,
     importance: values.importance,
+    isPovCharacter: values.isPovCharacter,
+    narratorType: values.isPovCharacter ? values.narratorType : null,
     personalImpression: textOrNull(values.personalImpression),
     roles: values.roles.map((role, index) => ({
       customRole: role.roleType === "custom" ? textOrNull(role.customRole) : null,
@@ -193,7 +220,13 @@ export function toCharacterEditValues(
             attitude: appearance.attitude,
             description: appearance.description ?? "",
             displayName: appearance.displayName,
+            firstAppearanceChapter: appearance.firstAppearanceChapter ?? "",
+            firstAppearanceNote: appearance.firstAppearanceNote ?? "",
+            firstAppearancePage:
+              appearance.firstAppearancePage === null ? "" : String(appearance.firstAppearancePage),
             importance: appearance.importance,
+            isPovCharacter: appearance.isPovCharacter,
+            narratorType: appearance.narratorType,
             personalImpression: appearance.personalImpression ?? "",
             portraitMediaId: appearance.portrait?.id ?? null,
             roles: appearance.roles.map((role) => ({
@@ -273,6 +306,14 @@ function isSamePayload(left: unknown, right: unknown): boolean {
 
 function maskedKeyOf(payloadKey: string): string {
   return payloadKey === "portraitMediaId" ? "portrait" : payloadKey;
+}
+
+function parseFirstAppearancePage(value: string): "invalid" | null | number {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  if (!/^\d+$/.test(trimmed)) return "invalid";
+  const parsed = Number(trimmed);
+  return parsed > 0 ? parsed : "invalid";
 }
 
 function textOrNull(value: string): null | string {
