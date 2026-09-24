@@ -23,7 +23,7 @@ import type {
 import { GenreCard } from "./genre-card";
 
 const GENRES_GRID = {
-  className: "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
+  className: "grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3",
   firstCardLink: "a[href]",
   skeletonCount: 6,
   skeletonCovers: 4,

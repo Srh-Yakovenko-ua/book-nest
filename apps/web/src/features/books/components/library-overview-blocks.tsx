@@ -1,11 +1,12 @@
 "use client";
 
+import type { TagView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { cn } from "@/lib/utils";
 
 import type { LibraryBookLinkComponent } from "../model/library-book";
@@ -25,10 +26,7 @@ export type LibraryOverviewGenre = {
   name: string;
 };
 
-export type LibraryOverviewTag = {
-  id: string;
-  name: string;
-};
+export type LibraryOverviewTag = TagView;
 
 const VISIBLE_LIMIT = 3;
 
@@ -120,13 +118,13 @@ export function LibraryTopTagsBlock({
   return (
     <ul className="flex flex-wrap gap-1.5">
       {tags.slice(0, VISIBLE_LIMIT).map((tag) => (
-        <li
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium text-tag-foreground"
+        <TagChip
+          as="li"
+          className="py-0.5 text-xs"
+          color={tag.color}
           key={tag.id}
-        >
-          <UiIcon className="text-icon" name="tag" size={12} />
-          {tag.name}
-        </li>
+          name={tag.name}
+        />
       ))}
     </ul>
   );

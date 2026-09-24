@@ -73,7 +73,7 @@ export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): Ser
     rating: null,
     readingStatus: "finished",
     startedAt: null,
-    tags: [{ id: "tag-1", name: "дракони" }],
+    tags: [{ color: "rose", id: "tag-1", name: "дракони" }],
     title: "Четверте крило",
     ...overrides,
   };
@@ -254,7 +254,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     pagesCount: 1520,
     readingInSeries: 1,
     status: "ongoing",
-    tags: [{ id: "tag-1", name: "дракони" }],
+    tags: [{ color: "honey", id: "tag-1", name: "дракони" }],
     totalBooks: 5,
     ...overrides,
   };

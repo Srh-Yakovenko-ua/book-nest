@@ -479,6 +479,9 @@
   "localePicker": {
     "ariaLabel": "Language"
   },
+  "facetMultiselect": {
+    "remove": "Remove {label}"
+  },
   "auth": {
     "common": {
       "submit": "Continue",
@@ -6581,11 +6584,12 @@
     },
     "sidebar": {
       "label": "Tags overview",
+      "countShare": "{count, plural, one {<strong>#</strong> tag} other {<strong>#</strong> tags}} · {share}",
       "attention": {
         "title": "Needs attention",
         "unused": "{count, plural, one {# tag isn’t used yet} other {# tags aren’t used yet}}",
-        "action": "Show unused",
-        "allUsed": "Every tag is in use, nothing needs attention."
+        "allUsed": "All tags are in use",
+        "detail": "Not linked to any book or character"
       },
       "structure": {
         "title": "Tag structure",
@@ -6600,7 +6604,9 @@
       },
       "palette": {
         "title": "Tag palette",
-        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}"
+        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}",
+        "count": "{count, plural, one {# tag} other {# tags}}",
+        "tooltip": "{color} · {count, plural, one {# tag} other {# tags}}"
       }
     },
     "toolbar": {
@@ -6608,7 +6614,10 @@
       "searchTagsPlaceholder": "Search by name or description…",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
-      "quickFilterLabel": "Quick tag filters"
+      "quickFilterLabel": "Quick tag filters",
+      "viewLabel": "View",
+      "viewGrid": "Grid",
+      "viewList": "List"
     },
     "sortMobile": {
       "title": "Sorting",
@@ -6664,6 +6673,14 @@
       "format": "Format",
       "custom": "Custom tag"
     },
+    "typeBadge": {
+      "trope": "Trope",
+      "atmosphere": "Atmosphere",
+      "theme": "Theme",
+      "character": "Character",
+      "format": "Format",
+      "custom": "Custom tag"
+    },
     "colors": {
       "parchment": "Parchment",
       "terracotta": "Terracotta",
@@ -6674,6 +6691,12 @@
       "lavender": "Lavender",
       "rose": "Dusty rose"
     },
+    "colorPalette": {
+      "selected": "Selected: {colors}",
+      "none": "No colour selected",
+      "preview": "Preview",
+      "previewPlaceholder": "Tag name"
+    },
     "catalog": {
       "title": "Tag catalog",
       "loading": "Loading tags",
@@ -6682,13 +6705,14 @@
       "loadMoreError": "Could not load more tags.",
       "retry": "Try again"
     },
-    "row": {
+    "item": {
       "books": "Books",
       "characters": "Characters",
-      "usage": "Total",
+      "unused": "Not used yet",
       "color": "Colour: {color}",
-      "edit": "Edit tag “{name}”",
-      "delete": "Delete tag “{name}”"
+      "actions": "Actions for tag “{name}”",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "tagDialog": {
       "addTitle": "Add tag",

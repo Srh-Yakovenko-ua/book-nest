@@ -28,8 +28,9 @@ describe("tags URL state", () => {
       color: [],
       filter: "all",
       q: "",
-      sort: "usage_count_desc",
+      sort: "created_desc",
       type: [],
+      view: "grid",
     });
   });
 
@@ -48,7 +49,7 @@ describe("tags URL state", () => {
   it("falls back to the defaults for invalid enum values", () => {
     const state = stateFrom("filter=bogus&sort=bogus");
     expect(state.filter).toBe("all");
-    expect(state.sort).toBe("usage_count_desc");
+    expect(state.sort).toBe("created_desc");
   });
 
   it("drops invalid array members instead of carrying them into live state", () => {
@@ -66,9 +67,15 @@ describe("tags URL state", () => {
     expect(serializeTagsQuery({ color: toArrayPatch([]), type: toArrayPatch([]) })).toBe("");
   });
 
-  it("never serializes pagination or view state", () => {
+  it("never serializes pagination state", () => {
     const url = serializeTagsQuery({ filter: "used", q: "war", sort: "name_asc" });
-    expect(url).not.toMatch(/pageNumber|pageSize|view/);
+    expect(url).not.toMatch(/pageNumber|pageSize/);
+  });
+
+  it("keeps the default grid view out of the URL and writes only the list view", () => {
+    expect(serializeTagsQuery({ view: "grid" })).toBe("");
+    expect(serializeTagsQuery({ view: "list" })).toBe("?view=list");
+    expect(stateFrom("view=bogus").view).toBe("grid");
   });
 });
 

@@ -23,7 +23,10 @@ export function useIsTextClamped<TElement extends HTMLElement>(
     if (element === null) return;
 
     const measure = () => {
-      setIsClamped(element.scrollHeight > element.clientHeight + OVERFLOW_TOLERANCE_PX);
+      setIsClamped(
+        element.scrollHeight > element.clientHeight + OVERFLOW_TOLERANCE_PX ||
+          element.scrollWidth > element.clientWidth + OVERFLOW_TOLERANCE_PX,
+      );
     };
 
     measure();

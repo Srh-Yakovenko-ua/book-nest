@@ -353,7 +353,7 @@ describe("TagsService.search", () => {
     });
 
     expect(page).toEqual({
-      items: [{ id: TAG_ID, name: "dark academia" }],
+      items: [{ color: "parchment", id: TAG_ID, name: "dark academia" }],
       page: 1,
       pagesCount: 1,
       pageSize: 10,

@@ -6,10 +6,7 @@ import type { KeyboardEvent } from "react";
 import { TAG_COLORS } from "@app/shared";
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
-import { cn } from "@/lib/utils";
-
-import { tagColorStyle } from "../model/tag-color";
+import { TAG_COLOR_SWATCH, TagColorSelection, TagColorSwatchButton } from "./tag-color-swatch";
 
 type TagColorPickerProps = {
   labelledBy: string;
@@ -41,42 +38,34 @@ export function TagColorPicker({ labelledBy, onChange, value }: TagColorPickerPr
     if (next === undefined) return;
     event.preventDefault();
     onChange(next);
-    event.currentTarget.parentElement
+    event.currentTarget
+      .closest("[role=radiogroup]")
       ?.querySelector<HTMLButtonElement>(`[data-color="${next}"]`)
       ?.focus();
   }
 
   return (
-    <div aria-labelledby={labelledBy} className="grid grid-cols-2 gap-2" role="radiogroup">
-      {TAG_COLORS.map((color) => {
-        const selected = color === value;
-        return (
-          <button
-            aria-checked={selected}
-            className={cn(
-              "flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-2 text-left text-xs font-medium transition-[box-shadow,border-color] outline-none",
-              "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-              selected ? "border-ring ring-[3px] ring-ring/30" : "hover:border-accent-border",
-            )}
-            data-color={color}
-            key={color}
-            onClick={() => onChange(color)}
-            onKeyDown={moveSelection}
-            role="radio"
-            style={tagColorStyle(color)}
-            tabIndex={selected ? 0 : -1}
-            type="button"
-          >
-            <span
-              className="grid size-4 shrink-0 place-items-center rounded-full border"
-              style={{ borderColor: "currentColor" }}
-            >
-              {selected ? <UiIcon name="check" size={12} /> : null}
-            </span>
-            <span className="leading-snug">{t(color)}</span>
-          </button>
-        );
-      })}
+    <div className="flex flex-col gap-2">
+      <div aria-labelledby={labelledBy} className={TAG_COLOR_SWATCH.grid} role="radiogroup">
+        {TAG_COLORS.map((color) => {
+          const selected = color === value;
+          return (
+            <TagColorSwatchButton
+              aria-checked={selected}
+              aria-label={t(color)}
+              color={color}
+              isSelected={selected}
+              key={color}
+              onClick={() => onChange(color)}
+              onKeyDown={moveSelection}
+              role="radio"
+              tabIndex={selected ? 0 : -1}
+              tooltip={t(color)}
+            />
+          );
+        })}
+      </div>
+      <TagColorSelection colors={[value]} />
     </div>
   );
 }

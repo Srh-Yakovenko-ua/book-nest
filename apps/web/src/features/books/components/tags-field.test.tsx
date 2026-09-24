@@ -9,8 +9,8 @@ import type { CreateBookFormValues } from "../model/create-book-form";
 import { TagsField } from "./tags-field";
 
 const SAVED_TAGS = [
-  { id: "tag-slow-burn", name: "slow burn" },
-  { id: "tag-cozy", name: "cozy" },
+  { color: "sage", id: "tag-slow-burn", name: "slow burn" },
+  { color: "rose", id: "tag-cozy", name: "cozy" },
 ];
 
 beforeEach(() => {

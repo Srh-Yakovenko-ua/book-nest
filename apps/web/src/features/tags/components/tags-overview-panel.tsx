@@ -92,6 +92,7 @@ export function TagsOverviewPanel({
         badge: data.usageDistribution.unused,
         content: (
           <TagsAttentionBlock
+            isShowingUnused={query.state.filter === "unused"}
             onShowUnused={() => panel.closeThen(() => query.setFilter("unused"))}
             summary={data}
           />

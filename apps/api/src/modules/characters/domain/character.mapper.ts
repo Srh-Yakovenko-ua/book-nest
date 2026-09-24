@@ -9,6 +9,7 @@ import type {
   MediaView,
   Nullable,
   SeriesCharacterAppearanceView,
+  TagViewSource,
 } from "@app/shared";
 
 import {
@@ -21,6 +22,7 @@ import {
   CharacterEntityKindSchema,
   CharacterFormTypeSchema,
   CharacterGenderSchema,
+  toTagView,
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 
@@ -113,7 +115,7 @@ export type GlobalSummaryCharacterSource = {
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
   species: Nullable<string>;
-  tags: { tag: { id: string; name: string } }[];
+  tags: { tag: TagViewSource }[];
 };
 
 export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
@@ -311,7 +313,7 @@ export function toCharacterGlobalSummaryView({
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
-    tags: character.tags.map((link) => ({ id: link.tag.id, name: link.tag.name })),
+    tags: character.tags.map((link) => toTagView(link.tag)),
   };
 }
 

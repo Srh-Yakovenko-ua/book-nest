@@ -1,5 +1,7 @@
 "use client";
 
+import type { TagColor } from "@app/shared";
+
 import { TAG_COLORS, TagTypeSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -22,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 import type { TagsAdvancedFiltersValue } from "../model/use-tag-query";
 
-import { tagColorStyle } from "../model/tag-color";
+import { TAG_COLOR_SWATCH, TagColorSelection, TagColorSwatchButton } from "./tag-color-swatch";
 
 type TagsAdvancedFiltersProps = {
   onApply: (filters: TagsAdvancedFiltersValue) => void;
@@ -86,26 +88,28 @@ export function TagsAdvancedFilters({ onApply, value }: TagsAdvancedFiltersProps
           </FilterSection>
 
           <FilterSection title={t("sections.colors")}>
-            <ChipGroup
-              label={t("sections.colors")}
-              mode="multi"
-              onValueChange={(next) =>
-                setDraft((prev) => ({ ...prev, color: parseAll(next, TAG_COLORS) }))
-              }
-              options={TAG_COLORS.map((color) => ({
-                icon: (
-                  <span
-                    aria-hidden
-                    className="size-3.5 rounded-full border"
-                    style={tagColorStyle(color)}
-                  />
-                ),
-                label: tColor(color),
-                value: color,
-              }))}
-              size="sm"
-              value={draft.color}
-            />
+            <div className="flex flex-col gap-2">
+              <ul aria-label={t("sections.colors")} className={TAG_COLOR_SWATCH.grid}>
+                {TAG_COLORS.map((color) => {
+                  const isSelected = draft.color.includes(color);
+                  return (
+                    <li key={color}>
+                      <TagColorSwatchButton
+                        aria-label={tColor(color)}
+                        aria-pressed={isSelected}
+                        color={color}
+                        isSelected={isSelected}
+                        onClick={() =>
+                          setDraft((prev) => ({ ...prev, color: toggleColor(prev.color, color) }))
+                        }
+                        tooltip={tColor(color)}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+              <TagColorSelection colors={draft.color} />
+            </div>
           </FilterSection>
         </div>
 
@@ -130,4 +134,10 @@ export function TagsAdvancedFilters({ onApply, value }: TagsAdvancedFiltersProps
 
 function parseAll<TValue extends string>(values: string[], allowed: readonly TValue[]): TValue[] {
   return allowed.filter((option) => values.includes(option));
+}
+
+function toggleColor(colors: readonly TagColor[], color: TagColor): TagColor[] {
+  return colors.includes(color)
+    ? colors.filter((selected) => selected !== color)
+    : TAG_COLORS.filter((option) => option === color || colors.includes(option));
 }

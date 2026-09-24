@@ -1,12 +1,17 @@
-import type { TagView } from "@app/shared";
-
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { TAG_COLORS, type TagColor, type TagView } from "@app/shared";
+import {
+  type InfiniteData,
+  keepPreviousData,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { z } from "zod";
 
 import { tagsKeys } from "@/features/tags/api/tags-keys";
 import { tagsControllerSearch } from "@/shared/api/generated/endpoints/tags/tags";
 
 const tagViewSchema = z.object({
+  color: z.enum(TAG_COLORS),
   id: z.string(),
   name: z.string(),
 }) satisfies z.ZodType<TagView>;
@@ -22,6 +27,21 @@ const tagsSearchResultSchema = z.object({
 type TagsSearchPage = z.infer<typeof tagsSearchResultSchema>;
 
 const TAGS_SEARCH_PAGE_SIZE = 20;
+
+export function useSearchedTagColors(): ReadonlyMap<string, TagColor> {
+  const queryClient = useQueryClient();
+  const searches = queryClient.getQueriesData<InfiniteData<TagsSearchPage>>({
+    queryKey: tagsKeys.pickers,
+  });
+
+  return new Map(
+    searches.flatMap(([, data]) =>
+      (data?.pages ?? []).flatMap((page) =>
+        page.items.map((tag) => [tag.name.toLowerCase(), tag.color] as const),
+      ),
+    ),
+  );
+}
 
 export function useTagsSearch(search: string) {
   const trimmed = search.trim();

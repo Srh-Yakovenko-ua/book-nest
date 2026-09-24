@@ -25,6 +25,7 @@ export const tagsKeys = {
   deletionPreview: (id: string) => [...family("deletion-preview"), id] as const,
   facets: (params: TagsFacetsParams) => [...family("facets"), params] as const,
   picker: (term: string) => [...family("picker"), term] as const,
+  pickers: family("picker"),
   summary: family("summary"),
 };
 
@@ -51,5 +52,5 @@ export async function invalidateTagMetadataQueries(queryClient: QueryClient): Pr
 }
 
 export async function invalidateTagPickerQueries(queryClient: QueryClient): Promise<void> {
-  await queryClient.invalidateQueries({ queryKey: family("picker") });
+  await queryClient.invalidateQueries({ queryKey: tagsKeys.pickers });
 }

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { useDedicationActions } from "@/features/dedications";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";
@@ -221,7 +222,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
                   </span>
                 </div>
                 <Link
-                  className="inline-flex shrink-0 items-center gap-1 rounded text-xs font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-sm text-xs font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   href="/dedications"
                 >
                   {t("details.dedicationAllLink")}
@@ -283,16 +284,16 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
       {book.tags.length === 0 ? null : (
         <ul className="flex flex-wrap gap-1.5 border-t border-[color-mix(in_srgb,var(--border)_70%,transparent)] pt-4">
           {book.tags.map((tag, index) => (
-            <li
+            <TagChip
+              as="li"
               className={cn(
-                "inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs font-medium text-foreground/80",
+                "text-xs",
                 !tagsExpanded && index >= MOBILE_HERO_LIMITS.tagsShown && "max-sm:hidden",
               )}
+              color={tag.color}
               key={tag.id}
-            >
-              <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
-              <span className="min-w-0 truncate">{tag.name}</span>
-            </li>
+              name={tag.name}
+            />
           ))}
           {hiddenTagsCount > 0 && !tagsExpanded ? (
             <li className="sm:hidden">

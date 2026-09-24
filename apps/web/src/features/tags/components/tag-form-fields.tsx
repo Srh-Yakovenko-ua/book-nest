@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import type { TagFormValues } from "../model/tag-form";
 
+import { TagChip } from "./tag-chip";
 import { TagColorPicker } from "./tag-color-picker";
 
 type TagFormFieldsProps = {
@@ -36,7 +37,10 @@ type TagFormFieldsProps = {
 export function TagFormFields({ control, errors, idPrefix, register }: TagFormFieldsProps) {
   const t = useTranslations("tags.tagDialog");
   const tType = useTranslations("tags.types");
+  const tPalette = useTranslations("tags.colorPalette");
   const description = useWatch({ control, name: "description" });
+  const color = useWatch({ control, name: "color" });
+  const previewName = useWatch({ control, name: "name" }).trim();
   const descriptionIds = {
     counter: `${idPrefix}-description-counter`,
     error: `${idPrefix}-description-error`,
@@ -93,6 +97,19 @@ export function TagFormFields({ control, errors, idPrefix, register }: TagFormFi
               value={field.value}
             />
           )}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium" id={`${idPrefix}-preview-label`}>
+          {tPalette("preview")}
+        </span>
+        <TagChip
+          aria-labelledby={`${idPrefix}-preview-label`}
+          className="font-heading text-sm leading-snug"
+          color={color}
+          name={previewName.length > 0 ? previewName : tPalette("previewPlaceholder")}
+          role="group"
         />
       </div>
 
