@@ -1,4 +1,4 @@
-import type { FavoritesSummaryView } from "@app/shared";
+import type { FavoritesSummaryView, LibraryQuickCounts } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,19 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 const AUTHOR_ID = "33333333-3333-4333-8333-333333333333";
 const PUBLISHER_ID = "44444444-4444-4444-8444-444444444444";
+
+const ZERO_QUICK_COUNTS: LibraryQuickCounts = {
+  all: 0,
+  borrowed: 0,
+  favorites: 0,
+  finished: 0,
+  in_transit: 0,
+  reading: 0,
+  series: 0,
+  solo: 0,
+  want_to_buy: 0,
+  want_to_read: 0,
+};
 
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
   return {
@@ -80,6 +93,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
 function buildReadService(
   overrides: {
     countForLibrary?: number;
+    countQuickFilters?: LibraryQuickCounts;
     favoritesSummary?: FavoritesSummaryView;
     listForLibrary?: BookWithRelations[];
     recentPurchaseStores?: string[];
@@ -91,6 +105,7 @@ function buildReadService(
   };
   repository: {
     countForLibrary: ReturnType<typeof vi.fn>;
+    countQuickFilters: ReturnType<typeof vi.fn>;
     favoritesSummary: ReturnType<typeof vi.fn>;
     listForLibrary: ReturnType<typeof vi.fn>;
     recentPurchaseStores: ReturnType<typeof vi.fn>;
@@ -99,6 +114,7 @@ function buildReadService(
 } {
   const repository = {
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
+    countQuickFilters: vi.fn().mockResolvedValue(overrides.countQuickFilters ?? ZERO_QUICK_COUNTS),
     favoritesSummary: vi.fn().mockResolvedValue(
       overrides.favoritesSummary ?? {
         averageRating: null,
@@ -201,6 +217,70 @@ describe("BookLibraryReadService.list", () => {
     expect(repository.listForLibrary).toHaveBeenCalledWith(
       expect.objectContaining({ filter: expect.objectContaining({ search: "ab" }) }),
     );
+  });
+});
+
+describe("BookLibraryReadService.quickCounts", () => {
+  it("returns the counts the repository produced", async () => {
+    const counts: LibraryQuickCounts = { ...ZERO_QUICK_COUNTS, all: 7, reading: 2, solo: 5 };
+    const { service } = buildReadService({ countQuickFilters: counts });
+
+    const result = await service.quickCounts({
+      query: { scope: "all", searchPublisher: true },
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual(counts);
+  });
+
+  it("counts every chip over the search and advanced filters of the query", async () => {
+    const { genresService, repository, service } = buildReadService();
+    genresService.searchKeys.mockResolvedValue(["fantasy"]);
+
+    await service.quickCounts({
+      query: {
+        genre: ["history"],
+        language: ["english"],
+        q: "dune",
+        scope: "all",
+        searchPublisher: true,
+      },
+      userId: USER_ID,
+    });
+
+    expect(genresService.searchKeys).toHaveBeenCalledWith("dune");
+    expect(repository.countQuickFilters).toHaveBeenCalledWith({
+      filters: expect.objectContaining({
+        all: expect.objectContaining({
+          genreKeys: ["history"],
+          languages: ["english"],
+          search: "dune",
+          searchGenreKeys: ["fantasy"],
+          userId: USER_ID,
+        }),
+        reading: expect.objectContaining({
+          readingStatuses: ["reading", "rereading"],
+          search: "dune",
+        }),
+      }),
+    });
+  });
+
+  it("restricts every chip to favorite books in the favorites scope", async () => {
+    const { repository, service } = buildReadService();
+
+    await service.quickCounts({
+      query: { scope: "favorites", searchPublisher: true },
+      userId: USER_ID,
+    });
+
+    expect(repository.countQuickFilters).toHaveBeenCalledWith({
+      filters: expect.objectContaining({
+        all: expect.objectContaining({ isFavorite: true }),
+        finished: expect.objectContaining({ isFavorite: true }),
+        series: expect.objectContaining({ isFavorite: true }),
+      }),
+    });
   });
 });
 

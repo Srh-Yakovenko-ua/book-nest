@@ -3,6 +3,11 @@ import type { LibrarySort, Nullable, OwnershipStatus, ReadingStatus } from "@app
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type {
+  LibraryQuickCountFilters,
+  LibraryQuickCountTotals,
+} from "../domain/library-quick-counts.js";
+
 import { ACTIVE_BOOK_SQL } from "../../../core/database/active-book-sql.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
@@ -175,6 +180,48 @@ export class BookLibraryReadRepository {
 
   countForLibrary({ filter }: { filter: LibraryFilter }): Promise<number> {
     return this.prisma.book.count({ where: buildLibraryWhere(filter) });
+  }
+
+  async countQuickFilters({
+    filters,
+  }: {
+    filters: LibraryQuickCountFilters;
+  }): Promise<LibraryQuickCountTotals> {
+    const [
+      all,
+      borrowed,
+      favorites,
+      finished,
+      inTransit,
+      reading,
+      series,
+      solo,
+      wantToBuy,
+      wantToRead,
+    ] = await Promise.all([
+      this.countForLibrary({ filter: filters.all }),
+      this.countForLibrary({ filter: filters.borrowed }),
+      this.countForLibrary({ filter: filters.favorites }),
+      this.countForLibrary({ filter: filters.finished }),
+      this.countForLibrary({ filter: filters.in_transit }),
+      this.countForLibrary({ filter: filters.reading }),
+      this.countForLibrary({ filter: filters.series }),
+      this.countForLibrary({ filter: filters.solo }),
+      this.countForLibrary({ filter: filters.want_to_buy }),
+      this.countForLibrary({ filter: filters.want_to_read }),
+    ]);
+    return {
+      all,
+      borrowed,
+      favorites,
+      finished,
+      in_transit: inTransit,
+      reading,
+      series,
+      solo,
+      want_to_buy: wantToBuy,
+      want_to_read: wantToRead,
+    };
   }
 
   async favoritesSummary({

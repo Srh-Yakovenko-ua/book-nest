@@ -5,6 +5,7 @@ import type {
   DedicationsSummaryView,
   FavoritesSummaryView,
   LibraryOverviewView,
+  LibraryQuickCounts,
   PaginatedTrashedBooks,
   Paginator,
   RecentPurchaseStores,
@@ -19,6 +20,7 @@ import {
   DedicationsQuerySchema,
   LibraryBooksQuerySchema,
   LibraryOverviewQuerySchema,
+  LibraryQuickCountsQuerySchema,
   OwnershipStatusSchema,
   RecentPurchaseStoresQuerySchema,
   TrashedBooksQuerySchema,
@@ -65,6 +67,7 @@ import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { DedicationsQueryDto } from "./input-dto/dedications-query.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
+import { LibraryQuickCountsQueryDto } from "./input-dto/library-quick-counts-query.input-dto.js";
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { TrashedBooksQueryDto } from "./input-dto/trashed-books-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
@@ -75,6 +78,7 @@ import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { DedicationsSummaryViewDto } from "./view-dto/dedications.view-dto.js";
 import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
+import { LibraryQuickCountsViewDto } from "./view-dto/library-quick-counts.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
 import { PaginatedTrashedBooksDto } from "./view-dto/paginated-trashed-books.view-dto.js";
 import { WishlistFacetsViewDto } from "./view-dto/wishlist-facets.view-dto.js";
@@ -144,6 +148,22 @@ export class BooksController {
     @Query(new ZodQueryPipe(LibraryOverviewQuerySchema)) query: LibraryOverviewQueryDto,
   ): Promise<LibraryOverviewView> {
     return this.libraryReadService.overview({ query, userId: user.id });
+  }
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "How many books each library quick filter would show under the given search and advanced filters, ignoring the selected quick filter",
+    type: LibraryQuickCountsViewDto,
+  })
+  @ApiOperation({ summary: "Count the current user library books per quick filter" })
+  @Get("quick-counts")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  quickCounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LibraryQuickCountsQuerySchema)) query: LibraryQuickCountsQueryDto,
+  ): Promise<LibraryQuickCounts> {
+    return this.libraryReadService.quickCounts({ query, userId: user.id });
   }
   @ApiOkResponse({
     description: "Store names the current user recently used in purchase details",

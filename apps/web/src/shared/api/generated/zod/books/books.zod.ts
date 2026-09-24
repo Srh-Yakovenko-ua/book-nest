@@ -1890,6 +1890,222 @@ export const BooksControllerOverviewResponse = zod.object({
 });
 
 /**
+ * @summary Count the current user library books per quick filter
+ */
+export const booksControllerQuickCountsQueryAgeCategoryMax = 100;
+
+export const booksControllerQuickCountsQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerQuickCountsQueryAuthorMax = 100;
+
+export const booksControllerQuickCountsQueryFormatMax = 100;
+
+export const booksControllerQuickCountsQueryGenreItemMax = 64;
+
+export const booksControllerQuickCountsQueryGenreMax = 100;
+
+export const booksControllerQuickCountsQueryLanguageMax = 100;
+
+export const booksControllerQuickCountsQueryNotInListRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerQuickCountsQueryPagesMaxMin = -9007199254740991;
+export const booksControllerQuickCountsQueryPagesMaxMax = 9007199254740991;
+
+export const booksControllerQuickCountsQueryPagesMinMin = -9007199254740991;
+export const booksControllerQuickCountsQueryPagesMinMax = 9007199254740991;
+
+export const booksControllerQuickCountsQueryPublisherItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerQuickCountsQueryPublisherMax = 100;
+
+export const booksControllerQuickCountsQueryQMax = 200;
+
+export const booksControllerQuickCountsQueryRatingMaxMin = 0.5;
+export const booksControllerQuickCountsQueryRatingMaxMax = 10;
+export const booksControllerQuickCountsQueryRatingMaxMultipleOf = 0.5;
+
+export const booksControllerQuickCountsQueryRatingMinMin = 0.5;
+export const booksControllerQuickCountsQueryRatingMinMax = 10;
+export const booksControllerQuickCountsQueryRatingMinMultipleOf = 0.5;
+
+export const booksControllerQuickCountsQueryTagItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerQuickCountsQueryTagMax = 100;
+
+export const booksControllerQuickCountsQueryYearMaxMin = -9007199254740991;
+export const booksControllerQuickCountsQueryYearMaxMax = 9007199254740991;
+
+export const booksControllerQuickCountsQueryYearMinMin = -9007199254740991;
+export const booksControllerQuickCountsQueryYearMinMax = 9007199254740991;
+
+export const booksControllerQuickCountsQueryScopeDefault = `all`;
+
+export const BooksControllerQuickCountsQueryParams = zod.object({
+  ageCategory: zod
+    .array(
+      zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+    )
+    .max(booksControllerQuickCountsQueryAgeCategoryMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(booksControllerQuickCountsQueryAuthorItemRegExp))
+    .max(booksControllerQuickCountsQueryAuthorMax)
+    .optional(),
+  format: zod
+    .array(zod.enum(["paper", "ebook", "audiobook"]))
+    .max(booksControllerQuickCountsQueryFormatMax)
+    .optional(),
+  genre: zod
+    .array(zod.string().min(1).max(booksControllerQuickCountsQueryGenreItemMax))
+    .max(booksControllerQuickCountsQueryGenreMax)
+    .optional(),
+  hasActiveOrder: zod.string().optional(),
+  hasCover: zod.string().optional(),
+  hasDedication: zod.string().optional(),
+  hasRating: zod.string().optional(),
+  inQueue: zod.string().optional(),
+  language: zod
+    .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
+    .max(booksControllerQuickCountsQueryLanguageMax)
+    .optional(),
+  notInList: zod.uuid().regex(booksControllerQuickCountsQueryNotInListRegExp).optional(),
+  pagesMax: zod
+    .int()
+    .min(booksControllerQuickCountsQueryPagesMaxMin)
+    .max(booksControllerQuickCountsQueryPagesMaxMax)
+    .optional(),
+  pagesMin: zod
+    .int()
+    .min(booksControllerQuickCountsQueryPagesMinMin)
+    .max(booksControllerQuickCountsQueryPagesMinMax)
+    .optional(),
+  publisher: zod
+    .array(zod.uuid().regex(booksControllerQuickCountsQueryPublisherItemRegExp))
+    .max(booksControllerQuickCountsQueryPublisherMax)
+    .optional(),
+  publisherPresence: zod.enum(["all", "assigned", "missing"]).optional(),
+  q: zod.string().max(booksControllerQuickCountsQueryQMax).optional(),
+  ratingMax: zod
+    .number()
+    .min(booksControllerQuickCountsQueryRatingMaxMin)
+    .max(booksControllerQuickCountsQueryRatingMaxMax)
+    .multipleOf(booksControllerQuickCountsQueryRatingMaxMultipleOf)
+    .optional(),
+  ratingMin: zod
+    .number()
+    .min(booksControllerQuickCountsQueryRatingMinMin)
+    .max(booksControllerQuickCountsQueryRatingMinMax)
+    .multipleOf(booksControllerQuickCountsQueryRatingMinMultipleOf)
+    .optional(),
+  searchPublisher: zod.string().optional(),
+  tag: zod
+    .array(zod.uuid().regex(booksControllerQuickCountsQueryTagItemRegExp))
+    .max(booksControllerQuickCountsQueryTagMax)
+    .optional(),
+  yearMax: zod
+    .int()
+    .min(booksControllerQuickCountsQueryYearMaxMin)
+    .max(booksControllerQuickCountsQueryYearMaxMax)
+    .optional(),
+  yearMin: zod
+    .int()
+    .min(booksControllerQuickCountsQueryYearMinMin)
+    .max(booksControllerQuickCountsQueryYearMinMax)
+    .optional(),
+  scope: zod
+    .enum(["all", "my", "favorites"])
+    .default(booksControllerQuickCountsQueryScopeDefault)
+    .describe(
+      "The book population every count runs over: the whole library, the physical library (my) or favorite books only",
+    ),
+});
+
+export const booksControllerQuickCountsResponseAllMin = 0;
+export const booksControllerQuickCountsResponseAllMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseBorrowedMin = 0;
+export const booksControllerQuickCountsResponseBorrowedMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseFavoritesMin = 0;
+export const booksControllerQuickCountsResponseFavoritesMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseFinishedMin = 0;
+export const booksControllerQuickCountsResponseFinishedMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseInTransitMin = 0;
+export const booksControllerQuickCountsResponseInTransitMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseReadingMin = 0;
+export const booksControllerQuickCountsResponseReadingMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseSeriesMin = 0;
+export const booksControllerQuickCountsResponseSeriesMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseSoloMin = 0;
+export const booksControllerQuickCountsResponseSoloMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseWantToBuyMin = 0;
+export const booksControllerQuickCountsResponseWantToBuyMax = 9007199254740991;
+
+export const booksControllerQuickCountsResponseWantToReadMin = 0;
+export const booksControllerQuickCountsResponseWantToReadMax = 9007199254740991;
+
+export const BooksControllerQuickCountsResponse = zod.object({
+  all: zod
+    .int()
+    .min(booksControllerQuickCountsResponseAllMin)
+    .max(booksControllerQuickCountsResponseAllMax),
+  borrowed: zod
+    .int()
+    .min(booksControllerQuickCountsResponseBorrowedMin)
+    .max(booksControllerQuickCountsResponseBorrowedMax),
+  favorites: zod
+    .int()
+    .min(booksControllerQuickCountsResponseFavoritesMin)
+    .max(booksControllerQuickCountsResponseFavoritesMax),
+  finished: zod
+    .int()
+    .min(booksControllerQuickCountsResponseFinishedMin)
+    .max(booksControllerQuickCountsResponseFinishedMax),
+  in_transit: zod
+    .int()
+    .min(booksControllerQuickCountsResponseInTransitMin)
+    .max(booksControllerQuickCountsResponseInTransitMax),
+  reading: zod
+    .int()
+    .min(booksControllerQuickCountsResponseReadingMin)
+    .max(booksControllerQuickCountsResponseReadingMax),
+  series: zod
+    .int()
+    .min(booksControllerQuickCountsResponseSeriesMin)
+    .max(booksControllerQuickCountsResponseSeriesMax),
+  solo: zod
+    .int()
+    .min(booksControllerQuickCountsResponseSoloMin)
+    .max(booksControllerQuickCountsResponseSoloMax),
+  want_to_buy: zod
+    .int()
+    .min(booksControllerQuickCountsResponseWantToBuyMin)
+    .max(booksControllerQuickCountsResponseWantToBuyMax),
+  want_to_read: zod
+    .int()
+    .min(booksControllerQuickCountsResponseWantToReadMin)
+    .max(booksControllerQuickCountsResponseWantToReadMax),
+});
+
+/**
  * @summary List recently used purchase stores for the current user
  */
 export const booksControllerPurchaseStoresQueryLimitDefault = 8;
