@@ -23,17 +23,16 @@ import {
   explicitImportance,
   explicitStatus,
 } from "../model/character-options";
-import { getCharacterDetailsPath } from "../model/character-routes";
+import { getCharacterDetailsPath, getCharacterEditPath } from "../model/character-routes";
 import { rosterDisplayName } from "../model/characters-roster-query";
 
 type CharacterCardProps = {
   bookId: string;
   character: CharacterSummaryView;
-  onEdit: () => void;
   onUnlink: () => void;
 };
 
-export function CharacterCard({ bookId, character, onEdit, onUnlink }: CharacterCardProps) {
+export function CharacterCard({ bookId, character, onUnlink }: CharacterCardProps) {
   const t = useTranslations("characters.card");
   const tImportance = useTranslations("characters.importance");
   const tStatus = useTranslations("characters.status");
@@ -100,9 +99,11 @@ export function CharacterCard({ bookId, character, onEdit, onUnlink }: Character
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem onSelect={onEdit}>
-                  <UiIcon name="edit" size={16} />
-                  {t("edit")}
+                <DropdownMenuItem asChild>
+                  <Link href={getCharacterEditPath({ bookId, characterId: character.characterId })}>
+                    <UiIcon name="edit" size={16} />
+                    {t("edit")}
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={onUnlink}>
                   <UiIcon name="link" size={16} />

@@ -15,16 +15,19 @@ import { characterKeys } from "./character-keys";
 
 type UseCharacterDetailsArgs = BookCharacterSummaryQuery & {
   characterId: string;
+  includeHiddenProfiles?: boolean;
   revealFieldIds?: CharacterRevealFieldKey[];
 };
 
 export function useCharacterDetails({
   characterId,
+  includeHiddenProfiles,
   revealFieldIds,
   ...readingContext
 }: UseCharacterDetailsArgs) {
   const params: CharactersControllerGetByIdParams = {
     ...readingContext,
+    ...(includeHiddenProfiles === true ? { includeHiddenProfiles: "true" } : {}),
     ...(revealFieldIds === undefined || revealFieldIds.length === 0 ? {} : { revealFieldIds }),
   };
 

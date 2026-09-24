@@ -22,7 +22,6 @@ import { AddCharacterDialog } from "./add-character-dialog";
 import { CharacterCard } from "./character-card";
 import { CharacterCardSkeleton } from "./character-card-skeleton";
 import { CharacterCommandPalette } from "./character-command-palette";
-import { CharacterFormDialog } from "./character-form-dialog";
 import { CharactersEmptyState, CharactersNoResults } from "./characters-empty-state";
 import { CharactersErrorState } from "./characters-error-state";
 import { CharactersToolbar } from "./characters-toolbar";
@@ -40,7 +39,6 @@ type RosterListProps = {
   hasActiveSearch: boolean;
   onAdd: () => void;
   onClearSearch: () => void;
-  onEdit: (characterId: string) => void;
   onPageChange: (page: number) => void;
   onUnlink: (characterId: string) => void;
 };
@@ -58,7 +56,6 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const unlinkCharacter = useUnlinkCharacter();
   const router = useRouter();
 
-  const [editId, setEditId] = useState<null | string>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [unlinkId, setUnlinkId] = useState<null | string>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -136,7 +133,6 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         hasActiveSearch={roster.hasActiveSearch}
         onAdd={() => setAddOpen(true)}
         onClearSearch={roster.clearSearch}
-        onEdit={setEditId}
         onPageChange={roster.setPage}
         onUnlink={setUnlinkId}
       />
@@ -148,17 +144,6 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         open={addOpen}
         readingContext={readingContext}
       />
-
-      {editId === null ? null : (
-        <CharacterFormDialog
-          bookId={bookId}
-          characterId={editId}
-          onOpenChange={(open) => {
-            if (!open) setEditId(null);
-          }}
-          open
-        />
-      )}
 
       <UnlinkCharacterDialog
         isUnlinking={unlinkCharacter.isPending}
@@ -185,7 +170,6 @@ function RosterList({
   hasActiveSearch,
   onAdd,
   onClearSearch,
-  onEdit,
   onPageChange,
   onUnlink,
 }: RosterListProps) {
@@ -226,7 +210,6 @@ function RosterList({
             <CharacterCard
               bookId={bookId}
               character={character}
-              onEdit={() => onEdit(character.characterId)}
               onUnlink={() => onUnlink(character.characterId)}
             />
           </li>

@@ -19,15 +19,10 @@ import { CharacterCard } from "./character-card";
 
 function renderCard(
   character: ReturnType<typeof makeCharacterSummary>,
-  handlers: Partial<{ onEdit: () => void; onUnlink: () => void }> = {},
+  handlers: Partial<{ onUnlink: () => void }> = {},
 ) {
   return renderWithProviders(
-    <CharacterCard
-      bookId="book-1"
-      character={character}
-      onEdit={handlers.onEdit ?? vi.fn()}
-      onUnlink={handlers.onUnlink ?? vi.fn()}
-    />,
+    <CharacterCard bookId="book-1" character={character} onUnlink={handlers.onUnlink ?? vi.fn()} />,
   );
 }
 
@@ -82,7 +77,10 @@ describe("CharacterCard roster affordances", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Дії з персонажем" }));
 
-    expect(await screen.findByRole("menuitem", { name: "Редагувати" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "Редагувати" })).toHaveAttribute(
+      "href",
+      "/characters/char-1/edit?bookId=book-1",
+    );
     expect(screen.getByRole("menuitem", { name: "Прибрати з цієї книги" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitem")).toHaveLength(2);
   });
