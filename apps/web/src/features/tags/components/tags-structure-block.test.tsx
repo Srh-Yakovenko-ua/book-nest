@@ -95,7 +95,7 @@ describe("TagsStructureBlock", () => {
     renderStructure();
 
     expect(typeRow("Тропи")).toHaveAccessibleName("Тропи: 2 теги, 50%");
-    expect(typeRow("Тропи")).toHaveTextContent("2 · 50%");
+    expect(typeRow("Тропи")).toHaveTextContent("2 теги · 50%");
   });
 
   it("mutes a zero-count type while keeping its icon visible", () => {

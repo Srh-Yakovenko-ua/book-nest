@@ -6584,6 +6584,7 @@
     },
     "sidebar": {
       "label": "Огляд тегів",
+      "countShare": "{count, plural, one {<strong>#</strong> тег} few {<strong>#</strong> теги} many {<strong>#</strong> тегів} other {<strong>#</strong> тегу}} · {share}",
       "attention": {
         "title": "Потребують уваги",
         "unused": "{count, plural, one {# тег ще не використовується} few {# теги ще не використовуються} many {# тегів ще не використовуються} other {# тегу ще не використовуються}}",

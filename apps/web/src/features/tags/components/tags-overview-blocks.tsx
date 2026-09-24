@@ -179,7 +179,7 @@ export function TagsStructureBlock({
                   <UiIcon name={TAG_TYPE_ROW.icons[row.type]} size={16} />
                 </span>
                 <ShareLine
-                  count={formatNumber(row.count, locale)}
+                  count={row.count}
                   isMuted={row.isEmpty}
                   label={t(`types.${row.type}`)}
                   share={share}
@@ -233,7 +233,7 @@ export function TagsUsageBlock({ summary }: { summary: TagsSummaryView }) {
                 size={16}
               />
               <ShareLine
-                count={formatNumber(row.count, locale)}
+                count={row.count}
                 isMuted={isMuted}
                 label={t(row.key)}
                 share={formatTagShare(row.share, locale)}
@@ -279,11 +279,13 @@ function ShareLine({
   label,
   share,
 }: {
-  count: string;
+  count: number;
   isMuted: boolean;
   label: string;
   share: string;
 }) {
+  const t = useTranslations("tags.sidebar");
+
   return (
     <span
       className={cn(
@@ -292,9 +294,14 @@ function ShareLine({
       )}
     >
       <span className="min-w-0 truncate">{label}</span>
-      <span className="shrink-0 text-xs tabular-nums">
-        <span className="font-semibold">{count}</span>
-        <span className="text-muted-foreground"> · {share}</span>
+      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        {t.rich("countShare", {
+          count,
+          share,
+          strong: (chunks) => (
+            <span className={cn("font-semibold", !isMuted && "text-ink")}>{chunks}</span>
+          ),
+        })}
       </span>
     </span>
   );

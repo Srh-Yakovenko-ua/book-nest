@@ -6584,6 +6584,7 @@
     },
     "sidebar": {
       "label": "Tags overview",
+      "countShare": "{count, plural, one {<strong>#</strong> tag} other {<strong>#</strong> tags}} · {share}",
       "attention": {
         "title": "Needs attention",
         "unused": "{count, plural, one {# tag isn’t used yet} other {# tags aren’t used yet}}",

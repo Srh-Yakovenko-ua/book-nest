@@ -79,10 +79,10 @@ describe("TagsUsageBlock", () => {
 
     const rows = within(screen.getByRole("list")).getAllByRole("listitem");
     expect(rows).toHaveLength(ROWS.length);
-    expect(legendRow("Лише в книгах")).toHaveTextContent("4 · 50%");
-    expect(legendRow("Лише в персонажах")).toHaveTextContent("2 · 25%");
-    expect(legendRow("У книгах і персонажах")).toHaveTextContent("0 · 0%");
-    expect(legendRow("Не використовуються")).toHaveTextContent("2 · 25%");
+    expect(legendRow("Лише в книгах")).toHaveTextContent("4 теги · 50%");
+    expect(legendRow("Лише в персонажах")).toHaveTextContent("2 теги · 25%");
+    expect(legendRow("У книгах і персонажах")).toHaveTextContent("0 тегів · 0%");
+    expect(legendRow("Не використовуються")).toHaveTextContent("2 теги · 25%");
   });
 
   it("renders one segment per non-empty category sized by its share", () => {
@@ -121,8 +121,38 @@ describe("TagsUsageBlock", () => {
     expect(usageBar()).toBeEmptyDOMElement();
     expect(screen.getByRole("region").innerHTML).not.toContain("NaN");
     for (const { label } of ROWS) {
-      expect(legendRow(label)).toHaveTextContent("0 · 0%");
+      expect(legendRow(label)).toHaveTextContent("0 тегів · 0%");
       expect(shareLineOf(label)).toHaveClass("text-muted-foreground");
     }
+  });
+
+  it.each([
+    [0, "0 тегів"],
+    [1, "1 тег"],
+    [2, "2 теги"],
+    [4, "4 теги"],
+    [5, "5 тегів"],
+    [11, "11 тегів"],
+    [12, "12 тегів"],
+    [21, "21 тег"],
+    [22, "22 теги"],
+    [25, "25 тегів"],
+    [111, "111 тегів"],
+  ])("names %i tags as «%s»", (count, expected) => {
+    renderUsage({
+      ...EMPTY_SUMMARY,
+      totalTagsCount: count,
+      usageDistribution: { booksOnly: count, both: 0, charactersOnly: 0, unused: 0 },
+    });
+
+    expect(legendRow("Лише в книгах")).toHaveTextContent(`${expected} ·`);
+  });
+
+  it("sets the count in semibold and leaves the unit muted", () => {
+    renderUsage(SUMMARY);
+
+    const count = within(legendRow("Лише в книгах")).getByText("4");
+    expect(count).toHaveClass("font-semibold");
+    expect(count.parentElement).toHaveClass("text-muted-foreground");
   });
 });
