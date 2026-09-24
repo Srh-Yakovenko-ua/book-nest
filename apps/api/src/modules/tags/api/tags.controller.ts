@@ -15,8 +15,8 @@ import {
   TagsCatalogFacetsQuerySchema,
   TagsCatalogQuerySchema,
   TagSortSchema,
+  TagsSearchQuerySchema,
   TagTypeSchema,
-  TaxonomySearchPaginationQuerySchema,
   UpdateTagSchema,
 } from "@app/shared";
 import {
@@ -57,7 +57,7 @@ import { TagsService } from "../application/tags.service.js";
 import { CreateTagDto } from "./input-dto/create-tag.input-dto.js";
 import { TagsCatalogFacetsQueryDto } from "./input-dto/tags-catalog-facets-query.input-dto.js";
 import { TagsCatalogQueryDto } from "./input-dto/tags-catalog-query.input-dto.js";
-import { TaxonomySearchPaginationQueryDto } from "./input-dto/taxonomy-search-query.input-dto.js";
+import { TagsSearchQueryDto } from "./input-dto/tags-search-query.input-dto.js";
 import { UpdateTagDto } from "./input-dto/update-tag.input-dto.js";
 import { PaginatedTagCatalogDto } from "./view-dto/paginated-tag-catalog.view-dto.js";
 import { TagCatalogViewDto } from "./view-dto/tag-catalog.view-dto.js";
@@ -95,12 +95,13 @@ export class TagsController {
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
+  @ApiQuery({ isArray: true, name: "ids", required: false, type: String })
   @Get()
   @JwtProtected()
   search(
     @CurrentUser() user: AuthenticatedUser,
-    @Query(new ZodQueryPipe(TaxonomySearchPaginationQuerySchema))
-    query: TaxonomySearchPaginationQueryDto,
+    @Query(new ZodQueryPipe(TagsSearchQuerySchema))
+    query: TagsSearchQueryDto,
   ): Promise<Paginator<TagView>> {
     return this.tagsService.search(user.id, query);
   }

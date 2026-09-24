@@ -15,7 +15,7 @@ import type { LibraryPublisherContext, LibraryScope } from "../model/library-que
 import { useLibraryBooks } from "../api/use-books";
 import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
-import { useTagsSearch } from "../api/use-tags-search";
+import { useSelectedTags } from "../api/use-tags-search";
 import { useLibraryActions } from "../hooks/use-library-actions";
 import { useLibraryBookLabels } from "../hooks/use-library-book-labels";
 import { toLibraryBook } from "../model/library-book";
@@ -71,26 +71,26 @@ export function BooksArchive({
   } = useLibraryBooks(library.listParams);
   const overview = useLibraryOverview(scope, publisherContext);
   const genres = useGenres();
-  const tags = useTagsSearch("");
+  const selectedTags = useSelectedTags(library.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
 
   const actions = useLibraryActions();
   const labels = useLibraryBookLabels();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
 
   function rememberEntity(id: string, name: string) {
     setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
   }
 
   function resolveEntityName(id: string): string | undefined {
-    return entityLabels[id] ?? tagNameById.get(id);
+    return entityLabels[id] ?? selectedTags.get(id)?.name;
   }
 
   const filterChips = useLibraryFilterChips({
     genreName: (key) => genreNameByKey.get(key) ?? key,
     resolveEntityName,
+    resolveTag: (id) => selectedTags.get(id),
     setState: library.setState,
     state: library.state,
   });

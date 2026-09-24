@@ -6,7 +6,7 @@ import { seriesKeys } from "@/features/series/api/series-keys";
 
 import type { TagsCatalogParams, TagsFacetsParams } from "../model/tags-query";
 
-type TagFamily = "catalog" | "deletion-preview" | "facets" | "picker" | "summary";
+type TagFamily = "catalog" | "deletion-preview" | "facets" | "picker" | "selected" | "summary";
 
 const TAGS_ROOT = "/api/tags";
 
@@ -26,6 +26,8 @@ export const tagsKeys = {
   facets: (params: TagsFacetsParams) => [...family("facets"), params] as const,
   picker: (term: string) => [...family("picker"), term] as const,
   pickers: family("picker"),
+  selected: (ids: readonly string[]) => [...family("selected"), ids] as const,
+  selections: family("selected"),
   summary: family("summary"),
 };
 
@@ -52,5 +54,8 @@ export async function invalidateTagMetadataQueries(queryClient: QueryClient): Pr
 }
 
 export async function invalidateTagPickerQueries(queryClient: QueryClient): Promise<void> {
-  await queryClient.invalidateQueries({ queryKey: tagsKeys.pickers });
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: tagsKeys.pickers }),
+    queryClient.invalidateQueries({ queryKey: tagsKeys.selections }),
+  ]);
 }

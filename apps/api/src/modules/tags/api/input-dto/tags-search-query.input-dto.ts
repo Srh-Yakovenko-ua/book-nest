@@ -1,6 +1,4 @@
-import { TaxonomySearchPaginationQuerySchema } from "@app/shared";
+import { TagsSearchQuerySchema } from "@app/shared";
 import { createZodDto } from "nestjs-zod";
 
-export class TaxonomySearchPaginationQueryDto extends createZodDto(
-  TaxonomySearchPaginationQuerySchema,
-) {}
+export class TagsSearchQueryDto extends createZodDto(TagsSearchQuerySchema) {}

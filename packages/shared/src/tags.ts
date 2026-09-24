@@ -8,6 +8,7 @@ import {
   paginationQueryFields,
 } from "./common.js";
 import { CountSchema, NoHtmlString, queryStringArray } from "./internal.js";
+import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 
 export const TAG_NAME_MIN = 2;
 export const TAG_NAME_MAX = 40;
@@ -158,6 +159,14 @@ export const TAG_SORT_DEFAULT = "usage_count_desc" satisfies TagSort;
 
 const blankToUndefined = (value: unknown): unknown =>
   typeof value === "string" && value.trim().length === 0 ? undefined : value;
+
+export const TagsSearchQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  ids: queryStringArray(z.uuid()).describe(
+    "Only these tags, so a filter restored from a URL can show each tag with its name and color",
+  ),
+});
+
+export type TagsSearchQuery = z.infer<typeof TagsSearchQuerySchema>;
 
 const tagsDatasetQueryFields = {
   color: queryStringArray(TagColorSchema),

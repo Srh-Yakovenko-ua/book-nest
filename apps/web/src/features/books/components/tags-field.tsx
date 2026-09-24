@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { TagInput } from "@/components/ui/tag-input";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { TAG_COLOR_STYLES } from "@/features/tags/model/tag-color";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
@@ -149,8 +150,7 @@ export function TagsField({ control, errors, tagColorOf }: TagsFieldProps) {
                             onSelect={() => addTag(tag.name)}
                             value={tag.id}
                           >
-                            <UiIcon className="text-muted-foreground" name="tag" size={16} />
-                            <span className="min-w-0 flex-1 truncate">{tag.name}</span>
+                            <TagChip className="py-0.5 text-xs" color={tag.color} name={tag.name} />
                           </CommandItem>
                         ))}
                       </CommandGroup>

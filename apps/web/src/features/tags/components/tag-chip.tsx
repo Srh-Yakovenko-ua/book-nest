@@ -1,5 +1,5 @@
 import type { TagColor } from "@app/shared";
-import type { ComponentPropsWithoutRef, Ref } from "react";
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ type TagChipProps = Omit<ComponentPropsWithoutRef<"span">, "children" | "color">
   name: string;
   nameClassName?: string;
   nameRef?: Ref<HTMLSpanElement>;
+  trailing?: ReactNode;
 };
 
 export function TagChip({
@@ -22,6 +23,7 @@ export function TagChip({
   nameClassName,
   nameRef,
   style,
+  trailing,
   ...props
 }: TagChipProps) {
   const colors = TAG_COLOR_STYLES[color];
@@ -39,6 +41,31 @@ export function TagChip({
       <span className={cn("min-w-0 truncate", nameClassName)} ref={nameRef}>
         {name}
       </span>
+      {trailing}
     </Element>
+  );
+}
+
+export function TagChipRemoveButton({
+  className,
+  label,
+  onClick,
+}: {
+  className?: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label={label}
+      className={cn(
+        "relative grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-current opacity-65 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-current/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+        className,
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      <UiIcon aria-hidden className="size-3" name="x" size={12} />
+    </button>
   );
 }
