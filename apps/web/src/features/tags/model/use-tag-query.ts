@@ -4,7 +4,12 @@ import type { TagColor, TagQuickFilter, TagSort, TagType } from "@app/shared";
 
 import { useQueryStates } from "nuqs";
 
-import type { TagsCatalogParams, TagsFacetsParams, TagsQueryState } from "./tags-query";
+import type {
+  TagsCatalogParams,
+  TagsFacetsParams,
+  TagsQueryState,
+  TagsViewMode,
+} from "./tags-query";
 
 import {
   clearAllTagsFiltersPatch,
@@ -37,6 +42,7 @@ export type UseTagQueryResult = {
   setFilter: (filter: TagQuickFilter) => void;
   setSearch: (query: string) => void;
   setSort: (sort: TagSort) => void;
+  setView: (view: TagsViewMode) => void;
   state: TagsQueryState;
   toggleColor: (color: TagColor) => void;
   toggleType: (type: TagType) => void;
@@ -58,6 +64,7 @@ export function useTagQuery(): UseTagQueryResult {
     setFilter: (filter) => void setState({ filter }),
     setSearch: (query) => void setState(toTagSearchPatch(query)),
     setSort: (sort) => void setState({ sort }),
+    setView: (view) => void setState({ view }),
     state,
     toggleColor: (color) =>
       void setState({ color: toArrayPatch(toggleArrayValue(state.color, color)) }),

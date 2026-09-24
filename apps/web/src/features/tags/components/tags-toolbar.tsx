@@ -3,11 +3,13 @@
 import type { TagQuickCounts } from "@app/shared";
 
 import { TAG_SORT_DEFAULT, TagQuickFilterSchema, TagSortSchema } from "@app/shared";
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -103,6 +105,25 @@ export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
             onApply={query.setAdvancedFilters}
             value={{ color: state.color, type: state.type }}
           />
+
+          <Segmented
+            className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+            label={t("toolbar.viewLabel")}
+            onValueChange={(next) => query.setView(next === "list" ? "list" : "grid")}
+            options={[
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{t("toolbar.viewGrid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{t("toolbar.viewList")}</span>,
+                value: "list",
+              },
+            ]}
+            value={state.view}
+          />
         </div>
       </div>
 
@@ -137,6 +158,7 @@ export function TagsToolbarSkeleton() {
           <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
           <Skeleton className="hidden h-10 rounded-md sm:block sm:w-64" />
           <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
+          <Skeleton className="ml-auto h-10 w-20 shrink-0 rounded-full sm:ml-0 sm:w-44" />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

@@ -6611,7 +6611,10 @@
       "searchTagsPlaceholder": "Search by name or description…",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
-      "quickFilterLabel": "Quick tag filters"
+      "quickFilterLabel": "Quick tag filters",
+      "viewLabel": "View",
+      "viewGrid": "Grid",
+      "viewList": "List"
     },
     "sortMobile": {
       "title": "Sorting",
@@ -6667,6 +6670,14 @@
       "format": "Format",
       "custom": "Custom tag"
     },
+    "typeBadge": {
+      "trope": "Trope",
+      "atmosphere": "Atmosphere",
+      "theme": "Theme",
+      "character": "Character",
+      "format": "Format",
+      "custom": "Custom tag"
+    },
     "colors": {
       "parchment": "Parchment",
       "terracotta": "Terracotta",
@@ -6685,13 +6696,14 @@
       "loadMoreError": "Could not load more tags.",
       "retry": "Try again"
     },
-    "row": {
+    "item": {
       "books": "Books",
       "characters": "Characters",
-      "usage": "Total",
+      "unused": "Not used yet",
       "color": "Colour: {color}",
-      "edit": "Edit tag “{name}”",
-      "delete": "Delete tag “{name}”"
+      "actions": "Actions for tag “{name}”",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "tagDialog": {
       "addTitle": "Add tag",

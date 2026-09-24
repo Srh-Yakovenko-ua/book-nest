@@ -99,7 +99,7 @@ afterEach(() => {
 });
 
 describe("TagsView", () => {
-  it("renders the header, the list-only catalog and the counter", async () => {
+  it("renders the header, the catalog and the counter", async () => {
     mockTagsApi();
 
     renderTags();
@@ -466,9 +466,7 @@ describe("TagsView", () => {
       mockTagsApi({ "PATCH /api/tags/tag-slow-burn": () => json(createdTag()) });
       renderTags();
 
-      await userEvent.click(
-        await screen.findByRole("button", { name: "Редагувати тег «slow burn»" }),
-      );
+      await openTagAction("slow burn", "Редагувати");
       const dialog = await screen.findByRole("dialog");
       const save = within(dialog).getByRole("button", { name: "Зберегти" });
       expect(save).toBeDisabled();
@@ -488,9 +486,7 @@ describe("TagsView", () => {
       mockTagsApi({ "PATCH /api/tags/tag-slow-burn": failure(409) });
       renderTags();
 
-      await userEvent.click(
-        await screen.findByRole("button", { name: "Редагувати тег «slow burn»" }),
-      );
+      await openTagAction("slow burn", "Редагувати");
       const dialog = await screen.findByRole("dialog");
       const name = within(dialog).getByLabelText("Назва тегу");
       await userEvent.clear(name);
@@ -517,9 +513,7 @@ describe("TagsView", () => {
       });
       renderTags();
 
-      await userEvent.click(
-        await screen.findByRole("button", { name: "Видалити тег «slow burn»" }),
-      );
+      await openTagAction("slow burn", "Видалити");
       const dialog = await screen.findByRole("alertdialog");
       const confirm = within(dialog).getByRole("button", { name: "Видалити тег" });
       expect(confirm).toBeDisabled();
@@ -552,9 +546,7 @@ describe("TagsView", () => {
       });
       renderTags("", undefined, productionLikeClient());
       const openDialog = async () => {
-        await userEvent.click(
-          await screen.findByRole("button", { name: "Видалити тег «slow burn»" }),
-        );
+        await openTagAction("slow burn", "Видалити");
         return screen.findByRole("alertdialog");
       };
 
@@ -592,9 +584,7 @@ describe("TagsView", () => {
       });
       renderTags();
 
-      await userEvent.click(
-        await screen.findByRole("button", { name: "Видалити тег «slow burn»" }),
-      );
+      await openTagAction("slow burn", "Видалити");
       const dialog = await screen.findByRole("alertdialog");
       const confirm = within(dialog).getByRole("button", { name: "Видалити тег" });
       await waitFor(() => expect(confirm).toBeEnabled());
@@ -613,9 +603,7 @@ describe("TagsView", () => {
       });
       renderTags();
 
-      await userEvent.click(
-        await screen.findByRole("button", { name: "Видалити тег «slow burn»" }),
-      );
+      await openTagAction("slow burn", "Видалити");
       const dialog = await screen.findByRole("alertdialog");
       const confirm = within(dialog).getByRole("button", { name: "Видалити тег" });
       await waitFor(() => expect(confirm).toBeEnabled());
@@ -627,6 +615,134 @@ describe("TagsView", () => {
       expect(toast.success).not.toHaveBeenCalled();
       expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     });
+  });
+});
+
+describe("TagsView grid and list views", () => {
+  it("renders cards in a grid by default without writing a view param", async () => {
+    mockTagsApi();
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderTags("", (event) => urlUpdates.push(event));
+
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+
+    expect(screen.getByRole("radio", { name: "Сітка" })).toHaveAttribute("aria-checked", "true");
+    expect(catalogList()).toHaveClass("grid", "sm:grid-cols-2");
+    expect(urlUpdates).toHaveLength(0);
+  });
+
+  it("switches to the list and writes view=list while keeping the other params", async () => {
+    mockTagsApi();
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderTags("?filter=used&sort=name_asc", (event) => urlUpdates.push(event));
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+
+    await userEvent.click(screen.getByRole("radio", { name: "Список" }));
+
+    await waitFor(() =>
+      expect(urlUpdates.at(-1)?.queryString).toBe("?filter=used&sort=name_asc&view=list"),
+    );
+    expect(catalogList()).not.toHaveClass("grid");
+    expect(within(tagItem("slow burn")).getByText("Повільний розвиток почуттів")).toHaveClass(
+      "truncate",
+    );
+    expect(screen.getByText("Показано 2 із 2 тегів")).toBeInTheDocument();
+  });
+
+  it("shows a skeleton that matches the active view while the first page loads", async () => {
+    mockTagsApi({ "GET /api/tags/catalog": () => new Promise<Response>(() => undefined) });
+    const { unmount } = renderTags();
+
+    expect(await screen.findByRole("status", { name: "Завантажуємо теги" })).toHaveClass("grid");
+    unmount();
+
+    renderTags("?view=list");
+
+    expect(await screen.findByRole("status", { name: "Завантажуємо теги" })).toHaveClass(
+      "flex-col",
+    );
+  });
+
+  it.each(["", "?view=list"])(
+    "shows only books and characters counts, never a total (%s)",
+    async (searchParams) => {
+      mockTagsApi();
+      renderTags(searchParams);
+      await screen.findByRole("heading", { level: 3, name: "slow burn" });
+
+      const item = tagItem("slow burn");
+      const [booksTerm, charactersTerm] = within(item).getAllByRole("term");
+      const [booksValue, charactersValue] = within(item).getAllByRole("definition");
+      expect(within(item).getAllByRole("term")).toHaveLength(2);
+      expect(booksTerm).toHaveTextContent("Книги");
+      expect(booksValue).toHaveTextContent("3");
+      expect(charactersTerm).toHaveTextContent("Персонажі");
+      expect(charactersValue).toHaveTextContent("2");
+      expect(within(item).getByText("Троп")).toBeInTheDocument();
+      expect(screen.queryByText("Усього")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Редагувати тег/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Видалити тег/ })).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(["", "?view=list"])(
+    "shows a neutral note instead of counts for an unused tag (%s)",
+    async (searchParams) => {
+      mockTagsApi();
+      renderTags(searchParams);
+      await screen.findByRole("heading", { level: 3, name: "cozy" });
+
+      const item = tagItem("cozy");
+      expect(within(item).getByText("Ще не використовується")).toBeInTheDocument();
+      expect(within(item).queryByText("Книги")).not.toBeInTheDocument();
+      expect(within(item).queryByText("Персонажі")).not.toBeInTheDocument();
+    },
+  );
+
+  it("clamps a long description and a long name to two lines in the grid", async () => {
+    const description = "Дуже довгий опис ".repeat(40).trim();
+    const name = "дуже-довга-назва-тегу-без-пробілів-".repeat(6);
+    mockTagsApi({
+      "GET /api/tags/catalog": () => json(page([{ ...SLOW_BURN, description, name }])),
+    });
+    renderTags();
+
+    const heading = await screen.findByRole("heading", { level: 3, name });
+    expect(heading).toHaveClass("line-clamp-2", "break-words");
+    expect(within(tagItem(name)).getByText(description)).toHaveClass("line-clamp-2");
+  });
+
+  it("opens the Edit and Delete dialogs from the actions menu", async () => {
+    mockTagsApi({ "GET /api/tags/tag-slow-burn/deletion-preview": () => json(PREVIEW) });
+    renderTags();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Дії з тегом «slow burn»" }));
+    const menu = await screen.findByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "Видалити" })).toHaveAttribute(
+      "data-variant",
+      "destructive",
+    );
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Редагувати" }));
+
+    const editDialog = await screen.findByRole("dialog");
+    expect(within(editDialog).getByLabelText("Назва тегу")).toHaveValue("slow burn");
+    await userEvent.click(within(editDialog).getByRole("button", { name: "Скасувати" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    await openTagAction("slow burn", "Видалити");
+
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("opens the actions menu from the keyboard", async () => {
+    mockTagsApi();
+    renderTags("?view=list");
+    const trigger = await screen.findByRole("button", { name: "Дії з тегом «cozy»" });
+
+    trigger.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByRole("menuitem", { name: "Редагувати" })).toBeInTheDocument();
   });
 });
 
@@ -925,7 +1041,7 @@ describe("TagsView loading and failure states", () => {
     renderTags();
 
     expect(await screen.findByRole("heading", { level: 3, name: "slow burn" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Редагувати тег «slow burn»" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Дії з тегом «slow burn»" })).toBeEnabled();
     expect(screen.getByText("Показано 2 із 2 тегів")).toBeInTheDocument();
   });
 
@@ -1062,9 +1178,7 @@ describe("TagsView mutations refresh the page", () => {
   it("closes the Edit dialog and refetches catalog, facets and summary after saving", async () => {
     mockTagsApi({ "PATCH /api/tags/tag-slow-burn": () => json(createdTag()) });
     renderTags();
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Редагувати тег «slow burn»" }),
-    );
+    await openTagAction("slow burn", "Редагувати");
     await waitFor(() => expect(requestsTo("GET /api/tags/summary")).toHaveLength(1));
     const dialog = await screen.findByRole("dialog");
     await userEvent.type(within(dialog).getByLabelText(/Опис/), " і ще");
@@ -1086,7 +1200,7 @@ describe("TagsView mutations refresh the page", () => {
       "GET /api/tags/tag-slow-burn/deletion-preview": () => json(PREVIEW),
     });
     renderTags();
-    await userEvent.click(await screen.findByRole("button", { name: "Видалити тег «slow burn»" }));
+    await openTagAction("slow burn", "Видалити");
     const dialog = await screen.findByRole("alertdialog");
     const confirm = within(dialog).getByRole("button", { name: "Видалити тег" });
     await waitFor(() => expect(confirm).toBeEnabled());
@@ -1186,6 +1300,11 @@ function mockTagsApi(overrides: Record<string, Reply> = {}) {
   );
 }
 
+async function openTagAction(name: string, action: "Видалити" | "Редагувати") {
+  await userEvent.click(await screen.findByRole("button", { name: `Дії з тегом «${name}»` }));
+  await userEvent.click(await screen.findByRole("menuitem", { name: action }));
+}
+
 function page(
   items: TagCatalogListItem[],
   overrides: Partial<PaginatedTagCatalog> = {},
@@ -1253,4 +1372,12 @@ function stubNarrowViewport() {
     media,
     removeEventListener: vi.fn(),
   }));
+}
+
+function tagItem(name: string): HTMLElement {
+  const item = within(catalogList())
+    .getAllByRole("listitem")
+    .find((candidate) => within(candidate).queryByRole("heading", { level: 3, name }) !== null);
+  if (item === undefined) throw new Error(`No catalog item for ${name}`);
+  return item;
 }

@@ -30,6 +30,7 @@ describe("tags URL state", () => {
       q: "",
       sort: "usage_count_desc",
       type: [],
+      view: "grid",
     });
   });
 
@@ -66,9 +67,15 @@ describe("tags URL state", () => {
     expect(serializeTagsQuery({ color: toArrayPatch([]), type: toArrayPatch([]) })).toBe("");
   });
 
-  it("never serializes pagination or view state", () => {
+  it("never serializes pagination state", () => {
     const url = serializeTagsQuery({ filter: "used", q: "war", sort: "name_asc" });
-    expect(url).not.toMatch(/pageNumber|pageSize|view/);
+    expect(url).not.toMatch(/pageNumber|pageSize/);
+  });
+
+  it("keeps the default grid view out of the URL and writes only the list view", () => {
+    expect(serializeTagsQuery({ view: "grid" })).toBe("");
+    expect(serializeTagsQuery({ view: "list" })).toBe("?view=list");
+    expect(stateFrom("view=bogus").view).toBe("grid");
   });
 });
 

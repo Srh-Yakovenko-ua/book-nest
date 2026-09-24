@@ -124,6 +124,7 @@ export function TagsView() {
             onRetry={() => void catalog.refetch()}
             onShowAll={() => query.setFilter("all")}
             state={listState}
+            view={query.state.view}
           />
         </section>
         <TagsSidebar query={query} status={summaryStatus} summary={summary.data} />

@@ -6611,7 +6611,10 @@
       "searchTagsPlaceholder": "Пошук за назвою або описом…",
       "searchClear": "Очистити пошук",
       "sortLabel": "Сортування",
-      "quickFilterLabel": "Швидкі фільтри тегів"
+      "quickFilterLabel": "Швидкі фільтри тегів",
+      "viewLabel": "Вигляд",
+      "viewGrid": "Сітка",
+      "viewList": "Список"
     },
     "sortMobile": {
       "title": "Сортування",
@@ -6667,6 +6670,14 @@
       "format": "Формат",
       "custom": "Власний тег"
     },
+    "typeBadge": {
+      "trope": "Троп",
+      "atmosphere": "Атмосфера",
+      "theme": "Тема",
+      "character": "Персонаж",
+      "format": "Формат",
+      "custom": "Власний тег"
+    },
     "colors": {
       "parchment": "Пергамент",
       "terracotta": "Теракота",
@@ -6685,13 +6696,14 @@
       "loadMoreError": "Не вдалося завантажити ще теги.",
       "retry": "Спробувати знову"
     },
-    "row": {
+    "item": {
       "books": "Книги",
       "characters": "Персонажі",
-      "usage": "Усього",
+      "unused": "Ще не використовується",
       "color": "Колір: {color}",
-      "edit": "Редагувати тег «{name}»",
-      "delete": "Видалити тег «{name}»"
+      "actions": "Дії з тегом «{name}»",
+      "edit": "Редагувати",
+      "delete": "Видалити"
     },
     "tagDialog": {
       "addTitle": "Додати тег",

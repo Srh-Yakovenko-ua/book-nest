@@ -15,10 +15,16 @@ import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type { TagsListState, TagsNextPageState } from "../model/tags-list-state";
+import type { TagsViewMode } from "../model/tags-query";
 
+import { TagCard } from "./tag-card";
 import { TagRow } from "./tag-row";
 
-const CATALOG_SKELETON_ROWS = 6;
+const CATALOG_LAYOUT = {
+  grid: "grid grid-cols-1 gap-4 sm:grid-cols-2",
+  list: "flex flex-col gap-2",
+  skeletonCount: 6,
+} as const;
 
 type TagsCatalogProps = {
   onAddTag: () => void;
@@ -30,6 +36,7 @@ type TagsCatalogProps = {
   onRetry: () => void;
   onShowAll: () => void;
   state: TagsListState;
+  view: TagsViewMode;
 };
 
 export function TagsCatalog({
@@ -42,6 +49,7 @@ export function TagsCatalog({
   onRetry,
   onShowAll,
   state,
+  view,
 }: TagsCatalogProps) {
   const t = useTranslations("tags.states");
 
@@ -96,13 +104,46 @@ export function TagsCatalog({
           onEditTag={onEditTag}
           onLoadMore={onLoadMore}
           state={state}
+          view={view}
         />
       );
     case "loading":
-      return <TagsListSkeleton />;
+      return <TagsListSkeleton view={view} />;
     default:
       return assertNever(state);
   }
+}
+
+function TagCardSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+      <div className="flex items-start gap-3">
+        <Skeleton className="mt-1 size-3.5 shrink-0 rounded-full" />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-5 w-2/3" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+        <Skeleton className="size-8 shrink-0 rounded-md" />
+      </div>
+      <Skeleton className="h-3.5 w-full" />
+      <Skeleton className="h-3.5 w-3/4" />
+      <Skeleton className="mt-1 h-4 w-44" />
+    </div>
+  );
+}
+
+function TagRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-card">
+      <Skeleton className="size-3.5 shrink-0 rounded-full" />
+      <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center md:gap-4">
+        <Skeleton className="h-4 w-40 md:w-60" />
+        <Skeleton className="h-3.5 w-2/3 md:flex-1" />
+        <Skeleton className="h-4 w-44" />
+      </div>
+      <Skeleton className="size-8 shrink-0 rounded-md" />
+    </div>
+  );
 }
 
 function TagsList({
@@ -110,11 +151,13 @@ function TagsList({
   onEditTag,
   onLoadMore,
   state,
+  view,
 }: {
   onDeleteTag: (tag: TagCatalogListItem) => void;
   onEditTag: (tag: TagCatalogListItem) => void;
   onLoadMore: () => void;
   state: Extract<TagsListState, { kind: "list" }>;
+  view: TagsViewMode;
 }) {
   const t = useTranslations("tags.catalog");
   const locale = useLocale();
@@ -124,13 +167,18 @@ function TagsList({
       <ul
         aria-busy={state.isRefreshing}
         className={cn(
-          "flex flex-col gap-2 transition-opacity duration-200 motion-reduce:transition-none",
+          CATALOG_LAYOUT[view],
+          "transition-opacity duration-200 motion-reduce:transition-none",
           state.isRefreshing && "opacity-60",
         )}
       >
         {state.items.map((tag) => (
-          <li key={tag.id}>
-            <TagRow onDelete={() => onDeleteTag(tag)} onEdit={() => onEditTag(tag)} tag={tag} />
+          <li className="flex" key={tag.id}>
+            {view === "grid" ? (
+              <TagCard onDelete={() => onDeleteTag(tag)} onEdit={() => onEditTag(tag)} tag={tag} />
+            ) : (
+              <TagRow onDelete={() => onDeleteTag(tag)} onEdit={() => onEditTag(tag)} tag={tag} />
+            )}
           </li>
         ))}
       </ul>
@@ -147,24 +195,14 @@ function TagsList({
   );
 }
 
-function TagsListSkeleton() {
+function TagsListSkeleton({ view }: { view: TagsViewMode }) {
   const t = useTranslations("tags.catalog");
 
   return (
-    <div aria-busy aria-label={t("loading")} className="flex flex-col gap-2" role="status">
-      {Array.from({ length: CATALOG_SKELETON_ROWS }, (_, index) => (
-        <div
-          className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-card md:flex-row md:items-center md:gap-5"
-          key={index}
-        >
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-7 w-32 rounded-full" />
-            <Skeleton className="h-3 w-2/3" />
-          </div>
-          <Skeleton className="h-4 w-56" />
-          <Skeleton className="h-8 w-20" />
-        </div>
-      ))}
+    <div aria-busy aria-label={t("loading")} className={CATALOG_LAYOUT[view]} role="status">
+      {Array.from({ length: CATALOG_LAYOUT.skeletonCount }, (_, index) =>
+        view === "grid" ? <TagCardSkeleton key={index} /> : <TagRowSkeleton key={index} />,
+      )}
     </div>
   );
 }

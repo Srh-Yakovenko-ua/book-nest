@@ -33,11 +33,17 @@ export type TagsStatePatch = {
   [Key in keyof TagsQueryState]?: Nullable<TagsQueryState[Key]>;
 };
 
+export type TagsViewMode = (typeof TAGS_QUERY.view.modes)[number];
+
 export const TAGS_QUERY = {
   history: "push",
   search: {
     minLength: 2,
     schema: TagsCatalogFacetsQuerySchema.shape.q,
+  },
+  view: {
+    default: "grid",
+    modes: ["grid", "list"],
   },
 } as const;
 
@@ -47,6 +53,7 @@ export const TAGS_QUERY_PARSERS = {
   q: parseAsString.withDefault(""),
   sort: parseAsStringLiteral(TagSortSchema.options).withDefault(TAG_SORT_DEFAULT),
   type: parseAsArrayOf(parseAsStringLiteral(TagTypeSchema.options)).withDefault([]),
+  view: parseAsStringLiteral(TAGS_QUERY.view.modes).withDefault(TAGS_QUERY.view.default),
 };
 
 export function clearAllTagsFiltersPatch(): TagsStatePatch {
