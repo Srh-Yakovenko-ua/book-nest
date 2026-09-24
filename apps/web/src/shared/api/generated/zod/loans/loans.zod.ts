@@ -444,6 +444,75 @@ export const LoansControllerSummaryResponse = zod.object({
 });
 
 /**
+ * @summary Count the current user active loans per quick filter
+ */
+export const loansControllerQuickCountsQueryContactIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const loansControllerQuickCountsQueryExpectedReturnDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loansControllerQuickCountsQueryExpectedReturnDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loansControllerQuickCountsQueryLoanDateFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loansControllerQuickCountsQueryLoanDateToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const loansControllerQuickCountsQuerySearchMax = 100;
+
+export const LoansControllerQuickCountsQueryParams = zod.object({
+  contactId: zod.uuid().regex(loansControllerQuickCountsQueryContactIdRegExp).optional(),
+  expectedReturnDateFrom: zod.iso
+    .date()
+    .regex(loansControllerQuickCountsQueryExpectedReturnDateFromRegExp)
+    .optional(),
+  expectedReturnDateTo: zod.iso
+    .date()
+    .regex(loansControllerQuickCountsQueryExpectedReturnDateToRegExp)
+    .optional(),
+  hasNote: zod.string().optional(),
+  loanDateFrom: zod.iso.date().regex(loansControllerQuickCountsQueryLoanDateFromRegExp).optional(),
+  loanDateTo: zod.iso.date().regex(loansControllerQuickCountsQueryLoanDateToRegExp).optional(),
+  reminder: zod.enum(["on", "off"]).optional(),
+  search: zod.string().max(loansControllerQuickCountsQuerySearchMax).optional(),
+  type: zod.enum(["borrowed_from_someone", "lent_to_someone"]).optional(),
+});
+
+export const loansControllerQuickCountsResponseAllMin = 0;
+export const loansControllerQuickCountsResponseAllMax = 9007199254740991;
+
+export const loansControllerQuickCountsResponseNoReturnDateMin = 0;
+export const loansControllerQuickCountsResponseNoReturnDateMax = 9007199254740991;
+
+export const loansControllerQuickCountsResponseOverdueMin = 0;
+export const loansControllerQuickCountsResponseOverdueMax = 9007199254740991;
+
+export const loansControllerQuickCountsResponseReturnSoonMin = 0;
+export const loansControllerQuickCountsResponseReturnSoonMax = 9007199254740991;
+
+export const LoansControllerQuickCountsResponse = zod.object({
+  all: zod
+    .int()
+    .min(loansControllerQuickCountsResponseAllMin)
+    .max(loansControllerQuickCountsResponseAllMax),
+  no_return_date: zod
+    .int()
+    .min(loansControllerQuickCountsResponseNoReturnDateMin)
+    .max(loansControllerQuickCountsResponseNoReturnDateMax),
+  overdue: zod
+    .int()
+    .min(loansControllerQuickCountsResponseOverdueMin)
+    .max(loansControllerQuickCountsResponseOverdueMax),
+  return_soon: zod
+    .int()
+    .min(loansControllerQuickCountsResponseReturnSoonMin)
+    .max(loansControllerQuickCountsResponseReturnSoonMax),
+});
+
+/**
  * @summary List the current user's active loans
  */
 export const loansControllerListQueryContactIdRegExp = new RegExp(

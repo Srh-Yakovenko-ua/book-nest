@@ -7,7 +7,7 @@ import {
   createPaginatedSchema,
   paginationQueryFields,
 } from "./common.js";
-import { NoHtmlString, notInFutureDate } from "./internal.js";
+import { CountSchema, NoHtmlString, notInFutureDate } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 
 const LOAN_SEARCH_MAX = 100;
@@ -68,31 +68,63 @@ const RETURN_DATE_RANGE_MESSAGE = "Return date from cannot be after return date 
 const isDayRangeOrdered = (from: string | undefined, to: string | undefined): boolean =>
   from === undefined || to === undefined || !isAfter(parseISO(from), parseISO(to));
 
-export const LoansQuerySchema = z
-  .object({
-    contactId: z.uuid().optional(),
-    expectedReturnDateFrom: z.iso.date().optional(),
-    expectedReturnDateTo: z.iso.date().optional(),
-    filter: LoanFilterSchema.default("all"),
-    hasNote: z.stringbool().optional(),
-    loanDateFrom: z.iso.date().optional(),
-    loanDateTo: z.iso.date().optional(),
-    ...paginationQueryFields({ pageSizeDefault: 10 }),
-    reminder: LoanReminderFilterSchema.optional(),
-    search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
-    sort: LoanSortSchema.default("overdue_first"),
-    type: LoanTypeSchema.optional(),
-  })
-  .refine((value) => isDayRangeOrdered(value.loanDateFrom, value.loanDateTo), {
-    error: LOAN_DATE_RANGE_MESSAGE,
-    path: ["loanDateTo"],
-  })
-  .refine((value) => isDayRangeOrdered(value.expectedReturnDateFrom, value.expectedReturnDateTo), {
-    error: RETURN_DATE_RANGE_MESSAGE,
-    path: ["expectedReturnDateTo"],
-  });
+const LoansQueryFieldsSchema = z.object({
+  contactId: z.uuid().optional(),
+  expectedReturnDateFrom: z.iso.date().optional(),
+  expectedReturnDateTo: z.iso.date().optional(),
+  filter: LoanFilterSchema.default("all"),
+  hasNote: z.stringbool().optional(),
+  loanDateFrom: z.iso.date().optional(),
+  loanDateTo: z.iso.date().optional(),
+  ...paginationQueryFields({ pageSizeDefault: 10 }),
+  reminder: LoanReminderFilterSchema.optional(),
+  search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
+  sort: LoanSortSchema.default("overdue_first"),
+  type: LoanTypeSchema.optional(),
+});
+
+type LoanDayRangeBounds = {
+  expectedReturnDateFrom?: string;
+  expectedReturnDateTo?: string;
+  loanDateFrom?: string;
+  loanDateTo?: string;
+};
+
+function refineLoanDayRanges(value: LoanDayRangeBounds, context: z.RefinementCtx): void {
+  if (!isDayRangeOrdered(value.loanDateFrom, value.loanDateTo)) {
+    context.addIssue({ code: "custom", message: LOAN_DATE_RANGE_MESSAGE, path: ["loanDateTo"] });
+  }
+
+  if (!isDayRangeOrdered(value.expectedReturnDateFrom, value.expectedReturnDateTo)) {
+    context.addIssue({
+      code: "custom",
+      message: RETURN_DATE_RANGE_MESSAGE,
+      path: ["expectedReturnDateTo"],
+    });
+  }
+}
+
+export const LoansQuerySchema = LoansQueryFieldsSchema.superRefine(refineLoanDayRanges);
 
 export type LoansQuery = z.infer<typeof LoansQuerySchema>;
+
+export const LoansQuickCountsQuerySchema = LoansQueryFieldsSchema.omit({
+  filter: true,
+  pageNumber: true,
+  pageSize: true,
+  sort: true,
+}).superRefine(refineLoanDayRanges);
+
+export type LoansQuickCountsQuery = z.infer<typeof LoansQuickCountsQuerySchema>;
+
+export const LoansQuickCountsSchema = z.object({
+  all: CountSchema,
+  no_return_date: CountSchema,
+  overdue: CountSchema,
+  return_soon: CountSchema,
+});
+
+export type LoansQuickCounts = z.infer<typeof LoansQuickCountsSchema>;
 
 export const LoanBookPreviewSchema = z.object({
   cover: MediaViewSchema.nullable(),
