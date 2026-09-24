@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookFormat, BookView, OwnershipStatus, ReadingStatus, TagColor } from "@app/shared";
 
 import {
   BOOK_AUTHORS_REQUIRED_MESSAGE,
@@ -455,15 +455,16 @@ export function BookForm(props: BookFormProps) {
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const previewGenres = genresValue.map((key) => genreNameByKey.get(key) ?? key);
   const bookTags = props.mode === "edit" ? props.book.tags : [];
+  function tagColorOf(name: string): TagColor {
+    return (
+      searchedTagColors.get(name.toLowerCase()) ??
+      bookTags.find((tag) => tag.name.toLowerCase() === name.toLowerCase())?.color ??
+      TAG_COLOR_DEFAULT
+    );
+  }
   const previewTags = tagsValue
     .filter((value): value is string => typeof value === "string")
-    .map((name) => ({
-      color:
-        searchedTagColors.get(name.toLowerCase()) ??
-        bookTags.find((tag) => tag.name.toLowerCase() === name.toLowerCase())?.color ??
-        TAG_COLOR_DEFAULT,
-      name,
-    }));
+    .map((name) => ({ color: tagColorOf(name), name }));
   const previewFormats = formatsValue.filter(isBookFormat);
   const previewRating = typeof ratingValue === "number" ? ratingValue : undefined;
 
@@ -895,6 +896,7 @@ export function BookForm(props: BookFormProps) {
             setSeriesGenresHintName(null);
             setSeriesGenresSuggestion(null);
           }}
+          tagColorOf={tagColorOf}
         />
 
         <ReadingStatusSection
