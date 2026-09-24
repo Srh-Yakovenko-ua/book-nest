@@ -20,6 +20,7 @@ import type {
 
 import type {
   BookCharacterSuggestionsControllerListParams,
+  BookCharacterSummaryControllerGetParams,
   BookCharacterSummaryViewDto,
   BookCharactersControllerListParams,
   CharacterBundleDto,
@@ -32,6 +33,7 @@ import type {
   CharacterMergeControllerPreviewParams,
   CharacterMergePreviewDto,
   CharacterMergeResultDto,
+  CharacterOverviewDto,
   CharacterPortabilityControllerExportBundleParams,
   CharacterSeriesProfileViewDto,
   CharacterSuggestionsDto,
@@ -1031,9 +1033,164 @@ export function useCharactersControllerDuplicateCandidates<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type charactersControllerOverviewResponse200 = {
+  data: CharacterOverviewDto;
+  status: 200;
+};
+
+export type charactersControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type charactersControllerOverviewResponseSuccess =
+  charactersControllerOverviewResponse200 & {
+    headers: Headers;
+  };
+export type charactersControllerOverviewResponseError = charactersControllerOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type charactersControllerOverviewResponse =
+  charactersControllerOverviewResponseSuccess | charactersControllerOverviewResponseError;
+
+export const getCharactersControllerOverviewUrl = () => {
+  return `/api/characters/overview`;
+};
+
+/**
+ * @summary Get the aggregate overview of the global characters catalog
+ */
+export const charactersControllerOverview = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<charactersControllerOverviewResponse> => {
+  return customInstance<charactersControllerOverviewResponse>(
+    getCharactersControllerOverviewUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharactersControllerOverviewQueryKey = () => {
+  return [`/api/characters/overview`] as const;
+};
+
+export const getCharactersControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCharactersControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof charactersControllerOverview>>> = ({
+    signal,
+  }) => charactersControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof charactersControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharactersControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof charactersControllerOverview>>
+>;
+export type CharactersControllerOverviewQueryError = void;
+
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the aggregate overview of the global characters catalog
+ */
+
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharactersControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type charactersControllerGetByIdResponse200 = {
   data: CharacterDetailsViewDto;
   status: 200;
+};
+
+export type charactersControllerGetByIdResponse400 = {
+  data: void;
+  status: 400;
 };
 
 export type charactersControllerGetByIdResponse401 = {
@@ -1050,7 +1207,9 @@ export type charactersControllerGetByIdResponseSuccess = charactersControllerGet
   headers: Headers;
 };
 export type charactersControllerGetByIdResponseError = (
-  charactersControllerGetByIdResponse401 | charactersControllerGetByIdResponse404
+  | charactersControllerGetByIdResponse400
+  | charactersControllerGetByIdResponse401
+  | charactersControllerGetByIdResponse404
 ) & {
   headers: Headers;
 };
@@ -3631,8 +3790,23 @@ export type bookCharacterSummaryControllerGetResponseError = (
 export type bookCharacterSummaryControllerGetResponse =
   bookCharacterSummaryControllerGetResponseSuccess | bookCharacterSummaryControllerGetResponseError;
 
-export const getBookCharacterSummaryControllerGetUrl = (bookId: string) => {
-  return `/api/books/${bookId}/character-summary`;
+export const getBookCharacterSummaryControllerGetUrl = (
+  bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${bookId}/character-summary?${stringifiedParams}`
+    : `/api/books/${bookId}/character-summary`;
 };
 
 /**
@@ -3640,10 +3814,11 @@ export const getBookCharacterSummaryControllerGetUrl = (bookId: string) => {
  */
 export const bookCharacterSummaryControllerGet = async (
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<bookCharacterSummaryControllerGetResponse> => {
   return customInstance<bookCharacterSummaryControllerGetResponse>(
-    getBookCharacterSummaryControllerGetUrl(bookId),
+    getBookCharacterSummaryControllerGetUrl(bookId, params),
     {
       ...options,
       method: "GET",
@@ -3651,8 +3826,11 @@ export const bookCharacterSummaryControllerGet = async (
   );
 };
 
-export const getBookCharacterSummaryControllerGetQueryKey = (bookId: string) => {
-  return [`/api/books/${bookId}/character-summary`] as const;
+export const getBookCharacterSummaryControllerGetQueryKey = (
+  bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
+) => {
+  return [`/api/books/${bookId}/character-summary`, ...(params ? [params] : [])] as const;
 };
 
 export const getBookCharacterSummaryControllerGetQueryOptions = <
@@ -3660,6 +3838,7 @@ export const getBookCharacterSummaryControllerGetQueryOptions = <
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3669,11 +3848,12 @@ export const getBookCharacterSummaryControllerGetQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getBookCharacterSummaryControllerGetQueryKey(bookId);
+  const queryKey =
+    queryOptions?.queryKey ?? getBookCharacterSummaryControllerGetQueryKey(bookId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>> = ({
     signal,
-  }) => bookCharacterSummaryControllerGet(bookId, { signal, ...requestOptions });
+  }) => bookCharacterSummaryControllerGet(bookId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -3697,6 +3877,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params: undefined | BookCharacterSummaryControllerGetParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3718,6 +3899,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3739,6 +3921,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3756,6 +3939,7 @@ export function useBookCharacterSummaryControllerGet<
   TError = void,
 >(
   bookId: string,
+  params?: BookCharacterSummaryControllerGetParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharacterSummaryControllerGet>>, TError, TData>
@@ -3764,7 +3948,7 @@ export function useBookCharacterSummaryControllerGet<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookCharacterSummaryControllerGetQueryOptions(bookId, options);
+  const queryOptions = getBookCharacterSummaryControllerGetQueryOptions(bookId, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

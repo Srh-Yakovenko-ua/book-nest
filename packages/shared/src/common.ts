@@ -82,6 +82,25 @@ export const readingPositionFromQuery = (query: {
   };
 };
 
+export const requireContextBookForReadingPosition = (
+  value: {
+    contextAudioSeconds?: number;
+    contextBookId?: string;
+    contextChapter?: number;
+    contextPage?: number;
+  },
+  ctx: z.RefinementCtx,
+): void => {
+  if (value.contextBookId !== undefined || readingPositionFromQuery(value) === undefined) {
+    return;
+  }
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: "contextBookId is required when a reading position is supplied",
+    path: ["contextBookId"],
+  });
+};
+
 const HTML_TAG = /<\/?[a-zA-Z][^<>]*>|<!--|<!\w/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);

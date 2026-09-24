@@ -32,7 +32,7 @@ export type CharacterGraphViewDtoClustersItem =
     }
   | {
       id: string;
-      importance: "central" | "major" | "supporting" | "episodic" | "mentioned";
+      importance: "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
       kind: "importance";
       /**
        * @maximum 9007199254740991

@@ -9,7 +9,11 @@ import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { Badge } from "@/components/ui/badge";
-import { BookCharactersTab, useBookCharacterSummary } from "@/features/characters";
+import {
+  BookCharactersTab,
+  toCharacterReadingContext,
+  useBookCharacterSummary,
+} from "@/features/characters";
 import { BookNotesBlock } from "@/features/notes";
 import { BookQuotesBlock } from "@/features/quotes";
 import { BookTimelineBlock, useTimelineSummary } from "@/features/timeline";
@@ -37,7 +41,7 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
   const t = useTranslations("books.details");
   const tCharacters = useTranslations("characters");
   const [tab, setTab] = useQueryState("tab", tabParser);
-  const charactersSummary = useBookCharacterSummary(book.id);
+  const charactersSummary = useBookCharacterSummary(book.id, toCharacterReadingContext(book));
   const charactersCount = charactersSummary.data?.totalVisibleCharacters ?? 0;
   const timelineSummaryQuery = useTimelineSummary(book.id);
 

@@ -60,6 +60,16 @@ async function createCharacter(token: string, name: string): Promise<string> {
   return res.body.id;
 }
 
+async function createCharacterInBook(token: string, bookId: string, name: string): Promise<string> {
+  const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
+    bookProfile: { importance: "central" },
+    character: { name },
+    mode: "new",
+  });
+  expect(res.status).toBe(HttpStatus.CREATED);
+  return res.body.id;
+}
+
 async function createSeriesBook(
   token: string,
   overrides: Record<string, unknown>,
@@ -304,7 +314,7 @@ describe("character theory spoiler redaction", () => {
       title: "Chamber of Secrets",
     });
     const secondBookId = secondBook.body.id;
-    const character = await createCharacter(accessToken, "Tom Riddle");
+    const character = await createCharacterInBook(accessToken, secondBookId, "Tom Riddle");
 
     await createTheory(accessToken, {
       bookId: secondBookId,
@@ -336,7 +346,7 @@ describe("character theory spoiler redaction", () => {
   it("keeps a non-spoiler character-only theory visible in any reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
-    const character = await createCharacter(accessToken, "Snape");
+    const character = await createCharacterInBook(accessToken, bookId, "Snape");
     await createTheory(accessToken, {
       characterId: character,
       text: "He is complicated",
@@ -349,6 +359,28 @@ describe("character theory spoiler redaction", () => {
     );
     expect(safe.body.totalCount).toBe(1);
     expect(safe.body.items[0].text).toBe("He is complicated");
+  });
+
+  it("hides a theory whose target character appears in no book of the reading context", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const character = await createCharacter(accessToken, "Snape");
+    await createTheory(accessToken, {
+      characterId: character,
+      text: "He is complicated",
+    });
+
+    const safe = await authed(
+      "get",
+      `/api/character-theories?contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(safe.body.totalCount).toBe(0);
+    expect(JSON.stringify(safe.body)).not.toContain("Snape");
+
+    const full = await authed("get", "/api/character-theories", accessToken);
+    expect(full.body.totalCount).toBe(1);
+    expect(full.body.items[0].characterName).toBe("Snape");
   });
 });
 

@@ -1,5 +1,6 @@
 import type {
   BookCharactersQuery,
+  BookCharacterSummaryQuery,
   BookCharacterSummaryView,
   CharacterDetailsView,
   CharacterSuggestionsQuery,
@@ -7,13 +8,20 @@ import type {
   CharacterSummaryView,
   CreateCharacterInBook,
   Paginator,
+  ReadingContextQuery,
   UpdateBookCharacter,
 } from "@app/shared";
 
-import { CHARACTER_ERROR_CODES, CHARACTER_SUMMARY_TOP_LIMIT, normalizeSearch } from "@app/shared";
+import {
+  CHARACTER_ERROR_CODES,
+  CHARACTER_SUMMARY_TOP_LIMIT,
+  normalizeSearch,
+  readingPositionFromQuery,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { ReadingContextWindow, RosterVisibility } from "../domain/reading-context-window.js";
 import type { CreateBookCharacterData } from "../infrastructure/characters.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
@@ -27,6 +35,13 @@ import {
 } from "../domain/book-character-write.js";
 import { buildBookCharacterSummary } from "../domain/character-summary.js";
 import { buildCharacterData, buildReplaceAliases } from "../domain/character-write.js";
+import {
+  collectPositionHiddenAppearanceIds,
+  isBookWithinReadingContextWindow,
+  resolveReadingContextWindow,
+  UNGATED_ROSTER_VISIBILITY,
+  UNRESTRICTED_READING_CONTEXT_WINDOW,
+} from "../domain/reading-context-window.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterDetailsAssembler } from "./character-details.assembler.js";
@@ -67,19 +82,23 @@ export class BookCharactersService {
 
   async bookCharacterSummary({
     bookId,
+    query,
     userId,
   }: {
     bookId: string;
+    query: BookCharacterSummaryQuery;
     userId: string;
   }): Promise<BookCharacterSummaryView> {
     await this.accessAsserter.assertBookOwned({ bookId, userId });
+    const visibility = await this.resolveRosterVisibility({ bookId, query, userId });
 
     const [aggregate, topRows] = await Promise.all([
-      this.charactersRepository.aggregateBookCharacterSummary({ bookId, userId }),
+      this.charactersRepository.aggregateBookCharacterSummary({ bookId, userId, visibility }),
       this.charactersRepository.listTopBookCharacters({
         bookId,
         limit: CHARACTER_SUMMARY_TOP_LIMIT,
         userId,
+        visibility,
       }),
     ]);
 
@@ -176,12 +195,14 @@ export class BookCharactersService {
     userId: string;
   }): Promise<Paginator<CharacterSummaryView>> {
     await this.accessAsserter.assertBookOwned({ bookId, userId });
-    const filter = { bookId, search: normalizeSearch(query.search), userId };
+    const visibility = await this.resolveRosterVisibility({ bookId, query, userId });
+    const filter = { bookId, search: normalizeSearch(query.search), userId, visibility };
 
     const [items, totalCount] = await Promise.all([
       this.charactersRepository.listRoster({
         ...filter,
         ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
+        sort: query.sort,
       }),
       this.charactersRepository.countRoster(filter),
     ]);
@@ -327,5 +348,53 @@ export class BookCharactersService {
     }
 
     return input.characterId;
+  }
+
+  private resolveReadingContextWindowFor({
+    bookId,
+    query,
+    userId,
+  }: {
+    bookId: string;
+    query: ReadingContextQuery;
+    userId: string;
+  }): Promise<ReadingContextWindow> {
+    const readingPosition = readingPositionFromQuery(query);
+    if (query.contextBookId === undefined && readingPosition === undefined) {
+      return Promise.resolve(UNRESTRICTED_READING_CONTEXT_WINDOW);
+    }
+    return resolveReadingContextWindow({
+      bookReader: this.charactersRepository,
+      contextBookId: query.contextBookId ?? bookId,
+      notFoundCode: CHARACTER_ERROR_CODES.bookNotFound,
+      readingPosition,
+      userId,
+    });
+  }
+
+  private async resolveRosterVisibility({
+    bookId,
+    query,
+    userId,
+  }: {
+    bookId: string;
+    query: ReadingContextQuery;
+    userId: string;
+  }): Promise<RosterVisibility> {
+    const window = await this.resolveReadingContextWindowFor({ bookId, query, userId });
+    if (!isBookWithinReadingContextWindow({ bookId, window })) {
+      return { kind: "beyond_reading_position" };
+    }
+    if (window.kind === "unrestricted" || window.positionGate === null) {
+      return UNGATED_ROSTER_VISIBILITY;
+    }
+    const candidates = await this.charactersRepository.listRosterPositionCandidates({
+      bookId,
+      userId,
+    });
+    return {
+      kind: "within_reading_position",
+      positionHiddenIds: collectPositionHiddenAppearanceIds({ appearances: candidates, window }),
+    };
   }
 }

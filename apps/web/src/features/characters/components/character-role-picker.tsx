@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-import type { CharacterFormValues } from "../model/character-form-schema";
+import type { CharacterEditValues } from "../model/character-edit-form";
 
 import { ROLE_TYPE_CUSTOM, ROLE_TYPE_OPTIONS } from "../model/character-options";
 
@@ -23,7 +23,7 @@ type CharacterRolePickerProps = {
   value: RoleRow[];
 };
 
-type RoleRow = CharacterFormValues["roles"][number];
+type RoleRow = CharacterEditValues["book"]["roles"][number];
 
 export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProps) {
   const t = useTranslations("characters.rolePicker");

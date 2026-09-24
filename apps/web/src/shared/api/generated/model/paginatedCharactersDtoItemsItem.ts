@@ -22,6 +22,7 @@ export type PaginatedCharactersDtoItemsItem = {
   id: string;
   importance: PaginatedCharactersDtoItemsItemImportance;
   isFavorite: boolean;
+  isPovCharacter: boolean;
   name: string;
   /** @nullable */
   portrait: PaginatedCharactersDtoItemsItemPortrait;

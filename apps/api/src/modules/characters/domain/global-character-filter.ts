@@ -6,10 +6,12 @@ import type { GlobalCharacterFilter } from "../infrastructure/characters.reposit
 
 export function toGlobalFilter({
   duplicateNormalizedNames,
+  multipleBookCharacterIds,
   query,
   userId,
 }: {
   duplicateNormalizedNames: string[] | undefined;
+  multipleBookCharacterIds: string[] | undefined;
   query: CharactersListQuery;
   userId: string;
 }): GlobalCharacterFilter {
@@ -22,10 +24,12 @@ export function toGlobalFilter({
     favorite: query.favorite,
     genders: query.gender,
     groupIds: query.groupId,
+    hasPersonalImpression: query.hasPersonalImpression,
     hasSpoilers: query.hasSpoilers,
     importances: query.importance,
     includeHiddenProfiles: query.includeHiddenProfiles ?? false,
     includeSpoilerSearch: query.includeSpoilerSearch ?? false,
+    multipleBookCharacterIds,
     roleTypes: query.role,
     search: normalizeSearch(query.q),
     seriesId: query.seriesId,

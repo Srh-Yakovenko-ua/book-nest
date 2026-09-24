@@ -6,11 +6,17 @@ import type {
   CharacterGroupSummaryView,
   CreateCharacterGroup,
   Paginator,
+  ReadingPosition,
   UpdateCharacterGroup,
   UpsertCharacterGroupMembership,
 } from "@app/shared";
 
-import { CHARACTER_GROUP_ERROR_CODES, normalizeName, normalizeSearch } from "@app/shared";
+import {
+  CHARACTER_GROUP_ERROR_CODES,
+  normalizeName,
+  normalizeSearch,
+  readingPositionFromQuery,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -30,7 +36,10 @@ import {
   toCharacterGroupDetailsView,
   toCharacterGroupSummaryView,
 } from "../domain/character-group.mapper.js";
-import { resolveContextAllowedBookIds } from "../domain/context-books.js";
+import {
+  collectUnreachableCharacterIds,
+  resolveReadingContextWindow,
+} from "../domain/reading-context-window.js";
 import { CharacterGroupsRepository } from "../infrastructure/character-groups.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
@@ -114,10 +123,21 @@ export class CharacterGroupsService {
         code: CHARACTER_GROUP_ERROR_CODES.notFound,
       });
     }
+    const namedRow: CharacterGroupDetailsRow = {
+      ...row,
+      memberships: row.memberships.filter(
+        (membership) => !membership.character.hideProfileAsSpoiler,
+      ),
+    };
     if (query.contextBookId === undefined) {
-      return this.toFullDetailsView(row);
+      return this.toFullDetailsView(namedRow);
     }
-    return this.toSafeDetailsView({ contextBookId: query.contextBookId, row, userId });
+    return this.toSafeDetailsView({
+      contextBookId: query.contextBookId,
+      readingPosition: readingPositionFromQuery(query),
+      row: namedRow,
+      userId,
+    });
   }
 
   async list({
@@ -394,34 +414,33 @@ export class CharacterGroupsService {
 
   private async toSafeDetailsView({
     contextBookId,
+    readingPosition,
     row,
     userId,
   }: {
     contextBookId: string;
+    readingPosition: ReadingPosition | undefined;
     row: CharacterGroupDetailsRow;
     userId: string;
   }): Promise<CharacterGroupDetailsView> {
-    const allowedBookIds = await resolveContextAllowedBookIds({
-      contextBookId,
-      notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
-      reader: this.charactersRepository,
-      userId,
-    });
-    const presence = await this.characterGroupsRepository.listMembershipPresence({
-      allowedBookIds,
-      characterIds: [...new Set(row.memberships.map((membership) => membership.characterId))],
-      userId,
-    });
-    const hiddenProfileCharacterIds = new Set(
-      row.memberships
-        .filter((membership) => membership.character.hideProfileAsSpoiler)
-        .map((membership) => membership.characterId),
-    );
+    const characterIds = [...new Set(row.memberships.map((membership) => membership.characterId))];
+    const [window, appearances] = await Promise.all([
+      resolveReadingContextWindow({
+        bookReader: this.charactersRepository,
+        contextBookId,
+        notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
+        readingPosition,
+        userId,
+      }),
+      this.charactersRepository.listAppearancesForCharacters({ characterIds, userId }),
+    ]);
     const context = {
-      allowedBookIds: new Set(allowedBookIds),
-      hiddenPresenceCharacterIds: new Set(presence.hiddenPresenceCharacterIds),
-      hiddenProfileCharacterIds,
-      revealedCharacterIds: new Set(presence.revealedCharacterIds),
+      allowedBookIds: window.allowedBookIds,
+      unreachableCharacterIds: collectUnreachableCharacterIds({
+        appearances,
+        characterIds,
+        window,
+      }),
     };
 
     const visibleMembers = row.memberships.filter((membership) =>

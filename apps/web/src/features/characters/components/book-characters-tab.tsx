@@ -9,26 +9,22 @@ import { toast } from "sonner";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
 import { useBookCharacterSummary } from "../api/use-book-character-summary";
 import { useBookCharacters } from "../api/use-book-characters";
-import { useCreateCharacterInBook } from "../api/use-create-character-in-book";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
-import { emptyCharacterFormValues, toBookProfileInput } from "../model/character-form-schema";
-import { sortRosterPage } from "../model/characters-roster-query";
+import { getCharacterDetailsPath } from "../model/character-routes";
+import { toCharacterReadingContext } from "../model/characters-roster-query";
 import { useCharactersRosterQuery } from "../model/use-characters-roster-query";
-import { useDeleteCharacterWithUndo } from "../model/use-delete-character-with-undo";
+import { AddCharacterDialog } from "./add-character-dialog";
 import { CharacterCard } from "./character-card";
 import { CharacterCardSkeleton } from "./character-card-skeleton";
 import { CharacterCommandPalette } from "./character-command-palette";
-import { CharacterDetailsSheet } from "./character-details-sheet";
-import { CharacterFormDialog } from "./character-form-dialog";
 import { CharactersEmptyState, CharactersNoResults } from "./characters-empty-state";
 import { CharactersErrorState } from "./characters-error-state";
 import { CharactersToolbar } from "./characters-toolbar";
-import { DeleteCharacterDialog } from "./delete-character-dialog";
-import { QuickAddCharacterBar } from "./quick-add-character-bar";
 import { UnlinkCharacterDialog } from "./unlink-character-dialog";
 
 const SKELETON_COUNT = 6;
@@ -37,19 +33,14 @@ type BookCharactersTabProps = {
   book: BookView;
 };
 
-type FormState = { characterId?: string; initialName?: string; open: boolean };
-
 type RosterListProps = {
+  bookId: string;
   characters: ReturnType<typeof useBookCharacters>;
   hasActiveSearch: boolean;
   onAdd: () => void;
   onClearSearch: () => void;
-  onDelete: (characterId: string) => void;
-  onEdit: (characterId: string) => void;
-  onOpenDetails: (characterId: string) => void;
   onPageChange: (page: number) => void;
   onUnlink: (characterId: string) => void;
-  sort: "name" | "recommended";
 };
 
 export function BookCharactersTab({ book }: BookCharactersTabProps) {
@@ -57,21 +48,21 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const locale = useLocale();
   const t = useTranslations("characters");
   const tToast = useTranslations("characters.toast");
-  const tExisting = useTranslations("characters.existing");
 
-  const roster = useCharactersRosterQuery();
+  const readingContext = toCharacterReadingContext(book);
+  const roster = useCharactersRosterQuery(readingContext);
   const characters = useBookCharacters(bookId, roster.listParams);
-  const summary = useBookCharacterSummary(bookId);
-  const createInBook = useCreateCharacterInBook();
+  const summary = useBookCharacterSummary(bookId, readingContext);
   const unlinkCharacter = useUnlinkCharacter();
-  const deleteCharacter = useDeleteCharacterWithUndo();
+  const router = useRouter();
 
-  const [detailsId, setDetailsId] = useState<null | string>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [form, setForm] = useState<FormState>({ open: false });
-  const [deleteId, setDeleteId] = useState<null | string>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [unlinkId, setUnlinkId] = useState<null | string>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const isEmptyBook =
+    characters.data !== undefined && characters.data.items.length === 0 && !roster.hasActiveSearch;
+  const showControls = characters.data !== undefined && !characters.isError && !isEmptyBook;
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -85,33 +76,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   }, []);
 
   function openDetails(characterId: string) {
-    setDetailsId(characterId);
-    setDetailsOpen(true);
-  }
-
-  function openEdit(characterId: string) {
-    setDetailsOpen(false);
-    setForm({ characterId, open: true });
-  }
-
-  function linkExisting(characterId: string) {
-    createInBook.mutate(
-      {
-        bookId,
-        input: {
-          bookProfile: toBookProfileInput(emptyCharacterFormValues()),
-          characterId,
-          mode: "existing",
-        },
-      },
-      {
-        onError: () => toast.error(tExisting("linkError")),
-        onSuccess: () => {
-          toast.success(tExisting("linked"));
-          setForm({ open: false });
-        },
-      },
-    );
+    router.push(getCharacterDetailsPath({ bookId, characterId }));
   }
 
   function confirmUnlink() {
@@ -128,14 +93,9 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
     );
   }
 
-  function confirmDelete() {
-    if (deleteId === null) return;
-    deleteCharacter.deleteWithUndo(deleteId, () => setDeleteId(null));
-  }
-
   return (
     <div className="flex flex-col gap-5">
-      {summary.data === undefined ? null : (
+      {showControls && summary.data !== undefined ? (
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
             {t("summary.characters", {
@@ -155,61 +115,34 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
             </Badge>
           ) : null}
         </div>
-      )}
+      ) : null}
 
-      <QuickAddCharacterBar
-        bookId={bookId}
-        onLinkExisting={linkExisting}
-        onMoreFields={(name) => setForm({ initialName: name, open: true })}
-      />
-
-      <CharactersToolbar
-        onAdd={() => setForm({ open: true })}
-        onOpenPalette={() => setPaletteOpen(true)}
-        onSearch={roster.setSearch}
-        onSortChange={roster.setSort}
-        search={roster.state.characterSearch}
-        sort={roster.state.characterSort}
-      />
+      {showControls ? (
+        <CharactersToolbar
+          onAdd={() => setAddOpen(true)}
+          onSearch={roster.setSearch}
+          onSortChange={roster.setSort}
+          search={roster.state.characterSearch}
+          sort={roster.state.characterSort}
+        />
+      ) : null}
 
       <RosterList
+        bookId={bookId}
         characters={characters}
         hasActiveSearch={roster.hasActiveSearch}
-        onAdd={() => setForm({ open: true })}
+        onAdd={() => setAddOpen(true)}
         onClearSearch={roster.clearSearch}
-        onDelete={setDeleteId}
-        onEdit={openEdit}
-        onOpenDetails={openDetails}
         onPageChange={roster.setPage}
         onUnlink={setUnlinkId}
-        sort={roster.state.characterSort}
       />
 
-      <CharacterDetailsSheet
-        characterId={detailsId}
-        contextBookId={bookId}
-        onEdit={openEdit}
-        onOpenChange={setDetailsOpen}
-        open={detailsOpen}
-      />
-
-      <CharacterFormDialog
-        bookId={bookId}
-        characterId={form.characterId}
-        initialName={form.initialName}
-        onLinkExisting={linkExisting}
-        onOpenChange={(open) => setForm((current) => ({ ...current, open }))}
-        open={form.open}
-      />
-
-      <DeleteCharacterDialog
-        characterId={deleteId}
-        isDeleting={deleteCharacter.isPending}
-        onConfirm={confirmDelete}
-        onOpenChange={(open) => {
-          if (!open) setDeleteId(null);
-        }}
-        open={deleteId !== null}
+      <AddCharacterDialog
+        book={book}
+        onOpenChange={setAddOpen}
+        onOpenDetails={openDetails}
+        open={addOpen}
+        readingContext={readingContext}
       />
 
       <UnlinkCharacterDialog
@@ -232,16 +165,13 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 }
 
 function RosterList({
+  bookId,
   characters,
   hasActiveSearch,
   onAdd,
   onClearSearch,
-  onDelete,
-  onEdit,
-  onOpenDetails,
   onPageChange,
   onUnlink,
-  sort,
 }: RosterListProps) {
   const t = useTranslations("characters.states");
 
@@ -272,18 +202,14 @@ function RosterList({
     return <CharactersNoResults onClear={onClearSearch} />;
   }
 
-  const sorted = sortRosterPage(characters.data.items, sort);
-
   return (
     <div className="flex flex-col gap-6">
       <ul className="grid gap-4 md:grid-cols-2">
-        {sorted.map((character) => (
+        {characters.data.items.map((character) => (
           <li className="flex" key={character.id}>
             <CharacterCard
+              bookId={bookId}
               character={character}
-              onDelete={() => onDelete(character.characterId)}
-              onEdit={() => onEdit(character.characterId)}
-              onOpenDetails={() => onOpenDetails(character.characterId)}
               onUnlink={() => onUnlink(character.characterId)}
             />
           </li>
