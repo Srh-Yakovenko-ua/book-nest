@@ -64,10 +64,10 @@ export function PublisherInsights({ summary }: PublisherInsightsProps) {
 
       {summary.unreadPublishers.length > 0 ? (
         <InsightBlock icon="book-open-text" iconClassName="text-info" title={t("unread.title")}>
-          <ul className="-mx-1.5 flex flex-col gap-0.5">
+          <ul className="-mx-1.5 flex flex-col divide-y divide-border/60">
             {summary.unreadPublishers.map((publisher) => (
-              <InsightRow
-                detail={t("unread.count", { count: publisher.unreadCount })}
+              <UnreadPublisherRow
+                count={t("unread.count", { count: publisher.unreadCount })}
                 id={publisher.id}
                 key={publisher.id}
                 name={publisher.name}
@@ -79,30 +79,59 @@ export function PublisherInsights({ summary }: PublisherInsightsProps) {
 
       {summary.bestRatedPublishers.length > 0 ? (
         <InsightBlock icon="star" iconClassName="text-favorite" title={t("bestRated.title")}>
-          <ul className="-mx-1.5 flex flex-col gap-0.5">
+          <ul className="-mx-1.5 flex flex-col divide-y divide-border/60">
             {summary.bestRatedPublishers.map((publisher) => (
-              <InsightRow
-                detail={
-                  <span className="inline-flex items-center gap-1">
-                    <UiIcon aria-hidden className="text-favorite" name="star-fill" size={12} />
-                    <span className="font-medium text-ink">
-                      {formatNumber(publisher.averageRating, locale, {
-                        maximumFractionDigits: 1,
-                        minimumFractionDigits: 1,
-                      })}
-                    </span>
-                    {t("bestRated.ratedCount", { count: publisher.ratedBooksCount })}
-                  </span>
-                }
+              <BestRatedPublisherRow
                 id={publisher.id}
                 key={publisher.id}
                 name={publisher.name}
+                rating={formatNumber(publisher.averageRating, locale, {
+                  maximumFractionDigits: 1,
+                  minimumFractionDigits: 1,
+                })}
+                ratingsCount={t("bestRated.ratedCount", { count: publisher.ratedBooksCount })}
               />
             ))}
           </ul>
         </InsightBlock>
       ) : null}
     </>
+  );
+}
+
+function BestRatedPublisherRow({
+  id,
+  name,
+  rating,
+  ratingsCount,
+}: {
+  id: string;
+  name: string;
+  rating: string;
+  ratingsCount: string;
+}) {
+  return (
+    <li className="py-0.5">
+      <MobilePageOverviewLink
+        className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 no-underline transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
+        href={`/publishers/${id}`}
+      >
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="line-clamp-2 text-sm font-medium text-ink">{name}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{ratingsCount}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-ink tabular-nums">
+          <UiIcon aria-hidden className="text-favorite" name="star-fill" size={12} />
+          {rating}
+        </span>
+        <UiIcon
+          aria-hidden
+          className="shrink-0 text-muted-foreground"
+          name="chevron-right"
+          size={14}
+        />
+      </MobilePageOverviewLink>
+    </li>
   );
 }
 
@@ -128,15 +157,21 @@ function InsightBlock({
   );
 }
 
-function InsightRow({ detail, id, name }: { detail: ReactNode; id: string; name: string }) {
+function UnreadPublisherRow({ count, id, name }: { count: string; id: string; name: string }) {
   return (
-    <li>
+    <li className="py-0.5">
       <MobilePageOverviewLink
-        className="flex cursor-pointer flex-col gap-0.5 rounded-md px-1.5 py-1.5 no-underline transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 no-underline transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
         href={`/publishers/${id}`}
       >
-        <span className="truncate text-sm font-medium text-ink">{name}</span>
-        <span className="text-xs text-muted-foreground tabular-nums">{detail}</span>
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm font-medium text-ink">{name}</span>
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{count}</span>
+        <UiIcon
+          aria-hidden
+          className="shrink-0 text-muted-foreground"
+          name="chevron-right"
+          size={14}
+        />
       </MobilePageOverviewLink>
     </li>
   );

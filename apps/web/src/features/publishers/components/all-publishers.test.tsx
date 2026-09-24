@@ -528,11 +528,15 @@ describe("AllPublishers insights", () => {
       "href",
       "/publishers/ranok",
     );
-    expect(within(sidebar).getByText("6 книг залишилось")).toBeInTheDocument();
+    expect(within(sidebar).getByText("6 книг")).toBeInTheDocument();
+    expect(within(sidebar).queryByText(/залишилось/)).not.toBeInTheDocument();
     expect(within(sidebar).getByRole("link", { name: /А-ба-ба-га-ла-ма-га/ })).toHaveAttribute(
       "href",
       "/publishers/a-ba-ba",
     );
+    const bestRated = within(sidebar).getByRole("link", { name: /А-ба-ба-га-ла-ма-га/ });
+    expect(within(bestRated).getByText("4,8")).toBeInTheDocument();
+    expect(within(bestRated).getByText("5 оцінок")).toBeInTheDocument();
   });
 
   it("renders no sidebar when no insight is eligible", async () => {
