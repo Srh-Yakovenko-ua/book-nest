@@ -10,7 +10,7 @@ import type {
   UpdateTagInput,
 } from "@app/shared";
 
-import { normalizeName } from "@app/shared";
+import { normalizeName, toTagView } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -20,7 +20,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
-import { toTagCatalogView, toTagView } from "../domain/tag.mapper.js";
+import { toTagCatalogView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
 type TagUpdateData = {

@@ -1221,10 +1221,8 @@ export const LibraryOverviewViewSchema = z.object({
     }),
   ),
   topTags: z.array(
-    z.object({
+    TagViewSchema.extend({
       count: z.number(),
-      id: z.string(),
-      name: z.string(),
     }),
   ),
 });

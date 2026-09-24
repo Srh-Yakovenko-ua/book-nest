@@ -6588,8 +6588,8 @@
       "attention": {
         "title": "Потребують уваги",
         "unused": "{count, plural, one {# тег ще не використовується} few {# теги ще не використовуються} many {# тегів ще не використовуються} other {# тегу ще не використовуються}}",
-        "action": "Показати невикористані",
-        "allUsed": "Усі теги використовуються — нічого не потребує уваги."
+        "allUsed": "Усі теги використовуються",
+        "detail": "Не пов’язані з книгами чи персонажами"
       },
       "structure": {
         "title": "Структура тегів",
@@ -6604,7 +6604,9 @@
       },
       "palette": {
         "title": "Палітра тегів",
-        "swatch": "{color}: {count, plural, one {# тег} few {# теги} many {# тегів} other {# тегу}}"
+        "swatch": "{color}: {count, plural, one {# тег} few {# теги} many {# тегів} other {# тегу}}",
+        "count": "{count, plural, one {# тег} few {# теги} many {# тегів} other {# тегу}}",
+        "tooltip": "{color} · {count, plural, one {# тег} few {# теги} many {# тегів} other {# тегу}}"
       }
     },
     "toolbar": {
@@ -6688,6 +6690,12 @@
       "sky": "Небесний",
       "lavender": "Лаванда",
       "rose": "Пудрова троянда"
+    },
+    "colorPalette": {
+      "selected": "Обрано: {colors}",
+      "none": "Колір не вибрано",
+      "preview": "Попередній вигляд",
+      "previewPlaceholder": "Назва тегу"
     },
     "catalog": {
       "title": "Каталог тегів",

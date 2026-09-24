@@ -1,6 +1,6 @@
 import type { TagColor } from "@app/shared";
 
-export type TagColorStyle = {
+type TagColorStyle = {
   bg: string;
   border: string;
   text: string;
@@ -8,52 +8,43 @@ export type TagColorStyle = {
 
 export const TAG_COLOR_STYLES = {
   forest: {
-    bg: "oklch(0.91 0.032 130)",
-    border: "oklch(0.76 0.06 135)",
-    text: "oklch(0.36 0.07 135)",
+    bg: "var(--tag-forest)",
+    border: "var(--tag-forest-border)",
+    text: "var(--tag-forest-foreground)",
   },
   honey: {
-    bg: "var(--warning-soft)",
-    border: "oklch(0.86 0.06 70)",
-    text: "var(--warning)",
+    bg: "var(--tag-honey)",
+    border: "var(--tag-honey-border)",
+    text: "var(--tag-honey-foreground)",
   },
   lavender: {
-    bg: "oklch(0.94 0.028 305)",
-    border: "oklch(0.82 0.05 305)",
-    text: "oklch(0.45 0.075 305)",
+    bg: "var(--tag-lavender)",
+    border: "var(--tag-lavender-border)",
+    text: "var(--tag-lavender-foreground)",
   },
   parchment: {
-    bg: "var(--tag)",
-    border: "var(--border)",
-    text: "var(--tag-foreground)",
+    bg: "var(--tag-parchment)",
+    border: "var(--tag-parchment-border)",
+    text: "var(--tag-parchment-foreground)",
   },
   rose: {
-    bg: "var(--error-soft)",
-    border: "oklch(0.84 0.055 25)",
-    text: "var(--error)",
+    bg: "var(--tag-rose)",
+    border: "var(--tag-rose-border)",
+    text: "var(--tag-rose-foreground)",
   },
   sage: {
-    bg: "var(--success-soft)",
-    border: "oklch(0.82 0.055 145)",
-    text: "var(--success)",
+    bg: "var(--tag-sage)",
+    border: "var(--tag-sage-border)",
+    text: "var(--tag-sage-foreground)",
   },
   sky: {
-    bg: "var(--info-soft)",
-    border: "oklch(0.82 0.045 250)",
-    text: "var(--info)",
+    bg: "var(--tag-sky)",
+    border: "var(--tag-sky-border)",
+    text: "var(--tag-sky-foreground)",
   },
   terracotta: {
-    bg: "oklch(0.93 0.035 53.5)",
-    border: "oklch(0.78 0.07 53.5)",
-    text: "oklch(0.42 0.085 53.5)",
+    bg: "var(--tag-terracotta)",
+    border: "var(--tag-terracotta-border)",
+    text: "var(--tag-terracotta-foreground)",
   },
 } as const satisfies Record<TagColor, TagColorStyle>;
-
-export function tagColorStyle(color: TagColor): {
-  backgroundColor: string;
-  borderColor: string;
-  color: string;
-} {
-  const style = TAG_COLOR_STYLES[color];
-  return { backgroundColor: style.bg, borderColor: style.border, color: style.text };
-}

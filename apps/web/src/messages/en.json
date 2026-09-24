@@ -6588,8 +6588,8 @@
       "attention": {
         "title": "Needs attention",
         "unused": "{count, plural, one {# tag isn’t used yet} other {# tags aren’t used yet}}",
-        "action": "Show unused",
-        "allUsed": "Every tag is in use, nothing needs attention."
+        "allUsed": "All tags are in use",
+        "detail": "Not linked to any book or character"
       },
       "structure": {
         "title": "Tag structure",
@@ -6604,7 +6604,9 @@
       },
       "palette": {
         "title": "Tag palette",
-        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}"
+        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}",
+        "count": "{count, plural, one {# tag} other {# tags}}",
+        "tooltip": "{color} · {count, plural, one {# tag} other {# tags}}"
       }
     },
     "toolbar": {
@@ -6688,6 +6690,12 @@
       "sky": "Sky",
       "lavender": "Lavender",
       "rose": "Dusty rose"
+    },
+    "colorPalette": {
+      "selected": "Selected: {colors}",
+      "none": "No colour selected",
+      "preview": "Preview",
+      "previewPlaceholder": "Tag name"
     },
     "catalog": {
       "title": "Tag catalog",

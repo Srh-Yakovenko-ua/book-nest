@@ -9,6 +9,7 @@ import type {
   RecentPurchaseStores,
 } from "@app/shared";
 
+import { toTagView } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { ActiveReadingView } from "../domain/library-overview.js";
@@ -145,7 +146,7 @@ export class BookLibraryReadService {
       recentlyAdded: recentBooks.map((book) => this.viewAssembler.viewOf(book)),
       summary,
       topGenres,
-      topTags,
+      topTags: topTags.map((tag) => ({ ...toTagView(tag), count: tag.count })),
     };
   }
 

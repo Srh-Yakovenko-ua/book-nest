@@ -308,7 +308,7 @@ describe("GET /api/tags", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns a paginator of the caller's own tags as id and name", async () => {
+  it("returns a paginator of the caller's own tags as id, name and color", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await prisma.tag.create({
       data: { name: "dark academia", normalizedName: "dark academia", userId },
@@ -319,7 +319,7 @@ describe("GET /api/tags", () => {
     expect(res.status).toBe(200);
     expect(res.body.totalCount).toBe(1);
     expect(res.body.items[0]).toMatchObject({ name: "dark academia" });
-    expect(Object.keys(res.body.items[0]).sort()).toEqual(["id", "name"]);
+    expect(Object.keys(res.body.items[0]).sort()).toEqual(["color", "id", "name"]);
   });
 
   it("filters by a case-insensitive search term", async () => {
@@ -409,21 +409,21 @@ describe("GET /api/tags", () => {
     expect(res.body.items).toHaveLength(1);
   });
 
-  it("B-PICK-02 returns only id and name for a tag used by books and characters", async () => {
+  it("B-PICK-02 returns only id, name and color for a tag used by books and characters", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const book = await prisma.book.create({ data: { title: "Dune", userId } });
     const character = await prisma.character.create({
       data: { name: "Paul", normalizedName: "paul", userId },
     });
     const tag = await prisma.tag.create({
-      data: { name: "chosen one", normalizedName: "chosen one", userId },
+      data: { color: "sky", name: "chosen one", normalizedName: "chosen one", userId },
     });
     await prisma.bookTag.create({ data: { bookId: book.id, tagId: tag.id } });
     await prisma.characterTag.create({ data: { characterId: character.id, tagId: tag.id } });
 
     const res = await searchTags(accessToken);
 
-    expect(res.body.items).toEqual([{ id: tag.id, name: "chosen one" }]);
+    expect(res.body.items).toEqual([{ color: "sky", id: tag.id, name: "chosen one" }]);
   });
 });
 

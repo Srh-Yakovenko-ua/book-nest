@@ -4,6 +4,7 @@ import {
   collapseSpaces,
   createPaginatedSchema,
   normalizeName,
+  type Nullable,
   paginationQueryFields,
 } from "./common.js";
 import { CountSchema, NoHtmlString, queryStringArray } from "./internal.js";
@@ -65,6 +66,11 @@ export type TagColor = z.infer<typeof TagColorSchema>;
 
 export const TAG_COLOR_DEFAULT = "parchment" satisfies TagColor;
 
+export function resolveTagColor(color: Nullable<string>): TagColor {
+  const parsed = TagColorSchema.safeParse(color);
+  return parsed.success ? parsed.data : TAG_COLOR_DEFAULT;
+}
+
 export const TagDescriptionSchema = z
   .string()
   .transform((value) => value.trim())
@@ -102,11 +108,20 @@ export const BookTagsInputSchema = z
   }, "Tags must not contain duplicates");
 
 export const TagViewSchema = z.object({
+  color: TagColorSchema.describe(
+    "Effective palette color; a missing or legacy color reads as parchment.",
+  ),
   id: z.string(),
   name: z.string(),
 });
 
 export type TagView = z.infer<typeof TagViewSchema>;
+
+export type TagViewSource = { color: Nullable<string>; id: string; name: string };
+
+export function toTagView(tag: TagViewSource): TagView {
+  return { color: resolveTagColor(tag.color), id: tag.id, name: tag.name };
+}
 
 export const TagCatalogViewSchema = z.object({
   color: z.string().nullable(),

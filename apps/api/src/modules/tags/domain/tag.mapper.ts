@@ -1,4 +1,4 @@
-import type { TagCatalogListItem, TagCatalogView, TagView } from "@app/shared";
+import type { TagCatalogListItem, TagCatalogView } from "@app/shared";
 
 import { TagTypeSchema } from "@app/shared";
 
@@ -31,12 +31,5 @@ export function toTagCatalogView(tag: TagModel): TagCatalogView {
     normalizedName: tag.normalizedName,
     type: TagTypeSchema.parse(tag.type),
     updatedAt: tag.updatedAt.toISOString(),
-  };
-}
-
-export function toTagView(tag: TagModel): TagView {
-  return {
-    id: tag.id,
-    name: tag.name,
   };
 }

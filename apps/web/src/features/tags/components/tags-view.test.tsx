@@ -206,13 +206,17 @@ describe("TagsView", () => {
     });
     const { unmount } = renderTags("?filter=unused");
 
-    expect(await screen.findByText("Усі теги використовуються")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Усі теги використовуються" }),
+    ).toBeInTheDocument();
     unmount();
 
     renderTags("?filter=unused&type=trope");
 
     expect(await screen.findByText("Тегів за цими умовами не знайдено")).toBeInTheDocument();
-    expect(screen.queryByText("Усі теги використовуються")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Усі теги використовуються" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders chips for q/type/color only and clears them while keeping sort", async () => {
@@ -328,9 +332,7 @@ describe("TagsView", () => {
       renderTags("?q=cozy&type=trope&color=rose&sort=name_asc", (event) => urlUpdates.push(event));
 
       const sidebar = await screen.findByRole("complementary", { name: "Огляд тегів" });
-      await userEvent.click(
-        within(sidebar).getByRole("button", { name: "Показати невикористані" }),
-      );
+      await userEvent.click(within(sidebar).getByRole("button", { name: /ще не використов/ }));
 
       await waitFor(() => {
         const params = new URLSearchParams(urlUpdates.at(-1)?.queryString);
@@ -427,6 +429,27 @@ describe("TagsView", () => {
 
       await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
       expect(within(colors).getByRole("radio", { name: "Пудрова троянда" })).toHaveFocus();
+    });
+
+    it("names the chosen color and previews the tag capsule as it is typed", async () => {
+      mockTagsApi();
+      renderTags();
+
+      await userEvent.click(screen.getByRole("button", { name: "Додати тег" }));
+      const dialog = await screen.findByRole("dialog");
+      const preview = within(dialog).getByRole("group", { name: "Попередній вигляд" });
+
+      expect(within(dialog).getByText("Обрано: Пергамент")).toBeInTheDocument();
+      expect(preview).toHaveTextContent("Назва тегу");
+      expect(preview.style.backgroundColor).toBe("var(--tag-parchment)");
+
+      await userEvent.type(within(dialog).getByLabelText("Назва тегу"), "slow burn");
+      await userEvent.click(within(dialog).getByRole("radio", { name: "Небесний" }));
+
+      expect(within(dialog).getByText("Обрано: Небесний")).toBeInTheDocument();
+      expect(preview).toHaveTextContent("slow burn");
+      expect(preview.style.backgroundColor).toBe("var(--tag-sky)");
+      expect(preview.style.color).toBe("var(--tag-sky-foreground)");
     });
 
     it("keeps the dialog open with a form-level error on an unexpected failure", async () => {
@@ -699,7 +722,7 @@ describe("TagsView grid and list views", () => {
     },
   );
 
-  it("clamps a long description and a long name to two lines in the grid", async () => {
+  it("clamps a long description to two lines and cuts a long name to one in the grid", async () => {
     const description = "Дуже довгий опис ".repeat(40).trim();
     const name = "дуже-довга-назва-тегу-без-пробілів-".repeat(6);
     mockTagsApi({
@@ -707,8 +730,8 @@ describe("TagsView grid and list views", () => {
     });
     renderTags();
 
-    const heading = await screen.findByRole("heading", { level: 3, name });
-    expect(heading).toHaveClass("line-clamp-2", "break-words");
+    await screen.findByRole("heading", { level: 3, name });
+    expect(within(tagItem(name)).getByText(name)).toHaveClass("truncate");
     expect(within(tagItem(name)).getByText(description)).toHaveClass("line-clamp-2");
   });
 
@@ -912,6 +935,39 @@ describe("TagsView filters and sort", () => {
       expect(params.get("color")).toBe("sage");
       expect(params.get("filter")).toBe("unused");
     });
+  });
+
+  it("picks colors in the filters sheet as a swatch palette that applies only on submit", async () => {
+    mockTagsApi();
+    const urlUpdates: UrlUpdateEvent[] = [];
+    renderTags("", (event) => urlUpdates.push(event));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Фільтри" }));
+    const sheet = await screen.findByRole("dialog", { name: "Фільтри тегів" });
+    const palette = within(sheet).getByRole("list", { name: "Колір тегу" });
+
+    expect(within(palette).getAllByRole("button")).toHaveLength(8);
+    expect(within(sheet).getByText("Колір не вибрано")).toBeInTheDocument();
+
+    await userEvent.click(within(palette).getByRole("button", { name: "Небесний" }));
+    await userEvent.click(within(palette).getByRole("button", { name: "Шавлія" }));
+
+    expect(within(palette).getByRole("button", { name: "Небесний" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(within(sheet).getByText("Обрано: Шавлія, Небесний")).toBeInTheDocument();
+    expect(urlUpdates).toEqual([]);
+
+    await userEvent.click(within(palette).getByRole("button", { name: "Небесний" }));
+    expect(within(sheet).getByText("Обрано: Шавлія")).toBeInTheDocument();
+
+    await userEvent.click(within(sheet).getByRole("button", { name: "Скинути" }));
+    expect(within(sheet).getByText("Колір не вибрано")).toBeInTheDocument();
+    expect(within(palette).getByRole("button", { name: "Шавлія" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("keeps filters and restarts paging from the first page when the sort changes", async () => {
@@ -1149,7 +1205,7 @@ describe("TagsView mobile overview", () => {
     );
 
     await userEvent.click(within(panel).getByRole("radio", { name: /^Увага/ }));
-    await userEvent.click(within(panel).getByRole("button", { name: "Показати невикористані" }));
+    await userEvent.click(within(panel).getByRole("button", { name: /ще не використов/ }));
 
     await waitFor(() => {
       const params = new URLSearchParams(urlUpdates.at(-1)?.queryString);

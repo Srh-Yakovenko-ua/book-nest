@@ -46,7 +46,11 @@ const book: LibraryBook = {
     total: 5,
   },
   status: reading,
-  tags: ["драматично", "романтика", "магія"],
+  tags: [
+    { color: "sage", id: "tag-1", name: "драматично" },
+    { color: "rose", id: "tag-2", name: "романтика" },
+    { color: "sky", id: "tag-3", name: "магія" },
+  ],
   title: "Двір срібного полум'я",
   year: 2021,
 };

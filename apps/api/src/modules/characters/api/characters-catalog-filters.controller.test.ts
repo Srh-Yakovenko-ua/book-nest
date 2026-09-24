@@ -138,8 +138,8 @@ describe("global catalog: tag surfacing", () => {
 
     const paul = res.body.items.find((item: { name: string }) => item.name === "Paul Atreides");
     expect(paul.tags).toEqual([
-      { id: heroTag, name: "Chosen One" },
-      { id: houseTag, name: "House" },
+      { color: "parchment", id: heroTag, name: "Chosen One" },
+      { color: "parchment", id: houseTag, name: "House" },
     ]);
 
     const chani = res.body.items.find((item: { name: string }) => item.name === "Chani");

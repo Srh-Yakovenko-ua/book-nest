@@ -6,12 +6,10 @@ import type { ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon, type UiIconName } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { tagColorStyle } from "../model/tag-color";
 import {
   formatTagShare,
   tagAttentionState,
@@ -20,8 +18,10 @@ import {
   type TagUsageKey,
   tagUsageRows,
 } from "../model/tags-summary";
+import { TAG_COLOR_SWATCH, TagColorSwatchButton } from "./tag-color-swatch";
 
 type TagsAttentionBlockProps = {
+  isShowingUnused: boolean;
   onShowUnused: () => void;
   summary: TagsSummaryView;
 };
@@ -40,6 +40,8 @@ type TagsStructureBlockProps = {
 
 const TOGGLE_CLASS =
   "cursor-pointer rounded-lg transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-secondary/80 aria-pressed:bg-secondary aria-pressed:ring-1 aria-pressed:ring-primary/50";
+
+const TAG_UNUSED_ATTENTION_ID = "unused";
 
 const TAG_TYPE_ROW = {
   className:
@@ -70,32 +72,35 @@ const TAG_USAGE = {
   track: "flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted",
 } as const;
 
-export function TagsAttentionBlock({ onShowUnused, summary }: TagsAttentionBlockProps) {
+export function TagsAttentionBlock({
+  isShowingUnused,
+  onShowUnused,
+  summary,
+}: TagsAttentionBlockProps) {
   const t = useTranslations("tags.sidebar.attention");
   const attention = tagAttentionState(summary);
 
   return (
-    <OverviewBlock title={t("title")}>
-      {attention.kind === "allUsed" ? (
-        <p className="flex items-start gap-2 text-sm text-muted-foreground">
-          <UiIcon
-            aria-hidden
-            className="mt-0.5 shrink-0 text-success"
-            name="check-circle"
-            size={16}
-          />
-          {t("allUsed")}
-        </p>
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">{t("unused", { count: attention.count })}</p>
-          <Button className="self-start" onClick={onShowUnused} size="sm" variant="secondary">
-            <UiIcon aria-hidden name="filter" size={16} />
-            {t("action")}
-          </Button>
-        </>
-      )}
-    </OverviewBlock>
+    <AttentionBlock
+      activeId={isShowingUnused ? TAG_UNUSED_ATTENTION_ID : null}
+      allClearLabel={t("allUsed")}
+      isLoading={false}
+      items={
+        attention.kind === "allUsed"
+          ? []
+          : [
+              {
+                detail: t("detail"),
+                icon: "circle-slash",
+                id: TAG_UNUSED_ATTENTION_ID,
+                label: t("unused", { count: attention.count }),
+                toneClass: "text-warning",
+              },
+            ]
+      }
+      onSelect={onShowUnused}
+      title={t("title")}
+    />
   );
 }
 
@@ -105,39 +110,37 @@ export function TagsPaletteBlock({
   summary,
 }: TagsPaletteBlockProps) {
   const t = useTranslations("tags");
-  const locale = useLocale();
 
   return (
     <OverviewBlock title={t("sidebar.palette.title")}>
-      <ul className="grid grid-cols-4 gap-2">
-        {tagColorRows(summary, selectedColors).map((row) => (
-          <li key={row.color}>
-            <button
-              aria-label={t("sidebar.palette.swatch", {
-                color: t(`colors.${row.color}`),
-                count: row.count,
-              })}
-              aria-pressed={row.isSelected}
-              className={cn(
-                TOGGLE_CLASS,
-                "flex w-full flex-col items-center gap-1 px-1 py-2",
-                row.count === 0 && "text-muted-foreground",
-              )}
-              onClick={() => onToggleColor(row.color)}
-              title={t(`colors.${row.color}`)}
-              type="button"
-            >
-              <span
-                aria-hidden
-                className={cn("size-7 rounded-full border", row.count === 0 && "opacity-60")}
-                style={tagColorStyle(row.color)}
+      <ul className={TAG_COLOR_SWATCH.grid}>
+        {tagColorRows(summary, selectedColors).map((row) => {
+          const isEmpty = row.count === 0;
+          const color = t(`colors.${row.color}`);
+          return (
+            <li key={row.color}>
+              <TagColorSwatchButton
+                aria-label={t("sidebar.palette.swatch", { color, count: row.count })}
+                aria-pressed={row.isSelected}
+                caption={
+                  <span
+                    className={cn(
+                      "text-xs tabular-nums",
+                      isEmpty ? "text-muted-foreground" : "font-medium text-ink",
+                    )}
+                  >
+                    {t("sidebar.palette.count", { count: row.count })}
+                  </span>
+                }
+                color={row.color}
+                isMuted={isEmpty}
+                isSelected={row.isSelected}
+                onClick={() => onToggleColor(row.color)}
+                tooltip={t("sidebar.palette.tooltip", { color, count: row.count })}
               />
-              <span className="text-xs font-medium tabular-nums">
-                {formatNumber(row.count, locale)}
-              </span>
-            </button>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </OverviewBlock>
   );

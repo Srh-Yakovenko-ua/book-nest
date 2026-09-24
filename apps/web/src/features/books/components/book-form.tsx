@@ -8,6 +8,7 @@ import {
   BOOK_DESCRIPTION_MAX,
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  TAG_COLOR_DEFAULT,
 } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
@@ -39,6 +40,7 @@ import type { BookFormMode } from "../model/book-form-mode";
 
 import { useCreateBook } from "../api/use-create-book";
 import { useGenres } from "../api/use-genres";
+import { useSearchedTagColors } from "../api/use-tags-search";
 import { useUpdateBook } from "../api/use-update-book";
 import { BOOK_GENRES_MAX } from "../model/book-classification-fields";
 import { readBookFormDraft } from "../model/book-form-draft";
@@ -312,6 +314,7 @@ export function BookForm(props: BookFormProps) {
   const ownershipStatusValue = useWatch({ control, name: "ownershipStatus" }) ?? "none";
   const genresValue = useWatch({ control, name: "genres" }) ?? [];
   const tagsValue = useWatch({ control, name: "tags" }) ?? [];
+  const searchedTagColors = useSearchedTagColors();
   const formatsValue = useWatch({ control, name: "formats" }) ?? [];
   const isFavoriteValue = useWatch({ control, name: "isFavorite" }) ?? false;
   const inQueueValue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
@@ -451,7 +454,16 @@ export function BookForm(props: BookFormProps) {
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const previewGenres = genresValue.map((key) => genreNameByKey.get(key) ?? key);
-  const previewTags = tagsValue.filter((value): value is string => typeof value === "string");
+  const bookTags = props.mode === "edit" ? props.book.tags : [];
+  const previewTags = tagsValue
+    .filter((value): value is string => typeof value === "string")
+    .map((name) => ({
+      color:
+        searchedTagColors.get(name.toLowerCase()) ??
+        bookTags.find((tag) => tag.name.toLowerCase() === name.toLowerCase())?.color ??
+        TAG_COLOR_DEFAULT,
+      name,
+    }));
   const previewFormats = formatsValue.filter(isBookFormat);
   const previewRating = typeof ratingValue === "number" ? ratingValue : undefined;
 
