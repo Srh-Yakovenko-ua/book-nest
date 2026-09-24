@@ -593,10 +593,12 @@ export const CharactersListQuerySchema = z.object({
   favorite: z.stringbool().optional(),
   gender: queryStringArray(CharacterGenderSchema),
   groupId: queryStringArray(z.string().uuid()),
+  hasPersonalImpression: z.stringbool().optional(),
   hasSpoilers: z.stringbool().optional(),
   importance: queryStringArray(BookCharacterImportanceSchema),
   includeHiddenProfiles: z.stringbool().optional(),
   includeSpoilerSearch: z.stringbool().optional(),
+  multipleBooks: z.stringbool().optional(),
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   possibleDuplicates: z.stringbool().optional(),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
@@ -608,6 +610,32 @@ export const CharactersListQuerySchema = z.object({
 });
 
 export type CharactersListQuery = z.infer<typeof CharactersListQuerySchema>;
+
+export const CHARACTER_OVERVIEW_LEADERS_MAX = 3;
+
+export const CharacterOverviewLeaderSchema = z.object({
+  avatar: MediaViewSchema.nullable(),
+  id: z.string(),
+  name: z.string(),
+});
+
+export type CharacterOverviewLeader = z.infer<typeof CharacterOverviewLeaderSchema>;
+
+export const CharacterOverviewViewSchema = z.object({
+  favoriteCount: z.number().int().nonnegative(),
+  mostFrequent: z
+    .object({
+      appearanceCount: z.number().int().positive(),
+      leaderCount: z.number().int().positive(),
+      leaders: z.array(CharacterOverviewLeaderSchema).max(CHARACTER_OVERVIEW_LEADERS_MAX),
+    })
+    .nullable(),
+  multipleBooksCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  withPersonalImpressionCount: z.number().int().nonnegative(),
+});
+
+export type CharacterOverviewView = z.infer<typeof CharacterOverviewViewSchema>;
 
 export const CharacterDuplicateCandidatesQuerySchema = z.object({
   aliases: queryStringArray(z.string().trim().min(1).max(CHARACTER_NAME_MAX)),

@@ -2384,6 +2384,7 @@ export const CharactersControllerListQueryParams = zod.object({
     .array(zod.uuid().regex(charactersControllerListQueryGroupIdItemRegExp))
     .max(charactersControllerListQueryGroupIdMax)
     .optional(),
+  hasPersonalImpression: zod.string().optional(),
   hasSpoilers: zod.string().optional(),
   importance: zod
     .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"]))
@@ -2394,6 +2395,7 @@ export const CharactersControllerListQueryParams = zod.object({
     .optional()
     .describe("Owner opt-in to include whole-profile hidden characters in the results"),
   includeSpoilerSearch: zod.string().optional(),
+  multipleBooks: zod.string().optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -2611,6 +2613,85 @@ export const CharactersControllerDuplicateCandidatesResponse = zod.object({
       ),
     }),
   ),
+});
+
+/**
+ * @summary Get the aggregate overview of the global characters catalog
+ */
+export const charactersControllerOverviewResponseFavoriteCountMin = 0;
+export const charactersControllerOverviewResponseFavoriteCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseMostFrequentAppearanceCountExclusiveMin = 0;
+export const charactersControllerOverviewResponseMostFrequentAppearanceCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseMostFrequentLeaderCountExclusiveMin = 0;
+export const charactersControllerOverviewResponseMostFrequentLeaderCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseMostFrequentLeadersMax = 3;
+
+export const charactersControllerOverviewResponseMultipleBooksCountMin = 0;
+export const charactersControllerOverviewResponseMultipleBooksCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseTotalCountMin = 0;
+export const charactersControllerOverviewResponseTotalCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseWithPersonalImpressionCountMin = 0;
+export const charactersControllerOverviewResponseWithPersonalImpressionCountMax = 9007199254740991;
+
+export const CharactersControllerOverviewResponse = zod.object({
+  favoriteCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseFavoriteCountMin)
+    .max(charactersControllerOverviewResponseFavoriteCountMax),
+  mostFrequent: zod
+    .object({
+      appearanceCount: zod
+        .int()
+        .gt(charactersControllerOverviewResponseMostFrequentAppearanceCountExclusiveMin)
+        .max(charactersControllerOverviewResponseMostFrequentAppearanceCountMax),
+      leaderCount: zod
+        .int()
+        .gt(charactersControllerOverviewResponseMostFrequentLeaderCountExclusiveMin)
+        .max(charactersControllerOverviewResponseMostFrequentLeaderCountMax),
+      leaders: zod
+        .array(
+          zod.object({
+            avatar: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        )
+        .max(charactersControllerOverviewResponseMostFrequentLeadersMax),
+    })
+    .nullable(),
+  multipleBooksCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseMultipleBooksCountMin)
+    .max(charactersControllerOverviewResponseMultipleBooksCountMax),
+  totalCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseTotalCountMin)
+    .max(charactersControllerOverviewResponseTotalCountMax),
+  withPersonalImpressionCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseWithPersonalImpressionCountMin)
+    .max(charactersControllerOverviewResponseWithPersonalImpressionCountMax),
 });
 
 /**

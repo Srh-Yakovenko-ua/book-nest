@@ -33,6 +33,7 @@ import type {
   CharacterMergeControllerPreviewParams,
   CharacterMergePreviewDto,
   CharacterMergeResultDto,
+  CharacterOverviewDto,
   CharacterPortabilityControllerExportBundleParams,
   CharacterSeriesProfileViewDto,
   CharacterSuggestionsDto,
@@ -1024,6 +1025,156 @@ export function useCharactersControllerDuplicateCandidates<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getCharactersControllerDuplicateCandidatesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type charactersControllerOverviewResponse200 = {
+  data: CharacterOverviewDto;
+  status: 200;
+};
+
+export type charactersControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type charactersControllerOverviewResponseSuccess =
+  charactersControllerOverviewResponse200 & {
+    headers: Headers;
+  };
+export type charactersControllerOverviewResponseError = charactersControllerOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type charactersControllerOverviewResponse =
+  charactersControllerOverviewResponseSuccess | charactersControllerOverviewResponseError;
+
+export const getCharactersControllerOverviewUrl = () => {
+  return `/api/characters/overview`;
+};
+
+/**
+ * @summary Get the aggregate overview of the global characters catalog
+ */
+export const charactersControllerOverview = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<charactersControllerOverviewResponse> => {
+  return customInstance<charactersControllerOverviewResponse>(
+    getCharactersControllerOverviewUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharactersControllerOverviewQueryKey = () => {
+  return [`/api/characters/overview`] as const;
+};
+
+export const getCharactersControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCharactersControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof charactersControllerOverview>>> = ({
+    signal,
+  }) => charactersControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof charactersControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharactersControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof charactersControllerOverview>>
+>;
+export type CharactersControllerOverviewQueryError = void;
+
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof charactersControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof charactersControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the aggregate overview of the global characters catalog
+ */
+
+export function useCharactersControllerOverview<
+  TData = Awaited<ReturnType<typeof charactersControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof charactersControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharactersControllerOverviewQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
