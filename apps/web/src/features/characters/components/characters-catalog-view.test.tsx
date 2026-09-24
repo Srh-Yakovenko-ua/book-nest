@@ -182,3 +182,31 @@ describe("CharactersCatalogView sidebar", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("CharactersCatalogView pagination", () => {
+  it("starts the list over when a quick filter changes", async () => {
+    respondToList = () => jsonResponse(page([makeCharacterGlobalSummary({ name: "Ґеральт" })], 3));
+
+    renderCatalog();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await waitFor(() =>
+      expect(catalogRequestUrls().some((url) => url.includes("pageNumber=2"))).toBe(true),
+    );
+
+    await userEvent.click(screen.getByRole("radio", { name: /Улюблені/ }));
+
+    await waitFor(() =>
+      expect(
+        catalogRequestUrls().some(
+          (url) => url.includes("favorite=true") && url.includes("pageNumber=1"),
+        ),
+      ).toBe(true),
+    );
+    expect(
+      catalogRequestUrls().some(
+        (url) => url.includes("favorite=true") && url.includes("pageNumber=2"),
+      ),
+    ).toBe(false);
+  });
+});

@@ -5,10 +5,12 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
 import { CharacterDetailsPage } from "./character-details-page";
+
+const push = vi.fn();
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
@@ -16,7 +18,7 @@ vi.mock("@/i18n/navigation", () => ({
       {children}
     </a>
   ),
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push, replace: vi.fn() }),
 }));
 
 vi.mock("sonner", () => ({
@@ -132,5 +134,26 @@ describe("CharacterDetailsPage book context", () => {
       "href",
       "/characters/char-1",
     );
+  });
+});
+
+describe("CharacterDetailsPage unlink", () => {
+  it("drops the book from the route and keeps the character", async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "DELETE") return Promise.resolve(jsonResponse({}));
+      if (url.includes("/api/books/book-1")) return Promise.resolve(jsonResponse(book));
+      if (url.includes("/api/characters/char-1")) return Promise.resolve(respondToDetails());
+      return Promise.reject(new Error(`unexpected ${method} ${url}`));
+    });
+
+    renderPage("bookId=book-1");
+
+    await screen.findByRole("heading", { name: "Керування персонажем" });
+    await userEvent.click(screen.getByRole("button", { name: "Прибрати з цієї книги" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Прибрати" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/characters/char-1"));
   });
 });

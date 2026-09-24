@@ -10,6 +10,7 @@ import type {
 } from "@/shared/api/generated/model";
 
 const CHARACTERS_ROOT = "characters";
+const CHARACTER_GROUPS_ROOT = "character-groups";
 
 export const characterKeys = {
   all: [CHARACTERS_ROOT] as const,
@@ -25,7 +26,7 @@ export const characterKeys = {
   duplicates: (params: CharactersControllerDuplicateCandidatesParams) =>
     [CHARACTERS_ROOT, "duplicates", params] as const,
   groupOptions: (params: CharacterGroupsControllerListParams) =>
-    [CHARACTERS_ROOT, "group-options", params] as const,
+    [CHARACTER_GROUPS_ROOT, "options", params] as const,
   overview: () => [CHARACTERS_ROOT, "overview"] as const,
   search: (params: CharactersControllerListParams) => [CHARACTERS_ROOT, "search", params] as const,
   suggestions: (bookId: string, params: BookCharacterSuggestionsControllerListParams) =>
