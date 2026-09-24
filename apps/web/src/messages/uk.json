@@ -7526,11 +7526,11 @@
       "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
       "booksInLibrary": "у бібліотеці",
       "read": "Прочитано",
-      "toBuy": "У списку бажань",
+      "toBuy": "Список бажань",
       "series": "Серії",
       "noRating": "Без оцінок",
-      "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
-      "lastAdded": "Останнє поповнення {date}",
+      "ratedCount": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}",
+      "lastAdded": "Поповнено {date}",
       "lastAddedNever": "—"
     },
     "row": {

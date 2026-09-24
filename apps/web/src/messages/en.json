@@ -7526,11 +7526,11 @@
       "books": "{count, plural, one {# book} other {# books}}",
       "booksInLibrary": "in the library",
       "read": "Read",
-      "toBuy": "On the wishlist",
+      "toBuy": "Wishlist",
       "series": "Series",
       "noRating": "No ratings",
-      "ratedCount": "· {count, plural, one {# rating} other {# ratings}}",
-      "lastAdded": "Last added {date}",
+      "ratedCount": "{count, plural, one {# rating} other {# ratings}}",
+      "lastAdded": "Added {date}",
       "lastAddedNever": "—"
     },
     "row": {
