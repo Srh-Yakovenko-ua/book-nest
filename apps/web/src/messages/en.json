@@ -7415,23 +7415,57 @@
     }
   },
   "characters": {
-    "tab": "Characters",
-    "summary": {
-      "characters": "Characters: {count}",
-      "favorites": "Favorites: {count}",
-      "hidden": "Some records are hidden",
-      "pov": "POV: {count}"
-    },
-    "toolbar": {
-      "add": "Add character",
+    "add": {
+      "back": "Back",
+      "cancel": "Cancel",
+      "create": "Create",
+      "createAnyway": "Create a new one anyway",
+      "createNew": "Create new",
+      "description": "Find an existing character or create a new one.",
+      "descriptionLabel": "A short note about this character in this book",
+      "descriptionPlaceholder": "Who is this? (optional)",
+      "inBookTitle": "Already in this book",
+      "link": "Add",
+      "linkError": "Could not link the character",
+      "linked": "Character linked",
+      "nameLabel": "Name",
+      "noMatch": "Nothing found",
+      "open": "Open",
+      "reusableTitle": "From other books",
       "searchClear": "Clear search",
+      "searchHint": "Type at least two letters to start searching.",
       "searchLabel": "Search characters",
-      "searchPlaceholder": "Search in this book...",
-      "sortLabel": "Sort"
+      "searchPlaceholder": "Character name",
+      "title": "Add character"
     },
-    "sort": {
-      "importance": "Important first",
-      "name": "By name"
+    "aliasEditor": {
+      "add": "Add name",
+      "name": "Name",
+      "namePlaceholder": "Alternative name",
+      "remove": "Remove name",
+      "scope": "Scope",
+      "scopeBook": "This book",
+      "scopeGlobal": "Global",
+      "spoiler": "Spoiler",
+      "type": "Type"
+    },
+    "aliasType": {
+      "former_name": "Former name",
+      "nickname": "Nickname",
+      "other": "Other",
+      "pseudonym": "Pseudonym",
+      "title": "Title",
+      "translation": "Translation",
+      "true_name": "True name"
+    },
+    "attitude": {
+      "dislike": "Dislike",
+      "distrust": "Distrust",
+      "favorite": "Favorite",
+      "hate": "Hate",
+      "like": "Like",
+      "neutral": "Neutral",
+      "unsure": "Unsure"
     },
     "card": {
       "edit": "Edit",
@@ -7443,91 +7477,17 @@
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
     },
-    "states": {
-      "errorDescription": "Couldn't load characters. Please try again.",
-      "errorTitle": "Failed to load",
-      "loading": "Loading characters",
-      "retry": "Try again"
-    },
-    "empty": {
-      "add": "Add character",
-      "description": "Add a character manually or link an existing one from your library.",
-      "title": "No characters here yet"
-    },
-    "noResults": {
-      "clear": "Clear search",
-      "description": "Try adjusting your query.",
-      "title": "Nothing found"
-    },
-    "spoiler": {
-      "hidden": "Hidden (spoiler)",
-      "reveal": "Show",
-      "revealAria": "Show field: {field}"
-    },
-    "importance": {
-      "central": "Central",
-      "episodic": "Episodic",
-      "major": "Major",
-      "mentioned": "Mentioned",
-      "not_specified": "Not specified",
-      "supporting": "Supporting"
-    },
-    "status": {
-      "active": "Alive",
-      "dead": "Dead",
-      "missing": "Missing",
-      "not_specified": "Not specified",
-      "other": "Other",
-      "transformed": "Transformed",
-      "unknown": "Unknown"
-    },
-    "roleType": {
-      "antagonist": "Antagonist",
-      "custom": "Custom role",
-      "deuteragonist": "Deuteragonist",
-      "episodic": "Episodic",
-      "love_interest": "Love interest",
-      "mentioned": "Mentioned",
-      "protagonist": "Protagonist",
-      "supporting": "Supporting"
-    },
-    "gender": {
-      "agender_or_na": "Agender / N/A",
-      "custom": "Custom",
-      "female": "Female",
-      "male": "Male",
-      "non_binary": "Non-binary",
-      "unknown": "Unknown"
-    },
-    "attitude": {
-      "dislike": "Dislike",
-      "distrust": "Distrust",
-      "favorite": "Favorite",
-      "hate": "Hate",
-      "like": "Like",
-      "neutral": "Neutral",
-      "unsure": "Unsure"
-    },
-    "entityKind": {
-      "collective": "Collective",
-      "individual": "Individual",
-      "unknown": "Unknown"
-    },
-    "aliasType": {
-      "former_name": "Former name",
-      "nickname": "Nickname",
-      "other": "Other",
-      "pseudonym": "Pseudonym",
-      "title": "Title",
-      "translation": "Translation",
-      "true_name": "True name"
-    },
-    "narratorType": {
-      "first_person": "First person",
-      "other": "Other",
-      "third_person_limited": "Third person (limited)",
-      "third_person_omniscient": "Third person (omniscient)",
-      "unreliable": "Unreliable"
+    "delete": {
+      "aliases": "Names: {count}",
+      "appearances": "Book appearances: {count}",
+      "cancel": "Cancel",
+      "confirm": "Delete entirely",
+      "deleting": "Deleting…",
+      "description": "The character and all its data will be deleted. You can undo this action for a short time.",
+      "previewIntro": "Will be deleted:",
+      "roles": "Roles: {count}",
+      "tags": "Tags: {count}",
+      "title": "Delete character entirely"
     },
     "details": {
       "appearanceNotes": "Appearance notes",
@@ -7554,18 +7514,32 @@
       "status": "Status",
       "title": "Character"
     },
-    "quickAdd": {
-      "add": "Add",
-      "createError": "Couldn't create the character",
-      "created": "Character added",
-      "duplicateQuestion": "Is this {name}?",
-      "linkExisting": "Link existing",
-      "moreFields": "More fields",
-      "nameLabel": "Character name",
-      "namePlaceholder": "New character name",
-      "noteLabel": "Short note",
-      "notePlaceholder": "Who is this? (optional)",
-      "title": "Quick add"
+    "duplicate": {
+      "createAnyway": "Create anyway",
+      "question": "This character may already exist.",
+      "title": "Possible duplicates",
+      "use": "Use this one"
+    },
+    "empty": {
+      "add": "Add character",
+      "description": "Add a character manually or link an existing one from your library.",
+      "title": "No characters here yet"
+    },
+    "entityKind": {
+      "collective": "Collective",
+      "individual": "Individual",
+      "unknown": "Unknown"
+    },
+    "existing": {
+      "createNew": "Create new",
+      "empty": "No matches",
+      "link": "Link",
+      "linkError": "Couldn't link the character",
+      "linked": "Character linked",
+      "sameSeries": "From this series",
+      "searchLabel": "Search existing characters",
+      "searchPlaceholder": "Type a name…",
+      "title": "Link existing"
     },
     "form": {
       "appearanceNotes": "Appearance notes",
@@ -7626,59 +7600,33 @@
       },
       "aliases": "Alternative names"
     },
-    "rolePicker": {
-      "add": "Add role",
-      "customPlaceholder": "Role name",
-      "remove": "Remove role",
-      "roleType": "Role",
-      "spoiler": "Spoiler"
+    "gender": {
+      "agender_or_na": "Agender / N/A",
+      "custom": "Custom",
+      "female": "Female",
+      "male": "Male",
+      "non_binary": "Non-binary",
+      "unknown": "Unknown"
     },
-    "aliasEditor": {
-      "add": "Add name",
-      "name": "Name",
-      "namePlaceholder": "Alternative name",
-      "remove": "Remove name",
-      "scope": "Scope",
-      "scopeBook": "This book",
-      "scopeGlobal": "Global",
-      "spoiler": "Spoiler",
-      "type": "Type"
+    "importance": {
+      "central": "Central",
+      "episodic": "Episodic",
+      "major": "Major",
+      "mentioned": "Mentioned",
+      "not_specified": "Not specified",
+      "supporting": "Supporting"
     },
-    "existing": {
-      "createNew": "Create new",
-      "empty": "No matches",
-      "link": "Link",
-      "linkError": "Couldn't link the character",
-      "linked": "Character linked",
-      "sameSeries": "From this series",
-      "searchLabel": "Search existing characters",
-      "searchPlaceholder": "Type a name…",
-      "title": "Link existing"
+    "narratorType": {
+      "first_person": "First person",
+      "other": "Other",
+      "third_person_limited": "Third person (limited)",
+      "third_person_omniscient": "Third person (omniscient)",
+      "unreliable": "Unreliable"
     },
-    "duplicate": {
-      "createAnyway": "Create anyway",
-      "question": "This character may already exist.",
-      "title": "Possible duplicates",
-      "use": "Use this one"
-    },
-    "delete": {
-      "aliases": "Names: {count}",
-      "appearances": "Book appearances: {count}",
-      "cancel": "Cancel",
-      "confirm": "Delete entirely",
-      "deleting": "Deleting…",
-      "description": "The character and all its data will be deleted. You can undo this action for a short time.",
-      "previewIntro": "Will be deleted:",
-      "roles": "Roles: {count}",
-      "tags": "Tags: {count}",
-      "title": "Delete character entirely"
-    },
-    "unlink": {
-      "cancel": "Cancel",
-      "confirm": "Remove",
-      "description": "The character will be removed from this book. The global profile and data in other books remain.",
-      "title": "Remove from this book",
-      "unlinking": "Removing…"
+    "noResults": {
+      "clear": "Clear search",
+      "description": "Try adjusting your query.",
+      "title": "Nothing found"
     },
     "palette": {
       "empty": "Start typing a character name",
@@ -7687,6 +7635,67 @@
       "placeholder": "Search characters…",
       "title": "Search characters"
     },
+    "quickAdd": {
+      "add": "Add",
+      "createError": "Couldn't create the character",
+      "created": "Character added",
+      "duplicateQuestion": "Is this {name}?",
+      "linkExisting": "Link existing",
+      "moreFields": "More fields",
+      "nameLabel": "Character name",
+      "namePlaceholder": "New character name",
+      "noteLabel": "Short note",
+      "notePlaceholder": "Who is this? (optional)",
+      "title": "Quick add"
+    },
+    "rolePicker": {
+      "add": "Add role",
+      "customPlaceholder": "Role name",
+      "remove": "Remove role",
+      "roleType": "Role",
+      "spoiler": "Spoiler"
+    },
+    "roleType": {
+      "antagonist": "Antagonist",
+      "custom": "Custom role",
+      "deuteragonist": "Deuteragonist",
+      "episodic": "Episodic",
+      "love_interest": "Love interest",
+      "mentioned": "Mentioned",
+      "protagonist": "Protagonist",
+      "supporting": "Supporting"
+    },
+    "sort": {
+      "importance": "Important first",
+      "name": "By name"
+    },
+    "spoiler": {
+      "hidden": "Hidden (spoiler)",
+      "reveal": "Show",
+      "revealAria": "Show field: {field}"
+    },
+    "states": {
+      "errorDescription": "Couldn't load characters. Please try again.",
+      "errorTitle": "Failed to load",
+      "loading": "Loading characters",
+      "retry": "Try again"
+    },
+    "status": {
+      "active": "Alive",
+      "dead": "Dead",
+      "missing": "Missing",
+      "not_specified": "Not specified",
+      "other": "Other",
+      "transformed": "Transformed",
+      "unknown": "Unknown"
+    },
+    "summary": {
+      "characters": "Characters: {count}",
+      "favorites": "Favorites: {count}",
+      "hidden": "Some records are hidden",
+      "pov": "POV: {count}"
+    },
+    "tab": "Characters",
     "toast": {
       "createError": "Couldn't create the character",
       "created": "Character added",
@@ -7699,6 +7708,20 @@
       "unlinked": "Character removed from the book",
       "updateError": "Couldn't save changes",
       "updated": "Changes saved"
+    },
+    "toolbar": {
+      "add": "Add character",
+      "searchClear": "Clear search",
+      "searchLabel": "Search characters",
+      "searchPlaceholder": "Search in this book...",
+      "sortLabel": "Sort"
+    },
+    "unlink": {
+      "cancel": "Cancel",
+      "confirm": "Remove",
+      "description": "The character will be removed from this book. The global profile and data in other books remain.",
+      "title": "Remove from this book",
+      "unlinking": "Removing…"
     }
   },
   "notifications": {

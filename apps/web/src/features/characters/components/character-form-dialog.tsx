@@ -47,16 +47,12 @@ import { applyFieldErrors } from "@/lib/api-errors";
 import type { CharacterFormValues } from "../model/character-form-schema";
 
 import { useCharacterDetails } from "../api/use-character-details";
-import { useCreateCharacterInBook } from "../api/use-create-character-in-book";
 import { useUpdateBookCharacter } from "../api/use-update-book-character";
 import { useUpdateCharacter } from "../api/use-update-character";
 import {
   buildCharacterFormSchema,
   CHARACTER_NAME_MAX,
   characterToFormValues,
-  emptyCharacterFormValues,
-  toBookProfileInput,
-  toCharacterInput,
   toUpdateBookCharacter,
   toUpdateCharacter,
 } from "../model/character-form-schema";
@@ -73,13 +69,10 @@ import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
 import { CharacterAliasEditor } from "./character-alias-editor";
 import { CharacterImageField } from "./character-image-field";
 import { CharacterRolePicker } from "./character-role-picker";
-import { ExistingCharacterPicker } from "./existing-character-picker";
 
 type CharacterFormDialogProps = {
   bookId: string;
-  characterId?: string;
-  initialName?: string;
-  onLinkExisting: (characterId: string) => void;
+  characterId: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
@@ -89,15 +82,12 @@ type FormControl = ReturnType<typeof useForm<CharacterFormValues>>["control"];
 export function CharacterFormDialog({
   bookId,
   characterId,
-  initialName,
-  onLinkExisting,
   onOpenChange,
   open,
 }: CharacterFormDialogProps) {
   const t = useTranslations("characters.form");
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const isEdit = characterId !== undefined;
 
   function close() {
     setDirty(false);
@@ -120,28 +110,16 @@ export function CharacterFormDialog({
     <Dialog onOpenChange={handleOpenChange} open={open}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? t("editTitle") : t("createTitle")}</DialogTitle>
-          <DialogDescription>
-            {isEdit ? t("editDescription") : t("createDescription")}
-          </DialogDescription>
+          <DialogTitle>{t("editTitle")}</DialogTitle>
+          <DialogDescription>{t("editDescription")}</DialogDescription>
         </DialogHeader>
 
-        {open && isEdit ? (
+        {open ? (
           <EditFormLoader
             bookId={bookId}
             characterId={characterId}
             onDirtyChange={setDirty}
             onDone={close}
-          />
-        ) : null}
-
-        {open && !isEdit ? (
-          <CreateFlow
-            bookId={bookId}
-            initialName={initialName}
-            onDirtyChange={setDirty}
-            onDone={close}
-            onLinkExisting={onLinkExisting}
           />
         ) : null}
 
@@ -205,14 +183,12 @@ function CharacterForm({
   bookId,
   characterId,
   defaultValues,
-  mode,
   onDirtyChange,
   onDone,
 }: {
   bookId: string;
-  characterId?: string;
+  characterId: string;
   defaultValues: CharacterFormValues;
-  mode: "create" | "edit";
   onDirtyChange: (dirty: boolean) => void;
   onDone: () => void;
 }) {
@@ -222,7 +198,6 @@ function CharacterForm({
   const tEntity = useTranslations("characters.entityKind");
   const tImportance = useTranslations("characters.importance");
   const tStatus = useTranslations("characters.status");
-  const createInBook = useCreateCharacterInBook();
   const updateCharacter = useUpdateCharacter();
   const updateBookCharacter = useUpdateBookCharacter();
 
@@ -250,32 +225,17 @@ function CharacterForm({
   const gender = useWatch({ control, name: "gender" });
   const status = useWatch({ control, name: "status" });
   const isPov = useWatch({ control, name: "isPovCharacter" });
-  const isPending =
-    createInBook.isPending || updateCharacter.isPending || updateBookCharacter.isPending;
+  const isPending = updateCharacter.isPending || updateBookCharacter.isPending;
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      if (mode === "edit" && characterId !== undefined) {
-        await updateCharacter.mutateAsync({ characterId, input: toUpdateCharacter(values) });
-        await updateBookCharacter.mutateAsync({
-          bookId,
-          characterId,
-          input: toUpdateBookCharacter(values),
-        });
-        toast.success(tToast("updated"));
-        onDone();
-        return;
-      }
-
-      await createInBook.mutateAsync({
+      await updateCharacter.mutateAsync({ characterId, input: toUpdateCharacter(values) });
+      await updateBookCharacter.mutateAsync({
         bookId,
-        input: {
-          bookProfile: toBookProfileInput(values),
-          character: toCharacterInput(values, bookId),
-          mode: "new",
-        },
+        characterId,
+        input: toUpdateBookCharacter(values),
       });
-      toast.success(tToast("created"));
+      toast.success(tToast("updated"));
       onDone();
     } catch (error) {
       if (!applyFieldErrors(form, error)) toast.error(tErrors("generic"));
@@ -559,46 +519,10 @@ function CharacterForm({
           {t("cancel")}
         </Button>
         <Button disabled={isPending} loading={isPending} type="submit">
-          {mode === "edit" ? t("submitEdit") : t("submitCreate")}
+          {t("submitEdit")}
         </Button>
       </DialogFooter>
     </form>
-  );
-}
-
-function CreateFlow({
-  bookId,
-  initialName,
-  onDirtyChange,
-  onDone,
-  onLinkExisting,
-}: {
-  bookId: string;
-  initialName?: string;
-  onDirtyChange: (dirty: boolean) => void;
-  onDone: () => void;
-  onLinkExisting: (characterId: string) => void;
-}) {
-  const [step, setStep] = useState<"form" | "pick">(initialName === undefined ? "pick" : "form");
-
-  if (step === "pick") {
-    return (
-      <ExistingCharacterPicker
-        bookId={bookId}
-        onCreateNew={() => setStep("form")}
-        onPick={onLinkExisting}
-      />
-    );
-  }
-
-  return (
-    <CharacterForm
-      bookId={bookId}
-      defaultValues={emptyCharacterFormValues({ name: initialName })}
-      mode="create"
-      onDirtyChange={onDirtyChange}
-      onDone={onDone}
-    />
   );
 }
 
@@ -667,7 +591,6 @@ function EditFormLoader({
       bookId={bookId}
       characterId={characterId}
       defaultValues={characterToFormValues(details.data, bookId)}
-      mode="edit"
       onDirtyChange={onDirtyChange}
       onDone={onDone}
     />

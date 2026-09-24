@@ -13,11 +13,10 @@ import { formatNumber } from "@/lib/format";
 
 import { useBookCharacterSummary } from "../api/use-book-character-summary";
 import { useBookCharacters } from "../api/use-book-characters";
-import { useCreateCharacterInBook } from "../api/use-create-character-in-book";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
-import { emptyCharacterFormValues, toBookProfileInput } from "../model/character-form-schema";
 import { toCharacterReadingContext } from "../model/characters-roster-query";
 import { useCharactersRosterQuery } from "../model/use-characters-roster-query";
+import { AddCharacterDialog } from "./add-character-dialog";
 import { CharacterCard } from "./character-card";
 import { CharacterCardSkeleton } from "./character-card-skeleton";
 import { CharacterCommandPalette } from "./character-command-palette";
@@ -33,8 +32,6 @@ const SKELETON_COUNT = 6;
 type BookCharactersTabProps = {
   book: BookView;
 };
-
-type FormState = { characterId?: string; initialName?: string; open: boolean };
 
 type RosterListProps = {
   bookId: string;
@@ -53,18 +50,17 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const locale = useLocale();
   const t = useTranslations("characters");
   const tToast = useTranslations("characters.toast");
-  const tExisting = useTranslations("characters.existing");
 
   const readingContext = toCharacterReadingContext(book);
   const roster = useCharactersRosterQuery(readingContext);
   const characters = useBookCharacters(bookId, roster.listParams);
   const summary = useBookCharacterSummary(bookId, readingContext);
-  const createInBook = useCreateCharacterInBook();
   const unlinkCharacter = useUnlinkCharacter();
 
   const [detailsId, setDetailsId] = useState<null | string>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [form, setForm] = useState<FormState>({ open: false });
+  const [editId, setEditId] = useState<null | string>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [unlinkId, setUnlinkId] = useState<null | string>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -90,27 +86,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 
   function openEdit(characterId: string) {
     setDetailsOpen(false);
-    setForm({ characterId, open: true });
-  }
-
-  function linkExisting(characterId: string) {
-    createInBook.mutate(
-      {
-        bookId,
-        input: {
-          bookProfile: toBookProfileInput(emptyCharacterFormValues()),
-          characterId,
-          mode: "existing",
-        },
-      },
-      {
-        onError: () => toast.error(tExisting("linkError")),
-        onSuccess: () => {
-          toast.success(tExisting("linked"));
-          setForm({ open: false });
-        },
-      },
-    );
+    setEditId(characterId);
   }
 
   function confirmUnlink() {
@@ -153,7 +129,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 
       {showControls ? (
         <CharactersToolbar
-          onAdd={() => setForm({ open: true })}
+          onAdd={() => setAddOpen(true)}
           onSearch={roster.setSearch}
           onSortChange={roster.setSort}
           search={roster.state.characterSearch}
@@ -165,7 +141,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         bookId={bookId}
         characters={characters}
         hasActiveSearch={roster.hasActiveSearch}
-        onAdd={() => setForm({ open: true })}
+        onAdd={() => setAddOpen(true)}
         onClearSearch={roster.clearSearch}
         onEdit={openEdit}
         onOpenDetails={openDetails}
@@ -181,14 +157,24 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         open={detailsOpen}
       />
 
-      <CharacterFormDialog
-        bookId={bookId}
-        characterId={form.characterId}
-        initialName={form.initialName}
-        onLinkExisting={linkExisting}
-        onOpenChange={(open) => setForm((current) => ({ ...current, open }))}
-        open={form.open}
+      <AddCharacterDialog
+        book={book}
+        onOpenChange={setAddOpen}
+        onOpenDetails={openDetails}
+        open={addOpen}
+        readingContext={readingContext}
       />
+
+      {editId === null ? null : (
+        <CharacterFormDialog
+          bookId={bookId}
+          characterId={editId}
+          onOpenChange={(open) => {
+            if (!open) setEditId(null);
+          }}
+          open
+        />
+      )}
 
       <UnlinkCharacterDialog
         isUnlinking={unlinkCharacter.isPending}
