@@ -43,16 +43,23 @@ const AliasRowSchema = z.object({
 
 const BookScopeSchema = z.object({
   aliases: z.array(AliasRowSchema),
+  appearanceNotes: z.string(),
+  appearanceNotesIsSpoiler: z.boolean(),
   attitude: CharacterAttitudeSchema.nullable(),
   description: z.string(),
+  descriptionIsSpoiler: z.boolean(),
   displayName: z.string().nullable(),
+  displayNameIsSpoiler: z.boolean(),
   firstAppearanceChapter: z.string(),
   firstAppearanceNote: z.string(),
   firstAppearancePage: z.string(),
+  hidePresenceAsSpoiler: z.boolean(),
   importance: BookCharacterImportanceSchema,
   isPovCharacter: z.boolean(),
   narratorType: BookCharacterNarratorTypeSchema.nullable(),
   personalImpression: z.string(),
+  personalImpressionIsSpoiler: z.boolean(),
+  portraitIsSpoiler: z.boolean(),
   portraitMediaId: z.string().nullable(),
   roles: z.array(
     z.object({
@@ -62,8 +69,10 @@ const BookScopeSchema = z.object({
     }),
   ),
   speciesOverride: z.string().nullable(),
+  speciesOverrideIsSpoiler: z.boolean(),
   status: BookCharacterStatusSchema,
   statusCustomText: z.string(),
+  statusIsSpoiler: z.boolean(),
 });
 
 export function buildCharacterEditSchema(messages: CharacterEditMessages) {
@@ -128,21 +137,30 @@ export function buildCharacterEditSchema(messages: CharacterEditMessages) {
 export function emptyBookScopeValues(): CharacterEditValues["book"] {
   return {
     aliases: [],
+    appearanceNotes: "",
+    appearanceNotesIsSpoiler: false,
     attitude: null,
     description: "",
+    descriptionIsSpoiler: false,
     displayName: null,
+    displayNameIsSpoiler: false,
     firstAppearanceChapter: "",
     firstAppearanceNote: "",
     firstAppearancePage: "",
+    hidePresenceAsSpoiler: false,
     importance: BOOK_CHARACTER_UNSPECIFIED.importance,
     isPovCharacter: false,
     narratorType: null,
     personalImpression: "",
+    personalImpressionIsSpoiler: false,
+    portraitIsSpoiler: false,
     portraitMediaId: null,
     roles: [],
     speciesOverride: null,
+    speciesOverrideIsSpoiler: false,
     status: BOOK_CHARACTER_UNSPECIFIED.status,
     statusCustomText: "",
+    statusIsSpoiler: false,
   };
 }
 
@@ -181,23 +199,32 @@ export function toBookUpdate(
 
   return {
     aliases: toAliasPayload(values.aliases),
+    appearanceNotes: textOrNull(values.appearanceNotes),
+    appearanceNotesIsSpoiler: values.appearanceNotesIsSpoiler,
     description: textOrNull(values.description),
+    descriptionIsSpoiler: values.descriptionIsSpoiler,
+    displayNameIsSpoiler: values.displayNameIsSpoiler,
     firstAppearanceChapter: textOrNull(values.firstAppearanceChapter),
     firstAppearanceNote: textOrNull(values.firstAppearanceNote),
     firstAppearancePage: page === "invalid" ? null : page,
+    hidePresenceAsSpoiler: values.hidePresenceAsSpoiler,
     importance: values.importance,
     isPovCharacter: values.isPovCharacter,
     narratorType: values.isPovCharacter ? values.narratorType : null,
     personalImpression: textOrNull(values.personalImpression),
+    personalImpressionIsSpoiler: values.personalImpressionIsSpoiler,
+    portraitIsSpoiler: values.portraitIsSpoiler,
     roles: values.roles.map((role, index) => ({
       customRole: role.roleType === "custom" ? textOrNull(role.customRole) : null,
       isSpoiler: role.isSpoiler,
       position: index,
       roleType: role.roleType,
     })),
+    speciesOverrideIsSpoiler: values.speciesOverrideIsSpoiler,
     status: values.status,
     statusCustomText:
       values.status === BOOK_CHARACTER_STATUS.custom ? textOrNull(values.statusCustomText) : null,
+    statusIsSpoiler: values.statusIsSpoiler,
     ...withoutMasked(inherited, maskedFields),
   };
 }
@@ -217,17 +244,24 @@ export function toCharacterEditValues(
         ? emptyBookScopeValues()
         : {
             aliases: toAliasRows({ bookId: bookId ?? null, character }),
+            appearanceNotes: appearance.appearanceNotes ?? "",
+            appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
             attitude: appearance.attitude,
             description: appearance.description ?? "",
+            descriptionIsSpoiler: appearance.descriptionIsSpoiler,
             displayName: appearance.displayName,
+            displayNameIsSpoiler: appearance.displayNameIsSpoiler,
             firstAppearanceChapter: appearance.firstAppearanceChapter ?? "",
             firstAppearanceNote: appearance.firstAppearanceNote ?? "",
             firstAppearancePage:
               appearance.firstAppearancePage === null ? "" : String(appearance.firstAppearancePage),
+            hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
             importance: appearance.importance,
             isPovCharacter: appearance.isPovCharacter,
             narratorType: appearance.narratorType,
             personalImpression: appearance.personalImpression ?? "",
+            personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
+            portraitIsSpoiler: appearance.portraitIsSpoiler,
             portraitMediaId: appearance.portrait?.id ?? null,
             roles: appearance.roles.map((role) => ({
               customRole: role.customRole ?? "",
@@ -235,8 +269,10 @@ export function toCharacterEditValues(
               roleType: role.roleType,
             })),
             speciesOverride: appearance.speciesOverride,
+            speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
             status: appearance.status ?? BOOK_CHARACTER_UNSPECIFIED.status,
             statusCustomText: appearance.statusCustomText ?? "",
+            statusIsSpoiler: appearance.statusIsSpoiler,
           },
     global: {
       aliases: toAliasRows({ bookId: null, character }),

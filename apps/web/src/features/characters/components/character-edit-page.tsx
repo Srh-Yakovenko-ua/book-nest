@@ -36,6 +36,7 @@ import {
   BookCharacterInheritanceSection,
   BookCharacterMainSection,
   BookCharacterNarrativeSection,
+  BookCharacterSpoilerSection,
   CharacterAliasesSection,
   CharacterGlobalSection,
 } from "./character-edit-sections";
@@ -214,6 +215,8 @@ function CharacterEditForm({
         errors={errors}
         hasBookScope={contextBookId !== null}
       />
+
+      {contextBookId === null ? null : <BookCharacterSpoilerSection control={control} />}
 
       <div className="sticky bottom-0 z-10 -mx-1 flex items-center justify-end gap-3 rounded-t-xl bg-background/80 px-4 py-3 backdrop-blur-xl backdrop-saturate-150">
         <Button disabled={isSaving} onClick={cancel} type="button" variant="secondary">

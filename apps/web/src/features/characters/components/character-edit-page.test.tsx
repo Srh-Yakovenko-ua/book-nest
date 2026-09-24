@@ -345,3 +345,48 @@ describe("CharacterEditPage narrative metadata", () => {
     expect(bookPatchBody()).toHaveProperty("firstAppearanceChapter", "Пролог");
   });
 });
+
+describe("CharacterEditPage spoilers", () => {
+  it("opens collapsed and keeps hide-presence separate from the granular switches", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(
+      screen.getByRole("switch", { name: "Приховати сам факт появи персонажа" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Моє враження" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Налаштувати, що саме приховати" }));
+
+    expect(await screen.findByRole("switch", { name: "Моє враження" })).toBeInTheDocument();
+  });
+
+  it("keeps the granular settings when hide presence is turned on", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(screen.getByRole("button", { name: "Налаштувати, що саме приховати" }));
+    await userEvent.click(screen.getByRole("switch", { name: "Моє враження" }));
+    await userEvent.click(
+      screen.getByRole("switch", { name: "Приховати сам факт появи персонажа" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({
+      hidePresenceAsSpoiler: true,
+      personalImpressionIsSpoiler: true,
+    });
+  });
+
+  it("offers no spoiler switch for the point of view or the first appearance", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(screen.getByRole("button", { name: "Налаштувати, що саме приховати" }));
+
+    expect(screen.getAllByRole("switch")).toHaveLength(9);
+    expect(screen.queryByRole("switch", { name: "Перша поява" })).not.toBeInTheDocument();
+  });
+});

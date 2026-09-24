@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import type { Control, FieldError, FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { Controller, useWatch } from "react-hook-form";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -43,6 +45,18 @@ import { CharacterSpoilerField } from "./character-spoiler-field";
 type AliasFieldErrors = NonNullable<FieldErrors<CharacterEditValues>["global"]>["aliases"];
 
 type EditControl = Control<CharacterEditValues>;
+
+const SPOILER_FIELDS = [
+  { label: "displayName", name: "book.displayNameIsSpoiler" },
+  { label: "status", name: "book.statusIsSpoiler" },
+  { label: "description", name: "book.descriptionIsSpoiler" },
+  { label: "personalImpression", name: "book.personalImpressionIsSpoiler" },
+  { label: "appearanceNotes", name: "book.appearanceNotesIsSpoiler" },
+  { label: "speciesOverride", name: "book.speciesOverrideIsSpoiler" },
+  { label: "portrait", name: "book.portraitIsSpoiler" },
+] as const;
+
+const SPOILER_FLAG_NAMES = SPOILER_FIELDS.map((entry) => entry.name);
 
 type EditRegister = UseFormRegister<CharacterEditValues>;
 
@@ -231,6 +245,10 @@ export function BookCharacterMainSection({
           {...register("book.personalImpression")}
         />
       </LabeledField>
+
+      <LabeledField htmlFor="character-appearance-notes" label={t("appearanceNotes")}>
+        <Textarea id="character-appearance-notes" rows={3} {...register("book.appearanceNotes")} />
+      </LabeledField>
     </EditSection>
   );
 }
@@ -322,6 +340,60 @@ export function BookCharacterNarrativeSection({
           {...register("book.firstAppearanceNote")}
         />
       </LabeledField>
+    </EditSection>
+  );
+}
+
+export function BookCharacterSpoilerSection({ control }: { control: EditControl }) {
+  const t = useTranslations("characters.spoilers");
+  const flags = useWatch({ control, name: SPOILER_FLAG_NAMES });
+  const activeCount = flags.filter(Boolean).length;
+  const [expanded, setExpanded] = useState(activeCount > 0);
+
+  return (
+    <EditSection description={t("sectionHint")} title={t("sectionTitle")}>
+      <Controller
+        control={control}
+        name="book.hidePresenceAsSpoiler"
+        render={({ field }) => (
+          <div className="flex flex-col gap-1.5 rounded-lg border border-border p-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+              {t("hidePresence")}
+            </label>
+            <p className="text-xs text-muted-foreground">{t("hidePresenceHint")}</p>
+          </div>
+        )}
+      />
+
+      {expanded ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-muted-foreground">{t("granularHint")}</p>
+          {SPOILER_FIELDS.map((entry) => (
+            <Controller
+              control={control}
+              key={entry.name}
+              name={entry.name}
+              render={({ field }) => (
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  {t(entry.label)}
+                </label>
+              )}
+            />
+          ))}
+        </div>
+      ) : (
+        <Button
+          className="h-auto self-start p-0"
+          onClick={() => setExpanded(true)}
+          size="xs"
+          type="button"
+          variant="link"
+        >
+          {t("expand")}
+        </Button>
+      )}
     </EditSection>
   );
 }

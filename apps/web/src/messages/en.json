@@ -7539,6 +7539,7 @@
       "use": "Use this one"
     },
     "edit": {
+      "appearanceNotes": "Appearance in this book",
       "attitude": "My attitude",
       "attitudePlaceholder": "Not specified",
       "bookDescription": "Details in this book",
@@ -7784,6 +7785,21 @@
       "hidden": "Hidden (spoiler)",
       "reveal": "Show",
       "revealAria": "Show field: {field}"
+    },
+    "spoilers": {
+      "appearanceNotes": "Appearance in this book",
+      "description": "Details in this book",
+      "displayName": "Name in this book",
+      "expand": "Choose what to hide",
+      "granularHint": "These fields stay hidden until the reader reveals them.",
+      "hidePresence": "Hide that the character appears at all",
+      "hidePresenceHint": "The character stays out of this book's lists until the reader reaches its first appearance. The settings below are kept either way.",
+      "personalImpression": "My impression",
+      "portrait": "Image in this book",
+      "sectionHint": "Applies to this book only.",
+      "sectionTitle": "Spoilers",
+      "speciesOverride": "Species in this book",
+      "status": "Status"
     },
     "states": {
       "errorDescription": "Couldn't load characters. Please try again.",
