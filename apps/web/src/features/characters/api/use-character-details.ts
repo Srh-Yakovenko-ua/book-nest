@@ -1,4 +1,8 @@
-import type { CharacterDetailsView, CharacterRevealFieldKey } from "@app/shared";
+import type {
+  BookCharacterSummaryQuery,
+  CharacterDetailsView,
+  CharacterRevealFieldKey,
+} from "@app/shared";
 
 import { CharacterDetailsViewSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -9,19 +13,18 @@ import { charactersControllerGetById } from "@/shared/api/generated/endpoints/ch
 
 import { characterKeys } from "./character-keys";
 
-type UseCharacterDetailsArgs = {
+type UseCharacterDetailsArgs = BookCharacterSummaryQuery & {
   characterId: string;
-  contextBookId?: string;
   revealFieldIds?: CharacterRevealFieldKey[];
 };
 
 export function useCharacterDetails({
   characterId,
-  contextBookId,
   revealFieldIds,
+  ...readingContext
 }: UseCharacterDetailsArgs) {
   const params: CharactersControllerGetByIdParams = {
-    ...(contextBookId === undefined ? {} : { contextBookId }),
+    ...readingContext,
     ...(revealFieldIds === undefined || revealFieldIds.length === 0 ? {} : { revealFieldIds }),
   };
 

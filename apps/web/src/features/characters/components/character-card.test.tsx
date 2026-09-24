@@ -1,21 +1,31 @@
 import "@testing-library/jest-dom/vitest";
+import type { ReactNode } from "react";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent } from "@/test-utils";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 import { makeCharacterSummary } from "../model/characters.fixtures";
 import { CharacterCard } from "./character-card";
 
 function renderCard(
   character: ReturnType<typeof makeCharacterSummary>,
-  handlers: Partial<{ onEdit: () => void; onOpenDetails: () => void; onUnlink: () => void }> = {},
+  handlers: Partial<{ onEdit: () => void; onUnlink: () => void }> = {},
 ) {
   return renderWithProviders(
     <CharacterCard
       bookId="book-1"
       character={character}
       onEdit={handlers.onEdit ?? vi.fn()}
-      onOpenDetails={handlers.onOpenDetails ?? vi.fn()}
       onUnlink={handlers.onUnlink ?? vi.fn()}
     />,
   );
@@ -58,13 +68,13 @@ describe("CharacterCard roster affordances", () => {
     expect(screen.getByText("POV")).toBeInTheDocument();
   });
 
-  it("opens details from the card body", async () => {
-    const onOpenDetails = vi.fn();
-    renderCard(makeCharacterSummary(), { onOpenDetails });
+  it("links the card body to the character page in this book context", () => {
+    renderCard(makeCharacterSummary({ characterId: "char-9" }));
 
-    await userEvent.click(screen.getByRole("button", { name: "Відкрити персонажа Ґеральт" }));
-
-    expect(onOpenDetails).toHaveBeenCalledOnce();
+    expect(screen.getByRole("link", { name: "Відкрити персонажа Ґеральт" })).toHaveAttribute(
+      "href",
+      "/characters/char-9?bookId=book-1",
+    );
   });
 
   it("offers only edit and unlink in the overflow menu", async () => {

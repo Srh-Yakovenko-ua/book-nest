@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom/vitest";
+import type { ReactNode } from "react";
+
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +13,15 @@ import {
   makeCharacterSummaryPage,
 } from "../model/characters.fixtures";
 import { BookCharactersTab } from "./book-characters-tab";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),

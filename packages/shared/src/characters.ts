@@ -421,10 +421,26 @@ const BookCharacterRoleViewSchema = z.object({
   roleType: BookCharacterRoleTypeSchema,
 });
 
+export const CharacterAppearanceBookSchema = z.object({
+  cover: MediaViewSchema.nullable(),
+  id: z.string(),
+  series: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      partNumber: z.number().int().nullable(),
+    })
+    .nullable(),
+  title: z.string(),
+});
+
+export type CharacterAppearanceBook = z.infer<typeof CharacterAppearanceBookSchema>;
+
 export const BookCharacterViewSchema = z.object({
   appearanceNotes: z.string().nullable(),
   appearanceNotesIsSpoiler: z.boolean(),
   attitude: CharacterAttitudeSchema.nullable(),
+  book: CharacterAppearanceBookSchema,
   bookId: z.string(),
   characterId: z.string(),
   createdAt: z.string(),

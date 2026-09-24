@@ -38,6 +38,7 @@ export function makeBookCharacterView(
     appearanceNotes: null,
     appearanceNotesIsSpoiler: false,
     attitude: null,
+    book: { cover: null, id: "book-1", series: null, title: "Останнє бажання" },
     bookId: "book-1",
     characterId: "char-1",
     createdAt: "2026-01-01T00:00:00.000Z",

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { CharacterDetailsViewDtoAppearancesItemAttitude } from "./characterDetailsViewDtoAppearancesItemAttitude";
+import type { CharacterDetailsViewDtoAppearancesItemBook } from "./characterDetailsViewDtoAppearancesItemBook";
 import type { CharacterDetailsViewDtoAppearancesItemImportance } from "./characterDetailsViewDtoAppearancesItemImportance";
 import type { CharacterDetailsViewDtoAppearancesItemNarratorType } from "./characterDetailsViewDtoAppearancesItemNarratorType";
 import type { CharacterDetailsViewDtoAppearancesItemPortrait } from "./characterDetailsViewDtoAppearancesItemPortrait";
@@ -15,6 +16,7 @@ import type { CharacterDetailsViewDtoAppearancesItemStatus } from "./characterDe
 export type CharacterDetailsViewDtoAppearancesItem = {
   /** @nullable */
   appearanceNotes: string | null;
+  book: CharacterDetailsViewDtoAppearancesItemBook;
   appearanceNotesIsSpoiler: boolean;
   /** @nullable */
   attitude: CharacterDetailsViewDtoAppearancesItemAttitude;

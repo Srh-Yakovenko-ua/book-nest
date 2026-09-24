@@ -9,18 +9,19 @@ import { toast } from "sonner";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
 import { useBookCharacterSummary } from "../api/use-book-character-summary";
 import { useBookCharacters } from "../api/use-book-characters";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
+import { getCharacterDetailsPath } from "../model/character-routes";
 import { toCharacterReadingContext } from "../model/characters-roster-query";
 import { useCharactersRosterQuery } from "../model/use-characters-roster-query";
 import { AddCharacterDialog } from "./add-character-dialog";
 import { CharacterCard } from "./character-card";
 import { CharacterCardSkeleton } from "./character-card-skeleton";
 import { CharacterCommandPalette } from "./character-command-palette";
-import { CharacterDetailsSheet } from "./character-details-sheet";
 import { CharacterFormDialog } from "./character-form-dialog";
 import { CharactersEmptyState, CharactersNoResults } from "./characters-empty-state";
 import { CharactersErrorState } from "./characters-error-state";
@@ -40,7 +41,6 @@ type RosterListProps = {
   onAdd: () => void;
   onClearSearch: () => void;
   onEdit: (characterId: string) => void;
-  onOpenDetails: (characterId: string) => void;
   onPageChange: (page: number) => void;
   onUnlink: (characterId: string) => void;
 };
@@ -56,9 +56,8 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const characters = useBookCharacters(bookId, roster.listParams);
   const summary = useBookCharacterSummary(bookId, readingContext);
   const unlinkCharacter = useUnlinkCharacter();
+  const router = useRouter();
 
-  const [detailsId, setDetailsId] = useState<null | string>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [editId, setEditId] = useState<null | string>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [unlinkId, setUnlinkId] = useState<null | string>(null);
@@ -80,13 +79,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   }, []);
 
   function openDetails(characterId: string) {
-    setDetailsId(characterId);
-    setDetailsOpen(true);
-  }
-
-  function openEdit(characterId: string) {
-    setDetailsOpen(false);
-    setEditId(characterId);
+    router.push(getCharacterDetailsPath({ bookId, characterId }));
   }
 
   function confirmUnlink() {
@@ -143,18 +136,9 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         hasActiveSearch={roster.hasActiveSearch}
         onAdd={() => setAddOpen(true)}
         onClearSearch={roster.clearSearch}
-        onEdit={openEdit}
-        onOpenDetails={openDetails}
+        onEdit={setEditId}
         onPageChange={roster.setPage}
         onUnlink={setUnlinkId}
-      />
-
-      <CharacterDetailsSheet
-        characterId={detailsId}
-        contextBookId={bookId}
-        onEdit={openEdit}
-        onOpenChange={setDetailsOpen}
-        open={detailsOpen}
       />
 
       <AddCharacterDialog
@@ -202,7 +186,6 @@ function RosterList({
   onAdd,
   onClearSearch,
   onEdit,
-  onOpenDetails,
   onPageChange,
   onUnlink,
 }: RosterListProps) {
@@ -244,7 +227,6 @@ function RosterList({
               bookId={bookId}
               character={character}
               onEdit={() => onEdit(character.characterId)}
-              onOpenDetails={() => onOpenDetails(character.characterId)}
               onUnlink={() => onUnlink(character.characterId)}
             />
           </li>

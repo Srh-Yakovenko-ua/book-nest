@@ -2041,6 +2041,10 @@ export const CharactersControllerCreateBody = zod.object({
 export const charactersControllerCreateResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerCreateResponseAliasesItemPositionMax = 9007199254740991;
 
+export const charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const charactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const charactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -2084,6 +2088,38 @@ export const CharactersControllerCreateResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
@@ -2641,6 +2677,10 @@ export const CharactersControllerGetByIdQueryParams = zod.object({
 export const charactersControllerGetByIdResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerGetByIdResponseAliasesItemPositionMax = 9007199254740991;
 
+export const charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const charactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const charactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -2684,6 +2724,38 @@ export const CharactersControllerGetByIdResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
@@ -2980,6 +3052,10 @@ export const CharactersControllerUpdateGlobalBody = zod.object({
 export const charactersControllerUpdateGlobalResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerUpdateGlobalResponseAliasesItemPositionMax = 9007199254740991;
 
+export const charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const charactersControllerUpdateGlobalResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const charactersControllerUpdateGlobalResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -3024,6 +3100,38 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
@@ -3307,6 +3415,10 @@ export const CharactersControllerRestoreParams = zod.object({
 export const charactersControllerRestoreResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerRestoreResponseAliasesItemPositionMax = 9007199254740991;
 
+export const charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const charactersControllerRestoreResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const charactersControllerRestoreResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -3350,6 +3462,38 @@ export const CharactersControllerRestoreResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
@@ -4527,6 +4671,10 @@ export const BookCharactersControllerCreateBody = zod.union([
 export const bookCharactersControllerCreateResponseAliasesItemPositionMin = -9007199254740991;
 export const bookCharactersControllerCreateResponseAliasesItemPositionMax = 9007199254740991;
 
+export const bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const bookCharactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const bookCharactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -4570,6 +4718,38 @@ export const BookCharactersControllerCreateResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
@@ -4785,6 +4965,10 @@ export const BookCharactersControllerGetByIdParams = zod.object({
 export const bookCharactersControllerGetByIdResponseAliasesItemPositionMin = -9007199254740991;
 export const bookCharactersControllerGetByIdResponseAliasesItemPositionMax = 9007199254740991;
 
+export const bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const bookCharactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const bookCharactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -4828,6 +5012,38 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([
@@ -5238,6 +5454,10 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
 export const bookCharactersControllerUpdateInBookResponseAliasesItemPositionMin = -9007199254740991;
 export const bookCharactersControllerUpdateInBookResponseAliasesItemPositionMax = 9007199254740991;
 
+export const bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const bookCharactersControllerUpdateInBookResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const bookCharactersControllerUpdateInBookResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -5282,6 +5502,42 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(
+                bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMin,
+              )
+              .max(
+                bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMax,
+              )
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       appearanceNotesIsSpoiler: zod.boolean(),
       attitude: zod
         .union([

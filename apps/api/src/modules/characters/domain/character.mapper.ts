@@ -1,5 +1,6 @@
 import type {
   BookCharacterView,
+  CharacterAppearanceBook,
   CharacterDetailsView,
   CharacterFormView,
   CharacterGlobalSummaryView,
@@ -179,9 +180,11 @@ type SeriesAppearancePoint = Omit<
 
 export function toBookCharacterView({
   appearance,
+  book,
   portrait,
 }: {
   appearance: CharacterAppearanceSource;
+  book: CharacterAppearanceBook;
   portrait: Nullable<MediaView>;
 }): BookCharacterView {
   return {
@@ -189,6 +192,7 @@ export function toBookCharacterView({
     appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
     attitude:
       appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
+    book,
     bookId: appearance.bookId,
     characterId: appearance.characterId,
     createdAt: appearance.createdAt.toISOString(),
@@ -397,10 +401,12 @@ export function toCharacterSummaryView({
 
 export function toMaskedBookCharacterView({
   appearance,
+  book,
   portrait,
   revealedFields,
 }: {
   appearance: CharacterAppearanceSource;
+  book: CharacterAppearanceBook;
   portrait: Nullable<MediaView>;
   revealedFields: ReadonlySet<CharacterRevealFieldKey>;
 }): BookCharacterView {
@@ -429,6 +435,7 @@ export function toMaskedBookCharacterView({
     appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
     attitude:
       appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
+    book,
     bookId: appearance.bookId,
     characterId: appearance.characterId,
     createdAt: appearance.createdAt.toISOString(),

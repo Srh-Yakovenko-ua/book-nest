@@ -33,6 +33,15 @@ const detailsInclude = {
   avatarMedia: true,
   bookAppearances: {
     include: {
+      book: {
+        select: {
+          coverMedia: true,
+          id: true,
+          partNumber: true,
+          series: { select: { id: true, name: true } },
+          title: true,
+        },
+      },
       portraitMedia: true,
       roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
     },

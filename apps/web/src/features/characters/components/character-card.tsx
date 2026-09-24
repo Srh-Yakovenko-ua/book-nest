@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 import { useToggleCharacterFavorite } from "../api/use-toggle-character-favorite";
@@ -22,23 +23,17 @@ import {
   explicitImportance,
   explicitStatus,
 } from "../model/character-options";
+import { getCharacterDetailsPath } from "../model/character-routes";
 import { rosterDisplayName } from "../model/characters-roster-query";
 
 type CharacterCardProps = {
   bookId: string;
   character: CharacterSummaryView;
   onEdit: () => void;
-  onOpenDetails: () => void;
   onUnlink: () => void;
 };
 
-export function CharacterCard({
-  bookId,
-  character,
-  onEdit,
-  onOpenDetails,
-  onUnlink,
-}: CharacterCardProps) {
+export function CharacterCard({ bookId, character, onEdit, onUnlink }: CharacterCardProps) {
   const t = useTranslations("characters.card");
   const tImportance = useTranslations("characters.importance");
   const tStatus = useTranslations("characters.status");
@@ -131,11 +126,10 @@ export function CharacterCard({
         traits={traits.length === 0 ? undefined : traits}
       />
 
-      <button
+      <Link
         aria-label={t("openDetails", { name })}
         className="absolute inset-0 z-10 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        onClick={onOpenDetails}
-        type="button"
+        href={getCharacterDetailsPath({ bookId, characterId: character.characterId })}
       />
     </div>
   );
