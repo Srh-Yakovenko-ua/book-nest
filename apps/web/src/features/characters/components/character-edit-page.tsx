@@ -1,6 +1,6 @@
 "use client";
 
-import type { CharacterDetailsView } from "@app/shared";
+import type { BookCharacterView, CharacterDetailsView } from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -32,7 +32,11 @@ import {
 import { CHARACTER_NAME_MAX } from "../model/character-form-schema";
 import { getCharacterDetailsPath } from "../model/character-routes";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
-import { BookCharacterMainSection, CharacterGlobalSection } from "./character-edit-sections";
+import {
+  BookCharacterInheritanceSection,
+  BookCharacterMainSection,
+  CharacterGlobalSection,
+} from "./character-edit-sections";
 import { CharactersErrorState } from "./characters-error-state";
 
 type CharacterEditPageProps = {
@@ -63,6 +67,7 @@ export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
 
   return (
     <CharacterEditForm
+      appearance={appearance}
       character={details.data}
       contextBookId={appearance === undefined ? null : bookId}
       key={characterId}
@@ -71,9 +76,11 @@ export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
 }
 
 function CharacterEditForm({
+  appearance,
   character,
   contextBookId,
 }: {
+  appearance: BookCharacterView | undefined;
   character: CharacterDetailsView;
   contextBookId: null | string;
 }) {
@@ -109,9 +116,11 @@ function CharacterEditForm({
 
   const current = useWatch({ control });
   const currentValues = current as CharacterEditValues;
+  const maskedFields = appearance?.hiddenFields ?? [];
   const globalDirty = isScopeDirty({ baseline, current: currentValues, scope: "global" });
   const bookDirty =
-    contextBookId !== null && isScopeDirty({ baseline, current: currentValues, scope: "book" });
+    contextBookId !== null &&
+    isScopeDirty({ baseline, current: currentValues, maskedFields, scope: "book" });
   const isDirty = globalDirty || bookDirty;
   const isSaving = updateCharacter.isPending || updateBookCharacter.isPending;
 
@@ -149,7 +158,7 @@ function CharacterEditForm({
         await updateBookCharacter.mutateAsync({
           bookId: contextBookId,
           characterId: character.id,
-          input: toBookUpdate(values.book),
+          input: toBookUpdate(values.book, maskedFields),
         });
         setBaseline((previous) => ({ ...previous, book: values.book }));
       }
@@ -166,6 +175,15 @@ function CharacterEditForm({
     <form className="flex flex-col gap-6" noValidate onSubmit={onSubmit}>
       {contextBookId === null ? null : (
         <BookCharacterMainSection control={control} register={register} />
+      )}
+
+      {contextBookId === null ? null : (
+        <BookCharacterInheritanceSection
+          control={control}
+          globalAvatarUrl={character.avatar?.urls.card ?? null}
+          maskedFields={maskedFields}
+          portraitUrl={appearance?.portrait?.urls.card ?? null}
+        />
       )}
 
       <CharacterGlobalSection

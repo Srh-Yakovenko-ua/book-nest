@@ -1,5 +1,6 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 import type { Control, UseFormRegister } from "react-hook-form";
 
@@ -19,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import type { CharacterEditValues } from "../model/character-edit-form";
 
+import { isBookFieldMasked } from "../model/character-inheritance";
 import {
   ATTITUDE_OPTIONS,
   BOOK_CHARACTER_IMPORTANCE,
@@ -27,11 +29,107 @@ import {
   GENDER_CUSTOM,
   GENDER_OPTIONS,
 } from "../model/character-options";
+import {
+  InheritedImageField,
+  InheritedSelectField,
+  InheritedTextField,
+} from "./character-inherited-field";
 import { CharacterRolePicker } from "./character-role-picker";
+import { CharacterSpoilerField } from "./character-spoiler-field";
 
 type EditControl = Control<CharacterEditValues>;
 
 type EditRegister = UseFormRegister<CharacterEditValues>;
+
+export function BookCharacterInheritanceSection({
+  control,
+  globalAvatarUrl,
+  maskedFields,
+  portraitUrl,
+}: {
+  control: EditControl;
+  globalAvatarUrl: Nullable<string>;
+  maskedFields: readonly string[];
+  portraitUrl: Nullable<string>;
+}) {
+  const t = useTranslations("characters.edit");
+  const tInheritance = useTranslations("characters.inheritance");
+  const tAttitude = useTranslations("characters.attitude");
+
+  const globalName = useWatch({ control, name: "global.name" });
+  const globalSpecies = useWatch({ control, name: "global.species" });
+  const globalAttitude = useWatch({ control, name: "global.attitude" });
+
+  return (
+    <EditSection description={t("inheritanceSectionHint")} title={t("inheritanceSection")}>
+      <MaskedOr field="displayName" label={t("displayName")} maskedFields={maskedFields}>
+        <Controller
+          control={control}
+          name="book.displayName"
+          render={({ field }) => (
+            <InheritedTextField
+              globalValue={textOrNull(globalName)}
+              id="character-display-name"
+              label={t("displayName")}
+              onChange={field.onChange}
+              value={field.value}
+            />
+          )}
+        />
+      </MaskedOr>
+
+      <MaskedOr field="portrait" label={t("portrait")} maskedFields={maskedFields}>
+        <Controller
+          control={control}
+          name="book.portraitMediaId"
+          render={({ field }) => (
+            <InheritedImageField
+              fallbackText={globalName}
+              globalPreviewUrl={globalAvatarUrl}
+              label={t("portrait")}
+              onChange={field.onChange}
+              previewUrl={portraitUrl}
+              value={field.value}
+            />
+          )}
+        />
+      </MaskedOr>
+
+      <MaskedOr field="speciesOverride" label={t("speciesInBook")} maskedFields={maskedFields}>
+        <Controller
+          control={control}
+          name="book.speciesOverride"
+          render={({ field }) => (
+            <InheritedTextField
+              globalValue={textOrNull(globalSpecies)}
+              id="character-species-override"
+              label={t("speciesInBook")}
+              onChange={field.onChange}
+              value={field.value}
+            />
+          )}
+        />
+      </MaskedOr>
+
+      <Controller
+        control={control}
+        name="book.attitude"
+        render={({ field }) => (
+          <InheritedSelectField
+            globalLabel={globalAttitude === "" ? null : tAttitude(globalAttitude)}
+            globalValue={globalAttitude === "" ? null : globalAttitude}
+            id="character-book-attitude"
+            label={tInheritance("attitude")}
+            onChange={field.onChange}
+            optionLabel={(option) => tAttitude(option)}
+            options={ATTITUDE_OPTIONS}
+            value={field.value}
+          />
+        )}
+      />
+    </EditSection>
+  );
+}
 
 export function BookCharacterMainSection({
   control,
@@ -306,4 +404,29 @@ function LabeledField({
       {children}
     </div>
   );
+}
+
+function MaskedOr({
+  children,
+  field,
+  label,
+  maskedFields,
+}: {
+  children: ReactNode;
+  field: "displayName" | "portrait" | "speciesOverride";
+  label: string;
+  maskedFields: readonly string[];
+}) {
+  if (!isBookFieldMasked(maskedFields, field)) return children;
+
+  return (
+    <CharacterSpoilerField hidden label={label}>
+      {null}
+    </CharacterSpoilerField>
+  );
+}
+
+function textOrNull(value: string): null | string {
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
 }

@@ -27,9 +27,12 @@ export type CharacterEditValues = z.infer<ReturnType<typeof buildCharacterEditSc
 const attitudeOrNone = z.union([CharacterAttitudeSchema, z.literal("")]);
 
 const BookScopeSchema = z.object({
+  attitude: CharacterAttitudeSchema.nullable(),
   description: z.string(),
+  displayName: z.string().nullable(),
   importance: BookCharacterImportanceSchema,
   personalImpression: z.string(),
+  portraitMediaId: z.string().nullable(),
   roles: z.array(
     z.object({
       customRole: z.string(),
@@ -37,6 +40,7 @@ const BookScopeSchema = z.object({
       roleType: BookCharacterRoleTypeSchema,
     }),
   ),
+  speciesOverride: z.string().nullable(),
   status: BookCharacterStatusSchema,
   statusCustomText: z.string(),
 });
@@ -73,10 +77,14 @@ export function buildCharacterEditSchema(messages: CharacterEditMessages) {
 
 export function emptyBookScopeValues(): CharacterEditValues["book"] {
   return {
+    attitude: null,
     description: "",
+    displayName: null,
     importance: BOOK_CHARACTER_UNSPECIFIED.importance,
     personalImpression: "",
+    portraitMediaId: null,
     roles: [],
+    speciesOverride: null,
     status: BOOK_CHARACTER_UNSPECIFIED.status,
     statusCustomText: "",
   };
@@ -85,19 +93,34 @@ export function emptyBookScopeValues(): CharacterEditValues["book"] {
 export function isScopeDirty({
   baseline,
   current,
+  maskedFields = [],
   scope,
 }: {
   baseline: CharacterEditValues;
   current: CharacterEditValues;
+  maskedFields?: readonly string[];
   scope: CharacterEditScope;
 }): boolean {
   if (scope === "global") {
     return !isSamePayload(toGlobalUpdate(baseline.global), toGlobalUpdate(current.global));
   }
-  return !isSamePayload(toBookUpdate(baseline.book), toBookUpdate(current.book));
+  return !isSamePayload(
+    toBookUpdate(baseline.book, maskedFields),
+    toBookUpdate(current.book, maskedFields),
+  );
 }
 
-export function toBookUpdate(values: CharacterEditValues["book"]): UpdateBookCharacter {
+export function toBookUpdate(
+  values: CharacterEditValues["book"],
+  maskedFields: readonly string[] = [],
+): UpdateBookCharacter {
+  const inherited = {
+    attitude: values.attitude,
+    displayName: values.displayName === null ? null : textOrNull(values.displayName),
+    portraitMediaId: values.portraitMediaId,
+    speciesOverride: values.speciesOverride === null ? null : textOrNull(values.speciesOverride),
+  };
+
   return {
     description: textOrNull(values.description),
     importance: values.importance,
@@ -111,6 +134,7 @@ export function toBookUpdate(values: CharacterEditValues["book"]): UpdateBookCha
     status: values.status,
     statusCustomText:
       values.status === BOOK_CHARACTER_STATUS.custom ? textOrNull(values.statusCustomText) : null,
+    ...withoutMasked(inherited, maskedFields),
   };
 }
 
@@ -128,14 +152,18 @@ export function toCharacterEditValues(
       appearance === undefined
         ? emptyBookScopeValues()
         : {
+            attitude: appearance.attitude,
             description: appearance.description ?? "",
+            displayName: appearance.displayName,
             importance: appearance.importance,
             personalImpression: appearance.personalImpression ?? "",
+            portraitMediaId: appearance.portrait?.id ?? null,
             roles: appearance.roles.map((role) => ({
               customRole: role.customRole ?? "",
               isSpoiler: role.isSpoiler,
               roleType: role.roleType,
             })),
+            speciesOverride: appearance.speciesOverride,
             status: appearance.status ?? BOOK_CHARACTER_UNSPECIFIED.status,
             statusCustomText: appearance.statusCustomText ?? "",
           },
@@ -169,7 +197,20 @@ function isSamePayload(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function maskedKeyOf(payloadKey: string): string {
+  return payloadKey === "portraitMediaId" ? "portrait" : payloadKey;
+}
+
 function textOrNull(value: string): null | string {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function withoutMasked<T extends Record<string, unknown>>(
+  values: T,
+  maskedFields: readonly string[],
+): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(values).filter(([key]) => !maskedFields.includes(maskedKeyOf(key))),
+  ) as Partial<T>;
 }

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
 import { CharacterEditPage } from "./character-edit-page";
@@ -30,6 +30,7 @@ const character = makeCharacterDetails({
       bookId: "book-1",
       description: "Опис у книзі",
       importance: "central",
+      speciesOverride: "Мутант",
       status: "active",
     }),
   ],
@@ -183,5 +184,62 @@ describe("CharacterEditPage without a book context", () => {
 
     expect(screen.queryByRole("heading", { name: "У цій книзі" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Про персонажа" })).toBeInTheDocument();
+  });
+});
+
+function inheritedField(label: string): HTMLElement {
+  const shell = screen.getByText(label).closest('[data-slot="inherited-field"]');
+  if (!(shell instanceof HTMLElement)) throw new Error(`no inherited field labelled ${label}`);
+  return shell;
+}
+
+describe("CharacterEditPage inheritance", () => {
+  it("shows the effective global value while the book value is inherited", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    const displayName = inheritedField("Ім’я в цій книзі");
+    expect(within(displayName).getByText("Ґеральт")).toBeInTheDocument();
+    expect(within(displayName).getByText("Використовується основне значення")).toBeInTheDocument();
+    expect(
+      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    ).toBeInTheDocument();
+  });
+
+  it("prefills the book value from the global one and sends it on save", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const displayName = inheritedField("Ім’я в цій книзі");
+
+    await userEvent.click(
+      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    );
+
+    const input = within(displayName).getByRole("textbox");
+    expect(input).toHaveValue("Ґеральт");
+    await userEvent.type(input, " із Рівії");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("displayName", "Ґеральт із Рівії");
+    expect(globalPatchBody()).toBeUndefined();
+  });
+
+  it("writes no book value when the field is reset to the global one", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const species = inheritedField("Вид у цій книзі");
+
+    expect(within(species).getByText("Лише для цієї книги")).toBeInTheDocument();
+    await userEvent.click(
+      within(species).getByRole("button", { name: "Використовувати основне значення" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("speciesOverride", null);
   });
 });
