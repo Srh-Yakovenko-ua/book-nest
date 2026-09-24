@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 type TagInputProps = Omit<React.ComponentProps<"input">, "defaultValue" | "onChange" | "value"> & {
   atMax?: boolean;
+  chipStyle?: (tag: string) => React.CSSProperties;
   inputClassName?: string;
   onInputChange?: (value: string) => void;
   onValueChange: (value: string[]) => void;
@@ -16,6 +17,7 @@ type TagInputProps = Omit<React.ComponentProps<"input">, "defaultValue" | "onCha
 
 function TagInput({
   atMax,
+  chipStyle,
   className,
   disabled,
   id,
@@ -83,16 +85,17 @@ function TagInput({
       >
         {value.map((tag) => (
           <span
-            className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-accent-border bg-accent py-0 pr-1.5 pl-2.5 text-[0.8125rem] font-medium whitespace-nowrap text-accent-foreground"
+            className="inline-flex h-7 max-w-full items-center gap-1 rounded-full bg-accent py-0 pr-1.5 pl-2.5 text-[0.8125rem] font-semibold whitespace-nowrap text-accent-foreground"
             data-slot="tag-input-chip"
             key={tag}
+            style={chipStyle?.(tag)}
           >
-            <UiIcon className="shrink-0 text-accent-foreground/70" name="tag" size={13} />
+            <UiIcon aria-hidden className="shrink-0 opacity-70" name="hash" size={12} />
             <span className="overflow-hidden text-ellipsis">{tag}</span>
             {disabled ? null : (
               <button
                 aria-label={`Видалити тег «${tag}»`}
-                className="relative grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-accent-foreground opacity-65 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-accent-foreground/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="relative grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-current opacity-65 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-current/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
                 data-slot="tag-input-remove"
                 onClick={() => removeTag(tag)}
                 type="button"

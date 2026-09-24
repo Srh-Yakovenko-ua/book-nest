@@ -10,6 +10,8 @@ import type { LibraryQueryState } from "./library-query";
 
 import { countAdvancedFilterChips, useLibraryFilterChips } from "./use-library-filter-chips";
 
+const VAMPIRES_TAG_ID = "0b6f7b1e-4a5f-4a2b-9a51-1c1f0b8a9e01";
+
 function makeState(overrides: Partial<LibraryQueryState> = {}): LibraryQueryState {
   return {
     ageCategory: [],
@@ -46,6 +48,8 @@ function renderChips(state: LibraryQueryState) {
       useLibraryFilterChips({
         genreName: (key) => key,
         resolveEntityName: () => undefined,
+        resolveTag: (id) =>
+          id === VAMPIRES_TAG_ID ? { color: "lavender", id, name: "вампіри" } : undefined,
         setState,
         state,
       }),
@@ -88,5 +92,19 @@ describe("useLibraryFilterChips publisherPresence", () => {
 
     expect(chips).toHaveLength(3);
     expect(countAdvancedFilterChips(chips)).toBe(1);
+  });
+});
+
+describe("useLibraryFilterChips tags", () => {
+  it("names a tag chip and paints it in the tag color", () => {
+    const { chips } = renderChips(makeState({ tag: [VAMPIRES_TAG_ID] }));
+
+    expect(chips).toEqual([expect.objectContaining({ label: "вампіри", tagColor: "lavender" })]);
+  });
+
+  it("paints a tag it cannot resolve as parchment", () => {
+    const { chips } = renderChips(makeState({ tag: ["missing-tag"] }));
+
+    expect(chips).toEqual([expect.objectContaining({ tagColor: "parchment" })]);
   });
 });

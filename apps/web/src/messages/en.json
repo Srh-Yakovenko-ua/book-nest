@@ -7555,11 +7555,11 @@
       },
       "unread": {
         "title": "Still unread",
-        "count": "{count, plural, one {# book left} other {# books left}}"
+        "count": "{count, plural, one {# book} other {# books}}"
       },
       "bestRated": {
         "title": "Best rated",
-        "ratedCount": "· {count, plural, one {# rating} other {# ratings}}"
+        "ratedCount": "{count, plural, one {# rating} other {# ratings}}"
       }
     },
     "states": {

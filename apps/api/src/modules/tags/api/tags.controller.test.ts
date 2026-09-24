@@ -373,6 +373,48 @@ describe("GET /api/tags", () => {
     expect(res.body.items).toHaveLength(0);
   });
 
+  it("returns only the requested tags with their colors when ids are given", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const vampires = await prisma.tag.create({
+      data: { color: "lavender", name: "вампіри", normalizedName: "вампіри", userId: owner.userId },
+    });
+    const witches = await prisma.tag.create({
+      data: { color: "sky", name: "відьми", normalizedName: "відьми", userId: owner.userId },
+    });
+    await prisma.tag.create({
+      data: { name: "dark academia", normalizedName: "dark academia", userId: owner.userId },
+    });
+    const strangerTag = await prisma.tag.create({
+      data: { name: "secret tag", normalizedName: "secret tag", userId: stranger.userId },
+    });
+
+    const res = await request(app.getHttpServer())
+      .get("/api/tags")
+      .query({ ids: [vampires.id, witches.id, strangerTag.id] })
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(2);
+    expect(res.body.items).toEqual([
+      { color: "lavender", id: vampires.id, name: "вампіри" },
+      { color: "sky", id: witches.id, name: "відьми" },
+    ]);
+  });
+
+  it("rejects an id that is not a UUID", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/tags?ids=not-a-uuid")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(400);
+  });
+
   it("paginates results across pages", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await prisma.tag.createMany({

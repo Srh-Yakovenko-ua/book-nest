@@ -7555,11 +7555,11 @@
       },
       "unread": {
         "title": "Ще не прочитано",
-        "count": "{count, plural, one {# книга залишилась} few {# книги залишилось} many {# книг залишилось} other {# книги залишилось}}"
+        "count": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}"
       },
       "bestRated": {
         "title": "Найкраще оцінено",
-        "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}"
+        "ratedCount": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінки}}"
       }
     },
     "states": {

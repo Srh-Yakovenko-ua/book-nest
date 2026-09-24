@@ -1,6 +1,6 @@
 "use client";
 
-import { TAG_NAME_ALLOWED_CHARS, TAG_NAME_MAX, TAG_NAME_MIN } from "@app/shared";
+import { TAG_NAME_ALLOWED_CHARS, TAG_NAME_MAX, TAG_NAME_MIN, type TagColor } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { type Control, Controller, type FieldErrors } from "react-hook-form";
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { TagInput } from "@/components/ui/tag-input";
+import { TagChip } from "@/features/tags/components/tag-chip";
+import { TAG_COLOR_STYLES } from "@/features/tags/model/tag-color";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
@@ -27,9 +29,10 @@ const SEARCH_DEBOUNCE_MS = 250;
 type TagsFieldProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
+  tagColorOf: (name: string) => TagColor;
 };
 
-export function TagsField({ control, errors }: TagsFieldProps) {
+export function TagsField({ control, errors, tagColorOf }: TagsFieldProps) {
   const t = useTranslations("books");
   const listId = useId();
   const [draft, setDraft] = useState("");
@@ -91,7 +94,12 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                     aria-expanded={open && !atMax}
                     aria-invalid={tagsErrorMessage !== undefined}
                     atMax={atMax}
+                    chipStyle={(tag) => {
+                      const colors = TAG_COLOR_STYLES[tagColorOf(tag)];
+                      return { backgroundColor: colors.bg, color: colors.text };
+                    }}
                     id="book-tags"
+                    inputClassName={atMax ? "basis-full" : undefined}
                     onFocus={() => setOpen(true)}
                     onInputChange={setDraft}
                     onValueChange={setTags}
@@ -142,8 +150,7 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                             onSelect={() => addTag(tag.name)}
                             value={tag.id}
                           >
-                            <UiIcon className="text-muted-foreground" name="tag" size={16} />
-                            <span className="min-w-0 flex-1 truncate">{tag.name}</span>
+                            <TagChip className="py-0.5 text-xs" color={tag.color} name={tag.name} />
                           </CommandItem>
                         ))}
                       </CommandGroup>

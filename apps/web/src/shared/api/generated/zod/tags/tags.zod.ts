@@ -46,6 +46,8 @@ export const tagsControllerSearchQueryPageSizeMax = 100;
 
 export const tagsControllerSearchQuerySearchMax = 100;
 
+export const tagsControllerSearchQueryIdsMax = 100;
+
 export const TagsControllerSearchQueryParams = zod.object({
   pageNumber: zod
     .int()
@@ -58,6 +60,13 @@ export const TagsControllerSearchQueryParams = zod.object({
     .max(tagsControllerSearchQueryPageSizeMax)
     .default(tagsControllerSearchQueryPageSizeDefault),
   search: zod.string().max(tagsControllerSearchQuerySearchMax).optional(),
+  ids: zod
+    .array(zod.string())
+    .max(tagsControllerSearchQueryIdsMax)
+    .optional()
+    .describe(
+      "Only these tags, so a filter restored from a URL can show each tag with its name and color",
+    ),
 });
 
 export const TagsControllerSearchResponse = zod.unknown();

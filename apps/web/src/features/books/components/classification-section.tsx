@@ -1,5 +1,7 @@
 "use client";
 
+import type { TagColor } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 import { type Control, Controller, type FieldErrors } from "react-hook-form";
 
@@ -33,6 +35,7 @@ type ClassificationSectionProps = {
   genresHintSeriesName?: null | string;
   genresSuggestion?: GenresSuggestion | null;
   onGenresUserEdit?: () => void;
+  tagColorOf: (name: string) => TagColor;
 };
 
 type GenresSuggestion = {
@@ -47,6 +50,7 @@ export function ClassificationSection({
   genresHintSeriesName,
   genresSuggestion,
   onGenresUserEdit,
+  tagColorOf,
 }: ClassificationSectionProps) {
   const t = useTranslations("books");
   const genres = useGenres();
@@ -119,7 +123,7 @@ export function ClassificationSection({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-tags">{t("classification.tags")}</Label>
-        <TagsField control={control} errors={errors} />
+        <TagsField control={control} errors={errors} tagColorOf={tagColorOf} />
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row">
