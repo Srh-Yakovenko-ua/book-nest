@@ -398,8 +398,12 @@ export type CharacterDeletionResult = z.infer<typeof CharacterDeletionResultSche
 export const CharacterDeletionPreviewSchema = z.object({
   aliasCount: z.number().int(),
   appearanceCount: z.number().int(),
+  formCount: z.number().int(),
+  groupCount: z.number().int(),
+  relationshipCount: z.number().int(),
   roleCount: z.number().int(),
   tagCount: z.number().int(),
+  theoryCount: z.number().int(),
 });
 
 export type CharacterDeletionPreview = z.infer<typeof CharacterDeletionPreviewSchema>;

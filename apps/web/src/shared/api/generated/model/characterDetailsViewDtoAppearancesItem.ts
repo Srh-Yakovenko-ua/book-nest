@@ -16,10 +16,10 @@ import type { CharacterDetailsViewDtoAppearancesItemStatus } from "./characterDe
 export type CharacterDetailsViewDtoAppearancesItem = {
   /** @nullable */
   appearanceNotes: string | null;
-  book: CharacterDetailsViewDtoAppearancesItemBook;
   appearanceNotesIsSpoiler: boolean;
   /** @nullable */
   attitude: CharacterDetailsViewDtoAppearancesItemAttitude;
+  book: CharacterDetailsViewDtoAppearancesItemBook;
   bookId: string;
   characterId: string;
   createdAt: string;

@@ -7502,9 +7502,15 @@
       "confirm": "Delete entirely",
       "deleting": "Deleting…",
       "description": "The character and all its data will be deleted. You can undo this action for a short time.",
+      "forms": "Forms and incarnations: {count}",
+      "groups": "Group memberships: {count}",
+      "noRelatedData": "There is no related data.",
       "previewIntro": "Will be deleted:",
+      "previewUnavailable": "Could not work out what exactly will be deleted.",
+      "relationships": "Links to other characters: {count}",
       "roles": "Roles: {count}",
       "tags": "Tags: {count}",
+      "theories": "Theories: {count}",
       "title": "Delete character entirely"
     },
     "details": {

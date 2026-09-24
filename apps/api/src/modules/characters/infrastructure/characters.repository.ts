@@ -139,8 +139,12 @@ export type BookContextRow = {
 export type CharacterDeletionImpact = {
   aliasCount: number;
   appearanceCount: number;
+  formCount: number;
+  groupCount: number;
+  relationshipCount: number;
   roleCount: number;
   tagCount: number;
+  theoryCount: number;
 };
 
 export type CharacterDetailsRow = Prisma.CharacterGetPayload<{ include: typeof detailsInclude }>;
@@ -395,13 +399,37 @@ export class CharactersRepository {
     { characterId }: { characterId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<CharacterDeletionImpact> {
-    const [appearanceCount, roleCount, aliasCount, tagCount] = await Promise.all([
+    const [
+      appearanceCount,
+      roleCount,
+      aliasCount,
+      tagCount,
+      formCount,
+      groupCount,
+      relationshipCount,
+      theoryCount,
+    ] = await Promise.all([
       client.bookCharacter.count({ where: { characterId } }),
       client.bookCharacterRole.count({ where: { bookCharacter: { characterId } } }),
       client.characterAlias.count({ where: { characterId } }),
       client.characterTag.count({ where: { characterId } }),
+      client.characterForm.count({ where: { characterId } }),
+      client.characterGroupMembership.count({ where: { characterId } }),
+      client.characterRelationship.count({
+        where: { OR: [{ sourceCharacterId: characterId }, { targetCharacterId: characterId }] },
+      }),
+      client.characterTheory.count({ where: { characterId } }),
     ]);
-    return { aliasCount, appearanceCount, roleCount, tagCount };
+    return {
+      aliasCount,
+      appearanceCount,
+      formCount,
+      groupCount,
+      relationshipCount,
+      roleCount,
+      tagCount,
+      theoryCount,
+    };
   }
 
   countGlobalSummaries(filter: GlobalCharacterFilter): Promise<number> {

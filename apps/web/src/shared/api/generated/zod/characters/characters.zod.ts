@@ -2088,6 +2088,19 @@ export const CharactersControllerCreateResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -2120,19 +2133,6 @@ export const CharactersControllerCreateResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -2724,6 +2724,19 @@ export const CharactersControllerGetByIdResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -2756,19 +2769,6 @@ export const CharactersControllerGetByIdResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -3100,6 +3100,19 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -3132,19 +3145,6 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -3380,11 +3380,23 @@ export const charactersControllerDeletionPreviewResponseAliasCountMax = 90071992
 export const charactersControllerDeletionPreviewResponseAppearanceCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseAppearanceCountMax = 9007199254740991;
 
+export const charactersControllerDeletionPreviewResponseFormCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseFormCountMax = 9007199254740991;
+
+export const charactersControllerDeletionPreviewResponseGroupCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseGroupCountMax = 9007199254740991;
+
+export const charactersControllerDeletionPreviewResponseRelationshipCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseRelationshipCountMax = 9007199254740991;
+
 export const charactersControllerDeletionPreviewResponseRoleCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseRoleCountMax = 9007199254740991;
 
 export const charactersControllerDeletionPreviewResponseTagCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseTagCountMax = 9007199254740991;
+
+export const charactersControllerDeletionPreviewResponseTheoryCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseTheoryCountMax = 9007199254740991;
 
 export const CharactersControllerDeletionPreviewResponse = zod.object({
   aliasCount: zod
@@ -3395,6 +3407,18 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(charactersControllerDeletionPreviewResponseAppearanceCountMin)
     .max(charactersControllerDeletionPreviewResponseAppearanceCountMax),
+  formCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseFormCountMin)
+    .max(charactersControllerDeletionPreviewResponseFormCountMax),
+  groupCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseGroupCountMin)
+    .max(charactersControllerDeletionPreviewResponseGroupCountMax),
+  relationshipCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseRelationshipCountMin)
+    .max(charactersControllerDeletionPreviewResponseRelationshipCountMax),
   roleCount: zod
     .int()
     .min(charactersControllerDeletionPreviewResponseRoleCountMin)
@@ -3403,6 +3427,10 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(charactersControllerDeletionPreviewResponseTagCountMin)
     .max(charactersControllerDeletionPreviewResponseTagCountMax),
+  theoryCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseTheoryCountMin)
+    .max(charactersControllerDeletionPreviewResponseTheoryCountMax),
 });
 
 /**
@@ -3462,6 +3490,19 @@ export const CharactersControllerRestoreResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -3494,19 +3535,6 @@ export const CharactersControllerRestoreResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -4718,6 +4746,19 @@ export const BookCharactersControllerCreateResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -4750,19 +4791,6 @@ export const BookCharactersControllerCreateResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -5012,6 +5040,19 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -5044,19 +5085,6 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -5502,6 +5530,19 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
   appearances: zod.array(
     zod.object({
       appearanceNotes: zod.string().nullable(),
+      appearanceNotesIsSpoiler: zod.boolean(),
+      attitude: zod
+        .union([
+          zod.literal("favorite"),
+          zod.literal("like"),
+          zod.literal("neutral"),
+          zod.literal("distrust"),
+          zod.literal("dislike"),
+          zod.literal("hate"),
+          zod.literal("unsure"),
+          zod.literal(null),
+        ])
+        .nullable(),
       book: zod.object({
         cover: zod
           .object({
@@ -5538,19 +5579,6 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
           .nullable(),
         title: zod.string(),
       }),
-      appearanceNotesIsSpoiler: zod.boolean(),
-      attitude: zod
-        .union([
-          zod.literal("favorite"),
-          zod.literal("like"),
-          zod.literal("neutral"),
-          zod.literal("distrust"),
-          zod.literal("dislike"),
-          zod.literal("hate"),
-          zod.literal("unsure"),
-          zod.literal(null),
-        ])
-        .nullable(),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),

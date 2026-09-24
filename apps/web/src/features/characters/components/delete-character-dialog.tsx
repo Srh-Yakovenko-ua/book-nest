@@ -1,5 +1,7 @@
 "use client";
 
+import type { CharacterDeletionPreview } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
@@ -17,6 +19,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useDeletionPreview } from "../api/use-deletion-preview";
+
+const DELETION_IMPACT_ROWS = [
+  { key: "appearanceCount", label: "appearances" },
+  { key: "roleCount", label: "roles" },
+  { key: "aliasCount", label: "aliases" },
+  { key: "tagCount", label: "tags" },
+  { key: "formCount", label: "forms" },
+  { key: "groupCount", label: "groups" },
+  { key: "relationshipCount", label: "relationships" },
+  { key: "theoryCount", label: "theories" },
+] as const satisfies readonly { key: keyof CharacterDeletionPreview; label: string }[];
 
 type DeleteCharacterDialogProps = {
   characterId: null | string;
@@ -51,16 +64,9 @@ export function DeleteCharacterDialog({
           <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {t("previewIntro")}
           </span>
-          {preview.isPending ? (
-            <Skeleton className="h-4 w-40" />
-          ) : preview.data === undefined ? null : (
-            <ul className="flex flex-col gap-1 text-foreground">
-              <li>{t("appearances", { count: preview.data.appearanceCount })}</li>
-              <li>{t("roles", { count: preview.data.roleCount })}</li>
-              <li>{t("aliases", { count: preview.data.aliasCount })}</li>
-              <li>{t("tags", { count: preview.data.tagCount })}</li>
-            </ul>
-          )}
+          {preview.isPending ? <Skeleton className="h-4 w-40" /> : null}
+          {preview.isError ? <p className="text-foreground">{t("previewUnavailable")}</p> : null}
+          {preview.data === undefined ? null : <DeletionImpactList preview={preview.data} />}
         </div>
 
         <AlertDialogFooter>
@@ -78,5 +84,21 @@ export function DeleteCharacterDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+export function DeletionImpactList({ preview }: { preview: CharacterDeletionPreview }) {
+  const t = useTranslations("characters.delete");
+
+  const rows = DELETION_IMPACT_ROWS.filter((row) => preview[row.key] > 0);
+
+  if (rows.length === 0) return <p className="text-foreground">{t("noRelatedData")}</p>;
+
+  return (
+    <ul className="flex flex-col gap-1 text-foreground">
+      {rows.map((row) => (
+        <li key={row.key}>{t(row.label, { count: preview[row.key] })}</li>
+      ))}
+    </ul>
   );
 }

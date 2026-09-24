@@ -162,8 +162,12 @@ export function makeDeletionPreview(
   return {
     aliasCount: 2,
     appearanceCount: 3,
+    formCount: 0,
+    groupCount: 0,
+    relationshipCount: 0,
     roleCount: 1,
     tagCount: 0,
+    theoryCount: 0,
     ...overrides,
   };
 }

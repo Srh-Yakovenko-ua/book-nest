@@ -21,10 +21,30 @@ export interface CharacterDeletionPreviewDto {
    * @minimum -9007199254740991
    * @maximum 9007199254740991
    */
+  formCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  groupCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  relationshipCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
   roleCount: number;
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991
    */
   tagCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  theoryCount: number;
 }
