@@ -27,8 +27,10 @@ import type {
   DeliveryReadControllerHistoryFacetsParams,
   DeliveryReadControllerHistoryListParams,
   DeliveryReadControllerInTransitListParams,
+  DeliveryReadControllerInTransitQuickCountsParams,
   InTransitFacetsViewDto,
   InTransitImpactViewDto,
+  InTransitQuickCountsViewDto,
   InTransitSummaryViewDto,
   PaginatedBookOrderItemRowsDto,
   PaginatedOrderHistoryGroupsDto,
@@ -561,6 +563,220 @@ export function useDeliveryReadControllerInTransitFacets<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getDeliveryReadControllerInTransitFacetsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type deliveryReadControllerInTransitQuickCountsResponse200 = {
+  data: InTransitQuickCountsViewDto;
+  status: 200;
+};
+
+export type deliveryReadControllerInTransitQuickCountsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type deliveryReadControllerInTransitQuickCountsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type deliveryReadControllerInTransitQuickCountsResponseSuccess =
+  deliveryReadControllerInTransitQuickCountsResponse200 & {
+    headers: Headers;
+  };
+export type deliveryReadControllerInTransitQuickCountsResponseError = (
+  | deliveryReadControllerInTransitQuickCountsResponse400
+  | deliveryReadControllerInTransitQuickCountsResponse401
+) & {
+  headers: Headers;
+};
+
+export type deliveryReadControllerInTransitQuickCountsResponse =
+  | deliveryReadControllerInTransitQuickCountsResponseSuccess
+  | deliveryReadControllerInTransitQuickCountsResponseError;
+
+export const getDeliveryReadControllerInTransitQuickCountsUrl = (
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["currency", "service", "store", "structure"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/delivery/books/in-transit/quick-counts?${stringifiedParams}`
+    : `/api/delivery/books/in-transit/quick-counts`;
+};
+
+/**
+ * @summary Count the books on their way per in-transit quick filter
+ */
+export const deliveryReadControllerInTransitQuickCounts = async (
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<deliveryReadControllerInTransitQuickCountsResponse> => {
+  return customInstance<deliveryReadControllerInTransitQuickCountsResponse>(
+    getDeliveryReadControllerInTransitQuickCountsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDeliveryReadControllerInTransitQuickCountsQueryKey = (
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+) => {
+  return [`/api/delivery/books/in-transit/quick-counts`, ...(params ? [params] : [])] as const;
+};
+
+export const getDeliveryReadControllerInTransitQuickCountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+  TError = void,
+>(
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDeliveryReadControllerInTransitQuickCountsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>
+  > = ({ signal }) =>
+    deliveryReadControllerInTransitQuickCounts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type DeliveryReadControllerInTransitQuickCountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>
+>;
+export type DeliveryReadControllerInTransitQuickCountsQueryError = void;
+
+export function useDeliveryReadControllerInTransitQuickCounts<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+  TError = void,
+>(
+  params: undefined | DeliveryReadControllerInTransitQuickCountsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitQuickCounts<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+  TError = void,
+>(
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useDeliveryReadControllerInTransitQuickCounts<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+  TError = void,
+>(
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the books on their way per in-transit quick filter
+ */
+
+export function useDeliveryReadControllerInTransitQuickCounts<
+  TData = Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+  TError = void,
+>(
+  params?: DeliveryReadControllerInTransitQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof deliveryReadControllerInTransitQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getDeliveryReadControllerInTransitQuickCountsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
