@@ -4,12 +4,13 @@ import type { NoteMemoryView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import { assertNever } from "@/lib/assert-never";
+
 import type { OpenNoteFullView } from "../hooks/use-note-full-view";
 import type { RecordNoteImpression } from "../hooks/use-note-rediscovery-impression";
 import type { PostFinishReview } from "../hooks/use-post-finish-review";
 import type { NotesOverview } from "../model/notes-overview";
 
-import { assertNever } from "../model/assert-never";
 import { bookPreviewFromMemorySource } from "../model/note-entity";
 import { BookNoteEntityHeader } from "./book-note-entity-header";
 import { NoteMemoryCard } from "./note-memory-card";

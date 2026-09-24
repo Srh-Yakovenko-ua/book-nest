@@ -1,6 +1,7 @@
 import { BookNotesOverviewViewSchema, SeriesNotesOverviewViewSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
+import { assertNever } from "@/lib/assert-never";
 import {
   notesControllerBookOverview,
   notesControllerSeriesOverview,
@@ -8,7 +9,6 @@ import {
 
 import type { NotesOverview } from "../model/notes-overview";
 
-import { assertNever } from "../model/assert-never";
 import { notesKeys } from "./notes-keys";
 
 type NotesOverviewParams = { scope: "books" } | { scope: "series"; series: string[] };

@@ -15,6 +15,7 @@ import {
   OwnershipStatusSchema,
   ReadingStatusSchema,
   SeriesStatusSchema,
+  toTagView,
 } from "@app/shared";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
@@ -190,7 +191,7 @@ function toSeriesBookView({
     rating: book.readingProgress?.rating ?? null,
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
     startedAt: toNullableIsoDate(book.readingProgress?.startedAt ?? null),
-    tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
+    tags: book.tags.map((bookTag) => toTagView(bookTag.tag)),
     title: book.title,
   };
 }

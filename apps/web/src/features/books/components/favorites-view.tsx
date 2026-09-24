@@ -27,7 +27,7 @@ import {
 import { useLibraryBooks } from "../api/use-books";
 import { useFavoritesSummary } from "../api/use-favorites-summary";
 import { useGenres } from "../api/use-genres";
-import { useTagsSearch } from "../api/use-tags-search";
+import { useSelectedTags } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
 import {
@@ -35,7 +35,7 @@ import {
   quickFilterCounts,
   quickFilterPatch,
 } from "../model/library-quick-filters";
-import { useLibraryFilterChips } from "../model/use-library-filter-chips";
+import { countAdvancedFilterChips, useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
 import { FavoritesOverviewPanel } from "./favorites-overview-panel";
@@ -73,7 +73,7 @@ export function FavoritesView() {
   } = useLibraryBooks(library.listParams);
   const summary = useFavoritesSummary();
   const genres = useGenres();
-  const tags = useTagsSearch("");
+  const selectedTags = useSelectedTags(library.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
   const resultsRegionRef = useRef<HTMLDivElement>(null);
 
@@ -88,23 +88,23 @@ export function FavoritesView() {
   const deleteBooks = useBulkDeleteBooks();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
 
   function rememberEntity(id: string, name: string) {
     setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
   }
 
   function resolveEntityName(id: string): string | undefined {
-    return entityLabels[id] ?? tagNameById.get(id);
+    return entityLabels[id] ?? selectedTags.get(id)?.name;
   }
 
   const filterChips = useLibraryFilterChips({
     genreName: (key) => genreNameByKey.get(key) ?? key,
     resolveEntityName,
+    resolveTag: (id) => selectedTags.get(id),
     setState: library.setState,
     state: library.state,
   });
-  const advancedFiltersCount = filterChips.filter((chip) => chip.key !== "q").length;
+  const advancedFiltersCount = countAdvancedFilterChips(filterChips);
 
   const pages = data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;

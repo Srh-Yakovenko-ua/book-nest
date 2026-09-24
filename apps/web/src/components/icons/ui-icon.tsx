@@ -48,6 +48,7 @@ export type UiIconName =
   | "eye"
   | "eye-off"
   | "file"
+  | "file-text"
   | "file-warning"
   | "filter"
   | "flame"
@@ -91,6 +92,7 @@ export type UiIconName =
   | "plus"
   | "quote"
   | "refresh"
+  | "repeat-2"
   | "ruler"
   | "search"
   | "sessions"
@@ -118,6 +120,7 @@ export type UiIconName =
   | "upload"
   | "user"
   | "user-round"
+  | "users-round"
   | "wallet"
   | "x"
   | "x-circle";

@@ -314,33 +314,15 @@ export const TagSuggestionAddsExisting: Story = {
   },
 };
 
-export const DeleteSavedTagFromSuggestions: Story = {
+export const SavedTagSuggestionHasNoDeleteControl: Story = {
   play: async ({ canvas }) => {
-    let deletedTagPath: null | string = null;
-    mockFetch(
-      taxonomyHandler((path, init) => {
-        if (path.includes("/api/tags/") && init?.method === "DELETE") {
-          deletedTagPath = path;
-          return jsonResponse(204, null);
-        }
-        return emptyAuthorSearch;
-      }),
-    );
+    mockFetch(taxonomyHandler());
     const surface = within(document.body);
 
     await userEvent.click(canvas.getByLabelText("Теги"));
-    const deleteControl = await surface.findByRole("button", {
-      name: "Видалити збережений тег «улюблене»",
-    });
-    await userEvent.click(deleteControl);
+    const suggestion = await surface.findByRole("option", { name: /улюблене/ });
 
-    const dialog = within(await surface.findByRole("alertdialog"));
-    await expect(dialog.getByText("Видалити тег?")).toBeVisible();
-
-    await userEvent.click(dialog.getByRole("button", { name: "Видалити тег" }));
-
-    await waitFor(() => expect(deletedTagPath).not.toBeNull());
-    await expect(deletedTagPath).toContain("/api/tags/tag-1");
+    await expect(within(suggestion).queryByRole("button")).toBeNull();
   },
 };
 

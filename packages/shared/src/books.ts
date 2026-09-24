@@ -909,6 +909,7 @@ export const LibraryBooksQuerySchema = z
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
     ratingMax: ratingBound().optional(),
     ratingMin: ratingBound().optional(),
+    searchPublisher: z.stringbool().default(true),
     sort: LibrarySortSchema.default("created_desc"),
     status: queryStringArray(ReadingStatusSchema),
     tag: queryStringArray(z.uuid()),
@@ -957,6 +958,7 @@ export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
 
 export const LibraryOverviewQuerySchema = z.object({
   owner: queryStringArray(OwnershipStatusSchema),
+  publisher: z.uuid().optional(),
 });
 
 export type LibraryOverviewQuery = z.infer<typeof LibraryOverviewQuerySchema>;
@@ -1219,10 +1221,8 @@ export const LibraryOverviewViewSchema = z.object({
     }),
   ),
   topTags: z.array(
-    z.object({
+    TagViewSchema.extend({
       count: z.number(),
-      id: z.string(),
-      name: z.string(),
     }),
   ),
 });
@@ -1338,6 +1338,7 @@ export const BookFacetScopeSchema = z.enum([
 export type BookFacetScope = z.infer<typeof BookFacetScopeSchema>;
 
 export const BookFacetsQuerySchema = z.object({
+  publisher: z.uuid().optional(),
   q: z.string().trim().min(1).max(LIBRARY_SEARCH_MAX).optional(),
   scope: BookFacetScopeSchema,
 });

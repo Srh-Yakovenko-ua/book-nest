@@ -2,6 +2,7 @@ import type {
   CatalogLocale,
   LibraryPublisherDetail,
   LibraryPublisherListItem,
+  LibraryPublisherOverview,
   LibraryPublishersQuery,
   LibraryPublishersSummary,
   Nullable,
@@ -21,13 +22,15 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import { MediaService } from "../../media/index.js";
 import {
   toLibraryPublisherDetail,
-  toLibraryPublisherDetailFromModel,
   toLibraryPublisherListItem,
   toLibraryPublishersSummary,
 } from "../domain/publisher-library.mapper.js";
+import { toLibraryPublisherOverview } from "../domain/publisher-overview.mapper.js";
 import { toPublisherView } from "../domain/publisher.mapper.js";
+import { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
 import { PublishersRepository } from "../infrastructure/publishers.repository.js";
 
 const CUSTOM_PUBLISHER_LOCALE = "uk";
@@ -40,6 +43,11 @@ type LibraryDetailInput = {
 
 type LibraryListInput = {
   query: LibraryPublishersQuery;
+  userId: string;
+};
+
+type LibrarySummaryInput = {
+  locale: CatalogLocale;
   userId: string;
 };
 
@@ -70,6 +78,8 @@ export class PublishersService {
   constructor(
     private readonly publishersRepository: PublishersRepository,
     private readonly transactionRunner: TransactionRunner,
+    private readonly publisherOverviewRepository: PublisherOverviewRepository,
+    private readonly mediaService: MediaService,
   ) {}
 
   async deleteCustom({ publisherId, userId }: OwnedPublisherInput): Promise<void> {
@@ -118,12 +128,15 @@ export class PublishersService {
     query,
     userId,
   }: LibraryListInput): Promise<Paginator<LibraryPublisherListItem>> {
-    const { geography, locale, order, pageNumber, pageSize, search, sort, source } = query;
+    const { filter, geography, locale, order, pageNumber, pageSize, search, sort, source } = query;
     const filters = { geography, search, source, userId };
     const having = {
+      filter,
       hasBooksToBuy: query.hasBooksToBuy === true,
+      hasQueue: query.hasQueue === true,
       hasRatedBooks: query.hasRatedBooks === true,
       hasSeries: query.hasSeries === true,
+      hasWantToRead: query.hasWantToRead === true,
     };
 
     const [rows, totalCount] = await Promise.all([
@@ -146,12 +159,36 @@ export class PublishersService {
     });
   }
 
-  async librarySummary({ userId }: { userId: string }): Promise<LibraryPublishersSummary> {
-    const [counts, priceTotals] = await Promise.all([
+  async libraryOverview({
+    publisherId,
+    userId,
+  }: OwnedPublisherInput): Promise<LibraryPublisherOverview> {
+    const publisher = await this.publishersRepository.findVisibleById(userId, publisherId);
+    if (publisher === null) {
+      throw new NotFoundError("Publisher not found");
+    }
+
+    const scope = { publisherId, userId };
+    const [latestBook, activeReading, wishlist, series] = await Promise.all([
+      this.publisherOverviewRepository.latestBook(scope),
+      this.publisherOverviewRepository.activeReading(scope),
+      this.publisherOverviewRepository.wishlist(scope),
+      this.publisherOverviewRepository.series(scope),
+    ]);
+
+    return toLibraryPublisherOverview({
+      buildCover: (asset) => this.mediaService.buildViewOrNull(asset),
+      rows: { activeReading, latestBook, series, wishlist },
+    });
+  }
+
+  async librarySummary({ locale, userId }: LibrarySummaryInput): Promise<LibraryPublishersSummary> {
+    const [counts, insights, priceTotals] = await Promise.all([
       this.publishersRepository.summaryCounts(userId),
+      this.publishersRepository.summaryInsights({ locale, userId }),
       this.publishersRepository.summaryPriceTotals(userId),
     ]);
-    return toLibraryPublishersSummary({ counts, priceTotals });
+    return toLibraryPublishersSummary({ counts, insights, priceTotals });
   }
 
   async recent({ limit, locale, userId }: RecentPublishersInput): Promise<PublisherView[]> {
@@ -264,16 +301,9 @@ export class PublishersService {
       }
     }
 
-    const updated = await this.runCustomUpdate({ input, publisherId, rename });
+    await this.runCustomUpdate({ input, publisherId, rename });
 
-    const stats = await this.publishersRepository.aggregateLibraryDetail({
-      locale: CUSTOM_PUBLISHER_LOCALE,
-      publisherId,
-      userId,
-    });
-    return stats === null
-      ? toLibraryPublisherDetailFromModel(updated)
-      : toLibraryPublisherDetail(stats);
+    return this.libraryDetail({ locale: CUSTOM_PUBLISHER_LOCALE, publisherId, userId });
   }
 
   private async runCustomUpdate({

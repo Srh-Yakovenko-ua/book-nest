@@ -10,6 +10,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type {
@@ -19,7 +20,6 @@ import type {
 } from "../model/notes-archive-list-state";
 import type { NotesViewMode } from "../model/notes-archive-query";
 
-import { assertNever } from "../model/assert-never";
 import { NoteArchiveCard } from "./note-archive-card";
 import { NoteCardSkeleton } from "./note-card-skeleton";
 import { NotesErrorState } from "./notes-error-state";

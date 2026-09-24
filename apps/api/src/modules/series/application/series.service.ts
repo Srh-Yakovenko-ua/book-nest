@@ -106,7 +106,7 @@ export class SeriesService {
       throw new ConflictError(SERIES_NAME_TAKEN_MESSAGE);
     }
 
-    await this.genresService.assertGenresSelectable(userId, input.genres);
+    await this.genresService.assertGenresSelectable(input.genres);
 
     const authorIds = await this.resolveSeriesAuthorIds({
       fallbackAuthorIds: undefined,
@@ -254,7 +254,7 @@ export class SeriesService {
       return { id: existing.id, totalBooks: existing.totalBooks };
     }
 
-    await this.genresService.assertGenresSelectable(userId, newSeries.genres);
+    await this.genresService.assertGenresSelectable(newSeries.genres);
 
     const authorIds = await this.resolveSeriesAuthorIds({
       fallbackAuthorIds,
@@ -333,7 +333,7 @@ export class SeriesService {
       fields.description = input.description;
     }
     if (input.genres !== undefined) {
-      await this.genresService.assertGenresSelectable(userId, input.genres);
+      await this.genresService.assertGenresSelectable(input.genres);
       fields.genres = input.genres;
     }
 

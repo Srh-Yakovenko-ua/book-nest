@@ -130,6 +130,13 @@ export class BooksController {
     name: "owner",
     required: false,
   })
+  @ApiQuery({
+    description: "Scope every summary count to the current user books of this publisher",
+    format: "uuid",
+    name: "publisher",
+    required: false,
+    type: String,
+  })
   @Get("overview")
   @JwtProtected()
   overview(
@@ -190,7 +197,12 @@ export class BooksController {
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(BookFacetsQuerySchema)) query: BookFacetsQueryDto,
   ): Promise<BookFacetsView> {
-    return this.bookFacetsService.facets({ scope: query.scope, search: query.q, userId: user.id });
+    return this.bookFacetsService.facets({
+      publisherId: query.publisher,
+      scope: query.scope,
+      search: query.q,
+      userId: user.id,
+    });
   }
   @ApiOkResponse({
     description: "Store names available across the whole wishlist, ignoring the active filters",

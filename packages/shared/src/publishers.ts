@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Nullable, Paginator } from "./common.js";
 
 import { createPaginatedSchema } from "./common.js";
+import { IsoCountryCodeSchema } from "./countries.js";
 import {
   boundedUrlSchema,
   HTTP_OR_HTTPS_PROTOCOL,
@@ -54,7 +55,6 @@ export type RecentPublishersQuery = z.infer<typeof RecentPublishersQuerySchema>;
 const PUBLISHER_WEBSITE_URL_MAX = 300;
 const PUBLISHER_FOUNDED_YEAR_MIN = 1400;
 const PUBLISHER_FOUNDED_YEAR_MAX = 2100;
-const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
 
 export const LibraryPublisherStatsSchema = z.object({
   averageRating: z.number().nullable(),
@@ -84,13 +84,19 @@ export const LibraryPublisherListItemSchema = z.object({
 
 export type LibraryPublisherListItem = z.infer<typeof LibraryPublisherListItemSchema>;
 
+export const LibraryPublisherDetailStatsSchema = LibraryPublisherStatsSchema.extend({
+  wishlistWithoutPriceCount: z.number().int(),
+});
+
+export type LibraryPublisherDetailStats = z.infer<typeof LibraryPublisherDetailStatsSchema>;
+
 export const LibraryPublisherDetailSchema = z.object({
   countryCode: z.string().nullable(),
   foundedYear: z.number().int().nullable(),
   id: z.string(),
   isCustom: z.boolean(),
   name: z.string(),
-  stats: LibraryPublisherStatsSchema,
+  stats: LibraryPublisherDetailStatsSchema,
   websiteUrl: z.string().nullable(),
 });
 
@@ -108,13 +114,63 @@ export const LibraryPublisherPriceTotalSchema = z.object({
 
 export type LibraryPublisherPriceTotal = z.infer<typeof LibraryPublisherPriceTotalSchema>;
 
+export const LIBRARY_PUBLISHERS_INSIGHT_LIMITS = {
+  listSize: 3,
+} as const;
+
+export const LibraryPublishersMostRepresentedSchema = z.object({
+  booksCount: z.number().int(),
+  id: z.string(),
+  name: z.string(),
+});
+
+export type LibraryPublishersMostRepresented = z.infer<
+  typeof LibraryPublishersMostRepresentedSchema
+>;
+
+export const LibraryPublishersMostReadSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  readCount: z.number().int(),
+});
+
+export type LibraryPublishersMostRead = z.infer<typeof LibraryPublishersMostReadSchema>;
+
+export const LibraryPublishersUnreadSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  unreadCount: z.number().int(),
+});
+
+export type LibraryPublishersUnread = z.infer<typeof LibraryPublishersUnreadSchema>;
+
+export const LibraryPublishersBestRatedSchema = z.object({
+  averageRating: z.number(),
+  id: z.string(),
+  name: z.string(),
+  ratedBooksCount: z.number().int(),
+});
+
+export type LibraryPublishersBestRated = z.infer<typeof LibraryPublishersBestRatedSchema>;
+
 export const LibraryPublishersSummarySchema = z.object({
   averageBookRating: z.number().nullable(),
+  bestRatedPublishers: z
+    .array(LibraryPublishersBestRatedSchema)
+    .max(LIBRARY_PUBLISHERS_INSIGHT_LIMITS.listSize),
+  booksToBuyWithPublisherCount: z.number().int(),
   booksWithoutPublisherCount: z.number().int(),
   booksWithPublisherCount: z.number().int(),
   expectedPriceTotals: z.array(LibraryPublisherPriceTotalSchema),
+  mostReadPublisher: LibraryPublishersMostReadSchema.nullable(),
+  mostRepresentedPublisher: LibraryPublishersMostRepresentedSchema.nullable(),
   publishersCount: z.number().int(),
+  publishersInPlansCount: z.number().int(),
   ratedBooksCount: z.number().int(),
+  topFiveBooksCoveragePercent: z.number(),
+  unreadPublishers: z
+    .array(LibraryPublishersUnreadSchema)
+    .max(LIBRARY_PUBLISHERS_INSIGHT_LIMITS.listSize),
   wantToBuyBooksCount: z.number().int(),
 });
 
@@ -127,6 +183,16 @@ export type LibraryPublishersGeography = z.infer<typeof LibraryPublishersGeograp
 export const LibraryPublishersSourceSchema = z.enum(["all", "global", "custom"]);
 
 export type LibraryPublishersSource = z.infer<typeof LibraryPublishersSourceSchema>;
+
+export const LibraryPublishersQuickFilterSchema = z.enum([
+  "all",
+  "reading",
+  "read",
+  "to_buy",
+  "series",
+]);
+
+export type LibraryPublishersQuickFilter = z.infer<typeof LibraryPublishersQuickFilterSchema>;
 
 export const LibraryPublishersSortSchema = z.enum([
   "name",
@@ -144,10 +210,13 @@ export const LibraryPublishersOrderSchema = z.enum(["asc", "desc"]);
 export type LibraryPublishersOrder = z.infer<typeof LibraryPublishersOrderSchema>;
 
 export const LibraryPublishersQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  filter: LibraryPublishersQuickFilterSchema.default("all"),
   geography: LibraryPublishersGeographySchema.default("all"),
   hasBooksToBuy: z.stringbool().optional(),
+  hasQueue: z.stringbool().optional(),
   hasRatedBooks: z.stringbool().optional(),
   hasSeries: z.stringbool().optional(),
+  hasWantToRead: z.stringbool().optional(),
   locale: CatalogLocaleSchema.default("uk"),
   order: LibraryPublishersOrderSchema.default("desc"),
   sort: LibraryPublishersSortSchema.default("booksCount"),
@@ -162,11 +231,17 @@ export const LibraryPublisherDetailQuerySchema = z.object({
 
 export type LibraryPublisherDetailQuery = z.infer<typeof LibraryPublisherDetailQuerySchema>;
 
+export const LibraryPublishersSummaryQuerySchema = z.object({
+  locale: CatalogLocaleSchema.default("uk"),
+});
+
+export type LibraryPublishersSummaryQuery = z.infer<typeof LibraryPublishersSummaryQuerySchema>;
+
 export const PublisherCountryCodeSchema = z
   .string()
   .trim()
   .toUpperCase()
-  .pipe(z.string().regex(COUNTRY_CODE_PATTERN, "Country code must be a 2-letter ISO code"));
+  .pipe(IsoCountryCodeSchema);
 
 export const PublisherWebsiteUrlSchema = boundedUrlSchema({
   maxLength: PUBLISHER_WEBSITE_URL_MAX,

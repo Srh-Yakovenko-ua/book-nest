@@ -132,7 +132,7 @@ describe("DedicationsService.getDedications", () => {
       userId: USER_ID,
     });
 
-    expect(searchKeys).toHaveBeenCalledWith({ query: "memoir", userId: USER_ID });
+    expect(searchKeys).toHaveBeenCalledWith("memoir");
     const expectedFilter: DedicationsFilter = {
       filter: "favorites",
       genreKey: "history",

@@ -111,6 +111,9 @@ const ALL_UI_ICONS: readonly UiIconName[] = [
   "type",
   "hash",
   "check-square",
+  "repeat-2",
+  "users-round",
+  "file-text",
 ];
 
 const COMMON_UI_ICONS: readonly UiIconName[] = [

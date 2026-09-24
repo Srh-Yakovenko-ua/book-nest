@@ -1,0 +1,1744 @@
+{
+  "spec": "docs/specs/publishers/START-HERE.md (+ IMPLEMENTATION-PLAN.md, CHANGE-MAP.md, ACCEPTANCE.md, specs/01-ARCHIVE.md, specs/02-DETAIL-OVERVIEW.md, specs/03-DETAIL-BOOKS-INTEGRATION.md)",
+  "generatedAt": "2026-09-23T12:21:03Z",
+  "auditedAgainst": {
+    "specAuditCommit": "e5587ba5b395e7e4a99e3fc9e63f190838314b1e",
+    "head": "0f4b344f",
+    "branch": "feat/publishers",
+    "relevantDrift": [
+      "apps/web/src/features/books/components/book-form.tsx + model/series-publisher-suggestion.ts: series-dominant-publisher suggestion on Add Book. A URL-preselected publisher (?publisherId=) sets publisherOwnedByUser=true and suppresses the suggestion, so Publisher Details Add Book keeps its preselection. No conflict.",
+      "packages/shared/src/series.ts:206,278: SeriesView.dominantPublisher and SeriesDetails.publishers now embed publisher {id,name,bookCount}. A custom-publisher rename leaves those caches stale -> D6.",
+      "apps/api/src/modules/books/infrastructure/books.repository.ts:219 and series.repository.ts: series books now select publisher {id,name} instead of publisherId. Not used by any Publisher read path; no impact.",
+      "apps/web/src/messages/{uk,en}.json: +books.form.fields.publisherSeriesHint and series.details publisher keys. Not in the publishers namespace; no collision."
+    ]
+  },
+  "scope": {
+    "included": [
+      "Phase 1 archive/shared contracts (01-ARCHIVE §§2-8, 11-12, 15-18)",
+      "Phase 2 detail/API contract batch (02 §§22-25, §34 country contract; 03 §§27-28, 30, 37) + API CONTRACT FREEZE + Checkpoint A",
+      "Phase 3 archive frontend (01 §§1-18) + Checkpoint B",
+      "Phase 4 detail shell/URL/Hero/stats/gate (02 §§19-23, 33, 36)",
+      "Phase 5 Publisher Overview (02 §§24-26, 33, 36)",
+      "Phase 6 contextual Books tab (03 §§27-32, 37)",
+      "Phase 7 edit/delete + cache sync (02 §34, 03 §35)",
+      "Phase 8 i18n/a11y/narrow cleanup + Checkpoint C",
+      "Phase 9 final verification (ACCEPTANCE.md full)"
+    ],
+    "excluded": [
+      {
+        "item": "Prisma schema change / migration / new index",
+        "reason": "Every column the spec reads already exists (Series.deletedAt schema.prisma Series:10, Series.status Series:6, BookStoreLink.price BookStoreLink:149, BookReadingProgress.updatedAt BookReadingProgress:138, Book.wishlistAddedAt Book:64, Publisher.countryCode Publisher:33). Spec forbids speculative indexes (CHANGE-MAP 'DO NOT OPEN')."
+      },
+      {
+        "item": "Backend publisherPresence filter",
+        "reason": "ALREADY DONE: packages/shared/src/books.ts:884,908; book-where.ts:69-75; tests books.controller.library.test.ts:952+. Only the frontend half is work (T3.13)."
+      },
+      {
+        "item": "Direct publisher creation, relevance sort, quick-filter counts on /publishers, auto infinite scroll, extra insight/mobile endpoints, new archive metadata filters",
+        "reason": "01 §18 non-goals"
+      },
+      {
+        "item": "/publishers/:id/books, /publishers/:id/facets, publisher-specific counts endpoints",
+        "reason": "03 §§27, 29, 30 forbid them"
+      },
+      {
+        "item": "Bulk change-publisher, select-all-results, Publisher-only Series selector, PublisherBookCard/Row/Toolbar forks",
+        "reason": "03 §§29, 31; CHANGE-MAP Phase 6 rules"
+      },
+      {
+        "item": "Removing legacy API query fields (hasBooksToBuy, hasSeries, order, expectedPriceTotals, etc.)",
+        "reason": "01 §17: preserve old API fields/query compatibility; new frontend simply stops using them"
+      },
+      {
+        "item": "Reading-history refactor for lastBookReadAt",
+        "reason": "02 §23: keep current compatibility semantics"
+      },
+      {
+        "item": "Repository-wide dead-code cleanup",
+        "reason": "CHANGE-MAP Phase 8: one exact reference search per touched obsolete Publisher-only file only"
+      },
+      {
+        "item": "Book form draft-restore precedence over ?publisherId= preselect",
+        "reason": "Pre-existing behavior (restoredDraft ?? initial ?? initialPublisher, book-form.tsx:183-186), not introduced by this spec or the drift. Out of scope; noted in audit.md."
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1.1",
+      "phase": 1,
+      "title": "Extend publishers summary contract + add summary locale query",
+      "specRef": "01-ARCHIVE §3, §2, §11",
+      "layer": "shared",
+      "files": ["packages/shared/src/publishers.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryPublishersSummarySchema keeps every existing field (averageBookRating, booksWithoutPublisherCount, booksWithPublisherCount, expectedPriceTotals, publishersCount, ratedBooksCount, wantToBuyBooksCount)",
+        "LibraryPublishersSummarySchema adds topFiveBooksCoveragePercent: number, mostRepresentedPublisher: {id,name,booksCount}|null, publishersInPlansCount: int, booksToBuyWithPublisherCount: int, mostReadPublisher: {id,name,readCount}|null, unreadPublishers: {id,name,unreadCount}[] (max 3), bestRatedPublishers: {id,name,averageRating,ratedBooksCount}[] (max 3)",
+        "A LibraryPublishersSummaryQuerySchema exists with locale: CatalogLocaleSchema.default('uk'), same convention as LibraryPublisherDetailQuerySchema (publishers.ts:159-161)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T1.2",
+      "phase": 1,
+      "title": "Extend archive list query contract with quick filter + new Advanced booleans",
+      "specRef": "01-ARCHIVE §6, §7",
+      "layer": "shared",
+      "files": ["packages/shared/src/publishers.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D1"],
+      "doneWhen": [
+        "LibraryPublishersQuerySchema accepts the quick filter values all|reading|read|to_buy|series in the shape chosen in D1, default all",
+        "LibraryPublishersQuerySchema accepts wantToRead>0 and queue>0 booleans (names per D1) alongside existing hasRatedBooks",
+        "Legacy hasBooksToBuy / hasSeries / order / sort remain accepted (no removal)",
+        "Invalid quick-filter value is rejected by Zod (400) rather than silently ignored"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T1.3",
+      "phase": 1,
+      "title": "Publisher stat semantics: readCount, readingCount, active-series-only seriesCount",
+      "specRef": "01-ARCHIVE §6; 02 §23; ACCEPTANCE A 'readCount = finished + rereading'",
+      "layer": "api",
+      "files": ["apps/api/src/modules/publishers/infrastructure/publishers.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "runLibraryAggregate readCount filter is reading_status IN ('finished','rereading') (today: finished only, publishers.repository.ts:523)",
+        "readingCount filter is reading_status IN ('reading','rereading') (today: reading only, :524)",
+        "seriesCount counts DISTINCT series ids only where the series row has deleted_at IS NULL (today: count(DISTINCT b.series_id) with no series join, :528)",
+        "hasSeries HAVING and the new 'series' quick filter use the same active-series predicate (today :432)",
+        "Reading status literals come from ReadingStatus-typed constants, not raw strings scattered in SQL"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T1.4",
+      "phase": 1,
+      "title": "Archive list: quick filter + wantToRead/queue HAVING, deterministic tie-breakers",
+      "specRef": "01-ARCHIVE §4, §5, §6, §7",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/publishers/infrastructure/publishers.repository.ts",
+        "apps/api/src/modules/publishers/application/publishers.service.ts",
+        "apps/api/src/modules/publishers/api/publishers.controller.ts"
+      ],
+      "dependsOn": ["T1.2", "T1.3"],
+      "mandatory": true,
+      "doneWhen": [
+        "quick reading => HAVING count FILTER(reading_status IN reading,rereading) > 0; read => IN finished,rereading; to_buy => ownership want_to_buy > 0; series => active distinct series > 0",
+        "wantToRead boolean => count FILTER(reading_status='want_to_read') > 0; queue boolean => count FILTER(queue_position IS NOT NULL) > 0",
+        "quick filter ANDs with geography/source/booleans/search in both aggregateLibrary and countLibrary (same buildLibraryHaving)",
+        "non-name sorts end with localized name ASC, p.id ASC and NULLS LAST in both directions; name sort ends with p.id ASC (publishers.repository.ts:448-451 already does this; must stay true after edits)",
+        "search still matches only p.search_text (publishers.repository.ts:465), not book fields",
+        "controller @ApiQuery lists the new params so OpenAPI/Orval emits them"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T1.5",
+      "phase": 1,
+      "title": "Summary endpoint: locale + whole-library insights computed server-side",
+      "specRef": "01-ARCHIVE §2, §3, §11",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/publishers/api/publishers.controller.ts",
+        "apps/api/src/modules/publishers/api/input-dto/ (new library-publishers-summary-query.input-dto.ts)",
+        "apps/api/src/modules/publishers/application/publishers.service.ts",
+        "apps/api/src/modules/publishers/infrastructure/publishers.repository.ts",
+        "apps/api/src/modules/publishers/domain/publisher-library.mapper.ts"
+      ],
+      "dependsOn": ["T1.1", "T1.3"],
+      "mandatory": true,
+      "blockedBy": ["D7"],
+      "doneWhen": [
+        "GET /api/publishers/library/summary accepts ?locale via ZodQueryPipe; @ApiQuery locale present",
+        "topFiveBooksCoveragePercent = distinct active publisher-attributed books of the top-5 publishers (booksCount DESC, localized name ASC, id ASC) / all active publisher-attributed books * 100; missing-publisher books excluded from both; 0 when no attributed books; precision per D7",
+        "mostRepresentedPublisher ranks booksCount DESC, localized name ASC, id ASC; null when none",
+        "publishersInPlansCount = distinct publishers with >=1 want_to_buy active book; booksToBuyWithPublisherCount = active want_to_buy books with publisher_id NOT NULL",
+        "mostReadPublisher uses readCount = finished+rereading, ranks readCount DESC, name ASC, id ASC; null when every readCount is 0",
+        "unreadPublishers: unreadCount = booksCount - readCount > 0, ranked unreadCount DESC, name ASC, id ASC, limit 3",
+        "bestRatedPublishers: ratedBooksCount >= 3 only, ranked averageRating DESC, ratedBooksCount DESC, name ASC, id ASC, limit 3",
+        "names use the same localized primary-name COALESCE as runLibraryAggregate (publishers.repository.ts:509-517)",
+        "all values come from SQL over active current-user books, never from a paginated list"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T1.6",
+      "phase": 1,
+      "title": "Backend tests for Phase 1 semantics",
+      "specRef": "ACCEPTANCE Checkpoint A 'Publishers archive API'",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/publishers/api/publishers.controller.summary.test.ts",
+        "apps/api/src/modules/publishers/api/publishers.controller.library.test.ts",
+        "apps/api/src/modules/publishers/domain/publisher-library.mapper.test.ts",
+        "apps/api/src/modules/publishers/application/publishers.service.library.test.ts"
+      ],
+      "dependsOn": ["T1.4", "T1.5"],
+      "mandatory": true,
+      "doneWhen": [
+        "a rereading book counts toward readCount AND readingCount (library + summary)",
+        "a book in a soft-deleted series does not count toward seriesCount nor satisfy quick=series",
+        "each quick value and each of the 3 Advanced booleans has a positive and a negative case",
+        "summary tests cover each new field incl. the 0 / 1 / 2-5 / >5 publisher cases for coverage, tie-break by name then id, bestRated threshold of 3 ratings, and locale-resolved names",
+        "existing summary assertions (summary.test.ts:52-201) still pass unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.1",
+      "phase": 2,
+      "title": "Detail contract: stats extension with wishlistWithoutPriceCount",
+      "specRef": "02 §22, §23",
+      "layer": "shared",
+      "files": ["packages/shared/src/publishers.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryPublisherDetailSchema.stats is LibraryPublisherStatsSchema extended with wishlistWithoutPriceCount: int",
+        "LibraryPublisherListItemSchema.stats is unchanged (detail-only field)",
+        "No readPercentage field is added anywhere"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.2",
+      "phase": 2,
+      "title": "library-detail becomes publisher-root (visible zero-book publisher -> 200)",
+      "specRef": "02 §23",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/publishers/infrastructure/publishers.repository.ts",
+        "apps/api/src/modules/publishers/application/publishers.service.ts",
+        "apps/api/src/modules/publishers/domain/publisher-library.mapper.ts",
+        "apps/api/src/modules/publishers/api/view-dto/library-publisher-detail.view-dto.ts"
+      ],
+      "dependsOn": ["T1.3", "T2.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "detail query selects FROM publishers p WHERE p.id = :id AND (p.user_id IS NULL OR p.user_id = :userId) LEFT JOIN books b ON b.publisher_id = p.id AND b.user_id = :userId AND b.deleted_at IS NULL (today it is book-root via aggregateLibraryDetail -> runLibraryAggregate JOIN, publishers.repository.ts:213-229, 533-534)",
+        "every per-book count uses COUNT(b.id) / FILTER on b columns, never COUNT(*); a zero-book publisher yields booksCount 0, averageRating null, lastBookAddedAt null",
+        "wishlistWithoutPriceCount = active caller books of this publisher with ownership want_to_buy and NOT EXISTS a book_store_links row with price IS NOT NULL; book_purchase_info.expected_price is not read",
+        "foreign custom and nonexistent id -> 404 NotFoundError; global or own custom with zero books -> 200",
+        "common stats (booksCount, readCount, readingCount, wantToReadCount, wantToBuyCount, queueCount, seriesCount, averageRating, ratedBooksCount, lastBookAddedAt, lastBookReadAt) equal the archive list item for a represented publisher",
+        "updateCustom returns the same publisher-root detail (toLibraryPublisherDetailFromModel fallback, publishers.service.ts:467-469, becomes unnecessary or yields identical shape incl. wishlistWithoutPriceCount 0)",
+        "archive list stays represented-publishers-only (still book-root)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.3",
+      "phase": 2,
+      "title": "Shared LibraryPublisherOverview compact DTO schemas",
+      "specRef": "02 §24",
+      "layer": "shared",
+      "files": ["packages/shared/src/publishers.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryPublisherOverviewSchema = { latestBook: PublisherOverviewLatestBook|null, activeReading: PublisherOverviewReadingBook[] (max 3), wishlist: PublisherOverviewWishlistBook[] (max 3), series: PublisherOverviewSeries[] (max 3) }",
+        "base compact book = { id, title, authors: BookAuthorRefSchema[] (authors.ts:86), cover: MediaViewSchema.nullable() (media.ts:41) }",
+        "latestBook adds createdAt, readingStatus, ownershipStatus, formats, series {id,name,partNumber,totalBooks}|null",
+        "activeReading adds readingStatus, progress {currentPage,pagesCount}|null",
+        "wishlist adds bestOffer: BestOfferViewSchema.nullable() (book-store-links.ts:75)",
+        "series item = { id, name, status: SeriesStatusSchema (series.ts:36), booksCount, readCount }",
+        "no ordering-only timestamps (wishlistAddedAt, progress updatedAt) are exposed; enums reuse existing schemas, not re-declared literals"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.4",
+      "phase": 2,
+      "title": "Overview repository: four bounded queries",
+      "specRef": "02 §25",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/publishers/infrastructure/publishers.repository.ts (or a new publisher-overview.repository.ts in the same module)"
+      ],
+      "dependsOn": ["T2.3"],
+      "mandatory": true,
+      "doneWhen": [
+        "latest: active caller books of publisher, any status/ownership, ORDER BY created_at DESC, id ASC, LIMIT 1; series relation returned only when series.deleted_at IS NULL",
+        "reading: reading_status IN (reading, rereading), ORDER BY book_reading_progress.updated_at DESC NULLS LAST, books.created_at DESC, id ASC, LIMIT 3; no join to reading cycles for ranking; never Book.updatedAt",
+        "wishlist: ownership want_to_buy, ORDER BY COALESCE(wishlist_added_at, created_at) DESC, created_at DESC, id ASC, LIMIT 3; store links loaded for those 3 books only",
+        "series: active publisher books with series_id NOT NULL joined to series where deleted_at IS NULL AND series.user_id = caller; per-series booksCount and readCount (finished+rereading) scoped to this publisher; ORDER BY booksCount DESC, series.name ASC, series.id ASC, LIMIT 3",
+        "selects are narrow (no withRelations(), no JSON_AGG of whole book graphs); every query is parameterized and user-scoped",
+        "no migration or index added"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.5",
+      "phase": 2,
+      "title": "Overview mapper + service method",
+      "specRef": "02 §24, §25",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/publishers/domain/publisher-overview.mapper.ts (new)",
+        "apps/api/src/modules/publishers/application/publishers.service.ts",
+        "apps/api/src/modules/publishers/publishers.module.ts"
+      ],
+      "dependsOn": ["T2.4"],
+      "mandatory": true,
+      "blockedBy": ["D3"],
+      "doneWhen": [
+        "service.libraryOverview first checks visibility (global or own custom) and throws NotFoundError otherwise; then runs the four queries with Promise.all",
+        "visible zero-book publisher returns { latestBook: null, activeReading: [], wishlist: [], series: [] }",
+        "authors are emitted in the book's stored author order",
+        "progress is non-null only when currentPage is a number and pagesCount is a positive number",
+        "bestOffer is computed by the canonical best-offer logic (books/domain/best-offer.ts:10 computeBestOffer, currency priority = CurrencySchema.options) via the route chosen in D3, never re-implemented",
+        "cover uses MediaService.buildViewOrNull (media/application/media.service.ts:101); PublishersModule imports MediaModule; PublishersModule does NOT import BooksModule (BooksModule already imports PublishersModule, books.module.ts:12)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.6",
+      "phase": 2,
+      "title": "GET /api/publishers/:publisherId/library-overview controller + view DTO",
+      "specRef": "02 §24",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/publishers/api/publishers.controller.ts",
+        "apps/api/src/modules/publishers/api/view-dto/library-publisher-overview.view-dto.ts (new)"
+      ],
+      "dependsOn": ["T2.5"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(':publisherId/library-overview') with ParseUUIDPipe, @JwtProtected, locale query if names are localized, full @ApiOkResponse/@ApiNotFoundResponse/@ApiOperation",
+        "response DTO wraps LibraryPublisherOverviewSchema via createZodDto",
+        "controller contains no Prisma and no business logic"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.7",
+      "phase": 2,
+      "title": "Books overview: optional publisher context",
+      "specRef": "03 §30",
+      "layer": "api",
+      "files": [
+        "packages/shared/src/books.ts",
+        "apps/api/src/modules/books/api/books.controller.ts",
+        "apps/api/src/modules/books/application/book-library-read.service.ts",
+        "apps/api/src/modules/books/infrastructure/book-library-read.repository.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryOverviewQuerySchema (books.ts:958) gains optional publisher: z.uuid() (single id) — omitted keeps today's output byte-for-byte",
+        "when passed, every summary field (total, reading, finished, favorites, wantToRead, series, solo, wantToBuy, inTransit, borrowed and the optional authorsCount/physicallyAvailable/seriesCount) is scoped to publisher_id = :id; wantToBuy/inTransit/borrowed counts (which ignore ownership scope today, book-library-read.service.ts:224-235) are scoped too",
+        "finished stays LIBRARY_OVERVIEW.finishedStatuses = ['finished'] (library-overview.ts:25); no rereading added",
+        "@ApiQuery publisher documented on GET /api/books/overview"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.8",
+      "phase": 2,
+      "title": "Books facets: optional publisher context",
+      "specRef": "03 §29, §30",
+      "layer": "api",
+      "files": [
+        "packages/shared/src/books.ts",
+        "apps/api/src/modules/books/api/books.controller.ts",
+        "apps/api/src/modules/books/application/book-facets.service.ts",
+        "apps/api/src/modules/books/infrastructure/book-facets.repository.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "BookFacetsQuerySchema (books.ts:1340) gains optional publisher: z.uuid()",
+        "authorFacets and genreFacets add AND b.publisher_id = :publisher when present, preserving scope condition (book-facets.repository.ts:43-46) and author q search",
+        "omitted publisher => identical SQL/results to today",
+        "tags are untouched (no tag facet scoping)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.9",
+      "phase": 2,
+      "title": "Books list: contextual switch to exclude publisher identity from search",
+      "specRef": "03 §28, §37",
+      "layer": "api",
+      "files": [
+        "packages/shared/src/books.ts",
+        "apps/api/src/modules/books/application/book-library-read.service.ts",
+        "apps/api/src/modules/books/infrastructure/book-where.ts",
+        "apps/api/src/modules/books/infrastructure/book-search.ts",
+        "apps/api/src/modules/books/api/books.controller.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D2"],
+      "doneWhen": [
+        "LibraryBooksQuerySchema gains the switch chosen in D2; default preserves current search",
+        "buildBookSearchConditions takes an option that, when set, omits the two publisher conditions (book-search.ts:31-32); every other caller keeps them",
+        "short-ISBN exception (book-search.ts:62) and genre-key search unchanged",
+        "no implicit behavior: passing publisher=<id> alone does NOT exclude publisher from search"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.10",
+      "phase": 2,
+      "title": "Shared ISO 3166-1 alpha-2 reference + strict country validation",
+      "specRef": "02 §34 Country contract; CHANGE-MAP Phase 2 'ONE BOUNDED SEARCH ONLY'",
+      "layer": "shared",
+      "files": [
+        "packages/shared/src/ (new countries module, name per D4)",
+        "packages/shared/src/publishers.ts",
+        "packages/shared/src/index.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D4"],
+      "doneWhen": [
+        "a single exported readonly list of ISO 3166-1 alpha-2 codes lives in packages/shared (bounded search found none, see audit.md)",
+        "PublisherCountryCodeSchema (publishers.ts:165-169) trims/uppercases then rejects any 2-letter code not in that list (e.g. 'XX', 'ZZ' fail; 'UA', 'US', 'GB' pass)",
+        "UpdatePublisherInputSchema still accepts null (clear) and omission",
+        "shared unit test covers valid, invalid-2-letter, lowercase, null"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.11",
+      "phase": 2,
+      "title": "Backend tests for Phase 2 contracts",
+      "specRef": "ACCEPTANCE Checkpoint A library-detail / library-overview / Canonical Books contextual extensions",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/publishers/api/publishers.controller.detail.test.ts",
+        "apps/api/src/modules/publishers/api/publishers.controller.overview.test.ts (new)",
+        "apps/api/src/modules/books/api/books.controller.overview.test.ts",
+        "apps/api/src/modules/books/api/books.controller.facets.test.ts",
+        "apps/api/src/modules/books/api/books.controller.library.test.ts"
+      ],
+      "dependsOn": ["T2.2", "T2.6", "T2.7", "T2.8", "T2.9", "T2.10"],
+      "mandatory": true,
+      "doneWhen": [
+        "detail.test.ts:125 'returns 404 for a publisher the caller has no books for' is replaced by: global zero-book -> 200 zeros/nulls AND own custom zero-book -> 200",
+        "detail tests: foreign custom 404, missing 404, want_to_buy counted in booksCount, wishlistWithoutPriceCount ignores purchaseInfo.expectedPrice and flips to 0 when a priced store link is added, soft-deleted series excluded from seriesCount",
+        "overview tests: zero-book empty shape; latest order tie on createdAt resolved by id ASC; reading ranks by progress updatedAt not Book.updatedAt; wishlist order uses COALESCE(wishlistAddedAt, createdAt); soft-deleted series hidden in latest and series; series readCount counts rereading; limits of 3; foreign custom 404",
+        "books overview/facets: omitted publisher unchanged vs a snapshot of current behavior; publisher scopes counts and author/genre facets",
+        "books list: global q matching only a publisher name still returns the book; with the D2 switch it does not",
+        "shared country schema test from T2.10"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2.12",
+      "phase": 2,
+      "title": "API CONTRACT FREEZE: pnpm gen:api once + /blast-radius once",
+      "specRef": "IMPLEMENTATION-PLAN Phase 2 'API CONTRACT FREEZE'; START-HERE Execution budget",
+      "layer": "contract",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": [
+        "T1.1",
+        "T1.2",
+        "T1.4",
+        "T1.5",
+        "T2.1",
+        "T2.2",
+        "T2.3",
+        "T2.6",
+        "T2.7",
+        "T2.8",
+        "T2.9",
+        "T2.10"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "generated files change only via pnpm gen:api (no hand edits in apps/web/src/shared/api/generated/**)",
+        "generated publishers endpoints include publishersControllerLibraryOverview and a locale param on publishersControllerLibrarySummary",
+        "generated books params include publisher on overview and facets, and the D2 switch on list",
+        "packages/shared dist rebuilt before API tests (memory: stale dist drops new Zod fields)",
+        "/blast-radius run once after generation; every consumer it lists is typechecked/tested"
+      ],
+      "status": "done",
+      "note": "gen:api run once 2026-09-23; blast-radius: typecheck green after fixing use-publisher-summary caller; web publishers+books 891 pass; api books module + consumers 1586/1587 pass (list-details overview genre tie order fails locally only due to uk-UA default ICU locale, untouched code)"
+    },
+    {
+      "id": "T2.13",
+      "phase": 2,
+      "title": "Checkpoint A: focused backend/shared tests",
+      "specRef": "IMPLEMENTATION-PLAN Checkpoint A; ACCEPTANCE Checkpoint A",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T1.6", "T2.11", "T2.12"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm exec vitest run on apps/api/src/modules/publishers/** and the books overview/facets/library test files is green, output captured",
+        "Books quick Прочитано (finished only), Wishlist best-offer, Series progress and /my-library ownership regression tests in those files still green"
+      ],
+      "status": "done",
+      "note": "publishers module + books overview/facets/library: 359 pass"
+    },
+    {
+      "id": "T3.1",
+      "phase": 3,
+      "title": "Archive URL/query model: q, semantic sort, quick filter, Advanced, view",
+      "specRef": "01 §§4-9",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/model/publisher-query.ts",
+        "apps/web/src/features/publishers/model/use-publisher-query.ts",
+        "apps/web/src/features/publishers/model/publisher-query.test.ts"
+      ],
+      "dependsOn": ["T2.12"],
+      "mandatory": true,
+      "doneWhen": [
+        "URL keys: q, sort (12 semantic values, default books_desc, invalid -> books_desc), filter (all|reading|read|to_buy|series, default all omitted), geography, source (defaults omitted), 3 booleans serialized only as =true, view",
+        "no page, order, search or legacy hasBooksToBuy/hasSeries URL keys remain in parsers (publisher-query.ts:37-50 today has page, order, search)",
+        "a pure mapper converts semantic sort -> backend {sort, order} per 01 §5 table; unit-tested for all 12",
+        "server params exclude view; q is sent as backend search",
+        "clearAll resets q + filter + Advanced and keeps sort/view; resetFilters resets filter + Advanced and keeps q/sort/view"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.2",
+      "phase": 3,
+      "title": "Archive data hooks: infinite list + localized summary",
+      "specRef": "01 §3, §9",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/api/use-publishers-list.ts",
+        "apps/web/src/features/publishers/api/use-publisher-summary.ts",
+        "apps/web/src/features/publishers/api/publisher-keys.ts"
+      ],
+      "dependsOn": ["T3.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "usePublishersList uses useInfiniteQuery, pageSize 24, initialPageParam 1, getNextPageParam returns page+1 only while page < pagesCount",
+        "placeholderData: keepPreviousData is removed (use-publishers-list.ts:27 today)",
+        "query key = q + quick + Advanced + backend sort/order + locale; excludes view",
+        "a selector flattens pages and dedupes by publisher id",
+        "usePublisherSummary passes locale and its key includes locale"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.3",
+      "phase": 3,
+      "title": "Archive header",
+      "specRef": "01 §1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/all-publishers-view.tsx",
+        "apps/web/src/features/publishers/components/all-publishers.tsx"
+      ],
+      "dependsOn": ["T3.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "title Видавництва + TitleLeaf, approved subtitle, single primary CTA + Додати книгу -> /books/new",
+        "no breadcrumb, no Додати видавництво, no other header actions"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.4",
+      "phase": 3,
+      "title": "Archive summary: exactly 4 whole-library cards",
+      "specRef": "01 §2",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-summary-cards.tsx",
+        "apps/web/src/features/publishers/components/publisher-summary-cards.stories.tsx"
+      ],
+      "dependsOn": ["T3.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "cards Видавництв / Найбільше в бібліотеці / Видавництва у планах / Найбільше прочитано with the exact microfacts and empty fallbacks of 01 §2 and icons building/crown/shopping-bag/book-open-text",
+        "coverage microfact: 0 / 1 / 2-5 / >5 branches; positive <1 -> '<1%', else whole %",
+        "cards are non-clickable and read only the summary query (never q/filter/sort/view)",
+        "publisher name value clamps to 2 lines but full name stays in the accessible name"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.5",
+      "phase": 3,
+      "title": "Toolbar: DebouncedSearchInput, semantic sort, Advanced Sheet with local draft, view",
+      "specRef": "01 §4, §5, §7",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/publisher-toolbar.tsx"],
+      "dependsOn": ["T3.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "search uses shared DebouncedSearchInput (components/debounced-search-input.tsx: 300 ms, min 2) bound to q; Back/Forward syncs the input",
+        "one sort control with 12 options and labels from 01 §5; the separate order toggle is gone",
+        "Advanced is a right Sheet: open copies applied state, edits do not refetch, Очистити resets draft only, Застосувати commits all + closes",
+        "Advanced badge = non-default geography + non-default source + each true boolean; excludes q and quick"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.6",
+      "phase": 3,
+      "title": "Quick filter row",
+      "specRef": "01 §6",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publishers-content.tsx (or a new publisher-quick-filters.tsx)"
+      ],
+      "dependsOn": ["T3.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "single-select ChipGroup (components/ui/chip-group.tsx) with order Усі | Читаю зараз | Є прочитані книги | Є книги у списку бажань | Є серії",
+        "no count badges; one horizontal scroll row on mobile; not duplicated as an active chip"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.7",
+      "phase": 3,
+      "title": "Active chips + counter",
+      "specRef": "01 §8",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/publishers-content.tsx"],
+      "dependsOn": ["T3.5", "T3.6"],
+      "mandatory": true,
+      "doneWhen": [
+        "order: quick filters -> chips -> counter",
+        "chips only for q (Пошук: {query}), non-default geography/source, and each true boolean; removing one resets only it",
+        "Очистити все clears q + quick + Advanced, keeps sort/view",
+        "counter 'Показано {shown} із {total} видавництв' with shown = deduped rendered count, total = server totalCount of current query; aria-live=polite; hidden for 0 із 0 empty states"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.8",
+      "phase": 3,
+      "title": "Results stream: Load More + next-page error; remove numbered pagination",
+      "specRef": "01 §9",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/all-publishers.tsx",
+        "apps/web/src/features/publishers/components/publishers-content.tsx"
+      ],
+      "dependsOn": ["T3.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "explicit Завантажити ще button, disabled + loading while fetching next page; no auto infinite scroll",
+        "next-page error keeps cards + counter and shows Не вдалося завантажити ще видавництва + Спробувати ще раз retrying only that page",
+        "new q/filter/sort shows a loading state, never old-query cards; view change keeps loaded pages",
+        "PublisherPagination is no longer rendered (all-publishers.tsx:49 today)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.9",
+      "phase": 3,
+      "title": "Grid card + list row hierarchy",
+      "specRef": "01 §10",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-card.tsx",
+        "apps/web/src/features/publishers/components/publisher-row.tsx",
+        "apps/web/src/features/publishers/components/publisher-card.test.tsx",
+        "apps/web/src/features/publishers/components/publisher-row.test.tsx",
+        "apps/web/src/features/publishers/components/publisher-card.stories.tsx"
+      ],
+      "dependsOn": ["T3.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "card: building icon, name, country or Без країни, Власне only for custom, '{count} книг' + у бібліотеці, exactly Прочитано / У списку бажань / Серії, rating '★ {value} · {count} оцінок' or Без оцінок, 'Останнє поповнення {date}' or —",
+        "Переглянути → removed; whole-card stretched link + current hover/focus kept",
+        "row: Identity / Книги / Прочитано / Список бажань / Серії / Рейтинг / Останнє поповнення blocks, no <table>, stacks on mobile",
+        "readingCount / wantToReadCount / queueCount are not displayed"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.10",
+      "phase": 3,
+      "title": "Insights sidebar + mobile Overview panel",
+      "specRef": "01 §11, §12",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-overview-panel.tsx",
+        "apps/web/src/features/publishers/components/all-publishers-view.tsx",
+        "apps/web/src/features/publishers/components/ (new publisher-insights.tsx)"
+      ],
+      "dependsOn": ["T3.4"],
+      "mandatory": true,
+      "doneWhen": [
+        "order Потребують уваги -> Ще не прочитано -> Найкраще оцінено, each hidden when ineligible",
+        "Потребують уваги: '{count} книг без видавництва', approved help text, CTA Переглянути книги -> /books?publisherPresence=missing; replaces PublishersMissingBanner",
+        "unread and bestRated rows link to /publishers/{id}; no CTA, medals, rank numbers, progress bars",
+        "mobile: MobilePageOverviewPanel (components/ui/mobile-page-overview-panel.tsx) with 4 compact tiles + Огляд видавництв trigger; tabs Огляд + Інсайти only when any insight exists, else no Інсайти tab; links via MobilePageOverviewLink (:90)",
+        "all insight data comes from the single summary response"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.11",
+      "phase": 3,
+      "title": "Archive state hierarchy",
+      "specRef": "01 §13",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/all-publishers.tsx",
+        "apps/web/src/features/publishers/components/publishers-content.tsx"
+      ],
+      "dependsOn": ["T3.7", "T3.8"],
+      "mandatory": true,
+      "doneWhen": [
+        "priority initial error -> initial loading -> true empty -> search-only zero -> filtered/combined zero -> results",
+        "copy/actions match 01 §13 table incl. Скинути фільтри (clears quick+Advanced, keeps q/sort/view) and Очистити все",
+        "insights stay visible on filtered-zero but not on true-empty; summary errors do not hide a healthy list and vice versa"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.12",
+      "phase": 3,
+      "title": "Responsive composition",
+      "specRef": "01 §14",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/all-publishers-view.tsx"],
+      "dependsOn": ["T3.10", "T3.11"],
+      "mandatory": true,
+      "doneWhen": [
+        "<sm: compact summary + overview trigger, insights only in panel, grid 1 col",
+        "sm-<xl: summary 2x2, grid 2 cols, insights in normal flow after Load More, no drawer",
+        "xl+: main min-w-0 flex-1 gap-6; sidebar top-6 w-[19rem] shrink-0 sticky rendered only when any insight; grid with sidebar 1->sm:2->2xl:3, without 1->sm:2->xl:3"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.13",
+      "phase": 3,
+      "title": "Books frontend: publisherPresence URL param, chip, reset",
+      "specRef": "01 §15",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/model/library-query.ts",
+        "apps/web/src/features/books/model/use-library-filter-chips.ts",
+        "apps/web/src/features/books/components/library-active-filters.tsx",
+        "apps/web/src/features/books/components/library-advanced-filters.tsx (badge count only)"
+      ],
+      "dependsOn": ["T2.12"],
+      "mandatory": true,
+      "doneWhen": [
+        "libraryQueryParsers gains publisherPresence (all|assigned|missing, default all) and toLibraryListParams forwards non-default values (library-query.ts has no publisherPresence today)",
+        "hasActiveLibraryFilters counts non-default publisherPresence; LIBRARY_FILTERS_RESET clears it",
+        "chip Без видавництва (missing) / З видавництвом (assigned); removing it clears only publisherPresence",
+        "no Advanced Filters control added; Advanced button badge excludes q and publisherPresence"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3.14",
+      "phase": 3,
+      "title": "Checkpoint B: archive + publisherPresence tests",
+      "specRef": "IMPLEMENTATION-PLAN Checkpoint B; ACCEPTANCE Checkpoint B",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/publishers/model/publisher-query.test.ts",
+        "apps/web/src/features/publishers/components/all-publishers.test.tsx",
+        "apps/web/src/features/publishers/components/publisher-card.test.tsx",
+        "apps/web/src/features/publishers/components/publisher-row.test.tsx",
+        "Books library-query / filter-chips tests"
+      ],
+      "dependsOn": [
+        "T3.1",
+        "T3.2",
+        "T3.3",
+        "T3.4",
+        "T3.5",
+        "T3.6",
+        "T3.7",
+        "T3.8",
+        "T3.9",
+        "T3.10",
+        "T3.11",
+        "T3.12",
+        "T3.13"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "tests mock at the fetch boundary (no RQ hook mocks) and cover: sort mapping, URL omission of defaults, Advanced draft not refetching, load-more append + dedupe, next-page error retention, each archive state, insights visibility rules, publisherPresence chip/reset",
+        "all-publishers.test.tsx:161 deep-link assertion still holds via the insight CTA",
+        "pnpm exec vitest run --project unit on those files green, output captured"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4.1",
+      "phase": 4,
+      "title": "Detail tabs + URL contract",
+      "specRef": "02 §19, §20, §36",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/publisher-details-view.tsx"],
+      "dependsOn": ["T2.12"],
+      "mandatory": true,
+      "doneWhen": [
+        "DETAIL_TABS = overview + books only (publisher-details-view.tsx:26 today includes toBuy); PageTabs with translated ariaLabel (page-tabs.tsx:39)",
+        "Overview URL has no tab param; Books is ?tab=books + canonical Books params",
+        "Overview->Books pushes default Books state; Books->Overview pushes clean /publishers/:id (strips q/sort/view/filters)",
+        "on load, via history replace: tab=toBuy -> tab=books + canonical owner=want_to_buy using the Books serializer; invalid tab -> clean Overview; Overview URL with Books-only params -> clean Overview",
+        "fixed publisher id never appears as a publisher= URL param"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4.2",
+      "phase": 4,
+      "title": "Detail Hero",
+      "specRef": "02 §21",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/publisher-details-hero.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "building icon; h1 = name is the only h1 on the page",
+        "internal back Link (hero.tsx:129-135) and Власне badge (:150) removed",
+        "country rendered only when present (today falls back to countryUnknown, :125); founded 'Засновано у {year} році.' only when present; website external link only when present with accessible name mentioning new tab",
+        "global: only + Додати книгу; custom: + Додати книгу + square ⋯ menu with Редагувати / Видалити (separate Edit/Delete buttons :181-188 removed)",
+        "Add Book -> /books/new?publisherId={id} (publisher-details-view.tsx:46 already does this; keep)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4.3",
+      "phase": 4,
+      "title": "Detail stat cards (exactly 4)",
+      "specRef": "02 §22",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-stats-grid.tsx",
+        "apps/web/src/components/ui/stat-card.tsx (only if needed)"
+      ],
+      "dependsOn": ["T2.12"],
+      "mandatory": true,
+      "doneWhen": [
+        "cards Книг у бібліотеці / Прочитано / У списку бажань / Середній рейтинг, non-clickable, grid 2 cols mobile -> 4 desktop",
+        "Останню додано … hidden when booksCount 0 or lastBookAddedAt null",
+        "read % = Math.round(readCount/booksCount*100) derived in presentation, omitted when booksCount 0, 0% shown",
+        "'{N} без ціни' only when wishlistWithoutPriceCount > 0; no money aggregate",
+        "rated: Серед книг цього видавництва з оцінкою; none: — + Немає оцінених книг",
+        "any StatCard change is an optional prop whose default leaves current rendering (label truncate at stat-card.tsx:140) unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4.4",
+      "phase": 4,
+      "title": "Detail gate states",
+      "specRef": "02 §33",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-details.tsx",
+        "apps/web/src/features/publishers/api/use-publisher-details.ts"
+      ],
+      "dependsOn": ["T4.1", "T4.2", "T4.3"],
+      "mandatory": true,
+      "doneWhen": [
+        "pending skeleton mirrors final Hero + 4 stats + tabs + neutral content; Overview/Books queries not started",
+        "404 -> whole-page not-found with back to /publishers",
+        "non-404 initial error -> whole-page error with primary Спробувати ще раз = refetch() and secondary back; no window.location.reload (today only a back button, publisher-details.tsx:67)",
+        "cached data + background refetch error keeps the page rendered (gate on data presence, not on error !== null as today at :44)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4.5",
+      "phase": 4,
+      "title": "Successful zero-book detail state",
+      "specRef": "02 §23, §26, §33",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-details-view.tsx",
+        "apps/web/src/features/publishers/components/publisher-overview-tab.tsx"
+      ],
+      "dependsOn": ["T4.4"],
+      "mandatory": true,
+      "doneWhen": [
+        "booksCount 0 renders Hero + stats + tabs and a single empty state Ще немає книг цього видавництва / Додайте першу книгу цього видавництва до своєї бібліотеки. / + Додати книгу (preselected)",
+        "no Overview request is sent when booksCount is 0"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5.1",
+      "phase": 5,
+      "title": "Overview hook + key",
+      "specRef": "02 §25, §33; 03 §35",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/api/publisher-keys.ts",
+        "apps/web/src/features/publishers/api/ (new use-publisher-overview.ts)"
+      ],
+      "dependsOn": ["T2.12"],
+      "mandatory": true,
+      "doneWhen": [
+        "publisherKeys.overview(id) exists under the /api/publishers root",
+        "hook parses with the shared schema, enabled only when tab=overview AND booksCount > 0",
+        "direct ?tab=books load sends no overview request; returning to Overview shows cached data immediately"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5.2",
+      "phase": 5,
+      "title": "Overview section components",
+      "specRef": "02 §26",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-overview-tab.tsx",
+        "apps/web/src/features/publishers/components/ (new section components)"
+      ],
+      "dependsOn": ["T5.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "Остання додана книга: exactly one row with cover, title, author, active series+part, reading status, at most one ownership/format badge, date added; no publisher/ISBN/pages/year/genres/rating",
+        "Зараз читаю: up to 3 rows with real progress and a rereading indicator",
+        "У списку бажань: up to 3 rows with canonical individual best-offer price or Без ціни; no aggregate money",
+        "Серії: up to 3 rows with status badge Завершена / Ще виходить / Невідомо and copy '{n} книги · {k} прочитано' / '· усі прочитані' / '· ще не прочитано'; never Серію прочитано",
+        "each row has one primary link (Book Details or Series Details); covers/icons aria-hidden",
+        "empty blocks hidden; no view-all CTA, Ще N, internal scroll or full BookCard; today's onViewBooks/onViewToBuy CTAs (publisher-details-view.tsx:66-67) removed"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5.3",
+      "phase": 5,
+      "title": "Overview layout + local states",
+      "specRef": "02 §26, §33, §36",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/publisher-overview-tab.tsx"],
+      "dependsOn": ["T5.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "desktop: two independent columns ~56/44, left latest->series, right reading->wishlist, no equalized heights",
+        "mobile/tablet order latest->reading->wishlist->series using the same section components and one query",
+        "local skeleton with region aria-busy, local error + retry that refetches overview only; sections are h2"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6.1",
+      "phase": 6,
+      "title": "Extract inner canonical Books archive core from the page shell",
+      "specRef": "03 §27, §31, §32",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/books-library.tsx",
+        "apps/web/src/features/books/components/books-library-view.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a core component renders search, sort, quick filters, Advanced Sheet, chips, counter, Grid/List, selection + LibraryBulkBar, actions, cover viewer, Load More and result states, without the page h1 (books-library-view.tsx:170), summary cards or sidebar",
+        "/books and /my-library render identically before/after (existing books-library tests green without assertion changes)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6.2",
+      "phase": 6,
+      "title": "Publisher context for the Books core (list, overview counts, facets, search switch)",
+      "specRef": "03 §27-30, §37",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/model/use-library-query.ts",
+        "apps/web/src/features/books/model/library-query.ts",
+        "apps/web/src/features/books/api/use-books.ts",
+        "apps/web/src/features/books/api/use-library-overview.ts",
+        "apps/web/src/features/books/api/use-book-facets.ts"
+      ],
+      "dependsOn": ["T6.1", "T2.12", "T3.13"],
+      "mandatory": true,
+      "doneWhen": [
+        "an optional context {publisherId} (default absent) injects publisher=[id] + the D2 search switch into list params and query keys, publisher=id into overview and facets params/keys",
+        "in context, any URL publisher / publisherPresence values are ignored: book-where.ts:69-75 lets publisherPresence override publisherIds, so forwarding it would escape the fixed scope",
+        "without context, /books list, overview (useLibraryOverview key ['/api/books','overview',scope]) and facets requests are unchanged",
+        "all queries stay under the /api/books root (no second namespace)",
+        "unfiltered context total === detail.stats.booksCount"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6.3",
+      "phase": 6,
+      "title": "Advanced Filters/chips/badge/reset without Publisher in context",
+      "specRef": "03 §28, §29",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/components/library-advanced-filters.tsx",
+        "apps/web/src/features/books/model/use-library-filter-chips.ts",
+        "apps/web/src/features/books/components/library-quick-filters.tsx"
+      ],
+      "dependsOn": ["T6.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "optional prop hides the Видавництво section only in context; global Advanced still shows it",
+        "all other sections present (reading status, ownership incl. want_to_buy, format, genres, tags, age, language, author, book type, rating, year, pages, cover); no Series selector added",
+        "fixed publisher never produces a chip, badge increment, or reset target; Очистити фільтри / Очистити все / quick Усі keep it",
+        "10 quick filters in canonical order with publisher-scoped counts; quick Прочитано = status finished only",
+        "search placeholder Назва книги, автор або серія (messages/uk.json:806); all 15 sorts, default created_desc"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6.4",
+      "phase": 6,
+      "title": "Default-preserving prop to hide publisher metadata in BookCard/BookRow",
+      "specRef": "03 §31",
+      "layer": "web",
+      "files": [
+        "apps/web/src/components/ui/book-card.tsx",
+        "apps/web/src/features/books/components/book-row.tsx"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "optional prop (default shows publisher) suppresses the publisher line (book-card.tsx:265-277, book-row.tsx:347-359)",
+        "publisher stays in the LibraryBook model; global cards/rows still show it"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6.5",
+      "phase": 6,
+      "title": "Publisher Books tab uses the core; states; remove fork",
+      "specRef": "03 §27, §31, §32; 02 §36",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-books-tab.tsx",
+        "apps/web/src/features/publishers/model/publisher-books-params.ts"
+      ],
+      "dependsOn": ["T6.2", "T6.3", "T6.4", "T4.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "PublisherBooksTab renders the shared core with context {publisherId: route id}; its own parsers/Select/Segmented/card rendering (publisher-books-tab.tsx:1-80+) are gone",
+        "no second h1 (sr-only h2 allowed)",
+        "zero states: booksCount 0 -> Ще немає книг цього видавництва + Add Book preselected; q-only zero -> Нічого не знайдено + Очистити пошук; filters zero -> Немає книг за вибраними фільтрами + Очистити фільтри + Очистити все",
+        "initial error Не вдалося завантажити книги + Books-only retry; load-more error keeps loaded books; grid skeleton, no fullscreen spinner",
+        "counter 'Показано {shown} з {total} ...' uses server total under fixed publisher + user filters",
+        "per-book actions, selection, bulk bar, cover viewer, Grid/List, Load More work",
+        "fetch only when tab=books"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7.1",
+      "phase": 7,
+      "title": "Shared searchable CountrySelect + use it in Edit",
+      "specRef": "02 §34",
+      "layer": "web",
+      "files": [
+        "apps/web/src/components/ (new country-select.tsx)",
+        "apps/web/src/features/publishers/components/edit-publisher-dialog.tsx"
+      ],
+      "dependsOn": ["T2.10"],
+      "mandatory": true,
+      "blockedBy": ["D5"],
+      "doneWhen": [
+        "CountrySelect options come from the shared ISO list, labeled via Intl.DisplayNames(locale,{type:'region'}) like publisher-format.ts:13; searchable; clear -> null; no flags",
+        "edit dialog country free-text Input (edit-publisher-dialog.tsx :229-243) replaced by CountrySelect",
+        "field order stays Назва *, Країна, Сайт, Рік заснування (already true today)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7.2",
+      "phase": 7,
+      "title": "Founded year via shared YearPicker",
+      "specRef": "02 §34",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/components/edit-publisher-dialog.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "founded year numeric Input (edit-publisher-dialog.tsx :266-270) replaced by YearPicker (components/ui/year-picker.tsx) with min/max from PublisherFoundedYearSchema (1400/2100, publishers.ts:55-56)",
+        "clear persists null; dirty close still asks for discard; 409 duplicate -> name field error; other errors form-level"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7.3",
+      "phase": 7,
+      "title": "Publisher edit cache update",
+      "specRef": "03 §35; 02 §34",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/api/use-update-publisher.ts"],
+      "dependsOn": ["T7.5"],
+      "mandatory": true,
+      "blockedBy": ["D6"],
+      "doneWhen": [
+        "onSuccess sets returned detail at publisherKeys.detail(id) (today only invalidates, use-update-publisher.ts:23-27), then invalidates publisher root, Books root, publisher picker/recent (['publishers'])",
+        "series caches invalidated per D6",
+        "success closes dialog + toast, no reload"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7.4",
+      "phase": 7,
+      "title": "Delete flow: zero-book confirm vs linked-books blocked state",
+      "specRef": "02 §34",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/delete-publisher-dialog.tsx",
+        "apps/web/src/features/publishers/api/use-delete-publisher.ts",
+        "apps/web/src/features/publishers/components/publisher-details-view.tsx"
+      ],
+      "dependsOn": ["T4.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "booksCount 0: AlertDialog Видалити видавництво? + permanent-removal text + cancel/delete; success toast + router.replace('/publishers')",
+        "booksCount > 0: Delete still reachable in ⋯ menu, opens blocked/info state with Перейти до книг -> Books tab; no delete request sent",
+        "server 409 PUBLISHER_HAS_BOOKS maps to the same blocked state",
+        "no bulk detach/change-publisher"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7.5",
+      "phase": 7,
+      "title": "invalidatePublisherQueries helper",
+      "specRef": "03 §35",
+      "layer": "web",
+      "files": ["apps/web/src/features/publishers/api/publisher-keys.ts"],
+      "dependsOn": ["T5.1"],
+      "mandatory": true,
+      "doneWhen": [
+        "exported invalidatePublisherQueries(queryClient) invalidates the ['/api/publishers'] root, same style as invalidateStatisticsQueries (features/statistics/api/statistics-keys.ts:5)",
+        "no manual setQueryData patching of aggregate stats/overview anywhere"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7.6",
+      "phase": 7,
+      "title": "Wire publisher invalidation into relevant mutations only",
+      "specRef": "03 §35",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/books/api/use-book-mutation-sync.ts",
+        "apps/web/src/features/books/api/use-create-book.ts",
+        "apps/web/src/features/books/api/use-update-book.ts",
+        "apps/web/src/features/books/api/use-book-actions.ts",
+        "apps/web/src/features/books/api/use-reading-progress.ts",
+        "apps/web/src/features/books/api/use-ownership.ts",
+        "apps/web/src/features/books/api/use-reading-queue.ts",
+        "apps/web/src/features/books-to-buy/api/use-store-links.ts",
+        "apps/web/src/features/series/api/use-update-series.ts",
+        "apps/web/src/features/series/api/use-delete-series.ts"
+      ],
+      "dependsOn": ["T7.5"],
+      "mandatory": true,
+      "doneWhen": [
+        "helper called by: create book (use-create-book.ts:24 already invalidates publisherKeys.root; switch to helper), update book (use-update-book.ts:45-51 missing today), delete + bulk delete, reading status/progress + bulk reading status, ownership/wishlist + bulk ownership, queue add/remove/start-from-queue, store link add/edit/delete (use-store-links.ts:65-66 missing today), series update/delete (missing today)",
+        "NOT called by favorite toggle / bulk favorite, tags / bulk tags, list add / bulk list",
+        "existing Books/Wishlist/Series/statistics invalidations unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8.1",
+      "phase": 8,
+      "title": "i18n uk/en + terminology guard",
+      "specRef": "01 §16; CHANGE-MAP Phase 8 terminology",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T3.14", "T5.3", "T6.5", "T7.4"],
+      "mandatory": true,
+      "doneWhen": [
+        "every new key exists in both locales with next-intl ICU plurals for counts",
+        "publishers namespace contains no Бажані (7 occurrences today) and no До покупки; uses Список бажань / У списку бажань",
+        "no unrelated key cleanup; drift keys books.form.fields.publisherSeriesHint and series.details.publisher* untouched"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8.2",
+      "phase": 8,
+      "title": "Detail a11y pass",
+      "specRef": "02 §36; 03 §37",
+      "layer": "web",
+      "files": ["components changed in Phases 4-7"],
+      "dependsOn": ["T6.5", "T7.4"],
+      "mandatory": true,
+      "doneWhen": [
+        "exactly one h1 per page state (Hero name; not-found/error states keep their own single h1); Overview sections h2",
+        "tab list aria-label translated; website label mentions new tab; region aria-busy only; motion-safe classes preserved",
+        "dialogs return focus on close/cancel, fit mobile viewport, scroll; Delete uses AlertDialog",
+        "no Publisher-specific mobile toolbar"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8.3",
+      "phase": 8,
+      "title": "Narrow cleanup of obsolete Publisher-only files",
+      "specRef": "01 §17; CHANGE-MAP Phase 8 cleanup rule",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-to-buy-tab.tsx",
+        "apps/web/src/features/publishers/components/publisher-pagination.tsx",
+        "apps/web/src/features/publishers/components/publishers-missing-banner.tsx",
+        "apps/web/src/features/publishers/components/publishers-missing-banner.test.tsx",
+        "apps/web/src/features/publishers/model/publisher-books-params.ts"
+      ],
+      "dependsOn": ["T3.8", "T3.10", "T4.1", "T6.5"],
+      "mandatory": true,
+      "doneWhen": [
+        "one exact reference search per file shows zero consumers before deletion; file + its dedicated test/story deleted",
+        "publishers i18n keys used only by deleted files (pagination, banner, details.tabs.toBuy) removed from both locales",
+        "no other file deleted"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8.4",
+      "phase": 8,
+      "title": "Checkpoint C: detail + shared integration tests",
+      "specRef": "IMPLEMENTATION-PLAN Checkpoint C; ACCEPTANCE Checkpoint C",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/publishers/components/publisher-details.test.tsx",
+        "apps/web/src/features/publishers/components/publisher-details-view.test.tsx",
+        "apps/web/src/features/publishers/components/edit-publisher-dialog.test.tsx",
+        "apps/web/src/features/publishers/components/delete-publisher-dialog.test.tsx",
+        "new overview/books-tab tests",
+        "Books/Wishlist/Series regression tests touched by shared changes"
+      ],
+      "dependsOn": ["T8.1", "T8.2", "T8.3", "T7.6"],
+      "mandatory": true,
+      "doneWhen": [
+        "tests cover: two tabs + URL normalization (toBuy, invalid, stale params), gate states incl. background-error retention, zero-book state skips overview request, overview sections/ordering, Books tab context (no publisher chip, fixed scope survives clear-all, publisherPresence in URL ignored), CountrySelect/YearPicker/409 mapping, blocked delete + router.replace, invalidation matrix (called vs not called)",
+        "global BookCard/BookRow show publisher and global Advanced shows Видавництво (regression assertions)",
+        "focused vitest runs green, output captured"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9.1",
+      "phase": 9,
+      "title": "Cross-contract invariant tests",
+      "specRef": "ACCEPTANCE 'Final cross-contract invariants'; IMPLEMENTATION-PLAN Phase 9",
+      "layer": "test",
+      "files": ["apps/api/src/modules/publishers/api/ (new or existing integration test)"],
+      "dependsOn": ["T2.13"],
+      "mandatory": true,
+      "doneWhen": [
+        "archive item booksCount == library-detail booksCount == /api/books?publisher=id totalCount == /api/books/overview?publisher=id summary.total",
+        "detail wantToBuyCount == scoped overview wantToBuy == scoped list owner=want_to_buy total",
+        "overview latestBook id == first item of scoped created_desc list; createdAt == lastBookAddedAt",
+        "KSD->Vivat move, want_to_buy->owned, store-link price add/remove, series rename/status/delete each asserted on the affected endpoints"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9.2",
+      "phase": 9,
+      "title": "Final gates",
+      "specRef": "IMPLEMENTATION-PLAN Phase 9; CLAUDE.md §9",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T9.1", "T8.4"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm typecheck, pnpm lint, pnpm format:check green with output",
+        "pnpm test (or the CI run on push, per CLAUDE.md §9 local-suite policy; report exactly which ran) green or unrelated pre-existing failures named",
+        "gen:api not rerun mechanically"
+      ],
+      "status": "done",
+      "evidence": "typecheck/lint(0 errors)/format:check green; per CLAUDE.md §9 ran affected suites locally instead of full pnpm test: api publishers+books+series 2118/2119 (1 pre-existing locale-dependent failure list-details.controller.overview genre tie order under uk-UA ICU; file and code untouched), web publishers+books+books-to-buy+series+components 1172 pass; full suite runs in CI on push"
+    },
+    {
+      "id": "T9.3",
+      "phase": 9,
+      "title": "Visual + interaction smoke",
+      "specRef": "IMPLEMENTATION-PLAN Phase 9 visual/smoke lists",
+      "layer": "web",
+      "files": [],
+      "dependsOn": ["T9.2"],
+      "mandatory": true,
+      "doneWhen": [
+        "screenshots at ~390 / ~900 / ~1440-1536 px for archive and detail (Overview, Books, Edit, Delete)",
+        "every smoke step in IMPLEMENTATION-PLAN Phase 9 performed, incl. Add Book preselected publisher (with a series selected, preselection still wins over the series suggestion), zero console errors"
+      ],
+      "status": "done",
+      "evidence": "Orchestrator browser smoke 2026-09-23 on local account at 390/900/1440 (34 screenshots in session scratchpad shots/, incl. archive, detail overview/books/list, legacy tab=toBuy before/fixed, edit, delete blocked/zero, addbook with series); spot-checked detail-12bis-overview-390.png by spec-auditor VERIFY."
+    },
+    {
+      "id": "T9.4",
+      "phase": 9,
+      "title": "Final spec-to-ship VERIFY against this tasks.json",
+      "specRef": "START-HERE Definition of done",
+      "layer": "test",
+      "files": ["docs/specs/publishers/tasks.json"],
+      "dependsOn": ["T9.3"],
+      "mandatory": true,
+      "doneWhen": [
+        "spec-auditor VERIFY reports every task done with file:line proof, no drift outside scope"
+      ],
+      "status": "done",
+      "evidence": "VERIFY: 56/60 done, T3.8+T5.3 gaps fixed afterwards (aria-disabled Load More; two display:none-exclusive Overview layouts), T9.2 done"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Backend shape for the archive quick filter and the two new Advanced booleans",
+      "options": [
+        "A: new single-select enum param `filter` = all|reading|read|to_buy|series (mirrors the URL) + new booleans `hasWantToRead`, `hasQueue`; legacy hasBooksToBuy/hasSeries stay accepted",
+        "B: booleans only: add `hasReading`, `hasRead`, `hasWantToRead`, `hasQueue`; quick filter maps to one of hasReading/hasRead/hasBooksToBuy/hasSeries"
+      ],
+      "codeMakesCheaper": "B reuses buildLibraryHaving flags (publishers.repository.ts:420-440) with no new type; A adds one enum + a switch.",
+      "recommendation": "A. The quick filter is single-select; an enum makes 'two quick filters at once' unrepresentable (CLAUDE.md §8.9) and keeps the Advanced booleans a separate dimension, which matches the spec's AND semantics. Cost is one assertNever switch next to geographyCondition.",
+      "specRef": "01 §6, §7",
+      "blocks": ["T1.2", "T1.4", "T3.1"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D2",
+      "question": "Name/shape of the Publisher-Details switch that excludes publisher identity from Books search",
+      "options": [
+        "A: optional boolean `searchPublisher` (stringbool, default true); Detail sends false",
+        "B: optional enum `searchContext` = default|publisher",
+        "C: implicit — exclude when exactly one `publisher` id is present"
+      ],
+      "codeMakesCheaper": "A and B are one optional field in LibraryBooksQuerySchema plus one option in buildBookSearchConditions (book-search.ts:16-36). C needs no contract change.",
+      "recommendation": "A. Spec requires an explicit, default-preserving switch (03 §28, §37); C would silently change /books when a user filters by one publisher. A boolean is the smallest honest contract; B only pays off if a second context appears.",
+      "specRef": "03 §28, §37",
+      "blocks": ["T2.9", "T6.2"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D3",
+      "question": "How PublishersModule reuses canonical best-offer logic without importing BooksModule",
+      "options": [
+        "A: import the pure function directly from modules/books/domain/best-offer.ts (no Nest DI, file imports only @app/shared, date-fns and a generated Prisma type)",
+        "B: move computeBestOffer to a neutral location (e.g. apps/api/src/core/pricing/) and re-point Books callers",
+        "C: re-export from modules/books/index.ts and import that barrel"
+      ],
+      "codeMakesCheaper": "A is one import. C creates an ESM import cycle: books.module.ts:12 imports PublishersModule, and books/index.ts:5 re-exports BooksModule. No module deep-imports another module's domain today (grep found none).",
+      "recommendation": "A. It is a pure function with no DI, so there is no runtime coupling. Reject C because of the cycle. Choose B only if the maintainer wants a clean boundary now (it widens blast radius into Books/Wishlist tests).",
+      "specRef": "02 §24, §25; CHANGE-MAP Phase 2 'Do not import BooksModule into PublishersModule'",
+      "blocks": ["T2.5"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D4",
+      "question": "Form and location of the ISO 3166-1 alpha-2 reference list",
+      "options": [
+        "A: hand-maintained readonly tuple of the 249 officially assigned codes in packages/shared (e.g. src/countries.ts), exported via the barrel",
+        "B: npm dataset (i18n-iso-countries or similar)"
+      ],
+      "codeMakesCheaper": "Nothing exists (bounded search: no dataset, helper, or CountrySelect in apps/web, apps/api, packages/shared; country today is a free-text Input + /^[A-Z]{2}$/ regex, publishers.ts:57,165-169). Labels already come from Intl.DisplayNames (publisher-format.ts:13). Intl.supportedValuesOf has no 'region' key, so a list must be shipped either way.",
+      "recommendation": "A. The spec says no external API or table, labels already come from Intl, and a static tuple adds no dependency. B adds a dependency with localized names you do not need.",
+      "specRef": "02 §34",
+      "blocks": ["T2.10", "T7.1"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D5",
+      "question": "Custom publishers whose stored countryCode passes today's regex but fails the new ISO check (e.g. 'XX')",
+      "options": [
+        "A: edit form sends countryCode only when the field is dirty; CountrySelect shows an unknown stored code as its raw value so rename still saves",
+        "B: always send countryCode; the user must pick a valid country before any save",
+        "C: data migration nulling invalid codes"
+      ],
+      "codeMakesCheaper": "Today the payload always includes countryCode (edit-publisher-dialog.tsx :182-186), so B is the default if nothing changes. C adds a migration the spec says is not expected.",
+      "recommendation": "A. Stricter validation should not block an unrelated rename. It needs no migration and only touches the payload builder.",
+      "specRef": "02 §34 'shared validation rejects arbitrary non-ISO 2-letter codes'",
+      "blocks": ["T7.1"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D6",
+      "question": "(Drift) Should a custom-publisher rename also invalidate series caches that now embed publisher names?",
+      "options": [
+        "A: yes: invalidate ['/api/series'] (seriesKeys.root) and ['series'] (series autocomplete key, features/books/api/use-series-search.ts:34) in useUpdatePublisher",
+        "B: no: rely on staleTime; series cards and Add Book suggestion show the old name until refetch"
+      ],
+      "codeMakesCheaper": "A adds two invalidateQueries lines. Drift commit 681f9841 added SeriesView.dominantPublisher and SeriesDetails.publishers[{id,name,bookCount}] (packages/shared/src/series.ts:206,278), and the book form auto-fills the publisher name from it.",
+      "recommendation": "A. It costs two lines and fixes a visible stale name, including a stale suggestion hint in Add Book. Delete needs nothing, because only zero-book publishers can be deleted.",
+      "specRef": "03 §35 'publisher picker/recent queries as appropriate'",
+      "blocks": ["T7.3"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    },
+    {
+      "id": "D7",
+      "question": "Precision of topFiveBooksCoveragePercent in the API",
+      "options": [
+        "A: unrounded number (or 2 decimals); FE renders '<1%' for 0<p<1 and Math.round otherwise",
+        "B: whole integer + separate flag for '<1%'"
+      ],
+      "codeMakesCheaper": "A: one division in SQL/mapper, formatting in the card.",
+      "recommendation": "A. The '<1%' rule is presentation. An integer from the server would round 0.4% to 0 and lose the case the spec calls out.",
+      "specRef": "01 §2",
+      "blocks": ["T1.5", "T3.4"],
+      "answer": "A",
+      "answeredBy": "user",
+      "answeredAt": "2026-09-23"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "id": "A1",
+      "claim": "CHANGE-MAP: all Phase 1-7 OPEN FIRST files exist",
+      "verdict": "CONFIRMED",
+      "evidence": "All 30+ listed paths exist (e.g. publishers.repository.ts 585 lines, books-library-view.tsx 711, publisher-books-tab.tsx 362). The spec does not give line numbers"
+    },
+    {
+      "id": "A2",
+      "claim": "MobilePageOverviewPanel / MobilePageOverviewLink shared primitives exist (01 §12)",
+      "verdict": "MOVED",
+      "evidence": "They live at apps/web/src/components/ui/mobile-page-overview-panel.tsx:90, not components/. Already used by publisher-overview-panel.tsx:8"
+    },
+    {
+      "id": "A3",
+      "claim": "Shared single-select ChipGroup exists (01 §6)",
+      "verdict": "MOVED",
+      "evidence": "apps/web/src/components/ui/chip-group.tsx:36,57 (SingleChipGroupProps)"
+    },
+    {
+      "id": "A4",
+      "claim": "TitleLeaf exists (01 §1)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/title-leaf.tsx"
+    },
+    {
+      "id": "A5",
+      "claim": "Shared DebouncedSearchInput: 300 ms, min 2 chars (01 §4)",
+      "verdict": "CONFIRMED",
+      "evidence": "components/debounced-search-input.tsx:8-9"
+    },
+    {
+      "id": "A6",
+      "claim": "Keep GET /api/publishers/library/summary; add locale (01 §3)",
+      "verdict": "CONFIRMED",
+      "evidence": "The endpoint exists at publishers.controller.ts:69. It takes no locale today, so adding one is work (T1.5)"
+    },
+    {
+      "id": "A7",
+      "claim": "Summary preserves consumed fields; new insight fields must be added (01 §3)",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/publishers.ts:111-119 has none of the 7 new fields"
+    },
+    {
+      "id": "A8",
+      "claim": "Publisher readCount = finished + rereading (Phase 1 'implement/confirm')",
+      "verdict": "FALSE",
+      "evidence": "publishers.repository.ts:523 counts finished only. rereading exists (book-enums.ts:10). Needs a fix (T1.3)"
+    },
+    {
+      "id": "A9",
+      "claim": "Publisher readingCount = reading + rereading",
+      "verdict": "FALSE",
+      "evidence": "publishers.repository.ts:524 counts reading only"
+    },
+    {
+      "id": "A10",
+      "claim": "Publisher seriesCount = active Series only",
+      "verdict": "FALSE",
+      "evidence": "publishers.repository.ts:528 uses count(DISTINCT b.series_id) with no series join, and hasSeries at :432 does the same. So soft-deleted series are counted"
+    },
+    {
+      "id": "A11",
+      "claim": "Archive search = publisher identity only (01 §4)",
+      "verdict": "CONFIRMED",
+      "evidence": "publishers.repository.ts:465 uses p.search_text ILIKE only"
+    },
+    {
+      "id": "A12",
+      "claim": "Sort tie-breakers: nulls last, name ASC, id ASC; name ties id ASC (01 §5)",
+      "verdict": "ALREADY DONE",
+      "evidence": "publishers.repository.ts:442-452"
+    },
+    {
+      "id": "A13",
+      "claim": "Backend sort values booksCount/readCount/wantToBuyCount/averageRating/lastBookAddedAt/name with asc/desc (01 §5 'Backend' column)",
+      "verdict": "CONFIRMED",
+      "evidence": "publishers.ts:131-144. The 12 semantic sorts map onto these without a backend change"
+    },
+    {
+      "id": "A14",
+      "claim": "Geography all/ua/foreign/unknown and source all/global/custom (01 §7)",
+      "verdict": "ALREADY DONE",
+      "evidence": "publishers.ts:123-129; repository geographyCondition :487-500, sourceCondition :564-575"
+    },
+    {
+      "id": "A15",
+      "claim": "Advanced boolean 'Є оцінені книги' (ratedBooksCount>0)",
+      "verdict": "ALREADY DONE",
+      "evidence": "hasRatedBooks: publishers.ts:149, repository :434-436"
+    },
+    {
+      "id": "A16",
+      "claim": "Advanced booleans wantToReadCount>0 and queueCount>0",
+      "verdict": "CONFIRMED (missing)",
+      "evidence": "No such params exist (publishers.ts:146-155). They must be added (T1.2/T1.4, D1)"
+    },
+    {
+      "id": "A17",
+      "claim": "Quick filter reading/read server semantics",
+      "verdict": "CONFIRMED (missing)",
+      "evidence": "Only hasBooksToBuy and hasSeries exist (publishers.ts:148,150). reading and read are new (D1)"
+    },
+    {
+      "id": "A18",
+      "claim": "Backend/shared publisherPresence = all|assigned|missing exists (01 §15)",
+      "verdict": "ALREADY DONE",
+      "evidence": "books.ts:884,908; book-where.ts:69-75; tests books.controller.library.test.ts:952-1089"
+    },
+    {
+      "id": "A19",
+      "claim": "Books frontend parses publisherPresence",
+      "verdict": "CONFIRMED (missing)",
+      "evidence": "apps/web/src/features/books has no occurrence. library-query.ts parsers (:55-78) lack it. The only users are Publishers banner/tests"
+    },
+    {
+      "id": "A20",
+      "claim": "publisherPresence and a fixed publisher combine safely",
+      "verdict": "FALSE (hidden risk)",
+      "evidence": "book-where.ts:69-75 is an else-if, so publisherPresence overrides publisherIds. If the Detail Books tab forwards URL publisherPresence, it escapes the fixed publisher scope. Guarded in T6.2"
+    },
+    {
+      "id": "A21",
+      "claim": "library-detail endpoint exists and must become publisher-root (02 §23)",
+      "verdict": "CONFIRMED",
+      "evidence": "publishers.controller.ts:141. It is book-root today (aggregateLibraryDetail -> runLibraryAggregate FROM books JOIN publishers, repository :213-229,533-534)"
+    },
+    {
+      "id": "A22",
+      "claim": "Visible zero-book publisher returns 200",
+      "verdict": "FALSE",
+      "evidence": "Returns 404 today (service :304-306). The test asserts 404 at publishers.controller.detail.test.ts:125. The side effect: /books/new?publisherId=<zero-book publisher> resolves via usePublisherDetails (create-book-form.tsx:112) and silently loses the preselect today. T2.2 fixes it"
+    },
+    {
+      "id": "A23",
+      "claim": "Aggregates use COUNT(b.id), not COUNT(*)",
+      "verdict": "FALSE",
+      "evidence": "The repository uses count(*) at :522-527 (fine for book-root, wrong once LEFT JOINed)"
+    },
+    {
+      "id": "A24",
+      "claim": "wishlistWithoutPriceCount uses BookStoreLink.price, not purchaseInfo.expectedPrice",
+      "verdict": "CONFIRMED (field missing)",
+      "evidence": "BookStoreLink.price exists (schema.prisma BookStoreLink:149). The detail schema has no such field (publishers.ts:87-95)"
+    },
+    {
+      "id": "A25",
+      "claim": "Foreign custom / missing publisher -> 404",
+      "verdict": "ALREADY DONE",
+      "evidence": "Enforced by the where at repository :459 and tested at detail.test.ts:139,158. Must be preserved in the publisher-root query"
+    },
+    {
+      "id": "A26",
+      "claim": "Media view builder is already exported for compact covers (CHANGE-MAP Phase 2)",
+      "verdict": "CONFIRMED",
+      "evidence": "media/index.ts:1 exports MediaService; buildViewOrNull at media/application/media.service.ts:101. MediaModule imports only Auth/Bull/Realtime (media.module.ts:20), so there is no cycle"
+    },
+    {
+      "id": "A27",
+      "claim": "Canonical Wishlist best-offer + currency priority is reusable",
+      "verdict": "CONFIRMED (not exported)",
+      "evidence": "computeBestOffer at books/domain/best-offer.ts:10 is not exported from books/index.ts. See D3"
+    },
+    {
+      "id": "A28",
+      "claim": "Do not import BooksModule into PublishersModule",
+      "verdict": "CONFIRMED",
+      "evidence": "books.module.ts:12,93 already imports PublishersModule, so the reverse would be a cycle"
+    },
+    {
+      "id": "A29",
+      "claim": "Reuse existing author refs, MediaView, BestOffer, Series status schemas",
+      "verdict": "CONFIRMED",
+      "evidence": "BookAuthorRefSchema authors.ts:86; MediaViewSchema media.ts:41; BestOfferViewSchema book-store-links.ts:75; SeriesStatusSchema series.ts:36 (completed|ongoing|unknown)"
+    },
+    {
+      "id": "A30",
+      "claim": "ReadingProgress.updatedAt, Book.wishlistAddedAt, Series.deletedAt exist (02 §25)",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma BookReadingProgress:138 (model is BookReadingProgress), Book:64, Series:10"
+    },
+    {
+      "id": "A31",
+      "claim": "No DB migration expected",
+      "verdict": "CONFIRMED",
+      "evidence": "Every column read by the spec exists (A24, A30, Publisher.countryCode:33)"
+    },
+    {
+      "id": "A32",
+      "claim": "GET /api/books/overview has optional owner only; canonical summary fields total/reading/finished/favorites/wantToRead/wantToBuy/inTransit/borrowed/series/solo",
+      "verdict": "CONFIRMED",
+      "evidence": "books.ts:958-960, 1199-1213. Publisher context is missing (T2.7)"
+    },
+    {
+      "id": "A33",
+      "claim": "GET /api/books/facets has scope + q only",
+      "verdict": "CONFIRMED",
+      "evidence": "books.ts:1340-1343; book-facets.repository.ts:53-86. Publisher context is missing (T2.8)"
+    },
+    {
+      "id": "A34",
+      "claim": "Global Books search includes publisher identity",
+      "verdict": "CONFIRMED",
+      "evidence": "book-search.ts:31-32"
+    },
+    {
+      "id": "A35",
+      "claim": "Books search has a short-ISBN exception and min length 2",
+      "verdict": "CONFIRMED",
+      "evidence": "book-search.ts:7,62"
+    },
+    {
+      "id": "A36",
+      "claim": "15 canonical Books sorts, default created_desc",
+      "verdict": "CONFIRMED",
+      "evidence": "books.ts:863-879 (15 values), :909"
+    },
+    {
+      "id": "A37",
+      "claim": "10 canonical quick filters in the stated order",
+      "verdict": "CONFIRMED",
+      "evidence": "features/books/model/library-quick-filters.ts:10-19"
+    },
+    {
+      "id": "A38",
+      "claim": "Books quick Прочитано = finished only",
+      "verdict": "CONFIRMED",
+      "evidence": "library-overview.ts:25 finishedStatuses ['finished']; library-quick-filters.ts:103"
+    },
+    {
+      "id": "A39",
+      "claim": "Books search placeholder 'Назва книги, автор або серія'",
+      "verdict": "CONFIRMED",
+      "evidence": "messages/uk.json:806"
+    },
+    {
+      "id": "A40",
+      "claim": "BookCard/BookRow render publisher; no hide prop yet",
+      "verdict": "CONFIRMED",
+      "evidence": "book-card.tsx:58,265-277; book-row.tsx:347-359"
+    },
+    {
+      "id": "A41",
+      "claim": "Books page shell contains an h1 and summary, so the inner core must be extracted",
+      "verdict": "CONFIRMED",
+      "evidence": "books-library-view.tsx:170 (h1), :185 LibrarySummaryCards; books-library.tsx:247 sidebar"
+    },
+    {
+      "id": "A42",
+      "claim": "Publisher Books tab is currently a fork",
+      "verdict": "CONFIRMED",
+      "evidence": "publisher-books-tab.tsx:1-80 has its own nuqs parsers, Select, Segmented and BookCard wiring, plus publisher-books-params.ts"
+    },
+    {
+      "id": "A43",
+      "claim": "Detail has a toBuy tab + PublisherToBuyTab",
+      "verdict": "CONFIRMED",
+      "evidence": "publisher-details-view.tsx:26,43,74-76; publisher-to-buy-tab.tsx"
+    },
+    {
+      "id": "A44",
+      "claim": "PageTabs is Radix and supports an aria label",
+      "verdict": "CONFIRMED",
+      "evidence": "page-tabs.tsx:31,39,55"
+    },
+    {
+      "id": "A45",
+      "claim": "Hero currently has a back link, Власне badge, separate Edit/Delete buttons, and a country fallback",
+      "verdict": "CONFIRMED",
+      "evidence": "publisher-details-hero.tsx:129-135,150,181-188,125"
+    },
+    {
+      "id": "A46",
+      "claim": "Add Book navigates with the publisher preselected",
+      "verdict": "ALREADY DONE",
+      "evidence": "publisher-details-view.tsx:46 -> /books/new?publisherId=; page.tsx:18,36. Drift check: book-form.tsx sets publisherOwnedByUser=true when initialPublisher != null, which suppresses the series suggestion. Works only once A22 is fixed"
+    },
+    {
+      "id": "A47",
+      "claim": "StatCard label truncates, so a narrow optional prop may be needed",
+      "verdict": "CONFIRMED",
+      "evidence": "components/ui/stat-card.tsx:140 'truncate'"
+    },
+    {
+      "id": "A48",
+      "claim": "Existing shared YearPicker",
+      "verdict": "CONFIRMED",
+      "evidence": "components/ui/year-picker.tsx:20-34. The edit dialog uses a plain Input today (:266-270)"
+    },
+    {
+      "id": "A49",
+      "claim": "Edit dialog field order Name, Country, Website, Year; dirty/discard; 409 -> name",
+      "verdict": "ALREADY DONE",
+      "evidence": "edit-publisher-dialog.tsx labels at :215,229,247,266; isDirty :161; DUPLICATE_STATUS -> setError('name') :195-196"
+    },
+    {
+      "id": "A50",
+      "claim": "Existing ISO country dataset/helper/CountrySelect",
+      "verdict": "FALSE (absent)",
+      "evidence": "The bounded search found none in apps/web, apps/api or packages/shared. There is no dependency in the package.json files. Country is a free-text Input + regex /^[A-Z]{2}$/ (publishers.ts:57,165-169). Only Intl.DisplayNames labeling exists (publisher-format.ts:13)"
+    },
+    {
+      "id": "A51",
+      "claim": "Delete: 409 PUBLISHER_HAS_BOOKS server contract",
+      "verdict": "ALREADY DONE",
+      "evidence": "publishers.service.ts:281-285; dialog maps 409 (delete-publisher-dialog.tsx:24)"
+    },
+    {
+      "id": "A52",
+      "claim": "publisherKeys.overview + shared invalidatePublisherQueries exist",
+      "verdict": "CONFIRMED (missing)",
+      "evidence": "publisher-keys.ts:5-11 has detail/list/root/summary only"
+    },
+    {
+      "id": "A53",
+      "claim": "Mutations invalidate the publisher root",
+      "verdict": "STALE (partial)",
+      "evidence": "Only use-create-book.ts:24 and the publisher's own edit/delete do. Missing in use-update-book.ts:45-51, use-book-mutation-sync.ts, use-book-actions.ts, use-store-links.ts:65-66, use-update-series.ts:75-79, use-delete-series.ts:15-17"
+    },
+    {
+      "id": "A54",
+      "claim": "Publisher edit sets the returned detail into cache",
+      "verdict": "FALSE",
+      "evidence": "use-update-publisher.ts:23-27 only invalidates"
+    },
+    {
+      "id": "A55",
+      "claim": "Archive uses numbered pagination, keepPreviousData, separate order toggle, missing-banner",
+      "verdict": "CONFIRMED",
+      "evidence": "all-publishers.tsx:14,32,49; use-publishers-list.ts:27; publisher-query.ts:44-45"
+    },
+    {
+      "id": "A56",
+      "claim": "Terminology: publishers UI must not use Бажані / До покупки",
+      "verdict": "CONFIRMED (violations)",
+      "evidence": "messages uk.json publishers namespace: Бажані x7, До покупки x0"
+    },
+    {
+      "id": "A57",
+      "claim": "HEAD == audited commit e5587ba5",
+      "verdict": "STALE",
+      "evidence": "HEAD 0f4b344f. Relevant drift: the series-publisher suggestion (book-form.tsx, series-publisher-suggestion.ts, series.ts:191-206,278) and books.repository.ts:219. Reconciled in tasks.json auditedAgainst.relevantDrift and D6"
+    }
+  ]
+}

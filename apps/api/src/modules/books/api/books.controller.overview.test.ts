@@ -244,9 +244,9 @@ describe("GET /api/books/overview", () => {
     const res = await getOverview(accessToken);
 
     expect(res.body.topTags).toEqual([
-      { count: 4, id: t1.id, name: "slow burn" },
-      { count: 3, id: t2.id, name: "dark academia" },
-      { count: 2, id: t3.id, name: "dragons" },
+      { color: "parchment", count: 4, id: t1.id, name: "slow burn" },
+      { color: "parchment", count: 3, id: t2.id, name: "dark academia" },
+      { color: "parchment", count: 2, id: t3.id, name: "dragons" },
     ]);
   });
 
@@ -594,7 +594,9 @@ describe("GET /api/books/overview owner scope", () => {
     const scoped = await getOverview(accessToken, "owner=owned");
     const global = await getOverview(accessToken);
 
-    expect(scoped.body.topTags).toEqual([{ count: 1, id: ownedTag.id, name: "owned tag" }]);
+    expect(scoped.body.topTags).toEqual([
+      { color: "parchment", count: 1, id: ownedTag.id, name: "owned tag" },
+    ]);
     expect(global.body.topTags.map((tag: { id: string }) => tag.id)).toEqual(
       expect.arrayContaining([ownedTag.id, outTag.id]),
     );
@@ -1056,5 +1058,107 @@ describe("GET /api/books/overview micro-facts", () => {
       book: { currentPage: 100, id: owned.id, pagesCount: 300, title: "Owned Reading Part" },
       pagesAhead: 200,
     });
+  });
+});
+
+describe("GET /api/books/overview publisher context", () => {
+  async function seedPublisherLibrary(userId: string): Promise<{ publisherId: string }> {
+    const author = await seedAuthor({ name: "Author", userId });
+    const otherAuthor = await seedAuthor({ name: "Other Author", userId });
+    const series = await seedSeries({ name: "Saga", userId });
+    const otherSeries = await seedSeries({ name: "Other Saga", userId });
+    const publisher = await prisma.publisher.create({
+      data: { name: "Penguin", normalizedName: "penguin", searchText: "penguin", userId: null },
+      select: { id: true },
+    });
+    const scopedBooks = await Promise.all([
+      seedBook({ authorId: author.id, readingStatus: "finished", seriesId: series.id, userId }),
+      seedBook({ authorId: author.id, readingStatus: "rereading", userId }),
+      seedBook({ authorId: author.id, ownershipStatus: "want_to_buy", userId }),
+      seedBook({ authorId: author.id, isFavorite: true, ownershipStatus: "owned", userId }),
+      seedBook({
+        authorId: author.id,
+        ownershipStatus: "in_transit",
+        readingStatus: "want_to_read",
+        userId,
+      }),
+      seedBook({ authorId: author.id, ownershipStatus: "borrowed_from_someone", userId }),
+    ]);
+    await prisma.book.updateMany({
+      data: { publisherId: publisher.id },
+      where: { id: { in: scopedBooks.map((book) => book.id) } },
+    });
+    await seedBook({
+      authorId: otherAuthor.id,
+      readingStatus: "finished",
+      seriesId: otherSeries.id,
+      userId,
+    });
+    await seedBook({ authorId: otherAuthor.id, ownershipStatus: "want_to_buy", userId });
+    await seedBook({ authorId: otherAuthor.id, ownershipStatus: "in_transit", userId });
+    await seedBook({
+      authorId: otherAuthor.id,
+      isFavorite: true,
+      ownershipStatus: "lent_to_someone",
+      readingStatus: "reading",
+      userId,
+    });
+    await seedBook({ authorId: otherAuthor.id, readingStatus: "want_to_read", userId });
+    return { publisherId: publisher.id };
+  }
+
+  it("scopes every summary count to the publisher and keeps finished as finished only", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { publisherId } = await seedPublisherLibrary(userId);
+
+    const res = await getOverview(accessToken, `publisher=${publisherId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary).toEqual({
+      authorsCount: 1,
+      borrowed: 1,
+      favorites: 1,
+      finished: 1,
+      inTransit: 1,
+      physicallyAvailable: 2,
+      reading: 1,
+      series: 1,
+      seriesCount: 1,
+      solo: 5,
+      total: 6,
+      wantToBuy: 1,
+      wantToRead: 1,
+    });
+  });
+
+  it("keeps the unscoped summary over the whole library when publisher is omitted", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedPublisherLibrary(userId);
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.summary).toEqual({
+      authorsCount: 2,
+      borrowed: 2,
+      favorites: 2,
+      finished: 2,
+      inTransit: 2,
+      physicallyAvailable: 3,
+      reading: 2,
+      series: 2,
+      seriesCount: 2,
+      solo: 9,
+      total: 11,
+      wantToBuy: 2,
+      wantToRead: 2,
+    });
+  });
+
+  it("returns 400 when publisher is not a uuid", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getOverview(accessToken, "publisher=not-a-uuid");
+
+    expect(res.status).toBe(400);
   });
 });

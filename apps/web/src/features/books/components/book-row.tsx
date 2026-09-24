@@ -1,5 +1,7 @@
 "use client";
 
+import type { TagView } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
@@ -7,6 +9,7 @@ import { GenreIcon, UiIcon } from "@/components/icons";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { cn } from "@/lib/utils";
 
 import type { BookRowBook, LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
@@ -29,6 +32,7 @@ type BookRowProps = {
   rowLink?: boolean;
   selected?: boolean;
   selectionControl?: React.ReactNode;
+  showPublisher?: boolean;
   statusPlacement?: "column" | "note";
   statusSlot?: React.ReactNode;
   tone?: BookRowTone;
@@ -79,6 +83,7 @@ export function BookRow({
   rowLink = true,
   selected,
   selectionControl,
+  showPublisher = true,
   statusPlacement = "column",
   statusSlot,
   tone,
@@ -121,6 +126,7 @@ export function BookRow({
           mobileKebab={compact === null ? undefined : kebab}
           note={note}
           rowLink={rowLink}
+          showPublisher={showPublisher}
         />
 
         {detailsSlot === undefined ? null : (
@@ -187,7 +193,7 @@ function BookRowChips({
 }: {
   className?: string;
   genres?: LibraryBook["genres"];
-  tags?: string[];
+  tags?: TagView[];
 }) {
   const visibleGenres = (genres ?? []).slice(0, GENRES_VISIBLE);
   const visibleTags = (tags ?? []).slice(0, TAGS_VISIBLE);
@@ -215,16 +221,15 @@ function BookRowChips({
       ))}
 
       {visibleTags.map((tag) => (
-        <span
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-foreground/80"
-          key={tag}
-        >
-          <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
-          {tag}
-        </span>
+        <TagChip
+          className="shrink-0 px-2 py-0.5 text-xs whitespace-nowrap"
+          color={tag.color}
+          key={tag.id}
+          name={tag.name}
+        />
       ))}
 
-      <MorePill items={hiddenTags} />
+      <MorePill items={hiddenTags.map((tag) => tag.name)} />
     </div>
   );
 }
@@ -279,6 +284,7 @@ function BookRowMeta({
   mobileKebab,
   note,
   rowLink,
+  showPublisher,
 }: {
   ageBadgeClassName?: string;
   book: BookRowBook;
@@ -289,6 +295,7 @@ function BookRowMeta({
   mobileKebab?: React.ReactNode;
   note?: React.ReactNode;
   rowLink: boolean;
+  showPublisher: boolean;
 }) {
   const headingLayout = mobileKebab === undefined ? "contents" : "flex items-start gap-2";
   const headingTextLayout =
@@ -344,7 +351,7 @@ function BookRowMeta({
         </LinkComp>
       )}
 
-      {book.publisher === undefined ? null : (
+      {!showPublisher || book.publisher === undefined ? null : (
         <p
           className={cn(
             "flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground",

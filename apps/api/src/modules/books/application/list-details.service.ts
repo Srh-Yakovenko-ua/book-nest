@@ -44,9 +44,7 @@ export class ListDetailsService {
     const { pageNumber, pageSize, sort } = query;
     const search = normalizeSearchQuery(query.search);
     const searchGenreKeys =
-      search === undefined
-        ? undefined
-        : await this.genresService.searchKeys({ query: search, userId });
+      search === undefined ? undefined : await this.genresService.searchKeys(search);
 
     const filter = buildListBookFilter({ query, search, searchGenreKeys, userId });
     const narrowedByQuickFilter = hasQuickFilterAxis(filter);

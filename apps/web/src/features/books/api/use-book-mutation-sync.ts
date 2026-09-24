@@ -2,6 +2,8 @@ import type { BookView } from "@app/shared";
 
 import { useQueryClient } from "@tanstack/react-query";
 
+import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
+import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 
@@ -24,5 +26,7 @@ export function useBookMutationSync() {
         typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/delivery"),
     });
     void invalidateStatisticsQueries(queryClient);
+    void invalidateGenreDerivedQueries(queryClient);
+    void invalidatePublisherQueries(queryClient);
   };
 }

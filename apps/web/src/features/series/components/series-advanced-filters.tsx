@@ -48,7 +48,7 @@ export function SeriesAdvancedFilters({
   filters,
   onApply,
   onRememberAuthor,
-  resolveAuthorName: _resolveAuthorName,
+  resolveAuthorName,
 }: SeriesAdvancedFiltersProps) {
   const t = useTranslations("series.filters");
   const tCompleteness = useTranslations("series.filters.completeness");
@@ -208,6 +208,7 @@ export function SeriesAdvancedFilters({
               }}
               options={authorFacetOptions}
               placeholder={t("authorPlaceholder")}
+              resolveLabel={resolveAuthorName}
               searchPlaceholder={t("authorPlaceholder")}
               selectedText={(count) => t("authorSelected", { count })}
               value={draft.authorIds}

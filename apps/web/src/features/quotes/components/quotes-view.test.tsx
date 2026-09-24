@@ -223,9 +223,8 @@ describe("QuotesView advanced filters", () => {
     await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
 
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByRole("button", { name: /^Книги / })).toHaveTextContent(
-      "Обрано книг: 1",
-    );
+    expect(within(sheet).getByRole("button", { name: /^Книги / })).toHaveTextContent("Дюна");
+    expect(within(sheet).getByRole("button", { name: "Прибрати Дюна" })).toBeInTheDocument();
   });
 
   it("asks for both books when two are picked", async () => {

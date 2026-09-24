@@ -340,6 +340,7 @@ export function WishlistAdvancedFilters({
               }}
               options={authorFacetOptions}
               placeholder={t("authorPlaceholder")}
+              resolveLabel={resolveEntityName}
               searchingText={t("authorSearching")}
               searchPlaceholder={t("authorPlaceholder")}
               selectedText={(count) => t("authorSelected", { count })}

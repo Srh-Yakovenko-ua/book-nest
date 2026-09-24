@@ -51,7 +51,13 @@ const books: LibraryBook[] = [
       total: 3,
     },
     status: reading,
-    tags: ["драматично", "романтика", "магія", "вампіри", "інтриги"],
+    tags: [
+      { color: "sage", id: "tag-1", name: "драматично" },
+      { color: "rose", id: "tag-2", name: "романтика" },
+      { color: "sky", id: "tag-3", name: "магія" },
+      { color: "honey", id: "tag-4", name: "вампіри" },
+      { color: "lavender", id: "tag-5", name: "інтриги" },
+    ],
     title: "Двір срібного полум'я",
     year: 2021,
   },
@@ -166,7 +172,7 @@ const sidebar = (
       { count: 18, key: "thriller", name: "Трилер" },
       { count: 11, key: "scifi", name: "Наукова фантастика" },
     ]}
-    topTags={[{ id: "1", name: "slow burn" }]}
+    topTags={[{ color: "sage", id: "1", name: "slow burn" }]}
   />
 );
 

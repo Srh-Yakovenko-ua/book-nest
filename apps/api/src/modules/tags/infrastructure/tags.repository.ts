@@ -7,9 +7,9 @@ import type { TagModel } from "../../../generated/prisma/models.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 type CountTagsInput = {
+  ids?: string[];
   query: string | undefined;
   userId: string;
 };
@@ -24,6 +24,7 @@ type CreateTagInput = {
 };
 
 type SearchTagsInput = {
+  ids?: string[];
   query: string | undefined;
   skip: number;
   take: number;
@@ -61,18 +62,22 @@ export class TagsRepository {
     );
   }
 
-  countBooksByTag(userId: string): Promise<{ count: number; tagId: string }[]> {
-    return this.prisma.bookTag
-      .groupBy({
-        _count: { bookId: true },
-        by: ["tagId"],
-        where: { book: SOFT_DELETE_SCOPE.active, tag: { userId } },
-      })
-      .then((rows) => rows.map((row) => ({ count: row._count.bookId, tagId: row.tagId })));
+  async countLinks({
+    tagId,
+    userId,
+  }: {
+    tagId: string;
+    userId: string;
+  }): Promise<{ bookLinksCount: number; characterLinksCount: number }> {
+    const [bookLinksCount, characterLinksCount] = await Promise.all([
+      this.prisma.bookTag.count({ where: { tag: { userId }, tagId } }),
+      this.prisma.characterTag.count({ where: { tag: { userId }, tagId } }),
+    ]);
+    return { bookLinksCount, characterLinksCount };
   }
 
-  countOwned({ query, userId }: CountTagsInput): Promise<number> {
-    return this.prisma.tag.count({ where: buildOwnedWhere(userId, query) });
+  countOwned({ ids, query, userId }: CountTagsInput): Promise<number> {
+    return this.prisma.tag.count({ where: buildOwnedWhere({ ids, query, userId }) });
   }
 
   countOwnedByIds(
@@ -118,16 +123,12 @@ export class TagsRepository {
     return client.tag.findFirst({ where: { id, userId } });
   }
 
-  listOwned(userId: string): Promise<TagModel[]> {
-    return this.prisma.tag.findMany({ orderBy: { name: "asc" }, where: { userId } });
-  }
-
-  searchOwned({ query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
+  searchOwned({ ids, query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
     return this.prisma.tag.findMany({
       orderBy: { name: "asc" },
       skip,
       take,
-      where: buildOwnedWhere(userId, query),
+      where: buildOwnedWhere({ ids, query, userId }),
     });
   }
 
@@ -160,12 +161,22 @@ export class TagsRepository {
   }
 }
 
-function buildOwnedWhere(userId: string, query: string | undefined): Prisma.TagWhereInput {
+function buildOwnedWhere({
+  ids,
+  query,
+  userId,
+}: {
+  ids: string[] | undefined;
+  query: string | undefined;
+  userId: string;
+}): Prisma.TagWhereInput {
+  const idFilter = ids === undefined ? {} : { id: { in: ids } };
   if (query === undefined || query.length === 0) {
-    return { userId };
+    return { ...idFilter, userId };
   }
 
   return {
+    ...idFilter,
     OR: [
       { name: { contains: query, mode: "insensitive" } },
       { description: { contains: query, mode: "insensitive" } },

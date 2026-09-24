@@ -70,7 +70,7 @@ const globalSummaryInclude = {
   avatarMedia: true,
   tags: {
     orderBy: [{ tag: { name: "asc" } }, { tag: { normalizedName: "asc" } }],
-    select: { tag: { select: { id: true, name: true } } },
+    select: { tag: { select: { color: true, id: true, name: true } } },
   },
 } satisfies Prisma.CharacterInclude;
 

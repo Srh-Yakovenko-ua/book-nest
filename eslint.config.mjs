@@ -127,6 +127,18 @@ export default tseslint.config(
               message:
                 "Cross-module imports must go through the module public API barrel (index.ts), not its internal folders (api/application/domain/infrastructure).",
             },
+            {
+              allow: {
+                to: [
+                  {
+                    captured: { moduleName: "books" },
+                    internalPath: "domain/best-offer.ts",
+                    type: ["module"],
+                  },
+                ],
+              },
+              from: { captured: { moduleName: "publishers" }, type: ["module"] },
+            },
           ],
         },
       ],

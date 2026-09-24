@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useGenres } from "@/features/books";
+import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type { NotesArchiveFacets } from "../api/use-notes-facets";
@@ -35,7 +36,6 @@ import type {
 } from "../model/notes-archive-config";
 import type { NotesAdvancedValues } from "../model/notes-archive-query";
 
-import { assertNever } from "../model/assert-never";
 import { NOTES_ARCHIVE } from "../model/notes-archive-query";
 import {
   customCategorySelectionValue,
@@ -233,11 +233,13 @@ function FacetField({
   dimension,
   onValueChange,
   options,
+  resolveLabel,
   value,
 }: {
   dimension: NotesFacetDimension;
   onValueChange: (next: string[]) => void;
   options: FacetOption[];
+  resolveLabel?: (value: string) => string | undefined;
   value: string[];
 }) {
   const t = useTranslations("notes.archive.advancedFilters");
@@ -249,6 +251,7 @@ function FacetField({
       onValueChange={onValueChange}
       options={options}
       placeholder={t(`fields.${dimension}.placeholder`)}
+      resolveLabel={resolveLabel}
       searchPlaceholder={t(`fields.${dimension}.search`)}
       selectedText={(count) => t("selected", { count })}
       value={value}
@@ -273,6 +276,7 @@ function GenreField({ draft, facets, onChange }: DimensionFieldProps) {
         ...option,
         label: nameByKey.get(option.value) ?? option.label,
       }))}
+      resolveLabel={(key) => nameByKey.get(key)}
       value={draft.genre}
     />
   );

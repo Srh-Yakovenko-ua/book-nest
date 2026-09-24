@@ -710,6 +710,18 @@ export const BooksControllerCreateResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -720,6 +732,9 @@ export const BooksControllerCreateResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -885,6 +900,7 @@ export const BooksControllerListQueryParams = zod.object({
     .max(booksControllerListQueryRatingMinMax)
     .multipleOf(booksControllerListQueryRatingMinMultipleOf)
     .optional(),
+  searchPublisher: zod.string().optional(),
   sort: zod
     .enum([
       "created_desc",
@@ -1344,6 +1360,20 @@ export const BooksControllerListResponse = zod.object({
           tags: zod
             .array(
               zod.object({
+                color: zod
+                  .enum([
+                    "parchment",
+                    "terracotta",
+                    "honey",
+                    "sage",
+                    "forest",
+                    "sky",
+                    "lavender",
+                    "rose",
+                  ])
+                  .describe(
+                    "Effective palette color; a missing or legacy color reads as parchment.",
+                  ),
                 id: zod.string(),
                 name: zod.string(),
               }),
@@ -1354,6 +1384,9 @@ export const BooksControllerListResponse = zod.object({
         .nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -1383,6 +1416,10 @@ export const BooksControllerListResponse = zod.object({
 /**
  * @summary Get the current user library overview
  */
+export const booksControllerOverviewQueryPublisherRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
 export const BooksControllerOverviewQueryParams = zod.object({
   owner: zod
     .array(
@@ -1397,6 +1434,11 @@ export const BooksControllerOverviewQueryParams = zod.object({
     )
     .optional()
     .describe("Scope the overview to these ownership statuses (physical library)"),
+  publisher: zod
+    .uuid()
+    .regex(booksControllerOverviewQueryPublisherRegExp)
+    .optional()
+    .describe("Scope every summary count to the current user books of this publisher"),
 });
 
 export const booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMin =
@@ -1827,6 +1869,20 @@ export const BooksControllerOverviewResponse = zod.object({
           tags: zod
             .array(
               zod.object({
+                color: zod
+                  .enum([
+                    "parchment",
+                    "terracotta",
+                    "honey",
+                    "sage",
+                    "forest",
+                    "sky",
+                    "lavender",
+                    "rose",
+                  ])
+                  .describe(
+                    "Effective palette color; a missing or legacy color reads as parchment.",
+                  ),
                 id: zod.string(),
                 name: zod.string(),
               }),
@@ -1837,6 +1893,9 @@ export const BooksControllerOverviewResponse = zod.object({
         .nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -1872,9 +1931,12 @@ export const BooksControllerOverviewResponse = zod.object({
   ),
   topTags: zod.array(
     zod.object({
-      count: zod.number(),
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
+      count: zod.number(),
     }),
   ),
 });
@@ -2477,6 +2539,20 @@ export const BooksControllerWishlistResponse = zod.object({
           tags: zod
             .array(
               zod.object({
+                color: zod
+                  .enum([
+                    "parchment",
+                    "terracotta",
+                    "honey",
+                    "sage",
+                    "forest",
+                    "sky",
+                    "lavender",
+                    "rose",
+                  ])
+                  .describe(
+                    "Effective palette color; a missing or legacy color reads as parchment.",
+                  ),
                 id: zod.string(),
                 name: zod.string(),
               }),
@@ -2487,6 +2563,9 @@ export const BooksControllerWishlistResponse = zod.object({
         .nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -2549,9 +2628,13 @@ export const BooksControllerWishlistResponse = zod.object({
 /**
  * @summary Get the author and genre filter facets of a book scope, authors optionally searched
  */
+export const booksControllerFacetsQueryPublisherRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerFacetsQueryQMax = 200;
 
 export const BooksControllerFacetsQueryParams = zod.object({
+  publisher: zod.uuid().regex(booksControllerFacetsQueryPublisherRegExp).optional(),
   q: zod.string().min(1).max(booksControllerFacetsQueryQMax).optional(),
   scope: zod.enum(["all", "favorites", "my", "queue", "series", "wishlist"]),
 });
@@ -3061,6 +3144,20 @@ export const BooksControllerDedicationsResponse = zod.object({
           tags: zod
             .array(
               zod.object({
+                color: zod
+                  .enum([
+                    "parchment",
+                    "terracotta",
+                    "honey",
+                    "sage",
+                    "forest",
+                    "sky",
+                    "lavender",
+                    "rose",
+                  ])
+                  .describe(
+                    "Effective palette color; a missing or legacy color reads as parchment.",
+                  ),
                 id: zod.string(),
                 name: zod.string(),
               }),
@@ -3071,6 +3168,9 @@ export const BooksControllerDedicationsResponse = zod.object({
         .nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -3587,6 +3687,18 @@ export const BooksControllerGetByIdResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -3597,6 +3709,9 @@ export const BooksControllerGetByIdResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -4306,6 +4421,18 @@ export const BooksControllerUpdateResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -4316,6 +4443,9 @@ export const BooksControllerUpdateResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -4711,6 +4841,18 @@ export const BooksControllerRestoreResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -4721,6 +4863,9 @@ export const BooksControllerRestoreResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -5302,6 +5447,18 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -5312,6 +5469,9 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -5725,6 +5885,18 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -5735,6 +5907,9 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -6120,6 +6295,18 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -6130,6 +6317,9 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -6515,6 +6705,18 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -6525,6 +6727,9 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -6916,6 +7121,18 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -6926,6 +7143,9 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -7333,6 +7553,18 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -7343,6 +7575,9 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -7751,6 +7986,18 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -7761,6 +8008,9 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -8208,6 +8458,18 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -8218,6 +8480,9 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -8620,6 +8885,18 @@ export const BookLoanControllerEditLoanResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -8630,6 +8907,9 @@ export const BookLoanControllerEditLoanResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -9014,6 +9294,18 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -9024,6 +9316,9 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -9419,6 +9714,18 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -9429,6 +9736,9 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -9809,6 +10119,18 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -9819,6 +10141,9 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -10232,6 +10557,18 @@ export const BookDeliveryControllerCreateResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -10242,6 +10579,9 @@ export const BookDeliveryControllerCreateResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -10689,6 +11029,18 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -10699,6 +11051,9 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -11091,6 +11446,18 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -11101,6 +11468,9 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),
@@ -11489,6 +11859,18 @@ export const BookDeliveryControllerCancelResponse = zod.object({
       tags: zod
         .array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -11499,6 +11881,9 @@ export const BookDeliveryControllerCancelResponse = zod.object({
     .nullable(),
   tags: zod.array(
     zod.object({
+      color: zod
+        .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+        .describe("Effective palette color; a missing or legacy color reads as parchment."),
       id: zod.string(),
       name: zod.string(),
     }),

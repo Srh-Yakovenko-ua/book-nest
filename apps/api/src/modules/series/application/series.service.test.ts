@@ -1,4 +1,4 @@
-import type { MediaView, Nullable } from "@app/shared";
+import type { MediaView, Nullable, TagView } from "@app/shared";
 import type { Mock } from "vitest";
 
 import { SERIES_SORT_DEFAULT } from "@app/shared";
@@ -41,7 +41,7 @@ type BookRowInput = {
   publisher?: Nullable<{ id: string; name: string }>;
   rating?: Nullable<number>;
   readingStatus?: string;
-  tags?: { id: string; name: string }[];
+  tags?: TagView[];
   title?: string;
   updatedAt?: Date;
 };
@@ -65,7 +65,7 @@ type DetailBookInput = {
   queuePosition?: Nullable<number>;
   rating?: Nullable<number>;
   readingStatus?: string;
-  tags?: { id: string; name: string }[];
+  tags?: TagView[];
   title?: string;
   updatedAt?: Date;
 };
@@ -138,7 +138,7 @@ function detailedSeries(
       readingProgress:
         book.rating === undefined ? null : { currentPage: null, rating: book.rating },
       readingStatus: book.readingStatus ?? "not_started",
-      tags: (book.tags ?? []).map((tag) => ({ tag: { id: tag.id, name: tag.name } })),
+      tags: (book.tags ?? []).map((tag) => ({ tag })),
       title: book.title ?? "Book",
       updatedAt: book.updatedAt ?? new Date("2026-02-01T10:00:00.000Z"),
     })),
@@ -707,7 +707,7 @@ describe("SeriesService.search", () => {
               partNumber: 1,
               rating: 7,
               readingStatus: "finished",
-              tags: [{ id: "tag-zebra", name: "zebra" }],
+              tags: [{ color: "sage", id: "tag-zebra", name: "zebra" }],
             }),
             bookRow({
               ageCategory: "6_plus",
@@ -721,8 +721,8 @@ describe("SeriesService.search", () => {
               rating: 8,
               readingStatus: "reading",
               tags: [
-                { id: "tag-alpha", name: "alpha" },
-                { id: "tag-zebra", name: "zebra" },
+                { color: "sage", id: "tag-alpha", name: "alpha" },
+                { color: "sage", id: "tag-zebra", name: "zebra" },
               ],
             }),
             bookRow({
@@ -782,8 +782,8 @@ describe("SeriesService.search", () => {
         readingInSeries: 1,
         status: "unknown",
         tags: [
-          { id: "tag-alpha", name: "alpha" },
-          { id: "tag-zebra", name: "zebra" },
+          { color: "sage", id: "tag-alpha", name: "alpha" },
+          { color: "sage", id: "tag-zebra", name: "zebra" },
         ],
         totalBooks: null,
       },
@@ -1378,7 +1378,7 @@ describe("SeriesService.create", () => {
       status: "unknown",
     });
 
-    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy", "romance"]);
+    expect(assertGenresSelectable).toHaveBeenCalledWith(["fantasy", "romance"]);
   });
 
   it("propagates a BadRequestError and never inserts when a genre is not in the catalog", async () => {
@@ -1593,7 +1593,7 @@ describe("SeriesService.update", () => {
 
     await service.update(USER_ID, SERIES_ID, { genres: ["fantasy"] });
 
-    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy"]);
+    expect(assertGenresSelectable).toHaveBeenCalledWith(["fantasy"]);
   });
 
   it("propagates a BadRequestError and never updates when a genre is not in the catalog", async () => {
@@ -1921,7 +1921,7 @@ describe("SeriesService.getById", () => {
               partNumber: 1,
               publicationYear: 2018,
               queuePosition: 2,
-              tags: [{ id: "tag-1", name: "epic" }],
+              tags: [{ color: "sage", id: "tag-1", name: "epic" }],
             },
           ],
           id: SERIES_ID,
@@ -1938,7 +1938,7 @@ describe("SeriesService.getById", () => {
       genres: ["fantasy", "romance"],
       isInReadingQueue: true,
       publicationYear: 2018,
-      tags: [{ id: "tag-1", name: "epic" }],
+      tags: [{ color: "sage", id: "tag-1", name: "epic" }],
     });
   });
 

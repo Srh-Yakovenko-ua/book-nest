@@ -26,9 +26,7 @@ export class DedicationsService {
     const { pageNumber, pageSize, sort } = query;
     const search = normalizeSearchQuery(query.q);
     const searchGenreKeys =
-      search === undefined
-        ? undefined
-        : await this.genresService.searchKeys({ query: search, userId });
+      search === undefined ? undefined : await this.genresService.searchKeys(search);
 
     const filter: DedicationsFilter = {
       filter: query.filter,

@@ -9,25 +9,22 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 
 type AllPublishersViewProps = {
-  banner: ReactNode;
   content: ReactNode;
+  controls: ReactNode;
+  insights: ReactNode;
   onAddBook: () => void;
-  pagination: ReactNode;
-  showChrome: boolean;
   summary: ReactNode;
-  toolbar: ReactNode;
 };
 
 export function AllPublishersView({
-  banner,
   content,
+  controls,
+  insights,
   onAddBook,
-  pagination,
-  showChrome,
   summary,
-  toolbar,
 }: AllPublishersViewProps) {
   const t = useTranslations("publishers.page");
+  const tInsights = useTranslations("publishers.insights");
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,15 +48,23 @@ export function AllPublishersView({
         {summary}
       </header>
 
-      {showChrome ? toolbar : null}
+      {controls}
 
-      <div className="flex flex-col gap-6">
-        <h2 className="sr-only">{t("resultsTitle")}</h2>
-        {content}
-        {pagination}
+      <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+        <section className="flex min-w-0 flex-1 flex-col gap-6">
+          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          {content}
+        </section>
+
+        {insights === null ? null : (
+          <aside
+            aria-label={tInsights("label")}
+            className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+          >
+            {insights}
+          </aside>
+        )}
       </div>
-
-      {banner}
     </div>
   );
 }

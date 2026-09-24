@@ -1,61 +1,70 @@
 "use client";
 
-import type { LibraryPublisherStats } from "@app/shared";
+import type { LibraryPublisherDetailStats } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
-
-import type { UiIconName } from "@/components/icons";
-import type { StatCardIconTone } from "@/components/ui/stat-card";
 
 import { StatCard } from "@/components/ui/stat-card";
 import { formatDate, formatNumber } from "@/lib/format";
 
-type CountCard = {
-  icon: UiIconName;
-  key: "books" | "queue" | "read" | "reading" | "toBuy" | "wantToRead";
-  tone: StatCardIconTone;
-  value: number;
-};
-
 type PublisherStatsGridProps = {
-  stats: LibraryPublisherStats;
+  stats: LibraryPublisherDetailStats;
 };
 
 export function PublisherStatsGrid({ stats }: PublisherStatsGridProps) {
   const t = useTranslations("publishers.details.kpi");
   const locale = useLocale();
 
-  const countCards: CountCard[] = [
-    { icon: "library", key: "books", tone: "primary", value: stats.booksCount },
-    { icon: "check-circle", key: "read", tone: "success", value: stats.readCount },
-    { icon: "book", key: "reading", tone: "info", value: stats.readingCount },
-    { icon: "bookmark", key: "wantToRead", tone: "ink", value: stats.wantToReadCount },
-    { icon: "cart", key: "toBuy", tone: "tag", value: stats.wantToBuyCount },
-    { icon: "list", key: "queue", tone: "genre", value: stats.queueCount },
-  ];
+  const lastAddedCaption =
+    stats.booksCount === 0 || stats.lastBookAddedAt === null
+      ? undefined
+      : t("lastAdded", { date: formatDate(stats.lastBookAddedAt, locale) });
+
+  const readCaption =
+    stats.booksCount === 0
+      ? undefined
+      : t("readPercent", { percent: Math.round((stats.readCount / stats.booksCount) * 100) });
+
+  const withoutPriceCaption =
+    stats.wishlistWithoutPriceCount > 0
+      ? t("withoutPrice", { count: stats.wishlistWithoutPriceCount })
+      : undefined;
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      {countCards.map((card) => (
-        <StatCard
-          icon={card.icon}
-          iconTone={card.tone}
-          key={card.key}
-          label={t(card.key)}
-          size="compact"
-          value={formatNumber(card.value, locale)}
-        />
-      ))}
-
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <StatCard
-        caption={
-          stats.averageRating === null
-            ? undefined
-            : t("ratedCount", { count: stats.ratedBooksCount })
-        }
+        caption={lastAddedCaption}
+        icon="library"
+        iconTone="primary"
+        label={t("books")}
+        labelOverflow="wrap"
+        size="compact"
+        value={formatNumber(stats.booksCount, locale)}
+      />
+      <StatCard
+        caption={readCaption}
+        icon="check-circle"
+        iconTone="success"
+        label={t("read")}
+        labelOverflow="wrap"
+        size="compact"
+        value={formatNumber(stats.readCount, locale)}
+      />
+      <StatCard
+        caption={withoutPriceCaption}
+        icon="cart"
+        iconTone="tag"
+        label={t("wishlist")}
+        labelOverflow="wrap"
+        size="compact"
+        value={formatNumber(stats.wantToBuyCount, locale)}
+      />
+      <StatCard
+        caption={stats.averageRating === null ? t("noRatedBooks") : t("ratedCaption")}
         icon="star-fill"
         iconTone="favorite"
         label={t("rating")}
+        labelOverflow="wrap"
         size="compact"
         value={
           stats.averageRating === null
@@ -65,19 +74,6 @@ export function PublisherStatsGrid({ stats }: PublisherStatsGridProps) {
                 minimumFractionDigits: 1,
               })
         }
-      />
-
-      <StatCard
-        icon="calendar"
-        iconTone="ink"
-        label={t("lastAdded")}
-        size="compact"
-        value={
-          stats.lastBookAddedAt === null
-            ? t("lastAddedNever")
-            : formatDate(stats.lastBookAddedAt, locale)
-        }
-        valueClassName="text-lg"
       />
     </div>
   );

@@ -2501,6 +2501,9 @@ export const CharactersControllerListResponse = zod.object({
       species: zod.string().nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -2607,6 +2610,9 @@ export const CharactersControllerDuplicateCandidatesResponse = zod.object({
       species: zod.string().nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -5939,6 +5945,9 @@ export const BookCharacterSuggestionsControllerListResponse = zod.object({
       species: zod.string().nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),

@@ -1,24 +1,11 @@
 "use client";
 
-import type { TagView } from "@app/shared";
-
-import { TAG_NAME_ALLOWED_CHARS, TAG_NAME_MAX, TAG_NAME_MIN } from "@app/shared";
+import { TAG_NAME_ALLOWED_CHARS, TAG_NAME_MAX, TAG_NAME_MIN, type TagColor } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { type Control, Controller, type FieldErrors } from "react-hook-form";
 
 import { UiIcon } from "@/components/icons";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Command,
   CommandEmpty,
@@ -28,11 +15,12 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { TagInput } from "@/components/ui/tag-input";
+import { TagChip } from "@/features/tags/components/tag-chip";
+import { TAG_COLOR_STYLES } from "@/features/tags/model/tag-color";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 
-import { useDeleteTag } from "../api/use-delete-tag";
 import { useTagsSearch } from "../api/use-tags-search";
 
 const BOOK_TAGS_MAX = 12;
@@ -41,25 +29,18 @@ const SEARCH_DEBOUNCE_MS = 250;
 type TagsFieldProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
+  tagColorOf: (name: string) => TagColor;
 };
 
-export function TagsField({ control, errors }: TagsFieldProps) {
+export function TagsField({ control, errors, tagColorOf }: TagsFieldProps) {
   const t = useTranslations("books");
   const listId = useId();
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
-  const [tagPendingDelete, setTagPendingDelete] = useState<null | TagView>(null);
   const debouncedDraft = useDebouncedValue(draft, SEARCH_DEBOUNCE_MS);
   const tagsQuery = useTagsSearch(debouncedDraft);
   const existingTags = tagsQuery.data ?? [];
   const isFetching = tagsQuery.isFetching;
-  const deleteTag = useDeleteTag();
-
-  function confirmDeleteTag() {
-    if (tagPendingDelete === null) return;
-    deleteTag.mutate(tagPendingDelete.id);
-    setTagPendingDelete(null);
-  }
 
   const tagsErrorMessage =
     typeof errors.tags?.message === "string" ? errors.tags.message : undefined;
@@ -113,7 +94,12 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                     aria-expanded={open && !atMax}
                     aria-invalid={tagsErrorMessage !== undefined}
                     atMax={atMax}
+                    chipStyle={(tag) => {
+                      const colors = TAG_COLOR_STYLES[tagColorOf(tag)];
+                      return { backgroundColor: colors.bg, color: colors.text };
+                    }}
                     id="book-tags"
+                    inputClassName={atMax ? "basis-full" : undefined}
                     onFocus={() => setOpen(true)}
                     onInputChange={setDraft}
                     onValueChange={setTags}
@@ -164,20 +150,7 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                             onSelect={() => addTag(tag.name)}
                             value={tag.id}
                           >
-                            <UiIcon className="text-muted-foreground" name="tag" size={16} />
-                            <span className="min-w-0 flex-1 truncate">{tag.name}</span>
-                            <button
-                              aria-label={t("classification.tagsDeleteSaved", { name: tag.name })}
-                              className="relative grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground opacity-70 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-destructive/15 hover:text-destructive hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setTagPendingDelete(tag);
-                              }}
-                              onPointerDown={(event) => event.stopPropagation()}
-                              type="button"
-                            >
-                              <UiIcon className="size-3" name="x" size={12} />
-                            </button>
+                            <TagChip className="py-0.5 text-xs" color={tag.color} name={tag.name} />
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -213,32 +186,6 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                 {tagsErrorMessage}
               </p>
             ) : null}
-            <AlertDialog
-              onOpenChange={(nextOpen) => {
-                if (!nextOpen) setTagPendingDelete(null);
-              }}
-              open={tagPendingDelete !== null}
-            >
-              <AlertDialogContent size="sm">
-                <AlertDialogHeader>
-                  <AlertDialogMedia>
-                    <UiIcon name="alert-triangle" size={24} />
-                  </AlertDialogMedia>
-                  <AlertDialogTitle>{t("classification.tagsDeleteTitle")}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("classification.tagsDeleteDescription", {
-                      name: tagPendingDelete?.name ?? "",
-                    })}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t("classification.tagsDeleteCancel")}</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmDeleteTag} variant="destructive">
-                    {t("classification.tagsDeleteConfirm")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </>
         );
       }}

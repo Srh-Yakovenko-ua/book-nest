@@ -9,6 +9,7 @@ import type {
   RecentPurchaseStores,
 } from "@app/shared";
 
+import { toTagView } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { ActiveReadingView } from "../domain/library-overview.js";
@@ -52,9 +53,7 @@ export class BookLibraryReadService {
     const { pageNumber, pageSize, sort } = query;
     const search = normalizeSearchQuery(query.q);
     const searchGenreKeys =
-      search === undefined
-        ? undefined
-        : await this.genresService.searchKeys({ query: search, userId });
+      search === undefined ? undefined : await this.genresService.searchKeys(search);
 
     const filter: LibraryFilter = {
       ageCategories: query.ageCategory,
@@ -80,6 +79,7 @@ export class BookLibraryReadService {
       readingStatuses: query.status,
       search,
       searchGenreKeys,
+      searchPublisher: query.searchPublisher,
       tagIds: query.tag,
       userId,
       yearMax: query.yearMax,
@@ -112,7 +112,7 @@ export class BookLibraryReadService {
   }): Promise<LibraryOverviewView> {
     const ownershipStatuses = query.owner;
     const [summary, activeReading, topGenreKeys, topTags, recentBooks] = await Promise.all([
-      this.buildOverviewSummary({ ownershipStatuses, userId }),
+      this.buildOverviewSummary({ ownershipStatuses, publisherId: query.publisher, userId }),
       this.buildActiveReading({ ownershipStatuses, userId }),
       this.libraryReadRepository.topGenreKeys({
         limit: LIBRARY_OVERVIEW.topLimit,
@@ -131,10 +131,9 @@ export class BookLibraryReadService {
       }),
     ]);
 
-    const genreNames = await this.genresService.findNamesByKeys({
-      keys: topGenreKeys.map((genre) => genre.key),
-      userId,
-    });
+    const genreNames = await this.genresService.findNamesByKeys(
+      topGenreKeys.map((genre) => genre.key),
+    );
     const nameByKey = new Map(genreNames.map((genre) => [genre.key, genre.name]));
     const topGenres = topGenreKeys.map((genre) => ({
       count: genre.count,
@@ -147,7 +146,7 @@ export class BookLibraryReadService {
       recentlyAdded: recentBooks.map((book) => this.viewAssembler.viewOf(book)),
       summary,
       topGenres,
-      topTags,
+      topTags: topTags.map((tag) => ({ ...toTagView(tag), count: tag.count })),
     };
   }
 
@@ -178,11 +177,14 @@ export class BookLibraryReadService {
 
   private async buildOverviewSummary({
     ownershipStatuses,
+    publisherId,
     userId,
   }: {
     ownershipStatuses?: OwnershipStatus[];
+    publisherId?: string;
     userId: string;
   }): Promise<LibraryOverviewView["summary"]> {
+    const publisherIds = publisherId === undefined ? undefined : [publisherId];
     const [
       total,
       reading,
@@ -198,50 +200,57 @@ export class BookLibraryReadService {
       physicallyAvailable,
       seriesCount,
     ] = await Promise.all([
-      this.libraryReadRepository.countByUser({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countByUser({ ownershipStatuses, publisherId, userId }),
       this.libraryReadRepository.countByReadingStatuses({
         ownershipStatuses,
+        publisherId,
         statuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
         userId,
       }),
       this.libraryReadRepository.countByReadingStatuses({
         ownershipStatuses,
+        publisherId,
         statuses: LIBRARY_OVERVIEW.finishedStatuses,
         userId,
       }),
-      this.libraryReadRepository.countFavorites({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countFavorites({ ownershipStatuses, publisherId, userId }),
       this.libraryReadRepository.countByReadingStatuses({
         ownershipStatuses,
+        publisherId,
         statuses: LIBRARY_OVERVIEW.wantToReadStatuses,
         userId,
       }),
       this.libraryReadRepository.countForLibrary({
-        filter: { bookType: "series_part", ownershipStatuses, userId },
+        filter: { bookType: "series_part", ownershipStatuses, publisherIds, userId },
       }),
       this.libraryReadRepository.countForLibrary({
-        filter: { bookType: "solo", ownershipStatuses, userId },
+        filter: { bookType: "solo", ownershipStatuses, publisherIds, userId },
       }),
       this.libraryReadRepository.countByUser({
         ownershipStatuses: LIBRARY_OVERVIEW.wantToBuyStatuses,
+        publisherId,
         userId,
       }),
       this.libraryReadRepository.countByUser({
         ownershipStatuses: LIBRARY_OVERVIEW.inTransitStatuses,
+        publisherId,
         userId,
       }),
       this.libraryReadRepository.countByUser({
         ownershipStatuses: LIBRARY_OVERVIEW.borrowedStatuses,
+        publisherId,
         userId,
       }),
-      this.libraryReadRepository.countDistinctAuthors({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countDistinctAuthors({ ownershipStatuses, publisherId, userId }),
       this.libraryReadRepository.countByUser({
         ownershipStatuses: intersectOwnership({
           allowed: LIBRARY_OVERVIEW.physicalOwnershipStatuses,
           scope: ownershipStatuses,
         }),
+        publisherId,
         userId,
       }),
-      this.libraryReadRepository.countDistinctSeries({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countDistinctSeries({ ownershipStatuses, publisherId, userId }),
     ]);
 
     return {

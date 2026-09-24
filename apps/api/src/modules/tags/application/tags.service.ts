@@ -3,14 +3,14 @@ import type {
   Nullable,
   Paginator,
   TagCatalogView,
-  TagStatsView,
+  TagDeletionPreviewView,
+  TagsSearchQuery,
   TagType,
   TagView,
-  TaxonomySearchPaginationQuery,
   UpdateTagInput,
 } from "@app/shared";
 
-import { normalizeName } from "@app/shared";
+import { normalizeName, toTagView } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -20,7 +20,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
-import { toTagCatalogView, toTagStatsView, toTagView } from "../domain/tag.mapper.js";
+import { toTagCatalogView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
 type TagUpdateData = {
@@ -94,6 +94,20 @@ export class TagsService {
     }
   }
 
+  async deletionPreview({
+    tagId,
+    userId,
+  }: {
+    tagId: string;
+    userId: string;
+  }): Promise<TagDeletionPreviewView> {
+    const tag = await this.tagsRepository.findOwnedById(userId, tagId);
+    if (tag === null) {
+      throw new NotFoundError("Tag not found");
+    }
+    return this.tagsRepository.countLinks({ tagId: tag.id, userId });
+  }
+
   async resolveOrCreateMany(
     userId: string,
     names: string[],
@@ -117,16 +131,17 @@ export class TagsService {
     return tagIds;
   }
 
-  async search(userId: string, query: TaxonomySearchPaginationQuery): Promise<Paginator<TagView>> {
-    const { pageNumber, pageSize, search } = query;
+  async search(userId: string, query: TagsSearchQuery): Promise<Paginator<TagView>> {
+    const { ids, pageNumber, pageSize, search } = query;
 
     const [tags, totalCount] = await Promise.all([
       this.tagsRepository.searchOwned({
+        ids,
         query: search,
         userId,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.tagsRepository.countOwned({ query: search, userId }),
+      this.tagsRepository.countOwned({ ids, query: search, userId }),
     ]);
 
     return buildPaginator({
@@ -135,15 +150,6 @@ export class TagsService {
       pageSize,
       totalCount,
     });
-  }
-
-  async stats(userId: string): Promise<TagStatsView[]> {
-    const [tags, counts] = await Promise.all([
-      this.tagsRepository.listOwned(userId),
-      this.tagsRepository.countBooksByTag(userId),
-    ]);
-    const countByTagId = new Map(counts.map((entry) => [entry.tagId, entry.count]));
-    return tags.map((tag) => toTagStatsView({ booksCount: countByTagId.get(tag.id) ?? 0, tag }));
   }
 
   async update(userId: string, tagId: string, input: UpdateTagInput): Promise<TagCatalogView> {
