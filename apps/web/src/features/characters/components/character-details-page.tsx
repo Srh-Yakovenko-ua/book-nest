@@ -3,8 +3,10 @@
 import type {
   BookCharacterSummaryQuery,
   BookCharacterView,
+  CharacterAliasView,
   CharacterDetailsView,
   CharacterRevealFieldKey,
+  Nullable,
 } from "@app/shared";
 import type { ReactNode } from "react";
 
@@ -54,6 +56,25 @@ export function CharacterDetailsPage({ characterId }: CharacterDetailsPageProps)
   }
 
   return <ContextualCharacterDetails characterId={characterId} contextBookId={contextBookId} />;
+}
+
+function AliasList({ aliases, label }: { aliases: CharacterAliasView[]; label: string }) {
+  if (aliases.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {aliases.map((alias) => (
+          <Badge key={alias.id} variant="outline">
+            {alias.name}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function AppearanceRow({
@@ -150,10 +171,12 @@ function AppearancesSection({
 }
 
 function BookContextSection({
+  aliases,
   appearance,
   onReveal,
   revealing,
 }: {
+  aliases: CharacterAliasView[];
   appearance: BookCharacterView;
   onReveal: (field: string) => void;
   revealing: boolean;
@@ -234,6 +257,8 @@ function BookContextSection({
       />
 
       <FirstAppearance appearance={appearance} />
+
+      <AliasList aliases={aliases} label={t("bookAliases")} />
     </Section>
   );
 }
@@ -268,7 +293,12 @@ function CharacterDetailsBody({
       <DetailsHeader appearance={appearance} character={character} contextBookId={contextBookId} />
 
       {appearance === undefined ? null : (
-        <BookContextSection appearance={appearance} onReveal={onReveal} revealing={revealing} />
+        <BookContextSection
+          aliases={visibleAliases(character, appearance.bookId)}
+          appearance={appearance}
+          onReveal={onReveal}
+          revealing={revealing}
+        />
       )}
 
       <ProfileSection character={character} />
@@ -370,8 +400,6 @@ function DetailsHeader({
   const portrait = appearance?.portrait ?? character.avatar;
   const importance = appearance === undefined ? null : explicitImportance(appearance.importance);
   const status = appearance === undefined ? null : explicitStatus(appearance.status);
-  const visibleAliases = character.aliases.filter((alias) => !alias.isSpoiler);
-
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
       <Avatar
@@ -407,16 +435,6 @@ function DetailsHeader({
             </Badge>
           ) : null}
         </div>
-
-        {visibleAliases.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {visibleAliases.map((alias) => (
-              <Badge key={alias.id} variant="outline">
-                {alias.name}
-              </Badge>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       <Button asChild className="shrink-0" variant="secondary">
@@ -633,6 +651,8 @@ function ProfileSection({ character }: { character: CharacterDetailsView }) {
           {character.neutralDescription}
         </p>
       )}
+
+      <AliasList aliases={visibleAliases(character, null)} label={t("globalAliases")} />
     </Section>
   );
 }
@@ -702,4 +722,11 @@ function UnavailableContext({
       </Button>
     </div>
   );
+}
+
+function visibleAliases(
+  character: CharacterDetailsView,
+  bookId: Nullable<string>,
+): CharacterAliasView[] {
+  return character.aliases.filter((alias) => !alias.isSpoiler && alias.bookId === bookId);
 }

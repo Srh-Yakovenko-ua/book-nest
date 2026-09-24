@@ -35,6 +35,7 @@ import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
 import {
   BookCharacterInheritanceSection,
   BookCharacterMainSection,
+  CharacterAliasesSection,
   CharacterGlobalSection,
 } from "./character-edit-sections";
 import { CharactersErrorState } from "./characters-error-state";
@@ -85,6 +86,7 @@ function CharacterEditForm({
   contextBookId: null | string;
 }) {
   const t = useTranslations("characters.edit");
+  const tAliases = useTranslations("characters.aliases");
   const tErrors = useTranslations("characters.form.errors");
   const tToast = useTranslations("characters.toast");
   const router = useRouter();
@@ -100,6 +102,9 @@ function CharacterEditForm({
     mode: "onTouched",
     resolver: zodResolver(
       buildCharacterEditSchema({
+        aliasDuplicate: tAliases("errorDuplicate"),
+        aliasReservedBook: tAliases("errorSameAsDisplayName"),
+        aliasReservedGlobal: tAliases("errorSameAsName"),
         customGenderRequired: tErrors("customGenderRequired"),
         nameRequired: tErrors("nameRequired"),
         nameTooLong: tErrors("nameTooLong", { max: CHARACTER_NAME_MAX }),
@@ -190,6 +195,12 @@ function CharacterEditForm({
         control={control}
         nameError={<FieldError error={errors.global?.name} id="character-name-error" />}
         register={register}
+      />
+
+      <CharacterAliasesSection
+        control={control}
+        errors={errors}
+        hasBookScope={contextBookId !== null}
       />
 
       <div className="sticky bottom-0 z-10 -mx-1 flex items-center justify-end gap-3 rounded-t-xl bg-background/80 px-4 py-3 backdrop-blur-xl backdrop-saturate-150">

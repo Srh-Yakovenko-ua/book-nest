@@ -243,3 +243,70 @@ describe("CharacterEditPage inheritance", () => {
     expect(bookPatchBody()).toHaveProperty("speciesOverride", null);
   });
 });
+
+describe("CharacterEditPage aliases", () => {
+  function aliasGroup(title: string): HTMLElement {
+    const heading = screen.getByRole("heading", { name: title });
+    const group = heading.parentElement?.parentElement;
+    if (!(group instanceof HTMLElement)) throw new Error(`no alias group titled ${title}`);
+    return group;
+  }
+
+  it("saves each group into its own scope and sends no per-row request", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    await userEvent.click(
+      within(aliasGroup("Альтернативні імена")).getByRole("button", { name: "Додати ім’я" }),
+    );
+    await userEvent.type(
+      within(aliasGroup("Альтернативні імена")).getByRole("textbox", {
+        name: "Альтернативне ім’я",
+      }),
+      "Білий Вовк",
+    );
+
+    await userEvent.click(
+      within(aliasGroup("Інші імена в цій книзі")).getByRole("button", { name: "Додати ім’я" }),
+    );
+    await userEvent.type(
+      within(aliasGroup("Інші імена в цій книзі")).getByRole("textbox", {
+        name: "Альтернативне ім’я",
+      }),
+      "Різник",
+    );
+
+    expect(patchCount()).toBe(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(patchCount()).toBe(2));
+    expect(globalPatchBody()).toHaveProperty("aliases", [
+      { isSpoiler: false, name: "Білий Вовк", position: 0, type: "other" },
+    ]);
+    expect(bookPatchBody()).toHaveProperty("aliases", [
+      { isSpoiler: false, name: "Різник", position: 0, type: "other" },
+    ]);
+  });
+
+  it("refuses an alias that repeats the main name", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    await userEvent.click(
+      within(aliasGroup("Альтернативні імена")).getByRole("button", { name: "Додати ім’я" }),
+    );
+    await userEvent.type(
+      within(aliasGroup("Альтернативні імена")).getByRole("textbox", {
+        name: "Альтернативне ім’я",
+      }),
+      "ґеральт",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    expect(await screen.findByText("Це основне ім’я персонажа")).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
+  });
+});

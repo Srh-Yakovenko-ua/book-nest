@@ -404,7 +404,7 @@ export const CharacterDeletionPreviewSchema = z.object({
 
 export type CharacterDeletionPreview = z.infer<typeof CharacterDeletionPreviewSchema>;
 
-const CharacterAliasViewSchema = z.object({
+export const CharacterAliasViewSchema = z.object({
   bookId: z.string().nullable(),
   id: z.string(),
   isSpoiler: z.boolean(),
@@ -412,6 +412,8 @@ const CharacterAliasViewSchema = z.object({
   position: z.number().int(),
   type: CharacterAliasTypeSchema,
 });
+
+export type CharacterAliasView = z.infer<typeof CharacterAliasViewSchema>;
 
 const BookCharacterRoleViewSchema = z.object({
   customRole: z.string().nullable(),

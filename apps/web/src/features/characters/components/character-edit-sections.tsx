@@ -2,7 +2,7 @@
 
 import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
-import type { Control, UseFormRegister } from "react-hook-form";
+import type { Control, FieldError, FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { useTranslations } from "next-intl";
 import { Controller, useWatch } from "react-hook-form";
@@ -29,6 +29,7 @@ import {
   GENDER_CUSTOM,
   GENDER_OPTIONS,
 } from "../model/character-options";
+import { CharacterAliasGroup } from "./character-alias-group";
 import {
   InheritedImageField,
   InheritedSelectField,
@@ -36,6 +37,8 @@ import {
 } from "./character-inherited-field";
 import { CharacterRolePicker } from "./character-role-picker";
 import { CharacterSpoilerField } from "./character-spoiler-field";
+
+type AliasFieldErrors = NonNullable<FieldErrors<CharacterEditValues>["global"]>["aliases"];
 
 type EditControl = Control<CharacterEditValues>;
 
@@ -230,6 +233,54 @@ export function BookCharacterMainSection({
   );
 }
 
+export function CharacterAliasesSection({
+  control,
+  errors,
+  hasBookScope,
+}: {
+  control: EditControl;
+  errors: FieldErrors<CharacterEditValues>;
+  hasBookScope: boolean;
+}) {
+  const t = useTranslations("characters.aliases");
+
+  return (
+    <EditSection description={t("sectionHint")} title={t("sectionTitle")}>
+      <Controller
+        control={control}
+        name="global.aliases"
+        render={({ field }) => (
+          <CharacterAliasGroup
+            description={t("globalHint")}
+            errors={aliasNameErrors(errors.global?.aliases, field.value.length)}
+            idPrefix="character-alias-global"
+            onChange={field.onChange}
+            title={t("globalTitle")}
+            value={field.value}
+          />
+        )}
+      />
+
+      {hasBookScope ? (
+        <Controller
+          control={control}
+          name="book.aliases"
+          render={({ field }) => (
+            <CharacterAliasGroup
+              description={t("bookHint")}
+              errors={aliasNameErrors(errors.book?.aliases, field.value.length)}
+              idPrefix="character-alias-book"
+              onChange={field.onChange}
+              title={t("bookTitle")}
+              value={field.value}
+            />
+          )}
+        />
+      ) : null}
+    </EditSection>
+  );
+}
+
 export function CharacterGlobalSection({
   control,
   nameError,
@@ -362,6 +413,10 @@ export function CharacterGlobalSection({
       </LabeledField>
     </EditSection>
   );
+}
+
+function aliasNameErrors(entries: AliasFieldErrors, count: number): (FieldError | undefined)[] {
+  return Array.from({ length: count }, (_unused, index) => entries?.[index]?.name);
 }
 
 function EditSection({
