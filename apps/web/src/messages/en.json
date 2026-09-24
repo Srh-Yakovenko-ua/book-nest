@@ -7495,6 +7495,78 @@
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
     },
+    "catalog": {
+      "appearanceCount": "Books: {count}",
+      "empty": {
+        "description": "Characters appear here once you add them to your books.",
+        "title": "No characters yet"
+      },
+      "filters": {
+        "anySeries": "Any series",
+        "apply": "Apply",
+        "attitude": "My attitude",
+        "clear": "Clear",
+        "description": "Narrow the catalog down to what you are looking for.",
+        "gender": "Gender",
+        "groups": {
+          "about": "About the character",
+          "appearsIn": "Where they appear",
+          "bookRole": "Role in the book",
+          "organisation": "Organisation"
+        },
+        "importance": "Importance",
+        "noGroups": "You have no character groups yet.",
+        "role": "Role",
+        "title": "Filters",
+        "trigger": "Filters"
+      },
+      "loadMore": "Show more",
+      "metaTitle": "Characters",
+      "noResults": {
+        "clear": "Clear filters",
+        "description": "Nothing matches the current search and filters.",
+        "title": "Nothing found"
+      },
+      "quick": {
+        "all": "All",
+        "favorites": "Favorites",
+        "multipleBooks": "In several books",
+        "withImpression": "With my impressions"
+      },
+      "quickLabel": "Quick filters",
+      "searchClear": "Clear search",
+      "searchLabel": "Search characters",
+      "searchPlaceholder": "Search by name...",
+      "sidebar": {
+        "description": "More tools for working with characters are coming here soon.",
+        "title": "New features are on the way"
+      },
+      "sort": {
+        "name": "By name",
+        "recently_added": "Recently added",
+        "recently_updated": "Recently updated"
+      },
+      "sortLabel": "Sort",
+      "states": {
+        "loading": "Loading characters"
+      },
+      "subtitle": "Every character from your books",
+      "summary": {
+        "appearances": "Books: {count}",
+        "mostFrequent": "Appears most often",
+        "multipleBooks": "In several books",
+        "noLeader": "Not yet",
+        "sharedLeaders": "{count} share the lead",
+        "total": "Characters in total",
+        "withImpression": "With my impressions"
+      },
+      "title": "Characters",
+      "view": {
+        "grid": "Grid",
+        "list": "List"
+      },
+      "viewLabel": "View"
+    },
     "delete": {
       "aliases": "Names: {count}",
       "appearances": "Book appearances: {count}",

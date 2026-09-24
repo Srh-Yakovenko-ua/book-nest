@@ -7495,6 +7495,78 @@
       "unfavorite": "Прибрати з улюблених",
       "unlink": "Прибрати з цієї книги"
     },
+    "catalog": {
+      "appearanceCount": "Книг: {count}",
+      "empty": {
+        "description": "Персонажі зʼявляться тут, щойно ви додасте їх до своїх книг.",
+        "title": "Персонажів ще немає"
+      },
+      "filters": {
+        "anySeries": "Будь-яка серія",
+        "apply": "Застосувати",
+        "attitude": "Моє ставлення",
+        "clear": "Очистити",
+        "description": "Звузьте каталог до того, що шукаєте.",
+        "gender": "Гендер",
+        "groups": {
+          "about": "Про персонажа",
+          "appearsIn": "Де зʼявляється",
+          "bookRole": "Роль у книзі",
+          "organisation": "Організація"
+        },
+        "importance": "Важливість",
+        "noGroups": "У вас ще немає груп персонажів.",
+        "role": "Роль",
+        "title": "Фільтри",
+        "trigger": "Фільтри"
+      },
+      "loadMore": "Показати ще",
+      "metaTitle": "Персонажі",
+      "noResults": {
+        "clear": "Очистити фільтри",
+        "description": "За поточним пошуком і фільтрами нічого немає.",
+        "title": "Нічого не знайдено"
+      },
+      "quick": {
+        "all": "Усі",
+        "favorites": "Улюблені",
+        "multipleBooks": "У кількох книгах",
+        "withImpression": "З моїми враженнями"
+      },
+      "quickLabel": "Швидкі фільтри",
+      "searchClear": "Очистити пошук",
+      "searchLabel": "Пошук персонажів",
+      "searchPlaceholder": "Пошук за іменем…",
+      "sidebar": {
+        "description": "Незабаром тут зʼявляться додаткові інструменти для роботи з персонажами.",
+        "title": "Нові можливості вже в дорозі"
+      },
+      "sort": {
+        "name": "За іменем",
+        "recently_added": "Нещодавно додані",
+        "recently_updated": "Нещодавно змінені"
+      },
+      "sortLabel": "Сортування",
+      "states": {
+        "loading": "Завантаження персонажів"
+      },
+      "subtitle": "Усі персонажі з ваших книг",
+      "summary": {
+        "appearances": "Книг: {count}",
+        "mostFrequent": "Найчастіше зʼявляється",
+        "multipleBooks": "У кількох книгах",
+        "noLeader": "Поки немає",
+        "sharedLeaders": "Ділять перше місце: {count}",
+        "total": "Усього персонажів",
+        "withImpression": "З моїми враженнями"
+      },
+      "title": "Персонажі",
+      "view": {
+        "grid": "Плитка",
+        "list": "Список"
+      },
+      "viewLabel": "Вигляд"
+    },
     "delete": {
       "aliases": "Імена: {count}",
       "appearances": "Появи в книгах: {count}",

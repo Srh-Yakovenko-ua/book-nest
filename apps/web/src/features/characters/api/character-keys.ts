@@ -3,6 +3,7 @@ import type { BookCharacterSummaryQuery } from "@app/shared";
 import type {
   BookCharactersControllerListParams,
   BookCharacterSuggestionsControllerListParams,
+  CharacterGroupsControllerListParams,
   CharactersControllerDuplicateCandidatesParams,
   CharactersControllerGetByIdParams,
   CharactersControllerListParams,
@@ -23,6 +24,9 @@ export const characterKeys = {
     [CHARACTERS_ROOT, "details", characterId, params] as const,
   duplicates: (params: CharactersControllerDuplicateCandidatesParams) =>
     [CHARACTERS_ROOT, "duplicates", params] as const,
+  groupOptions: (params: CharacterGroupsControllerListParams) =>
+    [CHARACTERS_ROOT, "group-options", params] as const,
+  overview: () => [CHARACTERS_ROOT, "overview"] as const,
   search: (params: CharactersControllerListParams) => [CHARACTERS_ROOT, "search", params] as const,
   suggestions: (bookId: string, params: BookCharacterSuggestionsControllerListParams) =>
     [CHARACTERS_ROOT, "suggestions", bookId, params] as const,
