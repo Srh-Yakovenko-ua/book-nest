@@ -2,7 +2,7 @@
 
 import type { TagQuickCounts } from "@app/shared";
 
-import { TAG_SORT_DEFAULT, TagQuickFilterSchema, TagSortSchema } from "@app/shared";
+import { TagQuickFilterSchema, TagSortSchema } from "@app/shared";
 import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import type { UseTagQueryResult } from "../model/use-tag-query";
 
+import { TAGS_QUERY } from "../model/tags-query";
 import { TagsActiveChips } from "./tags-active-chips";
 import { TagsAdvancedFilters } from "./tags-advanced-filters";
 
@@ -86,8 +87,8 @@ export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
                 aria-label={t("toolbar.sortLabel")}
                 className="w-full data-[size=default]:h-10"
                 clearLabel={tCommon("clear")}
-                isClearable={state.sort !== TAG_SORT_DEFAULT}
-                onClear={() => query.setSort(TAG_SORT_DEFAULT)}
+                isClearable={state.sort !== TAGS_QUERY.sort.default}
+                onClear={() => query.setSort(TAGS_QUERY.sort.default)}
               >
                 <SelectValue />
               </SelectTrigger>

@@ -28,7 +28,7 @@ describe("tags URL state", () => {
       color: [],
       filter: "all",
       q: "",
-      sort: "usage_count_desc",
+      sort: "created_desc",
       type: [],
       view: "grid",
     });
@@ -49,7 +49,7 @@ describe("tags URL state", () => {
   it("falls back to the defaults for invalid enum values", () => {
     const state = stateFrom("filter=bogus&sort=bogus");
     expect(state.filter).toBe("all");
-    expect(state.sort).toBe("usage_count_desc");
+    expect(state.sort).toBe("created_desc");
   });
 
   it("drops invalid array members instead of carrying them into live state", () => {
