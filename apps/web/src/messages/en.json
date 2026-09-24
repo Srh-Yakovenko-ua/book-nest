@@ -479,6 +479,9 @@
   "localePicker": {
     "ariaLabel": "Language"
   },
+  "facetMultiselect": {
+    "remove": "Remove {label}"
+  },
   "auth": {
     "common": {
       "submit": "Continue",

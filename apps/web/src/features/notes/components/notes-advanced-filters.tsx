@@ -233,11 +233,13 @@ function FacetField({
   dimension,
   onValueChange,
   options,
+  resolveLabel,
   value,
 }: {
   dimension: NotesFacetDimension;
   onValueChange: (next: string[]) => void;
   options: FacetOption[];
+  resolveLabel?: (value: string) => string | undefined;
   value: string[];
 }) {
   const t = useTranslations("notes.archive.advancedFilters");
@@ -249,6 +251,7 @@ function FacetField({
       onValueChange={onValueChange}
       options={options}
       placeholder={t(`fields.${dimension}.placeholder`)}
+      resolveLabel={resolveLabel}
       searchPlaceholder={t(`fields.${dimension}.search`)}
       selectedText={(count) => t("selected", { count })}
       value={value}
@@ -273,6 +276,7 @@ function GenreField({ draft, facets, onChange }: DimensionFieldProps) {
         ...option,
         label: nameByKey.get(option.value) ?? option.label,
       }))}
+      resolveLabel={(key) => nameByKey.get(key)}
       value={draft.genre}
     />
   );

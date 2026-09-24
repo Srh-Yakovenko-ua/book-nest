@@ -479,6 +479,9 @@
   "localePicker": {
     "ariaLabel": "Мова"
   },
+  "facetMultiselect": {
+    "remove": "Прибрати {label}"
+  },
   "auth": {
     "common": {
       "submit": "Підтвердити",
