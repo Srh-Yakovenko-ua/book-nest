@@ -1,10 +1,16 @@
 import type { Nullable } from "@app/shared";
 
-import { formatNumber } from "@/lib/format";
+import { format } from "date-fns";
+
+import { dateFnsLocale, formatNumber, parseIsoDay } from "@/lib/format";
 
 export function formatCoveragePercent(percent: number, locale: string): string {
   if (percent > 0 && percent < 1) return "<1";
   return formatNumber(Math.round(percent), locale);
+}
+
+export function publisherAddedDateLabel(iso: string, locale: string): string {
+  return format(parseIsoDay(iso), "d MMM yyyy", { locale: dateFnsLocale(locale) });
 }
 
 export function publisherCountryLabel(

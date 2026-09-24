@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatCoveragePercent,
+  publisherAddedDateLabel,
   publisherCountryLabel,
   publisherPriceLabel,
 } from "./publisher-format";
@@ -43,5 +44,15 @@ describe("formatCoveragePercent", () => {
     expect(formatCoveragePercent(0, "uk")).toBe("0");
     expect(formatCoveragePercent(1, "uk")).toBe("1");
     expect(formatCoveragePercent(62.6, "uk")).toBe("63");
+  });
+});
+
+describe("publisherAddedDateLabel", () => {
+  it("drops the year suffix from the Ukrainian short date", () => {
+    expect(publisherAddedDateLabel("2026-07-01", "uk")).toBe("1 лип. 2026");
+  });
+
+  it("keeps the English short date compact", () => {
+    expect(publisherAddedDateLabel("2026-07-01", "en")).toBe("1 Jul 2026");
   });
 });
