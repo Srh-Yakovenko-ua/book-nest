@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { UiIcon, type UiIconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ import {
   tagAttentionState,
   tagColorRows,
   tagTypeRows,
+  type TagUsageKey,
   tagUsageRows,
 } from "../model/tags-summary";
 
@@ -39,6 +40,35 @@ type TagsStructureBlockProps = {
 
 const TOGGLE_CLASS =
   "cursor-pointer rounded-lg transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-secondary/80 aria-pressed:bg-secondary aria-pressed:ring-1 aria-pressed:ring-primary/50";
+
+const TAG_TYPE_ROW = {
+  className:
+    "grid w-full grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-2.5 gap-y-1.5 px-2 py-1.5 text-left",
+  icons: {
+    atmosphere: "sparkles",
+    character: "users-round",
+    custom: "hash",
+    format: "file-text",
+    theme: "book-open-text",
+    trope: "repeat-2",
+  } satisfies Record<TagType, UiIconName>,
+  tile: {
+    base: "row-span-2 grid size-8 place-items-center rounded-lg",
+    empty: "bg-muted text-muted-foreground",
+    filled: "bg-accent/40 text-accent-foreground",
+  },
+} as const;
+
+const TAG_USAGE = {
+  categories: {
+    booksOnly: { icon: "book", swatch: "bg-primary" },
+    both: { icon: "link", swatch: "bg-primary/35" },
+    charactersOnly: { icon: "user-round", swatch: "bg-primary/65" },
+    unused: { icon: "circle-slash", swatch: "bg-muted-foreground/40" },
+  } satisfies Record<TagUsageKey, { icon: UiIconName; swatch: string }>,
+  row: "grid grid-cols-[0.5rem_1rem_minmax(0,1fr)] items-center gap-x-2",
+  track: "flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted",
+} as const;
 
 export function TagsAttentionBlock({ onShowUnused, summary }: TagsAttentionBlockProps) {
   const t = useTranslations("tags.sidebar.attention");
@@ -135,10 +165,19 @@ export function TagsStructureBlock({
                   type: t(`types.${row.type}`),
                 })}
                 aria-pressed={row.isSelected}
-                className={cn(TOGGLE_CLASS, "flex w-full flex-col gap-1.5 px-2 py-2 text-left")}
+                className={cn(TOGGLE_CLASS, TAG_TYPE_ROW.className)}
                 onClick={() => onToggleType(row.type)}
                 type="button"
               >
+                <span
+                  aria-hidden
+                  className={cn(
+                    TAG_TYPE_ROW.tile.base,
+                    row.isEmpty ? TAG_TYPE_ROW.tile.empty : TAG_TYPE_ROW.tile.filled,
+                  )}
+                >
+                  <UiIcon name={TAG_TYPE_ROW.icons[row.type]} size={16} />
+                </span>
                 <ShareLine
                   count={formatNumber(row.count, locale)}
                   isMuted={row.isEmpty}
@@ -158,21 +197,50 @@ export function TagsStructureBlock({
 export function TagsUsageBlock({ summary }: { summary: TagsSummaryView }) {
   const t = useTranslations("tags.sidebar.usage");
   const locale = useLocale();
+  const rows = tagUsageRows(summary);
 
   return (
     <OverviewBlock title={t("title")}>
-      <ul className="flex flex-col gap-3">
-        {tagUsageRows(summary).map((row) => (
-          <li className="flex flex-col gap-1.5" key={row.key}>
-            <ShareLine
-              count={formatNumber(row.count, locale)}
-              isMuted={row.count === 0}
-              label={t(row.key)}
-              share={formatTagShare(row.share, locale)}
+      <span aria-hidden className={TAG_USAGE.track}>
+        {rows
+          .filter((row) => row.share > 0)
+          .map((row) => (
+            <span
+              className={cn("h-full", TAG_USAGE.categories[row.key].swatch)}
+              data-segment={row.key}
+              key={row.key}
+              style={{ width: `${row.share * 100}%` }}
             />
-            <ShareBar isMuted={row.count === 0} share={row.share} />
-          </li>
-        ))}
+          ))}
+      </span>
+      <ul className="flex flex-col gap-2">
+        {rows.map((row) => {
+          const isMuted = row.count === 0;
+          return (
+            <li className={TAG_USAGE.row} key={row.key}>
+              <span
+                aria-hidden
+                className={cn(
+                  "size-2 rounded-full",
+                  TAG_USAGE.categories[row.key].swatch,
+                  isMuted && "opacity-40",
+                )}
+              />
+              <UiIcon
+                aria-hidden
+                className={isMuted ? "text-muted-foreground" : "text-ink"}
+                name={TAG_USAGE.categories[row.key].icon}
+                size={16}
+              />
+              <ShareLine
+                count={formatNumber(row.count, locale)}
+                isMuted={isMuted}
+                label={t(row.key)}
+                share={formatTagShare(row.share, locale)}
+              />
+            </li>
+          );
+        })}
       </ul>
     </OverviewBlock>
   );
