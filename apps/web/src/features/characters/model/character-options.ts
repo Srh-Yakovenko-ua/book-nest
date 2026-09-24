@@ -40,18 +40,9 @@ export const BOOK_CHARACTER_IMPORTANCE = {
     "episodic",
     "mentioned",
   ],
-  rank: {
-    central: 0,
-    episodic: 3,
-    major: 1,
-    mentioned: 4,
-    not_specified: 5,
-    supporting: 2,
-  },
 } as const satisfies {
   badgeVariant: Record<ExplicitImportance, BadgeVariant>;
   options: readonly BookCharacterImportance[];
-  rank: Record<BookCharacterImportance, number>;
 };
 
 export const BOOK_CHARACTER_STATUS = {
@@ -78,10 +69,6 @@ export function explicitImportance(
 
 export function explicitStatus(status: Nullable<BookCharacterStatus>): Nullable<ExplicitStatus> {
   return status === null || status === BOOK_CHARACTER_UNSPECIFIED.status ? null : status;
-}
-
-export function importanceRank(importance: BookCharacterImportance): number {
-  return BOOK_CHARACTER_IMPORTANCE.rank[importance];
 }
 
 export const ROLE_TYPE_OPTIONS = [

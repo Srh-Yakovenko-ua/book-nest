@@ -14,6 +14,7 @@ export const characterKeys = {
   all: [CHARACTERS_ROOT] as const,
   bookRoster: (bookId: string, params: BookCharactersControllerListParams) =>
     [CHARACTERS_ROOT, "book-roster", bookId, params] as const,
+  bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, "book-roster", bookId] as const,
   bookSummary: (bookId: string, readingContext: BookCharacterSummaryQuery) =>
     [CHARACTERS_ROOT, "book-summary", bookId, readingContext] as const,
   deletionPreview: (characterId: string) =>

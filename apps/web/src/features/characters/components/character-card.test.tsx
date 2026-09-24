@@ -1,19 +1,22 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { makeCharacterSummary } from "../model/characters.fixtures";
 import { CharacterCard } from "./character-card";
 
-function renderCard(character: ReturnType<typeof makeCharacterSummary>) {
+function renderCard(
+  character: ReturnType<typeof makeCharacterSummary>,
+  handlers: Partial<{ onEdit: () => void; onOpenDetails: () => void; onUnlink: () => void }> = {},
+) {
   return renderWithProviders(
     <CharacterCard
+      bookId="book-1"
       character={character}
-      onDelete={vi.fn()}
-      onEdit={vi.fn()}
-      onOpenDetails={vi.fn()}
-      onUnlink={vi.fn()}
+      onEdit={handlers.onEdit ?? vi.fn()}
+      onOpenDetails={handlers.onOpenDetails ?? vi.fn()}
+      onUnlink={handlers.onUnlink ?? vi.fn()}
     />,
   );
 }
@@ -43,5 +46,34 @@ describe("CharacterCard unspecified semantics", () => {
     renderCard(makeCharacterSummary({ status: "unknown" }));
 
     expect(screen.getByText("Невідомо")).toBeInTheDocument();
+  });
+});
+
+describe("CharacterCard roster affordances", () => {
+  it("shows a POV badge only for a point-of-view character", () => {
+    renderCard(makeCharacterSummary({ isPovCharacter: false }));
+    expect(screen.queryByText("POV")).not.toBeInTheDocument();
+
+    renderCard(makeCharacterSummary({ characterId: "char-2", isPovCharacter: true }));
+    expect(screen.getByText("POV")).toBeInTheDocument();
+  });
+
+  it("opens details from the card body", async () => {
+    const onOpenDetails = vi.fn();
+    renderCard(makeCharacterSummary(), { onOpenDetails });
+
+    await userEvent.click(screen.getByRole("button", { name: "Відкрити персонажа Ґеральт" }));
+
+    expect(onOpenDetails).toHaveBeenCalledOnce();
+  });
+
+  it("offers only edit and unlink in the overflow menu", async () => {
+    renderCard(makeCharacterSummary());
+
+    await userEvent.click(screen.getByRole("button", { name: "Дії з персонажем" }));
+
+    expect(await screen.findByRole("menuitem", { name: "Редагувати" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Прибрати з цієї книги" })).toBeInTheDocument();
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
   });
 });

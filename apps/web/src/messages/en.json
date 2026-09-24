@@ -7424,23 +7424,22 @@
     },
     "toolbar": {
       "add": "Add character",
-      "palette": "Search",
       "searchClear": "Clear search",
       "searchLabel": "Search characters",
-      "searchPlaceholder": "Search by name…",
+      "searchPlaceholder": "Search in this book...",
       "sortLabel": "Sort"
     },
     "sort": {
-      "name": "By name",
-      "recommended": "Recommended"
+      "importance": "Important first",
+      "name": "By name"
     },
     "card": {
-      "delete": "Delete character entirely",
-      "details": "Details",
       "edit": "Edit",
       "favorite": "Add to favorites",
       "hiddenFields": "Hidden fields: {count}",
       "menu": "Character actions",
+      "openDetails": "Open character {name}",
+      "pov": "POV",
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
     },
@@ -7453,7 +7452,7 @@
     "empty": {
       "add": "Add character",
       "description": "Add a character manually or link an existing one from your library.",
-      "title": "No characters yet"
+      "title": "No characters here yet"
     },
     "noResults": {
       "clear": "Clear search",

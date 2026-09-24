@@ -12,29 +12,29 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import { useUpdateCharacter } from "../api/use-update-character";
+import { useToggleCharacterFavorite } from "../api/use-toggle-character-favorite";
 import {
   BOOK_CHARACTER_IMPORTANCE,
   explicitImportance,
   explicitStatus,
 } from "../model/character-options";
+import { rosterDisplayName } from "../model/characters-roster-query";
 
 type CharacterCardProps = {
+  bookId: string;
   character: CharacterSummaryView;
-  onDelete: () => void;
   onEdit: () => void;
   onOpenDetails: () => void;
   onUnlink: () => void;
 };
 
 export function CharacterCard({
+  bookId,
   character,
-  onDelete,
   onEdit,
   onOpenDetails,
   onUnlink,
@@ -42,97 +42,101 @@ export function CharacterCard({
   const t = useTranslations("characters.card");
   const tImportance = useTranslations("characters.importance");
   const tStatus = useTranslations("characters.status");
-  const updateCharacter = useUpdateCharacter();
+  const toggleFavorite = useToggleCharacterFavorite(bookId);
 
-  const name = character.displayName ?? character.name;
+  const name = rosterDisplayName(character);
   const media = character.portrait ?? character.avatar;
   const importance = explicitImportance(character.importance);
   const status = explicitStatus(character.status);
   const hiddenCount = character.hiddenFields.length;
+  const traits = [
+    ...(character.isPovCharacter ? [t("pov")] : []),
+    ...(status === null ? [] : [tStatus(status)]),
+  ];
 
   function onToggleFavorite() {
-    updateCharacter.mutate({
+    toggleFavorite.mutate({
       characterId: character.characterId,
-      input: { isFavorite: !character.isFavorite },
+      isFavorite: !character.isFavorite,
     });
   }
 
   return (
-    <CharacterCardPrimitive
-      actions={
-        <>
-          {hiddenCount > 0 ? (
-            <Badge
-              aria-label={t("hiddenFields", { count: hiddenCount })}
-              className="mr-0.5"
-              variant="warning"
-            >
-              <UiIcon name="lock" size={12} />
-              {hiddenCount}
-            </Badge>
-          ) : null}
-
-          <Button
-            aria-label={t(character.isFavorite ? "unfavorite" : "favorite")}
-            aria-pressed={character.isFavorite}
-            className={cn(
-              "size-8 rounded-lg border",
-              character.isFavorite
-                ? "border-brand bg-brand text-primary-foreground hover:bg-primary-hover"
-                : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand",
-            )}
-            disabled={updateCharacter.isPending}
-            onClick={onToggleFavorite}
-            size="icon-sm"
-            variant="ghost"
-          >
-            <UiIcon name={character.isFavorite ? "heart-fill" : "heart"} size={18} />
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label={t("menu")}
-                className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
-                size="icon-sm"
-                variant="ghost"
+    <div className="group relative flex w-full">
+      <CharacterCardPrimitive
+        actions={
+          <div className="relative z-20 flex items-center gap-0.5">
+            {hiddenCount > 0 ? (
+              <Badge
+                aria-label={t("hiddenFields", { count: hiddenCount })}
+                className="mr-0.5"
+                variant="warning"
               >
-                <UiIcon name="more" size={18} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem onSelect={onOpenDetails}>
-                <UiIcon name="eye" size={16} />
-                {t("details")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onEdit}>
-                <UiIcon name="edit" size={16} />
-                {t("edit")}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onUnlink}>
-                <UiIcon name="link" size={16} />
-                {t("unlink")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onDelete} variant="destructive">
-                <UiIcon name="trash" size={16} />
-                {t("delete")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </>
-      }
-      avatar={media === null ? undefined : { alt: name, src: media.urls.card }}
-      name={name}
-      role={
-        importance === null
-          ? undefined
-          : {
-              label: tImportance(importance),
-              variant: BOOK_CHARACTER_IMPORTANCE.badgeVariant[importance],
-            }
-      }
-      traits={status === null ? undefined : [tStatus(status)]}
-    />
+                <UiIcon name="lock" size={12} />
+                {hiddenCount}
+              </Badge>
+            ) : null}
+
+            <Button
+              aria-label={t(character.isFavorite ? "unfavorite" : "favorite")}
+              aria-pressed={character.isFavorite}
+              className={cn(
+                "size-8 rounded-lg border",
+                character.isFavorite
+                  ? "border-brand bg-brand text-primary-foreground hover:bg-primary-hover"
+                  : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand",
+              )}
+              onClick={onToggleFavorite}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <UiIcon name={character.isFavorite ? "heart-fill" : "heart"} size={18} />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label={t("menu")}
+                  className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  <UiIcon name="more" size={18} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onSelect={onEdit}>
+                  <UiIcon name="edit" size={16} />
+                  {t("edit")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={onUnlink}>
+                  <UiIcon name="link" size={16} />
+                  {t("unlink")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        }
+        avatar={media === null ? undefined : { alt: name, src: media.urls.card }}
+        className="w-full group-hover:-translate-y-0.5 group-hover:shadow-hover"
+        name={name}
+        role={
+          importance === null
+            ? undefined
+            : {
+                label: tImportance(importance),
+                variant: BOOK_CHARACTER_IMPORTANCE.badgeVariant[importance],
+              }
+        }
+        traits={traits.length === 0 ? undefined : traits}
+      />
+
+      <button
+        aria-label={t("openDetails", { name })}
+        className="absolute inset-0 z-10 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        onClick={onOpenDetails}
+        type="button"
+      />
+    </div>
   );
 }
