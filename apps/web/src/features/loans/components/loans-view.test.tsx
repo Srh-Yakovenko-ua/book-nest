@@ -5,6 +5,7 @@ import type {
   LoanDirectionSummary,
   LoanHistoryOverviewView,
   LoanListItemView,
+  LoansQuickCounts,
   LoansSummaryView,
   LoanType,
 } from "@app/shared";
@@ -139,27 +140,6 @@ describe("LoansView", () => {
     expect(listUrl()).toContain("search=hobbit");
     expect(listUrl()).toContain("filter=overdue");
     expect(listUrl()).toContain("sort=title");
-  });
-
-  it("counts the quick filter chips from the summary, zero included", async () => {
-    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
-      borrowed: {
-        ...EMPTY_DIRECTION_SUMMARY,
-        noReturnDateCount: 2,
-        overdueCount: 3,
-        returningSoonCount: 0,
-        totalCount: 9,
-      },
-    });
-
-    renderLoans("borrowed_from_someone");
-
-    await waitFor(() => {
-      expect(within(chip(quickFilters.all)).getByText("9")).toBeInTheDocument();
-    });
-    expect(within(chip(quickFilters.overdue)).getByText("3")).toBeInTheDocument();
-    expect(within(chip(quickFilters.return_soon)).getByText("0")).toBeInTheDocument();
-    expect(within(chip(quickFilters.no_return_date)).getByText("2")).toBeInTheDocument();
   });
 
   it("keeps the quick filters to loan status on both pages", async () => {
@@ -1035,6 +1015,137 @@ describe("LoansView", () => {
   });
 });
 
+describe("LoansView quick filter counts", () => {
+  it("shows the chip counts from quick-counts and keeps the stat cards on the summary", async () => {
+    stubLoansApi({
+      items: [loanItem("borrowed_from_someone", "Гобіт")],
+      quickCounts: () => Promise.resolve(jsonResponse(sampleQuickCounts())),
+      summaryOverrides: {
+        borrowed: {
+          ...EMPTY_DIRECTION_SUMMARY,
+          overdueCount: 3,
+          returningSoonCount: 4,
+          totalCount: 9,
+        },
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    await waitFor(() => {
+      expect(within(chip(quickFilters.all)).getByText("5")).toBeInTheDocument();
+    });
+    expect(within(chip(quickFilters.overdue)).getByText("1")).toBeInTheDocument();
+    expect(within(chip(quickFilters.no_return_date)).getByText("2")).toBeInTheDocument();
+    expect(within(chip(quickFilters.return_soon)).getByText("0")).toBeInTheDocument();
+    expect(chip(quickFilters.return_soon)).toBeEnabled();
+
+    const overdue = await findStatCard(stats.overdue.label);
+    expect(within(overdue).getByText("3")).toBeInTheDocument();
+    const returningSoon = await findStatCard(stats.returningSoon.label);
+    expect(within(returningSoon).getByText("4")).toBeInTheDocument();
+  });
+
+  it("renders the chips without numbers until the first counts arrive", async () => {
+    stubLoansApi({
+      items: [loanItem("lent_to_someone", "Дюна")],
+      quickCounts: () => new Promise<Response>(() => {}),
+    });
+
+    renderLoans("lent_to_someone");
+
+    await screen.findByText("Дюна");
+    expect(quickCountRequests()).not.toHaveLength(0);
+    for (const key of ["all", "overdue", "return_soon", "no_return_date"] as const) {
+      expect(within(chip(quickFilters[key])).queryByText(/^\d+$/)).not.toBeInTheDocument();
+    }
+  });
+
+  it("asks for the counts of the page's own direction", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")]);
+
+    renderLoans("lent_to_someone");
+
+    await waitFor(() => {
+      expect(quickCountRequests()).not.toHaveLength(0);
+    });
+    for (const url of quickCountRequests()) {
+      expect(url.searchParams.get("type")).toBe("lent_to_someone");
+    }
+  });
+
+  it("asks the borrowed page for the borrowed counts", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone");
+
+    await waitFor(() => {
+      expect(quickCountRequests()).not.toHaveLength(0);
+    });
+    for (const url of quickCountRequests()) {
+      expect(url.searchParams.get("type")).toBe("borrowed_from_someone");
+    }
+  });
+
+  it("sends the search to quick-counts and shows the counts it returns", async () => {
+    stubLoansApi({
+      items: [loanItem("lent_to_someone", "Дюна")],
+      quickCounts: (url) =>
+        Promise.resolve(
+          jsonResponse(
+            url.searchParams.get("search") === "дюна"
+              ? sampleQuickCounts({ all: 2, overdue: 0 })
+              : sampleQuickCounts(),
+          ),
+        ),
+    });
+
+    renderLoans("lent_to_someone");
+    await waitFor(() => {
+      expect(within(chip(quickFilters.all)).getByText("5")).toBeInTheDocument();
+    });
+
+    await userEvent.type(
+      screen.getByRole("textbox", { name: messages.loans.toolbar.searchLabel.lent }),
+      "дюна",
+    );
+
+    await waitFor(() => {
+      expect(within(chip(quickFilters.all)).getByText("2")).toBeInTheDocument();
+    });
+    expect(within(chip(quickFilters.overdue)).getByText("0")).toBeInTheDocument();
+    expect(quickCountRequests().at(-1)?.searchParams.get("search")).toBe("дюна");
+  });
+
+  it("never sends the selected quick filter to quick-counts", async () => {
+    stubLoansApi({
+      items: [loanItem("lent_to_someone", "Дюна")],
+      quickCounts: () => Promise.resolve(jsonResponse(sampleQuickCounts())),
+    });
+
+    renderLoans("lent_to_someone", "?reminder=off");
+    await waitFor(() => {
+      expect(within(chip(quickFilters.all)).getByText("5")).toBeInTheDocument();
+    });
+
+    await userEvent.click(chip(quickFilters.overdue));
+
+    await waitFor(() => {
+      expect(listUrls().some((url) => url.includes("filter=overdue"))).toBe(true);
+    });
+    expect(within(chip(quickFilters.all)).getByText("5")).toBeInTheDocument();
+    expect(within(chip(quickFilters.no_return_date)).getByText("2")).toBeInTheDocument();
+    const requests = quickCountRequests();
+    expect(requests.length).toBeGreaterThan(0);
+    for (const url of requests) {
+      expect(url.searchParams.has("filter")).toBe(false);
+      expect(url.searchParams.has("sort")).toBe(false);
+      expect(url.searchParams.has("pageSize")).toBe(false);
+      expect(url.searchParams.get("reminder")).toBe("off");
+    }
+  });
+});
+
 describe("LoansView advanced filters", () => {
   it("keeps the draft out of the list until it is applied", async () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")]);
@@ -1203,6 +1314,16 @@ function contactView(): LoanContactView {
   };
 }
 
+function countedQuickCounts(items: LoanListItemView[], url: URL): LoansQuickCounts {
+  const type = url.searchParams.get("type");
+  return {
+    all: items.filter((item) => item.type === type).length,
+    no_return_date: 0,
+    overdue: 0,
+    return_soon: 0,
+  };
+}
+
 function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionSummary {
   return {
     ...EMPTY_DIRECTION_SUMMARY,
@@ -1304,7 +1425,10 @@ function listUrl(): string {
 
 function listUrls(): string[] {
   return requestedUrls.filter(
-    (url) => url.includes("/api/loans") && !url.includes("/api/loans/summary"),
+    (url) =>
+      url.includes("/api/loans") &&
+      !url.includes("/api/loans/summary") &&
+      !url.includes("/api/loans/quick-counts"),
   );
 }
 
@@ -1355,34 +1479,11 @@ function loansPage(items: LoanListItemView[], url: string) {
 }
 
 function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSummaryView>) {
-  const summary: LoansSummaryView = {
-    borrowed: countedStats(items, "borrowed_from_someone"),
-    lent: countedStats(items, "lent_to_someone"),
-    ...summaryOverrides,
-  };
-
-  vi.stubGlobal(
-    "fetch",
-    vi.fn((input: RequestInfo | URL) => {
-      const url = String(input);
-      requestedUrls.push(url);
-      if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
-      if (url.includes("/api/loans/contacts?")) {
-        return Promise.resolve(jsonResponse(contactsPage()));
-      }
-      if (url.includes("/api/loans/contacts/")) {
-        return Promise.resolve(jsonResponse(contactView()));
-      }
-      if (url.includes("/api/loans/history/overview")) {
-        return Promise.resolve(jsonResponse(historyOverview()));
-      }
-      if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
-      if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
-        return Promise.resolve(jsonResponse(extendedBookView()));
-      }
-      return Promise.reject(new Error(`unexpected fetch: ${url}`));
-    }),
-  );
+  stubLoansApi({
+    items,
+    quickCounts: (url) => Promise.resolve(jsonResponse(countedQuickCounts(items, url))),
+    summaryOverrides,
+  });
 }
 
 async function openAdvancedFilters(): Promise<void> {
@@ -1404,6 +1505,12 @@ function personFilterLabel(name: string): string {
   return people.filter.replace("{name}", name);
 }
 
+function quickCountRequests(): URL[] {
+  return requestedUrls
+    .filter((url) => url.includes("/api/loans/quick-counts"))
+    .map((url) => new URL(url, "http://localhost"));
+}
+
 function renderLoans(type: LoanType, searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
     <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
@@ -1412,8 +1519,54 @@ function renderLoans(type: LoanType, searchParams = "", onUrlUpdate?: OnUrlUpdat
   );
 }
 
+function sampleQuickCounts(overrides: Partial<LoansQuickCounts> = {}): LoansQuickCounts {
+  return { all: 5, no_return_date: 2, overdue: 1, return_soon: 0, ...overrides };
+}
+
 function sidebar(): HTMLElement {
   return screen.getByRole("complementary", { name: copy.sidebar.label });
+}
+
+function stubLoansApi({
+  items,
+  quickCounts,
+  summaryOverrides,
+}: {
+  items: LoanListItemView[];
+  quickCounts: (url: URL) => Promise<Response>;
+  summaryOverrides?: Partial<LoansSummaryView>;
+}) {
+  const summary: LoansSummaryView = {
+    borrowed: countedStats(items, "borrowed_from_someone"),
+    lent: countedStats(items, "lent_to_someone"),
+    ...summaryOverrides,
+  };
+
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      requestedUrls.push(url);
+      if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
+      if (url.includes("/api/loans/quick-counts")) {
+        return quickCounts(new URL(url, "http://localhost"));
+      }
+      if (url.includes("/api/loans/contacts?")) {
+        return Promise.resolve(jsonResponse(contactsPage()));
+      }
+      if (url.includes("/api/loans/contacts/")) {
+        return Promise.resolve(jsonResponse(contactView()));
+      }
+      if (url.includes("/api/loans/history/overview")) {
+        return Promise.resolve(jsonResponse(historyOverview()));
+      }
+      if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
+      if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
+        return Promise.resolve(jsonResponse(extendedBookView()));
+      }
+      return Promise.reject(new Error(`unexpected fetch: ${url}`));
+    }),
+  );
 }
 
 function trackUrl() {
