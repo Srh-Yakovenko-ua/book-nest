@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { stubTextMetrics } from "@/features/quotes/model/quotes.fixtures";
 import { renderWithProviders, screen } from "@/test-utils";
 
-import { stubTextMetrics } from "../model/quotes.fixtures";
 import { useIsTextClamped } from "./use-is-text-clamped";
+
+const WIDTH_METRICS = ["clientWidth", "scrollWidth"] as const;
 
 let restoreMetrics: () => void = () => undefined;
 
@@ -48,6 +50,32 @@ describe("useIsTextClamped", () => {
     renderWithProviders(<Probe text="Страх — убивця розуму." />);
 
     expect(measured()).toHaveTextContent("false");
+  });
+
+  it("reports single-line text cut off at its width as clamped", () => {
+    stub(100, 100);
+    const widthDescriptors = WIDTH_METRICS.map(
+      (name) => [name, Object.getOwnPropertyDescriptor(HTMLElement.prototype, name)] as const,
+    );
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", {
+      configurable: true,
+      get: () => 400,
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get: () => 200,
+    });
+
+    try {
+      renderWithProviders(<Probe text="Дуже довгий опис в один рядок" />);
+
+      expect(measured()).toHaveTextContent("true");
+    } finally {
+      for (const [name, descriptor] of widthDescriptors) {
+        if (descriptor === undefined) Reflect.deleteProperty(HTMLElement.prototype, name);
+        else Object.defineProperty(HTMLElement.prototype, name, descriptor);
+      }
+    }
   });
 
   it("keeps a one-pixel rounding difference from counting as clamped", () => {
