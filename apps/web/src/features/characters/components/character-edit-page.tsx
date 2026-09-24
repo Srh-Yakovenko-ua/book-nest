@@ -2,6 +2,7 @@
 
 import type { BookCharacterView, CharacterDetailsView } from "@app/shared";
 
+import { CHARACTER_NAME_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
@@ -29,7 +30,6 @@ import {
   toCharacterEditValues,
   toGlobalUpdate,
 } from "../model/character-edit-form";
-import { CHARACTER_NAME_MAX } from "../model/character-form-schema";
 import { getCharacterDetailsPath } from "../model/character-routes";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
 import {

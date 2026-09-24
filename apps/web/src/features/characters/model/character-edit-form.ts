@@ -6,6 +6,7 @@ import {
   BookCharacterNarratorTypeSchema,
   BookCharacterRoleTypeSchema,
   BookCharacterStatusSchema,
+  CHARACTER_NAME_MAX,
   CharacterAliasTypeSchema,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
@@ -16,7 +17,6 @@ import { z } from "zod";
 import type { CharacterAliasRow } from "./character-aliases";
 
 import { findAliasConflicts, toAliasPayload, toAliasRows } from "./character-aliases";
-import { CHARACTER_NAME_MAX } from "./character-form-schema";
 import { BOOK_CHARACTER_STATUS } from "./character-options";
 
 export type CharacterEditMessages = {

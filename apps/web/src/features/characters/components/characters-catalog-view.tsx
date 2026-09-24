@@ -7,9 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
-import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import {
   Select,

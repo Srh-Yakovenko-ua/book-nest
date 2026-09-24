@@ -3,6 +3,7 @@
 import type { BookCharacterSummaryQuery, BookView } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { CHARACTER_NAME_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -40,7 +41,6 @@ import {
   toCreateNewCharacterInBook,
   toLinkExistingCharacterInBook,
 } from "../model/add-character-schema";
-import { CHARACTER_NAME_MAX } from "../model/character-form-schema";
 import { rosterDisplayName } from "../model/characters-roster-query";
 import { DuplicateCharacterSuggestion } from "./duplicate-character-suggestion";
 
@@ -133,7 +133,7 @@ function AddCharacterDraft({
     try {
       const created = await createInBook.mutateAsync({
         bookId: book.id,
-        input: toCreateNewCharacterInBook(values, book.id),
+        input: toCreateNewCharacterInBook(values),
       });
       toast.success(tToast("created"));
       onClose();

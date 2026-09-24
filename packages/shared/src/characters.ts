@@ -10,7 +10,7 @@ import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TagViewSchema } from "./tags.js";
 
-const CHARACTER_NAME_MAX = 200;
+export const CHARACTER_NAME_MAX = 200;
 const CHARACTER_SHORT_TEXT_MAX = 200;
 const CHARACTER_SPECIES_MAX = 120;
 const CHARACTER_GENDER_CUSTOM_MAX = 60;
