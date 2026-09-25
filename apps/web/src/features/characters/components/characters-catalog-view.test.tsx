@@ -4,7 +4,14 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { makeCharacterGlobalSummary } from "../model/characters.fixtures";
 import { CharactersCatalogView } from "./characters-catalog-view";
@@ -32,8 +39,10 @@ const overview = {
 
 const fetchMock = vi.fn();
 
-let respondToList: () => Response;
+let respondToList: (url: string) => Response;
 let respondToOverview: () => Response;
+
+const viewport = mockIntersectionObserver();
 
 function catalogRequestUrls(): string[] {
   return fetchMock.mock.calls
@@ -48,8 +57,23 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function nextPageRequestCount(): number {
+  return catalogRequestUrls().filter((url) => url.includes("pageNumber=2")).length;
+}
+
 function page(items: ReturnType<typeof makeCharacterGlobalSummary>[], pagesCount = 1) {
   return { items, page: 1, pagesCount, pageSize: 24, totalCount: items.length };
+}
+
+function pagedList(url: string, pagesCount: number) {
+  const pageNumber = Number(new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1);
+  return jsonResponse({
+    items: [makeCharacterGlobalSummary({ name: "Ґеральт" })],
+    page: pageNumber,
+    pagesCount,
+    pageSize: 24,
+    totalCount: pagesCount * 24,
+  });
 }
 
 function renderCatalog(search = "") {
@@ -73,7 +97,7 @@ beforeEach(() => {
       return Promise.resolve(jsonResponse(page([])));
     }
     if (url.includes("/api/series")) return Promise.resolve(jsonResponse(page([])));
-    if (url.includes("/api/characters")) return Promise.resolve(respondToList());
+    if (url.includes("/api/characters")) return Promise.resolve(respondToList(url));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -163,12 +187,13 @@ describe("CharactersCatalogView catalog", () => {
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
   });
 
-  it("offers Показати ще only while more pages exist", async () => {
-    respondToList = () => jsonResponse(page([makeCharacterGlobalSummary({ name: "Ґеральт" })], 3));
-
+  it("keeps the list still when the last page is already shown", async () => {
     renderCatalog();
 
-    expect(await screen.findByRole("button", { name: "Показати ще" })).toBeInTheDocument();
+    await screen.findByRole("link", { name: /Ґеральт/ });
+    viewport.enterViewport();
+
+    await waitFor(() => expect(nextPageRequestCount()).toBe(0));
   });
 });
 
@@ -184,29 +209,60 @@ describe("CharactersCatalogView sidebar", () => {
 });
 
 describe("CharactersCatalogView pagination", () => {
-  it("starts the list over when a quick filter changes", async () => {
-    respondToList = () => jsonResponse(page([makeCharacterGlobalSummary({ name: "Ґеральт" })], 3));
+  it("loads the next page when the sentinel reaches the viewport", async () => {
+    respondToList = (url) => pagedList(url, 2);
 
     renderCatalog();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
-    await waitFor(() =>
-      expect(catalogRequestUrls().some((url) => url.includes("pageNumber=2"))).toBe(true),
-    );
+    await screen.findByRole("link", { name: /Ґеральт/ });
+    viewport.enterViewport();
+
+    await waitFor(() => expect(nextPageRequestCount()).toBe(1));
+  });
+
+  it("starts the list over when a quick filter changes", async () => {
+    respondToList = (url) => pagedList(url, 2);
+
+    renderCatalog();
+
+    await screen.findByRole("link", { name: /Ґеральт/ });
+    viewport.enterViewport();
+    await waitFor(() => expect(nextPageRequestCount()).toBe(1));
 
     await userEvent.click(screen.getByRole("radio", { name: /Улюблені/ }));
 
     await waitFor(() =>
-      expect(
-        catalogRequestUrls().some(
-          (url) => url.includes("favorite=true") && url.includes("pageNumber=1"),
-        ),
-      ).toBe(true),
+      expect(catalogRequestUrls().some((url) => url.includes("favorite=true"))).toBe(true),
     );
-    expect(
-      catalogRequestUrls().some(
-        (url) => url.includes("favorite=true") && url.includes("pageNumber=2"),
-      ),
-    ).toBe(false);
+    const firstFavoriteRequest = catalogRequestUrls().find((url) => url.includes("favorite=true"));
+    expect(firstFavoriteRequest).toContain("pageNumber=1");
+  });
+
+  it("offers a retry when the next page fails and asks for it again", async () => {
+    let failNextPage = true;
+    respondToList = (url) => {
+      if (url.includes("pageNumber=2") && failNextPage) {
+        failNextPage = false;
+        return jsonResponse({ message: "boom" }, 500);
+      }
+      return pagedList(url, 2);
+    };
+
+    renderCatalog();
+
+    await screen.findByRole("link", { name: /Ґеральт/ });
+    viewport.enterViewport();
+
+    await waitFor(() => expect(nextPageRequestCount()).toBe(1));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Не вдалося завантажити ще персонажів");
+
+    const retry = within(alert).getByRole("button", { name: "Повторити" });
+    expect(retry).toHaveFocus();
+
+    await userEvent.click(retry);
+
+    await waitFor(() => expect(nextPageRequestCount()).toBe(2));
   });
 });

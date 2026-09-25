@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
 import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { statusEntry } from "@/lib/book-status.fixtures";
@@ -196,7 +196,6 @@ const meta = {
     libraryTotal: 128,
     loadingLabel: "Завантаження книг…",
     loadMoreErrorLabel: "Не вдалося завантажити ще книги",
-    loadMoreLabel: "Показати ще",
     noFilteredResultsState,
     noSearchResultsState,
     onAddBook: () => {},
@@ -263,6 +262,7 @@ export const WithCardMenu: Story = {
 export const BulkSelection: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Двір срібного полум'я")).toBeVisible());
+    await userEvent.click(canvas.getByRole("button", { name: "Вибрати" }));
     const [firstCheckbox] = canvas.getAllByRole("checkbox");
     if (firstCheckbox === undefined) throw new Error("expected a selection checkbox");
     await userEvent.click(firstCheckbox);
@@ -274,17 +274,41 @@ export const BulkSelection: Story = {
 };
 
 export const WithLoadMore: Story = {
-  args: { counterLabel: "Показано 3 з 12 книг", hasNextPage: true },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole("button", { name: "Показати ще" })).toBeVisible();
+  args: { counterLabel: "Показано 3 з 12 книг", hasNextPage: true, onLoadMore: fn() },
+  play: async ({ args, canvas }) => {
+    const sentinel = await canvas.findByRole("status");
+    sentinel.scrollIntoView();
+
+    await waitFor(() => expect(args.onLoadMore).toHaveBeenCalled());
+    await expect(canvas.queryByText("Усі книги показано")).toBeNull();
+  },
+};
+
+export const AllBooksShown: Story = {
+  args: { hasNextPage: false, onLoadMore: fn() },
+  play: async ({ args, canvas }) => {
+    await expect(canvas.getByText("Усі книги показано")).toBeVisible();
+    await expect(canvas.queryByRole("status")).toBeNull();
+    await expect(args.onLoadMore).not.toHaveBeenCalled();
   },
 };
 
 export const LoadMoreError: Story = {
-  args: { counterLabel: "Показано 3 з 12 книг", hasNextPage: true, isLoadMoreError: true },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText("Не вдалося завантажити ще книги")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Показати ще" })).toBeVisible();
+  args: {
+    counterLabel: "Показано 3 з 12 книг",
+    hasNextPage: true,
+    isLoadMoreError: true,
+    onLoadMore: fn(),
+  },
+  play: async ({ args, canvas }) => {
+    const alert = await canvas.findByRole("alert");
+    await expect(within(alert).getByText("Не вдалося завантажити ще книги")).toBeVisible();
+
+    const retry = within(alert).getByRole("button", { name: "Повторити" });
+    await waitFor(() => expect(retry).toHaveFocus());
+    await userEvent.click(retry);
+
+    await expect(args.onLoadMore).toHaveBeenCalled();
   },
 };
 

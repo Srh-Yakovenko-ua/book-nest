@@ -101,6 +101,7 @@ export function BooksArchive({
     .flatMap((page) => page.items)
     .map((book) => toLibraryBook(book, labels));
   const summary = overview.data?.summary;
+  const hasListError = isError && !isFetchNextPageError;
 
   const noSearchResultsState: EmptyStateEntry = {
     desc: t("noSearchResults.description"),
@@ -143,7 +144,7 @@ export function BooksArchive({
       hasActiveSearch={library.hasActiveSearch}
       hasNextPage={hasNextPage}
       header={header}
-      isError={isError}
+      isError={hasListError}
       isFetchingNextPage={isFetchingNextPage}
       isLoadMoreError={isFetchNextPageError}
       isPending={isPending}
@@ -152,7 +153,6 @@ export function BooksArchive({
       linkComponent={Link}
       loadingLabel={t("loading")}
       loadMoreErrorLabel={t("loadMoreError")}
-      loadMoreLabel={t("loadMore")}
       noFilteredResultsState={noFilteredResultsState}
       noSearchResultsState={noSearchResultsState}
       onAddBook={onAddBook}

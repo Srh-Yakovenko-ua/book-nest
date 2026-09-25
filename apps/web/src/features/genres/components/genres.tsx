@@ -101,7 +101,6 @@ export function Genres() {
             {t("resultsTitle")}
           </h2>
           <GenresContent
-            listKey={JSON.stringify(query.listParams)}
             onClearSearch={() => {
               query.clearSearch();
               toolbarRef.current?.querySelector<HTMLInputElement>(GENRES_PAGE.searchInput)?.focus();

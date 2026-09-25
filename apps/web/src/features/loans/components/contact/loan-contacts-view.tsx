@@ -6,10 +6,12 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +36,7 @@ export function LoanContactsView() {
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((page) => page.items);
   const counts: Nullable<LoanContactCounts> = loadedPages[0]?.counts ?? null;
+  const hasListError = list.isError && !list.isFetchNextPageError;
 
   function handleResolved({ contact, kind }: LoanContactResolution) {
     setIsCreating(false);
@@ -67,7 +70,7 @@ export function LoanContactsView() {
 
       <LoanContactsContent
         hasActiveQuery={query.hasActiveQuery}
-        isError={list.isError}
+        isError={hasListError}
         isPending={list.isPending}
         items={items}
         onClearQuery={query.clearQuery}
@@ -76,22 +79,12 @@ export function LoanContactsView() {
         onRetry={() => void list.refetch()}
       />
 
-      {items.length > 0 && list.hasNextPage ? (
-        <div className="flex flex-col items-center gap-2">
-          {list.isFetchNextPageError ? (
-            <p className="text-sm text-error" role="alert">
-              {t("loadMoreError")}
-            </p>
-          ) : null}
-          <Button
-            disabled={list.isFetchingNextPage}
-            loading={list.isFetchingNextPage}
-            onClick={() => void list.fetchNextPage()}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
+      {items.length > 0 ? (
+        <InfiniteScrollFooter
+          errorLabel={t("loadMoreError")}
+          onLoadMore={() => void list.fetchNextPage()}
+          state={nextPageState(list)}
+        />
       ) : null}
 
       <CreateLoanContactDialog
@@ -189,4 +182,19 @@ function LoanContactsContent({
       ))}
     </ul>
   );
+}
+
+function nextPageState({
+  hasNextPage,
+  isFetchingNextPage,
+  isFetchNextPageError,
+}: {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isFetchNextPageError: boolean;
+}): InfiniteScrollState {
+  if (isFetchNextPageError) return "error";
+  if (isFetchingNextPage) return "loading";
+  if (hasNextPage) return "idle";
+  return "none";
 }

@@ -5,6 +5,7 @@ import type { LoanListItemView, LoanType, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 import type {
   LoansControllerListFilter,
@@ -12,8 +13,8 @@ import type {
 } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
@@ -92,7 +93,8 @@ export function LoansView({ type }: { type: LoanType }) {
   const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
   const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
   const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
-  const showChrome = !list.isError && (list.isPending || hasAnyLoans);
+  const hasListError = list.isError && !list.isFetchNextPageError;
+  const showChrome = !hasListError && (list.isPending || hasAnyLoans);
   const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
 
   const attention: Nullable<LoansAttention> = summary.isError
@@ -122,7 +124,7 @@ export function LoansView({ type }: { type: LoanType }) {
       direction={page.direction}
       hasActiveFilters={query.hasActiveFilters}
       hasActiveSearch={query.hasActiveSearch}
-      isError={list.isError}
+      isError={hasListError}
       isPending={list.isPending}
       items={items}
       onAddBook={() => router.push("/books/new")}
@@ -209,11 +211,11 @@ export function LoansView({ type }: { type: LoanType }) {
             <div className="flex min-w-0 flex-1 flex-col gap-6">
               {loansContent}
 
-              {items.length > 0 && list.hasNextPage ? (
-                <LoansLoadMore
-                  isFetchingNextPage={list.isFetchingNextPage}
-                  isLoadMoreError={list.isFetchNextPageError}
+              {items.length > 0 ? (
+                <InfiniteScrollFooter
+                  errorLabel={t("loadMoreError")}
                   onLoadMore={() => void list.fetchNextPage()}
+                  state={nextPageState(list)}
                 />
               ) : null}
             </div>
@@ -376,32 +378,17 @@ function LoansContent({
   );
 }
 
-function LoansLoadMore({
+function nextPageState({
+  hasNextPage,
   isFetchingNextPage,
-  isLoadMoreError,
-  onLoadMore,
+  isFetchNextPageError,
 }: {
+  hasNextPage: boolean;
   isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-  onLoadMore: () => void;
-}) {
-  const t = useTranslations("loans");
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {isLoadMoreError ? (
-        <p className="text-sm text-error" role="alert">
-          {t("loadMoreError")}
-        </p>
-      ) : null}
-      <Button
-        disabled={isFetchingNextPage}
-        loading={isFetchingNextPage}
-        onClick={onLoadMore}
-        variant="secondary"
-      >
-        {t("loadMore")}
-      </Button>
-    </div>
-  );
+  isFetchNextPageError: boolean;
+}): InfiniteScrollState {
+  if (isFetchNextPageError) return "error";
+  if (isFetchingNextPage) return "loading";
+  if (hasNextPage) return "idle";
+  return "none";
 }

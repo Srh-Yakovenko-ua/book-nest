@@ -16,7 +16,14 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { tagsKeys } from "../api/tags-keys";
 import { TagsView } from "./tags-view";
@@ -91,6 +98,8 @@ const PREVIEW: TagDeletionPreviewView = { bookLinksCount: 3, characterLinksCount
 
 const requests: RecordedRequest[] = [];
 
+const viewport = mockIntersectionObserver();
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -113,7 +122,7 @@ describe("TagsView", () => {
     expect(screen.getByText("Повільний розвиток почуттів")).toBeInTheDocument();
     expect(screen.getByText("Показано 2 із 2 тегів")).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Жанри" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Показати ще" })).not.toBeInTheDocument();
+    expect(loadMoreRegion()).toBeUndefined();
   });
 
   it("shows quick-filter counts from facets and keeps the chips usable when facets fail", async () => {
@@ -136,7 +145,7 @@ describe("TagsView", () => {
     await waitFor(() => expect(urlUpdates.at(-1)?.queryString).toBe("?filter=unused"));
   });
 
-  it("appends the next page on Показати ще and hides it on the last page", async () => {
+  it("appends the next page when the catalog end scrolls into view and stops on the last page", async () => {
     mockTagsApi({
       "GET /api/tags/catalog": (request) =>
         json(
@@ -149,12 +158,15 @@ describe("TagsView", () => {
     renderTags();
 
     expect(await screen.findByText("Показано 1 із 2 тегів")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Показати ще" }));
+    viewport.enterViewport();
 
     expect(await screen.findByRole("heading", { level: 3, name: "cozy" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "slow burn" })).toBeInTheDocument();
     expect(screen.getByText("Показано 2 із 2 тегів")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Показати ще" })).not.toBeInTheDocument();
+    expect(loadMoreRegion()).toBeUndefined();
+
+    viewport.enterViewport();
+
     expect(requestsTo("GET /api/tags/catalog").map((r) => r.searchParams.get("pageSize"))).toEqual([
       "20",
       "20",
@@ -171,7 +183,8 @@ describe("TagsView", () => {
 
     renderTags();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+    viewport.enterViewport();
 
     expect(await screen.findByText("Не вдалося завантажити ще теги.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 3, name: "slow burn" })).toBeInTheDocument();
@@ -882,7 +895,8 @@ describe("TagsView search", () => {
     });
     const urlUpdates: UrlUpdateEvent[] = [];
     renderTags("?type=trope&sort=name_asc", (event) => urlUpdates.push(event));
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+    viewport.enterViewport();
     expect(await screen.findByText("Показано 2 із 2 тегів")).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText("Пошук тегу"), "cozy");
@@ -983,7 +997,8 @@ describe("TagsView filters and sort", () => {
     });
     const urlUpdates: UrlUpdateEvent[] = [];
     renderTags("?type=trope&filter=used", (event) => urlUpdates.push(event));
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+    viewport.enterViewport();
     await screen.findByText("Показано 2 із 2 тегів");
 
     await userEvent.click(screen.getByRole("combobox", { name: "Сортування" }));
@@ -1004,7 +1019,7 @@ describe("TagsView filters and sort", () => {
 });
 
 describe("TagsView progressive paging", () => {
-  it("keeps the loaded rows and a busy load-more while the next page is pending", async () => {
+  it("keeps the loaded rows and announces loading while the next page is pending", async () => {
     const nextPage = deferred<Response>();
     mockTagsApi({
       "GET /api/tags/catalog": (request) =>
@@ -1014,16 +1029,18 @@ describe("TagsView progressive paging", () => {
     });
     renderTags();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+    viewport.enterViewport();
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Показати ще" })).toBeDisabled());
+    expect(await screen.findByText("Завантажуємо ще...")).toBeInTheDocument();
+    await waitFor(() => expect(loadMoreRegion()).toHaveAttribute("aria-busy", "true"));
     expect(screen.getByRole("heading", { level: 3, name: "slow burn" })).toBeInTheDocument();
     expect(screen.getByText("Показано 1 із 2 тегів")).toBeInTheDocument();
     nextPage.resolve(await json(page([COZY], { page: 2, pagesCount: 2, totalCount: 2 })));
     expect(await screen.findByRole("heading", { level: 3, name: "cozy" })).toBeInTheDocument();
   });
 
-  it("sends one next-page request however often load-more is pressed while pending", async () => {
+  it("sends one next-page request however often the catalog end re-enters the viewport", async () => {
     const nextPage = deferred<Response>();
     mockTagsApi({
       "GET /api/tags/catalog": (request) =>
@@ -1032,10 +1049,12 @@ describe("TagsView progressive paging", () => {
           : json(page([SLOW_BURN], { pagesCount: 2, totalCount: 2 })),
     });
     renderTags();
-    const loadMore = await screen.findByRole("button", { name: "Показати ще" });
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
 
-    await userEvent.dblClick(loadMore);
-    await userEvent.click(loadMore);
+    viewport.enterViewport();
+    await screen.findByText("Завантажуємо ще...");
+    viewport.enterViewport();
+    viewport.enterViewport();
 
     expect(pageRequests("2")).toHaveLength(1);
     nextPage.resolve(await json(page([COZY], { page: 2, pagesCount: 2, totalCount: 2 })));
@@ -1058,7 +1077,8 @@ describe("TagsView progressive paging", () => {
     });
     renderTags();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("heading", { level: 3, name: "slow burn" });
+    viewport.enterViewport();
     await userEvent.click(await screen.findByRole("button", { name: "Спробувати знову" }));
 
     expect(await screen.findByRole("heading", { level: 3, name: "cozy" })).toBeInTheDocument();
@@ -1328,6 +1348,14 @@ function json(body: unknown, status = 200) {
       status,
     }),
   );
+}
+
+function loadMoreRegion(): HTMLElement | undefined {
+  return screen
+    .queryAllByRole("status")
+    .find(
+      (region) => region.getAttribute("aria-live") === "polite" && region.hasAttribute("aria-busy"),
+    );
 }
 
 function mockTagsApi(overrides: Record<string, Reply> = {}) {

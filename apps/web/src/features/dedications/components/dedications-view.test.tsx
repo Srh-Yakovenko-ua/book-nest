@@ -5,7 +5,14 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { makeDedicationBook, makeDedicationsSummary } from "../model/dedications.fixtures";
 import { DedicationsView } from "./dedications-view";
@@ -30,9 +37,11 @@ type PageBody = {
   totalCount?: number;
 };
 
-let respondToList: () => Response;
+let respondToList: (url: string) => Response;
 let respondToSummary: () => Response;
 let respondToUpdate: () => Response;
+
+const viewport = mockIntersectionObserver();
 
 function firstListUrl(): string {
   const url = listUrls()[0];
@@ -71,6 +80,10 @@ function renderView(search = "") {
   );
 }
 
+function requestedPageNumber(url: string): number {
+  return Number(new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1);
+}
+
 beforeEach(() => {
   respondToList = () => pageResponse({ items: [makeDedicationBook()] });
   respondToSummary = () => jsonResponse(makeDedicationsSummary());
@@ -82,7 +95,7 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "PATCH") return Promise.resolve(respondToUpdate());
     if (url.includes("/api/books/dedications/summary")) return Promise.resolve(respondToSummary());
-    if (url.includes("/api/books/dedications")) return Promise.resolve(respondToList());
+    if (url.includes("/api/books/dedications")) return Promise.resolve(respondToList(url));
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse([]));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -193,12 +206,14 @@ describe("DedicationsView", () => {
     expect(screen.getAllByText("—")).toHaveLength(2);
   });
 
-  it("shows the all-shown label without a load-more button while a single page covers the results", async () => {
+  it("shows the all-shown label without a sentinel while a single page covers the results", async () => {
     renderView();
 
     await screen.findByText("Останнє бажання");
-    expect(screen.queryByRole("button", { name: "Показати ще" })).not.toBeInTheDocument();
     expect(screen.getByText("Усі присвяти показано")).toBeInTheDocument();
+
+    viewport.enterViewport();
+    await waitFor(() => expect(listUrls()).toHaveLength(1));
   });
 
   it("shows how many dedications are visible out of the filtered total", async () => {
@@ -209,20 +224,27 @@ describe("DedicationsView", () => {
     expect(await screen.findByText("Показано 1 з 30 присвят")).toBeInTheDocument();
   });
 
-  it("shows the load-more button once the server reports several pages", async () => {
+  it("drops the all-shown label once the server reports several pages", async () => {
     respondToList = () =>
       pageResponse({ items: [makeDedicationBook()], pagesCount: 3, totalCount: 30 });
     renderView();
 
-    expect(await screen.findByRole("button", { name: "Показати ще" })).toBeInTheDocument();
+    await screen.findByText("Останнє бажання");
+    expect(screen.queryByText("Усі присвяти показано")).not.toBeInTheDocument();
   });
 
-  it("requests the next page when load more is clicked", async () => {
-    respondToList = () =>
-      pageResponse({ items: [makeDedicationBook()], pagesCount: 3, totalCount: 30 });
+  it("requests the next page when the sentinel reaches the viewport", async () => {
+    respondToList = (url) =>
+      pageResponse({
+        items: [makeDedicationBook()],
+        page: requestedPageNumber(url),
+        pagesCount: 2,
+        totalCount: 30,
+      });
     renderView();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByText("Останнє бажання");
+    viewport.enterViewport();
 
     await waitFor(() => expect(listUrls().length).toBeGreaterThan(1));
     expect(listUrls().some((url) => url.includes("pageNumber=2"))).toBe(true);

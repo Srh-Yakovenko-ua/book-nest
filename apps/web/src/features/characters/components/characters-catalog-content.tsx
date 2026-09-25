@@ -4,13 +4,14 @@ import type { CharacterGlobalSummaryView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +24,8 @@ import { CharactersErrorState } from "./characters-error-state";
 type CharactersCatalogContentProps = {
   characters: CharacterGlobalSummaryView[];
   hasActiveFilters: boolean;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
   isPending: boolean;
+  loadMoreState: InfiniteScrollState;
   onClearFilters: () => void;
   onLoadMore: () => void;
   view: CharactersCatalogState["view"];
@@ -36,9 +36,8 @@ const SKELETON_COUNT = 8;
 export function CharactersCatalogContent({
   characters,
   hasActiveFilters,
-  hasNextPage,
-  isFetchingNextPage,
   isPending,
+  loadMoreState,
   onClearFilters,
   onLoadMore,
   view,
@@ -75,17 +74,11 @@ export function CharactersCatalogContent({
         ))}
       </ul>
 
-      {hasNextPage ? (
-        <Button
-          className="self-center"
-          disabled={isFetchingNextPage}
-          loading={isFetchingNextPage}
-          onClick={onLoadMore}
-          variant="secondary"
-        >
-          {t("loadMore")}
-        </Button>
-      ) : null}
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={onLoadMore}
+        state={loadMoreState}
+      />
     </div>
   );
 }

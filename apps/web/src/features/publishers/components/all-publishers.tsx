@@ -29,11 +29,13 @@ export function AllPublishers() {
   const summary = usePublisherSummary();
   const summaryCards = usePublisherSummaryCards(summary.data);
 
+  const hasListError = list.isError && !list.isFetchNextPageError;
+
   const state = resolvePublishersArchiveState({
     hasActiveFilters: query.hasActiveFilters,
     hasActiveSearch: query.hasActiveSearch,
     list: list.data ?? null,
-    listFailed: list.isError,
+    listFailed: hasListError,
     summaryPending: summary.isPending,
     summaryPublishersCount: summary.data?.publishersCount ?? null,
   });

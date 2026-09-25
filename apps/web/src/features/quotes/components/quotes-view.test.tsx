@@ -14,13 +14,22 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { QUOTES_PAGE_SIZE } from "../model/quotes-query";
 import { makeQuote } from "../model/quotes.fixtures";
 import { QuotesView } from "./quotes-view";
 
 const SORT_LABEL = "Сортування цитат";
+
+const viewport = mockIntersectionObserver();
 
 type QuotesMockOptions = {
   facetsFor?: (url: string) => QuotesFacetsView;
@@ -106,7 +115,7 @@ describe("QuotesView sorting", () => {
     renderQuotes("", onUrlUpdate);
 
     expect(await screen.findByText("Цитата 1")).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    viewport.enterViewport();
     expect(await screen.findByText("Цитата 13")).toBeInTheDocument();
     expect(listUrls().some((url) => url.includes("pageNumber=2"))).toBe(true);
 
@@ -118,8 +127,10 @@ describe("QuotesView sorting", () => {
 
     await waitFor(() => expect(events.at(-1)?.searchParams.get("sort")).toBe("oldest"));
     await waitFor(() => expect(listUrls().some((url) => url.includes("sort=oldest"))).toBe(true));
-    expect(listUrls().every((url) => url.includes("pageNumber=1"))).toBe(true);
-    await waitFor(() => expect(screen.queryByText("Цитата 13")).not.toBeInTheDocument());
+
+    const [firstRequestAfterSort] = listUrls();
+    expect(firstRequestAfterSort).toContain("sort=oldest");
+    expect(firstRequestAfterSort).toContain("pageNumber=1");
   });
 });
 

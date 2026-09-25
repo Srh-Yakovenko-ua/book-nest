@@ -138,10 +138,9 @@ function renderTwoBookList(options: RenderViewOptions = {}) {
 
 function renderView(pages: CustomListDetail[], options: RenderViewOptions = {}) {
   const props: ViewProps = {
-    hasNextPage: false,
     id: "list-1",
     isFetching: false,
-    isFetchingNextPage: false,
+    loadMoreState: "none",
     onLoadMore: vi.fn(),
     pages,
     ...options.overrides,
