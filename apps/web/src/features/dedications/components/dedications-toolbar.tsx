@@ -1,6 +1,6 @@
 "use client";
 
-import type { DedicationFilter, DedicationSort } from "@app/shared";
+import type { DedicationFilter, DedicationSort, DedicationsQuickCounts } from "@app/shared";
 
 import { LayoutGrid, List } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -31,7 +31,7 @@ const ANY_GENRE = "__any__";
 
 type DedicationsToolbarProps = {
   availableGenres: readonly string[];
-  chipCounts?: Partial<Record<DedicationFilter, number>>;
+  chipCounts?: DedicationsQuickCounts;
   counter?: string;
   filter: DedicationFilter;
   genre: string;

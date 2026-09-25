@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
+import type { DedicationsQuickCounts } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -31,8 +32,17 @@ type PageBody = {
 };
 
 let respondToList: () => Response;
+let respondToQuickCounts: (url: URL) => Promise<Response>;
 let respondToSummary: () => Response;
 let respondToUpdate: () => Response;
+
+function chip(name: string): HTMLElement {
+  const match = screen
+    .getAllByRole("radio")
+    .find((radio) => radio.firstChild?.textContent === name);
+  if (match === undefined) throw new Error(`No quick filter chip ${name}`);
+  return match;
+}
 
 function firstListUrl(): string {
   const url = listUrls()[0];
@@ -50,7 +60,12 @@ function jsonResponse(body: unknown, status = 200): Response {
 function listUrls(): string[] {
   return fetchMock.mock.calls
     .map(([url]) => String(url))
-    .filter((url) => url.includes("/api/books/dedications") && !url.includes("/summary"));
+    .filter(
+      (url) =>
+        url.includes("/api/books/dedications") &&
+        !url.includes("/summary") &&
+        !url.includes("/quick-counts"),
+    );
 }
 
 function pageResponse({ items, page = 1, pagesCount = 1, totalCount }: PageBody): Response {
@@ -63,9 +78,19 @@ function pageResponse({ items, page = 1, pagesCount = 1, totalCount }: PageBody)
   });
 }
 
+function quickCountRequests(): URL[] {
+  return fetchMock.mock.calls
+    .map(([input]) => new URL(String(input), "http://localhost"))
+    .filter((url) => url.pathname === "/api/books/dedications/quick-counts");
+}
+
+function quickCounts(overrides: Partial<DedicationsQuickCounts> = {}): DedicationsQuickCounts {
+  return { all: 9, favorites: 3, finished: 4, unfinished: 5, ...overrides };
+}
+
 function renderView(search = "") {
   return renderWithProviders(
-    <NuqsTestingAdapter searchParams={search}>
+    <NuqsTestingAdapter hasMemory searchParams={search}>
       <DedicationsView />
     </NuqsTestingAdapter>,
   );
@@ -73,6 +98,7 @@ function renderView(search = "") {
 
 beforeEach(() => {
   respondToList = () => pageResponse({ items: [makeDedicationBook()] });
+  respondToQuickCounts = () => Promise.resolve(jsonResponse(quickCounts()));
   respondToSummary = () => jsonResponse(makeDedicationsSummary());
   respondToUpdate = () => jsonResponse(makeDedicationBook());
 
@@ -82,6 +108,9 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "PATCH") return Promise.resolve(respondToUpdate());
     if (url.includes("/api/books/dedications/summary")) return Promise.resolve(respondToSummary());
+    if (url.includes("/api/books/dedications/quick-counts")) {
+      return respondToQuickCounts(new URL(url, "http://localhost"));
+    }
     if (url.includes("/api/books/dedications")) return Promise.resolve(respondToList());
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse([]));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
@@ -323,5 +352,85 @@ describe("DedicationsView", () => {
     await waitFor(() => expect(listCalls).toBeGreaterThan(1));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getByText("Останнє бажання")).toBeInTheDocument();
+  });
+});
+
+describe("DedicationsView quick filter counts", () => {
+  it("shows the chip counts from quick-counts and keeps the summary cards on the summary", async () => {
+    respondToSummary = () =>
+      jsonResponse(makeDedicationsSummary({ favoriteCount: 11, totalCount: 24 }));
+    renderView();
+
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+    expect(within(chip("Улюблені")).getByText("3")).toBeInTheDocument();
+    expect(within(chip("Із прочитаних книг")).getByText("4")).toBeInTheDocument();
+    expect(within(chip("Із непрочитаних книг")).getByText("5")).toBeInTheDocument();
+
+    const totalCard = screen.getByText("Усього присвят").closest('[data-slot="stat-card"]');
+    if (!(totalCard instanceof HTMLElement)) throw new Error("total dedications card not found");
+    expect(within(totalCard).getByText("24")).toBeInTheDocument();
+    expect(within(chip("Усі")).queryByText("24")).not.toBeInTheDocument();
+  });
+
+  it("renders chips without numbers until the first counts arrive", async () => {
+    respondToQuickCounts = () => new Promise<Response>(() => {});
+    renderView();
+
+    await screen.findByText("Останнє бажання");
+    await waitFor(() => expect(quickCountRequests()).not.toHaveLength(0));
+    expect(chip("Усі")).toHaveTextContent(/^Усі$/);
+    expect(chip("Улюблені")).toHaveTextContent(/^Улюблені$/);
+  });
+
+  it("keeps a chip at zero enabled and shows the zero", async () => {
+    respondToQuickCounts = () => Promise.resolve(jsonResponse(quickCounts({ favorites: 0 })));
+    renderView();
+
+    await waitFor(() => expect(within(chip("Улюблені")).getByText("0")).toBeInTheDocument());
+    expect(chip("Улюблені")).toBeEnabled();
+  });
+
+  it("sends the search to quick-counts and shows the counts it returns", async () => {
+    respondToQuickCounts = (url) =>
+      Promise.resolve(
+        jsonResponse(
+          url.searchParams.get("q") === "мрія"
+            ? quickCounts({ all: 2, favorites: 1 })
+            : quickCounts(),
+        ),
+      );
+    renderView();
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Пошук присвят" }), "мрія");
+
+    await waitFor(() => expect(within(chip("Усі")).getByText("2")).toBeInTheDocument());
+    expect(within(chip("Улюблені")).getByText("1")).toBeInTheDocument();
+    expect(quickCountRequests().at(-1)?.searchParams.get("q")).toBe("мрія");
+  });
+
+  it("sends the genre filter to quick-counts", async () => {
+    renderView("?genre=romance");
+
+    await waitFor(() => expect(quickCountRequests()).not.toHaveLength(0));
+    expect(quickCountRequests()[0]?.searchParams.get("genre")).toBe("romance");
+  });
+
+  it("never sends the selected quick filter, sort or paging to quick-counts", async () => {
+    renderView("?sort=author_asc");
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+
+    for (const name of ["Улюблені", "Із прочитаних книг", "Із непрочитаних книг"]) {
+      await userEvent.click(chip(name));
+      await waitFor(() => expect(chip(name)).toHaveAttribute("data-state", "on"));
+    }
+
+    const requests = quickCountRequests();
+    expect(requests.length).toBeGreaterThan(0);
+    for (const url of requests) {
+      for (const param of ["filter", "sort", "pageSize", "pageNumber"]) {
+        expect(url.searchParams.has(param)).toBe(false);
+      }
+    }
   });
 });

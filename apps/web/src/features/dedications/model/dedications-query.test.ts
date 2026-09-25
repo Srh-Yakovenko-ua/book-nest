@@ -6,6 +6,7 @@ import {
   DEDICATION_CHIP_FILTERS,
   hasActiveDedicationFilters,
   toDedicationsParams,
+  toDedicationsQuickCountsParams,
 } from "./dedications-query";
 
 function makeState(overrides: Partial<DedicationsQueryState> = {}): DedicationsQueryState {
@@ -38,6 +39,20 @@ describe("toDedicationsParams", () => {
       pageSize: 12,
       sort: "author_asc",
     });
+  });
+});
+
+describe("toDedicationsQuickCountsParams", () => {
+  it("keeps the trimmed search and the genre the list sends", () => {
+    const listParams = toDedicationsParams(makeState({ genre: "romance", search: "  мрія " }));
+
+    expect(toDedicationsQuickCountsParams(listParams)).toEqual({ genre: "romance", q: "мрія" });
+  });
+
+  it("drops paging, sort and the selected quick filter", () => {
+    const listParams = toDedicationsParams(makeState({ filter: "favorites", sort: "author_asc" }));
+
+    expect(toDedicationsQuickCountsParams(listParams)).toEqual({});
   });
 });
 
