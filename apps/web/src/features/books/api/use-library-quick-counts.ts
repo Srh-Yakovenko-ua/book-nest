@@ -8,7 +8,7 @@ import type { BooksControllerQuickCountsParams } from "@/shared/api/generated/mo
 import { booksControllerQuickCounts } from "@/shared/api/generated/endpoints/books/books";
 
 import { isLibraryRangeValid } from "../model/library-query";
-import { BOOKS_ROOT } from "./book-keys";
+import { bookKeys } from "./book-keys";
 
 export function useLibraryQuickCounts(params: BooksControllerQuickCountsParams) {
   return useQuery({
@@ -16,6 +16,6 @@ export function useLibraryQuickCounts(params: BooksControllerQuickCountsParams) 
     placeholderData: keepPreviousData,
     queryFn: async ({ signal }): Promise<LibraryQuickCounts> =>
       LibraryQuickCountsSchema.parse(await booksControllerQuickCounts(params, { signal })),
-    queryKey: [BOOKS_ROOT, "quick-counts", params],
+    queryKey: bookKeys.quickCounts(params),
   });
 }
