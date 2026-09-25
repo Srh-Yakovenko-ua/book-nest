@@ -5,6 +5,7 @@ import type { CharacterOverviewView } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { TitleLeaf } from "@/components/title-leaf";
@@ -49,6 +50,16 @@ export function CharactersCatalogView() {
   const catalog = useCharactersCatalog(listParams);
   const characters = (catalog.data?.pages ?? []).flatMap((page) => page.items);
   const summaryCards = useCharactersSummaryCards(overview.data);
+
+  const hasCatalogError = catalog.isError && !catalog.isFetchNextPageError;
+
+  const loadMoreState: InfiniteScrollState = catalog.isFetchNextPageError
+    ? "error"
+    : catalog.isFetchingNextPage
+      ? "loading"
+      : catalog.hasNextPage
+        ? "idle"
+        : "none";
 
   return (
     <div className="flex flex-col gap-8">
@@ -154,15 +165,14 @@ export function CharactersCatalogView() {
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
-          {catalog.isError ? (
+          {hasCatalogError ? (
             <CharactersCatalogError onRetry={() => void catalog.refetch()} />
           ) : (
             <CharactersCatalogContent
               characters={characters}
               hasActiveFilters={hasActiveFilters}
-              hasNextPage={catalog.hasNextPage}
-              isFetchingNextPage={catalog.isFetchingNextPage}
               isPending={catalog.isPending}
+              loadMoreState={loadMoreState}
               onClearFilters={clearAll}
               onLoadMore={() => void catalog.fetchNextPage()}
               view={state.view}

@@ -50,7 +50,9 @@ export function QuotesView() {
 
   const quoteItems = (quotes.data?.pages ?? []).flatMap((page) => page.items);
 
-  const showSidebar = !quotes.isError;
+  const hasQuotesError = quotes.isError && !quotes.isFetchNextPageError;
+
+  const showSidebar = !hasQuotesError;
 
   const filterCounts = facets.data === undefined ? undefined : quoteFilterCounts(facets.data);
   const counter =
@@ -110,7 +112,7 @@ export function QuotesView() {
       ) : null}
 
       <ToolbarSlot
-        isError={quotes.isError}
+        isError={hasQuotesError}
         isPending={quotes.isPending}
         toolbar={
           <QuotesToolbar
@@ -139,7 +141,7 @@ export function QuotesView() {
           <QuotesContent
             hasActiveFilters={hasActiveFilters}
             hasNextPage={quotes.hasNextPage}
-            isError={quotes.isError}
+            isError={hasQuotesError}
             isFetchingNextPage={quotes.isFetchingNextPage}
             isLoadMoreError={quotes.isFetchNextPageError}
             isPending={quotes.isPending}

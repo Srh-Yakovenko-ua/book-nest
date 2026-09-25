@@ -7,14 +7,13 @@ import { useLocale, useTranslations } from "next-intl";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { assertNever } from "@/lib/assert-never";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import type { TagsListState, TagsNextPageState } from "../model/tags-list-state";
+import type { TagsListState } from "../model/tags-list-state";
 import type { TagsViewMode } from "../model/tags-query";
 
 import { TagCard } from "./tag-card";
@@ -190,7 +189,12 @@ function TagsList({
         })}
       </p>
 
-      <TagsLoadMore onLoadMore={onLoadMore} state={state.nextPage} />
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={onLoadMore}
+        retryLabel={t("retry")}
+        state={state.nextPage}
+      />
     </div>
   );
 }
@@ -205,42 +209,4 @@ function TagsListSkeleton({ view }: { view: TagsViewMode }) {
       )}
     </div>
   );
-}
-
-function TagsLoadMore({ onLoadMore, state }: { onLoadMore: () => void; state: TagsNextPageState }) {
-  const t = useTranslations("tags.catalog");
-
-  switch (state) {
-    case "error":
-      return (
-        <div
-          className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center"
-          role="alert"
-        >
-          <p className="text-sm text-muted-foreground">{t("loadMoreError")}</p>
-          <Button onClick={onLoadMore} size="sm" variant="secondary">
-            <UiIcon name="refresh" size={14} />
-            {t("retry")}
-          </Button>
-        </div>
-      );
-    case "idle":
-    case "loading":
-      return (
-        <div className="flex justify-center">
-          <Button
-            disabled={state === "loading"}
-            loading={state === "loading"}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
-      );
-    case "none":
-      return null;
-    default:
-      return assertNever(state);
-  }
 }

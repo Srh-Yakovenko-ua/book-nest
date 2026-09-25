@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Loading...",
+    "loadingMore": "Loading more...",
     "retry": "Retry",
     "somethingWentWrong": "Something went wrong",
     "decrement": "Decrease",
@@ -657,7 +658,6 @@
       },
       "resultsTitle": "Book list",
       "addBook": "Add book",
-      "loadMore": "Load more",
       "loadMoreError": "Couldn't load more books",
       "loading": "Loading books…",
       "menu": "Actions",
@@ -2338,7 +2338,6 @@
     "title": "Dedications",
     "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
     "added": "Dedication added",
-    "loadMore": "Load more",
     "loadMoreError": "Couldn't load more dedications",
     "allShown": "All dedications shown",
     "counter": "Showing {shown} of {total, plural, one {# dedication} other {# dedications}}",
@@ -2495,7 +2494,7 @@
     "subtitle": "Track ordered books from purchase to delivery",
     "resultsTitle": "Active deliveries",
     "counter": "Showing {shown} of {total, plural, one {# book} other {# books}} across {orders, plural, one {# order} other {# orders}}",
-    "loadMore": "Show more",
+    "loadMoreError": "Couldn't load more orders",
     "actions": {
       "addOrder": "Add order",
       "select": "Select",
@@ -3094,7 +3093,7 @@
       "subtitle": "Received and cancelled orders — the finished part of your delivery history.",
       "resultsTitle": "Order list",
       "counter": "Showing {shown} of {total, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
-      "loadMore": "Show more",
+      "loadMoreError": "Couldn't load more history orders",
       "summary": {
         "units": {
           "books": "{count, plural, one {book} other {books}}",
@@ -4516,7 +4515,7 @@
       "back": "Back to lists",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksHeading": "Books in this list",
-      "loadMore": "Show more",
+      "loadMoreError": "Couldn't load more books",
       "toolbar": {
         "searchLabel": "Search in list",
         "searchPlaceholder": "Search by title, author, or series",
@@ -4827,7 +4826,6 @@
       "create": "Create list",
       "counter": "Showing {shown} of {total, plural, one {# list} other {# lists}}",
       "allShown": "All lists shown",
-      "loadMore": "Load more",
       "loadMoreError": "Could not load more lists",
       "filters": {
         "trigger": "Filters",
@@ -5109,7 +5107,6 @@
       "metaTitle": "Contacts",
       "title": "Contacts",
       "subtitle": "The people you lend books to and borrow them from.",
-      "loadMore": "Show more",
       "loadMoreError": "Could not load the next page.",
       "create": {
         "cta": "Add contact",
@@ -5545,11 +5542,9 @@
         "inDays": "In {count, plural, one {# day} other {# days}}"
       }
     },
-    "loadMore": "Show more",
     "loadMoreError": "Couldn't load more loans",
     "history": {
       "shownCount": "Showing {shown} of {total, plural, one {# loan} other {# loans}}",
-      "loadMore": "Show more",
       "loadMoreError": "Couldn't load more history records",
       "cards": {
         "unitLoans": "{count, plural, one {loan} other {loans}}",
@@ -6491,7 +6486,6 @@
     "list": {
       "loading": "Loading genres",
       "shown": "{count, plural, one {Showing # genre} other {Showing # genres}}",
-      "loadMore": "Show more",
       "loadMoreError": "Could not load more genres.",
       "retry": "Try again"
     },
@@ -6701,7 +6695,6 @@
       "title": "Tag catalog",
       "loading": "Loading tags",
       "counter": "Showing {shown} of {total} tags",
-      "loadMore": "Show more",
       "loadMoreError": "Could not load more tags.",
       "retry": "Try again"
     },
@@ -7253,7 +7246,7 @@
       "filteredEmptyAction": "Reset filters",
       "saving": "Saving…",
       "deleting": "Deleting…",
-      "loadMore": "Load more"
+      "loadMoreError": "Couldn't load more events"
     },
     "manage": {
       "title": "Manage timelines",
@@ -7513,7 +7506,6 @@
     },
     "results": {
       "counter": "Showing {shown} of {total, plural, one {# publisher} other {# publishers}}",
-      "loadMore": "Load more",
       "loadMoreError": "Couldn't load more publishers",
       "loadMoreRetry": "Try again",
       "loading": "Loading publishers…",
@@ -7801,7 +7793,7 @@
         "title": "Filters",
         "trigger": "Filters"
       },
-      "loadMore": "Show more",
+      "loadMoreError": "Couldn't load more characters",
       "metaTitle": "Characters",
       "noResults": {
         "clear": "Clear filters",

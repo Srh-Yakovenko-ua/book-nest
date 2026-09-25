@@ -67,7 +67,9 @@ export function DeliveryHistory() {
     },
   );
 
-  const content: HistoryContent = listQuery.isError
+  const hasListError = listQuery.isError && !listQuery.isFetchNextPageError;
+
+  const content: HistoryContent = hasListError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
@@ -78,7 +80,7 @@ export function DeliveryHistory() {
         : { items, kind: "ready" };
 
   const showToolbar =
-    !listQuery.isError &&
+    !hasListError &&
     (listQuery.isPending || items.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryCards = buildHistorySummaryCards({
@@ -212,6 +214,7 @@ export function DeliveryHistory() {
       pagination={{
         hasNextPage: listQuery.hasNextPage,
         isFetchingNextPage: listQuery.isFetchingNextPage,
+        isFetchNextPageError: listQuery.isFetchNextPageError,
       }}
       renderCard={renderCard}
       showToolbar={showToolbar}

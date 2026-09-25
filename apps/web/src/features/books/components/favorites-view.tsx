@@ -127,6 +127,8 @@ export function FavoritesView() {
       }),
     );
 
+  const hasListError = isError && !isFetchNextPageError;
+
   const visibleBookIdsKey = books.map((book) => book.id).join("\n");
   const previousVisibleBookIdsKey = useRef(visibleBookIdsKey);
 
@@ -427,7 +429,7 @@ export function FavoritesView() {
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}
         hasNextPage={hasNextPage}
-        isError={isError}
+        isError={hasListError}
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
@@ -435,7 +437,6 @@ export function FavoritesView() {
         linkComponent={Link}
         loadingLabel={t("loading")}
         loadMoreErrorLabel={t("loadMoreError")}
-        loadMoreLabel={t("loadMore")}
         noFilteredResultsState={noFilteredResultsState}
         noSearchResultsState={noSearchResultsState}
         onAddBook={() => router.push("/books")}

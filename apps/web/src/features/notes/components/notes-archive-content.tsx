@@ -8,15 +8,13 @@ import { useState } from "react";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
 import type {
   NotesArchiveEmptyReason,
   NotesArchiveListState,
-  NotesNextPageState,
 } from "../model/notes-archive-list-state";
 import type { NotesViewMode } from "../model/notes-archive-query";
 
@@ -115,6 +113,7 @@ function NotesArchiveList({
   state: Extract<NotesArchiveListState, { kind: "ready" }>;
   view: NotesViewMode;
 }) {
+  const t = useTranslations("notes.archive");
   const [firstNewNoteIndex, setFirstNewNoteIndex] = useState<Nullable<number>>(null);
 
   function loadMore() {
@@ -149,7 +148,11 @@ function NotesArchiveList({
         ))}
       </ul>
 
-      <NotesLoadMore onLoadMore={loadMore} state={state.nextPage} />
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={loadMore}
+        state={state.nextPage}
+      />
     </div>
   );
 }
@@ -168,49 +171,4 @@ function NotesArchiveSkeleton({ view }: { view: NotesViewMode }) {
 
 function notesGridClassName(view: NotesViewMode): string {
   return cn("grid grid-cols-1 gap-4", view === "grid" && "lg:grid-cols-2");
-}
-
-function NotesLoadMore({
-  onLoadMore,
-  state,
-}: {
-  onLoadMore: () => void;
-  state: NotesNextPageState;
-}) {
-  const t = useTranslations("notes.archive");
-  const tCommon = useTranslations("common");
-
-  switch (state) {
-    case "error":
-      return (
-        <div
-          className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center"
-          role="alert"
-        >
-          <p className="text-sm text-muted-foreground">{t("loadMoreError")}</p>
-          <Button onClick={onLoadMore} size="sm" variant="secondary">
-            <UiIcon name="refresh" size={14} />
-            {tCommon("retry")}
-          </Button>
-        </div>
-      );
-    case "idle":
-    case "loading":
-      return (
-        <div className="flex justify-center">
-          <Button
-            disabled={state === "loading"}
-            loading={state === "loading"}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
-      );
-    case "none":
-      return null;
-    default:
-      return assertNever(state);
-  }
 }

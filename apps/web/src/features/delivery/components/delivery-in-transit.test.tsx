@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { useDeliverySelectionStore } from "../model/delivery-selection-store";
 import { DeliveryInTransit } from "./delivery-in-transit";
@@ -67,6 +74,12 @@ function itemRow(
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+}
+
+function listRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([url]) => String(url))
+    .filter((url) => /\/books\/in-transit(\?|$)/.test(url));
 }
 
 function parcelCheckbox(title: string): HTMLElement {
@@ -227,5 +240,77 @@ describe("DeliveryInTransit selection", () => {
       expect(within(bulkBar()).getByText("Вибрано 1 посилку")).toBeInTheDocument(),
     );
     expect(within(bulkBar()).getByText("1 книга")).toBeInTheDocument();
+  });
+});
+
+describe("DeliveryInTransit endless scrolling", () => {
+  const viewport = mockIntersectionObserver();
+
+  function respondWithTwoPages(failSecondPage: () => boolean) {
+    respondToList = (url) => {
+      if (!url.includes("pageNumber=2")) {
+        return jsonResponse(
+          makeDeliveryInTransitPage([itemRow("item-1", "Таємна історія", travellingParcel)], {
+            pagesCount: 2,
+            totalCount: 2,
+          }),
+        );
+      }
+      if (failSecondPage()) throw new Error("network is down");
+      return jsonResponse(
+        makeDeliveryInTransitPage([itemRow("item-5", "Дюна", waitingParcel)], {
+          page: 2,
+          pagesCount: 2,
+          totalCount: 2,
+        }),
+      );
+    };
+  }
+
+  it("loads the next page once the sentinel reaches the viewport", async () => {
+    respondWithTwoPages(() => false);
+    renderPage();
+
+    expect(await screen.findByText("Таємна історія")).toBeInTheDocument();
+    expect(screen.queryByText("Дюна")).not.toBeInTheDocument();
+    expect(listRequests()).toHaveLength(1);
+
+    viewport.enterViewport();
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(screen.getByText("Таємна історія")).toBeInTheDocument();
+  });
+
+  it("asks for nothing more once the last page is loaded", async () => {
+    respondWithTwoPages(() => false);
+    renderPage();
+
+    await screen.findByText("Таємна історія");
+    viewport.enterViewport();
+    await screen.findByText("Дюна");
+
+    viewport.enterViewport();
+
+    expect(listRequests()).toHaveLength(2);
+  });
+
+  it("stops at a retry when the next page fails and recovers on click", async () => {
+    let isBroken = true;
+    respondWithTwoPages(() => isBroken);
+    renderPage();
+
+    await screen.findByText("Таємна історія");
+    viewport.enterViewport();
+
+    const retry = await screen.findByRole("button", { name: "Спробувати ще раз" });
+    expect(
+      within(screen.getByRole("alert")).getByText("Не вдалося завантажити ще замовлення"),
+    ).toBeInTheDocument();
+
+    isBroken = false;
+    await userEvent.click(retry);
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

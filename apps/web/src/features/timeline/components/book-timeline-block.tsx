@@ -12,7 +12,10 @@ import type {
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
 import { UiIcon } from "@/components/icons";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Button } from "@/components/ui/button";
 
 import type { TimelineEventsFilterState } from "../model/timeline-events-query";
@@ -110,6 +113,14 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const totalEvents = summaryQuery.data?.totalEvents ?? 0;
   const events = eventsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const hasActiveFilters = hasActiveEventFilters(filters);
+  const hasEventsError = eventsQuery.isError && !eventsQuery.isFetchNextPageError;
+  const loadMoreState: InfiniteScrollState = eventsQuery.isFetchNextPageError
+    ? "error"
+    : eventsQuery.isFetchingNextPage
+      ? "loading"
+      : eventsQuery.hasNextPage
+        ? "idle"
+        : "none";
 
   const defaultLineId = timelines.find((line) => line.isDefault)?.id ?? timelines[0]?.id ?? null;
   const createTimelineId = activeTimelineId ?? defaultLineId;
@@ -204,7 +215,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     }
 
     if (eventsQuery.isPending) return <TimelineSkeleton />;
-    if (eventsQuery.isError) return <TimelineError onRetry={() => void eventsQuery.refetch()} />;
+    if (hasEventsError) return <TimelineError onRetry={() => void eventsQuery.refetch()} />;
 
     if (events.length === 0) {
       if (hasActiveFilters) return <TimelineFilteredEmpty onReset={resetFilters} />;
@@ -239,17 +250,12 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
             sort={filters.sort}
           />
         )}
-        {eventsQuery.hasNextPage ? (
-          <Button
-            className="self-center"
-            loading={eventsQuery.isFetchingNextPage}
-            onClick={() => void eventsQuery.fetchNextPage()}
-            size="sm"
-            variant="ghost"
-          >
-            {t("states.loadMore")}
-          </Button>
-        ) : null}
+        <InfiniteScrollFooter
+          errorLabel={t("states.loadMoreError")}
+          onLoadMore={() => void eventsQuery.fetchNextPage()}
+          retryLabel={t("states.retry")}
+          state={loadMoreState}
+        />
       </div>
     );
   }

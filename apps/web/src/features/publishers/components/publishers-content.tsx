@@ -2,13 +2,13 @@
 
 import type { LibraryPublisherListItem, Nullable } from "@app/shared";
 
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type RefObject, useEffect, useRef } from "react";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
 import { EmptyState } from "@/components/empty-state";
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -129,48 +129,15 @@ function focusWasLost(): boolean {
   return document.activeElement === null || document.activeElement === document.body;
 }
 
-function PublishersLoadMoreFooter({
-  loadMore,
-  onLoadMore,
-  retryRef,
-}: {
-  loadMore: PublishersLoadMore;
-  onLoadMore: () => void;
-  retryRef: RefObject<Nullable<HTMLButtonElement>>;
-}) {
-  const t = useTranslations("publishers.results");
-
-  if (!loadMore.hasNextPage) return null;
-
-  if (loadMore.isError && !loadMore.isFetching) {
-    return (
-      <div
-        className="flex flex-col items-center gap-2 pt-2 text-center sm:flex-row sm:justify-center"
-        role="alert"
-      >
-        <p className="text-sm text-error">{t("loadMoreError")}</p>
-        <Button onClick={onLoadMore} ref={retryRef} size="sm" variant="secondary">
-          <UiIcon name="refresh" size={16} />
-          {t("loadMoreRetry")}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex justify-center pt-2">
-      <Button
-        aria-busy={loadMore.isFetching}
-        aria-disabled={loadMore.isFetching}
-        className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-        onClick={onLoadMore}
-        variant="secondary"
-      >
-        {loadMore.isFetching ? <Loader2 aria-hidden className="animate-spin" /> : null}
-        {t("loadMore")}
-      </Button>
-    </div>
-  );
+function nextPageState({
+  hasNextPage,
+  isError,
+  isFetching,
+}: PublishersLoadMore): InfiniteScrollState {
+  if (isFetching) return "loading";
+  if (isError) return "error";
+  if (hasNextPage) return "idle";
+  return "none";
 }
 
 function PublishersResults({
@@ -220,8 +187,8 @@ function PublishersResultsSection({
   publishers: LibraryPublisherListItem[];
   view: PublishersViewMode;
 }) {
+  const t = useTranslations("publishers.results");
   const listRef = useRef<HTMLUListElement>(null);
-  const retryRef = useRef<HTMLButtonElement>(null);
   const firstAppendedIndexRef = useRef<Nullable<number>>(null);
 
   useEffect(() => {
@@ -231,8 +198,7 @@ function PublishersResultsSection({
       firstAppendedIndexRef.current = null;
       return;
     }
-    const target =
-      retryRef.current ?? listRef.current?.children.item(firstAppendedIndex)?.querySelector("a");
+    const target = listRef.current?.children.item(firstAppendedIndex)?.querySelector("a");
     if (target === null || target === undefined) return;
     firstAppendedIndexRef.current = null;
     target.focus();
@@ -252,10 +218,11 @@ function PublishersResultsSection({
         publishers={publishers}
         view={view}
       />
-      <PublishersLoadMoreFooter
-        loadMore={loadMore}
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
         onLoadMore={requestNextPage}
-        retryRef={retryRef}
+        retryLabel={t("loadMoreRetry")}
+        state={nextPageState(loadMore)}
       />
     </div>
   );

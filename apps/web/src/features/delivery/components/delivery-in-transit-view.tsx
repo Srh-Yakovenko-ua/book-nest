@@ -4,11 +4,12 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -29,7 +30,11 @@ type DeliveryInTransitViewProps = {
   onLoadMore: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
-  pagination: { hasNextPage: boolean; isFetchingNextPage: boolean };
+  pagination: {
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+    isFetchNextPageError: boolean;
+  };
   renderCard: (model: DeliveryOrderCardModel) => ReactNode;
   selectAll?: { checked: "indeterminate" | boolean; count: number; onToggle: () => void };
   showToolbar: boolean;
@@ -161,6 +166,14 @@ function DeliveryContentArea({
     return <EmptyState onPrimary={onResetFilters} state={filteredState} />;
   }
 
+  const scrollState: InfiniteScrollState = pagination.isFetchNextPageError
+    ? "error"
+    : pagination.isFetchingNextPage
+      ? "loading"
+      : pagination.hasNextPage
+        ? "idle"
+        : "none";
+
   return (
     <div className="flex flex-col gap-4">
       {selectAll ? (
@@ -172,18 +185,12 @@ function DeliveryContentArea({
 
       <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
 
-      {pagination.hasNextPage ? (
-        <div className="flex justify-center pt-2">
-          <Button
-            disabled={pagination.isFetchingNextPage}
-            loading={pagination.isFetchingNextPage}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
-      ) : null}
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={onLoadMore}
+        retryLabel={t("states.error.retry")}
+        state={scrollState}
+      />
     </div>
   );
 }

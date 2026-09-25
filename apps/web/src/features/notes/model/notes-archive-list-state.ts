@@ -1,5 +1,7 @@
 import type { NoteView } from "@app/shared";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
 export type NotesArchiveEmptyReason = "filters" | "library" | "search";
 
 export type NotesArchiveListSnapshot = {
@@ -12,12 +14,10 @@ export type NotesArchiveListSnapshot = {
 };
 
 export type NotesArchiveListState =
-  | { isRefreshing: boolean; kind: "ready"; nextPage: NotesNextPageState; notes: NoteView[] }
+  | { isRefreshing: boolean; kind: "ready"; nextPage: InfiniteScrollState; notes: NoteView[] }
   | { kind: "empty"; reason: NotesArchiveEmptyReason }
   | { kind: "error" }
   | { kind: "loading" };
-
-export type NotesNextPageState = "error" | "idle" | "loading" | "none";
 
 type NotesArchiveListStateInput = {
   hasActiveFilters: boolean;
@@ -56,7 +56,7 @@ function emptyReason({
   return "library";
 }
 
-function nextPageState(list: NotesArchiveListSnapshot): NotesNextPageState {
+function nextPageState(list: NotesArchiveListSnapshot): InfiniteScrollState {
   if (list.isFetchingNextPage) return "loading";
   if (list.isFetchNextPageError) return "error";
   if (list.hasNextPage) return "idle";
