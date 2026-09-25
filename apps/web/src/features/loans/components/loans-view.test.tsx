@@ -185,7 +185,7 @@ describe("LoansView", () => {
     });
   });
 
-  it("counts the shown loans against every active loan of this page", async () => {
+  it("counts the loaded loans against every loan that matches, not the summary total", async () => {
     mockLoans(
       Array.from({ length: 12 }, (_, index) =>
         loanItem("borrowed_from_someone", `Книга ${index + 1}`),
@@ -195,7 +195,7 @@ describe("LoansView", () => {
 
     renderLoans("borrowed_from_someone");
 
-    expect(await screen.findByText("Показано 12 із 17 книг")).toBeInTheDocument();
+    expect(await screen.findByText("Показано 10 із 12 книг")).toBeInTheDocument();
   });
 
   it("leads the borrowed card with the term and the owner", async () => {

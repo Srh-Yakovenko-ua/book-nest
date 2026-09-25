@@ -200,9 +200,7 @@ export function LoansView({ type }: { type: LoanType }) {
           <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
           <p className="text-sm text-muted-foreground" role="status">
-            {list.isPending || directionSummary === undefined
-              ? ""
-              : t("shownCount", { shown: totalCount, total: directionSummary.totalCount })}
+            {list.isPending ? "" : t("shownCount", { shown: items.length, total: totalCount })}
           </p>
 
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
