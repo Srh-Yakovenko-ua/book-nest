@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { LibraryPublisherListItem } from "@app/shared";
+import type { LibraryPublisherListItem, LibraryPublishersQuickCounts } from "@app/shared";
 import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
@@ -29,7 +29,18 @@ vi.mock("@/i18n/navigation", () => ({
 const fetchMock = vi.fn();
 
 let respondToList: (params: URLSearchParams) => Response;
+let respondToQuickCounts: (params: URLSearchParams) => Promise<Response>;
 let respondToSummary: () => Response;
+
+const QUICK_COUNTS_PATH = "/api/publishers/library/quick-counts";
+
+function chip(name: string): HTMLElement {
+  const match = screen
+    .getAllByRole("radio")
+    .find((radio) => radio.firstChild?.textContent === name);
+  if (match === undefined) throw new Error(`No quick filter chip ${name}`);
+  return match;
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -46,6 +57,12 @@ function publishers(count: number, prefix = "publisher"): LibraryPublisherListIt
   return Array.from({ length: count }, (_, index) =>
     makePublisherListItem({ id: `${prefix}-${index}`, name: `${prefix} ${index}` }),
   );
+}
+
+function quickCounts(
+  overrides: Partial<LibraryPublishersQuickCounts> = {},
+): LibraryPublishersQuickCounts {
+  return { all: 9, read: 4, reading: 2, series: 3, to_buy: 0, ...overrides };
 }
 
 function renderList(search = "", onUrlUpdate?: OnUrlUpdateFunction) {
@@ -88,6 +105,7 @@ function visibleButton(text: string): HTMLElement {
 
 beforeEach(() => {
   respondToList = () => jsonResponse(makePublishersPage([makePublisherListItem()]));
+  respondToQuickCounts = () => Promise.resolve(jsonResponse(quickCounts()));
   respondToSummary = () => jsonResponse(makePublishersSummary());
 
   fetchMock.mockReset();
@@ -96,6 +114,7 @@ beforeEach(() => {
     if (url.pathname === "/api/publishers/library/summary") {
       return Promise.resolve(respondToSummary());
     }
+    if (url.pathname === QUICK_COUNTS_PATH) return respondToQuickCounts(url.searchParams);
     if (url.pathname === "/api/publishers/library") {
       return Promise.resolve(respondToList(url.searchParams));
     }
@@ -177,6 +196,129 @@ describe("AllPublishers header and summary", () => {
 
     await waitFor(() => expect(listRequests()).toHaveLength(2));
     expect(requestsTo("/api/publishers/library/summary")).toHaveLength(1);
+  });
+});
+
+describe("AllPublishers quick filter counts", () => {
+  it("shows the quick-counts numbers on every chip and keeps the summary cards", async () => {
+    respondToSummary = () => jsonResponse(makePublishersSummary({ publishersCount: 12 }));
+
+    renderList();
+
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+    expect(within(chip("Читаю зараз")).getByText("2")).toBeInTheDocument();
+    expect(within(chip("Є прочитані книги")).getByText("4")).toBeInTheDocument();
+    expect(within(chip("Є серії")).getByText("3")).toBeInTheDocument();
+    expect(statCard("Видавництв")).toHaveTextContent("12");
+    expect(requestsTo("/api/publishers/library/summary")).toHaveLength(1);
+  });
+
+  it("keeps a zero chip enabled and selectable", async () => {
+    const url = trackUrl();
+    renderList("", url.onUrlUpdate);
+
+    const toBuy = await waitFor(() => {
+      const found = chip("Є книги у списку бажань");
+      expect(within(found).getByText("0")).toBeInTheDocument();
+      return found;
+    });
+    expect(toBuy).toBeEnabled();
+
+    await userEvent.click(toBuy);
+
+    await waitFor(() => expect(url.lastParams()?.get("filter")).toBe("to_buy"));
+  });
+
+  it("renders chips without numbers until the first counts arrive", async () => {
+    respondToQuickCounts = () => new Promise<Response>(() => undefined);
+
+    renderList();
+
+    await screen.findByRole("link", { name: "Vivat" });
+    await waitFor(() => expect(requestsTo(QUICK_COUNTS_PATH)).toHaveLength(1));
+    expect(chip("Усі")).toHaveTextContent(/^Усі$/);
+    expect(chip("Читаю зараз")).toHaveTextContent(/^Читаю зараз$/);
+  });
+
+  it("sends the search to quick-counts and shows the counts it returns", async () => {
+    respondToQuickCounts = (params) =>
+      Promise.resolve(
+        jsonResponse(
+          params.get("search") === "віват" ? quickCounts({ all: 1, reading: 0 }) : quickCounts(),
+        ),
+      );
+
+    renderList();
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Пошук видавництв" }), "віват");
+
+    await waitFor(() => expect(within(chip("Усі")).getByText("1")).toBeInTheDocument());
+    expect(within(chip("Читаю зараз")).getByText("0")).toBeInTheDocument();
+    expect(requestsTo(QUICK_COUNTS_PATH).at(-1)?.searchParams.get("search")).toBe("віват");
+  });
+
+  it("keeps the previous numbers on screen while the next counts load", async () => {
+    let releaseSearchCounts: () => void = () => undefined;
+    respondToQuickCounts = (params) => {
+      if (params.get("search") === null) return Promise.resolve(jsonResponse(quickCounts()));
+      return new Promise<Response>((resolve) => {
+        releaseSearchCounts = () => resolve(jsonResponse(quickCounts({ all: 1 })));
+      });
+    };
+
+    renderList();
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Пошук видавництв" }), "vi");
+    await waitFor(() =>
+      expect(requestsTo(QUICK_COUNTS_PATH).at(-1)?.searchParams.get("search")).toBe("vi"),
+    );
+    expect(within(chip("Усі")).getByText("9")).toBeInTheDocument();
+
+    releaseSearchCounts();
+
+    await waitFor(() => expect(within(chip("Усі")).getByText("1")).toBeInTheDocument());
+  });
+
+  it("sends the geography, source and boolean filters from the URL", async () => {
+    renderList("?geography=foreign&source=custom&hasQueue=true&sort=name_asc");
+
+    await waitFor(() => expect(requestsTo(QUICK_COUNTS_PATH)).toHaveLength(1));
+    const params = requestsTo(QUICK_COUNTS_PATH)[0]?.searchParams;
+    expect(params?.get("geography")).toBe("foreign");
+    expect(params?.get("source")).toBe("custom");
+    expect(params?.get("hasQueue")).toBe("true");
+    for (const key of ["filter", "sort", "order", "locale", "pageSize", "pageNumber"]) {
+      expect(params?.has(key)).toBe(false);
+    }
+  });
+
+  it("sends an applied advanced filter to quick-counts", async () => {
+    renderList();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Фільтри" }));
+    await userEvent.click(await screen.findByText("Українські"));
+    await userEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+
+    await waitFor(() =>
+      expect(requestsTo(QUICK_COUNTS_PATH).at(-1)?.searchParams.get("geography")).toBe("ua"),
+    );
+  });
+
+  it("does not send the selected quick filter or refetch counts when a chip changes", async () => {
+    renderList("?filter=read");
+    await waitFor(() => expect(within(chip("Усі")).getByText("9")).toBeInTheDocument());
+
+    for (const name of ["Читаю зараз", "Є серії", "Є книги у списку бажань"]) {
+      await userEvent.click(chip(name));
+      await waitFor(() => expect(chip(name)).toHaveAttribute("data-state", "on"));
+    }
+
+    await waitFor(() => expect(listRequests().at(-1)?.searchParams.get("filter")).toBe("to_buy"));
+    const requests = requestsTo(QUICK_COUNTS_PATH);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.searchParams.has("filter")).toBe(false);
   });
 });
 

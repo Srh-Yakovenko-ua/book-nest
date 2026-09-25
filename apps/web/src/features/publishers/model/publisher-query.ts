@@ -5,7 +5,10 @@ import {
   parseAsStringLiteral,
 } from "nuqs/server";
 
-import type { PublishersControllerLibraryListParams } from "@/shared/api/generated/model";
+import type {
+  PublishersControllerLibraryListParams,
+  PublishersControllerLibraryQuickCountsParams,
+} from "@/shared/api/generated/model";
 
 import {
   PublishersControllerLibraryListFilter,
@@ -213,4 +216,18 @@ export function toPublishersListQuery(state: PublisherQueryState): PublishersLis
     ...(advanced.hasWantToRead ? { hasWantToRead: "true" } : {}),
     ...(advanced.hasQueue ? { hasQueue: "true" } : {}),
   };
+}
+
+export function toPublishersQuickCountsParams(
+  listQuery: PublishersListQuery,
+): PublishersControllerLibraryQuickCountsParams {
+  const {
+    filter: _filter,
+    locale: _locale,
+    order: _order,
+    pageSize: _pageSize,
+    sort: _sort,
+    ...countFilters
+  } = listQuery;
+  return countFilters;
 }
