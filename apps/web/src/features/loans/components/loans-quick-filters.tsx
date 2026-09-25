@@ -1,17 +1,19 @@
 "use client";
 
+import type { LoansQuickCounts } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import type { LoansControllerListFilter } from "@/shared/api/generated/model";
 
 import { ChipGroup } from "@/components/ui/chip-group";
 
-import type { LoansQuickFilterCounts, LoansQuickFilterKey } from "../model/loans-quick-filters";
+import type { LoansQuickFilterKey } from "../model/loans-quick-filters";
 
 import { LOANS_QUICK_FILTER_KEYS } from "../model/loans-quick-filters";
 
 type LoansQuickFiltersProps = {
-  counts?: LoansQuickFilterCounts;
+  counts?: LoansQuickCounts;
   onSelect: (key: LoansQuickFilterKey) => void;
   value: LoansControllerListFilter;
 };

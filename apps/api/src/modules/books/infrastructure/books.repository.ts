@@ -21,6 +21,10 @@ import { subDays, subMonths } from "date-fns";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
+import type {
+  DedicationsQuickCountFilters,
+  DedicationsQuickCountTotals,
+} from "../domain/dedications-quick-counts.js";
 
 import { ACTIVE_BOOK_SQL } from "../../../core/database/active-book-sql.js";
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
@@ -616,6 +620,20 @@ export class BooksRepository {
         });
       }
     });
+  }
+
+  async countDedicationQuickFilters({
+    filters,
+  }: {
+    filters: DedicationsQuickCountFilters;
+  }): Promise<DedicationsQuickCountTotals> {
+    const [all, favorites, finished, unfinished] = await Promise.all([
+      this.countDedicationsForQuery({ filter: filters.all }),
+      this.countDedicationsForQuery({ filter: filters.favorites }),
+      this.countDedicationsForQuery({ filter: filters.finished }),
+      this.countDedicationsForQuery({ filter: filters.unfinished }),
+    ]);
+    return { all, favorites, finished, unfinished };
   }
 
   countDedicationsForQuery({ filter }: { filter: DedicationsFilter }): Promise<number> {

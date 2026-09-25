@@ -19,6 +19,7 @@ const CACHE_KEYS = {
   detail: publisherKeys.detail("publisher-1"),
   generated: ["/api/publishers/library/summary"],
   picker: ["publishers", "search", "viv"],
+  quickCounts: publisherKeys.quickCounts({ search: "viv" }),
 } as const;
 
 function isInvalidated(client: QueryClient, key: readonly unknown[]): boolean {
@@ -64,6 +65,7 @@ describe("invalidatePublisherQueries", () => {
 
     expect(isInvalidated(client, CACHE_KEYS.detail)).toBe(true);
     expect(isInvalidated(client, CACHE_KEYS.generated)).toBe(true);
+    expect(isInvalidated(client, CACHE_KEYS.quickCounts)).toBe(true);
     expect(isInvalidated(client, CACHE_KEYS.picker)).toBe(false);
   });
 });
@@ -79,6 +81,7 @@ describe("publisher cache freshness after related mutations", () => {
     result.current.mutate({ id: makeBookView().id, payload: { status: "finished" } });
 
     await waitFor(() => expect(isInvalidated(client, CACHE_KEYS.detail)).toBe(true));
+    expect(isInvalidated(client, CACHE_KEYS.quickCounts)).toBe(true);
   });
 
   it("invalidates publishers after a book update", async () => {

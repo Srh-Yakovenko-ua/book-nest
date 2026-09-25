@@ -463,6 +463,152 @@ export const DeliveryReadControllerInTransitFacetsResponse = zod.object({
 });
 
 /**
+ * @summary Count the books on their way per in-transit quick filter
+ */
+export const deliveryReadControllerInTransitQuickCountsQueryBooksMaxMin = 0;
+export const deliveryReadControllerInTransitQuickCountsQueryBooksMaxMax = 1000;
+
+export const deliveryReadControllerInTransitQuickCountsQueryBooksMinMin = 0;
+export const deliveryReadControllerInTransitQuickCountsQueryBooksMinMax = 1000;
+
+export const deliveryReadControllerInTransitQuickCountsQueryCurrencyMax = 100;
+
+export const deliveryReadControllerInTransitQuickCountsQueryExpectedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerInTransitQuickCountsQueryExpectedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerInTransitQuickCountsQueryOrderedFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerInTransitQuickCountsQueryOrderedToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const deliveryReadControllerInTransitQuickCountsQueryOrderIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const deliveryReadControllerInTransitQuickCountsQueryPriceMaxMin = 0;
+
+export const deliveryReadControllerInTransitQuickCountsQueryPriceMinMin = 0;
+
+export const deliveryReadControllerInTransitQuickCountsQuerySearchMax = 100;
+
+export const deliveryReadControllerInTransitQuickCountsQueryServiceMax = 100;
+
+export const deliveryReadControllerInTransitQuickCountsQueryStoreItemMax = 200;
+
+export const deliveryReadControllerInTransitQuickCountsQueryStoreMax = 100;
+
+export const deliveryReadControllerInTransitQuickCountsQueryStructureMax = 100;
+
+export const DeliveryReadControllerInTransitQuickCountsQueryParams = zod.object({
+  ageBucket: zod.enum(["0_7", "8_14", "15_30", "31_plus", "unknown_date"]).optional(),
+  booksMax: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsQueryBooksMaxMin)
+    .max(deliveryReadControllerInTransitQuickCountsQueryBooksMaxMax)
+    .optional(),
+  booksMin: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsQueryBooksMinMin)
+    .max(deliveryReadControllerInTransitQuickCountsQueryBooksMinMax)
+    .optional(),
+  currency: zod
+    .array(zod.enum(["UAH", "EUR", "USD"]))
+    .max(deliveryReadControllerInTransitQuickCountsQueryCurrencyMax)
+    .optional(),
+  expectedFrom: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitQuickCountsQueryExpectedFromRegExp)
+    .optional(),
+  expectedTo: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitQuickCountsQueryExpectedToRegExp)
+    .optional(),
+  orderedFrom: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitQuickCountsQueryOrderedFromRegExp)
+    .optional(),
+  orderedTo: zod.iso
+    .date()
+    .regex(deliveryReadControllerInTransitQuickCountsQueryOrderedToRegExp)
+    .optional(),
+  orderId: zod
+    .uuid()
+    .regex(deliveryReadControllerInTransitQuickCountsQueryOrderIdRegExp)
+    .optional()
+    .describe(
+      "Opens exactly one order by identity. Statistics navigates here instead of searching for an order number, which is a display label and not a key.",
+    ),
+  orderState: zod
+    .enum(["active", "partially_shipped", "shipped", "partially_received", "received", "cancelled"])
+    .optional()
+    .describe(
+      "Keeps only orders in one derived lifecycle state. A state no in-transit order can hold yields an empty list rather than being quietly ignored.",
+    ),
+  priceCurrency: zod
+    .enum(["UAH", "EUR", "USD"])
+    .optional()
+    .describe(
+      "Gates the canonical order total range. The range is ignored unless exactly one currency is named here.",
+    ),
+  priceMax: zod.number().min(deliveryReadControllerInTransitQuickCountsQueryPriceMaxMin).optional(),
+  priceMin: zod.number().min(deliveryReadControllerInTransitQuickCountsQueryPriceMinMin).optional(),
+  search: zod.string().max(deliveryReadControllerInTransitQuickCountsQuerySearchMax).optional(),
+  service: zod
+    .array(zod.string())
+    .max(deliveryReadControllerInTransitQuickCountsQueryServiceMax)
+    .optional(),
+  store: zod
+    .array(zod.string().max(deliveryReadControllerInTransitQuickCountsQueryStoreItemMax))
+    .max(deliveryReadControllerInTransitQuickCountsQueryStoreMax)
+    .optional(),
+  structure: zod
+    .array(zod.enum(["no_shipment", "single_shipment", "multiple_shipments"]))
+    .max(deliveryReadControllerInTransitQuickCountsQueryStructureMax)
+    .optional(),
+});
+
+export const deliveryReadControllerInTransitQuickCountsResponseAllMin = 0;
+export const deliveryReadControllerInTransitQuickCountsResponseAllMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitQuickCountsResponseDelayedMin = 0;
+export const deliveryReadControllerInTransitQuickCountsResponseDelayedMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitQuickCountsResponseInTransitMin = 0;
+export const deliveryReadControllerInTransitQuickCountsResponseInTransitMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitQuickCountsResponseOrderedMin = 0;
+export const deliveryReadControllerInTransitQuickCountsResponseOrderedMax = 9007199254740991;
+
+export const deliveryReadControllerInTransitQuickCountsResponseReadyForPickupMin = 0;
+export const deliveryReadControllerInTransitQuickCountsResponseReadyForPickupMax = 9007199254740991;
+
+export const DeliveryReadControllerInTransitQuickCountsResponse = zod.object({
+  all: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsResponseAllMin)
+    .max(deliveryReadControllerInTransitQuickCountsResponseAllMax),
+  delayed: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsResponseDelayedMin)
+    .max(deliveryReadControllerInTransitQuickCountsResponseDelayedMax),
+  in_transit: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsResponseInTransitMin)
+    .max(deliveryReadControllerInTransitQuickCountsResponseInTransitMax),
+  ordered: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsResponseOrderedMin)
+    .max(deliveryReadControllerInTransitQuickCountsResponseOrderedMax),
+  ready_for_pickup: zod
+    .int()
+    .min(deliveryReadControllerInTransitQuickCountsResponseReadyForPickupMin)
+    .max(deliveryReadControllerInTransitQuickCountsResponseReadyForPickupMax),
+});
+
+/**
  * @summary List the books the current user has on their way
  */
 export const deliveryReadControllerInTransitListQueryBooksMaxMin = 0;

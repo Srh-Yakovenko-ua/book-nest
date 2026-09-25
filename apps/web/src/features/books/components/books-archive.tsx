@@ -15,6 +15,7 @@ import type { LibraryPublisherContext, LibraryScope } from "../model/library-que
 import { useLibraryBooks } from "../api/use-books";
 import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
+import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
 import { useSelectedTags } from "../api/use-tags-search";
 import { useLibraryActions } from "../hooks/use-library-actions";
 import { useLibraryBookLabels } from "../hooks/use-library-book-labels";
@@ -22,8 +23,8 @@ import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
 import {
   activeQuickFilter,
-  quickFilterCounts,
   quickFilterPatch,
+  toLibraryQuickCountsParams,
 } from "../model/library-quick-filters";
 import { countAdvancedFilterChips, useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
@@ -69,6 +70,7 @@ export function BooksArchive({
     isPending,
     refetch,
   } = useLibraryBooks(library.listParams);
+  const quickCounts = useLibraryQuickCounts(toLibraryQuickCountsParams(library.listParams, scope));
   const overview = useLibraryOverview(scope, publisherContext);
   const genres = useGenres();
   const selectedTags = useSelectedTags(library.state.tag);
@@ -166,7 +168,7 @@ export function BooksArchive({
       onViewChange={library.setView}
       quickFilters={
         <LibraryQuickFilters
-          counts={summary === undefined ? undefined : quickFilterCounts(summary)}
+          counts={quickCounts.data}
           onSelect={(key) => void library.setState(quickFilterPatch(key))}
           scope={scope}
           value={activeQuickFilter(library.state)}

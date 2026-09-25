@@ -1,4 +1,9 @@
-import type { BookView, DedicationsQuery, DedicationsSummaryView } from "@app/shared";
+import type {
+  BookView,
+  DedicationsQuery,
+  DedicationsQuickCounts,
+  DedicationsSummaryView,
+} from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -54,7 +59,10 @@ const EMPTY_SUMMARY: DedicationsSummaryView = {
   unfinishedCount: 0,
 };
 
+const ZERO_COUNTS: DedicationsQuickCounts = { all: 0, favorites: 0, finished: 0, unfinished: 0 };
+
 function setup(options: {
+  quickCounts?: DedicationsQuickCounts;
   searchKeys?: string[];
   summary?: DedicationsSummaryView;
   totalCount?: number;
@@ -66,7 +74,9 @@ function setup(options: {
   const listDedicationsForQuery = vi.fn().mockResolvedValue(rows);
   const countDedicationsForQuery = vi.fn().mockResolvedValue(options.totalCount ?? views.length);
   const dedicationsSummary = vi.fn().mockResolvedValue(options.summary ?? EMPTY_SUMMARY);
+  const countDedicationQuickFilters = vi.fn().mockResolvedValue(options.quickCounts ?? ZERO_COUNTS);
   const booksRepository = {
+    countDedicationQuickFilters,
     countDedicationsForQuery,
     dedicationsSummary,
     listDedicationsForQuery,
@@ -84,6 +94,7 @@ function setup(options: {
   const service = new DedicationsService(booksRepository, bookViewAssembler, genresService);
 
   return {
+    countDedicationQuickFilters,
     countDedicationsForQuery,
     dedicationsSummary,
     listDedicationsForQuery,
@@ -184,5 +195,57 @@ describe("DedicationsService.getDedicationsSummary", () => {
 
     expect(dedicationsSummary).toHaveBeenCalledWith({ userId: USER_ID });
     expect(result).toEqual(summary);
+  });
+});
+
+describe("DedicationsService.getDedicationsQuickCounts", () => {
+  it("counts every chip over the resolved search and genre", async () => {
+    const counts: DedicationsQuickCounts = { all: 5, favorites: 2, finished: 3, unfinished: 2 };
+    const { countDedicationQuickFilters, searchKeys, service } = setup({
+      quickCounts: counts,
+      searchKeys: ["memoir"],
+    });
+
+    const result = await service.getDedicationsQuickCounts({
+      query: { genre: "history", q: "memoir" },
+      userId: USER_ID,
+    });
+
+    expect(searchKeys).toHaveBeenCalledWith("memoir");
+    const base = {
+      genreKey: "history",
+      search: "memoir",
+      searchGenreKeys: ["memoir"],
+      userId: USER_ID,
+    };
+    expect(countDedicationQuickFilters).toHaveBeenCalledWith({
+      filters: {
+        all: { ...base, filter: "all" },
+        favorites: { ...base, filter: "favorites" },
+        finished: { ...base, filter: "finished" },
+        unfinished: { ...base, filter: "unfinished" },
+      },
+    });
+    expect(result).toEqual(counts);
+  });
+
+  it("skips genre-key resolution when there is no search term", async () => {
+    const { countDedicationQuickFilters, searchKeys, service } = setup({});
+
+    const result = await service.getDedicationsQuickCounts({ query: {}, userId: USER_ID });
+
+    expect(searchKeys).not.toHaveBeenCalled();
+    expect(countDedicationQuickFilters).toHaveBeenCalledWith({
+      filters: expect.objectContaining({
+        all: {
+          filter: "all",
+          genreKey: undefined,
+          search: undefined,
+          searchGenreKeys: undefined,
+          userId: USER_ID,
+        },
+      }),
+    });
+    expect(result).toEqual(ZERO_COUNTS);
   });
 });

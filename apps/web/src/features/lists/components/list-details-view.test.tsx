@@ -259,21 +259,25 @@ describe("ListDetailsView", () => {
     expect(screen.getByRole("radio", { name: "Частина серії 5" })).toBeInTheDocument();
   });
 
-  it("disables an empty quick filter but never the all chip", () => {
+  it("keeps every empty quick filter enabled and showing its zero", () => {
     renderQuickFilterList({ counts: { all: 12, finished: 3 } });
 
     expect(screen.getByRole("radio", { name: "Усі 12" })).toBeEnabled();
     expect(screen.getByRole("radio", { name: "Прочитані 3" })).toBeEnabled();
-    expect(screen.getByRole("radio", { name: "Улюблені 0" })).toBeDisabled();
-    expect(screen.getByRole("radio", { name: "У черзі 0" })).toBeDisabled();
-    expect(screen.getByRole("radio", { name: "Частина серії 0" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Улюблені 0" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "У черзі 0" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "Частина серії 0" })).toBeEnabled();
   });
 
-  it("keeps the active quick filter clickable even once it counts nothing", () => {
-    renderQuickFilterList({ counts: { all: 12 }, searchParams: { isFavorite: "true" } });
+  it("selects a quick filter that counts nothing", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+    renderQuickFilterList({ counts: { all: 12 }, onUrlUpdate });
 
-    expect(screen.getByRole("radio", { name: "Улюблені 0" })).toBeEnabled();
-    expect(screen.getByRole("radio", { name: "У черзі 0" })).toBeDisabled();
+    const inQueue = screen.getByRole("radio", { name: "У черзі 0" });
+    await userEvent.click(inQueue);
+
+    expect(lastSearchParams(events).get("inQueue")).toBe("true");
+    expect(inQueue).toHaveAttribute("aria-checked", "true");
   });
 
   it("selects a quick filter and clears the explicit statuses", async () => {

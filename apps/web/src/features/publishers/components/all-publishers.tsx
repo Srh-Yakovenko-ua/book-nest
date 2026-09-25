@@ -5,13 +5,18 @@ import { useTranslations } from "next-intl";
 import { type ActiveFilterChip, LibraryActiveFilters } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
 
+import { usePublisherQuickCounts } from "../api/use-publisher-quick-counts";
 import { usePublisherSummary } from "../api/use-publisher-summary";
 import { usePublishersList } from "../api/use-publishers-list";
 import {
   type PublishersArchiveState,
   resolvePublishersArchiveState,
 } from "../model/publisher-archive-state";
-import { PUBLISHERS_BOOLEAN_FILTERS, PUBLISHERS_QUERY_DEFAULTS } from "../model/publisher-query";
+import {
+  PUBLISHERS_BOOLEAN_FILTERS,
+  PUBLISHERS_QUERY_DEFAULTS,
+  toPublishersQuickCountsParams,
+} from "../model/publisher-query";
 import { usePublisherQuery } from "../model/use-publisher-query";
 import { AllPublishersView } from "./all-publishers-view";
 import { hasPublisherInsights, PublisherInsights } from "./publisher-insights";
@@ -26,6 +31,7 @@ export function AllPublishers() {
   const router = useRouter();
   const query = usePublisherQuery();
   const list = usePublishersList(query.listQuery);
+  const quickCounts = usePublisherQuickCounts(toPublishersQuickCountsParams(query.listQuery));
   const summary = usePublisherSummary();
   const summaryCards = usePublisherSummaryCards(summary.data);
 
@@ -114,7 +120,11 @@ export function AllPublishers() {
               sort={query.state.sort}
               view={query.state.view}
             />
-            <PublisherQuickFilters onChange={query.setQuickFilter} value={query.state.filter} />
+            <PublisherQuickFilters
+              counts={quickCounts.data}
+              onChange={query.setQuickFilter}
+              value={query.state.filter}
+            />
             <LibraryActiveFilters chips={chips} onClearAll={query.clearAll} />
             <p aria-live="polite" className="text-sm text-muted-foreground empty:sr-only">
               {resultsAnnouncement}

@@ -2,6 +2,7 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 import type {
   PublishersControllerLibraryListParams,
+  PublishersControllerLibraryQuickCountsParams,
   PublishersControllerLibrarySummaryLocale,
 } from "@/shared/api/generated/model";
 
@@ -12,6 +13,8 @@ export const publisherKeys = {
   list: (params: PublishersControllerLibraryListParams) =>
     [PUBLISHERS_ROOT, "list", params] as const,
   overview: (id: string) => [PUBLISHERS_ROOT, "overview", id] as const,
+  quickCounts: (params: PublishersControllerLibraryQuickCountsParams) =>
+    [PUBLISHERS_ROOT, "quick-counts", params] as const,
   root: [PUBLISHERS_ROOT] as const,
   summary: (locale: PublishersControllerLibrarySummaryLocale) =>
     [PUBLISHERS_ROOT, "summary", locale] as const,

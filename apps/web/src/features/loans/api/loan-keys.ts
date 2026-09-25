@@ -3,6 +3,7 @@ import type { QueryKey } from "@tanstack/react-query";
 import type {
   LoanHistoryControllerOverviewParams,
   LoanHistoryControllerPeopleParams,
+  LoansControllerQuickCountsParams,
 } from "@/shared/api/generated/model";
 
 import type { LoanContactsListParams } from "../model/loan-contacts-query";
@@ -34,6 +35,8 @@ export const loanKeys = {
     peoples: [LOAN_ROOTS.history, "people"] as const,
   },
   list: (params: LoansListParams) => [LOAN_ROOTS.active, "list", params] as const,
+  quickCounts: (params: LoansControllerQuickCountsParams) =>
+    [LOAN_ROOTS.active, "quick-counts", params] as const,
 };
 
 export function matchesLoans(query: { queryKey: QueryKey }): boolean {

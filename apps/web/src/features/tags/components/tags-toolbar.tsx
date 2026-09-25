@@ -135,9 +135,8 @@ export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
           mode="single"
           onValueChange={selectQuickFilter}
           options={TagQuickFilterSchema.options.map((option) => ({
-            label: (
-              <QuickFilterLabel count={quickCounts?.[option]} label={t(`quickFilter.${option}`)} />
-            ),
+            count: quickCounts?.[option],
+            label: t(`quickFilter.${option}`),
             value: option,
           }))}
           size="sm"
@@ -168,18 +167,5 @@ export function TagsToolbarSkeleton() {
         ))}
       </div>
     </div>
-  );
-}
-
-function QuickFilterLabel({ count, label }: { count: number | undefined; label: string }) {
-  return (
-    <>
-      {label}
-      {count === undefined ? null : (
-        <span className="text-muted-foreground tabular-nums in-data-[state=on]:text-primary-foreground">
-          {count}
-        </span>
-      )}
-    </>
   );
 }

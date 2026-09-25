@@ -11,6 +11,8 @@ import type {
   InTransitFacetsView,
   InTransitImpactView,
   InTransitQuery,
+  InTransitQuickCounts,
+  InTransitQuickCountsQuery,
   InTransitSummaryView,
   LatestReceiptView,
   NextShipmentView,
@@ -45,6 +47,7 @@ import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { MediaService } from "../../media/index.js";
 import { buildInTransitSummaryView } from "../domain/delivery-summary.js";
 import { deliveryDateBounds } from "../domain/delivery-ui-status.js";
+import { buildInTransitBaseFilter } from "../domain/in-transit-base-filter.js";
 import { buildInTransitImpact } from "../domain/in-transit-impact.js";
 import { toLatestReceiptView } from "../domain/latest-receipt.mapper.js";
 import { toNextShipmentView } from "../domain/next-shipment.mapper.js";
@@ -188,26 +191,8 @@ export class DeliveryReadService {
   }): Promise<Paginator<BookOrderItemRowView>> {
     const bounds = deliveryDateBounds(new Date());
     const filter = {
-      ageBucket: query.ageBucket,
-      booksMax: query.booksMax,
-      booksMin: query.booksMin,
-      bounds,
-      currency: query.currency,
-      expectedFrom: query.expectedFrom,
-      expectedTo: query.expectedTo,
+      ...buildInTransitBaseFilter({ bounds, query, userId }),
       filter: query.filter,
-      orderedFrom: query.orderedFrom,
-      orderedTo: query.orderedTo,
-      orderId: query.orderId,
-      orderState: query.orderState,
-      priceCurrency: query.priceCurrency,
-      priceMax: query.priceMax,
-      priceMin: query.priceMin,
-      search: normalizeSearch(query.search),
-      service: query.service,
-      store: query.store,
-      structure: query.structure,
-      userId,
     };
 
     const [rows, totalCount] = await Promise.all([
@@ -225,6 +210,19 @@ export class DeliveryReadService {
       pageSize: query.pageSize,
       totalCount,
     });
+  }
+
+  inTransitQuickCounts({
+    query,
+    userId,
+  }: {
+    query: InTransitQuickCountsQuery;
+    userId: string;
+  }): Promise<InTransitQuickCounts> {
+    const bounds = deliveryDateBounds(new Date());
+    return this.deliveryReadRepository.countInTransitQuickFilters(
+      buildInTransitBaseFilter({ bounds, query, userId }),
+    );
   }
 
   async inTransitSummary({ userId }: { userId: string }): Promise<InTransitSummaryView> {

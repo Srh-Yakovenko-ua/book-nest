@@ -16,6 +16,7 @@ import {
   toPublishersAdvancedFilters,
   toPublishersAdvancedPatch,
   toPublishersListQuery,
+  toPublishersQuickCountsParams,
 } from "./publisher-query";
 
 function makeState(overrides: Partial<PublisherQueryState> = {}): PublisherQueryState {
@@ -216,5 +217,35 @@ describe("resets", () => {
     expect(PUBLISHERS_CLEAR_ALL).toHaveProperty("q", null);
     expect(PUBLISHERS_CLEAR_ALL).not.toHaveProperty("sort");
     expect(PUBLISHERS_CLEAR_ALL).not.toHaveProperty("view");
+  });
+});
+
+describe("toPublishersQuickCountsParams", () => {
+  it("keeps the search and advanced filters the list sends", () => {
+    const listQuery = toPublishersListQuery(
+      makeState({
+        geography: "ua",
+        hasQueue: true,
+        hasRatedBooks: true,
+        hasWantToRead: true,
+        q: "  віват ",
+        source: "custom",
+      }),
+    );
+
+    expect(toPublishersQuickCountsParams(listQuery)).toEqual({
+      geography: "ua",
+      hasQueue: "true",
+      hasRatedBooks: "true",
+      hasWantToRead: "true",
+      search: "віват",
+      source: "custom",
+    });
+  });
+
+  it("drops paging, sort, order, locale and the selected quick filter", () => {
+    const listQuery = toPublishersListQuery(makeState({ filter: "reading", sort: "name_asc" }));
+
+    expect(toPublishersQuickCountsParams({ ...listQuery, locale: "en" })).toEqual({});
   });
 });

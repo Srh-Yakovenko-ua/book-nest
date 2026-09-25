@@ -4,6 +4,8 @@ import type {
   LibraryBooksQuery,
   LibraryOverviewQuery,
   LibraryOverviewView,
+  LibraryQuickCounts,
+  LibraryQuickCountsQuery,
   OwnershipStatus,
   Paginator,
   RecentPurchaseStores,
@@ -13,15 +15,16 @@ import { toTagView } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { ActiveReadingView } from "../domain/library-overview.js";
-import type { LibraryFilter } from "../infrastructure/book-where.js";
 
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
+import { buildLibraryBookFilter } from "../domain/library-book-filter.js";
 import {
   buildActiveReadingView,
   intersectOwnership,
   LIBRARY_OVERVIEW,
 } from "../domain/library-overview.js";
+import { buildLibraryQuickCountFilters } from "../domain/library-quick-counts.js";
 import { BookLibraryReadRepository } from "../infrastructure/book-library-read.repository.js";
 import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -51,40 +54,8 @@ export class BookLibraryReadService {
     userId: string;
   }): Promise<Paginator<BookView>> {
     const { pageNumber, pageSize, sort } = query;
-    const search = normalizeSearchQuery(query.q);
-    const searchGenreKeys =
-      search === undefined ? undefined : await this.genresService.searchKeys(search);
-
-    const filter: LibraryFilter = {
-      ageCategories: query.ageCategory,
-      authorIds: query.author,
-      bookType: query.bookType,
-      formats: query.format,
-      genreKeys: query.genre,
-      hasActiveOrder: query.hasActiveOrder,
-      hasCover: query.hasCover,
-      hasDedication: query.hasDedication,
-      hasRating: query.hasRating,
-      inQueue: query.inQueue,
-      isFavorite: query.isFavorite,
-      languages: query.language,
-      notInList: query.notInList,
-      ownershipStatuses: query.owner,
-      pagesMax: query.pagesMax,
-      pagesMin: query.pagesMin,
-      publisherIds: query.publisher,
-      publisherPresence: query.publisherPresence,
-      ratingMax: query.ratingMax,
-      ratingMin: query.ratingMin,
-      readingStatuses: query.status,
-      search,
-      searchGenreKeys,
-      searchPublisher: query.searchPublisher,
-      tagIds: query.tag,
-      userId,
-      yearMax: query.yearMax,
-      yearMin: query.yearMin,
-    };
+    const { search, searchGenreKeys } = await this.resolveSearch(query.q);
+    const filter = buildLibraryBookFilter({ query, search, searchGenreKeys, userId });
 
     const [books, totalCount] = await Promise.all([
       this.libraryReadRepository.listForLibrary({
@@ -148,6 +119,20 @@ export class BookLibraryReadService {
       topGenres,
       topTags: topTags.map((tag) => ({ ...toTagView(tag), count: tag.count })),
     };
+  }
+
+  async quickCounts({
+    query,
+    userId,
+  }: {
+    query: LibraryQuickCountsQuery;
+    userId: string;
+  }): Promise<LibraryQuickCounts> {
+    const { search, searchGenreKeys } = await this.resolveSearch(query.q);
+    const filter = buildLibraryBookFilter({ query, search, searchGenreKeys, userId });
+    return this.libraryReadRepository.countQuickFilters({
+      filters: buildLibraryQuickCountFilters({ filter, scope: query.scope }),
+    });
   }
 
   recentPurchaseStores({
@@ -268,5 +253,15 @@ export class BookLibraryReadService {
       wantToBuy,
       wantToRead,
     };
+  }
+
+  private async resolveSearch(
+    rawSearch: string | undefined,
+  ): Promise<{ search: string | undefined; searchGenreKeys: string[] | undefined }> {
+    const search = normalizeSearchQuery(rawSearch);
+    if (search === undefined) {
+      return { search, searchGenreKeys: undefined };
+    }
+    return { search, searchGenreKeys: await this.genresService.searchKeys(search) };
   }
 }

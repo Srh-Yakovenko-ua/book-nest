@@ -152,6 +152,67 @@ export const PublishersControllerLibrarySummaryResponse = zod.object({
 });
 
 /**
+ * @summary Count the current user library publishers per quick filter
+ */
+export const publishersControllerLibraryQuickCountsQuerySearchMax = 100;
+
+export const publishersControllerLibraryQuickCountsQueryGeographyDefault = `all`;
+export const publishersControllerLibraryQuickCountsQuerySourceDefault = `all`;
+
+export const PublishersControllerLibraryQuickCountsQueryParams = zod.object({
+  search: zod.string().max(publishersControllerLibraryQuickCountsQuerySearchMax).optional(),
+  geography: zod
+    .enum(["all", "ua", "foreign", "unknown"])
+    .default(publishersControllerLibraryQuickCountsQueryGeographyDefault),
+  hasBooksToBuy: zod.string().optional(),
+  hasQueue: zod.string().optional(),
+  hasRatedBooks: zod.string().optional(),
+  hasSeries: zod.string().optional(),
+  hasWantToRead: zod.string().optional(),
+  source: zod
+    .enum(["all", "global", "custom"])
+    .default(publishersControllerLibraryQuickCountsQuerySourceDefault),
+});
+
+export const publishersControllerLibraryQuickCountsResponseAllMin = 0;
+export const publishersControllerLibraryQuickCountsResponseAllMax = 9007199254740991;
+
+export const publishersControllerLibraryQuickCountsResponseReadMin = 0;
+export const publishersControllerLibraryQuickCountsResponseReadMax = 9007199254740991;
+
+export const publishersControllerLibraryQuickCountsResponseReadingMin = 0;
+export const publishersControllerLibraryQuickCountsResponseReadingMax = 9007199254740991;
+
+export const publishersControllerLibraryQuickCountsResponseSeriesMin = 0;
+export const publishersControllerLibraryQuickCountsResponseSeriesMax = 9007199254740991;
+
+export const publishersControllerLibraryQuickCountsResponseToBuyMin = 0;
+export const publishersControllerLibraryQuickCountsResponseToBuyMax = 9007199254740991;
+
+export const PublishersControllerLibraryQuickCountsResponse = zod.object({
+  all: zod
+    .int()
+    .min(publishersControllerLibraryQuickCountsResponseAllMin)
+    .max(publishersControllerLibraryQuickCountsResponseAllMax),
+  read: zod
+    .int()
+    .min(publishersControllerLibraryQuickCountsResponseReadMin)
+    .max(publishersControllerLibraryQuickCountsResponseReadMax),
+  reading: zod
+    .int()
+    .min(publishersControllerLibraryQuickCountsResponseReadingMin)
+    .max(publishersControllerLibraryQuickCountsResponseReadingMax),
+  series: zod
+    .int()
+    .min(publishersControllerLibraryQuickCountsResponseSeriesMin)
+    .max(publishersControllerLibraryQuickCountsResponseSeriesMax),
+  to_buy: zod
+    .int()
+    .min(publishersControllerLibraryQuickCountsResponseToBuyMin)
+    .max(publishersControllerLibraryQuickCountsResponseToBuyMax),
+});
+
+/**
  * @summary List publishers the current user has books for, with stats
  */
 export const publishersControllerLibraryListQueryPageNumberDefault = 1;

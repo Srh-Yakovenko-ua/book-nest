@@ -1,9 +1,22 @@
-import type { BookView, DedicationsQuery, DedicationsSummaryView, Paginator } from "@app/shared";
+import type {
+  BookView,
+  DedicationsQuery,
+  DedicationsQuickCounts,
+  DedicationsQuickCountsQuery,
+  DedicationsSummaryView,
+  Paginator,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
+import type { DedicationsBaseFilter } from "../domain/dedications-quick-counts.js";
+
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
+import {
+  buildDedicationsBaseFilter,
+  buildDedicationsQuickCountFilters,
+} from "../domain/dedications-quick-counts.js";
 import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BooksRepository, type DedicationsFilter } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -24,17 +37,8 @@ export class DedicationsService {
     userId: string;
   }): Promise<Paginator<BookView>> {
     const { pageNumber, pageSize, sort } = query;
-    const search = normalizeSearchQuery(query.q);
-    const searchGenreKeys =
-      search === undefined ? undefined : await this.genresService.searchKeys(search);
-
-    const filter: DedicationsFilter = {
-      filter: query.filter,
-      genreKey: query.genre,
-      search,
-      searchGenreKeys,
-      userId,
-    };
+    const base = await this.resolveBaseFilter({ query, userId });
+    const filter: DedicationsFilter = { ...base, filter: query.filter };
 
     const [books, totalCount] = await Promise.all([
       this.booksRepository.listDedicationsForQuery({
@@ -53,7 +57,33 @@ export class DedicationsService {
     });
   }
 
+  async getDedicationsQuickCounts({
+    query,
+    userId,
+  }: {
+    query: DedicationsQuickCountsQuery;
+    userId: string;
+  }): Promise<DedicationsQuickCounts> {
+    const base = await this.resolveBaseFilter({ query, userId });
+    return this.booksRepository.countDedicationQuickFilters({
+      filters: buildDedicationsQuickCountFilters(base),
+    });
+  }
+
   getDedicationsSummary({ userId }: { userId: string }): Promise<DedicationsSummaryView> {
     return this.booksRepository.dedicationsSummary({ userId });
+  }
+
+  private async resolveBaseFilter({
+    query,
+    userId,
+  }: {
+    query: DedicationsQuickCountsQuery;
+    userId: string;
+  }): Promise<DedicationsBaseFilter> {
+    const search = normalizeSearchQuery(query.q);
+    const searchGenreKeys =
+      search === undefined ? undefined : await this.genresService.searchKeys(search);
+    return buildDedicationsBaseFilter({ query, search, searchGenreKeys, userId });
   }
 }

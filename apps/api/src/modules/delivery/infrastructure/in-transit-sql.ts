@@ -4,6 +4,7 @@ import type {
   Currency,
   InTransitDeliveryStructure,
   InTransitFilter,
+  InTransitQuickFilterKey,
   InTransitSort,
   Nullable,
 } from "@app/shared";
@@ -134,6 +135,8 @@ export type InTransitAdvancedFilter = {
   store: string[] | undefined;
   structure: InTransitDeliveryStructure[] | undefined;
 };
+
+export type InTransitBaseFilterInput = Omit<InTransitFilterInput, "filter">;
 
 export type InTransitCategorySql = OrderScopedCategorySql & ShipmentScopedCategorySql;
 
@@ -280,6 +283,16 @@ export function inTransitOrderSql({
     ? EXPECTED_DATE_ORDER_SQL[sort](todayIso)
     : plainInTransitOrderSql(sort);
   return Prisma.sql`${order}, item.id ASC`;
+}
+
+export function inTransitQuickFilterSql({
+  categories,
+  key,
+}: {
+  categories: InTransitCategorySql;
+  key: InTransitQuickFilterKey;
+}): Prisma.Sql {
+  return inTransitFilterSql({ categories, filter: key }) ?? Prisma.sql`TRUE`;
 }
 
 export function ordersWithActiveItemsSource({

@@ -1,4 +1,4 @@
-import type { DedicationFilter, DedicationSort } from "@app/shared";
+import type { DedicationFilter, DedicationQuickFilterKey, DedicationSort } from "@app/shared";
 
 import {
   DedicationFilterSchema,
@@ -7,7 +7,10 @@ import {
 } from "@app/shared";
 import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
-import type { BooksControllerDedicationsParams } from "@/shared/api/generated/model";
+import type {
+  BooksControllerDedicationsParams,
+  BooksControllerDedicationsQuickCountsParams,
+} from "@/shared/api/generated/model";
 
 export type DedicationsListParams = Omit<BooksControllerDedicationsParams, "pageNumber">;
 
@@ -25,7 +28,7 @@ export const DEDICATION_CHIP_FILTERS = [
   "favorites",
   "finished",
   "unfinished",
-] as const satisfies readonly DedicationFilter[];
+] as const satisfies readonly (DedicationFilter & DedicationQuickFilterKey)[];
 
 export const dedicationsQueryParsers = {
   filter: parseAsStringLiteral(DedicationFilterSchema.options).withDefault(
@@ -65,4 +68,11 @@ export function toDedicationsParams(state: DedicationsQueryState): DedicationsLi
     ...(search === "" ? {} : { q: search }),
     ...(state.genre === "" ? {} : { genre: state.genre }),
   };
+}
+
+export function toDedicationsQuickCountsParams(
+  listParams: DedicationsListParams,
+): BooksControllerDedicationsQuickCountsParams {
+  const { filter: _filter, pageSize: _pageSize, sort: _sort, ...countFilters } = listParams;
+  return countFilters;
 }

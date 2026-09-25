@@ -6,6 +6,7 @@ import { createPaginatedSchema } from "./common.js";
 import { IsoCountryCodeSchema } from "./countries.js";
 import {
   boundedUrlSchema,
+  CountSchema,
   HTTP_OR_HTTPS_PROTOCOL,
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
@@ -224,6 +225,29 @@ export const LibraryPublishersQuerySchema = TaxonomySearchPaginationQuerySchema.
 });
 
 export type LibraryPublishersQuery = z.infer<typeof LibraryPublishersQuerySchema>;
+
+export const LibraryPublishersQuickCountsQuerySchema = LibraryPublishersQuerySchema.omit({
+  filter: true,
+  locale: true,
+  order: true,
+  pageNumber: true,
+  pageSize: true,
+  sort: true,
+});
+
+export type LibraryPublishersQuickCountsQuery = z.infer<
+  typeof LibraryPublishersQuickCountsQuerySchema
+>;
+
+export const LibraryPublishersQuickCountsSchema = z.object({
+  all: CountSchema,
+  read: CountSchema,
+  reading: CountSchema,
+  series: CountSchema,
+  to_buy: CountSchema,
+} satisfies Record<LibraryPublishersQuickFilter, typeof CountSchema>);
+
+export type LibraryPublishersQuickCounts = z.infer<typeof LibraryPublishersQuickCountsSchema>;
 
 export const LibraryPublisherDetailQuerySchema = z.object({
   locale: CatalogLocaleSchema.default("uk"),

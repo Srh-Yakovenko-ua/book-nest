@@ -1,5 +1,7 @@
 "use client";
 
+import type { LibraryQuickCounts } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import { ChipGroup } from "@/components/ui/chip-group";
@@ -7,13 +9,12 @@ import { ChipGroup } from "@/components/ui/chip-group";
 import type { LibraryScope } from "../model/library-query";
 
 import {
-  type LibraryQuickFilterCounts,
   type LibraryQuickFilterKey,
   quickFilterKeysForScope,
 } from "../model/library-quick-filters";
 
 type LibraryQuickFiltersProps = {
-  counts?: LibraryQuickFilterCounts;
+  counts?: LibraryQuickCounts;
   onSelect: (key: LibraryQuickFilterKey) => void;
   scope: LibraryScope;
   value: LibraryQuickFilterKey | null;

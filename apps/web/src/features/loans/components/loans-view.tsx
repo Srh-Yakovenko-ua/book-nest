@@ -24,9 +24,10 @@ import type { LoanAttentionKey, LoansAttention, LoansPeople } from "./loans-side
 
 import { useLoanContact } from "../api/use-loan-contact";
 import { useLoansList } from "../api/use-loans-list";
+import { useLoansQuickCounts } from "../api/use-loans-quick-counts";
 import { useLoansSummary } from "../api/use-loans-summary";
 import { LOAN_PAGES } from "../model/loan-pages";
-import { loansQuickFilterCounts } from "../model/loans-quick-filters";
+import { toLoansQuickCountsParams } from "../model/loans-quick-filters";
 import { useLoanContactDrawer } from "../model/use-loan-contact-drawer";
 import { useLoansFilterChips } from "../model/use-loans-filter-chips";
 import { useLoansQuery } from "../model/use-loans-query";
@@ -67,6 +68,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const query = useLoansQuery(type);
   const summary = useLoansSummary();
   const list = useLoansList(query.listParams);
+  const quickCounts = useLoansQuickCounts(toLoansQuickCountsParams(query.listParams));
   const selectedContact = useLoanContact(query.contactId === "" ? null : query.contactId);
   const contactName = selectedContact.data?.name ?? null;
   const filterChips = useLoansFilterChips({
@@ -192,9 +194,7 @@ export function LoansView({ type }: { type: LoanType }) {
           />
 
           <LoansQuickFilters
-            counts={
-              directionSummary === undefined ? undefined : loansQuickFilterCounts(directionSummary)
-            }
+            counts={quickCounts.data}
             onSelect={query.setFilter}
             value={query.filter}
           />
@@ -202,9 +202,7 @@ export function LoansView({ type }: { type: LoanType }) {
           <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
           <p className="text-sm text-muted-foreground" role="status">
-            {list.isPending || directionSummary === undefined
-              ? ""
-              : t("shownCount", { shown: totalCount, total: directionSummary.totalCount })}
+            {list.isPending ? "" : t("shownCount", { shown: items.length, total: totalCount })}
           </p>
 
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">

@@ -15,7 +15,9 @@ import { useGenres } from "@/features/books/api/use-genres";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 import { useDedications } from "../api/use-dedications";
+import { useDedicationsQuickCounts } from "../api/use-dedications-quick-counts";
 import { useDedicationsSummary } from "../api/use-dedications-summary";
+import { toDedicationsQuickCountsParams } from "../model/dedications-query";
 import { useDedicationsQuery } from "../model/use-dedications-query";
 import { DedicationBookPickerDialog } from "./dedication-book-picker-dialog";
 import { DedicationModal } from "./dedication-modal";
@@ -30,6 +32,7 @@ export function DedicationsView() {
   const t = useTranslations("dedications");
   const query = useDedicationsQuery();
   const dedications = useDedications(query.listParams);
+  const quickCounts = useDedicationsQuickCounts(toDedicationsQuickCountsParams(query.listParams));
   const summary = useDedicationsSummary();
   const genres = useGenres();
 
@@ -172,11 +175,7 @@ export function DedicationsView() {
         toolbar={
           <DedicationsToolbar
             availableGenres={summary.data?.availableGenres ?? []}
-            chipCounts={
-              summary.data === undefined
-                ? undefined
-                : { all: total, favorites, finished, unfinished }
-            }
+            chipCounts={quickCounts.data}
             counter={
               dedications.isPending || hasListError || books.length === 0
                 ? undefined

@@ -1,10 +1,14 @@
 import type { QueryKey } from "@tanstack/react-query";
 
+import type { BooksControllerQuickCountsParams } from "@/shared/api/generated/model";
+
 export const BOOKS_ROOT = "/api/books";
 
 export const bookKeys = {
   deliveryHistory: (id: string) => [...bookKeys.detail(id), "deliveries"] as const,
   detail: (id: string) => [BOOKS_ROOT, "detail", id] as const,
+  quickCounts: (params: BooksControllerQuickCountsParams) =>
+    [BOOKS_ROOT, "quick-counts", params] as const,
   root: [BOOKS_ROOT] as const,
 };
 

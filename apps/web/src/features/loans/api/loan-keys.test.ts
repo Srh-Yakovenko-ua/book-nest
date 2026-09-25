@@ -6,6 +6,7 @@ import {
   getLoanHistoryControllerOverviewQueryKey,
   getLoanHistoryControllerPeopleQueryKey,
   getLoansControllerListQueryKey,
+  getLoansControllerQuickCountsQueryKey,
   getLoansControllerSummaryQueryKey,
 } from "@/shared/api/generated/endpoints/loans/loans";
 
@@ -16,6 +17,10 @@ describe("matchesLoans", () => {
     expect(matchesLoans({ queryKey: getLoansControllerListQueryKey() })).toBe(true);
     expect(matchesLoans({ queryKey: getLoansControllerSummaryQueryKey() })).toBe(true);
     expect(matchesLoans({ queryKey: loanKeys.list({ type: "borrowed_from_someone" }) })).toBe(true);
+    expect(matchesLoans({ queryKey: getLoansControllerQuickCountsQueryKey() })).toBe(true);
+    expect(matchesLoans({ queryKey: loanKeys.quickCounts({ type: "lent_to_someone" }) })).toBe(
+      true,
+    );
   });
 
   it("matches the history keys of the generated client", () => {

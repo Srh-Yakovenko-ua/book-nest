@@ -32,6 +32,7 @@ import { DeliverySummaryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
   CancelReasonSchema,
+  CountSchema,
   EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
   isExpectedNotBeforeOrder,
   NoHtmlString,
@@ -885,74 +886,82 @@ export const PublisherPresenceSchema = z.enum(["all", "assigned", "missing"]);
 
 export type PublisherPresence = z.infer<typeof PublisherPresenceSchema>;
 
-export const LibraryBooksQuerySchema = z
-  .object({
-    ageCategory: queryStringArray(AgeCategorySchema),
-    author: queryStringArray(z.uuid()),
-    bookType: BookTypeSchema.optional(),
-    format: queryStringArray(BookFormatSchema),
-    genre: queryStringArray(GenreKeySchema),
-    hasActiveOrder: z.stringbool().optional(),
-    hasCover: z.stringbool().optional(),
-    hasDedication: z.stringbool().optional(),
-    hasRating: z.stringbool().optional(),
-    inQueue: z.stringbool().optional(),
-    isFavorite: z.stringbool().optional(),
-    language: queryStringArray(BookLanguageSchema),
-    notInList: z.uuid().optional(),
-    owner: queryStringArray(OwnershipStatusSchema),
-    ...paginationQueryFields({ pageSizeDefault: LIBRARY_PAGE_SIZE_DEFAULT }),
-    pagesMax: z.coerce.number().int().optional(),
-    pagesMin: z.coerce.number().int().optional(),
-    publisher: queryStringArray(z.uuid()),
-    publisherPresence: PublisherPresenceSchema.optional(),
-    q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
-    ratingMax: ratingBound().optional(),
-    ratingMin: ratingBound().optional(),
-    searchPublisher: z.stringbool().default(true),
-    sort: LibrarySortSchema.default("created_desc"),
-    status: queryStringArray(ReadingStatusSchema),
-    tag: queryStringArray(z.uuid()),
-    yearMax: z.coerce.number().int().optional(),
-    yearMin: z.coerce.number().int().optional(),
-  })
-  .superRefine((value, context) => {
-    if (
-      value.ratingMin !== undefined &&
-      value.ratingMax !== undefined &&
-      value.ratingMin > value.ratingMax
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "ratingMin must not exceed ratingMax",
-        path: ["ratingMin"],
-      });
-    }
+const LibraryBooksQueryFieldsSchema = z.object({
+  ageCategory: queryStringArray(AgeCategorySchema),
+  author: queryStringArray(z.uuid()),
+  bookType: BookTypeSchema.optional(),
+  format: queryStringArray(BookFormatSchema),
+  genre: queryStringArray(GenreKeySchema),
+  hasActiveOrder: z.stringbool().optional(),
+  hasCover: z.stringbool().optional(),
+  hasDedication: z.stringbool().optional(),
+  hasRating: z.stringbool().optional(),
+  inQueue: z.stringbool().optional(),
+  isFavorite: z.stringbool().optional(),
+  language: queryStringArray(BookLanguageSchema),
+  notInList: z.uuid().optional(),
+  owner: queryStringArray(OwnershipStatusSchema),
+  ...paginationQueryFields({ pageSizeDefault: LIBRARY_PAGE_SIZE_DEFAULT }),
+  pagesMax: z.coerce.number().int().optional(),
+  pagesMin: z.coerce.number().int().optional(),
+  publisher: queryStringArray(z.uuid()),
+  publisherPresence: PublisherPresenceSchema.optional(),
+  q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
+  ratingMax: ratingBound().optional(),
+  ratingMin: ratingBound().optional(),
+  searchPublisher: z.stringbool().default(true),
+  sort: LibrarySortSchema.default("created_desc"),
+  status: queryStringArray(ReadingStatusSchema),
+  tag: queryStringArray(z.uuid()),
+  yearMax: z.coerce.number().int().optional(),
+  yearMin: z.coerce.number().int().optional(),
+});
 
-    if (
-      value.yearMin !== undefined &&
-      value.yearMax !== undefined &&
-      value.yearMin > value.yearMax
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "yearMin must not exceed yearMax",
-        path: ["yearMin"],
-      });
-    }
+type LibraryRangeBounds = {
+  pagesMax?: number;
+  pagesMin?: number;
+  ratingMax?: number;
+  ratingMin?: number;
+  yearMax?: number;
+  yearMin?: number;
+};
 
-    if (
-      value.pagesMin !== undefined &&
-      value.pagesMax !== undefined &&
-      value.pagesMin > value.pagesMax
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "pagesMin must not exceed pagesMax",
-        path: ["pagesMin"],
-      });
-    }
-  });
+function refineLibraryRanges(value: LibraryRangeBounds, context: z.RefinementCtx): void {
+  if (
+    value.ratingMin !== undefined &&
+    value.ratingMax !== undefined &&
+    value.ratingMin > value.ratingMax
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "ratingMin must not exceed ratingMax",
+      path: ["ratingMin"],
+    });
+  }
+
+  if (value.yearMin !== undefined && value.yearMax !== undefined && value.yearMin > value.yearMax) {
+    context.addIssue({
+      code: "custom",
+      message: "yearMin must not exceed yearMax",
+      path: ["yearMin"],
+    });
+  }
+
+  if (
+    value.pagesMin !== undefined &&
+    value.pagesMax !== undefined &&
+    value.pagesMin > value.pagesMax
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "pagesMin must not exceed pagesMax",
+      path: ["pagesMin"],
+    });
+  }
+}
+
+export const LibraryBooksQuerySchema =
+  LibraryBooksQueryFieldsSchema.superRefine(refineLibraryRanges);
 
 export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
 
@@ -1336,6 +1345,51 @@ export const BookFacetScopeSchema = z.enum([
 ]);
 
 export type BookFacetScope = z.infer<typeof BookFacetScopeSchema>;
+
+export const LibraryQuickCountScopeSchema = BookFacetScopeSchema.extract([
+  "all",
+  "my",
+  "favorites",
+]);
+
+export type LibraryQuickCountScope = z.infer<typeof LibraryQuickCountScopeSchema>;
+
+export const LibraryQuickCountsQuerySchema = LibraryBooksQueryFieldsSchema.omit({
+  bookType: true,
+  isFavorite: true,
+  owner: true,
+  pageNumber: true,
+  pageSize: true,
+  sort: true,
+  status: true,
+})
+  .extend({
+    scope: LibraryQuickCountScopeSchema.default("all").describe(
+      "The book population every count runs over: the whole library, the physical library (my) or favorite books only",
+    ),
+  })
+  .superRefine(refineLibraryRanges);
+
+export type LibraryQuickCountsQuery = z.infer<typeof LibraryQuickCountsQuerySchema>;
+
+export const LibraryQuickCountsSchema = z.object({
+  all: CountSchema,
+  borrowed: CountSchema,
+  favorites: CountSchema,
+  finished: CountSchema,
+  in_transit: CountSchema,
+  reading: CountSchema,
+  series: CountSchema,
+  solo: CountSchema,
+  want_to_buy: CountSchema,
+  want_to_read: CountSchema,
+});
+
+export type LibraryQuickCounts = z.infer<typeof LibraryQuickCountsSchema>;
+
+export const LibraryQuickFilterKeySchema = LibraryQuickCountsSchema.keyof();
+
+export type LibraryQuickFilterKey = z.infer<typeof LibraryQuickFilterKeySchema>;
 
 export const BookFacetsQuerySchema = z.object({
   publisher: z.uuid().optional(),

@@ -22,9 +22,11 @@ import type {
   LibraryPublisherDetailDto,
   LibraryPublisherOverviewDto,
   LibraryPublishersPageDto,
+  LibraryPublishersQuickCountsDto,
   LibraryPublishersSummaryDto,
   PublishersControllerLibraryDetailParams,
   PublishersControllerLibraryListParams,
+  PublishersControllerLibraryQuickCountsParams,
   PublishersControllerLibrarySummaryParams,
   PublishersControllerRecentParams,
   PublishersControllerSearchParams,
@@ -218,6 +220,210 @@ export function usePublishersControllerLibrarySummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getPublishersControllerLibrarySummaryQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type publishersControllerLibraryQuickCountsResponse200 = {
+  data: LibraryPublishersQuickCountsDto;
+  status: 200;
+};
+
+export type publishersControllerLibraryQuickCountsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type publishersControllerLibraryQuickCountsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type publishersControllerLibraryQuickCountsResponseSuccess =
+  publishersControllerLibraryQuickCountsResponse200 & {
+    headers: Headers;
+  };
+export type publishersControllerLibraryQuickCountsResponseError = (
+  | publishersControllerLibraryQuickCountsResponse400
+  | publishersControllerLibraryQuickCountsResponse401
+) & {
+  headers: Headers;
+};
+
+export type publishersControllerLibraryQuickCountsResponse =
+  | publishersControllerLibraryQuickCountsResponseSuccess
+  | publishersControllerLibraryQuickCountsResponseError;
+
+export const getPublishersControllerLibraryQuickCountsUrl = (
+  params?: PublishersControllerLibraryQuickCountsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/publishers/library/quick-counts?${stringifiedParams}`
+    : `/api/publishers/library/quick-counts`;
+};
+
+/**
+ * @summary Count the current user library publishers per quick filter
+ */
+export const publishersControllerLibraryQuickCounts = async (
+  params?: PublishersControllerLibraryQuickCountsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<publishersControllerLibraryQuickCountsResponse> => {
+  return customInstance<publishersControllerLibraryQuickCountsResponse>(
+    getPublishersControllerLibraryQuickCountsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getPublishersControllerLibraryQuickCountsQueryKey = (
+  params?: PublishersControllerLibraryQuickCountsParams,
+) => {
+  return [`/api/publishers/library/quick-counts`, ...(params ? [params] : [])] as const;
+};
+
+export const getPublishersControllerLibraryQuickCountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+  TError = void,
+>(
+  params?: PublishersControllerLibraryQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getPublishersControllerLibraryQuickCountsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>
+  > = ({ signal }) => publishersControllerLibraryQuickCounts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type PublishersControllerLibraryQuickCountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>
+>;
+export type PublishersControllerLibraryQuickCountsQueryError = void;
+
+export function usePublishersControllerLibraryQuickCounts<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+  TError = void,
+>(
+  params: undefined | PublishersControllerLibraryQuickCountsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerLibraryQuickCounts<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+  TError = void,
+>(
+  params?: PublishersControllerLibraryQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerLibraryQuickCounts<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+  TError = void,
+>(
+  params?: PublishersControllerLibraryQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the current user library publishers per quick filter
+ */
+
+export function usePublishersControllerLibraryQuickCounts<
+  TData = Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+  TError = void,
+>(
+  params?: PublishersControllerLibraryQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof publishersControllerLibraryQuickCounts>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getPublishersControllerLibraryQuickCountsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -28,25 +28,13 @@ export function NotesQuickChips({ counts, onChange, value }: NotesQuickChipsProp
           if (match !== undefined) onChange(match);
         }}
         options={NOTES_ARCHIVE.quickFilters.map((option) => ({
-          label: <QuickChipLabel count={counts?.[option]} label={t(`quickFilter.${option}`)} />,
+          count: counts?.[option],
+          label: t(`quickFilter.${option}`),
           value: option,
         }))}
         size="sm"
         value={value}
       />
     </div>
-  );
-}
-
-function QuickChipLabel({ count, label }: { count: number | undefined; label: string }) {
-  return (
-    <>
-      {label}
-      {count === undefined ? null : (
-        <span className="text-muted-foreground tabular-nums in-data-[state=on]:text-primary-foreground">
-          {count}
-        </span>
-      )}
-    </>
   );
 }

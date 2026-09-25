@@ -2,6 +2,7 @@ import type {
   LibraryPublisherDetail,
   LibraryPublisherListItem,
   LibraryPublisherOverview,
+  LibraryPublishersQuickCounts,
   LibraryPublishersSummary,
   Paginator,
   PublisherView,
@@ -11,6 +12,7 @@ import {
   CatalogLocaleSchema,
   LibraryPublisherDetailQuerySchema,
   LibraryPublishersQuerySchema,
+  LibraryPublishersQuickCountsQuerySchema,
   LibraryPublishersQuickFilterSchema,
   LibraryPublishersSummaryQuerySchema,
   PublisherSearchPaginationQuerySchema,
@@ -48,11 +50,12 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { PublishersService } from "../application/publishers.service.js";
 import { LibraryPublisherDetailQueryDto } from "./input-dto/library-publisher-detail-query.input-dto.js";
 import { LibraryPublishersQueryDto } from "./input-dto/library-publishers-query.input-dto.js";
+import { LibraryPublishersQuickCountsQueryDto } from "./input-dto/library-publishers-quick-counts-query.input-dto.js";
 import { LibraryPublishersSummaryQueryDto } from "./input-dto/library-publishers-summary-query.input-dto.js";
 import { PublisherSearchPaginationQueryDto } from "./input-dto/publisher-search-query.input-dto.js";
 import { RecentPublishersQueryDto } from "./input-dto/recent-publishers-query.input-dto.js";
@@ -60,6 +63,7 @@ import { UpdatePublisherDto } from "./input-dto/update-publisher.input-dto.js";
 import { LibraryPublisherDetailDto } from "./view-dto/library-publisher-detail.view-dto.js";
 import { LibraryPublisherOverviewDto } from "./view-dto/library-publisher-overview.view-dto.js";
 import { LibraryPublishersPageDto } from "./view-dto/library-publishers-page.view-dto.js";
+import { LibraryPublishersQuickCountsDto } from "./view-dto/library-publishers-quick-counts.view-dto.js";
 import { LibraryPublishersSummaryDto } from "./view-dto/library-publishers-summary.view-dto.js";
 
 @ApiTags("publishers")
@@ -80,6 +84,23 @@ export class PublishersController {
     query: LibraryPublishersSummaryQueryDto,
   ): Promise<LibraryPublishersSummary> {
     return this.publishersService.librarySummary({ locale: query.locale, userId: user.id });
+  }
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "How many publishers each library quick filter would show under the given search and advanced filters, ignoring the selected quick filter",
+    type: LibraryPublishersQuickCountsDto,
+  })
+  @ApiOperation({ summary: "Count the current user library publishers per quick filter" })
+  @Get("library/quick-counts")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  libraryQuickCounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LibraryPublishersQuickCountsQuerySchema))
+    query: LibraryPublishersQuickCountsQueryDto,
+  ): Promise<LibraryPublishersQuickCounts> {
+    return this.publishersService.libraryQuickCounts({ query, userId: user.id });
   }
   @ApiOkResponse({
     description: "A page of publishers represented in the current user library",
