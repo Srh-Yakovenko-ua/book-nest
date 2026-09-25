@@ -12,6 +12,7 @@ import {
   hasInvalidDeliveryRange,
   resolveDeliveryPriceCurrency,
   toDeliveryListParams,
+  toInTransitQuickCountsParams,
 } from "./in-transit-params";
 
 function advanced(overrides: Partial<DeliveryAdvancedState> = {}): DeliveryAdvancedState {
@@ -249,5 +250,63 @@ describe("the exact order filters arriving from the statistics page", () => {
   it("clears together with the other advanced filters", () => {
     expect(DELIVERY_ADVANCED_EMPTY.orderId).toBeNull();
     expect(DELIVERY_ADVANCED_EMPTY.orderState).toBeNull();
+  });
+});
+
+describe("deriving the quick counts params from the list params", () => {
+  const ORDER_ID = "11111111-1111-4111-8111-111111111111";
+
+  it("keeps the search and every advanced filter the list sends", () => {
+    const listParams = toDeliveryListParams(
+      state({
+        ageBucket: "31_plus",
+        booksMin: 2,
+        currency: ["UAH"],
+        expectedTo: "2026-10-01",
+        orderedFrom: "2026-01-01",
+        orderId: ORDER_ID,
+        orderState: "partially_shipped",
+        priceMax: 900,
+        q: "  Хоббіт ",
+        service: ["Нова пошта"],
+        store: ["Yakaboo"],
+        structure: ["multiple_shipments"],
+      }),
+    );
+
+    expect(toInTransitQuickCountsParams(listParams)).toEqual({
+      ageBucket: "31_plus",
+      booksMin: 2,
+      currency: ["UAH"],
+      expectedTo: "2026-10-01",
+      orderedFrom: "2026-01-01",
+      orderId: ORDER_ID,
+      orderState: "partially_shipped",
+      priceCurrency: "UAH",
+      priceMax: 900,
+      search: "Хоббіт",
+      service: ["Нова пошта"],
+      store: ["Yakaboo"],
+      structure: ["multiple_shipments"],
+    });
+  });
+
+  it("drops the quick filter, the sort and the paging", () => {
+    const params = toInTransitQuickCountsParams(
+      toDeliveryListParams(state({ filter: "delayed", sort: "newest_orders" })),
+    );
+
+    expect(params).not.toHaveProperty("filter");
+    expect(params).not.toHaveProperty("sort");
+    expect(params).not.toHaveProperty("pageSize");
+  });
+
+  it("ignores a backwards range exactly as the list does", () => {
+    const params = toInTransitQuickCountsParams(
+      toDeliveryListParams(state({ booksMax: 1, booksMin: 5 })),
+    );
+
+    expect(params).not.toHaveProperty("booksMin");
+    expect(params).not.toHaveProperty("booksMax");
   });
 });

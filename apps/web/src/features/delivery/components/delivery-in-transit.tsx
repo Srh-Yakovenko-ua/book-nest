@@ -21,11 +21,15 @@ import type { DeliveryContent } from "./delivery-in-transit-view";
 import { bookOrderQueryOptions } from "../api/use-book-order";
 import { useInTransitImpact } from "../api/use-in-transit-impact";
 import { useInTransitList } from "../api/use-in-transit-list";
+import { useInTransitQuickCounts } from "../api/use-in-transit-quick-counts";
 import { useInTransitSummary } from "../api/use-in-transit-summary";
 import { useSetShipmentStatus } from "../api/use-order-shipment-actions";
 import { useRevealDeliveryTarget } from "../hooks/use-reveal-delivery-target";
 import { useDeliverySelectionStore } from "../model/delivery-selection-store";
-import { toDeliveryAttentionReason, toDeliveryFilterCounts } from "../model/in-transit-params";
+import {
+  toDeliveryAttentionReason,
+  toInTransitQuickCountsParams,
+} from "../model/in-transit-params";
 import { buildDeliverySummaryCards } from "../model/in-transit-summary-cards";
 import { buildDeliveryNextShipmentCard } from "../model/next-shipment-card";
 import { toDeliveryOrderCards, toSelectableShipments } from "../model/order-card-model";
@@ -58,6 +62,7 @@ export function DeliveryInTransit() {
 
   const params = useInTransitParams();
   const listQuery = useInTransitList(params.listParams);
+  const quickCountsQuery = useInTransitQuickCounts(toInTransitQuickCountsParams(params.listParams));
   const summaryQuery = useInTransitSummary();
   const impactQuery = useInTransitImpact();
   const setShipmentStatus = useSetShipmentStatus();
@@ -171,11 +176,6 @@ export function DeliveryInTransit() {
   const summaryData = summaryQuery.data;
   const attention = summaryData?.attention ?? [];
   const activeAttentionReason = toDeliveryAttentionReason(params.filter);
-
-  const filterCounts =
-    summaryData === undefined || params.hasActiveSearch || params.advancedCount > 0
-      ? undefined
-      : toDeliveryFilterCounts(summaryData);
 
   const summaryLabels: DeliverySummaryLabels = {
     active: {
@@ -358,7 +358,7 @@ export function DeliveryInTransit() {
               total: totalCount,
             })}
             filter={params.filter}
-            filterCounts={filterCounts}
+            filterCounts={quickCountsQuery.data}
             isPending={listQuery.isPending}
             loadingLabel={t("states.loading")}
             onApplyAdvanced={params.applyAdvanced}
