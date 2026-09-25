@@ -120,6 +120,7 @@ export function QuotesView() {
             chips={filterChips}
             counter={counter}
             counts={filterCounts}
+            countsPending={facets.isPending}
             facets={facets.data}
             filter={state.filter}
             onApplyAdvanced={applyAdvanced}

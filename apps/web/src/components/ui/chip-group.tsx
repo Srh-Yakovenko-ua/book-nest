@@ -4,7 +4,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui";
 import * as React from "react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const countSlotClassName = "min-w-[2ch] text-center tabular-nums";
 
 const chipGroupVariants = cva("flex flex-wrap", {
   variants: {
@@ -36,6 +39,7 @@ const chipVariants = cva(
 type ChipGroupProps = (MultiChipGroupProps | SingleChipGroupProps) &
   VariantProps<typeof chipGroupVariants> & {
     className?: string;
+    countsPending?: boolean;
     label?: string;
     options: readonly ChipOption[];
   };
@@ -60,24 +64,51 @@ type SingleChipGroupProps = {
   value: string;
 };
 
-function ChipGroup({ className, label, options, size, ...rest }: ChipGroupProps) {
-  const items = options.map((option) => (
-    <ToggleGroupPrimitive.Item
-      className={cn(chipVariants({ size }))}
-      data-slot="chip"
-      disabled={option.disabled}
-      key={option.value}
-      value={option.value}
-    >
-      {option.icon}
-      {option.label}
-      {typeof option.count === "number" && (
-        <span className="text-muted-foreground tabular-nums group-data-[state=on]/chip:text-primary-foreground">
-          {option.count}
-        </span>
-      )}
-    </ToggleGroupPrimitive.Item>
-  ));
+function ChipGroup({
+  className,
+  countsPending = false,
+  label,
+  options,
+  size,
+  ...rest
+}: ChipGroupProps) {
+  const items = options.map((option) => {
+    const { count } = option;
+
+    return (
+      <ToggleGroupPrimitive.Item
+        className={cn(chipVariants({ size }))}
+        data-slot="chip"
+        disabled={option.disabled}
+        key={option.value}
+        value={option.value}
+      >
+        {option.icon}
+        {option.label}
+        {typeof count === "number" ? (
+          <span
+            className={cn(
+              countSlotClassName,
+              "text-muted-foreground group-data-[state=on]/chip:text-primary-foreground",
+            )}
+          >
+            {count}
+          </span>
+        ) : (
+          countsPending && (
+            <Skeleton
+              aria-hidden
+              className={cn(
+                countSlotClassName,
+                "h-3 rounded-sm group-data-[state=on]/chip:bg-primary-foreground/40",
+              )}
+              data-slot="chip-count-pending"
+            />
+          )
+        )}
+      </ToggleGroupPrimitive.Item>
+    );
+  });
 
   if (rest.mode === "single") {
     return (

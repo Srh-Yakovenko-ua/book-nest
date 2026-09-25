@@ -129,7 +129,12 @@ function NotesArchive({ query }: { query: UseNotesArchiveQueryResult }) {
         notes.isPending ? (
           <NotesArchiveToolbarSkeleton />
         ) : (
-          <NotesArchiveToolbar counter={archiveCounter()} facets={facets.data} query={query} />
+          <NotesArchiveToolbar
+            counter={archiveCounter()}
+            facets={facets.data}
+            facetsPending={facets.isPending}
+            query={query}
+          />
         )
       }
     />

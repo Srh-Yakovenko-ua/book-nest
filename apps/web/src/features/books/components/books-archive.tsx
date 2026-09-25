@@ -169,6 +169,7 @@ export function BooksArchive({
       quickFilters={
         <LibraryQuickFilters
           counts={quickCounts.data}
+          countsPending={quickCounts.isLoading}
           onSelect={(key) => void library.setState(quickFilterPatch(key))}
           scope={scope}
           value={activeQuickFilter(library.state)}

@@ -28,9 +28,10 @@ import { TagsAdvancedFilters } from "./tags-advanced-filters";
 type TagsToolbarProps = {
   query: UseTagQueryResult;
   quickCounts: TagQuickCounts | undefined;
+  quickCountsPending: boolean;
 };
 
-export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
+export function TagsToolbar({ query, quickCounts, quickCountsPending }: TagsToolbarProps) {
   const t = useTranslations("tags");
   const tCommon = useTranslations("common");
   const { state } = query;
@@ -131,6 +132,7 @@ export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
       <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
         <ChipGroup
           className="flex-nowrap"
+          countsPending={quickCountsPending}
           label={t("toolbar.quickFilterLabel")}
           mode="single"
           onValueChange={selectQuickFilter}

@@ -33,10 +33,16 @@ import { NotesQuickChips } from "./notes-quick-chips";
 type NotesArchiveToolbarProps = {
   counter: Nullable<string>;
   facets: NotesArchiveFacets | undefined;
+  facetsPending: boolean;
   query: UseNotesArchiveQueryResult;
 };
 
-export function NotesArchiveToolbar({ counter, facets, query }: NotesArchiveToolbarProps) {
+export function NotesArchiveToolbar({
+  counter,
+  facets,
+  facetsPending,
+  query,
+}: NotesArchiveToolbarProps) {
   const t = useTranslations("notes.archive");
   const tCommon = useTranslations("common");
   const { config, state } = query;
@@ -130,6 +136,7 @@ export function NotesArchiveToolbar({ counter, facets, query }: NotesArchiveTool
 
       <NotesQuickChips
         counts={facets?.quickCounts}
+        countsPending={facetsPending}
         onChange={query.setFilter}
         value={state.filter}
       />

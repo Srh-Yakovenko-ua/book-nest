@@ -75,6 +75,7 @@ function renderToolbar(overrides: Partial<ComponentProps<typeof QuotesToolbar>> 
     <QuotesToolbar
       activeFilterCount={0}
       chips={[]}
+      countsPending={false}
       facets={undefined}
       filter="all"
       onApplyAdvanced={vi.fn()}

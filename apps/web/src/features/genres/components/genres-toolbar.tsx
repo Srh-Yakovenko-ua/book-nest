@@ -24,10 +24,11 @@ import { GenresAdvancedFilters } from "./genres-advanced-filters";
 
 type GenresToolbarProps = {
   facets: GenreFacetsView | undefined;
+  facetsPending: boolean;
   query: UseGenresQueryResult;
 };
 
-export function GenresToolbar({ facets, query }: GenresToolbarProps) {
+export function GenresToolbar({ facets, facetsPending, query }: GenresToolbarProps) {
   const t = useTranslations("genres");
   const tCommon = useTranslations("common");
   const { state } = query;
@@ -107,6 +108,7 @@ export function GenresToolbar({ facets, query }: GenresToolbarProps) {
       <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
         <ChipGroup
           className="flex-nowrap"
+          countsPending={facetsPending}
           label={t("toolbar.quickFilterLabel")}
           mode="single"
           onValueChange={(next) => {

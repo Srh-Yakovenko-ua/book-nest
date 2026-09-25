@@ -142,6 +142,7 @@ export function LoanHistoryView() {
 
           <LoanHistoryQuickFilters
             counts={firstPage?.resultCounts}
+            countsPending={list.isPending}
             onSelect={query.setResult}
             value={query.result}
           />

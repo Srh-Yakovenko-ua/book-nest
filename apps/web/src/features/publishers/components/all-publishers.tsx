@@ -122,6 +122,7 @@ export function AllPublishers() {
             />
             <PublisherQuickFilters
               counts={quickCounts.data}
+              countsPending={quickCounts.isPending}
               onChange={query.setQuickFilter}
               value={query.state.filter}
             />

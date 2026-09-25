@@ -40,6 +40,7 @@ type DeliveryToolbarProps = {
   counterLabel: string;
   filter: DeliveryReadControllerInTransitListFilter;
   filterCounts?: DeliveryFilterCounts;
+  filterCountsPending?: boolean;
   isPending: boolean;
   loadingLabel: string;
   onApplyAdvanced: (draft: DeliveryAdvancedState) => void;
@@ -59,6 +60,7 @@ export function DeliveryToolbar({
   counterLabel,
   filter,
   filterCounts,
+  filterCountsPending,
   isPending,
   loadingLabel,
   onApplyAdvanced,
@@ -164,6 +166,7 @@ export function DeliveryToolbar({
       <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
         <ChipGroup
           className="flex-nowrap"
+          countsPending={filterCountsPending}
           label={tFilters("label")}
           mode="single"
           onValueChange={(next) => {

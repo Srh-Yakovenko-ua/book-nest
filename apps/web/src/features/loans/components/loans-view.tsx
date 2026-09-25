@@ -195,6 +195,7 @@ export function LoansView({ type }: { type: LoanType }) {
 
           <LoansQuickFilters
             counts={quickCounts.data}
+            countsPending={quickCounts.isPending}
             onSelect={query.setFilter}
             value={query.filter}
           />

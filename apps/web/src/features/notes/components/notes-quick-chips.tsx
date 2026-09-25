@@ -10,17 +10,19 @@ import { NOTES_ARCHIVE } from "../model/notes-archive-query";
 
 type NotesQuickChipsProps = {
   counts: NoteQuickCounts | undefined;
+  countsPending?: boolean;
   onChange: (filter: NoteFilter) => void;
   value: NoteFilter;
 };
 
-export function NotesQuickChips({ counts, onChange, value }: NotesQuickChipsProps) {
+export function NotesQuickChips({ counts, countsPending, onChange, value }: NotesQuickChipsProps) {
   const t = useTranslations("notes.archive");
 
   return (
     <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
       <ChipGroup
         className="flex-nowrap"
+        countsPending={countsPending}
         label={t("toolbar.quickFilterLabel")}
         mode="single"
         onValueChange={(next) => {

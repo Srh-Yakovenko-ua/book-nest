@@ -120,3 +120,31 @@ export const QuickFilterCounts: Story = {
     await expect(empty).toHaveAttribute("aria-checked", "true");
   },
 };
+
+function QuickFilterPendingExample() {
+  const [value, setValue] = useState("reading");
+  return (
+    <ChipGroup
+      countsPending
+      label="Швидкі фільтри"
+      mode="single"
+      onValueChange={setValue}
+      options={QUICK_FILTER_OPTIONS.map(({ label, value: optionValue }) => ({
+        label,
+        value: optionValue,
+      }))}
+      size="sm"
+      value={value}
+    />
+  );
+}
+
+export const QuickFilterCountsPending: Story = {
+  render: () => <QuickFilterPendingExample />,
+  play: async ({ canvas }) => {
+    const finished = canvas.getByRole("radio", { name: "Прочитані" });
+    await expect(finished).toBeEnabled();
+    await userEvent.click(finished);
+    await expect(finished).toHaveAttribute("aria-checked", "true");
+  },
+};

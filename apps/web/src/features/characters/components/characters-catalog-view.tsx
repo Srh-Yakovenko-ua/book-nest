@@ -138,6 +138,7 @@ export function CharactersCatalogView() {
         </div>
 
         <ChipGroup
+          countsPending={overview.isPending}
           label={t("quickLabel")}
           mode="single"
           onValueChange={(next) => setFilter(toQuickFilter(next))}

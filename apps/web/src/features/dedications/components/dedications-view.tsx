@@ -176,6 +176,7 @@ export function DedicationsView() {
           <DedicationsToolbar
             availableGenres={summary.data?.availableGenres ?? []}
             chipCounts={quickCounts.data}
+            chipCountsPending={quickCounts.isPending}
             counter={
               dedications.isPending || hasListError || books.length === 0
                 ? undefined
