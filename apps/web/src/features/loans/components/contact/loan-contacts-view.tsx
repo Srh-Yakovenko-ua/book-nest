@@ -66,7 +66,11 @@ export function LoanContactsView() {
         </Button>
       </header>
 
-      <LoanContactsToolbar counts={counts ?? undefined} query={query} />
+      <LoanContactsToolbar
+        counts={counts ?? undefined}
+        countsPending={list.isPending}
+        query={query}
+      />
 
       <LoanContactsContent
         hasActiveQuery={query.hasActiveQuery}

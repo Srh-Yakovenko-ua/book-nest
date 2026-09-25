@@ -362,6 +362,7 @@ export function DeliveryInTransit() {
             })}
             filter={params.filter}
             filterCounts={quickCountsQuery.data}
+            filterCountsPending={quickCountsQuery.isPending}
             isPending={listQuery.isPending}
             loadingLabel={t("states.loading")}
             onApplyAdvanced={params.applyAdvanced}

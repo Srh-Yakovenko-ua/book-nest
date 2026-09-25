@@ -14,11 +14,17 @@ import { LOANS_QUICK_FILTER_KEYS } from "../model/loans-quick-filters";
 
 type LoansQuickFiltersProps = {
   counts?: LoansQuickCounts;
+  countsPending?: boolean;
   onSelect: (key: LoansQuickFilterKey) => void;
   value: LoansControllerListFilter;
 };
 
-export function LoansQuickFilters({ counts, onSelect, value }: LoansQuickFiltersProps) {
+export function LoansQuickFilters({
+  counts,
+  countsPending,
+  onSelect,
+  value,
+}: LoansQuickFiltersProps) {
   const t = useTranslations("loans.quickFilters");
   const options = LOANS_QUICK_FILTER_KEYS.map((key) => ({
     count: counts?.[key],
@@ -30,6 +36,7 @@ export function LoansQuickFilters({ counts, onSelect, value }: LoansQuickFilters
     <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
       <ChipGroup
         className="flex-nowrap"
+        countsPending={countsPending}
         label={t("label")}
         mode="single"
         onValueChange={(next) => {

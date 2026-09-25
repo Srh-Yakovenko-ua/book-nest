@@ -32,6 +32,7 @@ const ANY_GENRE = "__any__";
 type DedicationsToolbarProps = {
   availableGenres: readonly string[];
   chipCounts?: DedicationsQuickCounts;
+  chipCountsPending?: boolean;
   counter?: string;
   filter: DedicationFilter;
   genre: string;
@@ -48,6 +49,7 @@ type DedicationsToolbarProps = {
 export function DedicationsToolbar({
   availableGenres,
   chipCounts,
+  chipCountsPending,
   counter,
   filter,
   genre,
@@ -182,6 +184,7 @@ export function DedicationsToolbar({
       <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
         <ChipGroup
           className="flex-nowrap"
+          countsPending={chipCountsPending}
           label={t("filterLabel")}
           mode="single"
           onValueChange={(next) => {

@@ -147,6 +147,6 @@ export function Genres() {
     if (list.data === undefined && list.isPending) return <GenresToolbarSkeleton />;
     if (state.kind === "error") return null;
     if (state.kind === "empty" && state.reason === "library") return null;
-    return <GenresToolbar facets={facets.data} query={query} />;
+    return <GenresToolbar facets={facets.data} facetsPending={facets.isPending} query={query} />;
   }
 }

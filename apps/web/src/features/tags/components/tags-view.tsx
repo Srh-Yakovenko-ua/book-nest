@@ -145,6 +145,12 @@ export function TagsView() {
   function toolbarSlot(state: TagsListState): ReactNode {
     if (state.kind === "loading" && catalog.data === undefined) return <TagsToolbarSkeleton />;
     if (state.kind === "first-use") return null;
-    return <TagsToolbar query={query} quickCounts={facets.data?.quickCounts} />;
+    return (
+      <TagsToolbar
+        query={query}
+        quickCounts={facets.data?.quickCounts}
+        quickCountsPending={facets.isPending}
+      />
+    );
   }
 }

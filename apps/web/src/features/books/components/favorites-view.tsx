@@ -454,6 +454,7 @@ export function FavoritesView() {
         quickFilters={
           <LibraryQuickFilters
             counts={quickCounts.data}
+            countsPending={quickCounts.isLoading}
             onSelect={(key) => void library.setState(quickFilterPatch(key))}
             scope={FAVORITES_SCOPE}
             value={activeQuickFilter(library.state)}
