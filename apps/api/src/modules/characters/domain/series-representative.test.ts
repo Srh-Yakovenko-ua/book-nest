@@ -43,6 +43,7 @@ function summary(overrides: Partial<CharacterSummaryView>): CharacterSummaryView
     id: "appearance",
     importance: "supporting",
     isFavorite: false,
+    isPovCharacter: false,
     name: "Nameless",
     portrait: null,
     status: "active",
@@ -77,14 +78,34 @@ describe("resolveAllowedBookIds", () => {
     ).toEqual([BOOK_ONE, BOOK_TWO]);
   });
 
-  it("includes duplicate part numbers at the context boundary", () => {
+  it("excludes a sibling tied at the context part number", () => {
     expect(
       resolveAllowedBookIds({
         contextBook: { id: BOOK_TWO, partNumber: 2 },
         includeFuture: false,
         seriesBooks: [...seriesBooks, { id: BOOK_TWO_ALT, partNumber: 2 }],
       }),
-    ).toEqual([BOOK_ONE, BOOK_TWO, BOOK_TWO_ALT]);
+    ).toEqual([BOOK_ONE, BOOK_TWO]);
+  });
+
+  it("keeps the context book itself when it is the tied sibling", () => {
+    expect(
+      resolveAllowedBookIds({
+        contextBook: { id: BOOK_TWO_ALT, partNumber: 2 },
+        includeFuture: false,
+        seriesBooks: [...seriesBooks, { id: BOOK_TWO_ALT, partNumber: 2 }],
+      }),
+    ).toEqual([BOOK_ONE, BOOK_TWO_ALT]);
+  });
+
+  it("keeps a clean sequential series unchanged up to the context part", () => {
+    expect(
+      resolveAllowedBookIds({
+        contextBook: { id: BOOK_THREE, partNumber: 3 },
+        includeFuture: false,
+        seriesBooks,
+      }),
+    ).toEqual([BOOK_ONE, BOOK_TWO, BOOK_THREE]);
   });
 
   it("excludes books without a part number conservatively", () => {
@@ -301,5 +322,17 @@ describe("sortSeriesSummaries", () => {
       "central:Zed",
       "supporting:Chani",
     ]);
+  });
+
+  it("places unspecified importance after every explicit importance", () => {
+    const result = sortSeriesSummaries({
+      sort: "importance",
+      summaries: [
+        summary({ importance: "not_specified", name: "Alia" }),
+        summary({ importance: "mentioned", name: "Zed" }),
+        summary({ importance: "central", name: "Chani" }),
+      ],
+    });
+    expect(result.map((row) => row.importance)).toEqual(["central", "mentioned", "not_specified"]);
   });
 });

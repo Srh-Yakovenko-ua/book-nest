@@ -1,10 +1,8 @@
 import type { Nullable } from "@app/shared";
 
 export type MembershipVisibilityContext = {
-  allowedBookIds: Set<string>;
-  hiddenPresenceCharacterIds: Set<string>;
-  hiddenProfileCharacterIds: Set<string>;
-  revealedCharacterIds: Set<string>;
+  allowedBookIds: ReadonlySet<string>;
+  unreachableCharacterIds: ReadonlySet<string>;
 };
 
 export type MembershipVisibilitySource = {
@@ -23,14 +21,8 @@ export function isMembershipVisibleInContext({
   if (membership.isSpoiler) {
     return false;
   }
-  if (context.hiddenProfileCharacterIds.has(membership.characterId)) {
-    return false;
-  }
   if (membership.bookId !== null && !context.allowedBookIds.has(membership.bookId)) {
     return false;
   }
-  const presenceHidden =
-    context.hiddenPresenceCharacterIds.has(membership.characterId) &&
-    !context.revealedCharacterIds.has(membership.characterId);
-  return !presenceHidden;
+  return !context.unreachableCharacterIds.has(membership.characterId);
 }

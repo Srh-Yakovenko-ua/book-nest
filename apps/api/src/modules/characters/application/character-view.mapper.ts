@@ -1,5 +1,6 @@
 import type {
   BookCharacterView,
+  CharacterAppearanceBook,
   CharacterDetailsView,
   CharacterFormView,
   CharacterGlobalSummaryView,
@@ -88,8 +89,23 @@ export class CharacterViewMapper {
   ): BookCharacterView {
     return toBookCharacterView({
       appearance,
+      book: this.mapAppearanceBook(appearance.book),
       portrait: this.mediaViewOf(appearance.portraitMedia),
     });
+  }
+
+  private mapAppearanceBook(
+    book: CharacterDetailsRow["bookAppearances"][number]["book"],
+  ): CharacterAppearanceBook {
+    return {
+      cover: this.mediaViewOf(book.coverMedia),
+      id: book.id,
+      series:
+        book.series === null
+          ? null
+          : { id: book.series.id, name: book.series.name, partNumber: book.partNumber },
+      title: book.title,
+    };
   }
 
   private mapForm(form: CharacterDetailsRow["forms"][number]): CharacterFormView {
@@ -105,6 +121,7 @@ export class CharacterViewMapper {
   }): BookCharacterView {
     return toMaskedBookCharacterView({
       appearance,
+      book: this.mapAppearanceBook(appearance.book),
       portrait: this.mediaViewOf(appearance.portraitMedia),
       revealedFields,
     });

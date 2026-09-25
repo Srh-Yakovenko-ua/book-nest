@@ -36,7 +36,11 @@ export function TagsSidebar({ query, status, summary }: TagsSidebarProps) {
 
   return (
     <aside aria-label={t("label")} className={TAGS_SIDEBAR.className}>
-      <TagsAttentionBlock onShowUnused={() => query.setFilter("unused")} summary={summary} />
+      <TagsAttentionBlock
+        isShowingUnused={query.state.filter === "unused"}
+        onShowUnused={() => query.setFilter("unused")}
+        summary={summary}
+      />
       <TagsStructureBlock
         onToggleType={query.toggleType}
         selectedTypes={query.state.type}

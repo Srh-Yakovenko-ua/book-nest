@@ -236,11 +236,35 @@ export const CharacterGroupsControllerGetByIdParams = zod.object({
   groupId: zod.string().describe("Character group id"),
 });
 
+export const characterGroupsControllerGetByIdQueryContextAudioSecondsMin = 0;
+export const characterGroupsControllerGetByIdQueryContextAudioSecondsMax = 2147483647;
+
+export const characterGroupsControllerGetByIdQueryContextChapterMin = 0;
+export const characterGroupsControllerGetByIdQueryContextChapterMax = 2147483647;
+
+export const characterGroupsControllerGetByIdQueryContextPageMin = 0;
+export const characterGroupsControllerGetByIdQueryContextPageMax = 2147483647;
+
 export const characterGroupsControllerGetByIdQueryContextBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
 
 export const CharacterGroupsControllerGetByIdQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(characterGroupsControllerGetByIdQueryContextAudioSecondsMin)
+    .max(characterGroupsControllerGetByIdQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(characterGroupsControllerGetByIdQueryContextChapterMin)
+    .max(characterGroupsControllerGetByIdQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(characterGroupsControllerGetByIdQueryContextPageMin)
+    .max(characterGroupsControllerGetByIdQueryContextPageMax)
+    .optional(),
   contextBookId: zod
     .uuid()
     .regex(characterGroupsControllerGetByIdQueryContextBookIdRegExp)

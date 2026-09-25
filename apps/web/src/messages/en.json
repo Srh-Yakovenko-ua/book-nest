@@ -1,6 +1,7 @@
 {
   "common": {
     "loading": "Loading...",
+    "loadingMore": "Loading more...",
     "retry": "Retry",
     "somethingWentWrong": "Something went wrong",
     "decrement": "Decrease",
@@ -479,6 +480,9 @@
   "localePicker": {
     "ariaLabel": "Language"
   },
+  "facetMultiselect": {
+    "remove": "Remove {label}"
+  },
   "auth": {
     "common": {
       "submit": "Continue",
@@ -654,7 +658,6 @@
       },
       "resultsTitle": "Book list",
       "addBook": "Add book",
-      "loadMore": "Load more",
       "loadMoreError": "Couldn't load more books",
       "loading": "Loading books…",
       "menu": "Actions",
@@ -2335,7 +2338,6 @@
     "title": "Dedications",
     "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
     "added": "Dedication added",
-    "loadMore": "Load more",
     "loadMoreError": "Couldn't load more dedications",
     "allShown": "All dedications shown",
     "counter": "Showing {shown} of {total, plural, one {# dedication} other {# dedications}}",
@@ -2492,7 +2494,7 @@
     "subtitle": "Track ordered books from purchase to delivery",
     "resultsTitle": "Active deliveries",
     "counter": "Showing {shown} of {total, plural, one {# book} other {# books}} across {orders, plural, one {# order} other {# orders}}",
-    "loadMore": "Show more",
+    "loadMoreError": "Couldn't load more orders",
     "actions": {
       "addOrder": "Add order",
       "select": "Select",
@@ -3091,7 +3093,7 @@
       "subtitle": "Received and cancelled orders — the finished part of your delivery history.",
       "resultsTitle": "Order list",
       "counter": "Showing {shown} of {total, plural, one {# order} other {# orders}} · {books, plural, one {# book} other {# books}}",
-      "loadMore": "Show more",
+      "loadMoreError": "Couldn't load more history orders",
       "summary": {
         "units": {
           "books": "{count, plural, one {book} other {books}}",
@@ -4513,7 +4515,7 @@
       "back": "Back to lists",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksHeading": "Books in this list",
-      "loadMore": "Show more",
+      "loadMoreError": "Couldn't load more books",
       "toolbar": {
         "searchLabel": "Search in list",
         "searchPlaceholder": "Search by title, author, or series",
@@ -4824,7 +4826,6 @@
       "create": "Create list",
       "counter": "Showing {shown} of {total, plural, one {# list} other {# lists}}",
       "allShown": "All lists shown",
-      "loadMore": "Load more",
       "loadMoreError": "Could not load more lists",
       "filters": {
         "trigger": "Filters",
@@ -5106,7 +5107,6 @@
       "metaTitle": "Contacts",
       "title": "Contacts",
       "subtitle": "The people you lend books to and borrow them from.",
-      "loadMore": "Show more",
       "loadMoreError": "Could not load the next page.",
       "create": {
         "cta": "Add contact",
@@ -5542,11 +5542,9 @@
         "inDays": "In {count, plural, one {# day} other {# days}}"
       }
     },
-    "loadMore": "Show more",
     "loadMoreError": "Couldn't load more loans",
     "history": {
       "shownCount": "Showing {shown} of {total, plural, one {# loan} other {# loans}}",
-      "loadMore": "Show more",
       "loadMoreError": "Couldn't load more history records",
       "cards": {
         "unitLoans": "{count, plural, one {loan} other {loans}}",
@@ -6488,7 +6486,6 @@
     "list": {
       "loading": "Loading genres",
       "shown": "{count, plural, one {Showing # genre} other {Showing # genres}}",
-      "loadMore": "Show more",
       "loadMoreError": "Could not load more genres.",
       "retry": "Try again"
     },
@@ -6581,11 +6578,12 @@
     },
     "sidebar": {
       "label": "Tags overview",
+      "countShare": "{count, plural, one {<strong>#</strong> tag} other {<strong>#</strong> tags}} · {share}",
       "attention": {
         "title": "Needs attention",
         "unused": "{count, plural, one {# tag isn’t used yet} other {# tags aren’t used yet}}",
-        "action": "Show unused",
-        "allUsed": "Every tag is in use, nothing needs attention."
+        "allUsed": "All tags are in use",
+        "detail": "Not linked to any book or character"
       },
       "structure": {
         "title": "Tag structure",
@@ -6600,7 +6598,9 @@
       },
       "palette": {
         "title": "Tag palette",
-        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}"
+        "swatch": "{color}: {count, plural, one {# tag} other {# tags}}",
+        "count": "{count, plural, one {# tag} other {# tags}}",
+        "tooltip": "{color} · {count, plural, one {# tag} other {# tags}}"
       }
     },
     "toolbar": {
@@ -6608,7 +6608,10 @@
       "searchTagsPlaceholder": "Search by name or description…",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
-      "quickFilterLabel": "Quick tag filters"
+      "quickFilterLabel": "Quick tag filters",
+      "viewLabel": "View",
+      "viewGrid": "Grid",
+      "viewList": "List"
     },
     "sortMobile": {
       "title": "Sorting",
@@ -6664,6 +6667,14 @@
       "format": "Format",
       "custom": "Custom tag"
     },
+    "typeBadge": {
+      "trope": "Trope",
+      "atmosphere": "Atmosphere",
+      "theme": "Theme",
+      "character": "Character",
+      "format": "Format",
+      "custom": "Custom tag"
+    },
     "colors": {
       "parchment": "Parchment",
       "terracotta": "Terracotta",
@@ -6674,21 +6685,27 @@
       "lavender": "Lavender",
       "rose": "Dusty rose"
     },
+    "colorPalette": {
+      "selected": "Selected: {colors}",
+      "none": "No colour selected",
+      "preview": "Preview",
+      "previewPlaceholder": "Tag name"
+    },
     "catalog": {
       "title": "Tag catalog",
       "loading": "Loading tags",
       "counter": "Showing {shown} of {total} tags",
-      "loadMore": "Show more",
       "loadMoreError": "Could not load more tags.",
       "retry": "Try again"
     },
-    "row": {
+    "item": {
       "books": "Books",
       "characters": "Characters",
-      "usage": "Total",
+      "unused": "Not used yet",
       "color": "Colour: {color}",
-      "edit": "Edit tag “{name}”",
-      "delete": "Delete tag “{name}”"
+      "actions": "Actions for tag “{name}”",
+      "edit": "Edit",
+      "delete": "Delete"
     },
     "tagDialog": {
       "addTitle": "Add tag",
@@ -7229,7 +7246,7 @@
       "filteredEmptyAction": "Reset filters",
       "saving": "Saving…",
       "deleting": "Deleting…",
-      "loadMore": "Load more"
+      "loadMoreError": "Couldn't load more events"
     },
     "manage": {
       "title": "Manage timelines",
@@ -7489,7 +7506,6 @@
     },
     "results": {
       "counter": "Showing {shown} of {total, plural, one {# publisher} other {# publishers}}",
-      "loadMore": "Load more",
       "loadMoreError": "Couldn't load more publishers",
       "loadMoreRetry": "Try again",
       "loading": "Loading publishers…",
@@ -7502,11 +7518,11 @@
       "books": "{count, plural, one {# book} other {# books}}",
       "booksInLibrary": "in the library",
       "read": "Read",
-      "toBuy": "On the wishlist",
+      "toBuy": "Wishlist",
       "series": "Series",
       "noRating": "No ratings",
-      "ratedCount": "· {count, plural, one {# rating} other {# ratings}}",
-      "lastAdded": "Last added {date}",
+      "ratedCount": "{count, plural, one {# rating} other {# ratings}}",
+      "lastAdded": "Added {date}",
       "lastAddedNever": "—"
     },
     "row": {
@@ -7531,11 +7547,11 @@
       },
       "unread": {
         "title": "Still unread",
-        "count": "{count, plural, one {# book left} other {# books left}}"
+        "count": "{count, plural, one {# book} other {# books}}"
       },
       "bestRated": {
         "title": "Best rated",
-        "ratedCount": "· {count, plural, one {# rating} other {# ratings}}"
+        "ratedCount": "{count, plural, one {# rating} other {# ratings}}"
       }
     },
     "states": {
@@ -7683,70 +7699,325 @@
     }
   },
   "characters": {
-    "tab": "Characters",
-    "summary": {
-      "characters": "Characters: {count}",
-      "favorites": "Favorites: {count}",
-      "hidden": "Some records are hidden",
-      "pov": "POV: {count}"
-    },
-    "toolbar": {
-      "add": "Add character",
-      "palette": "Search",
+    "add": {
+      "back": "Back",
+      "cancel": "Cancel",
+      "create": "Create",
+      "createAnyway": "Create a new one anyway",
+      "createNew": "Create new",
+      "description": "Find an existing character or create a new one.",
+      "descriptionLabel": "A short note about this character in this book",
+      "descriptionPlaceholder": "Who is this? (optional)",
+      "inBookTitle": "Already in this book",
+      "link": "Add",
+      "linkError": "Could not link the character",
+      "linked": "Character linked",
+      "nameLabel": "Name",
+      "noMatch": "Nothing found",
+      "open": "Open",
+      "reusableTitle": "From other books",
       "searchClear": "Clear search",
+      "searchHint": "Type at least two letters to start searching.",
       "searchLabel": "Search characters",
-      "searchPlaceholder": "Search by name…",
-      "sortLabel": "Sort"
+      "searchPlaceholder": "Character name",
+      "title": "Add character"
     },
-    "sort": {
-      "name": "By name",
-      "recommended": "Recommended"
+    "aliases": {
+      "add": "Add a name",
+      "advanced": "More options",
+      "bookHint": "These names apply to this book only.",
+      "bookTitle": "Other names in this book",
+      "errorDuplicate": "That name is already in the list",
+      "errorSameAsDisplayName": "That is the character name in this book",
+      "errorSameAsName": "That is the main character name",
+      "globalHint": "These names apply in every book.",
+      "globalTitle": "Alternative names",
+      "name": "Alternative name",
+      "namePlaceholder": "For example, the White Wolf",
+      "remove": "Remove the name",
+      "sectionHint": "Empty rows are not saved.",
+      "sectionTitle": "Other names",
+      "spoiler": "Contains a spoiler",
+      "type": "Name type"
+    },
+    "aliasType": {
+      "former_name": "Former name",
+      "nickname": "Nickname",
+      "other": "Other",
+      "pseudonym": "Pseudonym",
+      "title": "Title",
+      "translation": "Translation",
+      "true_name": "True name"
+    },
+    "attitude": {
+      "dislike": "Dislike",
+      "distrust": "Distrust",
+      "favorite": "Favorite",
+      "hate": "Hate",
+      "like": "Like",
+      "neutral": "Neutral",
+      "unsure": "Unsure"
     },
     "card": {
-      "delete": "Delete character entirely",
-      "details": "Details",
       "edit": "Edit",
       "favorite": "Add to favorites",
       "hiddenFields": "Hidden fields: {count}",
       "menu": "Character actions",
+      "openDetails": "Open character {name}",
+      "pov": "POV",
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
     },
-    "states": {
-      "errorDescription": "Couldn't load characters. Please try again.",
-      "errorTitle": "Failed to load",
-      "loading": "Loading characters",
-      "retry": "Try again"
+    "catalog": {
+      "appearanceCount": "Books: {count}",
+      "empty": {
+        "description": "Characters appear here once you add them to your books.",
+        "title": "No characters yet"
+      },
+      "filters": {
+        "anySeries": "Any series",
+        "apply": "Apply",
+        "attitude": "My attitude",
+        "clear": "Clear",
+        "description": "Narrow the catalog down to what you are looking for.",
+        "gender": "Gender",
+        "groups": {
+          "about": "About the character",
+          "appearsIn": "Where they appear",
+          "bookRole": "Role in the book",
+          "organisation": "Organisation"
+        },
+        "importance": "Importance",
+        "noGroups": "You have no character groups yet.",
+        "role": "Role",
+        "title": "Filters",
+        "trigger": "Filters"
+      },
+      "loadMoreError": "Couldn't load more characters",
+      "metaTitle": "Characters",
+      "noResults": {
+        "clear": "Clear filters",
+        "description": "Nothing matches the current search and filters.",
+        "title": "Nothing found"
+      },
+      "quick": {
+        "all": "All",
+        "favorites": "Favorites",
+        "multipleBooks": "In several books",
+        "withImpression": "With my impressions"
+      },
+      "quickLabel": "Quick filters",
+      "searchClear": "Clear search",
+      "searchLabel": "Search characters",
+      "searchPlaceholder": "Search by name...",
+      "sidebar": {
+        "description": "More tools for working with characters are coming here soon.",
+        "title": "New features are on the way"
+      },
+      "sort": {
+        "name": "By name",
+        "recently_added": "Recently added",
+        "recently_updated": "Recently updated"
+      },
+      "sortLabel": "Sort",
+      "states": {
+        "loading": "Loading characters"
+      },
+      "subtitle": "Every character from your books",
+      "summary": {
+        "appearances": "Books: {count}",
+        "mostFrequent": "Appears most often",
+        "multipleBooks": "In several books",
+        "noLeader": "Not yet",
+        "sharedLeaders": "{count} share the lead",
+        "total": "Characters in total",
+        "withImpression": "With my impressions"
+      },
+      "title": "Characters",
+      "view": {
+        "grid": "Grid",
+        "list": "List"
+      },
+      "viewLabel": "View"
+    },
+    "delete": {
+      "aliases": "Names: {count}",
+      "appearances": "Book appearances: {count}",
+      "cancel": "Cancel",
+      "confirm": "Delete entirely",
+      "deleting": "Deleting…",
+      "description": "The character and all its data will be deleted. You can undo this action for a short time.",
+      "forms": "Forms and incarnations: {count}",
+      "groups": "Group memberships: {count}",
+      "noRelatedData": "There is no related data.",
+      "previewIntro": "Will be deleted:",
+      "previewUnavailable": "Could not work out what exactly will be deleted.",
+      "relationships": "Links to other characters: {count}",
+      "roles": "Roles: {count}",
+      "tags": "Tags: {count}",
+      "theories": "Theories: {count}",
+      "title": "Delete character entirely"
+    },
+    "duplicate": {
+      "createAnyway": "Create anyway",
+      "question": "This character may already exist.",
+      "title": "Possible duplicates",
+      "use": "Use this one"
+    },
+    "edit": {
+      "appearanceNotes": "Appearance in this book",
+      "attitude": "My attitude",
+      "attitudePlaceholder": "Not specified",
+      "bookDescription": "Details in this book",
+      "bookSection": "In this book",
+      "bookSectionHint": "These values apply to this book only.",
+      "cancel": "Cancel",
+      "clearNarratorType": "Clear",
+      "customGender": "Custom value",
+      "discardDescription": "Unsaved changes will be lost.",
+      "discardTitle": "Discard changes?",
+      "displayName": "Name in this book",
+      "entityKind": "Kind",
+      "firstAppearanceChapter": "Chapter",
+      "firstAppearanceChapterPlaceholder": "For example, 3 or Prologue",
+      "firstAppearanceNote": "Note about the first appearance",
+      "firstAppearancePage": "Page",
+      "firstAppearancePageInvalid": "Enter the page as a number",
+      "gender": "Gender",
+      "globalDescription": "About the character",
+      "globalSection": "About the character",
+      "globalSectionHint": "These values are the same in every book.",
+      "importance": "Importance",
+      "inheritanceSection": "This book only",
+      "inheritanceSectionHint": "The main value is used by default. Change it when the character differs in this book.",
+      "metaTitle": "Edit character",
+      "name": "Name",
+      "narrativeSection": "Role in the story",
+      "narrativeSectionHint": "These details apply to this book only.",
+      "narratorType": "Narrator type",
+      "narratorTypePlaceholder": "Not specified",
+      "partialSuccess": "The shared details were saved, the book details were not. Try again.",
+      "personalImpression": "My impression",
+      "portrait": "Image in this book",
+      "pov": "Point-of-view character",
+      "pronouns": "Pronouns",
+      "save": "Save",
+      "species": "Species",
+      "speciesInBook": "Species in this book",
+      "status": "Status",
+      "statusCustom": "Custom status",
+      "subtitle": "Book details and shared details are saved separately.",
+      "title": "Edit character"
     },
     "empty": {
       "add": "Add character",
       "description": "Add a character manually or link an existing one from your library.",
-      "title": "No characters yet"
+      "title": "No characters here yet"
     },
-    "noResults": {
-      "clear": "Clear search",
-      "description": "Try adjusting your query.",
-      "title": "Nothing found"
+    "entityKind": {
+      "collective": "Collective",
+      "individual": "Individual",
+      "unknown": "Unknown"
     },
-    "spoiler": {
-      "hidden": "Hidden (spoiler)",
-      "reveal": "Show",
-      "revealAria": "Show field: {field}"
+    "form": {
+      "errors": {
+        "customGenderRequired": "Specify your custom gender",
+        "generic": "Couldn't save. Please try again.",
+        "nameRequired": "Enter a name",
+        "nameTooLong": "Name is too long (max {max})"
+      },
+      "roles": "Roles"
+    },
+    "gender": {
+      "agender_or_na": "Agender / N/A",
+      "custom": "Custom",
+      "female": "Female",
+      "male": "Male",
+      "non_binary": "Non-binary",
+      "unknown": "Unknown"
     },
     "importance": {
       "central": "Central",
       "episodic": "Episodic",
       "major": "Major",
       "mentioned": "Mentioned",
+      "not_specified": "Not specified",
       "supporting": "Supporting"
     },
-    "status": {
-      "active": "Alive",
-      "dead": "Dead",
-      "missing": "Missing",
+    "inheritance": {
+      "attitude": "My attitude in this book",
+      "bookOnly": "This book only",
+      "notSpecified": "Not specified",
+      "overrideForBook": "Change for this book only",
+      "replaceImage": "Replace the image",
+      "resetImage": "Use the main image",
+      "resetToGlobal": "Use the main value",
+      "specifyForBook": "Set for this book only",
+      "specifyImageForBook": "Pick an image for this book",
+      "usingGlobal": "Using the main value"
+    },
+    "narratorType": {
+      "first_person": "First person",
       "other": "Other",
-      "transformed": "Transformed",
-      "unknown": "Unknown"
+      "third_person_limited": "Third person (limited)",
+      "third_person_omniscient": "Third person (omniscient)",
+      "unreliable": "Unreliable"
+    },
+    "noResults": {
+      "clear": "Clear search",
+      "description": "Try adjusting your query.",
+      "title": "Nothing found"
+    },
+    "page": {
+      "appearanceNotes": "Appearance in this book",
+      "appearancesSection": "Appearances",
+      "attitude": "My attitude",
+      "backToBook": "Characters",
+      "backToLibrary": "My library",
+      "bookAliases": "Other names in this book",
+      "bookDescription": "Details in this book",
+      "bookSection": "In this book",
+      "currentBook": "Current book",
+      "deleteAction": "Delete the character entirely",
+      "deleteDescription": "The character disappears from every book. You can restore it for seven days.",
+      "edit": "Edit",
+      "entityKind": "Kind",
+      "favorite": "Favorite",
+      "firstAppearance": "First appearance",
+      "firstAppearanceChapter": "Chapter {chapter}",
+      "firstAppearancePage": "p. {page}",
+      "gender": "Gender",
+      "globalAliases": "Other names",
+      "hiddenRoles": "Hidden roles: {count}",
+      "managementSection": "Manage character",
+      "metaTitle": "Character",
+      "narratorType": "Narrator type",
+      "openGlobalProfile": "Open the global profile",
+      "personalImpression": "My impression",
+      "pov": "POV",
+      "profileSection": "About the character",
+      "pronouns": "Pronouns",
+      "seriesPart": "{name}, part {part}",
+      "species": "Species",
+      "speciesOverride": "Species in this book",
+      "status": "Status",
+      "unavailableDescription": "It is either not in this book, or you have not read far enough yet.",
+      "unavailableTitle": "This character is unavailable in this book",
+      "unlinkDescription": "The character stays in your library and in other books."
+    },
+    "palette": {
+      "empty": "Start typing a character name",
+      "loading": "Searching…",
+      "noResults": "Nothing found",
+      "placeholder": "Search characters…",
+      "title": "Search characters"
+    },
+    "rolePicker": {
+      "add": "Add role",
+      "customPlaceholder": "Role name",
+      "remove": "Remove role",
+      "roleType": "Role",
+      "spoiler": "Spoiler"
     },
     "roleType": {
       "antagonist": "Antagonist",
@@ -7758,202 +8029,52 @@
       "protagonist": "Protagonist",
       "supporting": "Supporting"
     },
-    "gender": {
-      "agender_or_na": "Agender / N/A",
-      "custom": "Custom",
-      "female": "Female",
-      "male": "Male",
-      "non_binary": "Non-binary",
+    "sort": {
+      "importance": "Important first",
+      "name": "By name"
+    },
+    "spoiler": {
+      "hidden": "Hidden (spoiler)",
+      "reveal": "Show",
+      "revealAria": "Show field: {field}"
+    },
+    "spoilers": {
+      "appearanceNotes": "Appearance in this book",
+      "description": "Details in this book",
+      "displayName": "Name in this book",
+      "expand": "Choose what to hide",
+      "granularHint": "These fields stay hidden until the reader reveals them.",
+      "hidePresence": "Hide that the character appears at all",
+      "hidePresenceHint": "The character stays out of this book's lists until the reader reaches its first appearance. The settings below are kept either way.",
+      "personalImpression": "My impression",
+      "portrait": "Image in this book",
+      "sectionHint": "Applies to this book only.",
+      "sectionTitle": "Spoilers",
+      "speciesOverride": "Species in this book",
+      "status": "Status"
+    },
+    "states": {
+      "errorDescription": "Couldn't load characters. Please try again.",
+      "errorTitle": "Failed to load",
+      "loading": "Loading characters",
+      "retry": "Try again"
+    },
+    "status": {
+      "active": "Alive",
+      "dead": "Dead",
+      "missing": "Missing",
+      "not_specified": "Not specified",
+      "other": "Other",
+      "transformed": "Transformed",
       "unknown": "Unknown"
     },
-    "attitude": {
-      "dislike": "Dislike",
-      "distrust": "Distrust",
-      "favorite": "Favorite",
-      "hate": "Hate",
-      "like": "Like",
-      "neutral": "Neutral",
-      "unsure": "Unsure"
+    "summary": {
+      "characters": "Characters: {count}",
+      "favorites": "Favorites: {count}",
+      "hidden": "Some records are hidden",
+      "pov": "POV: {count}"
     },
-    "entityKind": {
-      "collective": "Collective",
-      "individual": "Individual",
-      "unknown": "Unknown"
-    },
-    "aliasType": {
-      "former_name": "Former name",
-      "nickname": "Nickname",
-      "other": "Other",
-      "pseudonym": "Pseudonym",
-      "title": "Title",
-      "translation": "Translation",
-      "true_name": "True name"
-    },
-    "narratorType": {
-      "first_person": "First person",
-      "other": "Other",
-      "third_person_limited": "Third person (limited)",
-      "third_person_omniscient": "Third person (omniscient)",
-      "unreliable": "Unreliable"
-    },
-    "details": {
-      "appearanceNotes": "Appearance notes",
-      "attitude": "Attitude",
-      "bookDescription": "Description in this book",
-      "bookSection": "In this book",
-      "description": "Description",
-      "displayName": "Display name",
-      "edit": "Edit",
-      "entityKind": "Type",
-      "favorite": "Favorite",
-      "gender": "Gender",
-      "generalSection": "General",
-      "hiddenRoles": "Hidden roles: {count}",
-      "otherAppearances": "Also in other books: {count}",
-      "personalImpression": "Personal impression",
-      "pov": "POV",
-      "povWithType": "POV · {type}",
-      "pronouns": "Pronouns",
-      "roles": "Roles",
-      "sheetDescription": "Character details",
-      "species": "Species",
-      "speciesOverride": "Species in this book",
-      "status": "Status",
-      "title": "Character"
-    },
-    "quickAdd": {
-      "add": "Add",
-      "createError": "Couldn't create the character",
-      "created": "Character added",
-      "duplicateQuestion": "Is this {name}?",
-      "linkExisting": "Link existing",
-      "moreFields": "More fields",
-      "nameLabel": "Character name",
-      "namePlaceholder": "New character name",
-      "noteLabel": "Short note",
-      "notePlaceholder": "Who is this? (optional)",
-      "title": "Quick add"
-    },
-    "form": {
-      "appearanceNotes": "Appearance notes",
-      "attitude": "Attitude in this book",
-      "avatar": "Avatar",
-      "bookDescription": "Description in this book",
-      "bookSection": "In this book",
-      "cancel": "Cancel",
-      "createDescription": "Create a new character for this book.",
-      "createTitle": "Add character",
-      "customGender": "Custom gender",
-      "discardCancel": "Keep editing",
-      "discardConfirm": "Discard",
-      "discardDescription": "Your changes will be lost.",
-      "discardTitle": "Discard changes?",
-      "displayName": "Display name",
-      "editDescription": "Update the character's data.",
-      "editTitle": "Edit character",
-      "entityKind": "Type",
-      "favorite": "Favorite character",
-      "firstAppearanceChapter": "First appearance chapter",
-      "firstAppearanceNote": "First appearance note",
-      "firstAppearancePage": "First appearance page",
-      "gender": "Gender",
-      "generalHint": "This data is used across all books where the character appears.",
-      "generalSection": "General",
-      "globalAttitude": "Attitude",
-      "hidePresence": "Hide presence",
-      "hidePresenceHelp": "The character won't appear in lists within this book's context.",
-      "importance": "Importance",
-      "name": "Name",
-      "namePlaceholder": "Character name",
-      "narratorType": "Narrator type",
-      "neutralDescription": "Description",
-      "optional": "optional",
-      "personalImpression": "Personal impression",
-      "portrait": "Portrait in this book",
-      "pov": "POV character",
-      "povHelp": "The story is narrated from this character's perspective.",
-      "pronouns": "Pronouns",
-      "removeAvatar": "Remove avatar",
-      "removePortrait": "Remove portrait",
-      "roles": "Roles",
-      "species": "Species",
-      "speciesOverride": "Species in this book",
-      "spoilerSection": "Spoilers",
-      "spoilerToggle": "Mark as spoiler",
-      "status": "Status",
-      "statusCustom": "Custom status",
-      "submitCreate": "Add",
-      "submitEdit": "Save",
-      "uploadAvatar": "Upload image",
-      "errors": {
-        "customGenderRequired": "Specify your custom gender",
-        "generic": "Couldn't save. Please try again.",
-        "nameRequired": "Enter a name",
-        "nameTooLong": "Name is too long (max {max})"
-      },
-      "aliases": "Alternative names"
-    },
-    "rolePicker": {
-      "add": "Add role",
-      "customPlaceholder": "Role name",
-      "remove": "Remove role",
-      "roleType": "Role",
-      "spoiler": "Spoiler"
-    },
-    "aliasEditor": {
-      "add": "Add name",
-      "name": "Name",
-      "namePlaceholder": "Alternative name",
-      "remove": "Remove name",
-      "scope": "Scope",
-      "scopeBook": "This book",
-      "scopeGlobal": "Global",
-      "spoiler": "Spoiler",
-      "type": "Type"
-    },
-    "existing": {
-      "createNew": "Create new",
-      "empty": "No matches",
-      "link": "Link",
-      "linkError": "Couldn't link the character",
-      "linked": "Character linked",
-      "sameSeries": "From this series",
-      "searchLabel": "Search existing characters",
-      "searchPlaceholder": "Type a name…",
-      "title": "Link existing"
-    },
-    "duplicate": {
-      "createAnyway": "Create anyway",
-      "question": "This character may already exist.",
-      "title": "Possible duplicates",
-      "use": "Use this one"
-    },
-    "delete": {
-      "aliases": "Names: {count}",
-      "appearances": "Book appearances: {count}",
-      "cancel": "Cancel",
-      "confirm": "Delete entirely",
-      "deleting": "Deleting…",
-      "description": "The character and all its data will be deleted. You can undo this action for a short time.",
-      "previewIntro": "Will be deleted:",
-      "roles": "Roles: {count}",
-      "tags": "Tags: {count}",
-      "title": "Delete character entirely"
-    },
-    "unlink": {
-      "cancel": "Cancel",
-      "confirm": "Remove",
-      "description": "The character will be removed from this book. The global profile and data in other books remain.",
-      "title": "Remove from this book",
-      "unlinking": "Removing…"
-    },
-    "palette": {
-      "empty": "Start typing a character name",
-      "loading": "Searching…",
-      "noResults": "Nothing found",
-      "placeholder": "Search characters…",
-      "title": "Search characters"
-    },
+    "tab": "Characters",
     "toast": {
       "createError": "Couldn't create the character",
       "created": "Character added",
@@ -7966,6 +8087,20 @@
       "unlinked": "Character removed from the book",
       "updateError": "Couldn't save changes",
       "updated": "Changes saved"
+    },
+    "toolbar": {
+      "add": "Add character",
+      "searchClear": "Clear search",
+      "searchLabel": "Search characters",
+      "searchPlaceholder": "Search in this book...",
+      "sortLabel": "Sort"
+    },
+    "unlink": {
+      "cancel": "Cancel",
+      "confirm": "Remove",
+      "description": "The character will be removed from this book. The global profile and data in other books remain.",
+      "title": "Remove from this book",
+      "unlinking": "Removing…"
     }
   },
   "notifications": {

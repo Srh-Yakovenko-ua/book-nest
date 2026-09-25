@@ -1,5 +1,6 @@
 "use client";
 
+import { TAG_COLOR_DEFAULT, type TagView } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "../components/library-active-filters";
@@ -14,6 +15,7 @@ const ADVANCED_BADGE_EXCLUDED_CHIP_KEYS: ReadonlySet<string> = new Set(["publish
 type UseLibraryFilterChipsOptions = {
   genreName: (key: string) => string;
   resolveEntityName: (id: string) => string | undefined;
+  resolveTag: (id: string) => TagView | undefined;
   setState: UseLibraryQueryResult["setState"];
   state: LibraryQueryState;
 };
@@ -25,6 +27,7 @@ export function countAdvancedFilterChips(chips: ActiveFilterChip[]): number {
 export function useLibraryFilterChips({
   genreName,
   resolveEntityName,
+  resolveTag,
   setState,
   state,
 }: UseLibraryFilterChipsOptions): ActiveFilterChip[] {
@@ -82,8 +85,9 @@ export function useLibraryFilterChips({
   for (const value of state.tag) {
     chips.push({
       key: `tag:${value}`,
-      label: resolveEntityName(value) ?? t("unknown"),
+      label: resolveTag(value)?.name ?? resolveEntityName(value) ?? t("unknown"),
       onRemove: () => void setState({ tag: state.tag.filter((item) => item !== value) }),
+      tagColor: resolveTag(value)?.color ?? TAG_COLOR_DEFAULT,
     });
   }
 

@@ -5,8 +5,10 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
 import type { LoanHistoryCorrectionMode } from "./loan-history-correction-dialog";
@@ -74,8 +76,9 @@ export function LoanHistoryView() {
 
   const summaryCards = useLoanHistorySummaryCards(overview.data);
   const hasQuery = query.hasActiveFilters || query.hasActiveSearch;
-  const isHistoryEmpty = !list.isPending && !list.isError && items.length === 0 && !hasQuery;
-  const showChrome = !list.isError && !isHistoryEmpty;
+  const hasListError = list.isError && !list.isFetchNextPageError;
+  const isHistoryEmpty = !list.isPending && !hasListError && items.length === 0 && !hasQuery;
+  const showChrome = !hasListError && !isHistoryEmpty;
 
   const analytics = {
     isLoading: overview.isPending,
@@ -86,7 +89,7 @@ export function LoanHistoryView() {
   const content = (
     <LoanHistoryList
       hasQuery={hasQuery}
-      isError={list.isError}
+      isError={hasListError}
       isPending={list.isPending}
       items={items}
       onClearFilters={query.clearFilters}
@@ -155,11 +158,11 @@ export function LoanHistoryView() {
             <div className="flex min-w-0 flex-1 flex-col gap-6">
               {content}
 
-              {items.length > 0 && list.hasNextPage ? (
-                <LoanHistoryLoadMore
-                  isFetchingNextPage={list.isFetchingNextPage}
-                  isLoadMoreError={list.isFetchNextPageError}
+              {items.length > 0 ? (
+                <InfiniteScrollFooter
+                  errorLabel={t("loadMoreError")}
                   onLoadMore={() => void list.fetchNextPage()}
+                  state={nextPageState(list)}
                 />
               ) : null}
             </div>
@@ -209,32 +212,17 @@ export function LoanHistoryView() {
   );
 }
 
-function LoanHistoryLoadMore({
+function nextPageState({
+  hasNextPage,
   isFetchingNextPage,
-  isLoadMoreError,
-  onLoadMore,
+  isFetchNextPageError,
 }: {
+  hasNextPage: boolean;
   isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-  onLoadMore: () => void;
-}) {
-  const t = useTranslations("loans.history");
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {isLoadMoreError ? (
-        <p className="text-sm text-error" role="alert">
-          {t("loadMoreError")}
-        </p>
-      ) : null}
-      <Button
-        disabled={isFetchingNextPage}
-        loading={isFetchingNextPage}
-        onClick={onLoadMore}
-        variant="secondary"
-      >
-        {t("loadMore")}
-      </Button>
-    </div>
-  );
+  isFetchNextPageError: boolean;
+}): InfiniteScrollState {
+  if (isFetchNextPageError) return "error";
+  if (isFetchingNextPage) return "loading";
+  if (hasNextPage) return "idle";
+  return "none";
 }

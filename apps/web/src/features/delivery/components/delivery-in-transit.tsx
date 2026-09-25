@@ -159,7 +159,9 @@ export function DeliveryInTransit() {
     else selectAllShipments(selectableShipments.map((shipment) => shipment.id));
   }
 
-  const content: DeliveryContent = listQuery.isError
+  const hasListError = listQuery.isError && !listQuery.isFetchNextPageError;
+
+  const content: DeliveryContent = hasListError
     ? { kind: "error" }
     : listQuery.isPending
       ? { kind: "loading" }
@@ -170,7 +172,7 @@ export function DeliveryInTransit() {
         : { items: orders, kind: "ready" };
 
   const showToolbar =
-    !listQuery.isError &&
+    !hasListError &&
     (listQuery.isPending || orders.length > 0 || params.hasActiveSearch || params.hasActiveFilters);
 
   const summaryData = summaryQuery.data;
@@ -306,6 +308,7 @@ export function DeliveryInTransit() {
         pagination={{
           hasNextPage: listQuery.hasNextPage,
           isFetchingNextPage: listQuery.isFetchingNextPage,
+          isFetchNextPageError: listQuery.isFetchNextPageError,
         }}
         renderCard={renderCard}
         selectAll={

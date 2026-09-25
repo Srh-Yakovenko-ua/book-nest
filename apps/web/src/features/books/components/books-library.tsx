@@ -169,7 +169,11 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     name: genreNameByKey.get(genre.key) ?? genre.name,
   }));
 
-  const topTags = (overview.data?.topTags ?? []).map((tag) => ({ id: tag.id, name: tag.name }));
+  const topTags = (overview.data?.topTags ?? []).map(({ color, id, name }) => ({
+    color,
+    id,
+    name,
+  }));
 
   const sidebar = (
     <LibrarySummarySidebar

@@ -20,4 +20,5 @@ export const BookCharacterSummaryViewDtoTopItemStatus = {
   unknown: "unknown",
   transformed: "transformed",
   other: "other",
+  not_specified: "not_specified",
 } as const;

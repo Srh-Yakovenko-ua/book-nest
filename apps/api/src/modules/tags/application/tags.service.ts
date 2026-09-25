@@ -4,13 +4,13 @@ import type {
   Paginator,
   TagCatalogView,
   TagDeletionPreviewView,
+  TagsSearchQuery,
   TagType,
   TagView,
-  TaxonomySearchPaginationQuery,
   UpdateTagInput,
 } from "@app/shared";
 
-import { normalizeName } from "@app/shared";
+import { normalizeName, toTagView } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -20,7 +20,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
-import { toTagCatalogView, toTagView } from "../domain/tag.mapper.js";
+import { toTagCatalogView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
 type TagUpdateData = {
@@ -131,16 +131,17 @@ export class TagsService {
     return tagIds;
   }
 
-  async search(userId: string, query: TaxonomySearchPaginationQuery): Promise<Paginator<TagView>> {
-    const { pageNumber, pageSize, search } = query;
+  async search(userId: string, query: TagsSearchQuery): Promise<Paginator<TagView>> {
+    const { ids, pageNumber, pageSize, search } = query;
 
     const [tags, totalCount] = await Promise.all([
       this.tagsRepository.searchOwned({
+        ids,
         query: search,
         userId,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.tagsRepository.countOwned({ query: search, userId }),
+      this.tagsRepository.countOwned({ ids, query: search, userId }),
     ]);
 
     return buildPaginator({

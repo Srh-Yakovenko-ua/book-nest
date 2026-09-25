@@ -3,10 +3,15 @@ import type {
   CharacterTheoryView,
   CreateCharacterTheoryInput,
   Paginator,
+  ReadingPosition,
   UpdateCharacterTheoryInput,
 } from "@app/shared";
 
-import { CHARACTER_THEORY_ERROR_CODES, normalizeSearch } from "@app/shared";
+import {
+  CHARACTER_THEORY_ERROR_CODES,
+  normalizeSearch,
+  readingPositionFromQuery,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type {
@@ -18,10 +23,18 @@ import type {
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { toCharacterTheoryView } from "../domain/character-theory.mapper.js";
-import { resolveContextAllowedBookIds } from "../domain/context-books.js";
+import {
+  collectUnreachableCharacterIds,
+  resolveReadingContextWindow,
+} from "../domain/reading-context-window.js";
 import { CharacterTheoriesRepository } from "../infrastructure/character-theories.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
+
+type TheoryContextVisibility = {
+  contextAllowedBookIds: string[] | undefined;
+  unreachableCharacterIds: string[] | undefined;
+};
 
 @Injectable()
 export class CharacterTheoriesService {
@@ -52,23 +65,20 @@ export class CharacterTheoriesService {
     query: CharacterTheoriesQuery;
     userId: string;
   }): Promise<Paginator<CharacterTheoryView>> {
-    const contextAllowedBookIds =
-      query.contextBookId === undefined
-        ? undefined
-        : await resolveContextAllowedBookIds({
-            contextBookId: query.contextBookId,
-            notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
-            reader: this.charactersRepository,
-            userId,
-          });
+    const visibility = await this.resolveContextVisibility({
+      contextBookId: query.contextBookId,
+      readingPosition: readingPositionFromQuery(query),
+      userId,
+    });
 
     const filter: TheoryListFilter = {
       bookId: query.bookId,
       characterId: query.characterId,
-      contextAllowedBookIds,
+      contextAllowedBookIds: visibility.contextAllowedBookIds,
       search: normalizeSearch(query.search),
       seriesId: query.seriesId,
       status: query.status,
+      unreachableCharacterIds: visibility.unreachableCharacterIds,
       userId,
     };
 
@@ -197,5 +207,39 @@ export class CharacterTheoriesService {
       data.isSpoiler = input.isSpoiler;
     }
     return data;
+  }
+
+  private async resolveContextVisibility({
+    contextBookId,
+    readingPosition,
+    userId,
+  }: {
+    contextBookId: string | undefined;
+    readingPosition: ReadingPosition | undefined;
+    userId: string;
+  }): Promise<TheoryContextVisibility> {
+    if (contextBookId === undefined) {
+      return { contextAllowedBookIds: undefined, unreachableCharacterIds: undefined };
+    }
+    const [window, characterIds] = await Promise.all([
+      resolveReadingContextWindow({
+        bookReader: this.charactersRepository,
+        contextBookId,
+        notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
+        readingPosition,
+        userId,
+      }),
+      this.characterTheoriesRepository.listTargetCharacterIds(userId),
+    ]);
+    const appearances = await this.charactersRepository.listAppearancesForCharacters({
+      characterIds,
+      userId,
+    });
+    return {
+      contextAllowedBookIds: [...window.allowedBookIds],
+      unreachableCharacterIds: [
+        ...collectUnreachableCharacterIds({ appearances, characterIds, window }),
+      ],
+    };
   }
 }

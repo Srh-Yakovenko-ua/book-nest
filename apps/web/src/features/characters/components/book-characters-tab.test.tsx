@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom/vitest";
+import type { ReactNode } from "react";
+
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +13,15 @@ import {
   makeCharacterSummaryPage,
 } from "../model/characters.fixtures";
 import { BookCharactersTab } from "./book-characters-tab";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
@@ -29,12 +40,19 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderTab(search = "") {
+function renderTab(search = "", tabBook = book) {
   return renderWithProviders(
     <NuqsTestingAdapter searchParams={search}>
-      <BookCharactersTab book={book} />
+      <BookCharactersTab book={tabBook} />
     </NuqsTestingAdapter>,
   );
+}
+
+function rosterRequestUrl(): string {
+  const call = fetchMock.mock.calls.find(
+    ([input]) => String(input).includes("/characters?") && !String(input).includes("summary"),
+  );
+  return String(call?.[0]);
 }
 
 beforeEach(() => {
@@ -70,7 +88,7 @@ describe("BookCharactersTab roster", () => {
 
     renderTab();
 
-    expect(await screen.findByText("Персонажі ще не додані")).toBeInTheDocument();
+    expect(await screen.findByText("Тут поки немає персонажів")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Додати персонажа" }).length).toBeGreaterThan(0);
   });
 
@@ -94,5 +112,65 @@ describe("BookCharactersTab roster", () => {
     await userEvent.click(retry);
 
     expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+});
+
+describe("BookCharactersTab contextual roster", () => {
+  it("asks the backend to sort and forwards the reading position of a book in progress", async () => {
+    renderTab(
+      "",
+      makeBookView({
+        id: "book-1",
+        readingProgress: {
+          abandonedAt: null,
+          currentPage: 42,
+          finishedAt: null,
+          impression: null,
+          lastProgressUpdateAt: null,
+          note: null,
+          pausedAt: null,
+          rating: null,
+          startedAt: null,
+        },
+        readingStatus: "reading",
+      }),
+    );
+
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const url = rosterRequestUrl();
+    expect(url).toContain("sort=importance");
+    expect(url).toContain("contextBookId=book-1");
+    expect(url).toContain("contextPage=42");
+  });
+
+  it("sends no reading position for a finished book", async () => {
+    renderTab();
+
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    expect(rosterRequestUrl()).not.toContain("contextPage");
+  });
+
+  it("hides the summary and the toolbar for an empty book", async () => {
+    respondToRoster = () => jsonResponse(makeCharacterSummaryPage([]));
+
+    renderTab();
+
+    await screen.findByText("Тут поки немає персонажів");
+
+    expect(screen.queryByPlaceholderText("Пошук у цій книзі...")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Персонажів:/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the toolbar and offers a search reset when a search finds nothing", async () => {
+    respondToRoster = () => jsonResponse(makeCharacterSummaryPage([]));
+
+    renderTab("characterSearch=zzz");
+
+    expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Пошук у цій книзі...")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Очистити пошук/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Додати персонажа" })).toHaveLength(1);
   });
 });

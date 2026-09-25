@@ -104,6 +104,8 @@ export function TagsView() {
         summary={summary.data}
       />
 
+      {toolbarSlot(listState)}
+
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <section
           aria-labelledby="tags-catalog-title"
@@ -112,7 +114,6 @@ export function TagsView() {
           <h2 className="sr-only" id="tags-catalog-title">
             {t("catalog.title")}
           </h2>
-          {toolbarSlot(listState)}
           <TagsCatalog
             onAddTag={() => setDialog({ kind: "add" })}
             onClearAll={query.clearAll}
@@ -123,6 +124,7 @@ export function TagsView() {
             onRetry={() => void catalog.refetch()}
             onShowAll={() => query.setFilter("all")}
             state={listState}
+            view={query.state.view}
           />
         </section>
         <TagsSidebar query={query} status={summaryStatus} summary={summary.data} />

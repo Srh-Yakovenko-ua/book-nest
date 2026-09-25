@@ -2,12 +2,14 @@
 
 import type { TagQuickCounts } from "@app/shared";
 
-import { TAG_SORT_DEFAULT, TagQuickFilterSchema, TagSortSchema } from "@app/shared";
+import { TagQuickFilterSchema, TagSortSchema } from "@app/shared";
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import type { UseTagQueryResult } from "../model/use-tag-query";
 
+import { TAGS_QUERY } from "../model/tags-query";
 import { TagsActiveChips } from "./tags-active-chips";
 import { TagsAdvancedFilters } from "./tags-advanced-filters";
 
@@ -84,8 +87,8 @@ export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
                 aria-label={t("toolbar.sortLabel")}
                 className="w-full data-[size=default]:h-10"
                 clearLabel={tCommon("clear")}
-                isClearable={state.sort !== TAG_SORT_DEFAULT}
-                onClear={() => query.setSort(TAG_SORT_DEFAULT)}
+                isClearable={state.sort !== TAGS_QUERY.sort.default}
+                onClear={() => query.setSort(TAGS_QUERY.sort.default)}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -102,6 +105,25 @@ export function TagsToolbar({ query, quickCounts }: TagsToolbarProps) {
           <TagsAdvancedFilters
             onApply={query.setAdvancedFilters}
             value={{ color: state.color, type: state.type }}
+          />
+
+          <Segmented
+            className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+            label={t("toolbar.viewLabel")}
+            onValueChange={(next) => query.setView(next === "list" ? "list" : "grid")}
+            options={[
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{t("toolbar.viewGrid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{t("toolbar.viewList")}</span>,
+                value: "list",
+              },
+            ]}
+            value={state.view}
           />
         </div>
       </div>
@@ -136,6 +158,7 @@ export function TagsToolbarSkeleton() {
           <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
           <Skeleton className="hidden h-10 rounded-md sm:block sm:w-64" />
           <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-28" />
+          <Skeleton className="ml-auto h-10 w-20 shrink-0 rounded-full sm:ml-0 sm:w-44" />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

@@ -1,5 +1,7 @@
 "use client";
 
+import type { BookCharacterSummaryQuery } from "@app/shared";
+
 import { useQueryStates } from "nuqs";
 
 import type { BookCharactersControllerListParams } from "@/shared/api/generated/model";
@@ -23,16 +25,18 @@ export type UseCharactersRosterQueryResult = {
   state: CharactersRosterState;
 };
 
-export function useCharactersRosterQuery(): UseCharactersRosterQueryResult {
+export function useCharactersRosterQuery(
+  readingContext: BookCharacterSummaryQuery,
+): UseCharactersRosterQueryResult {
   const [state, setState] = useQueryStates(charactersRosterParsers);
 
   return {
     clearSearch: () => void setState(CHARACTERS_ROSTER_RESET),
     hasActiveSearch: hasActiveRosterSearch(state),
-    listParams: toBookCharactersListParams(state),
+    listParams: toBookCharactersListParams(state, readingContext),
     setPage: (characterPage) => void setState({ characterPage }),
     setSearch: (characterSearch) => void setState({ characterPage: null, characterSearch }),
-    setSort: (characterSort) => void setState({ characterSort }),
+    setSort: (characterSort) => void setState({ characterPage: null, characterSort }),
     state,
   };
 }

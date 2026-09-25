@@ -1,36 +1,26 @@
 "use client";
 
-import type { Nullable } from "@app/shared";
-
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { assertNever } from "@/lib/assert-never";
 import { cn } from "@/lib/utils";
 
-import type {
-  GenresEmptyReason,
-  GenresListState,
-  GenresNextPageState,
-} from "../model/genres-list-state";
+import type { GenresEmptyReason, GenresListState } from "../model/genres-list-state";
 
 import { GenreCard } from "./genre-card";
 
 const GENRES_GRID = {
-  className: "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
-  firstCardLink: "a[href]",
+  className: "grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3",
   skeletonCount: 6,
   skeletonCovers: 4,
 } as const;
 
 type GenresContentProps = {
-  listKey: string;
   onClearSearch: () => void;
   onLoadMore: () => void;
   onOpenLibrary: () => void;
@@ -40,7 +30,6 @@ type GenresContentProps = {
 };
 
 export function GenresContent({
-  listKey,
   onClearSearch,
   onLoadMore,
   onOpenLibrary,
@@ -63,14 +52,10 @@ export function GenresContent({
     case "loading":
       return <GenresGridSkeleton />;
     case "ready":
-      return <GenresGrid listKey={listKey} onLoadMore={onLoadMore} state={state} />;
+      return <GenresGrid onLoadMore={onLoadMore} state={state} />;
     default:
       return assertNever(state);
   }
-}
-
-function focusOnMount(element: Nullable<HTMLElement>) {
-  element?.focus();
 }
 
 function GenresEmpty({
@@ -136,36 +121,13 @@ function GenresError({ onRetry }: { onRetry: () => void }) {
 }
 
 function GenresGrid({
-  listKey,
   onLoadMore,
   state,
 }: {
-  listKey: string;
   onLoadMore: () => void;
   state: Extract<GenresListState, { kind: "ready" }>;
 }) {
-  const [firstNewGenreIndex, setFirstNewGenreIndex] = useState<Nullable<number>>(null);
-  const [trackedListKey, setTrackedListKey] = useState(listKey);
-
-  if (trackedListKey !== listKey) {
-    setTrackedListKey(listKey);
-    setFirstNewGenreIndex(null);
-  }
-
-  if (firstNewGenreIndex !== null && state.nextPage === "error") {
-    setFirstNewGenreIndex(null);
-  }
-
-  function loadMore() {
-    setFirstNewGenreIndex(state.genres.length);
-    onLoadMore();
-  }
-
-  function focusFirstNewGenre(item: Nullable<HTMLLIElement>) {
-    if (item === null) return;
-    item.querySelector<HTMLElement>(GENRES_GRID.firstCardLink)?.focus();
-    setFirstNewGenreIndex(null);
-  }
+  const t = useTranslations("genres.list");
 
   return (
     <div className="flex flex-col gap-6">
@@ -177,18 +139,19 @@ function GenresGrid({
           state.isRefreshing && "opacity-60",
         )}
       >
-        {state.genres.map((genre, index) => (
-          <li
-            className="flex min-w-0 flex-col"
-            key={genre.key}
-            ref={index === firstNewGenreIndex ? focusFirstNewGenre : undefined}
-          >
+        {state.genres.map((genre) => (
+          <li className="flex min-w-0 flex-col" key={genre.key}>
             <GenreCard genre={genre} />
           </li>
         ))}
       </ul>
 
-      <GenresLoadMore onLoadMore={loadMore} state={state.nextPage} />
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={onLoadMore}
+        retryLabel={t("retry")}
+        state={state.nextPage}
+      />
     </div>
   );
 }
@@ -224,48 +187,4 @@ function GenresGridSkeleton() {
       ))}
     </div>
   );
-}
-
-function GenresLoadMore({
-  onLoadMore,
-  state,
-}: {
-  onLoadMore: () => void;
-  state: GenresNextPageState;
-}) {
-  const t = useTranslations("genres.list");
-
-  switch (state) {
-    case "error":
-      return (
-        <div
-          className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4 text-center"
-          role="alert"
-        >
-          <p className="text-sm text-muted-foreground">{t("loadMoreError")}</p>
-          <Button onClick={onLoadMore} ref={focusOnMount} size="sm" variant="secondary">
-            <UiIcon name="refresh" size={14} />
-            {t("retry")}
-          </Button>
-        </div>
-      );
-    case "idle":
-    case "loading":
-      return (
-        <div className="flex justify-center">
-          <Button
-            disabled={state === "loading"}
-            loading={state === "loading"}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
-      );
-    case "none":
-      return null;
-    default:
-      return assertNever(state);
-  }
 }

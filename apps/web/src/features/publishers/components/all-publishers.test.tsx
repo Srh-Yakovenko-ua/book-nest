@@ -7,7 +7,14 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import {
   makePublisherListItem,
@@ -27,6 +34,8 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const fetchMock = vi.fn();
+
+const viewport = mockIntersectionObserver();
 
 let respondToList: (params: URLSearchParams) => Response;
 let respondToQuickCounts: (params: URLSearchParams) => Promise<Response>;
@@ -364,7 +373,7 @@ describe("AllPublishers results", () => {
     );
   });
 
-  it("appends the next page on Load More and dedupes by id", async () => {
+  it("appends the next page when the list end scrolls into view and dedupes by id", async () => {
     const firstPage = publishers(2);
     respondToList = (params) =>
       params.get("pageNumber") === "2"
@@ -379,13 +388,17 @@ describe("AllPublishers results", () => {
 
     renderList();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Завантажити ще" }));
+    await screen.findByRole("link", { name: "publisher 0" });
+    viewport.enterViewport();
 
     expect(await screen.findByRole("link", { name: "next 0" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "publisher 1" })).toHaveLength(1);
     expect(screen.getByText("Показано 3 із 3 видавництв")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Завантажити ще" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+
+    viewport.enterViewport();
+
+    expect(listRequests().map((url) => url.searchParams.get("pageNumber"))).toEqual(["1", "2"]);
   });
 
   it("keeps loaded cards when the next page fails and retries only that page", async () => {
@@ -402,7 +415,8 @@ describe("AllPublishers results", () => {
 
     renderList();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Завантажити ще" }));
+    await screen.findByRole("link", { name: "publisher 0" });
+    viewport.enterViewport();
 
     expect(await screen.findByText("Не вдалося завантажити ще видавництва")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "publisher 0" })).toBeInTheDocument();
@@ -421,7 +435,7 @@ describe("AllPublishers results", () => {
 });
 
 describe("AllPublishers load more focus", () => {
-  it("keeps Load More focusable while fetching and moves focus to the first appended card on the last page", async () => {
+  it("ignores repeat viewport entries while fetching and moves focus to the first appended card on the last page", async () => {
     let releaseNextPage: () => void = () => undefined;
     respondToList = (params) =>
       jsonResponse(
@@ -440,23 +454,15 @@ describe("AllPublishers load more focus", () => {
 
     renderList();
 
-    const loadMore = await screen.findByRole("button", { name: "Завантажити ще" });
-    await userEvent.click(loadMore);
+    await screen.findByRole("link", { name: "publisher 0" });
+    viewport.enterViewport();
 
-    await waitFor(() => expect(loadMore).toHaveAttribute("aria-busy", "true"));
-    expect(loadMore).toHaveAttribute("aria-disabled", "true");
-    expect(loadMore).toBeEnabled();
-    expect(loadMore).toHaveFocus();
-    await userEvent.click(loadMore);
+    expect(await screen.findByText("Завантажуємо ще...")).toBeInTheDocument();
+    viewport.enterViewport();
+    viewport.enterViewport();
     expect(listRequests().filter((url) => url.searchParams.get("pageNumber") === "2")).toHaveLength(
       1,
     );
-
-    await userEvent.keyboard("{Enter}");
-    expect(listRequests().filter((url) => url.searchParams.get("pageNumber") === "2")).toHaveLength(
-      1,
-    );
-    expect(loadMore).toHaveFocus();
 
     releaseNextPage();
 
@@ -471,7 +477,8 @@ describe("AllPublishers load more focus", () => {
 
     renderList();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Завантажити ще" }));
+    await screen.findByRole("link", { name: "publisher 0" });
+    viewport.enterViewport();
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Спробувати ще раз" })).toHaveFocus(),
@@ -670,11 +677,15 @@ describe("AllPublishers insights", () => {
       "href",
       "/publishers/ranok",
     );
-    expect(within(sidebar).getByText("6 книг залишилось")).toBeInTheDocument();
+    expect(within(sidebar).getByText("6 книг")).toBeInTheDocument();
+    expect(within(sidebar).queryByText(/залишилось/)).not.toBeInTheDocument();
     expect(within(sidebar).getByRole("link", { name: /А-ба-ба-га-ла-ма-га/ })).toHaveAttribute(
       "href",
       "/publishers/a-ba-ba",
     );
+    const bestRated = within(sidebar).getByRole("link", { name: /А-ба-ба-га-ла-ма-га/ });
+    expect(within(bestRated).getByText("4,8")).toBeInTheDocument();
+    expect(within(bestRated).getByText("5 оцінок")).toBeInTheDocument();
   });
 
   it("renders no sidebar when no insight is eligible", async () => {

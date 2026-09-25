@@ -19,7 +19,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { LOANS_PAGE_SIZE } from "../model/loans-query";
 import { LoansView } from "./loans-view";
@@ -76,6 +83,8 @@ const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
   totalCount: 0,
   upcomingReturns: [],
 };
+
+const viewport = mockIntersectionObserver();
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -166,7 +175,7 @@ describe("LoansView", () => {
     renderLoans("borrowed_from_someone", "", onUrlUpdate);
 
     expect(await screen.findByText("Книга 1")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    viewport.enterViewport();
     expect(await screen.findByText("Книга 11")).toBeInTheDocument();
     expect(listUrls().some((url) => url.includes("pageNumber=2"))).toBe(true);
 
@@ -179,10 +188,7 @@ describe("LoansView", () => {
     await waitFor(() => {
       expect(listUrls().some((url) => url.includes("filter=overdue"))).toBe(true);
     });
-    expect(listUrls().every((url) => url.includes("pageNumber=1"))).toBe(true);
-    await waitFor(() => {
-      expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
-    });
+    expect(listUrls().at(0)).toContain("pageNumber=1");
   });
 
   it("counts the loaded loans against every loan that matches, not the summary total", async () => {
@@ -457,20 +463,23 @@ describe("LoansView", () => {
     expect(await screen.findByText("Книга 1")).toBeInTheDocument();
     expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    viewport.enterViewport();
 
     expect(await screen.findByText("Книга 11")).toBeInTheDocument();
     expect(screen.getByText("Книга 1")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
+
+    viewport.enterViewport();
+    expect(listUrls().some((url) => url.includes("pageNumber=3"))).toBe(false);
   });
 
-  it("keeps the show-more button away when every loan already fits", async () => {
+  it("asks for no further page when every loan already fits", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
 
     renderLoans("borrowed_from_someone");
 
     await screen.findByText("Гобіт");
-    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
+    viewport.enterViewport();
+    expect(listUrls().some((url) => url.includes("pageNumber=2"))).toBe(false);
   });
 
   it("builds the borrowed stat cards from the summary", async () => {

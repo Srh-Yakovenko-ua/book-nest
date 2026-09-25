@@ -337,17 +337,56 @@ describe("GET /api/characters/:characterId/deletion-preview", () => {
     expect(preview.body).toEqual({
       aliasCount: 1,
       appearanceCount: 1,
+      formCount: 0,
+      groupCount: 0,
+      relationshipCount: 0,
       roleCount: 2,
       tagCount: 1,
+      theoryCount: 0,
     });
     expect(Object.keys(preview.body).sort()).toEqual([
       "aliasCount",
       "appearanceCount",
+      "formCount",
+      "groupCount",
+      "relationshipCount",
       "roleCount",
       "tagCount",
+      "theoryCount",
     ]);
     expect(JSON.stringify(preview.body)).not.toContain("Paul Atreides");
     expect(JSON.stringify(preview.body)).not.toContain("Usul");
+  });
+
+  it("counts the dependent resources that a full delete cascades away", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const paul = await createNewInBook(accessToken, bookId, { name: "Paul Atreides" });
+    const chani = await createNewInBook(accessToken, bookId, { name: "Chani" });
+    const characterId = paul.body.id;
+
+    const form = await authed("post", `/api/characters/${characterId}/forms`, accessToken).send({
+      formType: "alter_ego",
+      name: "Muad Dib",
+    });
+    expect(form.status).toBe(HttpStatus.CREATED);
+
+    const relationship = await authed("post", "/api/character-relationships", accessToken).send({
+      category: "social",
+      directionality: "symmetric",
+      sourceCharacterId: characterId,
+      targetCharacterId: chani.body.id,
+      type: "ally_of",
+    });
+    expect(relationship.status).toBe(HttpStatus.CREATED);
+
+    const preview = await authed(
+      "get",
+      `/api/characters/${characterId}/deletion-preview`,
+      accessToken,
+    );
+    expect(preview.status).toBe(HttpStatus.OK);
+    expect(preview.body).toMatchObject({ formCount: 1, relationshipCount: 1 });
   });
 
   it("returns 404 for a foreign or missing character", async () => {

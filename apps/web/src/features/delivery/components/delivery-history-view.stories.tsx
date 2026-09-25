@@ -100,7 +100,7 @@ const meta = {
     onLoadMore: () => {},
     onResetFilters: () => {},
     onRetry: () => {},
-    pagination: { hasNextPage: false, isFetchingNextPage: false },
+    pagination: { hasNextPage: false, isFetchingNextPage: false, isFetchNextPageError: false },
     renderCard: (model) => <DeliveryHistoryCard key={model.id} model={model} search="" />,
     showToolbar: false,
     summary: summaryNode,

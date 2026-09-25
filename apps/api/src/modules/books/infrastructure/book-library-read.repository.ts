@@ -1,4 +1,10 @@
-import type { LibrarySort, Nullable, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type {
+  LibrarySort,
+  Nullable,
+  OwnershipStatus,
+  ReadingStatus,
+  TagViewSource,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
@@ -430,7 +436,7 @@ export class BookLibraryReadRepository {
     limit: number;
     ownershipStatuses?: OwnershipStatus[];
     userId: string;
-  }): Promise<{ count: number; id: string; name: string }[]> {
+  }): Promise<(TagViewSource & { count: number })[]> {
     const grouped = await this.prisma.bookTag.groupBy({
       _count: { tagId: true },
       by: ["tagId"],
@@ -442,13 +448,13 @@ export class BookLibraryReadRepository {
       return [];
     }
     const tags = await this.prisma.tag.findMany({
-      select: { id: true, name: true },
+      select: { color: true, id: true, name: true },
       where: { id: { in: grouped.map((entry) => entry.tagId) } },
     });
-    const nameById = new Map(tags.map((tag) => [tag.id, tag.name]));
+    const tagById = new Map(tags.map((tag) => [tag.id, tag]));
     return grouped.flatMap((entry) => {
-      const name = nameById.get(entry.tagId);
-      return name === undefined ? [] : [{ count: entry._count.tagId, id: entry.tagId, name }];
+      const tag = tagById.get(entry.tagId);
+      return tag === undefined ? [] : [{ ...tag, count: entry._count.tagId }];
     });
   }
 }

@@ -409,6 +409,11 @@ export type characterGroupsControllerGetByIdResponse200 = {
   status: 200;
 };
 
+export type characterGroupsControllerGetByIdResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type characterGroupsControllerGetByIdResponse401 = {
   data: void;
   status: 401;
@@ -424,7 +429,9 @@ export type characterGroupsControllerGetByIdResponseSuccess =
     headers: Headers;
   };
 export type characterGroupsControllerGetByIdResponseError = (
-  characterGroupsControllerGetByIdResponse401 | characterGroupsControllerGetByIdResponse404
+  | characterGroupsControllerGetByIdResponse400
+  | characterGroupsControllerGetByIdResponse401
+  | characterGroupsControllerGetByIdResponse404
 ) & {
   headers: Headers;
 };

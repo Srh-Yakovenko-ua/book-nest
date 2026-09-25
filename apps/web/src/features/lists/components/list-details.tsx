@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,8 +24,16 @@ export function ListDetails({ id }: ListDetailsProps) {
   const router = useRouter();
   const { params } = useListDetailQuery();
 
-  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isPending } =
-    useListDetail(id, params);
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isPending,
+  } = useListDetail(id, params);
 
   if (isPending) {
     return (
@@ -44,7 +54,9 @@ export function ListDetails({ id }: ListDetailsProps) {
     );
   }
 
-  if (error !== null) {
+  const hasListError = error !== null && !isFetchNextPageError;
+
+  if (hasListError) {
     const isNotFound = error instanceof ApiError && error.status === 404;
     return (
       <div
@@ -77,14 +89,27 @@ export function ListDetails({ id }: ListDetailsProps) {
 
   return (
     <ListDetailsView
-      hasNextPage={hasNextPage}
       id={id}
       isFetching={isFetching}
-      isFetchingNextPage={isFetchingNextPage}
+      loadMoreState={loadMoreState({ hasNextPage, isFetchingNextPage, isFetchNextPageError })}
       onLoadMore={() => {
         void fetchNextPage();
       }}
-      pages={data.pages}
+      pages={data?.pages ?? []}
     />
   );
+}
+
+function loadMoreState({
+  hasNextPage,
+  isFetchingNextPage,
+  isFetchNextPageError,
+}: {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isFetchNextPageError: boolean;
+}): InfiniteScrollState {
+  if (isFetchingNextPage) return "loading";
+  if (isFetchNextPageError) return "error";
+  return hasNextPage ? "idle" : "none";
 }

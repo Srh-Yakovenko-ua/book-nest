@@ -8,10 +8,12 @@ import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,7 +56,6 @@ export type LibraryArchiveViewProps = {
   linkComponent?: LibraryBookLinkComponent;
   loadingLabel: string;
   loadMoreErrorLabel: string;
-  loadMoreLabel: string;
   noFilteredResultsState: EmptyStateEntry;
   noSearchResultsState: EmptyStateEntry;
   onAddBook?: () => void;
@@ -252,7 +253,6 @@ function LibraryContent({
   libraryTotalLoading,
   linkComponent,
   loadMoreErrorLabel,
-  loadMoreLabel,
   noFilteredResultsState,
   noSearchResultsState,
   onAddBook,
@@ -328,14 +328,11 @@ function LibraryContent({
       )}
 
       <div className="flex flex-col items-center gap-2 pt-2">
-        <PaginationFooter
+        <InfiniteScrollFooter
           allShownLabel={allShownLabel}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          isLoadMoreError={isLoadMoreError}
-          loadMoreErrorLabel={loadMoreErrorLabel}
-          loadMoreLabel={loadMoreLabel}
+          errorLabel={loadMoreErrorLabel}
           onLoadMore={onLoadMore}
+          state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
         />
       </div>
 
@@ -609,44 +606,18 @@ function LibraryToolbar({
   );
 }
 
-function PaginationFooter({
-  allShownLabel,
+function nextPageState({
   hasNextPage,
   isFetchingNextPage,
   isLoadMoreError,
-  loadMoreErrorLabel,
-  loadMoreLabel,
-  onLoadMore,
 }: {
-  allShownLabel: string;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
-  loadMoreErrorLabel: string;
-  loadMoreLabel: string;
-  onLoadMore: () => void;
-}) {
-  if (!hasNextPage) {
-    return <p className="text-xs text-muted-foreground">{allShownLabel}</p>;
-  }
-
-  return (
-    <>
-      {isLoadMoreError ? (
-        <p className="text-sm text-error" role="alert">
-          {loadMoreErrorLabel}
-        </p>
-      ) : null}
-      <Button
-        disabled={isFetchingNextPage}
-        loading={isFetchingNextPage}
-        onClick={onLoadMore}
-        variant="secondary"
-      >
-        {loadMoreLabel}
-      </Button>
-    </>
-  );
+}): InfiniteScrollState {
+  if (isFetchingNextPage) return "loading";
+  if (isLoadMoreError) return "error";
+  return hasNextPage ? "idle" : "none";
 }
 
 function SelectionCheckbox({

@@ -7,7 +7,14 @@ import type { ComponentProps } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import {
   makeGenresOverview,
@@ -92,6 +99,8 @@ const SUMMARY_LABELS = [
 ] as const;
 
 const requests: RecordedRequest[] = [];
+
+const viewport = mockIntersectionObserver();
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -264,7 +273,7 @@ describe("Genres sort and filters", () => {
 });
 
 describe("Genres list states", () => {
-  it("appends the next page and moves focus to its first genre", async () => {
+  it("appends the next page without pulling focus away from the reader", async () => {
     mockGenresApi({
       stats: ({ searchParams }) =>
         json(
@@ -276,12 +285,15 @@ describe("Genres list states", () => {
 
     renderGenres();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("link", { name: "Фентезі" });
+    viewport.enterViewport();
 
-    const mystery = await screen.findByRole("link", { name: "Детектив" });
-    await waitFor(() => expect(mystery).toHaveFocus());
+    await screen.findByRole("link", { name: "Детектив" });
+    expect(document.body).toHaveFocus();
     expect(screen.getByRole("link", { name: "Фентезі" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Показати ще" })).not.toBeInTheDocument();
+
+    viewport.enterViewport();
+    expect(requestsTo(PATHS.stats)).toHaveLength(2);
   });
 
   it("keeps the current cards dimmed while new criteria load", async () => {
@@ -303,7 +315,11 @@ describe("Genres list states", () => {
       ),
     );
     expect(screen.queryByRole("status", { name: "Завантажуємо жанри" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Показати ще" })).not.toBeInTheDocument();
+
+    viewport.enterViewport();
+    expect(
+      requestsTo(PATHS.stats).some(({ searchParams }) => searchParams.get("pageNumber") === "2"),
+    ).toBe(false);
   });
 
   it("keeps the loaded cards and offers an inline retry when the next page fails", async () => {
@@ -316,7 +332,8 @@ describe("Genres list states", () => {
 
     renderGenres();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("link", { name: "Фентезі" });
+    viewport.enterViewport();
 
     const alert = await screen.findByText("Не вдалося завантажити ще жанри.");
     expect(alert.closest('[role="alert"]')).not.toBeNull();
@@ -339,7 +356,8 @@ describe("Genres list states", () => {
 
     renderGenres();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("link", { name: "Фентезі" });
+    viewport.enterViewport();
     await screen.findByText("Не вдалося завантажити ще жанри.");
     const quickFilter = screen.getByRole("radio", { name: /Є непрочитані/ });
     await userEvent.click(quickFilter);
@@ -362,7 +380,8 @@ describe("Genres list states", () => {
 
     renderGenres();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+    await screen.findByRole("link", { name: "Фентезі" });
+    viewport.enterViewport();
     const quickFilter = screen.getByRole("radio", { name: /Є непрочитані/ });
     await userEvent.click(quickFilter);
 

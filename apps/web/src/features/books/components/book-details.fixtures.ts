@@ -50,8 +50,8 @@ export function makeBookView(overrides: Partial<BookView> = {}): BookView {
     readingStatus: "finished",
     series: null,
     tags: [
-      { id: "tag-1", name: "фентезі" },
-      { id: "tag-2", name: "відьмак" },
+      { color: "sky", id: "tag-1", name: "фентезі" },
+      { color: "honey", id: "tag-2", name: "відьмак" },
     ],
     title: "Останнє бажання",
     translator: "Сергій Легеза",

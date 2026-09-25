@@ -1,5 +1,6 @@
 import type {
   BookCharacterView,
+  CharacterAppearanceBook,
   CharacterDetailsView,
   CharacterFormView,
   CharacterGlobalSummaryView,
@@ -9,6 +10,7 @@ import type {
   MediaView,
   Nullable,
   SeriesCharacterAppearanceView,
+  TagViewSource,
 } from "@app/shared";
 
 import {
@@ -21,6 +23,7 @@ import {
   CharacterEntityKindSchema,
   CharacterFormTypeSchema,
   CharacterGenderSchema,
+  toTagView,
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 
@@ -113,7 +116,7 @@ export type GlobalSummaryCharacterSource = {
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
   species: Nullable<string>;
-  tags: { tag: { id: string; name: string } }[];
+  tags: { tag: TagViewSource }[];
 };
 
 export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
@@ -155,6 +158,7 @@ export type SummaryAppearanceSource = SpoilerFlags & {
   displayName: Nullable<string>;
   id: string;
   importance: string;
+  isPovCharacter: boolean;
   status: string;
 };
 
@@ -178,9 +182,11 @@ type SeriesAppearancePoint = Omit<
 
 export function toBookCharacterView({
   appearance,
+  book,
   portrait,
 }: {
   appearance: CharacterAppearanceSource;
+  book: CharacterAppearanceBook;
   portrait: Nullable<MediaView>;
 }): BookCharacterView {
   return {
@@ -188,6 +194,7 @@ export function toBookCharacterView({
     appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
     attitude:
       appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
+    book,
     bookId: appearance.bookId,
     characterId: appearance.characterId,
     createdAt: appearance.createdAt.toISOString(),
@@ -311,7 +318,7 @@ export function toCharacterGlobalSummaryView({
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
-    tags: character.tags.map((link) => ({ id: link.tag.id, name: link.tag.name })),
+    tags: character.tags.map((link) => toTagView(link.tag)),
   };
 }
 
@@ -387,6 +394,7 @@ export function toCharacterSummaryView({
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isFavorite: character.isFavorite,
+    isPovCharacter: appearance.isPovCharacter,
     name: character.name,
     portrait: appearance.portraitIsSpoiler ? null : portrait,
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
@@ -395,10 +403,12 @@ export function toCharacterSummaryView({
 
 export function toMaskedBookCharacterView({
   appearance,
+  book,
   portrait,
   revealedFields,
 }: {
   appearance: CharacterAppearanceSource;
+  book: CharacterAppearanceBook;
   portrait: Nullable<MediaView>;
   revealedFields: ReadonlySet<CharacterRevealFieldKey>;
 }): BookCharacterView {
@@ -427,6 +437,7 @@ export function toMaskedBookCharacterView({
     appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
     attitude:
       appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
+    book,
     bookId: appearance.bookId,
     characterId: appearance.characterId,
     createdAt: appearance.createdAt.toISOString(),

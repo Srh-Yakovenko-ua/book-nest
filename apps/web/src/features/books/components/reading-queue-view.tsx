@@ -24,7 +24,7 @@ import {
   useReorderReadingQueue,
 } from "../api/use-reading-queue";
 import { useSeriesOrderIssues } from "../api/use-series-order-check";
-import { useTagsSearch } from "../api/use-tags-search";
+import { useSelectedTags } from "../api/use-tags-search";
 import { useQueueSummaryCards } from "../hooks/use-queue-summary-cards";
 import { toQueuePickerItems } from "../model/queue-placement";
 import {
@@ -67,7 +67,7 @@ export function ReadingQueueView() {
   const summary = useReadingQueueSummary();
   const seriesOrderIssues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const genres = useGenres();
-  const tags = useTagsSearch("");
+  const selectedTags = useSelectedTags(queue.state.tag);
   const removeFromQueue = useRemoveFromQueueWithUndo();
   const reorder = useReorderReadingQueue(queue.listParams);
 
@@ -94,14 +94,13 @@ export function ReadingQueueView() {
     .filter((item): item is ReadingQueueItemView => item !== undefined);
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
 
   function rememberEntity(id: string, name: string) {
     setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
   }
 
   function resolveEntityName(id: string): string | undefined {
-    return entityLabels[id] ?? tagNameById.get(id);
+    return entityLabels[id] ?? selectedTags.get(id)?.name;
   }
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);

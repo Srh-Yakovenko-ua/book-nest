@@ -222,7 +222,7 @@ export function withRelations(userId: string) {
             publisher: { select: { id: true, name: true } },
             readingProgress: { select: { rating: true } },
             readingStatus: true,
-            tags: { select: { tag: { select: { id: true, name: true } } } },
+            tags: { select: { tag: { select: { color: true, id: true, name: true } } } },
             title: true,
             updatedAt: true,
           },

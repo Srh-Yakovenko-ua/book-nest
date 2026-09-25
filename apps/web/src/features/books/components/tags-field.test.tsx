@@ -9,8 +9,8 @@ import type { CreateBookFormValues } from "../model/create-book-form";
 import { TagsField } from "./tags-field";
 
 const SAVED_TAGS = [
-  { id: "tag-slow-burn", name: "slow burn" },
-  { id: "tag-cozy", name: "cozy" },
+  { color: "sage", id: "tag-slow-burn", name: "slow burn" },
+  { color: "rose", id: "tag-cozy", name: "cozy" },
 ];
 
 beforeEach(() => {
@@ -63,9 +63,28 @@ describe("TagsField picker", () => {
     expect(screen.getByRole("button", { name: "Видалити тег «slow burn»" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "slow burn" })).not.toBeInTheDocument();
   });
+
+  it("paints a picked tag in its own color with a hash before the name", async () => {
+    renderWithProviders(<TagsFieldHost />);
+
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(await screen.findByRole("option", { name: "slow burn" }));
+
+    const chip = screen.getByRole("button", { name: "Видалити тег «slow burn»" }).parentElement;
+    if (chip === null) throw new Error("no chip");
+    expect(chip.style.backgroundColor).toBe("var(--tag-sage)");
+    expect(chip.style.color).toBe("var(--tag-sage-foreground)");
+    expect(chip.querySelector("use")).toHaveAttribute("href", "/icons/ui-icons.svg#i-hash");
+  });
 });
 
 function TagsFieldHost() {
   const { control, formState } = useForm<CreateBookFormValues>({ defaultValues: { tags: [] } });
-  return <TagsField control={control} errors={formState.errors} />;
+  return (
+    <TagsField
+      control={control}
+      errors={formState.errors}
+      tagColorOf={(name) => (name === "slow burn" ? "sage" : "parchment")}
+    />
+  );
 }

@@ -308,7 +308,7 @@ describe("GET /api/tags", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns a paginator of the caller's own tags as id and name", async () => {
+  it("returns a paginator of the caller's own tags as id, name and color", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await prisma.tag.create({
       data: { name: "dark academia", normalizedName: "dark academia", userId },
@@ -319,7 +319,7 @@ describe("GET /api/tags", () => {
     expect(res.status).toBe(200);
     expect(res.body.totalCount).toBe(1);
     expect(res.body.items[0]).toMatchObject({ name: "dark academia" });
-    expect(Object.keys(res.body.items[0]).sort()).toEqual(["id", "name"]);
+    expect(Object.keys(res.body.items[0]).sort()).toEqual(["color", "id", "name"]);
   });
 
   it("filters by a case-insensitive search term", async () => {
@@ -373,6 +373,48 @@ describe("GET /api/tags", () => {
     expect(res.body.items).toHaveLength(0);
   });
 
+  it("returns only the requested tags with their colors when ids are given", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const vampires = await prisma.tag.create({
+      data: { color: "lavender", name: "вампіри", normalizedName: "вампіри", userId: owner.userId },
+    });
+    const witches = await prisma.tag.create({
+      data: { color: "sky", name: "відьми", normalizedName: "відьми", userId: owner.userId },
+    });
+    await prisma.tag.create({
+      data: { name: "dark academia", normalizedName: "dark academia", userId: owner.userId },
+    });
+    const strangerTag = await prisma.tag.create({
+      data: { name: "secret tag", normalizedName: "secret tag", userId: stranger.userId },
+    });
+
+    const res = await request(app.getHttpServer())
+      .get("/api/tags")
+      .query({ ids: [vampires.id, witches.id, strangerTag.id] })
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(2);
+    expect(res.body.items).toEqual([
+      { color: "lavender", id: vampires.id, name: "вампіри" },
+      { color: "sky", id: witches.id, name: "відьми" },
+    ]);
+  });
+
+  it("rejects an id that is not a UUID", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/tags?ids=not-a-uuid")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(400);
+  });
+
   it("paginates results across pages", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await prisma.tag.createMany({
@@ -409,21 +451,21 @@ describe("GET /api/tags", () => {
     expect(res.body.items).toHaveLength(1);
   });
 
-  it("B-PICK-02 returns only id and name for a tag used by books and characters", async () => {
+  it("B-PICK-02 returns only id, name and color for a tag used by books and characters", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const book = await prisma.book.create({ data: { title: "Dune", userId } });
     const character = await prisma.character.create({
       data: { name: "Paul", normalizedName: "paul", userId },
     });
     const tag = await prisma.tag.create({
-      data: { name: "chosen one", normalizedName: "chosen one", userId },
+      data: { color: "sky", name: "chosen one", normalizedName: "chosen one", userId },
     });
     await prisma.bookTag.create({ data: { bookId: book.id, tagId: tag.id } });
     await prisma.characterTag.create({ data: { characterId: character.id, tagId: tag.id } });
 
     const res = await searchTags(accessToken);
 
-    expect(res.body.items).toEqual([{ id: tag.id, name: "chosen one" }]);
+    expect(res.body.items).toEqual([{ color: "sky", id: tag.id, name: "chosen one" }]);
   });
 });
 

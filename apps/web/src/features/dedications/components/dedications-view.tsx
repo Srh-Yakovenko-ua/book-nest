@@ -7,9 +7,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { useGenres } from "@/features/books/api/use-genres";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
@@ -42,8 +43,9 @@ export function DedicationsView() {
   const resultTotal = dedications.data?.pages[0]?.totalCount ?? 0;
   const activeBook =
     openedBook === null ? null : (books.find((book) => book.id === openedBook.id) ?? openedBook);
+  const hasListError = dedications.isError && !dedications.isFetchNextPageError;
   const showChrome =
-    !dedications.isError && (dedications.isPending || books.length > 0 || query.hasActiveFilters);
+    !hasListError && (dedications.isPending || books.length > 0 || query.hasActiveFilters);
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const total = summary.data?.totalCount ?? 0;
@@ -127,6 +129,14 @@ export function DedicationsView() {
 
   const mobileSummaryCards = summaryCards.slice(0, DEDICATIONS_MOBILE_TILE_COUNT);
 
+  const loadMoreState: InfiniteScrollState = dedications.isFetchNextPageError
+    ? "error"
+    : dedications.isFetchingNextPage
+      ? "loading"
+      : dedications.hasNextPage
+        ? "idle"
+        : "none";
+
   const onChooseBook = () => setPickerOpen(true);
 
   return (
@@ -167,7 +177,7 @@ export function DedicationsView() {
             availableGenres={summary.data?.availableGenres ?? []}
             chipCounts={quickCounts.data}
             counter={
-              dedications.isPending || dedications.isError || books.length === 0
+              dedications.isPending || hasListError || books.length === 0
                 ? undefined
                 : t("counter", { shown: books.length, total: resultTotal })
             }
@@ -190,7 +200,7 @@ export function DedicationsView() {
           <DedicationsContent
             books={books}
             hasActiveFilters={query.hasActiveFilters}
-            isError={dedications.isError}
+            isError={hasListError}
             isPending={dedications.isPending}
             isPlaceholderData={dedications.isPlaceholderData}
             onChooseBook={onChooseBook}
@@ -199,12 +209,13 @@ export function DedicationsView() {
             onRetry={() => void dedications.refetch()}
             view={query.state.view}
           />
-          {books.length === 0 || dedications.isError ? null : (
-            <LoadMoreFooter
-              hasNextPage={dedications.hasNextPage}
-              isFetchingNextPage={dedications.isFetchingNextPage}
-              isLoadMoreError={dedications.isFetchNextPageError}
+          {books.length === 0 || hasListError ? null : (
+            <InfiniteScrollFooter
+              allShownLabel={t("allShown")}
+              className="text-center"
+              errorLabel={t("loadMoreError")}
               onLoadMore={() => void dedications.fetchNextPage()}
+              state={loadMoreState}
             />
           )}
         </div>
@@ -222,44 +233,6 @@ export function DedicationsView() {
       )}
 
       <DedicationBookPickerDialog onOpenChange={setPickerOpen} open={pickerOpen} />
-    </div>
-  );
-}
-
-function LoadMoreFooter({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadMoreError,
-  onLoadMore,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-  onLoadMore: () => void;
-}) {
-  const t = useTranslations("dedications");
-
-  return (
-    <div className="flex flex-col items-center gap-2 pt-2">
-      {hasNextPage ? (
-        <>
-          {isLoadMoreError ? (
-            <p className="text-sm text-error" role="alert">
-              {t("loadMoreError")}
-            </p>
-          ) : null}
-          <Button
-            disabled={isFetchingNextPage}
-            loading={isFetchingNextPage}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t("allShown")}</p>
-      )}
     </div>
   );
 }

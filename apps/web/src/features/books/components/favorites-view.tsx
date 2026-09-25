@@ -28,7 +28,7 @@ import { useLibraryBooks } from "../api/use-books";
 import { useFavoritesSummary } from "../api/use-favorites-summary";
 import { useGenres } from "../api/use-genres";
 import { useLibraryQuickCounts } from "../api/use-library-quick-counts";
-import { useTagsSearch } from "../api/use-tags-search";
+import { useSelectedTags } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
 import {
@@ -77,7 +77,7 @@ export function FavoritesView() {
   );
   const summary = useFavoritesSummary();
   const genres = useGenres();
-  const tags = useTagsSearch("");
+  const selectedTags = useSelectedTags(library.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
   const resultsRegionRef = useRef<HTMLDivElement>(null);
 
@@ -92,19 +92,19 @@ export function FavoritesView() {
   const deleteBooks = useBulkDeleteBooks();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
 
   function rememberEntity(id: string, name: string) {
     setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
   }
 
   function resolveEntityName(id: string): string | undefined {
-    return entityLabels[id] ?? tagNameById.get(id);
+    return entityLabels[id] ?? selectedTags.get(id)?.name;
   }
 
   const filterChips = useLibraryFilterChips({
     genreName: (key) => genreNameByKey.get(key) ?? key,
     resolveEntityName,
+    resolveTag: (id) => selectedTags.get(id),
     setState: library.setState,
     state: library.state,
   });
@@ -130,6 +130,8 @@ export function FavoritesView() {
         statusLabel: (value) => tStatus(value),
       }),
     );
+
+  const hasListError = isError && !isFetchNextPageError;
 
   const visibleBookIdsKey = books.map((book) => book.id).join("\n");
   const previousVisibleBookIdsKey = useRef(visibleBookIdsKey);
@@ -431,7 +433,7 @@ export function FavoritesView() {
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}
         hasNextPage={hasNextPage}
-        isError={isError}
+        isError={hasListError}
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
@@ -439,7 +441,6 @@ export function FavoritesView() {
         linkComponent={Link}
         loadingLabel={t("loading")}
         loadMoreErrorLabel={t("loadMoreError")}
-        loadMoreLabel={t("loadMore")}
         noFilteredResultsState={noFilteredResultsState}
         noSearchResultsState={noSearchResultsState}
         onAddBook={() => router.push("/books")}

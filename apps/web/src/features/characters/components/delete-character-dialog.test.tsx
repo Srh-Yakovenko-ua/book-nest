@@ -61,3 +61,71 @@ describe("DeleteCharacterDialog", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("DeleteCharacterDialog impact truthfulness", () => {
+  it("names every dependent resource the backend reports", async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse(
+          makeDeletionPreview({
+            appearanceCount: 2,
+            formCount: 1,
+            groupCount: 3,
+            relationshipCount: 4,
+            theoryCount: 5,
+          }),
+        ),
+      ),
+    );
+
+    renderDialog();
+
+    expect(await screen.findByText("Появи в книгах: 2")).toBeInTheDocument();
+    expect(screen.getByText("Форми та втілення: 1")).toBeInTheDocument();
+    expect(screen.getByText("Членство у групах: 3")).toBeInTheDocument();
+    expect(screen.getByText("Зв’язки з іншими персонажами: 4")).toBeInTheDocument();
+    expect(screen.getByText("Теорії: 5")).toBeInTheDocument();
+  });
+
+  it("omits the categories that are empty", async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse(
+          makeDeletionPreview({ aliasCount: 0, appearanceCount: 1, roleCount: 0, tagCount: 0 }),
+        ),
+      ),
+    );
+
+    renderDialog();
+
+    expect(await screen.findByText("Появи в книгах: 1")).toBeInTheDocument();
+    expect(screen.queryByText(/^Ролі:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Імена:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Теги:/)).not.toBeInTheDocument();
+  });
+
+  it("says so plainly when nothing depends on the character", async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse(
+          makeDeletionPreview({ aliasCount: 0, appearanceCount: 0, roleCount: 0, tagCount: 0 }),
+        ),
+      ),
+    );
+
+    renderDialog();
+
+    expect(await screen.findByText("Пов’язаних даних немає.")).toBeInTheDocument();
+  });
+
+  it("keeps the confirmation usable when the preview cannot be loaded", async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ message: "boom" }, 500)));
+
+    renderDialog();
+
+    expect(
+      await screen.findByText("Не вдалося порахувати, що саме буде видалено."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Видалити повністю" })).toBeEnabled();
+  });
+});

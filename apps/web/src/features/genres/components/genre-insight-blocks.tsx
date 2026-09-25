@@ -97,7 +97,7 @@ function InsightBlock({
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 shadow-card"
+      className="sidebar-card-leaf flex flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card"
     >
       <div className="flex flex-col gap-0.5">
         <h2 className="font-heading text-sm font-semibold text-ink" id={headingId}>

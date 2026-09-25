@@ -244,9 +244,9 @@ describe("GET /api/books/overview", () => {
     const res = await getOverview(accessToken);
 
     expect(res.body.topTags).toEqual([
-      { count: 4, id: t1.id, name: "slow burn" },
-      { count: 3, id: t2.id, name: "dark academia" },
-      { count: 2, id: t3.id, name: "dragons" },
+      { color: "parchment", count: 4, id: t1.id, name: "slow burn" },
+      { color: "parchment", count: 3, id: t2.id, name: "dark academia" },
+      { color: "parchment", count: 2, id: t3.id, name: "dragons" },
     ]);
   });
 
@@ -594,7 +594,9 @@ describe("GET /api/books/overview owner scope", () => {
     const scoped = await getOverview(accessToken, "owner=owned");
     const global = await getOverview(accessToken);
 
-    expect(scoped.body.topTags).toEqual([{ count: 1, id: ownedTag.id, name: "owned tag" }]);
+    expect(scoped.body.topTags).toEqual([
+      { color: "parchment", count: 1, id: ownedTag.id, name: "owned tag" },
+    ]);
     expect(global.body.topTags.map((tag: { id: string }) => tag.id)).toEqual(
       expect.arrayContaining([ownedTag.id, outTag.id]),
     );

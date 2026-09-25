@@ -48,14 +48,13 @@ export function AllPublishersView({
         {summary}
       </header>
 
+      {controls}
+
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          {controls}
-          <section className="flex flex-col gap-6">
-            <h2 className="sr-only">{t("resultsTitle")}</h2>
-            {content}
-          </section>
-        </div>
+        <section className="flex min-w-0 flex-1 flex-col gap-6">
+          <h2 className="sr-only">{t("resultsTitle")}</h2>
+          {content}
+        </section>
 
         {insights === null ? null : (
           <aside

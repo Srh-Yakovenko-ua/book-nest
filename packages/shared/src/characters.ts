@@ -4,12 +4,13 @@ import {
   createPaginatedSchema,
   paginationQueryFields,
   readingPositionQueryFields,
+  requireContextBookForReadingPosition,
 } from "./common.js";
 import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TagViewSchema } from "./tags.js";
 
-const CHARACTER_NAME_MAX = 200;
+export const CHARACTER_NAME_MAX = 200;
 const CHARACTER_SHORT_TEXT_MAX = 200;
 const CHARACTER_SPECIES_MAX = 120;
 const CHARACTER_GENDER_CUSTOM_MAX = 60;
@@ -101,12 +102,18 @@ export const CharacterFormTypeSchema = z.enum([
 
 export type CharacterFormType = z.infer<typeof CharacterFormTypeSchema>;
 
+export const BOOK_CHARACTER_UNSPECIFIED = {
+  importance: "not_specified",
+  status: "not_specified",
+} as const;
+
 export const BookCharacterImportanceSchema = z.enum([
   "central",
   "major",
   "supporting",
   "episodic",
   "mentioned",
+  BOOK_CHARACTER_UNSPECIFIED.importance,
 ]);
 
 export type BookCharacterImportance = z.infer<typeof BookCharacterImportanceSchema>;
@@ -118,6 +125,7 @@ export const BookCharacterStatusSchema = z.enum([
   "unknown",
   "transformed",
   "other",
+  BOOK_CHARACTER_UNSPECIFIED.status,
 ]);
 
 export type BookCharacterStatus = z.infer<typeof BookCharacterStatusSchema>;
@@ -207,7 +215,7 @@ export const BookCharacterProfileInputSchema = z.object({
   firstAppearanceNote: optionalText(CHARACTER_SHORT_TEXT_MAX),
   firstAppearancePage: optionalInt4(),
   hidePresenceAsSpoiler: z.boolean().default(false),
-  importance: BookCharacterImportanceSchema.default("supporting"),
+  importance: BookCharacterImportanceSchema.default(BOOK_CHARACTER_UNSPECIFIED.importance),
   isPovCharacter: z.boolean().default(false),
   narratorType: BookCharacterNarratorTypeSchema.nullish(),
   personalImpression: optionalText(CHARACTER_LONG_TEXT_MAX),
@@ -218,7 +226,7 @@ export const BookCharacterProfileInputSchema = z.object({
   sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
   speciesOverride: optionalText(CHARACTER_SHORT_TEXT_MAX),
   speciesOverrideIsSpoiler: z.boolean().default(false),
-  status: BookCharacterStatusSchema.default("active"),
+  status: BookCharacterStatusSchema.default(BOOK_CHARACTER_UNSPECIFIED.status),
   statusCustomText: optionalText(CHARACTER_SHORT_TEXT_MAX),
   statusIsSpoiler: z.boolean().default(false),
 });
@@ -350,12 +358,28 @@ export const UpdateCharacterFormSchema = z
 
 export type UpdateCharacterForm = z.infer<typeof UpdateCharacterFormSchema>;
 
-export const BookCharactersQuerySchema = z.object({
+export const BookCharactersSortSchema = z.enum(["importance", "manual", "name"]);
+
+export type BookCharactersSort = z.infer<typeof BookCharactersSortSchema>;
+
+const ReadingContextQuerySchema = z.object({
+  ...readingPositionQueryFields,
+  contextBookId: z.string().uuid().optional(),
+});
+
+export type ReadingContextQuery = z.infer<typeof ReadingContextQuerySchema>;
+
+export const BookCharactersQuerySchema = ReadingContextQuerySchema.extend({
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
+  sort: BookCharactersSortSchema.default("manual"),
 });
 
 export type BookCharactersQuery = z.infer<typeof BookCharactersQuerySchema>;
+
+export const BookCharacterSummaryQuerySchema = ReadingContextQuerySchema;
+
+export type BookCharacterSummaryQuery = z.infer<typeof BookCharacterSummaryQuerySchema>;
 
 export const DeleteCharacterQuerySchema = z.object({
   confirm: z.literal("true"),
@@ -374,13 +398,17 @@ export type CharacterDeletionResult = z.infer<typeof CharacterDeletionResultSche
 export const CharacterDeletionPreviewSchema = z.object({
   aliasCount: z.number().int(),
   appearanceCount: z.number().int(),
+  formCount: z.number().int(),
+  groupCount: z.number().int(),
+  relationshipCount: z.number().int(),
   roleCount: z.number().int(),
   tagCount: z.number().int(),
+  theoryCount: z.number().int(),
 });
 
 export type CharacterDeletionPreview = z.infer<typeof CharacterDeletionPreviewSchema>;
 
-const CharacterAliasViewSchema = z.object({
+export const CharacterAliasViewSchema = z.object({
   bookId: z.string().nullable(),
   id: z.string(),
   isSpoiler: z.boolean(),
@@ -388,6 +416,8 @@ const CharacterAliasViewSchema = z.object({
   position: z.number().int(),
   type: CharacterAliasTypeSchema,
 });
+
+export type CharacterAliasView = z.infer<typeof CharacterAliasViewSchema>;
 
 const BookCharacterRoleViewSchema = z.object({
   customRole: z.string().nullable(),
@@ -397,10 +427,26 @@ const BookCharacterRoleViewSchema = z.object({
   roleType: BookCharacterRoleTypeSchema,
 });
 
+export const CharacterAppearanceBookSchema = z.object({
+  cover: MediaViewSchema.nullable(),
+  id: z.string(),
+  series: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      partNumber: z.number().int().nullable(),
+    })
+    .nullable(),
+  title: z.string(),
+});
+
+export type CharacterAppearanceBook = z.infer<typeof CharacterAppearanceBookSchema>;
+
 export const BookCharacterViewSchema = z.object({
   appearanceNotes: z.string().nullable(),
   appearanceNotesIsSpoiler: z.boolean(),
   attitude: CharacterAttitudeSchema.nullable(),
+  book: CharacterAppearanceBookSchema,
   bookId: z.string(),
   characterId: z.string(),
   createdAt: z.string(),
@@ -488,6 +534,7 @@ export const CharacterSummaryViewSchema = z.object({
   id: z.string(),
   importance: BookCharacterImportanceSchema,
   isFavorite: z.boolean(),
+  isPovCharacter: z.boolean(),
   name: z.string(),
   portrait: MediaViewSchema.nullable(),
   status: BookCharacterStatusSchema.nullable(),
@@ -546,10 +593,12 @@ export const CharactersListQuerySchema = z.object({
   favorite: z.stringbool().optional(),
   gender: queryStringArray(CharacterGenderSchema),
   groupId: queryStringArray(z.string().uuid()),
+  hasPersonalImpression: z.stringbool().optional(),
   hasSpoilers: z.stringbool().optional(),
   importance: queryStringArray(BookCharacterImportanceSchema),
   includeHiddenProfiles: z.stringbool().optional(),
   includeSpoilerSearch: z.stringbool().optional(),
+  multipleBooks: z.stringbool().optional(),
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   possibleDuplicates: z.stringbool().optional(),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
@@ -561,6 +610,32 @@ export const CharactersListQuerySchema = z.object({
 });
 
 export type CharactersListQuery = z.infer<typeof CharactersListQuerySchema>;
+
+export const CHARACTER_OVERVIEW_LEADERS_MAX = 3;
+
+export const CharacterOverviewLeaderSchema = z.object({
+  avatar: MediaViewSchema.nullable(),
+  id: z.string(),
+  name: z.string(),
+});
+
+export type CharacterOverviewLeader = z.infer<typeof CharacterOverviewLeaderSchema>;
+
+export const CharacterOverviewViewSchema = z.object({
+  favoriteCount: z.number().int().nonnegative(),
+  mostFrequent: z
+    .object({
+      appearanceCount: z.number().int().positive(),
+      leaderCount: z.number().int().positive(),
+      leaders: z.array(CharacterOverviewLeaderSchema).max(CHARACTER_OVERVIEW_LEADERS_MAX),
+    })
+    .nullable(),
+  multipleBooksCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  withPersonalImpressionCount: z.number().int().nonnegative(),
+});
+
+export type CharacterOverviewView = z.infer<typeof CharacterOverviewViewSchema>;
 
 export const CharacterDuplicateCandidatesQuerySchema = z.object({
   aliases: queryStringArray(z.string().trim().min(1).max(CHARACTER_NAME_MAX)),
@@ -589,20 +664,18 @@ export const SeriesCharactersSortSchema = z.enum(["name", "importance"]);
 
 export type SeriesCharactersSort = z.infer<typeof SeriesCharactersSortSchema>;
 
-export const SeriesCharactersQuerySchema = z.object({
-  contextBookId: z.string().uuid().optional(),
+export const SeriesCharactersQuerySchema = ReadingContextQuerySchema.extend({
   includeFuture: z.stringbool().optional(),
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   sort: SeriesCharactersSortSchema.default("name"),
-});
+}).superRefine(requireContextBookForReadingPosition);
 
 export type SeriesCharactersQuery = z.infer<typeof SeriesCharactersQuerySchema>;
 
-export const SeriesCharacterProfileQuerySchema = z.object({
-  contextBookId: z.string().uuid().optional(),
+export const SeriesCharacterProfileQuerySchema = ReadingContextQuerySchema.extend({
   includeFuture: z.stringbool().optional(),
-});
+}).superRefine(requireContextBookForReadingPosition);
 
 export type SeriesCharacterProfileQuery = z.infer<typeof SeriesCharacterProfileQuerySchema>;
 
@@ -618,12 +691,10 @@ export const CharacterRevealFieldKeySchema = z.enum([
 
 export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySchema>;
 
-export const CharacterDetailsQuerySchema = z.object({
-  ...readingPositionQueryFields,
-  contextBookId: z.string().uuid().optional(),
+export const CharacterDetailsQuerySchema = ReadingContextQuerySchema.extend({
   includeHiddenProfiles: z.stringbool().optional(),
   revealFieldIds: queryStringArray(CharacterRevealFieldKeySchema),
-});
+}).superRefine(requireContextBookForReadingPosition);
 
 export type CharacterDetailsQuery = z.infer<typeof CharacterDetailsQuerySchema>;
 
@@ -705,9 +776,9 @@ export const BookCharacterSummaryViewSchema = z.object({
 
 export type BookCharacterSummaryView = z.infer<typeof BookCharacterSummaryViewSchema>;
 
-export const SeriesCharacterSummaryQuerySchema = z.object({
-  contextBookId: z.string().uuid().optional(),
-});
+export const SeriesCharacterSummaryQuerySchema = ReadingContextQuerySchema.superRefine(
+  requireContextBookForReadingPosition,
+);
 
 export type SeriesCharacterSummaryQuery = z.infer<typeof SeriesCharacterSummaryQuerySchema>;
 

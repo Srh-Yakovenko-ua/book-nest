@@ -14,6 +14,7 @@ import {
   QueuePrioritySchema,
   type ReadingProgressView,
   ReadingStatusSchema,
+  toTagView,
 } from "@app/shared";
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
@@ -89,7 +90,7 @@ export function toBookView({
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
     series: series === null ? null : toSeriesView({ series }),
-    tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
+    tags: book.tags.map((bookTag) => toTagView(bookTag.tag)),
     title: book.title,
     translator: book.translator,
     updatedAt: book.updatedAt.toISOString(),

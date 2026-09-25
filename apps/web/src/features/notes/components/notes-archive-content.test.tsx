@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { mockIntersectionObserver, renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import type { NotesArchiveListState } from "../model/notes-archive-list-state";
 
@@ -20,6 +20,8 @@ vi.mock("@/i18n/navigation", () => ({
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
+
+const viewport = mockIntersectionObserver();
 
 const LOADED_NOTE = makeBookNote({ id: "note-1", text: "Завантажена нотатка." });
 const NEXT_PAGE_NOTE = makeBookNote({ id: "note-2", text: "Нотатка з наступної сторінки." });
@@ -103,19 +105,32 @@ describe("NotesArchiveContent", () => {
     expect(onRetry).not.toHaveBeenCalled();
   });
 
-  it("disables the load-more button while the next page loads", () => {
-    renderContent(readyState({ nextPage: "loading" }));
+  it("loads the next page as the sentinel reaches the viewport", () => {
+    const { onLoadMore } = renderContent(readyState({ nextPage: "idle" }));
 
-    expect(screen.getByRole("button", { name: /Показати ще/ })).toBeDisabled();
+    viewport.enterViewport();
+
+    expect(onLoadMore).toHaveBeenCalledOnce();
   });
 
-  it("drops the load-more button once every note is shown", () => {
+  it("announces the next page instead of asking for it again while it loads", () => {
+    const { onLoadMore } = renderContent(readyState({ nextPage: "loading" }));
+
+    viewport.enterViewport();
+
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Завантажуємо ще...")).toBeInTheDocument();
+    expect(onLoadMore).not.toHaveBeenCalled();
+  });
+
+  it("drops the sentinel once every note is shown", () => {
     renderContent(readyState());
 
-    expect(screen.queryByRole("button", { name: /Показати ще/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("moves focus to the first newly loaded note once the last page arrives", async () => {
+  it("moves focus to the first newly loaded note once the last page arrives", () => {
     const handlers = {
       onAddNote: vi.fn(),
       onClearFilters: vi.fn(),
@@ -126,7 +141,7 @@ describe("NotesArchiveContent", () => {
       <NotesArchiveContent {...handlers} state={readyState({ nextPage: "idle" })} view="grid" />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /Показати ще/ }));
+    viewport.enterViewport();
     rerender(
       <NotesArchiveContent
         {...handlers}
@@ -140,7 +155,7 @@ describe("NotesArchiveContent", () => {
     expect(handlers.onLoadMore).toHaveBeenCalledOnce();
   });
 
-  it("moves focus to the first newly loaded note while more pages remain", async () => {
+  it("moves focus to the first newly loaded note while more pages remain", () => {
     const handlers = {
       onAddNote: vi.fn(),
       onClearFilters: vi.fn(),
@@ -151,7 +166,7 @@ describe("NotesArchiveContent", () => {
       <NotesArchiveContent {...handlers} state={readyState({ nextPage: "idle" })} view="list" />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /Показати ще/ }));
+    viewport.enterViewport();
     rerender(
       <NotesArchiveContent {...handlers} state={readyState({ nextPage: "loading" })} view="list" />,
     );
@@ -165,6 +180,6 @@ describe("NotesArchiveContent", () => {
 
     const [, firstNewLink] = screen.getAllByRole("link", { name: "Дюна" });
     expect(firstNewLink).toHaveFocus();
-    expect(screen.getByRole("button", { name: /Показати ще/ })).toBeEnabled();
+    expect(screen.getByRole("status")).not.toHaveAttribute("aria-busy", "true");
   });
 });

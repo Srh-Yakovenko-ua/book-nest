@@ -8,7 +8,14 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { LoanContactsView } from "./loan-contacts-view";
 
@@ -41,6 +48,8 @@ type ContactsStub = {
 };
 
 type FetchMock = Mock<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>;
+
+const viewport = mockIntersectionObserver();
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -171,7 +180,8 @@ describe("LoanContactsView", () => {
   it("keeps the counts while the page moves on", async () => {
     const { fetchMock } = renderView({ pagesCount: 2, totalCount: 4 });
 
-    await userEvent.click(await screen.findByRole("button", { name: copy.loadMore }));
+    await screen.findByText("Ігор");
+    viewport.enterViewport();
 
     await waitFor(() => expect(lastListUrl(fetchMock)).toContain("pageNumber=2"));
     await openFilters();

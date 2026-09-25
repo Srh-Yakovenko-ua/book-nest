@@ -48,7 +48,7 @@ describe("PublisherCard", () => {
     expect(screen.getByText("8 книг")).toBeInTheDocument();
     expect(screen.getByText("у бібліотеці")).toBeInTheDocument();
     expect(screen.getByText("Прочитано").nextElementSibling).toHaveTextContent("5");
-    expect(screen.getByText("У списку бажань").nextElementSibling).toHaveTextContent("3");
+    expect(screen.getByText("Список бажань").nextElementSibling).toHaveTextContent("3");
     expect(screen.getByText("Серії").nextElementSibling).toHaveTextContent("2");
     expect(screen.getAllByRole("term")).toHaveLength(3);
     expect(screen.queryByText("6")).not.toBeInTheDocument();
@@ -57,18 +57,22 @@ describe("PublisherCard", () => {
     expect(screen.queryByText(/Бажані/)).not.toBeInTheDocument();
   });
 
-  it("shows the rating with its count and the last addition date", () => {
+  it("shows the rating with its count and the short last addition date", () => {
     renderWithProviders(
       <PublisherCard
         publisher={makePublisherListItem({
-          stats: makePublisherStats({ averageRating: 4.3, ratedBooksCount: 12 }),
+          stats: makePublisherStats({
+            averageRating: 4.3,
+            lastBookAddedAt: "2026-07-01",
+            ratedBooksCount: 12,
+          }),
         })}
       />,
     );
 
     expect(screen.getByText("4,3")).toBeInTheDocument();
-    expect(screen.getByText("· 12 оцінок")).toBeInTheDocument();
-    expect(screen.getByText(/^Останнє поповнення /)).toBeInTheDocument();
+    expect(screen.getByText("12 оцінок")).toBeInTheDocument();
+    expect(screen.getByText("Поповнено 1 лип. 2026")).toBeInTheDocument();
   });
 
   it("shows a dash when no book was ever added and drops the view link", () => {

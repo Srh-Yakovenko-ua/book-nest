@@ -3,7 +3,6 @@ import type { Nullable, TagColor, TagQuickFilter, TagSort, TagType } from "@app/
 import {
   TAG_COLORS,
   TAG_QUICK_FILTER_DEFAULT,
-  TAG_SORT_DEFAULT,
   TagQuickFilterSchema,
   TagsCatalogFacetsQuerySchema,
   TagSortSchema,
@@ -33,11 +32,20 @@ export type TagsStatePatch = {
   [Key in keyof TagsQueryState]?: Nullable<TagsQueryState[Key]>;
 };
 
+export type TagsViewMode = (typeof TAGS_QUERY.view.modes)[number];
+
 export const TAGS_QUERY = {
   history: "push",
   search: {
     minLength: 2,
     schema: TagsCatalogFacetsQuerySchema.shape.q,
+  },
+  sort: {
+    default: "created_desc" satisfies TagSort,
+  },
+  view: {
+    default: "grid",
+    modes: ["grid", "list"],
   },
 } as const;
 
@@ -45,8 +53,9 @@ export const TAGS_QUERY_PARSERS = {
   color: parseAsArrayOf(parseAsStringLiteral(TAG_COLORS)).withDefault([]),
   filter: parseAsStringLiteral(TagQuickFilterSchema.options).withDefault(TAG_QUICK_FILTER_DEFAULT),
   q: parseAsString.withDefault(""),
-  sort: parseAsStringLiteral(TagSortSchema.options).withDefault(TAG_SORT_DEFAULT),
+  sort: parseAsStringLiteral(TagSortSchema.options).withDefault(TAGS_QUERY.sort.default),
   type: parseAsArrayOf(parseAsStringLiteral(TagTypeSchema.options)).withDefault([]),
+  view: parseAsStringLiteral(TAGS_QUERY.view.modes).withDefault(TAGS_QUERY.view.default),
 };
 
 export function clearAllTagsFiltersPatch(): TagsStatePatch {

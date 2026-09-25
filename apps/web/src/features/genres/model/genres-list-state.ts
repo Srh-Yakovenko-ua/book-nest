@@ -1,5 +1,7 @@
 import type { GenreStatsView } from "@app/shared";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
 export type GenresEmptyReason = "filters" | "library" | "search";
 
 export type GenresListSnapshot = {
@@ -16,13 +18,11 @@ export type GenresListState =
       genres: GenreStatsView[];
       isRefreshing: boolean;
       kind: "ready";
-      nextPage: GenresNextPageState;
+      nextPage: InfiniteScrollState;
     }
   | { kind: "empty"; reason: GenresEmptyReason }
   | { kind: "error" }
   | { kind: "loading" };
-
-export type GenresNextPageState = "error" | "idle" | "loading" | "none";
 
 type GenresListStateInput = {
   hasActiveFilters: boolean;
@@ -61,7 +61,7 @@ function emptyReason({
   return "library";
 }
 
-function nextPageState(list: GenresListSnapshot): GenresNextPageState {
+function nextPageState(list: GenresListSnapshot): InfiniteScrollState {
   if (list.isFetchingNextPage) return "loading";
   if (list.isFetchNextPageError) return "error";
   if (list.hasNextPage) return "idle";
