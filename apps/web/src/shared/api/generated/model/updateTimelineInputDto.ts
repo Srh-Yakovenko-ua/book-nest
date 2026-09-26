@@ -8,7 +8,6 @@
 import type { UpdateTimelineInputDtoColorKey } from "./updateTimelineInputDtoColorKey";
 
 export interface UpdateTimelineInputDto {
-  /** @nullable */
   colorKey?: UpdateTimelineInputDtoColorKey;
   /**
    * @maxLength 500

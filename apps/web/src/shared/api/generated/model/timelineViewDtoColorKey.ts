@@ -6,23 +6,16 @@
  * OpenAPI spec version: 1.0
  */
 
-/**
- * @nullable
- */
 export type TimelineViewDtoColorKey =
-  (typeof TimelineViewDtoColorKey)[keyof typeof TimelineViewDtoColorKey] | null;
+  (typeof TimelineViewDtoColorKey)[keyof typeof TimelineViewDtoColorKey];
 
 export const TimelineViewDtoColorKey = {
-  slate: "slate",
-  stone: "stone",
-  amber: "amber",
-  orange: "orange",
-  rose: "rose",
-  red: "red",
-  emerald: "emerald",
-  teal: "teal",
+  parchment: "parchment",
+  terracotta: "terracotta",
+  honey: "honey",
+  sage: "sage",
+  forest: "forest",
   sky: "sky",
-  blue: "blue",
-  violet: "violet",
-  fuchsia: "fuchsia",
+  lavender: "lavender",
+  rose: "rose",
 } as const;

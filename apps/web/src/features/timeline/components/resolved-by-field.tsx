@@ -9,7 +9,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { EventSearchSelect } from "./event-search-select";
+import { TimelineEventSingleSelectPicker } from "./timeline-event-single-select-picker";
 
 type ResolvedByFieldProps = {
   bookId: string;
@@ -63,14 +63,15 @@ export function ResolvedByField({
   }
 
   return (
-    <EventSearchSelect
+    <TimelineEventSingleSelectPicker
       bookId={bookId}
       excludeIds={excludeIds}
       onSelect={(event) => {
         setSelection({ id: event.id, title: event.title });
         onChange(event.id);
       }}
-      placeholder={t("resolvedBySearchPlaceholder")}
+      searchLabel={t("resolvedBySearchPlaceholder")}
+      selectedId={value}
     />
   );
 }

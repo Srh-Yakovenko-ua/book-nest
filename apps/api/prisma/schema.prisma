@@ -967,7 +967,7 @@ model BookTimeline {
   bookId      String              @map("book_id") @db.Uuid
   name        String
   description String?
-  colorKey    String?             @map("color_key")
+  colorKey    String              @map("color_key")
   position    Int
   isDefault   Boolean             @default(false) @map("is_default")
   deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz
@@ -997,6 +997,7 @@ model BookTimelineEvent {
   eventType         String                      @default("main") @map("event_type")
   importance        String                      @default("medium")
   importanceRank    Int                         @default(1) @map("importance_rank")
+  isSpoiler         Boolean                     @default(false) @map("is_spoiler")
   personalNote      String?                     @map("personal_note")
   threadStatus      String?                     @map("thread_status")
   resolvedByEventId String?                     @map("resolved_by_event_id") @db.Uuid

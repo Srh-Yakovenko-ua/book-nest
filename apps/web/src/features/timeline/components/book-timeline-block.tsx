@@ -5,6 +5,7 @@ import type {
   Nullable,
   TimelineEventType,
   TimelineEventView,
+  TimelineImportance,
   TimelineReorderScope,
   TimelineView,
 } from "@app/shared";
@@ -17,7 +18,9 @@ import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Button } from "@/components/ui/button";
+import { assertNever } from "@/lib/assert-never";
 
+import type { TimelineFilteredEmptyKind } from "../model/timeline-empty-state";
 import type { TimelineEventsFilterState } from "../model/timeline-events-query";
 import type { TimelineViewMode } from "../model/timeline-view-mode";
 
@@ -25,6 +28,7 @@ import { useBookTimelines } from "../api/use-book-timelines";
 import { useTimelineEvents } from "../api/use-timeline-events";
 import { useTimelineOverview } from "../api/use-timeline-overview";
 import { useTimelineSummary } from "../api/use-timeline-summary";
+import { resolveTimelineEmptyState } from "../model/timeline-empty-state";
 import {
   createFilterState,
   hasActiveEventFilters,
@@ -46,6 +50,7 @@ import { EventStreamView } from "./event-stream-view";
 import { ManageTimelinesDialog } from "./manage-timelines-dialog";
 import { MoveEventDialog } from "./move-event-dialog";
 import { ReadingPositionControls } from "./reading-position-controls";
+import { TimelineActiveFilters } from "./timeline-active-filters";
 import { TimelineEmpty } from "./timeline-empty";
 import { TimelineError } from "./timeline-error";
 import { TimelineFilteredEmpty } from "./timeline-filtered-empty";
@@ -55,6 +60,7 @@ import { TimelineOverviewView } from "./timeline-overview-view";
 import { TimelineSkeleton } from "./timeline-skeleton";
 import { TimelineSwitcher } from "./timeline-switcher";
 import { TimelineToolbar } from "./timeline-toolbar";
+import { TimelineViewSwitch } from "./timeline-view-switch";
 
 type BookTimelineBlockProps = {
   book: BookView;
@@ -63,8 +69,12 @@ type BookTimelineBlockProps = {
 type EventDialogState =
   { event: TimelineEventView; mode: "edit" } | { mode: "closed" } | { mode: "create" };
 
-type LineFormState =
-  { mode: "closed" } | { mode: "create" } | { mode: "edit"; timeline: TimelineView };
+type TimelineManagementState =
+  | { mode: "closed" }
+  | { mode: "create" }
+  | { mode: "delete"; timeline: TimelineView }
+  | { mode: "edit"; timeline: TimelineView }
+  | { mode: "manage" };
 
 export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const t = useTranslations("timeline");
@@ -95,15 +105,16 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const [filters, setFilters] = useState<TimelineEventsFilterState>(() => createFilterState(null));
   const [openEventId, setOpenEventId] = useState<Nullable<string>>(null);
   const [guardOverride, setGuardOverride] = useState<Nullable<boolean>>(null);
+  const [revealedEventIds, setRevealedEventIds] = useState<ReadonlySet<string>>(() => new Set());
   const [eventDialog, setEventDialog] = useState<EventDialogState>({ mode: "closed" });
   const [moveTarget, setMoveTarget] = useState<Nullable<TimelineEventView>>(null);
   const [deleteTarget, setDeleteTarget] = useState<Nullable<TimelineEventView>>(null);
-  const [manageLinesOpen, setManageLinesOpen] = useState(false);
-  const [lineForm, setLineForm] = useState<LineFormState>({ mode: "closed" });
-  const [deleteLineTarget, setDeleteLineTarget] = useState<Nullable<TimelineView>>(null);
+  const [management, setManagement] = useState<TimelineManagementState>({ mode: "closed" });
 
   const eventFilters: TimelineEventsFilterState = { ...filters, timelineId: activeTimelineId };
-  const eventsQuery = useTimelineEvents(book.id, eventFilters);
+  const eventsQuery = useTimelineEvents(book.id, eventFilters, {
+    enabled: viewMode !== "overview",
+  });
 
   const readingPosition = overviewQuery.data?.readingPosition ?? null;
   const currentPage =
@@ -111,6 +122,11 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const guardEnabled = guardOverride ?? readingPosition?.guardDefault ?? false;
 
   const totalEvents = summaryQuery.data?.totalEvents ?? 0;
+  const selectedLineEventsCount =
+    activeTimelineId === null
+      ? null
+      : (summaryQuery.data?.timelines.find((line) => line.timelineId === activeTimelineId)
+          ?.eventsCount ?? 0);
   const events = eventsQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const hasActiveFilters = hasActiveEventFilters(filters);
   const hasEventsError = eventsQuery.isError && !eventsQuery.isFetchNextPageError;
@@ -129,6 +145,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const reorderScope: TimelineReorderScope =
     filters.sort === "timeline_order" ? "timeline" : "book";
   const eventIndexById = new Map(events.map((event, index) => [event.id, index] as const));
+  const skeletonShape = viewMode === "list" ? "list" : "stream";
 
   function changeView(next: TimelineViewMode) {
     void setView(next);
@@ -147,30 +164,60 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     }));
   }
 
-  function selectType(type: TimelineEventType) {
-    setFilters((prev) => ({ ...prev, eventType: [type] }));
+  function drillDownToType(eventType: TimelineEventType) {
+    void setTimelineId(null);
+    setFilters({ ...createFilterState(null), eventType: [eventType], sort: "book_order" });
     changeView("stream");
   }
 
-  function selectLine(nextTimelineId: string) {
-    selectTimeline(nextTimelineId);
+  function drillDownToImportance(importance: TimelineImportance) {
+    void setTimelineId(null);
+    setFilters({ ...createFilterState(null), importance: [importance], sort: "book_order" });
     changeView("stream");
+  }
+
+  function drillDownToLine(nextTimelineId: string) {
+    void setTimelineId(nextTimelineId);
+    setFilters({ ...createFilterState(nextTimelineId), sort: "timeline_order" });
+    changeView("stream");
+  }
+
+  function drillDownToWithoutChapter() {
+    void setTimelineId(null);
+    setFilters({ ...createFilterState(null), sort: "book_order", withoutChapter: true });
+    changeView("stream");
+  }
+
+  function revealEvent(eventId: string) {
+    setRevealedEventIds((current) => new Set(current).add(eventId));
+  }
+
+  function clearEmptyStateRestriction(kind: TimelineFilteredEmptyKind) {
+    switch (kind) {
+      case "filters":
+        resetFilters();
+        return;
+      case "recap":
+        setFilters((prev) => ({ ...prev, recap: false }));
+        return;
+      case "search":
+        setFilters((prev) => ({ ...prev, search: "" }));
+        return;
+      case "withoutChapter":
+        setFilters((prev) => ({ ...prev, withoutChapter: false }));
+        return;
+      default:
+        assertNever(kind);
+    }
   }
 
   function openCreateEvent() {
     setEventDialog({ mode: "create" });
   }
 
-  function openCreateLine() {
-    setLineForm({ mode: "create" });
-  }
-
-  function openEditLine(timeline: TimelineView) {
-    setLineForm({ mode: "edit", timeline });
-  }
-
   function handleLineDeleted(deletedTimelineId: string) {
     if (activeTimelineId === deletedTimelineId) selectTimeline(null);
+    setManagement({ mode: "manage" });
   }
 
   function renderActions(event: TimelineEventView) {
@@ -196,57 +243,81 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     );
   }
 
+  function renderEmptyState() {
+    const emptyState = resolveTimelineEmptyState({
+      activeTimelineId,
+      filters: eventFilters,
+      selectedLineEventsCount,
+      totalEvents,
+    });
+
+    if (emptyState === "book") return <TimelineEmpty onAddEvent={openCreateEvent} />;
+    if (emptyState === "line") {
+      return (
+        <TimelineLineEmpty
+          onAddEvent={openCreateEvent}
+          onPickAllLines={() => void setTimelineId(null)}
+        />
+      );
+    }
+    return (
+      <TimelineFilteredEmpty
+        onAction={() => clearEmptyStateRestriction(emptyState)}
+        state={emptyState}
+      />
+    );
+  }
+
   function renderViewContent() {
     if (viewMode === "overview") {
       if (overviewQuery.data === undefined) {
         return overviewQuery.isError ? (
           <TimelineError onRetry={() => void overviewQuery.refetch()} />
         ) : (
-          <TimelineSkeleton />
+          <TimelineSkeleton shape="stream" />
         );
       }
       return (
         <TimelineOverviewView
-          onSelectLine={selectLine}
-          onSelectType={selectType}
+          onSelectImportance={drillDownToImportance}
+          onSelectLine={drillDownToLine}
+          onSelectType={drillDownToType}
+          onSelectWithoutChapter={drillDownToWithoutChapter}
           overview={overviewQuery.data}
+          timelines={timelines}
         />
       );
     }
 
-    if (eventsQuery.isPending) return <TimelineSkeleton />;
+    if (eventsQuery.isPending) return <TimelineSkeleton shape={skeletonShape} />;
     if (hasEventsError) return <TimelineError onRetry={() => void eventsQuery.refetch()} />;
 
-    if (events.length === 0) {
-      if (hasActiveFilters) return <TimelineFilteredEmpty onReset={resetFilters} />;
-      if (activeTimelineId !== null) {
-        return (
-          <TimelineLineEmpty
-            onAddEvent={openCreateEvent}
-            onPickAllLines={() => void setTimelineId(null)}
-          />
-        );
-      }
-      return <TimelineEmpty onAddEvent={openCreateEvent} />;
-    }
+    if (events.length === 0) return renderEmptyState();
 
     return (
       <div className="flex flex-col gap-3">
         {viewMode === "list" ? (
           <EventListView
+            currentPage={currentPage}
             events={events}
+            guardEnabled={guardEnabled}
+            isAllLines={isAllLines}
             onOpenEvent={setOpenEventId}
+            onRevealEvent={revealEvent}
             renderActions={renderActions}
-            showTimelineName={isAllLines}
+            revealedEventIds={revealedEventIds}
           />
         ) : (
           <EventStreamView
             currentPage={currentPage}
             events={events}
             guardEnabled={guardEnabled}
+            hasNextPage={eventsQuery.hasNextPage}
+            isAllLines={isAllLines}
             onOpenEvent={setOpenEventId}
+            onRevealEvent={revealEvent}
             renderActions={renderActions}
-            showTimelineName={isAllLines}
+            revealedEventIds={revealedEventIds}
             sort={filters.sort}
           />
         )}
@@ -272,40 +343,53 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
       );
     }
 
-    if (timelinesQuery.isPending || summaryQuery.isPending) return <TimelineSkeleton />;
+    if (timelinesQuery.isPending || summaryQuery.isPending) {
+      return <TimelineSkeleton shape={skeletonShape} />;
+    }
 
     const showFilterControls = viewMode !== "overview";
 
     return (
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3">
-          <TimelineSwitcher
-            activeTimelineId={activeTimelineId}
-            onCreateLine={openCreateLine}
-            onEditLine={openEditLine}
-            onManageLines={() => setManageLinesOpen(true)}
-            onSelect={selectTimeline}
-            timelines={timelines}
-            totalEvents={totalEvents}
-          />
-          <TimelineToolbar
-            filters={filters}
-            hasActiveFilters={hasActiveFilters}
-            isAllLines={isAllLines}
-            onFiltersChange={setFilters}
-            onReset={resetFilters}
-            onViewChange={changeView}
-            showFilterControls={showFilterControls}
-            view={viewMode}
-          />
-          {showFilterControls && readingPosition !== null ? (
-            <ReadingPositionControls
-              guardEnabled={guardEnabled}
-              onGuardChange={setGuardOverride}
-              onRecapChange={(recap) => setFilters((prev) => ({ ...prev, recap }))}
-              readingPosition={readingPosition}
-              recap={filters.recap}
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            {showFilterControls ? (
+              <TimelineSwitcher
+                activeTimelineId={activeTimelineId}
+                onManageLines={() => setManagement({ mode: "manage" })}
+                onSelect={selectTimeline}
+                timelines={timelines}
+                totalEvents={totalEvents}
+              />
+            ) : null}
+            <TimelineViewSwitch
+              className="shrink-0 self-start"
+              onChange={changeView}
+              value={viewMode}
             />
+          </div>
+          {showFilterControls ? (
+            <>
+              <TimelineToolbar
+                filters={filters}
+                isAllLines={isAllLines}
+                onFiltersChange={setFilters}
+              />
+              <TimelineActiveFilters
+                filters={filters}
+                onChange={setFilters}
+                onClearAll={resetFilters}
+              />
+              {readingPosition === null ? null : (
+                <ReadingPositionControls
+                  guardEnabled={guardEnabled}
+                  onGuardChange={setGuardOverride}
+                  onRecapChange={(recap) => setFilters((prev) => ({ ...prev, recap }))}
+                  readingPosition={readingPosition}
+                  recap={filters.recap}
+                />
+              )}
+            </>
           ) : null}
         </div>
         {renderViewContent()}
@@ -348,7 +432,9 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
       </Button>
 
       <EventDetailDialog
+        currentPage={currentPage}
         eventId={openEventId}
+        guardEnabled={guardEnabled}
         onDelete={(event) => {
           setOpenEventId(null);
           setDeleteTarget(event);
@@ -357,10 +443,11 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
           setOpenEventId(null);
           setEventDialog({ event, mode: "edit" });
         }}
-        onNavigate={setOpenEventId}
         onOpenChange={(open) => {
           if (!open) setOpenEventId(null);
         }}
+        onRevealEvent={revealEvent}
+        revealedEventIds={revealedEventIds}
       />
 
       <EventFormDialog
@@ -393,34 +480,34 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
         }}
       />
 
-      <ManageTimelinesDialog
-        bookId={book.id}
-        onCreate={openCreateLine}
-        onDelete={setDeleteLineTarget}
-        onEdit={openEditLine}
-        onOpenChange={setManageLinesOpen}
-        open={manageLinesOpen}
-        timelines={timelines}
-      />
+      {management.mode === "manage" ? (
+        <ManageTimelinesDialog
+          bookId={book.id}
+          onClose={() => setManagement({ mode: "closed" })}
+          onCreate={() => setManagement({ mode: "create" })}
+          onDelete={(timeline) => setManagement({ mode: "delete", timeline })}
+          onEdit={(timeline) => setManagement({ mode: "edit", timeline })}
+        />
+      ) : null}
 
-      <TimelineFormDialog
-        bookId={book.id}
-        onOpenChange={(open) => {
-          if (!open) setLineForm({ mode: "closed" });
-        }}
-        open={lineForm.mode !== "closed"}
-        timeline={lineForm.mode === "edit" ? lineForm.timeline : undefined}
-      />
+      {management.mode === "create" || management.mode === "edit" ? (
+        <TimelineFormDialog
+          bookId={book.id}
+          onClose={() => setManagement({ mode: "manage" })}
+          timeline={management.mode === "edit" ? management.timeline : undefined}
+          timelines={timelines}
+        />
+      ) : null}
 
-      <DeleteTimelineDialog
-        bookId={book.id}
-        onDeleted={handleLineDeleted}
-        onOpenChange={(open) => {
-          if (!open) setDeleteLineTarget(null);
-        }}
-        timeline={deleteLineTarget}
-        timelines={timelines}
-      />
+      {management.mode === "delete" ? (
+        <DeleteTimelineDialog
+          bookId={book.id}
+          onClose={() => setManagement({ mode: "manage" })}
+          onDeleted={handleLineDeleted}
+          timeline={management.timeline}
+          timelines={timelines}
+        />
+      ) : null}
     </section>
   );
 }

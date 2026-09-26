@@ -7104,16 +7104,16 @@
       "newest": "Спочатку нові",
       "oldest": "Спочатку старі"
     },
-    "preset": {
-      "importantEvents": "Важливі події",
-      "keyOnly": "Тільки ключові"
+    "recap": "До моєї позиції",
+    "guard": "Захист від спойлерів",
+    "guarded": {
+      "reasonFuture": "Подія знаходиться далі вашої поточної позиції читання",
+      "reasonManual": "Подія позначена як спойлер",
+      "reasonBoth": "Подія прихована",
+      "reveal": "Показати подію"
     },
-    "recap": "Що вже сталося",
-    "guard": "Ховати те, що попереду",
-    "guardReveal": "Показати",
-    "guardHidden": "Подія попереду позиції читання",
-    "positionMarker": "Ти зараз тут",
-    "noChapter": "Без розділу",
+    "positionMarker": "Ви тут · стор. {page}",
+    "noChapter": "Без зазначеного розділу",
     "eventType": {
       "main": "Основна подія",
       "mystery": "Розкриття таємниці",
@@ -7139,12 +7139,12 @@
     "relationType": {
       "follows_from": "Випливає з",
       "foreshadows": "Передвіщає",
-      "related": "Пов’язане"
+      "related": "Пов’язано"
     },
     "relationTypeInverse": {
       "follows_from": "Веде до",
       "foreshadows": "Передвіщено подією",
-      "related": "Пов’язане"
+      "related": "Пов’язано"
     },
     "thread": {
       "open": "Відкрите питання",
@@ -7170,11 +7170,7 @@
       "importanceLabel": "Важливість",
       "personalNoteLabel": "Особиста нотатка",
       "personalNotePlaceholder": "Лише для тебе",
-      "threadStatusLabel": "Сюжетна лінія",
-      "threadNone": "Не сюжетна лінія",
       "timelineLabel": "Часова лінія",
-      "moreFields": "Більше полів",
-      "fewerFields": "Менше полів",
       "saveEvent": "Зберегти подію",
       "saveAndAddAnother": "Зберегти й додати ще",
       "cancel": "Скасувати",
@@ -7186,11 +7182,7 @@
       "dirtyCloseCancel": "Продовжити редагування",
       "createDescription": "Занотуй ключовий момент сюжету — решту полів можна лишити на потім.",
       "editDescription": "Онови деталі події.",
-      "placeInBook": "Місце у книзі",
-      "additionalData": "Додаткові дані",
       "timelineEditHint": "Щоб перенести подію до іншої лінії, скористайся дією «Перенести до лінії».",
-      "relationsLabel": "Пов’язані події",
-      "relationsHint": "Познач причинно-наслідкові зв’язки з іншими подіями книги.",
       "relationTypeLabel": "Тип зв’язку",
       "relationTargetPlaceholder": "Пошук події за назвою",
       "relationRemove": "Прибрати зв’язок",
@@ -7199,7 +7191,37 @@
       "resolvedBySearchPlaceholder": "Пошук події-розв’язки",
       "resolvedByClear": "Прибрати",
       "resolvedByLoading": "Завантаження події…",
-      "searchEmpty": "Нічого не знайдено"
+      "sections": {
+        "basics": {
+          "title": "Основна інформація",
+          "subtitle": "Назва, короткий опис, тип і важливість події"
+        },
+        "place": {
+          "title": "Місце в книзі",
+          "subtitle": "Розділ, сторінка та час у сюжеті"
+        },
+        "details": {
+          "title": "Деталі події",
+          "subtitle": "Локація, розгорнутий опис і особиста нотатка"
+        },
+        "thread": {
+          "title": "Сюжетне питання",
+          "subtitle": "Познач, чи відкриває подія питання, чи закриває його"
+        },
+        "relations": {
+          "title": "Зв’язки з іншими подіями",
+          "subtitle": "Причинно-наслідкові зв’язки в межах книги"
+        }
+      },
+      "threadChip": {
+        "none": "Немає",
+        "open": "Відкрите",
+        "resolved": "Розв’язано"
+      },
+      "hasDescription": "є опис",
+      "hasNote": "є нотатка",
+      "saveChanges": "Зберегти зміни",
+      "relationsInstantSaveHint": "Зміни зв’язків зберігаються одразу"
     },
     "filters": {
       "title": "Фільтри",
@@ -7207,32 +7229,39 @@
       "searchPlaceholder": "Пошук за назвою",
       "typeLabel": "Тип події",
       "importanceLabel": "Важливість",
-      "unresolved": "Нерозв’язані лінії",
+      "unresolved": "Лише відкриті питання",
       "reset": "Скинути фільтри",
       "apply": "Застосувати",
       "allTypes": "Усі типи",
       "statusLabel": "Статус лінії",
-      "description": "Звузь список подій за типом, важливістю та статусом.",
+      "description": "Звузь список подій за типом, важливістю, статусом і структурою книги.",
       "selectPlaceholder": "Оберіть",
       "searchOptions": "Пошук…",
       "noOptions": "Нічого не знайдено",
-      "done": "Готово"
+      "done": "Готово",
+      "structureLabel": "Структура книги",
+      "withoutChapter": "Без зазначеного розділу",
+      "openThreads": "Відкриті питання"
     },
     "list": {
       "number": "№",
       "event": "Подія",
+      "context": "Контекст",
       "type": "Тип",
-      "place": "Розділ і сторінка",
-      "timeline": "Лінія",
-      "importance": "Важливість"
+      "importance": "Важливість",
+      "timeline": "Часова лінія",
+      "page": "стор. {page}",
+      "actions": "Дії"
     },
     "detail": {
       "description": "Детальний опис",
       "related": "Пов’язані події",
-      "resolves": "Закриває питання",
+      "resolves": "Ця подія розв’язує",
       "close": "Закрити",
       "edit": "Редагувати",
-      "delete": "Видалити"
+      "delete": "Видалити",
+      "context": "Контекст",
+      "back": "Назад"
     },
     "states": {
       "loading": "Завантаження хронології",
@@ -7244,29 +7273,30 @@
       "lineEmptyTitle": "У цій часовій лінії ще немає подій",
       "lineEmptyAddAction": "Додати подію",
       "lineEmptyPickAction": "Обрати іншу лінію",
-      "filteredEmptyTitle": "За вибраними фільтрами нічого не знайдено",
+      "filteredEmptyTitle": "Нічого не знайдено за поточними фільтрами",
       "filteredEmptyAction": "Скинути фільтри",
       "saving": "Збереження…",
       "deleting": "Видалення…",
-      "loadMoreError": "Не вдалося завантажити більше подій"
+      "loadMoreError": "Не вдалося завантажити більше подій",
+      "searchEmptyText": "Нічого не знайдено за вашим запитом",
+      "searchEmptyAction": "Очистити пошук",
+      "recapEmptyText": "До поточної позиції ще немає подій",
+      "recapEmptyAction": "Показати всі",
+      "withoutChapterEmptyText": "Усі події вже мають зазначений розділ"
     },
     "manage": {
       "title": "Керування лініями",
       "createTitle": "Нова часова лінія",
       "editTitle": "Редагувати лінію",
-      "rename": "Перейменувати",
-      "setDefault": "Призначити основною",
-      "isDefault": "Основна лінія",
-      "moveUp": "Перемістити вище",
-      "moveDown": "Перемістити нижче",
+      "setDefault": "Зробити основною",
+      "moveUp": "Перемістити «{name}» вище",
+      "moveDown": "Перемістити «{name}» нижче",
       "delete": "Видалити лінію",
       "nameLabel": "Назва лінії",
-      "namePlaceholder": "Напр. Спогади",
+      "namePlaceholder": "Напр. Основна сюжетна лінія",
       "descriptionLabel": "Опис",
       "descriptionPlaceholder": "Необов’язкове пояснення",
-      "markerLabel": "Колірний маркер",
-      "markerNone": "Без маркера",
-      "save": "Зберегти",
+      "markerLabel": "Колір лінії",
       "cancel": "Скасувати",
       "deleteTitle": "Видалити часову лінію?",
       "eventCountLine": "У цій лінії {count} подій.",
@@ -7284,39 +7314,44 @@
       "duplicateName": "Лінія з такою назвою вже існує",
       "defaultBadge": "Основна",
       "eventCount": "{count, plural, one {# подія} few {# події} many {# подій} other {# подій}}",
-      "rowMenu": "Дії лінії",
+      "rowMenu": "Дії лінії «{name}»",
       "edit": "Редагувати",
-      "deleteDefaultHint": "Спершу признач іншу лінію основною, щоб видалити цю.",
+      "deleteDefaultHint": "Спочатку зробіть основною іншу часову лінію.",
       "deleteEmptyDescription": "Цю лінію буде видалено. Скасувати цю дію неможливо.",
       "deleteConfirmCheckbox": "Розумію, події буде видалено назавжди",
-      "done": "Готово"
+      "done": "Готово",
+      "lineCount": "{count, plural, one {# часова лінія} few {# часові лінії} many {# часових ліній} other {# часових ліній}}",
+      "emptyTitle": "Часові лінії ще не створені",
+      "loading": "Завантаження часових ліній",
+      "submitCreate": "Створити",
+      "submitEdit": "Зберегти зміни"
     },
     "colorKey": {
-      "slate": "Сланцевий",
-      "stone": "Кам’яний",
-      "amber": "Бурштиновий",
-      "orange": "Помаранчевий",
-      "rose": "Рожевий",
-      "red": "Червоний",
-      "emerald": "Смарагдовий",
-      "teal": "Бірюзовий",
+      "parchment": "Пергамент",
+      "terracotta": "Теракота",
+      "honey": "Медовий",
+      "sage": "Шавлія",
+      "forest": "Лісовий",
       "sky": "Небесний",
-      "blue": "Синій",
-      "violet": "Фіолетовий",
-      "fuchsia": "Фуксія"
+      "lavender": "Лаванда",
+      "rose": "Пудрова троянда"
     },
     "overview": {
       "byType": "За типом подій",
       "byImportance": "За важливістю",
-      "byLine": "За лініями",
-      "chapterDensity": "Щільність за розділами",
-      "unresolved": "Нерозв’язані питання",
-      "beforeAfterPosition": "До і після позиції читання",
-      "eventsBefore": "До позиції",
-      "eventsAfter": "Попереду",
-      "eventsUnknown": "Позиція невідома",
+      "chapterDensity": "Щільність подій за розділами",
+      "unresolved": "Відкриті питання",
       "totalEvents": "Усього подій",
-      "empty": "Поки немає даних для огляду."
+      "empty": "Поки немає даних",
+      "keyEvents": "Ключові події",
+      "timelines": "Часові лінії",
+      "inChapters": "у {count} розділах",
+      "resolvedFact": "{count} уже розв’язано",
+      "lineEvents": "{count, plural, one {# подія} few {# події} many {# подій} other {# подій}}",
+      "noChapterFooter": "Без зазначеного розділу: {count} подій",
+      "range": "{from}–{to} з {total}",
+      "prevPage": "Попередні",
+      "nextPage": "Наступні"
     },
     "toast": {
       "created": "Подію додано",
@@ -7373,6 +7408,22 @@
       "confirm": "Видалити",
       "cancel": "Скасувати",
       "deleting": "Видалення…"
+    },
+    "linesLabel": "Часові лінії",
+    "activeFilters": {
+      "label": "Активні фільтри",
+      "remove": "Прибрати «{label}»",
+      "clearAll": "Скинути все"
+    },
+    "spoiler": {
+      "label": "Спойлер",
+      "hint": "Подію буде приховано, доки увімкнено захист від спойлерів."
+    },
+    "picker": {
+      "empty": "Нічого не знайдено",
+      "error": "Не вдалося завантажити події",
+      "loading": "Завантаження…",
+      "results": "Події книги"
     }
   },
   "publishers": {

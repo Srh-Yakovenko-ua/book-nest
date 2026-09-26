@@ -68,6 +68,7 @@ export const TimelineEventsControllerListEventsQueryParams = zod.object({
     .default(timelineEventsControllerListEventsQuerySortDefault),
   timelineId: zod.uuid().regex(timelineEventsControllerListEventsQueryTimelineIdRegExp).optional(),
   unresolved: zod.enum(["true", "false"]).optional(),
+  withoutChapter: zod.enum(["true", "false"]).optional(),
 });
 
 export const timelineEventsControllerListEventsResponseItemsItemBookOrderMin = -9007199254740991;
@@ -121,6 +122,7 @@ export const TimelineEventsControllerListEventsResponse = zod.object({
       ]),
       id: zod.string(),
       importance: zod.enum(["low", "medium", "high", "key"]),
+      isSpoiler: zod.boolean(),
       location: zod.string().nullable(),
       pageNumber: zod
         .int()
@@ -134,23 +136,16 @@ export const TimelineEventsControllerListEventsResponse = zod.object({
       threadStatus: zod
         .union([zod.literal("open"), zod.literal("resolved"), zod.literal(null)])
         .nullable(),
-      timelineColorKey: zod
-        .union([
-          zod.literal("slate"),
-          zod.literal("stone"),
-          zod.literal("amber"),
-          zod.literal("orange"),
-          zod.literal("rose"),
-          zod.literal("red"),
-          zod.literal("emerald"),
-          zod.literal("teal"),
-          zod.literal("sky"),
-          zod.literal("blue"),
-          zod.literal("violet"),
-          zod.literal("fuchsia"),
-          zod.literal(null),
-        ])
-        .nullable(),
+      timelineColorKey: zod.enum([
+        "parchment",
+        "terracotta",
+        "honey",
+        "sage",
+        "forest",
+        "sky",
+        "lavender",
+        "rose",
+      ]),
       timelineId: zod.string(),
       timelineName: zod.string(),
       timelineOrder: zod
@@ -192,6 +187,7 @@ export const timelineEventsControllerCreateEventBodyDescriptionMax = 5000;
 
 export const timelineEventsControllerCreateEventBodyEventTypeDefault = `main`;
 export const timelineEventsControllerCreateEventBodyImportanceDefault = `medium`;
+export const timelineEventsControllerCreateEventBodyIsSpoilerDefault = false;
 export const timelineEventsControllerCreateEventBodyLocationMax = 200;
 
 export const timelineEventsControllerCreateEventBodyPageNumberExclusiveMin = 0;
@@ -235,6 +231,7 @@ export const TimelineEventsControllerCreateEventBody = zod.object({
   importance: zod
     .enum(["low", "medium", "high", "key"])
     .default(timelineEventsControllerCreateEventBodyImportanceDefault),
+  isSpoiler: zod.boolean().default(timelineEventsControllerCreateEventBodyIsSpoilerDefault),
   location: zod.string().max(timelineEventsControllerCreateEventBodyLocationMax).nullish(),
   pageNumber: zod
     .int()
@@ -291,6 +288,7 @@ export const TimelineEventsControllerCreateEventResponse = zod.object({
   ]),
   id: zod.string(),
   importance: zod.enum(["low", "medium", "high", "key"]),
+  isSpoiler: zod.boolean(),
   location: zod.string().nullable(),
   pageNumber: zod
     .int()
@@ -304,23 +302,16 @@ export const TimelineEventsControllerCreateEventResponse = zod.object({
   threadStatus: zod
     .union([zod.literal("open"), zod.literal("resolved"), zod.literal(null)])
     .nullable(),
-  timelineColorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  timelineColorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   timelineId: zod.string(),
   timelineName: zod.string(),
   timelineOrder: zod
@@ -363,6 +354,9 @@ export const timelineEventsControllerOverviewResponseReadingPositionCurrentPageM
   -9007199254740991;
 export const timelineEventsControllerOverviewResponseReadingPositionCurrentPageMax = 9007199254740991;
 
+export const timelineEventsControllerOverviewResponseResolvedCountMin = 0;
+export const timelineEventsControllerOverviewResponseResolvedCountMax = 9007199254740991;
+
 export const timelineEventsControllerOverviewResponseTotalEventsMin = 0;
 export const timelineEventsControllerOverviewResponseTotalEventsMax = 9007199254740991;
 
@@ -381,23 +375,16 @@ export const TimelineEventsControllerOverviewResponse = zod.object({
   ),
   byTimeline: zod.array(
     zod.object({
-      colorKey: zod
-        .union([
-          zod.literal("slate"),
-          zod.literal("stone"),
-          zod.literal("amber"),
-          zod.literal("orange"),
-          zod.literal("rose"),
-          zod.literal("red"),
-          zod.literal("emerald"),
-          zod.literal("teal"),
-          zod.literal("sky"),
-          zod.literal("blue"),
-          zod.literal("violet"),
-          zod.literal("fuchsia"),
-          zod.literal(null),
-        ])
-        .nullable(),
+      colorKey: zod.enum([
+        "parchment",
+        "terracotta",
+        "honey",
+        "sage",
+        "forest",
+        "sky",
+        "lavender",
+        "rose",
+      ]),
       count: zod
         .int()
         .min(timelineEventsControllerOverviewResponseByTimelineItemCountMin)
@@ -460,6 +447,10 @@ export const TimelineEventsControllerOverviewResponse = zod.object({
     guardDefault: zod.boolean(),
     positionKnown: zod.boolean(),
   }),
+  resolvedCount: zod
+    .int()
+    .min(timelineEventsControllerOverviewResponseResolvedCountMin)
+    .max(timelineEventsControllerOverviewResponseResolvedCountMax),
   totalEvents: zod
     .int()
     .min(timelineEventsControllerOverviewResponseTotalEventsMin)
@@ -541,6 +532,7 @@ export const TimelineEventsControllerGetEventResponse = zod.object({
   ]),
   id: zod.string(),
   importance: zod.enum(["low", "medium", "high", "key"]),
+  isSpoiler: zod.boolean(),
   location: zod.string().nullable(),
   pageNumber: zod
     .int()
@@ -554,23 +546,16 @@ export const TimelineEventsControllerGetEventResponse = zod.object({
   threadStatus: zod
     .union([zod.literal("open"), zod.literal("resolved"), zod.literal(null)])
     .nullable(),
-  timelineColorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  timelineColorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   timelineId: zod.string(),
   timelineName: zod.string(),
   timelineOrder: zod
@@ -714,6 +699,7 @@ export const TimelineEventsControllerUpdateEventBody = zod.object({
     ])
     .optional(),
   importance: zod.enum(["low", "medium", "high", "key"]).optional(),
+  isSpoiler: zod.boolean().optional(),
   location: zod.string().max(timelineEventsControllerUpdateEventBodyLocationMax).nullish(),
   pageNumber: zod
     .int()
@@ -769,6 +755,7 @@ export const TimelineEventsControllerUpdateEventResponse = zod.object({
   ]),
   id: zod.string(),
   importance: zod.enum(["low", "medium", "high", "key"]),
+  isSpoiler: zod.boolean(),
   location: zod.string().nullable(),
   pageNumber: zod
     .int()
@@ -782,23 +769,16 @@ export const TimelineEventsControllerUpdateEventResponse = zod.object({
   threadStatus: zod
     .union([zod.literal("open"), zod.literal("resolved"), zod.literal(null)])
     .nullable(),
-  timelineColorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  timelineColorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   timelineId: zod.string(),
   timelineName: zod.string(),
   timelineOrder: zod
@@ -886,6 +866,7 @@ export const TimelineEventsControllerReorderEventResponse = zod.object({
   ]),
   id: zod.string(),
   importance: zod.enum(["low", "medium", "high", "key"]),
+  isSpoiler: zod.boolean(),
   location: zod.string().nullable(),
   pageNumber: zod
     .int()
@@ -899,23 +880,16 @@ export const TimelineEventsControllerReorderEventResponse = zod.object({
   threadStatus: zod
     .union([zod.literal("open"), zod.literal("resolved"), zod.literal(null)])
     .nullable(),
-  timelineColorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  timelineColorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   timelineId: zod.string(),
   timelineName: zod.string(),
   timelineOrder: zod
@@ -998,6 +972,7 @@ export const TimelineEventsControllerMoveEventResponse = zod.object({
   ]),
   id: zod.string(),
   importance: zod.enum(["low", "medium", "high", "key"]),
+  isSpoiler: zod.boolean(),
   location: zod.string().nullable(),
   pageNumber: zod
     .int()
@@ -1011,23 +986,16 @@ export const TimelineEventsControllerMoveEventResponse = zod.object({
   threadStatus: zod
     .union([zod.literal("open"), zod.literal("resolved"), zod.literal(null)])
     .nullable(),
-  timelineColorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  timelineColorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   timelineId: zod.string(),
   timelineName: zod.string(),
   timelineOrder: zod

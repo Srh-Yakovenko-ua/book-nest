@@ -7104,16 +7104,16 @@
       "newest": "Newest first",
       "oldest": "Oldest first"
     },
-    "preset": {
-      "importantEvents": "Important events",
-      "keyOnly": "Key events only"
+    "recap": "Up to my position",
+    "guard": "Spoiler guard",
+    "guarded": {
+      "reasonFuture": "This event is beyond your current reading position",
+      "reasonManual": "This event is marked as a spoiler",
+      "reasonBoth": "This event is hidden",
+      "reveal": "Show event"
     },
-    "recap": "What happened so far",
-    "guard": "Hide what’s ahead",
-    "guardReveal": "Reveal",
-    "guardHidden": "Event ahead of your position",
-    "positionMarker": "You are here",
-    "noChapter": "No chapter",
+    "positionMarker": "You are here · p. {page}",
+    "noChapter": "No chapter specified",
     "eventType": {
       "main": "Main event",
       "mystery": "Mystery reveal",
@@ -7170,11 +7170,7 @@
       "importanceLabel": "Importance",
       "personalNoteLabel": "Personal note",
       "personalNotePlaceholder": "Just for you",
-      "threadStatusLabel": "Story thread",
-      "threadNone": "Not a thread",
       "timelineLabel": "Timeline",
-      "moreFields": "More fields",
-      "fewerFields": "Fewer fields",
       "saveEvent": "Save event",
       "saveAndAddAnother": "Save and add another",
       "cancel": "Cancel",
@@ -7186,11 +7182,7 @@
       "dirtyCloseCancel": "Keep editing",
       "createDescription": "Log a key story moment — you can fill in the rest later.",
       "editDescription": "Update the event details.",
-      "placeInBook": "Place in the book",
-      "additionalData": "Additional details",
       "timelineEditHint": "To move the event to another line, use the “Move to line” action.",
-      "relationsLabel": "Related events",
-      "relationsHint": "Mark cause-and-effect links with other events in the book.",
       "relationTypeLabel": "Relation type",
       "relationTargetPlaceholder": "Search events by title",
       "relationRemove": "Remove relation",
@@ -7199,7 +7191,37 @@
       "resolvedBySearchPlaceholder": "Search the resolving event",
       "resolvedByClear": "Remove",
       "resolvedByLoading": "Loading event…",
-      "searchEmpty": "Nothing found"
+      "sections": {
+        "basics": {
+          "title": "Basics",
+          "subtitle": "Title, summary, type and importance of the event"
+        },
+        "place": {
+          "title": "Place in the book",
+          "subtitle": "Chapter, page and in-story time"
+        },
+        "details": {
+          "title": "Event details",
+          "subtitle": "Location, full description and personal note"
+        },
+        "thread": {
+          "title": "Story thread",
+          "subtitle": "Mark whether the event opens a question or closes it"
+        },
+        "relations": {
+          "title": "Links to other events",
+          "subtitle": "Cause-and-effect links within the book"
+        }
+      },
+      "threadChip": {
+        "none": "None",
+        "open": "Open",
+        "resolved": "Resolved"
+      },
+      "hasDescription": "has a description",
+      "hasNote": "has a note",
+      "saveChanges": "Save changes",
+      "relationsInstantSaveHint": "Relation changes are saved instantly"
     },
     "filters": {
       "title": "Filters",
@@ -7207,32 +7229,39 @@
       "searchPlaceholder": "Search by title",
       "typeLabel": "Event type",
       "importanceLabel": "Importance",
-      "unresolved": "Unresolved threads",
+      "unresolved": "Only open threads",
       "reset": "Reset filters",
       "apply": "Apply",
       "allTypes": "All types",
       "statusLabel": "Thread status",
-      "description": "Narrow the events by type, importance and status.",
+      "description": "Narrow the events by type, importance, status and book structure.",
       "selectPlaceholder": "Select",
       "searchOptions": "Search…",
       "noOptions": "Nothing found",
-      "done": "Done"
+      "done": "Done",
+      "structureLabel": "Book structure",
+      "withoutChapter": "Without a chapter",
+      "openThreads": "Open threads"
     },
     "list": {
       "number": "#",
       "event": "Event",
+      "context": "Context",
       "type": "Type",
-      "place": "Chapter & page",
+      "importance": "Importance",
       "timeline": "Timeline",
-      "importance": "Importance"
+      "page": "p. {page}",
+      "actions": "Actions"
     },
     "detail": {
       "description": "Detailed description",
       "related": "Related events",
-      "resolves": "Resolves threads",
+      "resolves": "This event resolves",
       "close": "Close",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "context": "Context",
+      "back": "Back"
     },
     "states": {
       "loading": "Loading the timeline",
@@ -7244,29 +7273,30 @@
       "lineEmptyTitle": "This timeline has no events yet",
       "lineEmptyAddAction": "Add event",
       "lineEmptyPickAction": "Pick another timeline",
-      "filteredEmptyTitle": "Nothing matches the selected filters",
+      "filteredEmptyTitle": "Nothing matches the current filters",
       "filteredEmptyAction": "Reset filters",
       "saving": "Saving…",
       "deleting": "Deleting…",
-      "loadMoreError": "Couldn't load more events"
+      "loadMoreError": "Couldn't load more events",
+      "searchEmptyText": "Nothing matched your search",
+      "searchEmptyAction": "Clear search",
+      "recapEmptyText": "No events up to your current position yet",
+      "recapEmptyAction": "Show all",
+      "withoutChapterEmptyText": "Every event already has a chapter"
     },
     "manage": {
       "title": "Manage timelines",
       "createTitle": "New timeline",
       "editTitle": "Edit timeline",
-      "rename": "Rename",
       "setDefault": "Make default",
-      "isDefault": "Default timeline",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
+      "moveUp": "Move “{name}” up",
+      "moveDown": "Move “{name}” down",
       "delete": "Delete timeline",
       "nameLabel": "Timeline name",
-      "namePlaceholder": "e.g. Flashbacks",
+      "namePlaceholder": "e.g. Main story line",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Optional explanation",
-      "markerLabel": "Color marker",
-      "markerNone": "No marker",
-      "save": "Save",
+      "markerLabel": "Timeline color",
       "cancel": "Cancel",
       "deleteTitle": "Delete this timeline?",
       "eventCountLine": "This timeline has {count} events.",
@@ -7284,39 +7314,44 @@
       "duplicateName": "A timeline with this name already exists",
       "defaultBadge": "Default",
       "eventCount": "{count, plural, one {# event} other {# events}}",
-      "rowMenu": "Timeline actions",
+      "rowMenu": "Actions for “{name}”",
       "edit": "Edit",
-      "deleteDefaultHint": "Make another line the default first to delete this one.",
+      "deleteDefaultHint": "Make another timeline the default first.",
       "deleteEmptyDescription": "This timeline will be deleted. This action cannot be undone.",
       "deleteConfirmCheckbox": "I understand the events will be deleted permanently",
-      "done": "Done"
+      "done": "Done",
+      "lineCount": "{count, plural, one {# timeline} other {# timelines}}",
+      "emptyTitle": "No timelines created yet",
+      "loading": "Loading timelines",
+      "submitCreate": "Create",
+      "submitEdit": "Save changes"
     },
     "colorKey": {
-      "slate": "Slate",
-      "stone": "Stone",
-      "amber": "Amber",
-      "orange": "Orange",
-      "rose": "Rose",
-      "red": "Red",
-      "emerald": "Emerald",
-      "teal": "Teal",
+      "parchment": "Parchment",
+      "terracotta": "Terracotta",
+      "honey": "Honey",
+      "sage": "Sage",
+      "forest": "Forest",
       "sky": "Sky",
-      "blue": "Blue",
-      "violet": "Violet",
-      "fuchsia": "Fuchsia"
+      "lavender": "Lavender",
+      "rose": "Dusty rose"
     },
     "overview": {
       "byType": "By event type",
       "byImportance": "By importance",
-      "byLine": "By timeline",
-      "chapterDensity": "Density by chapter",
-      "unresolved": "Unresolved threads",
-      "beforeAfterPosition": "Before and after your position",
-      "eventsBefore": "Before position",
-      "eventsAfter": "Ahead",
-      "eventsUnknown": "Position unknown",
+      "chapterDensity": "Event density by chapter",
+      "unresolved": "Open threads",
       "totalEvents": "Total events",
-      "empty": "No overview data yet."
+      "empty": "No data yet",
+      "keyEvents": "Key events",
+      "timelines": "Timelines",
+      "inChapters": "in {count} chapters",
+      "resolvedFact": "{count} already resolved",
+      "lineEvents": "{count, plural, one {# event} other {# events}}",
+      "noChapterFooter": "Without a chapter: {count} events",
+      "range": "{from}–{to} of {total}",
+      "prevPage": "Previous",
+      "nextPage": "Next"
     },
     "toast": {
       "created": "Event added",
@@ -7373,6 +7408,22 @@
       "confirm": "Delete",
       "cancel": "Cancel",
       "deleting": "Deleting…"
+    },
+    "linesLabel": "Timelines",
+    "activeFilters": {
+      "label": "Active filters",
+      "remove": "Remove “{label}”",
+      "clearAll": "Clear all"
+    },
+    "spoiler": {
+      "label": "Spoiler",
+      "hint": "The event stays hidden while the spoiler guard is on."
+    },
+    "picker": {
+      "empty": "Nothing found",
+      "error": "Couldn’t load the events",
+      "loading": "Loading…",
+      "results": "Book events"
     }
   },
   "publishers": {
