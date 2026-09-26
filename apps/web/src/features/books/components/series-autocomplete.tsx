@@ -88,6 +88,7 @@ export function SeriesAutocomplete({
         kind: "catalog" as const,
         name: author.name,
       })),
+      commonGenres: item.commonGenres,
       dominantPublisher: item.dominantPublisher,
       genres: item.genres,
       id: item.id,

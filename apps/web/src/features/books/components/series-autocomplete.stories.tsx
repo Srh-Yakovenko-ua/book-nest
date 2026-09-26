@@ -11,6 +11,7 @@ import { SeriesAutocomplete } from "./series-autocomplete";
 
 type SeriesSeed = {
   authors?: { id: string; name: string }[];
+  commonGenres?: string[];
   id: string;
   name: string;
   status?: SeriesView["status"];
@@ -82,6 +83,7 @@ function seriesView(seed: SeriesSeed): SeriesView {
     averagePages: null,
     averageRating: null,
     booksInSeries: 0,
+    commonGenres: seed.commonGenres ?? [],
     covers: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
@@ -136,7 +138,12 @@ export const AuthorScopedGroups: Story = {
   beforeEach: () => {
     mockSeries({
       scoped: [
-        { authors: [{ id: "author-1", name: "Сапковський" }], id: "s1", name: "Відьмак" },
+        {
+          authors: [{ id: "author-1", name: "Сапковський" }],
+          commonGenres: ["fantasy"],
+          id: "s1",
+          name: "Відьмак",
+        },
         { id: "s2", name: "Безіменна сага" },
       ],
     });
@@ -158,7 +165,12 @@ export const NoAuthorFlatList: Story = {
   beforeEach: () => {
     mockSeries({
       all: [
-        { authors: [{ id: "author-1", name: "Сапковський" }], id: "s1", name: "Відьмак" },
+        {
+          authors: [{ id: "author-1", name: "Сапковський" }],
+          commonGenres: ["fantasy"],
+          id: "s1",
+          name: "Відьмак",
+        },
         { id: "s2", name: "Дюна" },
       ],
     });
@@ -179,7 +191,14 @@ export const NoAuthorFlatList: Story = {
 export const PickCapturesSeriesAuthors: Story = {
   beforeEach: () => {
     mockSeries({
-      scoped: [{ authors: [{ id: "author-1", name: "Сапковський" }], id: "s1", name: "Відьмак" }],
+      scoped: [
+        {
+          authors: [{ id: "author-1", name: "Сапковський" }],
+          commonGenres: ["fantasy"],
+          id: "s1",
+          name: "Відьмак",
+        },
+      ],
     });
   },
   play: async ({ canvas }) => {

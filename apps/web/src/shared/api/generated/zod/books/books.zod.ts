@@ -360,6 +360,7 @@ export const booksControllerCreateResponseQueuePriorityTargetDateRegExp = new Re
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerCreateResponseSeriesAgeCategoriesDefault = [];
+export const booksControllerCreateResponseSeriesCommonGenresDefault = [];
 export const booksControllerCreateResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
 export const booksControllerCreateResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
 
@@ -602,6 +603,9 @@ export const BooksControllerCreateResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(booksControllerCreateResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -957,6 +961,7 @@ export const booksControllerListResponseItemsItemQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerListResponseItemsItemSeriesAgeCategoriesDefault = [];
+export const booksControllerListResponseItemsItemSeriesCommonGenresDefault = [];
 export const booksControllerListResponseItemsItemSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const booksControllerListResponseItemsItemSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -1243,6 +1248,9 @@ export const BooksControllerListResponse = zod.object({
           averagePages: zod.number().nullish(),
           averageRating: zod.number().nullish(),
           booksInSeries: zod.number(),
+          commonGenres: zod
+            .array(zod.string())
+            .default(booksControllerListResponseItemsItemSeriesCommonGenresDefault),
           covers: zod.array(
             zod.object({
               bookId: zod.string(),
@@ -1450,6 +1458,7 @@ export const booksControllerOverviewResponseRecentlyAddedItemQueuePriorityTarget
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const booksControllerOverviewResponseRecentlyAddedItemSeriesAgeCategoriesDefault = [];
+export const booksControllerOverviewResponseRecentlyAddedItemSeriesCommonGenresDefault = [];
 export const booksControllerOverviewResponseRecentlyAddedItemSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const booksControllerOverviewResponseRecentlyAddedItemSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -1740,6 +1749,9 @@ export const BooksControllerOverviewResponse = zod.object({
           averagePages: zod.number().nullish(),
           averageRating: zod.number().nullish(),
           booksInSeries: zod.number(),
+          commonGenres: zod
+            .array(zod.string())
+            .default(booksControllerOverviewResponseRecentlyAddedItemSeriesCommonGenresDefault),
           covers: zod.array(
             zod.object({
               bookId: zod.string(),
@@ -2362,6 +2374,7 @@ export const booksControllerWishlistResponseBooksItemQueuePriorityTargetDateRegE
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerWishlistResponseBooksItemSeriesAgeCategoriesDefault = [];
+export const booksControllerWishlistResponseBooksItemSeriesCommonGenresDefault = [];
 export const booksControllerWishlistResponseBooksItemSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const booksControllerWishlistResponseBooksItemSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -2638,6 +2651,9 @@ export const BooksControllerWishlistResponse = zod.object({
           averagePages: zod.number().nullish(),
           averageRating: zod.number().nullish(),
           booksInSeries: zod.number(),
+          commonGenres: zod
+            .array(zod.string())
+            .default(booksControllerWishlistResponseBooksItemSeriesCommonGenresDefault),
           covers: zod.array(
             zod.object({
               bookId: zod.string(),
@@ -2954,6 +2970,7 @@ export const booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateR
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerDedicationsResponseItemsItemSeriesAgeCategoriesDefault = [];
+export const booksControllerDedicationsResponseItemsItemSeriesCommonGenresDefault = [];
 export const booksControllerDedicationsResponseItemsItemSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const booksControllerDedicationsResponseItemsItemSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -3241,6 +3258,9 @@ export const BooksControllerDedicationsResponse = zod.object({
           averagePages: zod.number().nullish(),
           averageRating: zod.number().nullish(),
           booksInSeries: zod.number(),
+          commonGenres: zod
+            .array(zod.string())
+            .default(booksControllerDedicationsResponseItemsItemSeriesCommonGenresDefault),
           covers: zod.array(
             zod.object({
               bookId: zod.string(),
@@ -3596,6 +3616,7 @@ export const booksControllerGetByIdResponseQueuePriorityTargetDateRegExp = new R
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerGetByIdResponseSeriesAgeCategoriesDefault = [];
+export const booksControllerGetByIdResponseSeriesCommonGenresDefault = [];
 export const booksControllerGetByIdResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
 export const booksControllerGetByIdResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
 
@@ -3838,6 +3859,9 @@ export const BooksControllerGetByIdResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(booksControllerGetByIdResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -4330,6 +4354,7 @@ export const booksControllerUpdateResponseQueuePriorityTargetDateRegExp = new Re
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerUpdateResponseSeriesAgeCategoriesDefault = [];
+export const booksControllerUpdateResponseSeriesCommonGenresDefault = [];
 export const booksControllerUpdateResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
 export const booksControllerUpdateResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
 
@@ -4572,6 +4597,9 @@ export const BooksControllerUpdateResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(booksControllerUpdateResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -4750,6 +4778,7 @@ export const booksControllerRestoreResponseQueuePriorityTargetDateRegExp = new R
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerRestoreResponseSeriesAgeCategoriesDefault = [];
+export const booksControllerRestoreResponseSeriesCommonGenresDefault = [];
 export const booksControllerRestoreResponseSeriesDominantPublisherBookCountMin = -9007199254740991;
 export const booksControllerRestoreResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
 
@@ -4992,6 +5021,9 @@ export const BooksControllerRestoreResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(booksControllerRestoreResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -5342,6 +5374,7 @@ export const bookReadingControllerChangeReadingStatusResponseQueuePriorityTarget
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const bookReadingControllerChangeReadingStatusResponseSeriesAgeCategoriesDefault = [];
+export const bookReadingControllerChangeReadingStatusResponseSeriesCommonGenresDefault = [];
 export const bookReadingControllerChangeReadingStatusResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookReadingControllerChangeReadingStatusResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -5587,6 +5620,9 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookReadingControllerChangeReadingStatusResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -5777,6 +5813,7 @@ export const bookReadingControllerUpdateReadingProgressResponseQueuePriorityTarg
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const bookReadingControllerUpdateReadingProgressResponseSeriesAgeCategoriesDefault = [];
+export const bookReadingControllerUpdateReadingProgressResponseSeriesCommonGenresDefault = [];
 export const bookReadingControllerUpdateReadingProgressResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookReadingControllerUpdateReadingProgressResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -6023,6 +6060,9 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookReadingControllerUpdateReadingProgressResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -6195,6 +6235,7 @@ export const bookOwnershipControllerMarkOwnedResponseQueuePriorityTargetDateRegE
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookOwnershipControllerMarkOwnedResponseSeriesAgeCategoriesDefault = [];
+export const bookOwnershipControllerMarkOwnedResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerMarkOwnedResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookOwnershipControllerMarkOwnedResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -6439,6 +6480,9 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookOwnershipControllerMarkOwnedResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -6605,6 +6649,7 @@ export const bookOwnershipControllerRemoveOwnedResponseQueuePriorityTargetDateRe
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookOwnershipControllerRemoveOwnedResponseSeriesAgeCategoriesDefault = [];
+export const bookOwnershipControllerRemoveOwnedResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerRemoveOwnedResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookOwnershipControllerRemoveOwnedResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -6849,6 +6894,9 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookOwnershipControllerRemoveOwnedResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -7016,6 +7064,7 @@ export const bookOwnershipControllerRemoveFromWishlistResponseQueuePriorityTarge
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const bookOwnershipControllerRemoveFromWishlistResponseSeriesAgeCategoriesDefault = [];
+export const bookOwnershipControllerRemoveFromWishlistResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerRemoveFromWishlistResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookOwnershipControllerRemoveFromWishlistResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -7261,6 +7310,9 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookOwnershipControllerRemoveFromWishlistResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -7453,6 +7505,7 @@ export const bookOwnershipControllerWantToBuyResponseQueuePriorityTargetDateRegE
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookOwnershipControllerWantToBuyResponseSeriesAgeCategoriesDefault = [];
+export const bookOwnershipControllerWantToBuyResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerWantToBuyResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookOwnershipControllerWantToBuyResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -7697,6 +7750,9 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookOwnershipControllerWantToBuyResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -7886,6 +7942,7 @@ export const bookOwnershipControllerMarkBoughtResponseQueuePriorityTargetDateReg
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookOwnershipControllerMarkBoughtResponseSeriesAgeCategoriesDefault = [];
+export const bookOwnershipControllerMarkBoughtResponseSeriesCommonGenresDefault = [];
 export const bookOwnershipControllerMarkBoughtResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookOwnershipControllerMarkBoughtResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -8130,6 +8187,9 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookOwnershipControllerMarkBoughtResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -8362,6 +8422,7 @@ export const bookLoanControllerCreateLoanResponseQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookLoanControllerCreateLoanResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerCreateLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerCreateLoanResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookLoanControllerCreateLoanResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -8605,6 +8666,9 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookLoanControllerCreateLoanResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -8789,6 +8853,7 @@ export const bookLoanControllerEditLoanResponseQueuePriorityTargetDateRegExp = n
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookLoanControllerEditLoanResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerEditLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerEditLoanResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookLoanControllerEditLoanResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -9032,6 +9097,9 @@ export const BookLoanControllerEditLoanResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookLoanControllerEditLoanResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -9198,6 +9266,7 @@ export const bookLoanControllerExtendLoanResponseQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookLoanControllerExtendLoanResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerExtendLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerExtendLoanResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookLoanControllerExtendLoanResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -9441,6 +9510,9 @@ export const BookLoanControllerExtendLoanResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookLoanControllerExtendLoanResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -9614,6 +9686,7 @@ export const bookLoanControllerSetLoanReminderResponseQueuePriorityTargetDateReg
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookLoanControllerSetLoanReminderResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerSetLoanReminderResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerSetLoanReminderResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookLoanControllerSetLoanReminderResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -9858,6 +9931,9 @@ export const BookLoanControllerSetLoanReminderResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookLoanControllerSetLoanReminderResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -10023,6 +10099,7 @@ export const bookLoanControllerReturnLoanResponseQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookLoanControllerReturnLoanResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerReturnLoanResponseSeriesCommonGenresDefault = [];
 export const bookLoanControllerReturnLoanResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookLoanControllerReturnLoanResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -10266,6 +10343,9 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookLoanControllerReturnLoanResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -10461,6 +10541,7 @@ export const bookDeliveryControllerCreateResponseQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookDeliveryControllerCreateResponseSeriesAgeCategoriesDefault = [];
+export const bookDeliveryControllerCreateResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerCreateResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookDeliveryControllerCreateResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -10704,6 +10785,9 @@ export const BookDeliveryControllerCreateResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookDeliveryControllerCreateResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -10933,6 +11017,7 @@ export const bookDeliveryControllerUpdateResponseQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookDeliveryControllerUpdateResponseSeriesAgeCategoriesDefault = [];
+export const bookDeliveryControllerUpdateResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerUpdateResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookDeliveryControllerUpdateResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -11176,6 +11261,9 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookDeliveryControllerUpdateResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -11347,6 +11435,7 @@ export const bookDeliveryControllerReceiveResponseQueuePriorityTargetDateRegExp 
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookDeliveryControllerReceiveResponseSeriesAgeCategoriesDefault = [];
+export const bookDeliveryControllerReceiveResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerReceiveResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookDeliveryControllerReceiveResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -11590,6 +11679,9 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookDeliveryControllerReceiveResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -11763,6 +11855,7 @@ export const bookDeliveryControllerCancelResponseQueuePriorityTargetDateRegExp =
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const bookDeliveryControllerCancelResponseSeriesAgeCategoriesDefault = [];
+export const bookDeliveryControllerCancelResponseSeriesCommonGenresDefault = [];
 export const bookDeliveryControllerCancelResponseSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const bookDeliveryControllerCancelResponseSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -12006,6 +12099,9 @@ export const BookDeliveryControllerCancelResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(bookDeliveryControllerCancelResponseSeriesCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),

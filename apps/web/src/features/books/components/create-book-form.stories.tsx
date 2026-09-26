@@ -852,6 +852,7 @@ function mockEmpireanSeries() {
   getQueryClient().clear();
   const empirean = seriesView({
     authors: [],
+    commonGenres: ["fantasy", "romance"],
     dominantPublisher: { bookCount: 5, id: "publisher-vivat", name: "Vivat" },
     id: "series-empirean",
     name: "Емпіреї",
@@ -873,6 +874,7 @@ function mockEmpireanSeries() {
 
 function seriesView(seed: {
   authors: { id: string; name: string }[];
+  commonGenres?: string[];
   dominantPublisher?: SeriesView["dominantPublisher"];
   id: string;
   name: string;
@@ -883,6 +885,7 @@ function seriesView(seed: {
     averagePages: null,
     averageRating: null,
     booksInSeries: 0,
+    commonGenres: seed.commonGenres ?? [],
     covers: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,

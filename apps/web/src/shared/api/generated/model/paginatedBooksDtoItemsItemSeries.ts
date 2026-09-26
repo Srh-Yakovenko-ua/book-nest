@@ -27,6 +27,7 @@ export type PaginatedBooksDtoItemsItemSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: PaginatedBooksDtoItemsItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

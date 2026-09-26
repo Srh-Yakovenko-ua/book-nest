@@ -31,6 +31,7 @@ type BookRowInput = {
   coverMedia?: Nullable<MediaAssetModel>;
   createdAt?: Date;
   formats?: string[];
+  genres?: string[];
   id?: string;
   isFavorite?: boolean;
   language?: string;
@@ -80,6 +81,7 @@ function bookRow(overrides: BookRowInput = {}): BookRow {
     coverMedia: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     formats: [],
+    genres: [],
     id: "book-1",
     isFavorite: false,
     language: "ukrainian",
@@ -590,6 +592,7 @@ describe("SeriesService.search", () => {
           averagePages: null,
           averageRating: null,
           booksInSeries: 2,
+          commonGenres: [],
           covers: [],
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
@@ -659,6 +662,7 @@ describe("SeriesService.search", () => {
         averagePages: null,
         averageRating: null,
         booksInSeries: 2,
+        commonGenres: [],
         covers: [],
         createdAt: "2026-02-01T10:00:00.000Z",
         description: null,
@@ -700,6 +704,7 @@ describe("SeriesService.search", () => {
             bookRow({
               ageCategory: "18_plus",
               formats: ["ebook"],
+              genres: ["fantasy", "detective"],
               id: "part-1",
               language: "english",
               ownershipStatus: "borrowed_from_someone",
@@ -712,6 +717,7 @@ describe("SeriesService.search", () => {
             bookRow({
               ageCategory: "6_plus",
               formats: ["paper", "ebook"],
+              genres: ["fantasy"],
               id: "part-2",
               isFavorite: true,
               language: "ukrainian",
@@ -728,6 +734,7 @@ describe("SeriesService.search", () => {
             bookRow({
               ageCategory: "12_plus",
               formats: ["audiobook"],
+              genres: ["romance"],
               id: "part-3",
               language: "other",
               ownershipStatus: "want_to_buy",
@@ -755,6 +762,7 @@ describe("SeriesService.search", () => {
         averagePages: 150,
         averageRating: 7.5,
         booksInSeries: 3,
+        commonGenres: ["fantasy"],
         covers: [],
         createdAt: "2026-02-01T10:00:00.000Z",
         description: null,

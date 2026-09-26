@@ -27,6 +27,7 @@ export type BookViewDtoSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: BookViewDtoSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

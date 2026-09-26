@@ -24,6 +24,7 @@ export interface SeriesViewDto {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: SeriesViewDtoCoversItem[];
   createdAt: string;
   /** @nullable */

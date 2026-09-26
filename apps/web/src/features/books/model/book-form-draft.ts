@@ -60,6 +60,7 @@ const seriesSelectionSchema = z.union([
   }),
   z.object({
     authors: z.array(authorSelectionSchema),
+    commonGenres: z.array(z.string()).default([]),
     dominantPublisher: z
       .object({ bookCount: z.number(), id: z.string(), name: z.string() })
       .nullable()

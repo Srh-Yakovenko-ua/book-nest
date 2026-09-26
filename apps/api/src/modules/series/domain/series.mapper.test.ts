@@ -341,6 +341,32 @@ describe("toSeriesDetailsView nextBook cover", () => {
   });
 });
 
+describe("toSeriesDetailsView common genres", () => {
+  it("leaves commonGenres empty when no book carries a genre", () => {
+    const details = detailsForBooks({
+      books: [
+        makeBook({ genres: [], id: "book-1", partNumber: 1 }),
+        makeBook({ genres: [], id: "book-2", partNumber: 2 }),
+      ],
+    });
+
+    expect(details.commonGenres).toEqual([]);
+  });
+
+  it("derives commonGenres from the books rather than from the series column", () => {
+    const details = detailsForBooks({
+      books: [
+        makeBook({ genres: ["фентезі", "детектив"], id: "book-1", partNumber: 1 }),
+        makeBook({ genres: ["фентезі"], id: "book-2", partNumber: 2 }),
+        makeBook({ genres: ["романтика"], id: "book-3", partNumber: 3 }),
+      ],
+    });
+
+    expect(details.commonGenres).toEqual(["фентезі"]);
+    expect(details.genres).toEqual([]);
+  });
+});
+
 describe("toSeriesDetailsView publisher summary", () => {
   it("reports no publisher when no book carries one", () => {
     const details = detailsForBooks({

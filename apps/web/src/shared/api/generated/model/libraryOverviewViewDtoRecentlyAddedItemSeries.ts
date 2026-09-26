@@ -27,6 +27,7 @@ export type LibraryOverviewViewDtoRecentlyAddedItemSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: LibraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

@@ -40,6 +40,7 @@ export type SeriesPartNumberConflict = {
 export type SeriesSelection =
   | {
       authors: AuthorSelection[];
+      commonGenres: string[];
       dominantPublisher: Nullable<SeriesPublisherRef>;
       genres: string[];
       id: string;

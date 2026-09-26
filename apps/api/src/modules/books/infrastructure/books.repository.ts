@@ -212,6 +212,7 @@ export function withRelations(userId: string) {
             authors: { include: { author: true }, orderBy: { position: "asc" } },
             createdAt: true,
             formats: true,
+            genres: true,
             id: true,
             isFavorite: true,
             language: true,

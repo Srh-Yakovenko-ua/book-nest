@@ -27,6 +27,7 @@ export type WishlistViewDtoBooksItemSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: WishlistViewDtoBooksItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

@@ -46,6 +46,7 @@ const seriesWithBookCountArgs = {
         coverMedia: true,
         createdAt: true,
         formats: true,
+        genres: true,
         id: true,
         isFavorite: true,
         language: true,

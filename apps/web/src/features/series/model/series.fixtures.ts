@@ -224,6 +224,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     averagePages: 507,
     averageRating: 8.5,
     booksInSeries: 3,
+    commonGenres: ["fantasy", "romance"],
     covers: [
       makeSeriesCoverPreview({ bookId: "series-book-1", title: "Четверте крило" }),
       makeSeriesCoverPreview({ bookId: "series-book-2", title: "Ковадло зірок" }),

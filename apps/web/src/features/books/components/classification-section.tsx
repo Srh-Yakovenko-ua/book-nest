@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
+import type { SeriesGenresHint, SeriesGenresSource } from "../model/series-genres-suggestion";
 
 import { useGenres } from "../api/use-genres";
 import {
@@ -32,7 +33,7 @@ import { useSectionCompletion } from "./use-section-completion";
 type ClassificationSectionProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
-  genresHintSeriesName?: null | string;
+  genresHint?: null | SeriesGenresHint;
   genresSuggestion?: GenresSuggestion | null;
   onGenresUserEdit?: () => void;
   tagColorOf: (name: string) => TagColor;
@@ -42,12 +43,13 @@ type GenresSuggestion = {
   genres: string[];
   onApply: () => void;
   onDismiss: () => void;
+  source: SeriesGenresSource;
 };
 
 export function ClassificationSection({
   control,
   errors,
-  genresHintSeriesName,
+  genresHint,
   genresSuggestion,
   onGenresUserEdit,
   tagColorOf,
@@ -90,9 +92,11 @@ export function ClassificationSection({
         <p className="text-xs text-muted-foreground">
           {t("classification.genresHint", { max: BOOK_GENRES_MAX })}
         </p>
-        {genresHintSeriesName ? (
+        {genresHint ? (
           <p className="text-xs text-muted-foreground">
-            {t("classification.genresFromSeries", { name: genresHintSeriesName })}
+            {genresHint.source === "books"
+              ? t("classification.genresFromSeriesBooks", { name: genresHint.seriesName })
+              : t("classification.genresFromSeries", { name: genresHint.seriesName })}
           </p>
         ) : null}
         {genresSuggestion ? (
@@ -102,7 +106,13 @@ export function ClassificationSection({
               onClick={genresSuggestion.onApply}
               type="button"
             >
-              {t("classification.genresSeriesSuggestion", { genres: suggestionGenreNames ?? "" })}
+              {genresSuggestion.source === "books"
+                ? t("classification.genresSeriesBooksSuggestion", {
+                    genres: suggestionGenreNames ?? "",
+                  })
+                : t("classification.genresSeriesSuggestion", {
+                    genres: suggestionGenreNames ?? "",
+                  })}
             </button>
             <button
               aria-label={t("classification.genresSeriesSuggestionDismiss")}
