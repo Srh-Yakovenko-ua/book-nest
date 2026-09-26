@@ -12,6 +12,7 @@ import type { TimelineEventsControllerListEventsKeyOnly } from "./timelineEvents
 import type { TimelineEventsControllerListEventsRecap } from "./timelineEventsControllerListEventsRecap";
 import type { TimelineEventsControllerListEventsSort } from "./timelineEventsControllerListEventsSort";
 import type { TimelineEventsControllerListEventsUnresolved } from "./timelineEventsControllerListEventsUnresolved";
+import type { TimelineEventsControllerListEventsWithoutChapter } from "./timelineEventsControllerListEventsWithoutChapter";
 
 export type TimelineEventsControllerListEventsParams = {
   eventType?: TimelineEventsControllerListEventsEventTypeItem[];
@@ -39,4 +40,5 @@ export type TimelineEventsControllerListEventsParams = {
    */
   timelineId?: string;
   unresolved?: TimelineEventsControllerListEventsUnresolved;
+  withoutChapter?: TimelineEventsControllerListEventsWithoutChapter;
 };

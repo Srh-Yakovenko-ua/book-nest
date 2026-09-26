@@ -8,6 +8,11 @@ import {
   paginationQueryFields,
 } from "./common.js";
 import { CountSchema, NoHtmlString, queryStringArray } from "./internal.js";
+import {
+  BOOK_NEST_PALETTE_COLORS,
+  type BookNestPaletteColor,
+  BookNestPaletteColorSchema,
+} from "./palette.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 
 export const TAG_NAME_MIN = 2;
@@ -50,20 +55,11 @@ export const TagNameSchema = z
       ),
   );
 
-export const TAG_COLORS = [
-  "parchment",
-  "terracotta",
-  "honey",
-  "sage",
-  "forest",
-  "sky",
-  "lavender",
-  "rose",
-] as const;
+export const TAG_COLORS = BOOK_NEST_PALETTE_COLORS;
 
-export const TagColorSchema = z.enum(TAG_COLORS);
+export const TagColorSchema = BookNestPaletteColorSchema;
 
-export type TagColor = z.infer<typeof TagColorSchema>;
+export type TagColor = BookNestPaletteColor;
 
 export const TAG_COLOR_DEFAULT = "parchment" satisfies TagColor;
 

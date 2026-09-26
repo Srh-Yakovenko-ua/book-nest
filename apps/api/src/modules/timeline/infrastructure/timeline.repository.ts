@@ -1,6 +1,6 @@
 import type { Nullable, ReadingStatus } from "@app/shared";
 
-import { ReadingStatusSchema } from "@app/shared";
+import { pickAvailablePaletteColor, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
@@ -39,7 +39,7 @@ export type BookReadingContext = {
 
 export type CreateTimelineData = {
   bookId: string;
-  colorKey: Nullable<string>;
+  colorKey: string;
   description: Nullable<string>;
   isDefault: boolean;
   name: string;
@@ -51,7 +51,7 @@ export type TimelineRow = Prisma.BookTimelineGetPayload<Record<string, never>>;
 export type TimelineWithCount = Prisma.BookTimelineGetPayload<typeof timelineWithCountArgs>;
 
 export type UpdateTimelineFields = {
-  colorKey?: Nullable<string>;
+  colorKey?: string;
   description?: Nullable<string>;
   name?: string;
 };
@@ -97,7 +97,7 @@ export class TimelineRepository {
     await client.bookTimeline.create({
       data: {
         bookId,
-        colorKey: null,
+        colorKey: pickAvailablePaletteColor([]),
         description: null,
         isDefault: true,
         name: DEFAULT_TIMELINE_NAME,
@@ -201,6 +201,17 @@ export class TimelineRepository {
       where: { ...SOFT_DELETE_SCOPE.overdue(now), book: { userId }, id: timelineId },
     });
     return purged.count;
+  }
+
+  async listActiveColorKeys(
+    bookId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<string[]> {
+    const rows = await client.bookTimeline.findMany({
+      select: { colorKey: true },
+      where: { ...SOFT_DELETE_SCOPE.active, bookId },
+    });
+    return rows.map((row) => row.colorKey);
   }
 
   async listTrashed({

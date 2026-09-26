@@ -8,7 +8,6 @@
 import type { TimelineViewDtoColorKey } from "./timelineViewDtoColorKey";
 
 export interface TimelineViewDto {
-  /** @nullable */
   colorKey: TimelineViewDtoColorKey;
   createdAt: string;
   /** @nullable */

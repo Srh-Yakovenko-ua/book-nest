@@ -11,7 +11,7 @@ import type {
   UpdateTimelineInput,
 } from "@app/shared";
 
-import { TIMELINE_ERROR_CODES } from "@app/shared";
+import { pickAvailablePaletteColor, TIMELINE_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
@@ -51,12 +51,13 @@ export class TimelineService {
     const created = await this.transactionRunner.run(async (tx) => {
       await this.timelineRepository.acquireBookLock(bookId, tx);
       await this.timelineRepository.ensureDefault(bookId, tx);
+      const usedColors = await this.timelineRepository.listActiveColorKeys(bookId, tx);
       const position = appendPosition(await this.timelineRepository.maxPosition(bookId, tx));
       try {
         return await this.timelineRepository.create(
           {
             bookId,
-            colorKey: input.colorKey ?? null,
+            colorKey: input.colorKey ?? pickAvailablePaletteColor(usedColors),
             description: emptyToNull(input.description),
             isDefault: false,
             name: input.name,
@@ -248,7 +249,7 @@ export class TimelineService {
       fields.description = emptyToNull(input.description);
     }
     if (input.colorKey !== undefined) {
-      fields.colorKey = input.colorKey ?? null;
+      fields.colorKey = input.colorKey;
     }
 
     let updated: TimelineRow;

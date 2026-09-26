@@ -6,7 +6,7 @@ import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing"
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookView } from "../../books/components/book-details.fixtures";
 import {
@@ -26,6 +26,7 @@ let timelinesResponder: () => Response;
 let summaryResponder: () => Response;
 let overviewResponder: () => Response;
 let eventsResponder: (params: URLSearchParams) => Response;
+let mutationResponder: (url: string, method: string) => Response;
 
 function eventsCalls() {
   return fetchMock.mock.calls.filter(
@@ -73,10 +74,13 @@ beforeEach(() => {
   summaryResponder = () => jsonResponse(makeTimelineSummary());
   overviewResponder = () => jsonResponse(makeTimelineOverview());
   eventsResponder = () => jsonResponse(makeEventsPage([makeTimelineEventView()]));
+  mutationResponder = () => jsonResponse(makeTimelineView());
 
   fetchMock.mockReset();
-  fetchMock.mockImplementation((input) => {
+  fetchMock.mockImplementation((input, init) => {
     const url = String(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method !== "GET") return Promise.resolve(mutationResponder(url, method));
     if (url.includes("/timeline/summary")) return Promise.resolve(summaryResponder());
     if (url.includes("/timeline/overview")) return Promise.resolve(overviewResponder());
     if (url.includes("/timeline-events")) {
@@ -106,11 +110,11 @@ describe("BookTimelineBlock", () => {
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("5");
   });
 
-  it("shows a single line without the all-lines switcher", async () => {
+  it("keeps the all-lines chip next to a single line", async () => {
     renderBlock();
 
     await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
-    expect(screen.queryByRole("button", { name: /Усі лінії/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Усі лінії/ })).toBeInTheDocument();
     expect(screen.getAllByText("Основна лінія").length).toBeGreaterThan(0);
   });
 
@@ -128,10 +132,10 @@ describe("BookTimelineBlock", () => {
 
     renderBlock();
 
-    const allLines = await screen.findByRole("button", { name: /Усі лінії/ });
-    expect(allLines).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /Лінія А/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Лінія Б/ })).toBeInTheDocument();
+    const allLines = await screen.findByRole("radio", { name: /Усі лінії/ });
+    expect(allLines).toBeChecked();
+    expect(screen.getByRole("radio", { name: /Лінія А/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Лінія Б/ })).toBeInTheDocument();
   });
 
   it("requests events without a timeline id while in all-lines mode", async () => {
@@ -155,7 +159,7 @@ describe("BookTimelineBlock", () => {
 
     renderBlock("", onUrlUpdate);
 
-    await userEvent.click(await screen.findByRole("button", { name: /Лінія Б/ }));
+    await userEvent.click(await screen.findByRole("radio", { name: /Лінія Б/ }));
 
     await waitFor(() => expect(events.at(-1)?.searchParams.get("timelineId")).toBe("line-2"));
   });
@@ -164,13 +168,18 @@ describe("BookTimelineBlock", () => {
     renderBlock();
 
     await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
-    await userEvent.click(screen.getByRole("button", { name: "Список" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Список" }));
 
-    expect(screen.getByRole("button", { name: "Список" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "Стрічка" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByRole("radio", { name: "Список" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Стрічка" })).not.toBeChecked();
+  });
+
+  it("hides the line navigation in the overview and keeps the view switch", async () => {
+    renderBlock("?view=overview");
+
+    expect(await screen.findByRole("radio", { name: "Огляд" })).toBeChecked();
+    expect(screen.queryByRole("radio", { name: /Усі лінії/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Керувати лініями" })).not.toBeInTheDocument();
   });
 
   it("shows a skeleton while the timeline is loading", () => {
@@ -228,7 +237,7 @@ describe("BookTimelineBlock", () => {
     expect(screen.getByRole("button", { name: "Обрати іншу лінію" })).toBeInTheDocument();
   });
 
-  it("shows the filtered-empty state and clears it on reset", async () => {
+  it("shows the search-empty state and clears it on demand", async () => {
     eventsResponder = (params) =>
       jsonResponse(makeEventsPage(params.get("search") === null ? [makeTimelineEventView()] : []));
 
@@ -237,13 +246,9 @@ describe("BookTimelineBlock", () => {
     await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
     await userEvent.type(screen.getByLabelText("Пошук подій"), "zzz");
 
-    expect(
-      await screen.findByText("За вибраними фільтрами нічого не знайдено"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Нічого не знайдено за вашим запитом")).toBeInTheDocument();
 
-    const [reset] = screen.getAllByRole("button", { name: "Скинути фільтри" });
-    if (reset === undefined) throw new Error("reset button not found");
-    await userEvent.click(reset);
+    await userEvent.click(screen.getByRole("button", { name: "Очистити пошук" }));
 
     expect(
       await screen.findByRole("button", { name: "Геральт прибуває до Визими" }),
@@ -268,8 +273,8 @@ describe("BookTimelineBlock", () => {
 
     renderBlock();
 
-    expect(await screen.findByText("Ти зараз тут")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Що вже сталося" })).toBeInTheDocument();
+    expect(await screen.findByText("Ви тут · стор. 25")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "До моєї позиції" })).toBeInTheDocument();
   });
 
   it("hides events beyond the reading position and reveals them on demand", async () => {
@@ -293,11 +298,44 @@ describe("BookTimelineBlock", () => {
 
     renderBlock();
 
-    expect(await screen.findByText("Подія попереду позиції читання")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Подія знаходиться далі вашої поточної позиції читання"),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Таємне вбивство" })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Показати" }));
+    await userEvent.click(screen.getByRole("button", { name: "Показати подію" }));
 
+    expect(screen.getByRole("button", { name: "Таємне вбивство" })).toBeInTheDocument();
+  });
+
+  it("keeps a revealed event visible while the filters change", async () => {
+    overviewResponder = () =>
+      jsonResponse(
+        makeTimelineOverview({
+          readingPosition: makeReadingPosition({
+            currentPage: 25,
+            guardDefault: true,
+            positionKnown: true,
+          }),
+        }),
+      );
+    eventsResponder = () =>
+      jsonResponse(
+        makeEventsPage([
+          makeTimelineEventView({ id: "read", pageNumber: 10, title: "Уже прочитане" }),
+          makeTimelineEventView({ id: "ahead", pageNumber: 30, title: "Таємне вбивство" }),
+        ]),
+      );
+
+    renderBlock();
+
+    await screen.findByText("Подія знаходиться далі вашої поточної позиції читання");
+    await userEvent.click(screen.getByRole("button", { name: "Показати подію" }));
+    expect(screen.getByRole("button", { name: "Таємне вбивство" })).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText("Пошук подій"), "вбивство");
+
+    await waitFor(() => expect(lastEventsParams().get("search")).toBe("вбивство"));
     expect(screen.getByRole("button", { name: "Таємне вбивство" })).toBeInTheDocument();
   });
 
@@ -322,5 +360,187 @@ describe("BookTimelineBlock", () => {
 
     await waitFor(() => expect(lastEventsParams().get("eventType")).toBe("death"));
     await waitFor(() => expect(events.at(-1)?.searchParams.get("view")).toBe("stream"));
+  });
+
+  it("drills down from the overview importance row to a single importance", async () => {
+    overviewResponder = () =>
+      jsonResponse(
+        makeTimelineOverview({
+          byImportance: [{ count: 2, importance: "key" }],
+          totalEvents: 2,
+        }),
+      );
+
+    renderBlock("?view=overview");
+
+    await screen.findByText("За важливістю");
+    await userEvent.click(screen.getByRole("button", { name: /Ключова/ }));
+
+    await waitFor(() => expect(lastEventsParams().get("importance")).toBe("key"));
+    expect(lastEventsParams().get("sort")).toBe("book_order");
+    expect(lastEventsParams().has("timelineId")).toBe(false);
+  });
+
+  it("drills down from the overview timeline row into that line", async () => {
+    renderBlock("?view=overview");
+
+    await screen.findByText("Щільність подій за розділами");
+    await userEvent.click(screen.getByRole("button", { name: /Основна лінія/ }));
+
+    await waitFor(() => expect(lastEventsParams().get("timelineId")).toBe("line-1"));
+    expect(lastEventsParams().get("sort")).toBe("timeline_order");
+  });
+
+  it("drills down from the chapterless footer", async () => {
+    renderBlock("?view=overview");
+
+    await userEvent.click(await screen.findByRole("button", { name: /Без зазначеного розділу/ }));
+
+    await waitFor(() => expect(lastEventsParams().get("withoutChapter")).toBe("true"));
+    expect(lastEventsParams().get("sort")).toBe("book_order");
+    expect(lastEventsParams().has("eventType")).toBe(false);
+  });
+
+  it("sends the without-chapter facet from the filter sheet", async () => {
+    renderBlock();
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
+
+    const sheet = await screen.findByRole("dialog");
+    await userEvent.click(within(sheet).getByRole("switch", { name: "Без зазначеного розділу" }));
+
+    await waitFor(() => expect(lastEventsParams().get("withoutChapter")).toBe("true"));
+  });
+
+  it("clears the active facets with the global reset", async () => {
+    renderBlock();
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    await userEvent.click(screen.getByRole("button", { name: /Фільтри/ }));
+
+    const sheet = await screen.findByRole("dialog");
+    await userEvent.click(within(sheet).getByRole("switch", { name: "Без зазначеного розділу" }));
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(lastEventsParams().get("withoutChapter")).toBe("true"));
+    expect(
+      await screen.findByRole("button", { name: "Прибрати «Без зазначеного розділу»" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Скинути все" }));
+
+    await waitFor(() => expect(lastEventsParams().has("withoutChapter")).toBe(false));
+  });
+});
+
+describe("BookTimelineBlock timeline management", () => {
+  beforeEach(() => {
+    timelinesResponder = () =>
+      jsonResponse(
+        makeTimelineListView({
+          timelines: [
+            makeTimelineView({ id: "line-1", name: "Лінія А", position: 0 }),
+            makeTimelineView({
+              id: "line-2",
+              isDefault: false,
+              name: "Лінія Б",
+              position: 1,
+            }),
+          ],
+        }),
+      );
+  });
+
+  async function openManage() {
+    await userEvent.click(await screen.findByRole("button", { name: "Керувати лініями" }));
+    return screen.findByRole("dialog", { name: "Керування лініями" });
+  }
+
+  async function openRowMenu(name: string) {
+    await userEvent.click(await screen.findByRole("button", { name: `Дії лінії «${name}»` }));
+    return screen.findByRole("menu");
+  }
+
+  it("keeps exactly one management dialog mounted at a time", async () => {
+    renderBlock();
+
+    await openManage();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Нова часова лінія" }));
+
+    expect(await screen.findByRole("dialog", { name: "Нова часова лінія" })).toBeInTheDocument();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.queryByRole("dialog", { name: "Керування лініями" })).not.toBeInTheDocument();
+  });
+
+  it("returns to Manage when the create form is cancelled", async () => {
+    renderBlock();
+
+    await openManage();
+    await userEvent.click(screen.getByRole("button", { name: "Нова часова лінія" }));
+    await screen.findByRole("dialog", { name: "Нова часова лінія" });
+    await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
+
+    expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
+
+  it("returns to Manage after a successful create", async () => {
+    renderBlock();
+
+    await openManage();
+    await userEvent.click(screen.getByRole("button", { name: "Нова часова лінія" }));
+    await screen.findByRole("dialog", { name: "Нова часова лінія" });
+    await userEvent.type(screen.getByLabelText(/Назва лінії/), "Спогади");
+    await userEvent.click(screen.getByRole("button", { name: "Створити" }));
+
+    expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
+  });
+
+  it("returns to Manage after editing a line", async () => {
+    renderBlock();
+
+    await openManage();
+    await userEvent.click(
+      within(await openRowMenu("Лінія Б")).getByRole("menuitem", { name: "Редагувати" }),
+    );
+
+    expect(await screen.findByRole("dialog", { name: "Редагувати лінію" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
+  });
+
+  it("closes the whole management flow from Готово", async () => {
+    renderBlock();
+
+    await openManage();
+    await userEvent.click(screen.getByRole("button", { name: "Готово" }));
+
+    await waitFor(() => expect(screen.queryAllByRole("dialog")).toHaveLength(0));
+  });
+
+  it("falls back to all lines when the selected line is deleted, not to the move target", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+
+    renderBlock("?timelineId=line-2", onUrlUpdate);
+
+    await openManage();
+    await userEvent.click(
+      within(await openRowMenu("Лінія Б")).getByRole("menuitem", { name: "Видалити лінію" }),
+    );
+
+    expect(
+      await screen.findByRole("dialog", { name: "Видалити часову лінію?" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Перемістити події/ })).toBeChecked();
+
+    await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
+
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("timelineId")).toBeNull());
+    expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
   });
 });

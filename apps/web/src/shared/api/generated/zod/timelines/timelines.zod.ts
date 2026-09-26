@@ -23,23 +23,16 @@ export const timelinesControllerListTimelinesResponseTimelinesItemPositionMax = 
 export const TimelinesControllerListTimelinesResponse = zod.object({
   timelines: zod.array(
     zod.object({
-      colorKey: zod
-        .union([
-          zod.literal("slate"),
-          zod.literal("stone"),
-          zod.literal("amber"),
-          zod.literal("orange"),
-          zod.literal("rose"),
-          zod.literal("red"),
-          zod.literal("emerald"),
-          zod.literal("teal"),
-          zod.literal("sky"),
-          zod.literal("blue"),
-          zod.literal("violet"),
-          zod.literal("fuchsia"),
-          zod.literal(null),
-        ])
-        .nullable(),
+      colorKey: zod.enum([
+        "parchment",
+        "terracotta",
+        "honey",
+        "sage",
+        "forest",
+        "sky",
+        "lavender",
+        "rose",
+      ]),
       createdAt: zod.string(),
       description: zod.string().nullable(),
       eventsCount: zod
@@ -71,22 +64,8 @@ export const timelinesControllerCreateTimelineBodyNameMax = 100;
 
 export const TimelinesControllerCreateTimelineBody = zod.object({
   colorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullish(),
+    .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+    .optional(),
   description: zod.string().max(timelinesControllerCreateTimelineBodyDescriptionMax).nullish(),
   name: zod.string().min(1).max(timelinesControllerCreateTimelineBodyNameMax),
 });
@@ -98,23 +77,16 @@ export const timelinesControllerCreateTimelineResponsePositionMin = -90071992547
 export const timelinesControllerCreateTimelineResponsePositionMax = 9007199254740991;
 
 export const TimelinesControllerCreateTimelineResponse = zod.object({
-  colorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  colorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   createdAt: zod.string(),
   description: zod.string().nullable(),
   eventsCount: zod
@@ -205,23 +177,16 @@ export const timelinesControllerReorderTimelinesResponseTimelinesItemPositionMax
 export const TimelinesControllerReorderTimelinesResponse = zod.object({
   timelines: zod.array(
     zod.object({
-      colorKey: zod
-        .union([
-          zod.literal("slate"),
-          zod.literal("stone"),
-          zod.literal("amber"),
-          zod.literal("orange"),
-          zod.literal("rose"),
-          zod.literal("red"),
-          zod.literal("emerald"),
-          zod.literal("teal"),
-          zod.literal("sky"),
-          zod.literal("blue"),
-          zod.literal("violet"),
-          zod.literal("fuchsia"),
-          zod.literal(null),
-        ])
-        .nullable(),
+      colorKey: zod.enum([
+        "parchment",
+        "terracotta",
+        "honey",
+        "sage",
+        "forest",
+        "sky",
+        "lavender",
+        "rose",
+      ]),
       createdAt: zod.string(),
       description: zod.string().nullable(),
       eventsCount: zod
@@ -253,22 +218,8 @@ export const timelinesControllerUpdateTimelineBodyNameMax = 100;
 
 export const TimelinesControllerUpdateTimelineBody = zod.object({
   colorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullish(),
+    .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+    .optional(),
   description: zod.string().max(timelinesControllerUpdateTimelineBodyDescriptionMax).nullish(),
   name: zod.string().min(1).max(timelinesControllerUpdateTimelineBodyNameMax).optional(),
 });
@@ -280,23 +231,16 @@ export const timelinesControllerUpdateTimelineResponsePositionMin = -90071992547
 export const timelinesControllerUpdateTimelineResponsePositionMax = 9007199254740991;
 
 export const TimelinesControllerUpdateTimelineResponse = zod.object({
-  colorKey: zod
-    .union([
-      zod.literal("slate"),
-      zod.literal("stone"),
-      zod.literal("amber"),
-      zod.literal("orange"),
-      zod.literal("rose"),
-      zod.literal("red"),
-      zod.literal("emerald"),
-      zod.literal("teal"),
-      zod.literal("sky"),
-      zod.literal("blue"),
-      zod.literal("violet"),
-      zod.literal("fuchsia"),
-      zod.literal(null),
-    ])
-    .nullable(),
+  colorKey: zod.enum([
+    "parchment",
+    "terracotta",
+    "honey",
+    "sage",
+    "forest",
+    "sky",
+    "lavender",
+    "rose",
+  ]),
   createdAt: zod.string(),
   description: zod.string().nullable(),
   eventsCount: zod
@@ -376,23 +320,16 @@ export const timelinesControllerSetDefaultResponseTimelinesItemPositionMax = 900
 export const TimelinesControllerSetDefaultResponse = zod.object({
   timelines: zod.array(
     zod.object({
-      colorKey: zod
-        .union([
-          zod.literal("slate"),
-          zod.literal("stone"),
-          zod.literal("amber"),
-          zod.literal("orange"),
-          zod.literal("rose"),
-          zod.literal("red"),
-          zod.literal("emerald"),
-          zod.literal("teal"),
-          zod.literal("sky"),
-          zod.literal("blue"),
-          zod.literal("violet"),
-          zod.literal("fuchsia"),
-          zod.literal(null),
-        ])
-        .nullable(),
+      colorKey: zod.enum([
+        "parchment",
+        "terracotta",
+        "honey",
+        "sage",
+        "forest",
+        "sky",
+        "lavender",
+        "rose",
+      ]),
       createdAt: zod.string(),
       description: zod.string().nullable(),
       eventsCount: zod

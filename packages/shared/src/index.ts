@@ -30,6 +30,7 @@ export * from "./notifications.js";
 export * from "./order-financials.js";
 export * from "./order-statistics.js";
 export * from "./orders.js";
+export * from "./palette.js";
 export * from "./profile.js";
 export * from "./publisher-overview.js";
 export * from "./publishers.js";

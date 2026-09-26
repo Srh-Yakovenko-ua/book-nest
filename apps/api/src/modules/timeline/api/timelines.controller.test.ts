@@ -75,6 +75,7 @@ describe("timeline lazy default", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.timelines).toHaveLength(1);
     expect(res.body.timelines[0]).toMatchObject({
+      colorKey: "parchment",
       eventsCount: 0,
       isDefault: true,
       name: DEFAULT_TIMELINE_NAME,
@@ -100,13 +101,13 @@ describe("timeline creation", () => {
     const bookId = await createBook(accessToken);
 
     const created = await createTimeline(accessToken, bookId, {
-      colorKey: "amber",
+      colorKey: "honey",
       description: "The heroine's past",
       name: "Flashbacks",
     });
     expect(created.status).toBe(HttpStatus.CREATED);
     expect(created.body).toMatchObject({
-      colorKey: "amber",
+      colorKey: "honey",
       description: "The heroine's past",
       isDefault: false,
       name: "Flashbacks",
@@ -116,6 +117,47 @@ describe("timeline creation", () => {
     expect(list.body.timelines).toHaveLength(2);
     expect(list.body.timelines[0].isDefault).toBe(true);
     expect(list.body.timelines[1].name).toBe("Flashbacks");
+  });
+
+  it("auto-picks the next unused palette color when none is supplied", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const first = await createTimeline(accessToken, bookId, { name: "Flashbacks" });
+    expect(first.status).toBe(HttpStatus.CREATED);
+    expect(first.body.colorKey).toBe("terracotta");
+
+    const second = await createTimeline(accessToken, bookId, { name: "Future" });
+    expect(second.body.colorKey).toBe("honey");
+
+    const list = await listTimelines(accessToken, bookId);
+    expect(list.body.timelines.map((line: { colorKey: string }) => line.colorKey)).toEqual([
+      "parchment",
+      "terracotta",
+      "honey",
+    ]);
+  });
+
+  it("skips a color already taken in the book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const taken = await createTimeline(accessToken, bookId, {
+      colorKey: "terracotta",
+      name: "Flashbacks",
+    });
+    expect(taken.body.colorKey).toBe("terracotta");
+
+    const auto = await createTimeline(accessToken, bookId, { name: "Future" });
+    expect(auto.body.colorKey).toBe("honey");
+  });
+
+  it("rejects a legacy color key", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const res = await createTimeline(accessToken, bookId, { colorKey: "amber", name: "X" });
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
   });
 
   it("rejects a duplicate name case-insensitively", async () => {
@@ -157,7 +199,33 @@ describe("timeline update", () => {
       name: "Main story",
     });
     expect(res.status).toBe(HttpStatus.OK);
-    expect(res.body).toMatchObject({ description: null, isDefault: true, name: "Main story" });
+    expect(res.body).toMatchObject({
+      colorKey: "parchment",
+      description: null,
+      isDefault: true,
+      name: "Main story",
+    });
+  });
+
+  it("keeps the color when the update omits it and replaces it when supplied", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const line = await createTimeline(accessToken, bookId, {
+      colorKey: "lavender",
+      name: "Flashbacks",
+    });
+
+    const renamed = await authed("patch", `/api/timelines/${line.body.id}`, accessToken).send({
+      name: "Memories",
+    });
+    expect(renamed.status).toBe(HttpStatus.OK);
+    expect(renamed.body.colorKey).toBe("lavender");
+
+    const recolored = await authed("patch", `/api/timelines/${line.body.id}`, accessToken).send({
+      colorKey: "forest",
+    });
+    expect(recolored.status).toBe(HttpStatus.OK);
+    expect(recolored.body.colorKey).toBe("forest");
   });
 
   it("rejects renaming into another line's name", async () => {

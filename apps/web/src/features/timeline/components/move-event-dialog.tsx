@@ -23,10 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 import { useMoveTimelineEvent } from "../api/use-move-timeline-event";
-import { markerClass } from "../model/color-key";
+import { markerStyle } from "../model/color-key";
 
 type MoveEventDialogProps = {
   bookId: string;
@@ -119,7 +118,8 @@ function MoveEventForm({
               <SelectItem key={timeline.id} value={timeline.id}>
                 <span
                   aria-hidden
-                  className={cn("size-2 rounded-full", markerClass(timeline.colorKey))}
+                  className="size-2 rounded-full"
+                  style={markerStyle(timeline.colorKey)}
                 />
                 {timeline.name}
               </SelectItem>

@@ -36,6 +36,11 @@ export interface TimelineOverviewViewDto {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  resolvedCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   totalEvents: number;
   /**
    * @minimum 0

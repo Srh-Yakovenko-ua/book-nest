@@ -2131,6 +2131,7 @@ export * from "./timelineEventsControllerListEventsParams";
 export * from "./timelineEventsControllerListEventsRecap";
 export * from "./timelineEventsControllerListEventsSort";
 export * from "./timelineEventsControllerListEventsUnresolved";
+export * from "./timelineEventsControllerListEventsWithoutChapter";
 export * from "./timelineEventViewDto";
 export * from "./timelineEventViewDtoEventType";
 export * from "./timelineEventViewDtoImportance";

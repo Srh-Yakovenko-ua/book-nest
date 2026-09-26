@@ -11,12 +11,16 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { timelineEventsOrderBy } from "../domain/event-sort.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
 
-const THREAD_STATUS_OPEN = "open";
+const THREAD_STATUS = {
+  open: "open",
+  resolved: "resolved",
+} as const;
 
 const TimelineOverviewCountsRowSchema = z.object({
   eventsAfterPosition: z.number(),
   eventsBeforePosition: z.number(),
   eventsWithoutPage: z.number(),
+  resolvedCount: z.number(),
   totalEvents: z.number(),
   unresolvedCount: z.number(),
 });
@@ -25,6 +29,7 @@ const EMPTY_TIMELINE_OVERVIEW_COUNTS: z.infer<typeof TimelineOverviewCountsRowSc
   eventsAfterPosition: 0,
   eventsBeforePosition: 0,
   eventsWithoutPage: 0,
+  resolvedCount: 0,
   totalEvents: 0,
   unresolvedCount: 0,
 };
@@ -81,6 +86,7 @@ export type CreateEventData = {
   eventType: string;
   importance: string;
   importanceRank: number;
+  isSpoiler: boolean;
   location: Nullable<string>;
   pageNumber: Nullable<number>;
   personalNote: Nullable<string>;
@@ -113,6 +119,7 @@ export type EventsFilter = {
   search: string | undefined;
   timelineId: string | undefined;
   unresolved: boolean;
+  withoutChapter: boolean;
 };
 
 export type EventViewRow = Prisma.BookTimelineEventGetPayload<typeof eventViewArgs>;
@@ -124,6 +131,7 @@ export type TimelineOverviewAggregate = {
   eventsAfterPosition: number;
   eventsBeforePosition: number;
   eventsUnknownPosition: number;
+  resolvedCount: number;
   totalEvents: number;
   unresolvedCount: number;
 };
@@ -149,8 +157,10 @@ export class TimelineEventRepository {
       this.prisma.$queryRaw(Prisma.sql`
         SELECT
           (count(*))::int AS "totalEvents",
-          (count(*) FILTER (WHERE event.thread_status = ${THREAD_STATUS_OPEN}))::int
+          (count(*) FILTER (WHERE event.thread_status = ${THREAD_STATUS.open}))::int
             AS "unresolvedCount",
+          (count(*) FILTER (WHERE event.thread_status = ${THREAD_STATUS.resolved}))::int
+            AS "resolvedCount",
           (count(*) FILTER (WHERE event.page_number IS NULL))::int AS "eventsWithoutPage",
           (count(*) FILTER (WHERE event.page_number <= ${currentPage}))::int
             AS "eventsBeforePosition",
@@ -202,6 +212,7 @@ export class TimelineEventRepository {
       eventsAfterPosition: positionSplit.after,
       eventsBeforePosition: positionSplit.before,
       eventsUnknownPosition: positionSplit.unknown,
+      resolvedCount: counts.resolvedCount,
       totalEvents: counts.totalEvents,
       unresolvedCount: counts.unresolvedCount,
     };
@@ -567,10 +578,13 @@ function buildEventsWhere(filter: EventsFilter): Prisma.BookTimelineEventWhereIn
     where.importance = { in: filter.importances };
   }
   if (filter.unresolved) {
-    where.threadStatus = "open";
+    where.threadStatus = THREAD_STATUS.open;
+  }
+  if (filter.withoutChapter) {
+    and.push({ chapter: null });
   }
   if (filter.recap && filter.currentPage !== null) {
-    and.push({ OR: [{ pageNumber: { lte: filter.currentPage } }, { pageNumber: null }] });
+    and.push({ pageNumber: { lte: filter.currentPage, not: null } });
   }
   if (filter.search !== undefined) {
     and.push({ OR: buildSearchConditions(filter.search) });

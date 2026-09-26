@@ -11,7 +11,7 @@ const messages: TimelineFormMessages = {
 };
 
 function baseValues() {
-  return { colorKey: null, description: "", name: "Флешбеки" };
+  return { colorKey: "sky", description: "", name: "Флешбеки" } as const;
 }
 
 function errorFor(data: unknown, field: string) {
@@ -38,17 +38,39 @@ describe("buildTimelineFormSchema", () => {
       "description-too-long",
     );
   });
+
+  it("rejects a missing color key", () => {
+    expect(
+      buildTimelineFormSchema(messages).safeParse({ description: "", name: "Лінія" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a null color key", () => {
+    expect(
+      buildTimelineFormSchema(messages).safeParse({ ...baseValues(), colorKey: null }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a legacy color key", () => {
+    expect(
+      buildTimelineFormSchema(messages).safeParse({ ...baseValues(), colorKey: "blue" }).success,
+    ).toBe(false);
+  });
 });
 
 describe("timelineFormValuesToInput", () => {
-  it("trims the name and passes the color key through", () => {
+  it("trims the name and passes the canonical color key through", () => {
     const input = timelineFormValuesToInput({
-      colorKey: "blue",
+      colorKey: "lavender",
       description: "",
       name: "  Спогади  ",
     });
     expect(input.name).toBe("Спогади");
-    expect(input.colorKey).toBe("blue");
+    expect(input.colorKey).toBe("lavender");
+  });
+
+  it("never emits a null color key", () => {
+    expect(timelineFormValuesToInput(baseValues()).colorKey).toBe("sky");
   });
 
   it("converts a blank description to null", () => {
@@ -57,7 +79,7 @@ describe("timelineFormValuesToInput", () => {
 
   it("keeps an entered description trimmed", () => {
     const input = timelineFormValuesToInput({
-      colorKey: null,
+      colorKey: "forest",
       description: "  Паралельний сюжет  ",
       name: "Лінія",
     });

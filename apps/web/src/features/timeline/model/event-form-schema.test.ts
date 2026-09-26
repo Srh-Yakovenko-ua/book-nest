@@ -28,6 +28,7 @@ function baseValues() {
     description: "",
     eventType: "main",
     importance: "medium",
+    isSpoiler: false,
     location: "",
     personalNote: "",
     resolvedByEventId: null,
@@ -127,6 +128,11 @@ describe("eventFormValuesToInput", () => {
   it("omits the timeline id when none is selected", () => {
     expect(eventFormValuesToInput(parseValues({ timelineId: null })).timelineId).toBeUndefined();
   });
+
+  it("carries the spoiler flag through unchanged", () => {
+    expect(eventFormValuesToInput(parseValues({ isSpoiler: true })).isSpoiler).toBe(true);
+    expect(eventFormValuesToInput(parseValues({ isSpoiler: false })).isSpoiler).toBe(false);
+  });
 });
 
 describe("eventFormDefaults", () => {
@@ -137,6 +143,12 @@ describe("eventFormDefaults", () => {
     expect(defaults.title).toBe("");
     expect(defaults.timelineId).toBe("line-1");
     expect(defaults.page).toBeUndefined();
+    expect(defaults.isSpoiler).toBe(false);
+  });
+
+  it("keeps the spoiler flag of an existing event", () => {
+    const event = makeTimelineEventView({ isSpoiler: true });
+    expect(eventFormDefaults({ event, timelineId: event.timelineId }).isSpoiler).toBe(true);
   });
 
   it("suggests the current page when the reading position is known", () => {

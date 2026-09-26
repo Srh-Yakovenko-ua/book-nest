@@ -13,12 +13,13 @@ export type OverviewAggregateInput = {
   eventsAfterPosition: number;
   eventsBeforePosition: number;
   eventsUnknownPosition: number;
+  resolvedCount: number;
   totalEvents: number;
   unresolvedCount: number;
 };
 
 export type OverviewTimelineInput = {
-  colorKey: Nullable<string>;
+  colorKey: string;
   eventsCount: number;
   id: string;
   name: string;
@@ -39,7 +40,7 @@ export function buildTimelineOverview({
       importance: TimelineImportanceSchema.parse(row.importance),
     })),
     byTimeline: timelines.map((timeline) => ({
-      colorKey: timeline.colorKey === null ? null : TimelineColorKeySchema.parse(timeline.colorKey),
+      colorKey: TimelineColorKeySchema.parse(timeline.colorKey),
       count: timeline.eventsCount,
       timelineId: timeline.id,
       timelineName: timeline.name,
@@ -53,6 +54,7 @@ export function buildTimelineOverview({
     eventsBeforePosition: aggregate.eventsBeforePosition,
     eventsUnknownPosition: aggregate.eventsUnknownPosition,
     readingPosition,
+    resolvedCount: aggregate.resolvedCount,
     totalEvents: aggregate.totalEvents,
     unresolvedCount: aggregate.unresolvedCount,
   };

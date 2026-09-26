@@ -7,6 +7,7 @@ import { useState } from "react";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChipGroup } from "@/components/ui/chip-group";
 import { FilterSection } from "@/components/ui/filter-panel";
 import { Label } from "@/components/ui/label";
 import { Multiselect } from "@/components/ui/multiselect";
@@ -21,12 +22,9 @@ import {
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 
-import type { ImportancePreset } from "../model/importance-preset";
 import type { TimelineEventsFilterState } from "../model/timeline-events-query";
 
-import { detectImportancePreset, importancePresetValues } from "../model/importance-preset";
-
-const IMPORTANCE_PRESETS: readonly ImportancePreset[] = ["importantEvents", "keyOnly"];
+import { IMPORTANCE_META } from "../model/importance-meta";
 
 type TimelineFiltersProps = {
   filters: TimelineEventsFilterState;
@@ -35,20 +33,19 @@ type TimelineFiltersProps = {
 
 export function TimelineFilters({ filters, onChange }: TimelineFiltersProps) {
   const t = useTranslations("timeline.filters");
+  const tTimeline = useTranslations("timeline");
   const tType = useTranslations("timeline.eventType");
-  const tImportance = useTranslations("timeline.importance");
-  const tPreset = useTranslations("timeline.preset");
   const [open, setOpen] = useState(false);
 
-  const activePreset = detectImportancePreset(filters.importance);
   const activeCount =
     (filters.eventType.length > 0 ? 1 : 0) +
     (filters.importance.length > 0 ? 1 : 0) +
-    (filters.unresolved ? 1 : 0);
+    (filters.unresolved ? 1 : 0) +
+    (filters.withoutChapter ? 1 : 0);
 
   const typeOptions = TIMELINE_EVENT_TYPES.map((type) => ({ label: tType(type), value: type }));
   const importanceOptions = TIMELINE_IMPORTANCE_LEVELS.map((level) => ({
-    label: tImportance(level),
+    label: tTimeline(IMPORTANCE_META[level].labelKey),
     value: level,
   }));
 
@@ -63,13 +60,14 @@ export function TimelineFilters({ filters, onChange }: TimelineFiltersProps) {
     });
   }
 
-  function applyPreset(preset: ImportancePreset) {
-    const values = activePreset === preset ? [] : [...importancePresetValues(preset)];
-    onChange({ ...filters, importance: values });
-  }
-
   function clearFacets() {
-    onChange({ ...filters, eventType: [], importance: [], unresolved: false });
+    onChange({
+      ...filters,
+      eventType: [],
+      importance: [],
+      unresolved: false,
+      withoutChapter: false,
+    });
   }
 
   return (
@@ -104,29 +102,12 @@ export function TimelineFilters({ filters, onChange }: TimelineFiltersProps) {
           </FilterSection>
 
           <FilterSection title={t("importanceLabel")}>
-            <div className="flex flex-wrap gap-2">
-              {IMPORTANCE_PRESETS.map((preset) => {
-                const active = activePreset === preset;
-                return (
-                  <Button
-                    aria-pressed={active}
-                    key={preset}
-                    onClick={() => applyPreset(preset)}
-                    size="sm"
-                    type="button"
-                    variant={active ? "default" : "secondary"}
-                  >
-                    {tPreset(preset)}
-                  </Button>
-                );
-              })}
-            </div>
-            <Multiselect
-              emptyText={t("noOptions")}
+            <ChipGroup
+              label={t("importanceLabel")}
+              mode="multi"
               onValueChange={setImportance}
               options={importanceOptions}
-              placeholder={t("selectPlaceholder")}
-              searchPlaceholder={t("searchOptions")}
+              size="sm"
               value={filters.importance}
             />
           </FilterSection>
@@ -137,6 +118,16 @@ export function TimelineFilters({ filters, onChange }: TimelineFiltersProps) {
               <Switch
                 checked={filters.unresolved}
                 onCheckedChange={(checked) => onChange({ ...filters, unresolved: checked })}
+              />
+            </Label>
+          </FilterSection>
+
+          <FilterSection title={t("structureLabel")}>
+            <Label className="justify-between">
+              {t("withoutChapter")}
+              <Switch
+                checked={filters.withoutChapter}
+                onCheckedChange={(checked) => onChange({ ...filters, withoutChapter: checked })}
               />
             </Label>
           </FilterSection>
