@@ -30,6 +30,7 @@ import { toActiveBookDeliveryView } from "../../delivery/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
 import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import { resolveSeriesCanonicalAuthors } from "./series-canonical-authors.js";
+import { summarizeSeriesGenres } from "./series-genres.js";
 import {
   computeSeriesLastActivityAt,
   summarizeSeriesBooks,
@@ -44,6 +45,7 @@ type SeriesViewBookRow = SeriesAggregateBookRow &
   SeriesBookRow & {
     authors: { author: SeriesAuthorRef; position: number }[];
     coverMedia?: Nullable<MediaAssetModel>;
+    genres: string[];
   };
 
 type SeriesViewSource = {
@@ -132,6 +134,7 @@ function buildSeriesView({
     ...summarizeSeriesAggregates(series.books),
     authors: resolveSeriesCanonicalAuthors(series),
     booksInSeries: series._count.books,
+    commonGenres: summarizeSeriesGenres(series.books),
     covers: buildSeriesCoverPreviews({ books: series.books, coverByBookId }),
     createdAt: series.createdAt.toISOString(),
     description: series.description,

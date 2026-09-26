@@ -182,6 +182,7 @@ export const readingQueueControllerGetQueueResponseItemsItemBookQueuePriorityTar
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const readingQueueControllerGetQueueResponseItemsItemBookSeriesAgeCategoriesDefault = [];
+export const readingQueueControllerGetQueueResponseItemsItemBookSeriesCommonGenresDefault = [];
 export const readingQueueControllerGetQueueResponseItemsItemBookSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const readingQueueControllerGetQueueResponseItemsItemBookSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -490,6 +491,11 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(
+                readingQueueControllerGetQueueResponseItemsItemBookSeriesCommonGenresDefault,
+              ),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),
@@ -728,6 +734,7 @@ export const readingQueueControllerAddToQueueResponseItemsItemBookQueuePriorityT
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const readingQueueControllerAddToQueueResponseItemsItemBookSeriesAgeCategoriesDefault = [];
+export const readingQueueControllerAddToQueueResponseItemsItemBookSeriesCommonGenresDefault = [];
 export const readingQueueControllerAddToQueueResponseItemsItemBookSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const readingQueueControllerAddToQueueResponseItemsItemBookSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -1036,6 +1043,11 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(
+                readingQueueControllerAddToQueueResponseItemsItemBookSeriesCommonGenresDefault,
+              ),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),
@@ -1485,6 +1497,7 @@ export const readingQueueControllerReorderResponseItemsItemBookQueuePriorityTarg
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const readingQueueControllerReorderResponseItemsItemBookSeriesAgeCategoriesDefault = [];
+export const readingQueueControllerReorderResponseItemsItemBookSeriesCommonGenresDefault = [];
 export const readingQueueControllerReorderResponseItemsItemBookSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const readingQueueControllerReorderResponseItemsItemBookSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -1792,6 +1805,9 @@ export const ReadingQueueControllerReorderResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(readingQueueControllerReorderResponseItemsItemBookSeriesCommonGenresDefault),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),
@@ -2020,6 +2036,7 @@ export const readingQueueControllerStartReadingResponseItemsItemBookQueuePriorit
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const readingQueueControllerStartReadingResponseItemsItemBookSeriesAgeCategoriesDefault = [];
+export const readingQueueControllerStartReadingResponseItemsItemBookSeriesCommonGenresDefault = [];
 export const readingQueueControllerStartReadingResponseItemsItemBookSeriesDominantPublisherBookCountMin =
   -9007199254740991;
 export const readingQueueControllerStartReadingResponseItemsItemBookSeriesDominantPublisherBookCountMax = 9007199254740991;
@@ -2334,6 +2351,11 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(
+                readingQueueControllerStartReadingResponseItemsItemBookSeriesCommonGenresDefault,
+              ),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),
@@ -2566,6 +2588,8 @@ export const readingQueueControllerRemoveFromQueueResponseItemsItemBookQueuePrio
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const readingQueueControllerRemoveFromQueueResponseItemsItemBookSeriesAgeCategoriesDefault =
+  [];
+export const readingQueueControllerRemoveFromQueueResponseItemsItemBookSeriesCommonGenresDefault =
   [];
 export const readingQueueControllerRemoveFromQueueResponseItemsItemBookSeriesDominantPublisherBookCountMin =
   -9007199254740991;
@@ -2881,6 +2905,11 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(
+                readingQueueControllerRemoveFromQueueResponseItemsItemBookSeriesCommonGenresDefault,
+              ),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),

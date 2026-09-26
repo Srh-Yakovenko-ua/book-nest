@@ -67,6 +67,7 @@ export const SeriesPartWithProgress: Story = {
         averagePages: 320,
         averageRating: 8,
         booksInSeries: 8,
+        commonGenres: ["fantasy"],
         covers: [],
         createdAt: "2026-01-01T00:00:00.000Z",
         description: null,

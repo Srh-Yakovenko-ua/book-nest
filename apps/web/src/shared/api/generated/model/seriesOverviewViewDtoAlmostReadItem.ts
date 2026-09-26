@@ -24,6 +24,7 @@ export type SeriesOverviewViewDtoAlmostReadItem = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: SeriesOverviewViewDtoAlmostReadItemCoversItem[];
   createdAt: string;
   /** @nullable */

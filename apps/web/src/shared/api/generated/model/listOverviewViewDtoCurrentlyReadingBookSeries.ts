@@ -27,6 +27,7 @@ export type ListOverviewViewDtoCurrentlyReadingBookSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: ListOverviewViewDtoCurrentlyReadingBookSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

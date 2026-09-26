@@ -9,7 +9,7 @@ import {
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
 
-const BOOK_GENRES_MAX = 5;
+export const BOOK_GENRES_MAX = 5;
 const GENRE_KEY_MAX = 64;
 const GENRE_SEARCH_MAX = 100;
 

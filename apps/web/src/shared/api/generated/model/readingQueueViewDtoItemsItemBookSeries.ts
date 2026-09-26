@@ -27,6 +27,7 @@ export type ReadingQueueViewDtoItemsItemBookSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: ReadingQueueViewDtoItemsItemBookSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

@@ -24,6 +24,7 @@ export type SeriesOverviewViewDtoTopUnfinishedItem = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: SeriesOverviewViewDtoTopUnfinishedItemCoversItem[];
   createdAt: string;
   /** @nullable */

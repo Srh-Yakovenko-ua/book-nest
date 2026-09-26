@@ -200,6 +200,7 @@ export const SeriesViewSchema = z.object({
   averagePages: z.number().nullish(),
   averageRating: z.number().nullish(),
   booksInSeries: z.number(),
+  commonGenres: z.array(z.string()).default([]),
   covers: z.array(SeriesCoverPreviewSchema),
   createdAt: z.string(),
   description: z.string().nullable(),

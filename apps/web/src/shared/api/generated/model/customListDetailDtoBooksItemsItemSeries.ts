@@ -27,6 +27,7 @@ export type CustomListDetailDtoBooksItemsItemSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: CustomListDetailDtoBooksItemsItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */

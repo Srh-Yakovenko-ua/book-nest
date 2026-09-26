@@ -11,6 +11,7 @@ const vivat: SeriesPublisherRef = { bookCount: 5, id: "publisher-1", name: "Viva
 function existingSeries(dominantPublisher: null | SeriesPublisherRef): SeriesSelection {
   return {
     authors: [],
+    commonGenres: [],
     dominantPublisher,
     genres: [],
     id: "series-1",

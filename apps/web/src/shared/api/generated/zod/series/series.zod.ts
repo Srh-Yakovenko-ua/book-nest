@@ -56,6 +56,7 @@ export const SeriesControllerCreateBody = zod.object({
 });
 
 export const seriesControllerCreateResponseAgeCategoriesDefault = [];
+export const seriesControllerCreateResponseCommonGenresDefault = [];
 export const seriesControllerCreateResponseDominantPublisherBookCountMin = -9007199254740991;
 export const seriesControllerCreateResponseDominantPublisherBookCountMax = 9007199254740991;
 
@@ -99,6 +100,7 @@ export const SeriesControllerCreateResponse = zod.object({
   averagePages: zod.number().nullish(),
   averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
+  commonGenres: zod.array(zod.string()).default(seriesControllerCreateResponseCommonGenresDefault),
   covers: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -314,6 +316,7 @@ export const SeriesControllerSearchQueryParams = zod.object({
 });
 
 export const seriesControllerSearchResponseItemsItemAgeCategoriesDefault = [];
+export const seriesControllerSearchResponseItemsItemCommonGenresDefault = [];
 export const seriesControllerSearchResponseItemsItemDominantPublisherBookCountMin =
   -9007199254740991;
 export const seriesControllerSearchResponseItemsItemDominantPublisherBookCountMax = 9007199254740991;
@@ -371,6 +374,9 @@ export const SeriesControllerSearchResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(seriesControllerSearchResponseItemsItemCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -525,6 +531,7 @@ export const SeriesControllerSearchResponse = zod.object({
  * @summary Get the current user series overview
  */
 export const seriesControllerOverviewResponseAlmostReadItemAgeCategoriesDefault = [];
+export const seriesControllerOverviewResponseAlmostReadItemCommonGenresDefault = [];
 export const seriesControllerOverviewResponseAlmostReadItemDominantPublisherBookCountMin =
   -9007199254740991;
 export const seriesControllerOverviewResponseAlmostReadItemDominantPublisherBookCountMax = 9007199254740991;
@@ -566,6 +573,7 @@ export const seriesControllerOverviewResponseAttentionCountsUnknownStatusMin = -
 export const seriesControllerOverviewResponseAttentionCountsUnknownStatusMax = 9007199254740991;
 
 export const seriesControllerOverviewResponseTopUnfinishedItemAgeCategoriesDefault = [];
+export const seriesControllerOverviewResponseTopUnfinishedItemCommonGenresDefault = [];
 export const seriesControllerOverviewResponseTopUnfinishedItemDominantPublisherBookCountMin =
   -9007199254740991;
 export const seriesControllerOverviewResponseTopUnfinishedItemDominantPublisherBookCountMax = 9007199254740991;
@@ -614,6 +622,9 @@ export const SeriesControllerOverviewResponse = zod.object({
         averagePages: zod.number().nullish(),
         averageRating: zod.number().nullish(),
         booksInSeries: zod.number(),
+        commonGenres: zod
+          .array(zod.string())
+          .default(seriesControllerOverviewResponseAlmostReadItemCommonGenresDefault),
         covers: zod.array(
           zod.object({
             bookId: zod.string(),
@@ -811,6 +822,9 @@ export const SeriesControllerOverviewResponse = zod.object({
       averagePages: zod.number().nullish(),
       averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
+      commonGenres: zod
+        .array(zod.string())
+        .default(seriesControllerOverviewResponseTopUnfinishedItemCommonGenresDefault),
       covers: zod.array(
         zod.object({
           bookId: zod.string(),
@@ -1239,6 +1253,7 @@ export const SeriesControllerGetByIdParams = zod.object({
 });
 
 export const seriesControllerGetByIdResponseAgeCategoriesDefault = [];
+export const seriesControllerGetByIdResponseCommonGenresDefault = [];
 export const seriesControllerGetByIdResponseDominantPublisherBookCountMin = -9007199254740991;
 export const seriesControllerGetByIdResponseDominantPublisherBookCountMax = 9007199254740991;
 
@@ -1288,6 +1303,7 @@ export const SeriesControllerGetByIdResponse = zod.object({
   averagePages: zod.number().nullish(),
   averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
+  commonGenres: zod.array(zod.string()).default(seriesControllerGetByIdResponseCommonGenresDefault),
   covers: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -1609,6 +1625,7 @@ export const SeriesControllerUpdateBody = zod.object({
 });
 
 export const seriesControllerUpdateResponseAgeCategoriesDefault = [];
+export const seriesControllerUpdateResponseCommonGenresDefault = [];
 export const seriesControllerUpdateResponseDominantPublisherBookCountMin = -9007199254740991;
 export const seriesControllerUpdateResponseDominantPublisherBookCountMax = 9007199254740991;
 
@@ -1652,6 +1669,7 @@ export const SeriesControllerUpdateResponse = zod.object({
   averagePages: zod.number().nullish(),
   averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
+  commonGenres: zod.array(zod.string()).default(seriesControllerUpdateResponseCommonGenresDefault),
   covers: zod.array(
     zod.object({
       bookId: zod.string(),
@@ -1799,6 +1817,7 @@ export const SeriesControllerRestoreParams = zod.object({
 });
 
 export const seriesControllerRestoreResponseAgeCategoriesDefault = [];
+export const seriesControllerRestoreResponseCommonGenresDefault = [];
 export const seriesControllerRestoreResponseDominantPublisherBookCountMin = -9007199254740991;
 export const seriesControllerRestoreResponseDominantPublisherBookCountMax = 9007199254740991;
 
@@ -1848,6 +1867,7 @@ export const SeriesControllerRestoreResponse = zod.object({
   averagePages: zod.number().nullish(),
   averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
+  commonGenres: zod.array(zod.string()).default(seriesControllerRestoreResponseCommonGenresDefault),
   covers: zod.array(
     zod.object({
       bookId: zod.string(),
