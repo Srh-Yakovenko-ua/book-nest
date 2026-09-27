@@ -82,16 +82,30 @@ export function SeriesDetailsHero({
         break;
     }
   }
-  const publisherNames = details.publishers.map((publisher) => publisher.name);
-  const shownPublishers = publisherNames.slice(0, PUBLISHER_LIMIT);
-  const overflowPublishers = publisherNames.length - shownPublishers.length;
+  const showPublisherCounts = details.publishers.length > 1;
+  const shownPublishers = details.publishers.slice(0, PUBLISHER_LIMIT).map((publisher) =>
+    showPublisherCounts
+      ? {
+          spoken: t("publisherWithBookCount", {
+            count: publisher.bookCount,
+            name: publisher.name,
+          }),
+          written: t("publisherWithCount", { count: publisher.bookCount, name: publisher.name }),
+        }
+      : { spoken: publisher.name, written: publisher.name },
+  );
+  const overflowPublishers = details.publishers.length - shownPublishers.length;
+  const publishersOverflowSuffix =
+    overflowPublishers > 0 ? ` ${t("publishersMore", { count: overflowPublishers })}` : "";
   const publishersText =
-    overflowPublishers > 0
-      ? `${shownPublishers.join(", ")} ${t("publishersMore", { count: overflowPublishers })}`
-      : shownPublishers.join(", ");
+    shownPublishers.map((publisher) => publisher.written).join(", ") + publishersOverflowSuffix;
+  const publishersSpokenText = t("publishersLabel", {
+    list:
+      shownPublishers.map((publisher) => publisher.spoken).join(", ") + publishersOverflowSuffix,
+  });
   const bookCount = details.totalBooks ?? details.booksInSeries;
 
-  const metaItems: { icon: UiIconName; key: string; label: ReactNode }[] = [];
+  const metaItems: { ariaLabel?: string; icon: UiIconName; key: string; label: ReactNode }[] = [];
   if (bookCount > 0) {
     metaItems.push({ icon: "book", key: "books", label: t("books", { count: bookCount }) });
   }
@@ -99,7 +113,12 @@ export function SeriesDetailsHero({
     metaItems.push({ icon: "calendar", key: "years", label: yearsText });
   }
   if (details.publishers.length > 0) {
-    metaItems.push({ icon: "building", key: "publishers", label: publishersText });
+    metaItems.push({
+      ariaLabel: publishersSpokenText,
+      icon: "building",
+      key: "publishers",
+      label: publishersText,
+    });
   }
 
   return (
@@ -150,7 +169,7 @@ export function SeriesDetailsHero({
                 {metaItems.map((item, index) => (
                   <Fragment key={item.key}>
                     {index > 0 ? <span aria-hidden>·</span> : null}
-                    <span className="flex items-center gap-1.5">
+                    <span aria-label={item.ariaLabel} className="flex items-center gap-1.5">
                       <UiIcon aria-hidden className="text-icon" name={item.icon} size={15} />
                       {item.label}
                     </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookFormat, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookFormat, OwnershipStatus, ReadingStatus, TagView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -9,6 +9,7 @@ import { type ReactNode, useState } from "react";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { ownershipStatuses, readingStatuses, type StatusDefinition } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ type BookPreviewProps = {
   publisherName: string;
   rating?: number;
   readingStatus?: ReadingStatus;
-  tags?: readonly string[];
+  tags?: readonly Pick<TagView, "color" | "name">[];
   title: string;
 };
 
@@ -186,10 +187,8 @@ export function BookPreview({
 
       {visibleTags.length > 0 ? (
         <ChipRow>
-          {visibleTags.map((value) => (
-            <ChipPill icon="hash" key={value} tone="hash">
-              {value}
-            </ChipPill>
+          {visibleTags.map((tag) => (
+            <TagChip as="li" className="text-xs" color={tag.color} key={tag.name} name={tag.name} />
           ))}
           {tagsOverflow > 0 ? (
             <ChipPill muted tone="hash">
@@ -225,12 +224,10 @@ export function BookPreview({
 
 function ChipPill({
   children,
-  icon,
   muted = false,
   tone = "genre",
 }: {
   children: ReactNode;
-  icon?: UiIconName;
   muted?: boolean;
   tone?: "genre" | "hash";
 }) {
@@ -244,9 +241,6 @@ function ChipPill({
         muted ? "text-muted-foreground" : null,
       )}
     >
-      {icon === undefined ? null : (
-        <UiIcon className="shrink-0 text-muted-foreground" name={icon} size={12} />
-      )}
       <span className="min-w-0 truncate">{children}</span>
     </li>
   );

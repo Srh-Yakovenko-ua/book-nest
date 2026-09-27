@@ -1,4 +1,4 @@
-import type { MediaView, Nullable } from "@app/shared";
+import type { MediaView, Nullable, TagView } from "@app/shared";
 import type { Mock } from "vitest";
 
 import { SERIES_SORT_DEFAULT } from "@app/shared";
@@ -31,6 +31,7 @@ type BookRowInput = {
   coverMedia?: Nullable<MediaAssetModel>;
   createdAt?: Date;
   formats?: string[];
+  genres?: string[];
   id?: string;
   isFavorite?: boolean;
   language?: string;
@@ -38,10 +39,10 @@ type BookRowInput = {
   pagesCount?: Nullable<number>;
   partNumber?: Nullable<number>;
   publicationYear?: Nullable<number>;
-  publisherId?: Nullable<string>;
+  publisher?: Nullable<{ id: string; name: string }>;
   rating?: Nullable<number>;
   readingStatus?: string;
-  tags?: { id: string; name: string }[];
+  tags?: TagView[];
   title?: string;
   updatedAt?: Date;
 };
@@ -65,7 +66,7 @@ type DetailBookInput = {
   queuePosition?: Nullable<number>;
   rating?: Nullable<number>;
   readingStatus?: string;
-  tags?: { id: string; name: string }[];
+  tags?: TagView[];
   title?: string;
   updatedAt?: Date;
 };
@@ -80,6 +81,7 @@ function bookRow(overrides: BookRowInput = {}): BookRow {
     coverMedia: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     formats: [],
+    genres: [],
     id: "book-1",
     isFavorite: false,
     language: "ukrainian",
@@ -87,7 +89,7 @@ function bookRow(overrides: BookRowInput = {}): BookRow {
     pagesCount: null,
     partNumber: 1,
     publicationYear: null,
-    publisherId: null,
+    publisher: null,
     readingProgress: rating === undefined ? null : { rating },
     readingStatus: "not_started",
     tags: (tags ?? []).map((tag) =>
@@ -138,7 +140,7 @@ function detailedSeries(
       readingProgress:
         book.rating === undefined ? null : { currentPage: null, rating: book.rating },
       readingStatus: book.readingStatus ?? "not_started",
-      tags: (book.tags ?? []).map((tag) => ({ tag: { id: tag.id, name: tag.name } })),
+      tags: (book.tags ?? []).map((tag) => ({ tag })),
       title: book.title ?? "Book",
       updatedAt: book.updatedAt ?? new Date("2026-02-01T10:00:00.000Z"),
     })),
@@ -590,9 +592,11 @@ describe("SeriesService.search", () => {
           averagePages: null,
           averageRating: null,
           booksInSeries: 2,
+          commonGenres: [],
           covers: [],
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
+          dominantPublisher: null,
           finishedInSeries: 0,
           formats: [],
           genres: [],
@@ -631,7 +635,7 @@ describe("SeriesService.search", () => {
               ownershipStatus: "owned",
               partNumber: 1,
               publicationYear: 2012,
-              publisherId: "publisher-vivat",
+              publisher: { id: "publisher-vivat", name: "Vivat" },
               readingStatus: "finished",
             }),
             bookRow({ id: "part-3", partNumber: 3 }),
@@ -658,9 +662,11 @@ describe("SeriesService.search", () => {
         averagePages: null,
         averageRating: null,
         booksInSeries: 2,
+        commonGenres: [],
         covers: [],
         createdAt: "2026-02-01T10:00:00.000Z",
         description: null,
+        dominantPublisher: { bookCount: 1, id: "publisher-vivat", name: "Vivat" },
         finishedInSeries: 1,
         formats: [],
         genres: [],
@@ -698,6 +704,7 @@ describe("SeriesService.search", () => {
             bookRow({
               ageCategory: "18_plus",
               formats: ["ebook"],
+              genres: ["fantasy", "detective"],
               id: "part-1",
               language: "english",
               ownershipStatus: "borrowed_from_someone",
@@ -705,11 +712,12 @@ describe("SeriesService.search", () => {
               partNumber: 1,
               rating: 7,
               readingStatus: "finished",
-              tags: [{ id: "tag-zebra", name: "zebra" }],
+              tags: [{ color: "sage", id: "tag-zebra", name: "zebra" }],
             }),
             bookRow({
               ageCategory: "6_plus",
               formats: ["paper", "ebook"],
+              genres: ["fantasy"],
               id: "part-2",
               isFavorite: true,
               language: "ukrainian",
@@ -719,13 +727,14 @@ describe("SeriesService.search", () => {
               rating: 8,
               readingStatus: "reading",
               tags: [
-                { id: "tag-alpha", name: "alpha" },
-                { id: "tag-zebra", name: "zebra" },
+                { color: "sage", id: "tag-alpha", name: "alpha" },
+                { color: "sage", id: "tag-zebra", name: "zebra" },
               ],
             }),
             bookRow({
               ageCategory: "12_plus",
               formats: ["audiobook"],
+              genres: ["romance"],
               id: "part-3",
               language: "other",
               ownershipStatus: "want_to_buy",
@@ -753,9 +762,11 @@ describe("SeriesService.search", () => {
         averagePages: 150,
         averageRating: 7.5,
         booksInSeries: 3,
+        commonGenres: ["fantasy"],
         covers: [],
         createdAt: "2026-02-01T10:00:00.000Z",
         description: null,
+        dominantPublisher: null,
         finishedInSeries: 1,
         formats: ["paper", "ebook", "audiobook"],
         genres: [],
@@ -779,8 +790,8 @@ describe("SeriesService.search", () => {
         readingInSeries: 1,
         status: "unknown",
         tags: [
-          { id: "tag-alpha", name: "alpha" },
-          { id: "tag-zebra", name: "zebra" },
+          { color: "sage", id: "tag-alpha", name: "alpha" },
+          { color: "sage", id: "tag-zebra", name: "zebra" },
         ],
         totalBooks: null,
       },
@@ -839,7 +850,7 @@ describe("SeriesService.search", () => {
     const { service } = buildService({
       searchOwned: [
         ownedWithCount({
-          books: [bookRow({ id: "part-1", partNumber: 1, publisherId: null })],
+          books: [bookRow({ id: "part-1", partNumber: 1, publisher: null })],
           id: SERIES_ID,
         }),
       ],
@@ -1375,7 +1386,7 @@ describe("SeriesService.create", () => {
       status: "unknown",
     });
 
-    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy", "romance"]);
+    expect(assertGenresSelectable).toHaveBeenCalledWith(["fantasy", "romance"]);
   });
 
   it("propagates a BadRequestError and never inserts when a genre is not in the catalog", async () => {
@@ -1590,7 +1601,7 @@ describe("SeriesService.update", () => {
 
     await service.update(USER_ID, SERIES_ID, { genres: ["fantasy"] });
 
-    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy"]);
+    expect(assertGenresSelectable).toHaveBeenCalledWith(["fantasy"]);
   });
 
   it("propagates a BadRequestError and never updates when a genre is not in the catalog", async () => {
@@ -1918,7 +1929,7 @@ describe("SeriesService.getById", () => {
               partNumber: 1,
               publicationYear: 2018,
               queuePosition: 2,
-              tags: [{ id: "tag-1", name: "epic" }],
+              tags: [{ color: "sage", id: "tag-1", name: "epic" }],
             },
           ],
           id: SERIES_ID,
@@ -1935,7 +1946,7 @@ describe("SeriesService.getById", () => {
       genres: ["fantasy", "romance"],
       isInReadingQueue: true,
       publicationYear: 2018,
-      tags: [{ id: "tag-1", name: "epic" }],
+      tags: [{ color: "sage", id: "tag-1", name: "epic" }],
     });
   });
 
@@ -1955,7 +1966,7 @@ describe("SeriesService.getById", () => {
     expect(details.books[0]?.isInReadingQueue).toBe(false);
   });
 
-  it("dedupes the series publishers by id and sorts them by name", async () => {
+  it("counts the series publishers by id and orders them by book count", async () => {
     const repository = {
       findOwnedDetailsById: vi.fn().mockResolvedValue(
         detailedSeries({
@@ -1974,8 +1985,9 @@ describe("SeriesService.getById", () => {
     const details = await service.getById(USER_ID, SERIES_ID);
 
     expect(details.publishers).toEqual([
-      { id: "pub-abab", name: "A-BA-BA-HA" },
-      { id: "pub-vivat", name: "Vivat" },
+      { bookCount: 2, id: "pub-vivat", name: "Vivat" },
+      { bookCount: 1, id: "pub-abab", name: "A-BA-BA-HA" },
     ]);
+    expect(details.dominantPublisher).toEqual({ bookCount: 2, id: "pub-vivat", name: "Vivat" });
   });
 });

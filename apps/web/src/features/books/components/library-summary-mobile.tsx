@@ -111,12 +111,24 @@ export function LibrarySummaryMobile({
             ))
           : cards.map((card) => (
               <Card className={TILE.class} key={card.label}>
-                <span className="flex max-w-full items-center gap-1.5">
-                  <SummaryBadge card={card} size="tile" />
-                  <span className="truncate font-heading text-lg leading-none font-bold text-ink tabular-nums">
-                    {formatValue(card.value)}
+                {card.valueKind === "name" ? (
+                  <>
+                    <SummaryBadge card={card} size="tile" />
+                    <span
+                      className="line-clamp-2 w-full text-center font-heading text-sm leading-tight font-bold break-words text-ink"
+                      title={formatValue(card.value)}
+                    >
+                      {formatValue(card.value)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="flex max-w-full items-center gap-1.5">
+                    <SummaryBadge card={card} size="tile" />
+                    <span className="truncate font-heading text-lg leading-none font-bold text-ink tabular-nums">
+                      {formatValue(card.value)}
+                    </span>
                   </span>
-                </span>
+                )}
                 <span className="w-full truncate text-center text-[0.625rem] leading-tight text-muted-foreground">
                   {card.mobileLabels?.compact ?? card.label}
                 </span>

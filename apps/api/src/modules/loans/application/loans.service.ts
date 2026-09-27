@@ -4,25 +4,24 @@ import type {
   LoanListItemView,
   LoanPersonSummary,
   LoansQuery,
+  LoansQuickCounts,
+  LoansQuickCountsQuery,
   LoansSummaryView,
   LoanType,
   Paginator,
 } from "@app/shared";
 
-import {
-  LOAN_STATS_WINDOWS,
-  LoanTypeSchema,
-  normalizeSearch,
-  OwnershipStatusSchema,
-} from "@app/shared";
+import { LOAN_STATS_WINDOWS, LoanTypeSchema, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { subDays } from "date-fns";
 
-import { toCreateDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { resolveActiveLoanPerson } from "../domain/loan-person.js";
 import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
+import { buildLoansFilter } from "../domain/loans-filter.js";
+import { buildLoansQuickCountFilters } from "../domain/loans-quick-counts.js";
 import {
   type LoanDirectionCounts,
   LoansRepository,
@@ -66,22 +65,8 @@ export class LoansService {
     query: LoansQuery;
     userId: string;
   }): Promise<Paginator<LoanListItemView>> {
-    const { soonEnd, today } = loanDateBounds(new Date());
-    const filter = {
-      contactId: query.contactId,
-      expectedReturnDateFrom: toCreateDate(query.expectedReturnDateFrom),
-      expectedReturnDateTo: toCreateDate(query.expectedReturnDateTo),
-      filter: query.filter,
-      hasNote: query.hasNote,
-      loanDateFrom: toCreateDate(query.loanDateFrom),
-      loanDateTo: toCreateDate(query.loanDateTo),
-      reminder: query.reminder,
-      search: normalizeSearch(query.search),
-      soonEnd,
-      today,
-      type: query.type,
-      userId,
-    };
+    const bounds = loanDateBounds(new Date());
+    const filter = buildLoansFilter({ bounds, query, userId });
 
     const [items, totalCount] = await Promise.all([
       this.loansRepository.listLoans({
@@ -93,10 +78,23 @@ export class LoansService {
     ]);
 
     return buildPaginator({
-      items: items.map((loan) => this.toListItemView(loan, today)),
+      items: items.map((loan) => this.toListItemView(loan, bounds.today)),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount,
+    });
+  }
+
+  quickCounts({
+    query,
+    userId,
+  }: {
+    query: LoansQuickCountsQuery;
+    userId: string;
+  }): Promise<LoansQuickCounts> {
+    const filter = buildLoansFilter({ bounds: loanDateBounds(new Date()), query, userId });
+    return this.loansRepository.countQuickFilters({
+      filters: buildLoansQuickCountFilters(filter),
     });
   }
 

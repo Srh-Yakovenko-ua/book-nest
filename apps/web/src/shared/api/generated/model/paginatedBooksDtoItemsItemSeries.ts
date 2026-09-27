@@ -8,6 +8,7 @@
 import type { PaginatedBooksDtoItemsItemSeriesAgeCategoriesItem } from "./paginatedBooksDtoItemsItemSeriesAgeCategoriesItem";
 import type { PaginatedBooksDtoItemsItemSeriesAuthorsItem } from "./paginatedBooksDtoItemsItemSeriesAuthorsItem";
 import type { PaginatedBooksDtoItemsItemSeriesCoversItem } from "./paginatedBooksDtoItemsItemSeriesCoversItem";
+import type { PaginatedBooksDtoItemsItemSeriesDominantPublisher } from "./paginatedBooksDtoItemsItemSeriesDominantPublisher";
 import type { PaginatedBooksDtoItemsItemSeriesFormatsItem } from "./paginatedBooksDtoItemsItemSeriesFormatsItem";
 import type { PaginatedBooksDtoItemsItemSeriesLanguagesItem } from "./paginatedBooksDtoItemsItemSeriesLanguagesItem";
 import type { PaginatedBooksDtoItemsItemSeriesNextBook } from "./paginatedBooksDtoItemsItemSeriesNextBook";
@@ -26,10 +27,13 @@ export type PaginatedBooksDtoItemsItemSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: PaginatedBooksDtoItemsItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: PaginatedBooksDtoItemsItemSeriesDominantPublisher;
   finishedInSeries: number;
   formats?: PaginatedBooksDtoItemsItemSeriesFormatsItem[];
   genres: string[];

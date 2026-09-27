@@ -35,6 +35,7 @@ export type TheoryListFilter = {
   search: string | undefined;
   seriesId: string | undefined;
   status: string | undefined;
+  unreachableCharacterIds: string[] | undefined;
   userId: string;
 };
 
@@ -83,6 +84,17 @@ export class CharacterTheoriesRepository {
     });
   }
 
+  async listTargetCharacterIds(userId: string): Promise<string[]> {
+    const rows = await this.prisma.characterTheory.findMany({
+      distinct: ["characterId"],
+      select: { characterId: true },
+      where: { characterId: { not: null }, userId },
+    });
+    return rows
+      .map((row) => row.characterId)
+      .filter((targetId): targetId is string => targetId !== null);
+  }
+
   listTheories({ filter, skip, sort, take }: ListTheoriesInput): Promise<CharacterTheoryRow[]> {
     return this.prisma.characterTheory.findMany({
       include: theoryInclude,
@@ -117,6 +129,7 @@ function buildTheoriesWhere({
   search,
   seriesId,
   status,
+  unreachableCharacterIds,
   userId,
 }: TheoryListFilter): Prisma.CharacterTheoryWhereInput {
   const where: Prisma.CharacterTheoryWhereInput = { userId };
@@ -141,6 +154,9 @@ function buildTheoriesWhere({
   if (contextAllowedBookIds !== undefined) {
     where.isSpoiler = false;
     and.push({ OR: [{ bookId: null }, { bookId: { in: contextAllowedBookIds } }] });
+  }
+  if (unreachableCharacterIds !== undefined && unreachableCharacterIds.length > 0) {
+    and.push({ OR: [{ characterId: null }, { characterId: { notIn: unreachableCharacterIds } }] });
   }
   if (search !== undefined) {
     const contains = { contains: search, mode: "insensitive" } as const;

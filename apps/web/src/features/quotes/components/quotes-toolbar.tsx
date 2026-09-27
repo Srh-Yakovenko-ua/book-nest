@@ -34,6 +34,7 @@ type QuotesToolbarProps = {
   chips: ActiveFilterChip[];
   counter?: string;
   counts?: QuoteFilterCounts;
+  countsPending: boolean;
   facets: QuotesFacetsView | undefined;
   filter: QuoteFilter;
   onApplyAdvanced: (patch: QuotesAdvancedPatch) => void;
@@ -53,6 +54,7 @@ export function QuotesToolbar({
   chips,
   counter,
   counts,
+  countsPending,
   facets,
   filter,
   onApplyAdvanced,
@@ -155,6 +157,7 @@ export function QuotesToolbar({
       <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
         <ChipGroup
           className="flex-nowrap"
+          countsPending={countsPending}
           label={t("filterLabel")}
           mode="single"
           onValueChange={(next) => {

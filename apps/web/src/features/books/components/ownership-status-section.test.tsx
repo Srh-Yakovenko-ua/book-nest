@@ -102,7 +102,7 @@ function Harness({
   const [loanContact, setLoanContact] = useState(initialLoanContact);
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
       <OwnershipStatusSection
         control={form.control}
         errors={form.formState.errors}
@@ -177,6 +177,44 @@ describe("OwnershipStatusSection create delivery quick flow", () => {
 
     expect(screen.getByLabelText(messages.books.deliveryInfo.fields.trackingUrl)).toBeVisible();
     expect(screen.getByLabelText(NOTE_LABEL)).toBeVisible();
+  });
+});
+
+function inTransitEditValues(): CreateBookFormValues {
+  return {
+    ...createBookFormDefaults,
+    authors: [{ name: "Автор" }],
+    deliveryInfo: {
+      currency: "UAH",
+      deliveryStatus: "in_transit",
+      isShipped: true,
+      price: 350,
+    },
+    ownershipStatus: "in_transit",
+    title: "Книга",
+  };
+}
+
+describe("OwnershipStatusSection untouched saved values", () => {
+  it("submits the saved delivery price when nobody touches the field", async () => {
+    const { onSubmit } = renderSection(inTransitEditValues());
+
+    await userEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]?.deliveryInfo).toMatchObject({ price: 350 });
+  });
+
+  it("submits the saved delivery price when only the note is edited", async () => {
+    const { onSubmit } = renderSection(inTransitEditValues());
+
+    await userEvent.type(screen.getByLabelText(NOTE_LABEL), "Очікую у п'ятницю");
+    await userEvent.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(onSubmit.mock.calls[0]?.[0]?.deliveryInfo).toMatchObject({
+      note: "Очікую у п'ятницю",
+      price: 350,
+    });
   });
 });
 

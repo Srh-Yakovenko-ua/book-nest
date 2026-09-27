@@ -22,6 +22,7 @@ export type BookCharacterSummaryViewDtoTopItem = {
   id: string;
   importance: BookCharacterSummaryViewDtoTopItemImportance;
   isFavorite: boolean;
+  isPovCharacter: boolean;
   name: string;
   /** @nullable */
   portrait: BookCharacterSummaryViewDtoTopItemPortrait;

@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useGenres } from "@/features/books/api/use-genres";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { Link } from "@/i18n/navigation";
 
 import { useDedicationActions } from "../hooks/use-dedication-actions";
@@ -129,13 +130,7 @@ export function DedicationModal({ book, onOpenChange, open }: DedicationModalPro
         {book.tags.length === 0 ? null : (
           <ul className="flex flex-wrap gap-1.5">
             {visibleTags.map((tag) => (
-              <li
-                className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs font-medium text-foreground/80"
-                key={tag.id}
-              >
-                <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
-                <span className="min-w-0 truncate">{tag.name}</span>
-              </li>
+              <TagChip as="li" className="text-xs" color={tag.color} key={tag.id} name={tag.name} />
             ))}
             {hiddenTagCount === 0 ? null : (
               <li

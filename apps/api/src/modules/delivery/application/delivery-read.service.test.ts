@@ -1,4 +1,9 @@
-import type { BookOrderHistoryQuery, InTransitQuery, Nullable } from "@app/shared";
+import type {
+  BookOrderHistoryQuery,
+  InTransitQuery,
+  InTransitQuickCountsQuery,
+  Nullable,
+} from "@app/shared";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -727,5 +732,81 @@ describe("DeliveryReadService.inTransitSummary", () => {
       nextExpectedThisWeek: summary.nextExpectedThisWeek,
       splitOrdersCount: summary.splitOrdersCount,
     }).toEqual({ nextExpectedThisWeek: "2026-08-18", splitOrdersCount: 1 });
+  });
+});
+
+describe("DeliveryReadService.inTransitQuickCounts", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-18T09:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("counts over the list's own filter with the quick filter axis left out", async () => {
+    const counts = { all: 4, delayed: 1, in_transit: 2, ordered: 1, ready_for_pickup: 1 };
+    const { reads, service } = buildService({
+      reads: { countInTransitQuickFilters: vi.fn().mockResolvedValue(counts) },
+    });
+
+    const result = await service.inTransitQuickCounts({
+      query: {
+        currency: ["UAH"],
+        priceCurrency: "UAH",
+        priceMin: 100,
+        search: "  alpha  ",
+        store: ["Bookstore"],
+      },
+      userId: USER,
+    });
+
+    const base = vi.mocked(reads.countInTransitQuickFilters).mock.calls[0]?.[0];
+    expect(result).toEqual(counts);
+    expect(base).not.toHaveProperty("filter");
+    expect(base).toEqual(
+      expect.objectContaining({
+        currency: ["UAH"],
+        priceCurrency: "UAH",
+        priceMin: 100,
+        search: "alpha",
+        store: ["Bookstore"],
+        userId: USER,
+      }),
+    );
+    expect(base?.bounds.today).toEqual(new Date("2026-08-18T00:00:00.000Z"));
+  });
+
+  it("hands the list and the counts the same filter for the same query", async () => {
+    const { reads, service } = buildService({
+      reads: {
+        countInTransitQuickFilters: vi.fn().mockResolvedValue({
+          all: 0,
+          delayed: 0,
+          in_transit: 0,
+          ordered: 0,
+          ready_for_pickup: 0,
+        }),
+      },
+    });
+    const shared: InTransitQuickCountsQuery = {
+      search: "dune",
+      service: ["Nova Poshta"],
+      structure: ["single_shipment"],
+    };
+
+    await service.inTransitList({
+      query: inTransitQuery({ ...shared, filter: "ordered" }),
+      userId: USER,
+    });
+    await service.inTransitQuickCounts({
+      query: shared,
+      userId: USER,
+    });
+
+    const listFilter = vi.mocked(reads.countInTransit).mock.calls[0]?.[0];
+    const countsBase = vi.mocked(reads.countInTransitQuickFilters).mock.calls[0]?.[0];
+    expect({ ...countsBase, filter: "ordered" }).toEqual(listFilter);
   });
 });

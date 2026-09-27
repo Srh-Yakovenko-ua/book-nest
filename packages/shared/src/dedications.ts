@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LIBRARY_SEARCH_MAX } from "./books.js";
 import { paginationQueryFields } from "./common.js";
 import { GenreKeySchema } from "./genres.js";
+import { CountSchema } from "./internal.js";
 
 export const DEDICATIONS_PAGE_SIZE_DEFAULT = 12;
 
@@ -36,6 +37,28 @@ export const DedicationsQuerySchema = z.object({
 });
 
 export type DedicationsQuery = z.infer<typeof DedicationsQuerySchema>;
+
+export const DedicationsQuickCountsQuerySchema = DedicationsQuerySchema.omit({
+  filter: true,
+  pageNumber: true,
+  pageSize: true,
+  sort: true,
+});
+
+export type DedicationsQuickCountsQuery = z.infer<typeof DedicationsQuickCountsQuerySchema>;
+
+export const DedicationsQuickCountsSchema = z.object({
+  all: CountSchema,
+  favorites: CountSchema,
+  finished: CountSchema,
+  unfinished: CountSchema,
+});
+
+export type DedicationsQuickCounts = z.infer<typeof DedicationsQuickCountsSchema>;
+
+export const DedicationQuickFilterKeySchema = DedicationsQuickCountsSchema.keyof();
+
+export type DedicationQuickFilterKey = z.infer<typeof DedicationQuickFilterKeySchema>;
 
 export const DedicationsSummaryViewSchema = z.object({
   authorsCount: z.number().optional(),

@@ -13,18 +13,14 @@ import { Link } from "@/i18n/navigation";
 import type { NoteEntityRef } from "../model/note-entity";
 
 import { noteEntityId } from "../model/note-entity";
-import { NoteCard } from "./note-card";
+import { notesArchiveHref } from "../model/notes-archive-href";
+import { NoteArchiveCard } from "./note-archive-card";
 import { NoteCardSkeleton } from "./note-card-skeleton";
 import { NoteFormDialog } from "./note-form-dialog";
 import { NotesErrorState } from "./notes-error-state";
 
 const NOTES_PREVIEW_LIMIT = 3;
 const NOTES_SKELETON_COUNT = 2;
-
-const NOTES_ARCHIVE_PARAMS = {
-  book: "bookId",
-  series: "seriesId",
-} as const satisfies Record<NoteEntityType, string>;
 
 type EntityNotesBlockProps = {
   entity: NoteEntityRef;
@@ -91,7 +87,11 @@ export function EntityNotesBlock({
         </CardContent>
       </Card>
 
-      <NoteFormDialog entity={entity} onOpenChange={setCreateOpen} open={isCreateOpen} />
+      <NoteFormDialog
+        onOpenChange={setCreateOpen}
+        open={isCreateOpen}
+        target={{ entity, mode: "preselected" }}
+      />
     </>
   );
 }
@@ -129,14 +129,14 @@ function EntityNotesBody({
       <ul className="flex flex-col gap-3">
         {visibleNotes.map((note) => (
           <li key={note.id}>
-            <NoteCard note={note} />
+            <NoteArchiveCard layout="embedded" note={note} />
           </li>
         ))}
       </ul>
 
       {totalCount > visibleNotes.length ? (
         <Button asChild className="self-start" size="sm" variant="ghost">
-          <Link href={notesArchiveHref(entity)}>
+          <Link href={notesArchiveHref(entity.type, noteEntityId(entity))}>
             {t(`${entity.type}.viewAll`, { count: totalCount })}
             <UiIcon name="arrow-right" size={14} />
           </Link>
@@ -166,12 +166,4 @@ function EntityNotesEmpty({ onAdd, type }: { onAdd: () => void; type: NoteEntity
       </Button>
     </div>
   );
-}
-
-function notesArchiveHref(entity: NoteEntityRef): string {
-  const params = new URLSearchParams({
-    [NOTES_ARCHIVE_PARAMS[entity.type]]: noteEntityId(entity),
-  });
-
-  return `/notes?${params.toString()}`;
 }

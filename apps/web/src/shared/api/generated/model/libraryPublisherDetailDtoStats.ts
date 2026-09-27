@@ -53,4 +53,9 @@ export type LibraryPublisherDetailDtoStats = {
    * @maximum 9007199254740991
    */
   wantToReadCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  wishlistWithoutPriceCount: number;
 };

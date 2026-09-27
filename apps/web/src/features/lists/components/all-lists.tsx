@@ -53,6 +53,7 @@ export function AllLists() {
     stale: summary.data?.staleListCount ?? 0,
   };
   const hasAnyLists = totalCount > 0 || lists.hasActiveFilters;
+  const hasListError = isError && !isFetchNextPageError;
   const summaryCards = useListsSummaryCards(summary.data);
 
   function confirmDelete() {
@@ -72,13 +73,12 @@ export function AllLists() {
         hasActiveFilters={lists.hasActiveFilters}
         hasAnyLists={hasAnyLists}
         hasNextPage={hasNextPage}
-        isError={isError}
+        isError={hasListError}
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
         lists={visibleLists}
         loadMoreErrorLabel={tCatalog("loadMoreError")}
-        loadMoreLabel={tCatalog("loadMore")}
         onClearFilters={lists.clearFilters}
         onCreateList={() => setCreateOpen(true)}
         onDeleteList={setDeleting}
@@ -113,7 +113,7 @@ export function AllLists() {
         toolbar={
           <ListsToolbar
             counter={
-              isPending || isError || visibleLists.length === 0
+              isPending || hasListError || visibleLists.length === 0
                 ? undefined
                 : tCatalog("counter", { shown: visibleLists.length, total: totalCount })
             }

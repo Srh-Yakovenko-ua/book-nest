@@ -94,6 +94,7 @@ export class CharacterGroupsController {
     return this.characterGroupsService.list({ query, userId: user.id });
   }
 
+  @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiNotFoundResponse({ description: "Group or context book not found" })
   @ApiOkResponse({
     description:
@@ -103,6 +104,9 @@ export class CharacterGroupsController {
   @ApiOperation({ summary: "Get a character group with its members" })
   @ApiParam({ description: "Character group id", name: "groupId" })
   @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "contextChapter", required: false })
+  @ApiQuery({ name: "contextPage", required: false })
+  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @Get(":groupId")
   getById(
     @CurrentUser() user: AuthenticatedUser,

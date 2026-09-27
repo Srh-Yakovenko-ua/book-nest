@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { PublishersControllerLibraryListFilter } from "./publishersControllerLibraryListFilter";
 import type { PublishersControllerLibraryListGeography } from "./publishersControllerLibraryListGeography";
 import type { PublishersControllerLibraryListLocale } from "./publishersControllerLibraryListLocale";
 import type { PublishersControllerLibraryListOrder } from "./publishersControllerLibraryListOrder";
@@ -26,10 +27,13 @@ export type PublishersControllerLibraryListParams = {
    * @maxLength 100
    */
   search?: string;
+  filter?: PublishersControllerLibraryListFilter;
   geography?: PublishersControllerLibraryListGeography;
   hasBooksToBuy?: string;
+  hasQueue?: string;
   hasRatedBooks?: string;
   hasSeries?: string;
+  hasWantToRead?: string;
   locale?: PublishersControllerLibraryListLocale;
   order?: PublishersControllerLibraryListOrder;
   sort?: PublishersControllerLibraryListSort;

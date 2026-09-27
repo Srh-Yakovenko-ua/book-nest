@@ -23,7 +23,7 @@ describe("ReadingPositionControls", () => {
   it("offers the recap and guard controls when the position is known", () => {
     renderControls();
 
-    expect(screen.getByRole("button", { name: "Що вже сталося" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "До моєї позиції" })).toBeInTheDocument();
     expect(screen.getByRole("switch")).toBeInTheDocument();
   });
 
@@ -31,7 +31,7 @@ describe("ReadingPositionControls", () => {
     const onRecapChange = vi.fn();
     renderControls({ onRecapChange });
 
-    await userEvent.click(screen.getByRole("button", { name: "Що вже сталося" }));
+    await userEvent.click(screen.getByRole("button", { name: "До моєї позиції" }));
 
     expect(onRecapChange).toHaveBeenCalledWith(true);
   });
@@ -39,7 +39,7 @@ describe("ReadingPositionControls", () => {
   it("reflects the active recap state through aria-pressed", () => {
     renderControls({ recap: true });
 
-    expect(screen.getByRole("button", { name: "Що вже сталося" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "До моєї позиції" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -54,11 +54,10 @@ describe("ReadingPositionControls", () => {
     expect(onGuardChange).toHaveBeenCalledWith(true);
   });
 
-  it("renders nothing until the reading position is known", () => {
-    const { container } = renderControls({
-      readingPosition: makeReadingPosition({ positionKnown: false }),
-    });
+  it("keeps the spoiler guard available while the reading position is unknown", () => {
+    renderControls({ readingPosition: makeReadingPosition({ positionKnown: false }) });
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByRole("switch")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "До моєї позиції" })).not.toBeInTheDocument();
   });
 });

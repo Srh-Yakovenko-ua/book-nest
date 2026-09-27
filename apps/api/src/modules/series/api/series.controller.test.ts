@@ -439,8 +439,8 @@ describe("GET /api/series book aggregates", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.items[0].tags).toEqual([
-      { id: adventureTagId, name: "adventure" },
-      { id: epicTagId, name: "epic" },
+      { color: "parchment", id: adventureTagId, name: "adventure" },
+      { color: "parchment", id: epicTagId, name: "epic" },
     ]);
   });
 

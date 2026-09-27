@@ -1,4 +1,9 @@
-import type { CharacterSummaryView } from "@app/shared";
+import type {
+  BookCharacterSummaryQuery,
+  BookView,
+  CharacterSummaryView,
+  ReadingStatus,
+} from "@app/shared";
 
 import {
   type inferParserType,
@@ -9,11 +14,11 @@ import {
 
 import type { BookCharactersControllerListParams } from "@/shared/api/generated/model";
 
-import { importanceRank } from "./character-options";
-
 export const CHARACTERS_ROSTER_PAGE_SIZE = 20;
-export const CHARACTERS_ROSTER_SORTS = ["recommended", "name"] as const;
-export const CHARACTERS_ROSTER_SORT_DEFAULT = "recommended";
+export const CHARACTERS_ROSTER_SORTS = ["importance", "name"] as const;
+export const CHARACTERS_ROSTER_SORT_DEFAULT = "importance";
+
+const FULLY_READ_STATUSES = ["finished", "dnf"] as const satisfies readonly ReadingStatus[];
 
 export type CharactersRosterSort = (typeof CHARACTERS_ROSTER_SORTS)[number];
 
@@ -41,31 +46,26 @@ export function rosterDisplayName(character: CharacterSummaryView): string {
   return character.displayName ?? character.name;
 }
 
-export function sortRosterPage(
-  characters: readonly CharacterSummaryView[],
-  sort: CharactersRosterSort,
-): CharacterSummaryView[] {
-  return [...characters].sort((left, right) => {
-    if (sort === "recommended") {
-      const favoriteDelta = Number(right.isFavorite) - Number(left.isFavorite);
-      if (favoriteDelta !== 0) return favoriteDelta;
-
-      const importanceDelta = importanceRank(left.importance) - importanceRank(right.importance);
-      if (importanceDelta !== 0) return importanceDelta;
-    }
-
-    return rosterDisplayName(left).localeCompare(rosterDisplayName(right));
-  });
-}
-
 export function toBookCharactersListParams(
   state: CharactersRosterState,
+  readingContext: BookCharacterSummaryQuery,
 ): BookCharactersControllerListParams {
   const search = state.characterSearch.trim();
 
   return {
     pageNumber: state.characterPage,
     pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
+    sort: state.characterSort,
+    ...readingContext,
     ...(search === "" ? {} : { search }),
   };
+}
+
+export function toCharacterReadingContext(book: BookView): BookCharacterSummaryQuery {
+  if (FULLY_READ_STATUSES.some((status) => status === book.readingStatus)) return {};
+
+  const currentPage = book.readingProgress?.currentPage ?? null;
+  if (currentPage === null || !Number.isInteger(currentPage) || currentPage <= 0) return {};
+
+  return { contextBookId: book.id, contextPage: currentPage };
 }

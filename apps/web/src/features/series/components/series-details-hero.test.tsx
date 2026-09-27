@@ -356,36 +356,50 @@ describe("SeriesDetailsHero", () => {
     expect(screen.queryByText("З 2021 року")).not.toBeInTheDocument();
   });
 
-  it("shows a single publisher name", () => {
-    renderHeroDetails({ publishers: [{ id: "p1", name: "Vivat" }] });
+  it("shows a single publisher name without a book count", () => {
+    renderHeroDetails({ publishers: [{ bookCount: 3, id: "p1", name: "Vivat" }] });
 
     expect(screen.getByText("Vivat")).toBeInTheDocument();
   });
 
-  it("joins several publisher names with commas", () => {
+  it("appends a book count to every publisher once the series spans more than one", () => {
     renderHeroDetails({
       publishers: [
-        { id: "p1", name: "Vivat" },
-        { id: "p2", name: "КСД" },
-        { id: "p3", name: "Ranok" },
+        { bookCount: 5, id: "p1", name: "Vivat" },
+        { bookCount: 2, id: "p2", name: "КСД" },
+        { bookCount: 1, id: "p3", name: "Ranok" },
       ],
     });
 
-    expect(screen.getByText("Vivat, КСД, Ranok")).toBeInTheDocument();
+    expect(screen.getByText("Vivat (5), КСД (2), Ranok (1)")).toBeInTheDocument();
+  });
+
+  it("spells the publisher book counts out for assistive technology", () => {
+    renderHeroDetails({
+      publishers: [
+        { bookCount: 5, id: "p1", name: "Vivat" },
+        { bookCount: 2, id: "p2", name: "КСД" },
+        { bookCount: 1, id: "p3", name: "Ranok" },
+      ],
+    });
+
+    expect(
+      screen.getByLabelText("Видавництва: Vivat — 5 книг, КСД — 2 книги, Ranok — 1 книга"),
+    ).toBeInTheDocument();
   });
 
   it("caps publishers at three and collapses the rest into an overflow label", () => {
     renderHeroDetails({
       publishers: [
-        { id: "p1", name: "Vivat" },
-        { id: "p2", name: "КСД" },
-        { id: "p3", name: "Ranok" },
-        { id: "p4", name: "А-ба-ба-га-ла-ма-га" },
-        { id: "p5", name: "Наш формат" },
+        { bookCount: 5, id: "p1", name: "Vivat" },
+        { bookCount: 2, id: "p2", name: "КСД" },
+        { bookCount: 1, id: "p3", name: "Ranok" },
+        { bookCount: 1, id: "p4", name: "А-ба-ба-га-ла-ма-га" },
+        { bookCount: 1, id: "p5", name: "Наш формат" },
       ],
     });
 
-    expect(screen.getByText("Vivat, КСД, Ranok ще 2")).toBeInTheDocument();
+    expect(screen.getByText("Vivat (5), КСД (2), Ranok (1) ще 2")).toBeInTheDocument();
   });
 
   it("renders no publisher metadata when the series has no publishers", () => {
@@ -402,7 +416,7 @@ describe("SeriesDetailsHero", () => {
     renderHeroDetails({
       books: [makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 })],
       booksInSeries: 4,
-      publishers: [{ id: "p1", name: "Vivat" }],
+      publishers: [{ bookCount: 1, id: "p1", name: "Vivat" }],
       status: "ongoing",
       totalBooks: 4,
     });
@@ -424,7 +438,7 @@ describe("SeriesDetailsHero", () => {
     renderHeroDetails({
       books: [],
       booksInSeries: 0,
-      publishers: [{ id: "p1", name: "Vivat" }],
+      publishers: [{ bookCount: 1, id: "p1", name: "Vivat" }],
       status: "unknown",
       totalBooks: 0,
     });

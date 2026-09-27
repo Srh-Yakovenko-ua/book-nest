@@ -6,9 +6,8 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { useIsTextClamped } from "@/hooks/use-is-text-clamped";
 import { cn } from "@/lib/utils";
-
-import { useIsTextClamped } from "../../hooks/use-is-text-clamped";
 
 type QuoteCommentProps = {
   expandAction?: ReactNode;

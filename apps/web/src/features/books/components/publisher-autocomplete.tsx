@@ -47,7 +47,15 @@ export function PublisherAutocomplete({
   const t = useTranslations("books");
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
+  const [trackedValue, setTrackedValue] = useState(value);
   const anchorRef = useRef<HTMLDivElement>(null);
+
+  if (value !== trackedValue) {
+    setTrackedValue(value);
+    if (value !== null && value.name !== query) setQuery(value.name);
+    if (value === null && trackedValue !== null && query === trackedValue.name) setQuery("");
+  }
+
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const {
     fetchNextPage,

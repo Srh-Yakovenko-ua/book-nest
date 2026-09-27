@@ -8,7 +8,10 @@ import type {
   CharacterTheoryRow,
   TheoryListFilter,
 } from "../infrastructure/character-theories.repository.js";
-import type { CharactersRepository } from "../infrastructure/characters.repository.js";
+import type {
+  CharacterScopedAppearanceRow,
+  CharactersRepository,
+} from "../infrastructure/characters.repository.js";
 import type { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
@@ -22,6 +25,7 @@ const THEORY_ID = "55555555-5555-5555-5555-555555555555";
 const LATER_BOOK_ID = "66666666-6666-6666-6666-666666666666";
 
 type ServiceConfig = {
+  appearances?: CharacterScopedAppearanceRow[];
   bookContext?: null | { id: string; partNumber: null | number; seriesId: null | string };
   bookExists?: boolean;
   characterOwned?: boolean;
@@ -29,6 +33,7 @@ type ServiceConfig = {
   findResult?: Nullable<CharacterTheoryRow>;
   seriesBooks?: { createdAt: Date; id: string; partNumber: null | number }[];
   seriesExists?: boolean;
+  targetCharacterIds?: string[];
 };
 
 function createService(config: ServiceConfig = {}): {
@@ -59,11 +64,15 @@ function createService(config: ServiceConfig = {}): {
     }
   });
 
+  const listTargetCharacterIds = vi.fn().mockResolvedValue(config.targetCharacterIds ?? []);
+  const listAppearancesForCharacters = vi.fn().mockResolvedValue(config.appearances ?? []);
+
   const theoriesRepository = {
     countTheories,
     create,
     deleteOwned,
     findOwnedById,
+    listTargetCharacterIds,
     listTheories,
     update,
   } as unknown as CharacterTheoriesRepository;
@@ -71,6 +80,7 @@ function createService(config: ServiceConfig = {}): {
     existsOwnedSeries,
     findOwnedBookContext,
     findOwnedCharacterBare,
+    listAppearancesForCharacters,
     listSeriesBooks,
   } as unknown as CharactersRepository;
   const accessAsserter = {
@@ -110,6 +120,21 @@ function createService(config: ServiceConfig = {}): {
   );
 
   return { countTheories, create, listTheories, service, update };
+}
+
+function makeAppearance(
+  overrides: Partial<CharacterScopedAppearanceRow> = {},
+): CharacterScopedAppearanceRow {
+  return {
+    bookId: BOOK_ID,
+    characterId: CHARACTER_ID,
+    firstAppearanceAudioSeconds: null,
+    firstAppearanceChapter: null,
+    firstAppearancePage: null,
+    hidePresenceAsSpoiler: false,
+    id: "77777777-7777-7777-7777-777777777777",
+    ...overrides,
+  };
 }
 
 function makeRow(overrides: Partial<CharacterTheoryRow> = {}): CharacterTheoryRow {
@@ -260,6 +285,53 @@ describe("CharacterTheoriesService context masking", () => {
 
     const filter = listTheories.mock.calls[0]?.[0].filter as TheoryListFilter;
     expect(filter.contextAllowedBookIds).toEqual([BOOK_ID]);
+  });
+
+  it("marks a target character the reader has not reached as unreachable", async () => {
+    const { listTheories, service } = createService({
+      appearances: [makeAppearance({ firstAppearanceChapter: "40" })],
+      bookContext: { id: BOOK_ID, partNumber: null, seriesId: null },
+      targetCharacterIds: [CHARACTER_ID],
+    });
+
+    await service.list({
+      query: makeQuery({ contextBookId: BOOK_ID, contextChapter: 5 }),
+      userId: USER_ID,
+    });
+
+    const filter = listTheories.mock.calls[0]?.[0].filter as TheoryListFilter;
+    expect(filter.unreachableCharacterIds).toEqual([CHARACTER_ID]);
+  });
+
+  it("keeps a target character the reader has reached out of the unreachable set", async () => {
+    const { listTheories, service } = createService({
+      appearances: [makeAppearance({ firstAppearanceChapter: "40" })],
+      bookContext: { id: BOOK_ID, partNumber: null, seriesId: null },
+      targetCharacterIds: [CHARACTER_ID],
+    });
+
+    await service.list({
+      query: makeQuery({ contextBookId: BOOK_ID, contextChapter: 40 }),
+      userId: USER_ID,
+    });
+
+    const filter = listTheories.mock.calls[0]?.[0].filter as TheoryListFilter;
+    expect(filter.unreachableCharacterIds).toEqual([]);
+  });
+
+  it("counts from the very filter the items are listed from", async () => {
+    const { countTheories, listTheories, service } = createService({
+      appearances: [makeAppearance({ firstAppearanceChapter: "40" })],
+      bookContext: { id: BOOK_ID, partNumber: null, seriesId: null },
+      targetCharacterIds: [CHARACTER_ID],
+    });
+
+    await service.list({
+      query: makeQuery({ contextBookId: BOOK_ID, contextChapter: 5 }),
+      userId: USER_ID,
+    });
+
+    expect(countTheories.mock.calls[0]?.[0]).toBe(listTheories.mock.calls[0]?.[0].filter);
   });
 
   it("rejects an unowned context book", async () => {

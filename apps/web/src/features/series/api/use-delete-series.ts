@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { bookKeys } from "@/features/books/api/book-keys";
+import { invalidatePublisherQueries } from "@/features/publishers/api/publisher-keys";
 import { invalidateStatisticsQueries } from "@/features/statistics/api/statistics-keys";
 import { seriesControllerDelete } from "@/shared/api/generated/endpoints/series/series";
 
@@ -15,6 +16,7 @@ export function useDeleteSeries(id: string) {
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void invalidateStatisticsQueries(queryClient);
+      void invalidatePublisherQueries(queryClient);
     },
   });
 }

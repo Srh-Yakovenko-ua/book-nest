@@ -8,7 +8,6 @@
 import type { TimelineOverviewViewDtoByTimelineItemColorKey } from "./timelineOverviewViewDtoByTimelineItemColorKey";
 
 export type TimelineOverviewViewDtoByTimelineItem = {
-  /** @nullable */
   colorKey: TimelineOverviewViewDtoByTimelineItemColorKey;
   /**
    * @minimum 0

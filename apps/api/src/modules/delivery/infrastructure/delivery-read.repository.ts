@@ -1,11 +1,14 @@
 import type {
   BookOrderHistorySort,
   BookOrderHistoryTerminalTab,
+  InTransitQuickCounts,
+  InTransitQuickFilterKey,
   InTransitSort,
   Nullable,
 } from "@app/shared";
 
 import {
+  InTransitQuickCountsSchema,
   NextShipmentStatusSchema,
   SHIPMENT_ACTIVE_STATUSES,
   ShipmentStatusSchema,
@@ -17,7 +20,7 @@ import type { InTransitSummaryData } from "../domain/delivery-summary.js";
 import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 import type { LatestReceiptEvent } from "../domain/latest-receipt.mapper.js";
 import type { OrderHistorySummaryData } from "../domain/order-history-summary.js";
-import type { InTransitFilterInput } from "./in-transit-sql.js";
+import type { InTransitBaseFilterInput, InTransitFilterInput } from "./in-transit-sql.js";
 import type { HistoryFilterInput } from "./order-history-sql.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -30,6 +33,7 @@ import {
   IN_TRANSIT_ITEM_SOURCE,
   inTransitCategorySql,
   inTransitOrderSql,
+  inTransitQuickFilterSql,
   ORDER_EFFECTIVE_TOTAL_SQL,
   ORDER_PLACED_ON_SQL,
   ordersWithActiveItemsSource,
@@ -286,6 +290,24 @@ export class DeliveryReadRepository {
       WHERE ${buildInTransitConditions(filter)}
     `);
     return z.array(TotalCountRowSchema).parse(rows)[0]?.totalCount ?? 0;
+  }
+
+  async countInTransitQuickFilters(base: InTransitBaseFilterInput): Promise<InTransitQuickCounts> {
+    const categories = inTransitCategorySql(toIsoBounds(base.bounds));
+    const countOf = (key: InTransitQuickFilterKey): Prisma.Sql =>
+      Prisma.sql`(count(*) FILTER (WHERE ${inTransitQuickFilterSql({ categories, key })}))::int`;
+
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT
+        ${countOf("all")} AS "all",
+        ${countOf("ordered")} AS "ordered",
+        ${countOf("in_transit")} AS "in_transit",
+        ${countOf("ready_for_pickup")} AS "ready_for_pickup",
+        ${countOf("delayed")} AS "delayed"
+      ${IN_TRANSIT_ITEM_SOURCE}
+      WHERE ${buildInTransitConditions({ ...base, filter: "all" })}
+    `);
+    return z.tuple([InTransitQuickCountsSchema]).parse(rows)[0];
   }
 
   async historyFacets({

@@ -307,7 +307,14 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 )
                 .nullable(),
               hidePresenceAsSpoiler: zod.boolean(),
-              importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+              importance: zod.enum([
+                "central",
+                "major",
+                "supporting",
+                "episodic",
+                "mentioned",
+                "not_specified",
+              ]),
               isPovCharacter: zod.boolean(),
               narratorType: zod
                 .union([
@@ -382,7 +389,15 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
-              status: zod.enum(["active", "missing", "dead", "unknown", "transformed", "other"]),
+              status: zod.enum([
+                "active",
+                "missing",
+                "dead",
+                "unknown",
+                "transformed",
+                "other",
+                "not_specified",
+              ]),
               statusCustomText: zod
                 .string()
                 .max(
@@ -1069,7 +1084,14 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 )
                 .nullable(),
               hidePresenceAsSpoiler: zod.boolean(),
-              importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+              importance: zod.enum([
+                "central",
+                "major",
+                "supporting",
+                "episodic",
+                "mentioned",
+                "not_specified",
+              ]),
               isPovCharacter: zod.boolean(),
               narratorType: zod
                 .union([
@@ -1144,7 +1166,15 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
-              status: zod.enum(["active", "missing", "dead", "unknown", "transformed", "other"]),
+              status: zod.enum([
+                "active",
+                "missing",
+                "dead",
+                "unknown",
+                "transformed",
+                "other",
+                "not_specified",
+              ]),
               statusCustomText: zod
                 .string()
                 .max(
@@ -1741,7 +1771,7 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileFirstAppear
 export const charactersControllerCreateBodyFirstAppearanceBookProfileFirstAppearancePageMax = 2147483647;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileHidePresenceAsSpoilerDefault = false;
-export const charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault = `supporting`;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileIsPovCharacterDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfilePersonalImpressionMax = 5000;
 
@@ -1766,7 +1796,7 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMa
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideMax = 200;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIsSpoilerDefault = false;
-export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault = `active`;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusCustomTextMax = 200;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusIsSpoilerDefault = false;
@@ -1915,7 +1945,7 @@ export const CharactersControllerCreateBody = zod.object({
             charactersControllerCreateBodyFirstAppearanceBookProfileHidePresenceAsSpoilerDefault,
           ),
         importance: zod
-          .enum(["central", "major", "supporting", "episodic", "mentioned"])
+          .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
           .default(charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault),
         isPovCharacter: zod
           .boolean()
@@ -1994,7 +2024,7 @@ export const CharactersControllerCreateBody = zod.object({
             charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIsSpoilerDefault,
           ),
         status: zod
-          .enum(["active", "missing", "dead", "unknown", "transformed", "other"])
+          .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
           .default(charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault),
         statusCustomText: zod
           .string()
@@ -2010,6 +2040,10 @@ export const CharactersControllerCreateBody = zod.object({
 
 export const charactersControllerCreateResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerCreateResponseAliasesItemPositionMax = 9007199254740991;
+
+export const charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
 
 export const charactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
@@ -2067,6 +2101,38 @@ export const CharactersControllerCreateResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -2089,7 +2155,14 @@ export const CharactersControllerCreateResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -2157,6 +2230,7 @@ export const CharactersControllerCreateResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -2310,9 +2384,10 @@ export const CharactersControllerListQueryParams = zod.object({
     .array(zod.uuid().regex(charactersControllerListQueryGroupIdItemRegExp))
     .max(charactersControllerListQueryGroupIdMax)
     .optional(),
+  hasPersonalImpression: zod.string().optional(),
   hasSpoilers: zod.string().optional(),
   importance: zod
-    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned"]))
+    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"]))
     .max(charactersControllerListQueryImportanceMax)
     .optional(),
   includeHiddenProfiles: zod
@@ -2320,6 +2395,7 @@ export const CharactersControllerListQueryParams = zod.object({
     .optional()
     .describe("Owner opt-in to include whole-profile hidden characters in the results"),
   includeSpoilerSearch: zod.string().optional(),
+  multipleBooks: zod.string().optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -2425,6 +2501,9 @@ export const CharactersControllerListResponse = zod.object({
       species: zod.string().nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -2531,12 +2610,94 @@ export const CharactersControllerDuplicateCandidatesResponse = zod.object({
       species: zod.string().nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
       ),
     }),
   ),
+});
+
+/**
+ * @summary Get the aggregate overview of the global characters catalog
+ */
+export const charactersControllerOverviewResponseFavoriteCountMin = 0;
+export const charactersControllerOverviewResponseFavoriteCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseMostFrequentAppearanceCountExclusiveMin = 0;
+export const charactersControllerOverviewResponseMostFrequentAppearanceCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseMostFrequentLeaderCountExclusiveMin = 0;
+export const charactersControllerOverviewResponseMostFrequentLeaderCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseMostFrequentLeadersMax = 3;
+
+export const charactersControllerOverviewResponseMultipleBooksCountMin = 0;
+export const charactersControllerOverviewResponseMultipleBooksCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseTotalCountMin = 0;
+export const charactersControllerOverviewResponseTotalCountMax = 9007199254740991;
+
+export const charactersControllerOverviewResponseWithPersonalImpressionCountMin = 0;
+export const charactersControllerOverviewResponseWithPersonalImpressionCountMax = 9007199254740991;
+
+export const CharactersControllerOverviewResponse = zod.object({
+  favoriteCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseFavoriteCountMin)
+    .max(charactersControllerOverviewResponseFavoriteCountMax),
+  mostFrequent: zod
+    .object({
+      appearanceCount: zod
+        .int()
+        .gt(charactersControllerOverviewResponseMostFrequentAppearanceCountExclusiveMin)
+        .max(charactersControllerOverviewResponseMostFrequentAppearanceCountMax),
+      leaderCount: zod
+        .int()
+        .gt(charactersControllerOverviewResponseMostFrequentLeaderCountExclusiveMin)
+        .max(charactersControllerOverviewResponseMostFrequentLeaderCountMax),
+      leaders: zod
+        .array(
+          zod.object({
+            avatar: zod
+              .object({
+                contentType: zod.string(),
+                createdAt: zod.string(),
+                height: zod.number(),
+                id: zod.string(),
+                kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                name: zod.string().nullable(),
+                sizeBytes: zod.number(),
+                urls: zod.object({
+                  card: zod.string(),
+                  full: zod.string(),
+                  thumb: zod.string(),
+                }),
+                width: zod.number(),
+              })
+              .nullable(),
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        )
+        .max(charactersControllerOverviewResponseMostFrequentLeadersMax),
+    })
+    .nullable(),
+  multipleBooksCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseMultipleBooksCountMin)
+    .max(charactersControllerOverviewResponseMultipleBooksCountMax),
+  totalCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseTotalCountMin)
+    .max(charactersControllerOverviewResponseTotalCountMax),
+  withPersonalImpressionCount: zod
+    .int()
+    .min(charactersControllerOverviewResponseWithPersonalImpressionCountMin)
+    .max(charactersControllerOverviewResponseWithPersonalImpressionCountMax),
 });
 
 /**
@@ -2603,6 +2764,10 @@ export const CharactersControllerGetByIdQueryParams = zod.object({
 export const charactersControllerGetByIdResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerGetByIdResponseAliasesItemPositionMax = 9007199254740991;
 
+export const charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const charactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const charactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -2659,6 +2824,38 @@ export const CharactersControllerGetByIdResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -2681,7 +2878,14 @@ export const CharactersControllerGetByIdResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -2749,6 +2953,7 @@ export const CharactersControllerGetByIdResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -2934,6 +3139,10 @@ export const CharactersControllerUpdateGlobalBody = zod.object({
 export const charactersControllerUpdateGlobalResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerUpdateGlobalResponseAliasesItemPositionMax = 9007199254740991;
 
+export const charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const charactersControllerUpdateGlobalResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const charactersControllerUpdateGlobalResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -2991,6 +3200,38 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerUpdateGlobalResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -3013,7 +3254,14 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -3081,6 +3329,7 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3218,11 +3467,23 @@ export const charactersControllerDeletionPreviewResponseAliasCountMax = 90071992
 export const charactersControllerDeletionPreviewResponseAppearanceCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseAppearanceCountMax = 9007199254740991;
 
+export const charactersControllerDeletionPreviewResponseFormCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseFormCountMax = 9007199254740991;
+
+export const charactersControllerDeletionPreviewResponseGroupCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseGroupCountMax = 9007199254740991;
+
+export const charactersControllerDeletionPreviewResponseRelationshipCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseRelationshipCountMax = 9007199254740991;
+
 export const charactersControllerDeletionPreviewResponseRoleCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseRoleCountMax = 9007199254740991;
 
 export const charactersControllerDeletionPreviewResponseTagCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseTagCountMax = 9007199254740991;
+
+export const charactersControllerDeletionPreviewResponseTheoryCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseTheoryCountMax = 9007199254740991;
 
 export const CharactersControllerDeletionPreviewResponse = zod.object({
   aliasCount: zod
@@ -3233,6 +3494,18 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(charactersControllerDeletionPreviewResponseAppearanceCountMin)
     .max(charactersControllerDeletionPreviewResponseAppearanceCountMax),
+  formCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseFormCountMin)
+    .max(charactersControllerDeletionPreviewResponseFormCountMax),
+  groupCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseGroupCountMin)
+    .max(charactersControllerDeletionPreviewResponseGroupCountMax),
+  relationshipCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseRelationshipCountMin)
+    .max(charactersControllerDeletionPreviewResponseRelationshipCountMax),
   roleCount: zod
     .int()
     .min(charactersControllerDeletionPreviewResponseRoleCountMin)
@@ -3241,6 +3514,10 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(charactersControllerDeletionPreviewResponseTagCountMin)
     .max(charactersControllerDeletionPreviewResponseTagCountMax),
+  theoryCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseTheoryCountMin)
+    .max(charactersControllerDeletionPreviewResponseTheoryCountMax),
 });
 
 /**
@@ -3252,6 +3529,10 @@ export const CharactersControllerRestoreParams = zod.object({
 
 export const charactersControllerRestoreResponseAliasesItemPositionMin = -9007199254740991;
 export const charactersControllerRestoreResponseAliasesItemPositionMax = 9007199254740991;
+
+export const charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
 
 export const charactersControllerRestoreResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
@@ -3309,6 +3590,38 @@ export const CharactersControllerRestoreResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(charactersControllerRestoreResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -3331,7 +3644,14 @@ export const CharactersControllerRestoreResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -3399,6 +3719,7 @@ export const CharactersControllerRestoreResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3812,6 +4133,18 @@ export const BookCharactersControllerListParams = zod.object({
   bookId: zod.string().describe("Book id"),
 });
 
+export const bookCharactersControllerListQueryContextAudioSecondsMin = 0;
+export const bookCharactersControllerListQueryContextAudioSecondsMax = 2147483647;
+
+export const bookCharactersControllerListQueryContextChapterMin = 0;
+export const bookCharactersControllerListQueryContextChapterMax = 2147483647;
+
+export const bookCharactersControllerListQueryContextPageMin = 0;
+export const bookCharactersControllerListQueryContextPageMax = 2147483647;
+
+export const bookCharactersControllerListQueryContextBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookCharactersControllerListQueryPageNumberDefault = 1;
 export const bookCharactersControllerListQueryPageNumberMax = 21474836;
 
@@ -3821,6 +4154,22 @@ export const bookCharactersControllerListQueryPageSizeMax = 100;
 export const bookCharactersControllerListQuerySearchMax = 100;
 
 export const BookCharactersControllerListQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(bookCharactersControllerListQueryContextAudioSecondsMin)
+    .max(bookCharactersControllerListQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(bookCharactersControllerListQueryContextChapterMin)
+    .max(bookCharactersControllerListQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(bookCharactersControllerListQueryContextPageMin)
+    .max(bookCharactersControllerListQueryContextPageMax)
+    .optional(),
+  contextBookId: zod.uuid().regex(bookCharactersControllerListQueryContextBookIdRegExp).optional(),
   pageNumber: zod
     .int()
     .min(1)
@@ -3832,6 +4181,7 @@ export const BookCharactersControllerListQueryParams = zod.object({
     .max(bookCharactersControllerListQueryPageSizeMax)
     .default(bookCharactersControllerListQueryPageSizeDefault),
   search: zod.string().max(bookCharactersControllerListQuerySearchMax).optional(),
+  sort: zod.enum(["importance", "manual", "name"]).optional(),
 });
 
 export const bookCharactersControllerListResponsePageMin = -9007199254740991;
@@ -3871,8 +4221,16 @@ export const BookCharactersControllerListResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -3899,6 +4257,7 @@ export const BookCharactersControllerListResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -3949,7 +4308,7 @@ export const bookCharactersControllerCreateBodyOneBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyOneBookProfileFirstAppearancePageMax = 2147483647;
 
 export const bookCharactersControllerCreateBodyOneBookProfileHidePresenceAsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyOneBookProfileImportanceDefault = `supporting`;
+export const bookCharactersControllerCreateBodyOneBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileIsPovCharacterDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfilePersonalImpressionMax = 5000;
 
@@ -3973,7 +4332,7 @@ export const bookCharactersControllerCreateBodyOneBookProfileSortOrderMax = 2147
 export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideMax = 200;
 
 export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyOneBookProfileStatusDefault = `active`;
+export const bookCharactersControllerCreateBodyOneBookProfileStatusDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileStatusCustomTextMax = 200;
 
 export const bookCharactersControllerCreateBodyOneBookProfileStatusIsSpoilerDefault = false;
@@ -4000,7 +4359,7 @@ export const bookCharactersControllerCreateBodyTwoBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyTwoBookProfileFirstAppearancePageMax = 2147483647;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileHidePresenceAsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault = `supporting`;
+export const bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileIsPovCharacterDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfilePersonalImpressionMax = 5000;
 
@@ -4024,7 +4383,7 @@ export const bookCharactersControllerCreateBodyTwoBookProfileSortOrderMax = 2147
 export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideMax = 200;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault = false;
-export const bookCharactersControllerCreateBodyTwoBookProfileStatusDefault = `active`;
+export const bookCharactersControllerCreateBodyTwoBookProfileStatusDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusCustomTextMax = 200;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusIsSpoilerDefault = false;
@@ -4116,7 +4475,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileHidePresenceAsSpoilerDefault),
       importance: zod
-        .enum(["central", "major", "supporting", "episodic", "mentioned"])
+        .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
         .default(bookCharactersControllerCreateBodyOneBookProfileImportanceDefault),
       isPovCharacter: zod
         .boolean()
@@ -4189,7 +4548,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault),
       status: zod
-        .enum(["active", "missing", "dead", "unknown", "transformed", "other"])
+        .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
         .default(bookCharactersControllerCreateBodyOneBookProfileStatusDefault),
       statusCustomText: zod
         .string()
@@ -4259,7 +4618,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileHidePresenceAsSpoilerDefault),
       importance: zod
-        .enum(["central", "major", "supporting", "episodic", "mentioned"])
+        .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
         .default(bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault),
       isPovCharacter: zod
         .boolean()
@@ -4332,7 +4691,7 @@ export const BookCharactersControllerCreateBody = zod.union([
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault),
       status: zod
-        .enum(["active", "missing", "dead", "unknown", "transformed", "other"])
+        .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
         .default(bookCharactersControllerCreateBodyTwoBookProfileStatusDefault),
       statusCustomText: zod
         .string()
@@ -4427,6 +4786,10 @@ export const BookCharactersControllerCreateBody = zod.union([
 export const bookCharactersControllerCreateResponseAliasesItemPositionMin = -9007199254740991;
 export const bookCharactersControllerCreateResponseAliasesItemPositionMax = 9007199254740991;
 
+export const bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const bookCharactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const bookCharactersControllerCreateResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -4483,6 +4846,38 @@ export const BookCharactersControllerCreateResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(bookCharactersControllerCreateResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -4505,7 +4900,14 @@ export const BookCharactersControllerCreateResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -4573,6 +4975,7 @@ export const BookCharactersControllerCreateResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -4677,6 +5080,10 @@ export const BookCharactersControllerGetByIdParams = zod.object({
 export const bookCharactersControllerGetByIdResponseAliasesItemPositionMin = -9007199254740991;
 export const bookCharactersControllerGetByIdResponseAliasesItemPositionMax = 9007199254740991;
 
+export const bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
+
 export const bookCharactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
 export const bookCharactersControllerGetByIdResponseAppearancesItemFirstAppearanceAudioSecondsMax = 9007199254740991;
@@ -4733,6 +5140,38 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMin)
+              .max(bookCharactersControllerGetByIdResponseAppearancesItemBookSeriesPartNumberMax)
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -4755,7 +5194,14 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -4823,6 +5269,7 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5042,7 +5489,9 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .max(bookCharactersControllerUpdateInBookBodyFirstAppearancePageMax)
     .nullish(),
   hidePresenceAsSpoiler: zod.boolean().optional(),
-  importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]).optional(),
+  importance: zod
+    .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
+    .optional(),
   isPovCharacter: zod.boolean().optional(),
   narratorType: zod
     .union([
@@ -5103,7 +5552,9 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .max(bookCharactersControllerUpdateInBookBodySpeciesOverrideMax)
     .nullish(),
   speciesOverrideIsSpoiler: zod.boolean().optional(),
-  status: zod.enum(["active", "missing", "dead", "unknown", "transformed", "other"]).optional(),
+  status: zod
+    .enum(["active", "missing", "dead", "unknown", "transformed", "other", "not_specified"])
+    .optional(),
   statusCustomText: zod
     .string()
     .max(bookCharactersControllerUpdateInBookBodyStatusCustomTextMax)
@@ -5117,6 +5568,10 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
 
 export const bookCharactersControllerUpdateInBookResponseAliasesItemPositionMin = -9007199254740991;
 export const bookCharactersControllerUpdateInBookResponseAliasesItemPositionMax = 9007199254740991;
+
+export const bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMin =
+  -9007199254740991;
+export const bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMax = 9007199254740991;
 
 export const bookCharactersControllerUpdateInBookResponseAppearancesItemFirstAppearanceAudioSecondsMin =
   -9007199254740991;
@@ -5175,6 +5630,42 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      book: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        series: zod
+          .object({
+            id: zod.string(),
+            name: zod.string(),
+            partNumber: zod
+              .int()
+              .min(
+                bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMin,
+              )
+              .max(
+                bookCharactersControllerUpdateInBookResponseAppearancesItemBookSeriesPartNumberMax,
+              )
+              .nullable(),
+          })
+          .nullable(),
+        title: zod.string(),
+      }),
       bookId: zod.string(),
       characterId: zod.string(),
       createdAt: zod.string(),
@@ -5201,7 +5692,14 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
       hiddenFields: zod.array(zod.string()),
       hidePresenceAsSpoiler: zod.boolean(),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isPovCharacter: zod.boolean(),
       narratorType: zod
         .union([
@@ -5269,6 +5767,7 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5446,6 +5945,9 @@ export const BookCharacterSuggestionsControllerListResponse = zod.object({
       species: zod.string().nullable(),
       tags: zod.array(
         zod.object({
+          color: zod
+            .enum(["parchment", "terracotta", "honey", "sage", "forest", "sky", "lavender", "rose"])
+            .describe("Effective palette color; a missing or legacy color reads as parchment."),
           id: zod.string(),
           name: zod.string(),
         }),
@@ -5459,6 +5961,41 @@ export const BookCharacterSuggestionsControllerListResponse = zod.object({
  */
 export const BookCharacterSummaryControllerGetParams = zod.object({
   bookId: zod.string().describe("Book id"),
+});
+
+export const bookCharacterSummaryControllerGetQueryContextAudioSecondsMin = 0;
+export const bookCharacterSummaryControllerGetQueryContextAudioSecondsMax = 2147483647;
+
+export const bookCharacterSummaryControllerGetQueryContextChapterMin = 0;
+export const bookCharacterSummaryControllerGetQueryContextChapterMax = 2147483647;
+
+export const bookCharacterSummaryControllerGetQueryContextPageMin = 0;
+export const bookCharacterSummaryControllerGetQueryContextPageMax = 2147483647;
+
+export const bookCharacterSummaryControllerGetQueryContextBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const BookCharacterSummaryControllerGetQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(bookCharacterSummaryControllerGetQueryContextAudioSecondsMin)
+    .max(bookCharacterSummaryControllerGetQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(bookCharacterSummaryControllerGetQueryContextChapterMin)
+    .max(bookCharacterSummaryControllerGetQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(bookCharacterSummaryControllerGetQueryContextPageMin)
+    .max(bookCharacterSummaryControllerGetQueryContextPageMax)
+    .optional(),
+  contextBookId: zod
+    .uuid()
+    .regex(bookCharacterSummaryControllerGetQueryContextBookIdRegExp)
+    .optional(),
 });
 
 export const bookCharacterSummaryControllerGetResponseByImportanceCentralMin = 0;
@@ -5542,8 +6079,16 @@ export const BookCharacterSummaryControllerGetResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -5570,6 +6115,7 @@ export const BookCharacterSummaryControllerGetResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5588,6 +6134,15 @@ export const SeriesCharactersControllerListParams = zod.object({
   seriesId: zod.string().describe("Series id"),
 });
 
+export const seriesCharactersControllerListQueryContextAudioSecondsMin = 0;
+export const seriesCharactersControllerListQueryContextAudioSecondsMax = 2147483647;
+
+export const seriesCharactersControllerListQueryContextChapterMin = 0;
+export const seriesCharactersControllerListQueryContextChapterMax = 2147483647;
+
+export const seriesCharactersControllerListQueryContextPageMin = 0;
+export const seriesCharactersControllerListQueryContextPageMax = 2147483647;
+
 export const seriesCharactersControllerListQueryContextBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
@@ -5602,6 +6157,21 @@ export const seriesCharactersControllerListQueryQMax = 100;
 export const seriesCharactersControllerListQuerySortDefault = `name`;
 
 export const SeriesCharactersControllerListQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(seriesCharactersControllerListQueryContextAudioSecondsMin)
+    .max(seriesCharactersControllerListQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(seriesCharactersControllerListQueryContextChapterMin)
+    .max(seriesCharactersControllerListQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(seriesCharactersControllerListQueryContextPageMin)
+    .max(seriesCharactersControllerListQueryContextPageMax)
+    .optional(),
   contextBookId: zod
     .uuid()
     .regex(seriesCharactersControllerListQueryContextBookIdRegExp)
@@ -5658,8 +6228,16 @@ export const SeriesCharactersControllerListResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -5686,6 +6264,7 @@ export const SeriesCharactersControllerListResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5717,11 +6296,35 @@ export const SeriesCharactersControllerProfileParams = zod.object({
   characterId: zod.string().describe("Character id"),
 });
 
+export const seriesCharactersControllerProfileQueryContextAudioSecondsMin = 0;
+export const seriesCharactersControllerProfileQueryContextAudioSecondsMax = 2147483647;
+
+export const seriesCharactersControllerProfileQueryContextChapterMin = 0;
+export const seriesCharactersControllerProfileQueryContextChapterMax = 2147483647;
+
+export const seriesCharactersControllerProfileQueryContextPageMin = 0;
+export const seriesCharactersControllerProfileQueryContextPageMax = 2147483647;
+
 export const seriesCharactersControllerProfileQueryContextBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
 
 export const SeriesCharactersControllerProfileQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(seriesCharactersControllerProfileQueryContextAudioSecondsMin)
+    .max(seriesCharactersControllerProfileQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(seriesCharactersControllerProfileQueryContextChapterMin)
+    .max(seriesCharactersControllerProfileQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(seriesCharactersControllerProfileQueryContextPageMin)
+    .max(seriesCharactersControllerProfileQueryContextPageMax)
+    .optional(),
   contextBookId: zod
     .uuid()
     .regex(seriesCharactersControllerProfileQueryContextBookIdRegExp)
@@ -5781,7 +6384,14 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
       bookId: zod.string(),
       displayName: zod.string().nullable(),
       hiddenFields: zod.array(zod.string()),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       importanceChangedFromPrevious: zod.boolean(),
       partNumber: zod
         .int()
@@ -5834,6 +6444,7 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),
@@ -5888,11 +6499,35 @@ export const SeriesCharacterSummaryControllerGetParams = zod.object({
   seriesId: zod.string().describe("Series id"),
 });
 
+export const seriesCharacterSummaryControllerGetQueryContextAudioSecondsMin = 0;
+export const seriesCharacterSummaryControllerGetQueryContextAudioSecondsMax = 2147483647;
+
+export const seriesCharacterSummaryControllerGetQueryContextChapterMin = 0;
+export const seriesCharacterSummaryControllerGetQueryContextChapterMax = 2147483647;
+
+export const seriesCharacterSummaryControllerGetQueryContextPageMin = 0;
+export const seriesCharacterSummaryControllerGetQueryContextPageMax = 2147483647;
+
 export const seriesCharacterSummaryControllerGetQueryContextBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
 
 export const SeriesCharacterSummaryControllerGetQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(seriesCharacterSummaryControllerGetQueryContextAudioSecondsMin)
+    .max(seriesCharacterSummaryControllerGetQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(seriesCharacterSummaryControllerGetQueryContextChapterMin)
+    .max(seriesCharacterSummaryControllerGetQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(seriesCharacterSummaryControllerGetQueryContextPageMin)
+    .max(seriesCharacterSummaryControllerGetQueryContextPageMax)
+    .optional(),
   contextBookId: zod
     .uuid()
     .regex(seriesCharacterSummaryControllerGetQueryContextBookIdRegExp)
@@ -5981,8 +6616,16 @@ export const SeriesCharacterSummaryControllerGetResponse = zod.object({
       entityKind: zod.enum(["individual", "collective", "unknown"]),
       hiddenFields: zod.array(zod.string()),
       id: zod.string(),
-      importance: zod.enum(["central", "major", "supporting", "episodic", "mentioned"]),
+      importance: zod.enum([
+        "central",
+        "major",
+        "supporting",
+        "episodic",
+        "mentioned",
+        "not_specified",
+      ]),
       isFavorite: zod.boolean(),
+      isPovCharacter: zod.boolean(),
       name: zod.string(),
       portrait: zod
         .object({
@@ -6009,6 +6652,7 @@ export const SeriesCharacterSummaryControllerGetResponse = zod.object({
           zod.literal("unknown"),
           zod.literal("transformed"),
           zod.literal("other"),
+          zod.literal("not_specified"),
           zod.literal(null),
         ])
         .nullable(),

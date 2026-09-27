@@ -7,29 +7,69 @@ import type {
   CharacterAttitude,
   CharacterEntityKind,
   CharacterGender,
+  Nullable,
 } from "@app/shared";
 import type { VariantProps } from "class-variance-authority";
+
+import { BOOK_CHARACTER_UNSPECIFIED } from "@app/shared";
 
 import { badgeVariants } from "@/components/ui/badge";
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
-export const IMPORTANCE_OPTIONS = [
-  "central",
-  "major",
-  "supporting",
-  "episodic",
-  "mentioned",
-] as const satisfies readonly BookCharacterImportance[];
+type ExplicitImportance = Exclude<
+  BookCharacterImportance,
+  typeof BOOK_CHARACTER_UNSPECIFIED.importance
+>;
 
-export const STATUS_OPTIONS = [
-  "active",
-  "missing",
-  "dead",
-  "unknown",
-  "transformed",
-  "other",
-] as const satisfies readonly BookCharacterStatus[];
+type ExplicitStatus = Exclude<BookCharacterStatus, typeof BOOK_CHARACTER_UNSPECIFIED.status>;
+
+export const BOOK_CHARACTER_IMPORTANCE = {
+  badgeVariant: {
+    central: "default",
+    episodic: "outline",
+    major: "primary",
+    mentioned: "ghost",
+    supporting: "secondary",
+  },
+  options: [
+    BOOK_CHARACTER_UNSPECIFIED.importance,
+    "central",
+    "major",
+    "supporting",
+    "episodic",
+    "mentioned",
+  ],
+} as const satisfies {
+  badgeVariant: Record<ExplicitImportance, BadgeVariant>;
+  options: readonly BookCharacterImportance[];
+};
+
+export const BOOK_CHARACTER_STATUS = {
+  custom: "other",
+  options: [
+    BOOK_CHARACTER_UNSPECIFIED.status,
+    "active",
+    "missing",
+    "dead",
+    "unknown",
+    "transformed",
+    "other",
+  ],
+} as const satisfies {
+  custom: BookCharacterStatus;
+  options: readonly BookCharacterStatus[];
+};
+
+export function explicitImportance(
+  importance: BookCharacterImportance,
+): Nullable<ExplicitImportance> {
+  return importance === BOOK_CHARACTER_UNSPECIFIED.importance ? null : importance;
+}
+
+export function explicitStatus(status: Nullable<BookCharacterStatus>): Nullable<ExplicitStatus> {
+  return status === null || status === BOOK_CHARACTER_UNSPECIFIED.status ? null : status;
+}
 
 export const ROLE_TYPE_OPTIONS = [
   "protagonist",
@@ -87,24 +127,3 @@ export const NARRATOR_TYPE_OPTIONS = [
 
 export const GENDER_CUSTOM = "custom" satisfies CharacterGender;
 export const ROLE_TYPE_CUSTOM = "custom" satisfies BookCharacterRoleType;
-export const STATUS_CUSTOM = "other" satisfies BookCharacterStatus;
-
-const IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
-  central: 0,
-  episodic: 3,
-  major: 1,
-  mentioned: 4,
-  supporting: 2,
-};
-
-export function importanceRank(importance: BookCharacterImportance): number {
-  return IMPORTANCE_RANK[importance];
-}
-
-export const IMPORTANCE_BADGE_VARIANT: Record<BookCharacterImportance, BadgeVariant> = {
-  central: "default",
-  episodic: "outline",
-  major: "primary",
-  mentioned: "ghost",
-  supporting: "secondary",
-};

@@ -5,8 +5,11 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { ListOverviewViewDtoCurrentlyReadingBookTagsItemColor } from "./listOverviewViewDtoCurrentlyReadingBookTagsItemColor";
 
 export type ListOverviewViewDtoCurrentlyReadingBookTagsItem = {
+  /** Effective palette color; a missing or legacy color reads as parchment. */
+  color: ListOverviewViewDtoCurrentlyReadingBookTagsItemColor;
   id: string;
   name: string;
 };

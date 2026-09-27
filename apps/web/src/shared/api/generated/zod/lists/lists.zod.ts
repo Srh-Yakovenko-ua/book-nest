@@ -598,6 +598,12 @@ export const listDetailsControllerDetailResponseBooksItemsItemQueuePriorityTarge
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
   );
 export const listDetailsControllerDetailResponseBooksItemsItemSeriesAgeCategoriesDefault = [];
+export const listDetailsControllerDetailResponseBooksItemsItemSeriesCommonGenresDefault = [];
+export const listDetailsControllerDetailResponseBooksItemsItemSeriesDominantPublisherBookCountMin =
+  -9007199254740991;
+export const listDetailsControllerDetailResponseBooksItemsItemSeriesDominantPublisherBookCountMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseBooksItemsItemSeriesDominantPublisherDefault = null;
 export const listDetailsControllerDetailResponseBooksItemsItemSeriesFormatsDefault = [];
 export const listDetailsControllerDetailResponseBooksItemsItemSeriesHasFavoriteBookDefault = false;
 export const listDetailsControllerDetailResponseBooksItemsItemSeriesHasPublicationYearsDefault = false;
@@ -918,6 +924,9 @@ export const ListDetailsControllerDetailResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(listDetailsControllerDetailResponseBooksItemsItemSeriesCommonGenresDefault),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),
@@ -941,6 +950,23 @@ export const ListDetailsControllerDetailResponse = zod.object({
             ),
             createdAt: zod.string(),
             description: zod.string().nullable(),
+            dominantPublisher: zod
+              .object({
+                id: zod.string(),
+                name: zod.string(),
+                bookCount: zod
+                  .int()
+                  .min(
+                    listDetailsControllerDetailResponseBooksItemsItemSeriesDominantPublisherBookCountMin,
+                  )
+                  .max(
+                    listDetailsControllerDetailResponseBooksItemsItemSeriesDominantPublisherBookCountMax,
+                  ),
+              })
+              .nullish()
+              .default(
+                listDetailsControllerDetailResponseBooksItemsItemSeriesDominantPublisherDefault,
+              ),
             finishedInSeries: zod.number(),
             formats: zod
               .array(zod.enum(["paper", "ebook", "audiobook"]))
@@ -1044,6 +1070,20 @@ export const ListDetailsControllerDetailResponse = zod.object({
             tags: zod
               .array(
                 zod.object({
+                  color: zod
+                    .enum([
+                      "parchment",
+                      "terracotta",
+                      "honey",
+                      "sage",
+                      "forest",
+                      "sky",
+                      "lavender",
+                      "rose",
+                    ])
+                    .describe(
+                      "Effective palette color; a missing or legacy color reads as parchment.",
+                    ),
                   id: zod.string(),
                   name: zod.string(),
                 }),
@@ -1054,6 +1094,18 @@ export const ListDetailsControllerDetailResponse = zod.object({
           .nullable(),
         tags: zod.array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),
@@ -1190,6 +1242,14 @@ export const listDetailsControllerOverviewResponseCurrentlyReadingBookQueuePrior
   );
 export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesAgeCategoriesDefault =
   [];
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesCommonGenresDefault =
+  [];
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesDominantPublisherBookCountMin =
+  -9007199254740991;
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesDominantPublisherBookCountMax = 9007199254740991;
+
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesDominantPublisherDefault =
+  null;
 export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesFormatsDefault = [];
 export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesHasFavoriteBookDefault = false;
 export const listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesHasPublicationYearsDefault = false;
@@ -1521,6 +1581,11 @@ export const ListDetailsControllerOverviewResponse = zod.object({
             averagePages: zod.number().nullish(),
             averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
+            commonGenres: zod
+              .array(zod.string())
+              .default(
+                listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesCommonGenresDefault,
+              ),
             covers: zod.array(
               zod.object({
                 bookId: zod.string(),
@@ -1544,6 +1609,23 @@ export const ListDetailsControllerOverviewResponse = zod.object({
             ),
             createdAt: zod.string(),
             description: zod.string().nullable(),
+            dominantPublisher: zod
+              .object({
+                id: zod.string(),
+                name: zod.string(),
+                bookCount: zod
+                  .int()
+                  .min(
+                    listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesDominantPublisherBookCountMin,
+                  )
+                  .max(
+                    listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesDominantPublisherBookCountMax,
+                  ),
+              })
+              .nullish()
+              .default(
+                listDetailsControllerOverviewResponseCurrentlyReadingBookSeriesDominantPublisherDefault,
+              ),
             finishedInSeries: zod.number(),
             formats: zod
               .array(zod.enum(["paper", "ebook", "audiobook"]))
@@ -1657,6 +1739,20 @@ export const ListDetailsControllerOverviewResponse = zod.object({
             tags: zod
               .array(
                 zod.object({
+                  color: zod
+                    .enum([
+                      "parchment",
+                      "terracotta",
+                      "honey",
+                      "sage",
+                      "forest",
+                      "sky",
+                      "lavender",
+                      "rose",
+                    ])
+                    .describe(
+                      "Effective palette color; a missing or legacy color reads as parchment.",
+                    ),
                   id: zod.string(),
                   name: zod.string(),
                 }),
@@ -1667,6 +1763,18 @@ export const ListDetailsControllerOverviewResponse = zod.object({
           .nullable(),
         tags: zod.array(
           zod.object({
+            color: zod
+              .enum([
+                "parchment",
+                "terracotta",
+                "honey",
+                "sage",
+                "forest",
+                "sky",
+                "lavender",
+                "rose",
+              ])
+              .describe("Effective palette color; a missing or legacy color reads as parchment."),
             id: zod.string(),
             name: zod.string(),
           }),

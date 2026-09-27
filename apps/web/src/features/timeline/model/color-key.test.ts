@@ -1,21 +1,27 @@
 import { TIMELINE_COLOR_KEYS } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
-import { markerClass, TIMELINE_MARKER_CLASS } from "./color-key";
+import { PALETTE_COLOR_STYLES } from "@/components/ui/palette-color";
 
-describe("markerClass", () => {
-  it("maps each color key to its dedicated marker class", () => {
+import { markerStyle } from "./color-key";
+
+describe("markerStyle", () => {
+  it("covers exactly the canonical palette keys", () => {
+    expect(Object.keys(PALETTE_COLOR_STYLES).sort()).toEqual([...TIMELINE_COLOR_KEYS].sort());
+  });
+
+  it("paints the marker with the contrast tone of its palette color", () => {
     for (const colorKey of TIMELINE_COLOR_KEYS) {
-      expect(markerClass(colorKey)).toBe(TIMELINE_MARKER_CLASS[colorKey]);
+      expect(markerStyle(colorKey)).toEqual({
+        backgroundColor: PALETTE_COLOR_STYLES[colorKey].marker,
+      });
     }
   });
 
-  it("uses a recognizable tone for named colors", () => {
-    expect(markerClass("blue")).toBe("bg-blue-500");
-    expect(markerClass("red")).toBe("bg-red-500");
-  });
-
-  it("falls back to a neutral tone when no color is assigned", () => {
-    expect(markerClass(null)).toBe("bg-muted-foreground/40");
+  it("uses the shared tag foreground variables as the marker tone", () => {
+    expect(markerStyle("sky")).toEqual({ backgroundColor: "var(--tag-sky-foreground)" });
+    expect(markerStyle("terracotta")).toEqual({
+      backgroundColor: "var(--tag-terracotta-foreground)",
+    });
   });
 });

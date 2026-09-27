@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { PublisherModel } from "../../../generated/prisma/models.js";
+import type { MediaService } from "../../media/index.js";
+import type { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
 import type {
   PublishersRepository,
   PublisherWithPrimaryNames,
@@ -63,6 +65,8 @@ function buildService(overrides: {
   const service = new PublishersService(
     repository as unknown as PublishersRepository,
     transactionRunner as unknown as TransactionRunner,
+    {} as PublisherOverviewRepository,
+    {} as MediaService,
   );
 
   return { repository, service };

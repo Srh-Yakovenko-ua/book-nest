@@ -25,6 +25,7 @@ export type PaginatedTimelineEventsDtoItemsItem = {
   eventType: PaginatedTimelineEventsDtoItemsItemEventType;
   id: string;
   importance: PaginatedTimelineEventsDtoItemsItemImportance;
+  isSpoiler: boolean;
   /** @nullable */
   location: string | null;
   /**
@@ -43,7 +44,6 @@ export type PaginatedTimelineEventsDtoItemsItem = {
   summary: string | null;
   /** @nullable */
   threadStatus: PaginatedTimelineEventsDtoItemsItemThreadStatus;
-  /** @nullable */
   timelineColorKey: PaginatedTimelineEventsDtoItemsItemTimelineColorKey;
   timelineId: string;
   timelineName: string;

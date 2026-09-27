@@ -87,7 +87,7 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     },
     readingStatus: "finished",
     series: null,
-    tags: [{ id: "tag-1", name: "класика" }],
+    tags: [{ color: "rose", id: "tag-1", name: "класика" }],
     title: "Маруся Чурай",
     translator: null,
     updatedAt: "2026-02-01T00:00:00.000Z",

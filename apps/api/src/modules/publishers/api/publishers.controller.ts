@@ -1,6 +1,8 @@
 import type {
   LibraryPublisherDetail,
   LibraryPublisherListItem,
+  LibraryPublisherOverview,
+  LibraryPublishersQuickCounts,
   LibraryPublishersSummary,
   Paginator,
   PublisherView,
@@ -10,6 +12,9 @@ import {
   CatalogLocaleSchema,
   LibraryPublisherDetailQuerySchema,
   LibraryPublishersQuerySchema,
+  LibraryPublishersQuickCountsQuerySchema,
+  LibraryPublishersQuickFilterSchema,
+  LibraryPublishersSummaryQuerySchema,
   PublisherSearchPaginationQuerySchema,
   RecentPublishersQuerySchema,
   UpdatePublisherInputSchema,
@@ -45,16 +50,20 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { PublishersService } from "../application/publishers.service.js";
 import { LibraryPublisherDetailQueryDto } from "./input-dto/library-publisher-detail-query.input-dto.js";
 import { LibraryPublishersQueryDto } from "./input-dto/library-publishers-query.input-dto.js";
+import { LibraryPublishersQuickCountsQueryDto } from "./input-dto/library-publishers-quick-counts-query.input-dto.js";
+import { LibraryPublishersSummaryQueryDto } from "./input-dto/library-publishers-summary-query.input-dto.js";
 import { PublisherSearchPaginationQueryDto } from "./input-dto/publisher-search-query.input-dto.js";
 import { RecentPublishersQueryDto } from "./input-dto/recent-publishers-query.input-dto.js";
 import { UpdatePublisherDto } from "./input-dto/update-publisher.input-dto.js";
 import { LibraryPublisherDetailDto } from "./view-dto/library-publisher-detail.view-dto.js";
+import { LibraryPublisherOverviewDto } from "./view-dto/library-publisher-overview.view-dto.js";
 import { LibraryPublishersPageDto } from "./view-dto/library-publishers-page.view-dto.js";
+import { LibraryPublishersQuickCountsDto } from "./view-dto/library-publishers-quick-counts.view-dto.js";
 import { LibraryPublishersSummaryDto } from "./view-dto/library-publishers-summary.view-dto.js";
 
 @ApiTags("publishers")
@@ -66,10 +75,32 @@ export class PublishersController {
     type: LibraryPublishersSummaryDto,
   })
   @ApiOperation({ summary: "Get the publishers summary for the current user library" })
+  @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
   @Get("library/summary")
   @JwtProtected()
-  librarySummary(@CurrentUser() user: AuthenticatedUser): Promise<LibraryPublishersSummary> {
-    return this.publishersService.librarySummary({ userId: user.id });
+  librarySummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LibraryPublishersSummaryQuerySchema))
+    query: LibraryPublishersSummaryQueryDto,
+  ): Promise<LibraryPublishersSummary> {
+    return this.publishersService.librarySummary({ locale: query.locale, userId: user.id });
+  }
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "How many publishers each library quick filter would show under the given search and advanced filters, ignoring the selected quick filter",
+    type: LibraryPublishersQuickCountsDto,
+  })
+  @ApiOperation({ summary: "Count the current user library publishers per quick filter" })
+  @Get("library/quick-counts")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  libraryQuickCounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LibraryPublishersQuickCountsQuerySchema))
+    query: LibraryPublishersQuickCountsQueryDto,
+  ): Promise<LibraryPublishersQuickCounts> {
+    return this.publishersService.libraryQuickCounts({ query, userId: user.id });
   }
   @ApiOkResponse({
     description: "A page of publishers represented in the current user library",
@@ -81,9 +112,12 @@ export class PublishersController {
   @ApiQuery({ name: "pageSize", required: false })
   @ApiQuery({ enum: ["all", "ua", "foreign", "unknown"], name: "geography", required: false })
   @ApiQuery({ enum: ["all", "global", "custom"], name: "source", required: false })
+  @ApiQuery({ enum: LibraryPublishersQuickFilterSchema.options, name: "filter", required: false })
   @ApiQuery({ name: "hasBooksToBuy", required: false })
   @ApiQuery({ name: "hasSeries", required: false })
   @ApiQuery({ name: "hasRatedBooks", required: false })
+  @ApiQuery({ name: "hasWantToRead", required: false })
+  @ApiQuery({ name: "hasQueue", required: false })
   @ApiQuery({
     enum: ["name", "booksCount", "readCount", "wantToBuyCount", "averageRating", "lastBookAddedAt"],
     name: "sort",
@@ -130,7 +164,7 @@ export class PublishersController {
   ): Promise<Paginator<PublisherView>> {
     return this.publishersService.search(user.id, query);
   }
-  @ApiNotFoundResponse({ description: "Publisher not found or not represented in the library" })
+  @ApiNotFoundResponse({ description: "Publisher not found or not visible to the current user" })
   @ApiOkResponse({
     description: "The publisher with the current user library stats",
     type: LibraryPublisherDetailDto,
@@ -151,6 +185,21 @@ export class PublishersController {
       publisherId,
       userId: user.id,
     });
+  }
+  @ApiNotFoundResponse({ description: "Publisher not found or not visible to the current user" })
+  @ApiOkResponse({
+    description: "Preview blocks of the current user books from this publisher",
+    type: LibraryPublisherOverviewDto,
+  })
+  @ApiOperation({ summary: "Get the publisher overview for the current user library" })
+  @ApiParam({ name: "publisherId" })
+  @Get(":publisherId/library-overview")
+  @JwtProtected()
+  libraryOverview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("publisherId", ParseUUIDPipe) publisherId: string,
+  ): Promise<LibraryPublisherOverview> {
+    return this.publishersService.libraryOverview({ publisherId, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

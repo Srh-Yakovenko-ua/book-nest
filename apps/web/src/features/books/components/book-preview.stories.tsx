@@ -74,7 +74,14 @@ export const Rich: Story = {
     publisherName: "Клуб Сімейного Дозвілля",
     rating: 9.5,
     readingStatus: "finished",
-    tags: ["улюблене", "фентезі", "сапковський", "відьмак", "польська-проза", "магія"],
+    tags: [
+      { color: "sage", name: "улюблене" },
+      { color: "rose", name: "фентезі" },
+      { color: "sky", name: "сапковський" },
+      { color: "honey", name: "відьмак" },
+      { color: "lavender", name: "польська-проза" },
+      { color: "terracotta", name: "магія" },
+    ],
     title: "Останнє бажання",
   },
   play: async ({ canvas }) => {

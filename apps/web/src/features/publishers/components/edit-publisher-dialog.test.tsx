@@ -7,8 +7,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import {
+  createTestQueryClient,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from "@/test-utils";
 
+import { publisherKeys } from "../api/publisher-keys";
 import { makePublisherDetail } from "../model/publisher.fixtures";
 import { EditPublisherDialog } from "./edit-publisher-dialog";
 
@@ -24,13 +31,20 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let respondToUpdate: () => Response;
 
 function EditHarness({ details }: { details: LibraryPublisherDetail }) {
   const [open, setOpen] = useState(true);
-  return <EditPublisherDialog details={details} onOpenChange={setOpen} open={open} />;
+  return (
+    <EditPublisherDialog
+      details={details}
+      onCloseAutoFocus={vi.fn()}
+      onOpenChange={setOpen}
+      open={open}
+    />
+  );
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -38,6 +52,13 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function lastPatchBody(): unknown {
+  const patchCall = fetchMock.mock.calls
+    .filter(([, init]) => init?.method?.toUpperCase() === "PATCH")
+    .at(-1);
+  return JSON.parse(String(patchCall?.[1]?.body));
 }
 
 function renderDialog(details = makePublisherDetail({ isCustom: true, name: "Vivat" })) {
@@ -103,5 +124,53 @@ describe("EditPublisherDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
 
     expect(await screen.findByText("Відхилити зміни?")).toBeInTheDocument();
+  });
+  it("omits an unchanged legacy country code from the payload", async () => {
+    renderDialog(makePublisherDetail({ countryCode: "XX", name: "Vivat" }));
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Plus");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const body = lastPatchBody();
+    expect(body).toMatchObject({ name: "Vivat Plus" });
+    expect(body).not.toHaveProperty("countryCode");
+  });
+
+  it("sends a country picked through the searchable select", async () => {
+    renderDialog(makePublisherDetail({ countryCode: null }));
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Країна/ }));
+    await userEvent.type(screen.getByPlaceholderText("Пошук країни"), "Польща");
+    await userEvent.click(await screen.findByRole("option", { name: "Польща" }));
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(lastPatchBody()).toMatchObject({ countryCode: "PL" });
+  });
+
+  it("sends null when the country is cleared", async () => {
+    renderDialog(makePublisherDetail({ countryCode: "UA" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Очистити країну" }));
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(lastPatchBody()).toMatchObject({ countryCode: null });
+  });
+
+  it("puts the returned detail into the cache after saving", async () => {
+    const updated = makePublisherDetail({ name: "Vivat Renamed" });
+    respondToUpdate = () => jsonResponse(updated);
+
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryDefaults(publisherKeys.detail("publisher-1"), { gcTime: Infinity });
+    renderWithProviders(<EditHarness details={makePublisherDetail()} />, { queryClient });
+
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData(publisherKeys.detail("publisher-1"))).toEqual(updated),
+    );
   });
 });

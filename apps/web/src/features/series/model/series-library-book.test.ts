@@ -139,8 +139,8 @@ describe("seriesBookEdition", () => {
         book,
         labels,
         seriesPublishers: [
-          { id: "publisher-1", name: "Vivat" },
-          { id: "publisher-2", name: "Ранок" },
+          { bookCount: 2, id: "publisher-1", name: "Vivat" },
+          { bookCount: 1, id: "publisher-2", name: "Ранок" },
         ],
       }),
     ).toEqual([{ icon: "building", label: "Ранок" }]);
@@ -155,7 +155,11 @@ describe("seriesBookEdition", () => {
     });
 
     expect(
-      seriesBookEdition({ book, labels, seriesPublishers: [{ id: "publisher-1", name: "Vivat" }] }),
+      seriesBookEdition({
+        book,
+        labels,
+        seriesPublishers: [{ bookCount: 3, id: "publisher-1", name: "Vivat" }],
+      }),
     ).toEqual([]);
   });
 
@@ -172,8 +176,8 @@ describe("seriesBookEdition", () => {
         book,
         labels,
         seriesPublishers: [
-          { id: "publisher-1", name: "Vivat" },
-          { id: "publisher-2", name: "Ранок" },
+          { bookCount: 2, id: "publisher-1", name: "Vivat" },
+          { bookCount: 1, id: "publisher-2", name: "Ранок" },
         ],
       }),
     ).toEqual([]);

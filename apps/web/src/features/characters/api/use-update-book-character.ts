@@ -3,6 +3,7 @@ import type { CharacterDetailsView, UpdateBookCharacter } from "@app/shared";
 import { CharacterDetailsViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { invalidateTagAggregateQueries } from "@/features/tags/api/tags-keys";
 import { bookCharactersControllerUpdateInBook } from "@/shared/api/generated/endpoints/characters/characters";
 
 import { characterKeys } from "./character-keys";
@@ -27,6 +28,7 @@ export function useUpdateBookCharacter() {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      void invalidateTagAggregateQueries(queryClient);
     },
   });
 }

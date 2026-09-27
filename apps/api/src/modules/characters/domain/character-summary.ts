@@ -7,17 +7,14 @@ import type {
   SeriesCharacterSummaryView,
 } from "@app/shared";
 
-import { BookCharacterImportanceSchema, CHARACTER_SUMMARY_TOP_LIMIT } from "@app/shared";
+import {
+  BOOK_CHARACTER_UNSPECIFIED,
+  BookCharacterImportanceSchema,
+  CHARACTER_SUMMARY_TOP_LIMIT,
+} from "@app/shared";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
-
-const IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
-  central: 0,
-  episodic: 3,
-  major: 1,
-  mentioned: 4,
-  supporting: 2,
-};
+import { BOOK_CHARACTER_IMPORTANCE_RANK } from "./character-importance-order.js";
 
 const TOP_IMPORTANCES: ReadonlySet<BookCharacterImportance> = new Set(["central", "major"]);
 
@@ -128,7 +125,8 @@ function selectTopCharacters(candidates: CharacterSummaryView[]): CharacterSumma
     .filter((candidate) => TOP_IMPORTANCES.has(candidate.importance))
     .sort(
       (left, right) =>
-        IMPORTANCE_RANK[left.importance] - IMPORTANCE_RANK[right.importance] ||
+        BOOK_CHARACTER_IMPORTANCE_RANK[left.importance] -
+          BOOK_CHARACTER_IMPORTANCE_RANK[right.importance] ||
         UKRAINIAN_COLLATION.compare(left.name, right.name),
     )
     .slice(0, CHARACTER_SUMMARY_TOP_LIMIT);
@@ -143,7 +141,11 @@ function toImportanceCounts(entries: ImportanceCountEntry[]): BookCharacterImpor
     supporting: 0,
   };
   for (const entry of entries) {
-    counts[BookCharacterImportanceSchema.parse(entry.importance)] += entry.count;
+    const importance = BookCharacterImportanceSchema.parse(entry.importance);
+    if (importance === BOOK_CHARACTER_UNSPECIFIED.importance) {
+      continue;
+    }
+    counts[importance] += entry.count;
   }
   return counts;
 }

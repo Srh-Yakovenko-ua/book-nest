@@ -15,6 +15,7 @@ export type TimelineEventsFilterState = {
   sort: TimelineEventSort;
   timelineId: Nullable<string>;
   unresolved: boolean;
+  withoutChapter: boolean;
 };
 
 export function createFilterState(timelineId: Nullable<string>): TimelineEventsFilterState {
@@ -26,6 +27,7 @@ export function createFilterState(timelineId: Nullable<string>): TimelineEventsF
     sort: defaultEventSort(timelineId),
     timelineId,
     unresolved: false,
+    withoutChapter: false,
   };
 }
 
@@ -54,6 +56,7 @@ export function hasActiveEventFilters(state: TimelineEventsFilterState): boolean
     state.eventType.length > 0 ||
     state.importance.length > 0 ||
     state.unresolved ||
+    state.withoutChapter ||
     state.recap
   );
 }
@@ -85,6 +88,7 @@ export function toApiParams(
     ...(state.eventType.length === 0 ? {} : { eventType: state.eventType }),
     ...(state.importance.length === 0 ? {} : { importance: state.importance }),
     ...(state.unresolved ? { unresolved: "true" } : {}),
+    ...(state.withoutChapter ? { withoutChapter: "true" } : {}),
     ...(state.recap ? { recap: "true" } : {}),
   };
 }

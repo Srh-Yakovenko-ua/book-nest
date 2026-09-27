@@ -25,6 +25,7 @@ export interface TimelineEventViewDto {
   eventType: TimelineEventViewDtoEventType;
   id: string;
   importance: TimelineEventViewDtoImportance;
+  isSpoiler: boolean;
   /** @nullable */
   location: string | null;
   /**
@@ -43,7 +44,6 @@ export interface TimelineEventViewDto {
   summary: string | null;
   /** @nullable */
   threadStatus: TimelineEventViewDtoThreadStatus;
-  /** @nullable */
   timelineColorKey: TimelineEventViewDtoTimelineColorKey;
   timelineId: string;
   timelineName: string;

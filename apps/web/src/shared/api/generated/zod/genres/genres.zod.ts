@@ -8,21 +8,12 @@
 import * as zod from "zod";
 
 /**
- * @summary List the global default genres and the current user custom genres
+ * @summary List the predefined system genre catalog
  */
 export const GenresControllerListResponse = zod.unknown();
 
 /**
- * @summary Create a custom genre for the current user
- */
-export const GenresControllerCreateBody = zod.object({
-  name: zod.string(),
-});
-
-export const GenresControllerCreateResponse = zod.void();
-
-/**
- * @summary List recently used genres for the current user
+ * @summary List recently used system genres for the current user
  */
 export const genresControllerRecentQueryLimitDefault = 8;
 export const genresControllerRecentQueryLimitMax = 20;
@@ -38,49 +29,696 @@ export const GenresControllerRecentQueryParams = zod.object({
 export const GenresControllerRecentResponse = zod.unknown();
 
 /**
- * @summary Get per-genre statistics for the current user library
+ * @summary List the current user's genres with search, advanced filters, a quick filter, sort and pagination
  */
-export const genresControllerStatsResponseBooksCountMin = -9007199254740991;
-export const genresControllerStatsResponseBooksCountMax = 9007199254740991;
+export const genresControllerStatsQueryBooksMaxMin = 0;
+export const genresControllerStatsQueryBooksMaxMax = 9007199254740991;
 
-export const genresControllerStatsResponseReadCountMin = -9007199254740991;
-export const genresControllerStatsResponseReadCountMax = 9007199254740991;
+export const genresControllerStatsQueryBooksMinMin = 0;
+export const genresControllerStatsQueryBooksMinMax = 9007199254740991;
 
-export const genresControllerStatsResponseReadingQueueCountMin = -9007199254740991;
-export const genresControllerStatsResponseReadingQueueCountMax = 9007199254740991;
+export const genresControllerStatsQueryGroupItemMax = 64;
 
-export const genresControllerStatsResponseWantToBuyCountMin = -9007199254740991;
-export const genresControllerStatsResponseWantToBuyCountMax = 9007199254740991;
+export const genresControllerStatsQueryGroupMax = 100;
 
-export const GenresControllerStatsResponseItem = zod.object({
-  averageRating: zod.number().nullable(),
-  booksCount: zod
+export const genresControllerStatsQueryQMax = 100;
+
+export const genresControllerStatsQueryRatingMaxMin = 0.5;
+export const genresControllerStatsQueryRatingMaxMax = 10;
+export const genresControllerStatsQueryRatingMaxMultipleOf = 0.5;
+
+export const genresControllerStatsQueryRatingMinMin = 0.5;
+export const genresControllerStatsQueryRatingMinMax = 10;
+export const genresControllerStatsQueryRatingMinMultipleOf = 0.5;
+
+export const genresControllerStatsQueryFilterDefault = `all`;
+export const genresControllerStatsQueryPageNumberDefault = 1;
+export const genresControllerStatsQueryPageNumberMax = 21474836;
+
+export const genresControllerStatsQueryPageSizeDefault = 24;
+export const genresControllerStatsQueryPageSizeMax = 100;
+
+export const genresControllerStatsQuerySortDefault = `books_count_desc`;
+
+export const GenresControllerStatsQueryParams = zod.object({
+  booksMax: zod
     .int()
-    .min(genresControllerStatsResponseBooksCountMin)
-    .max(genresControllerStatsResponseBooksCountMax),
-  coverUrls: zod.array(zod.string()),
-  key: zod.string(),
-  label: zod.string(),
-  readCount: zod
+    .min(genresControllerStatsQueryBooksMaxMin)
+    .max(genresControllerStatsQueryBooksMaxMax)
+    .optional(),
+  booksMin: zod
     .int()
-    .min(genresControllerStatsResponseReadCountMin)
-    .max(genresControllerStatsResponseReadCountMax),
-  readingQueueCount: zod
+    .min(genresControllerStatsQueryBooksMinMin)
+    .max(genresControllerStatsQueryBooksMinMax)
+    .optional(),
+  group: zod
+    .array(zod.string().min(1).max(genresControllerStatsQueryGroupItemMax))
+    .max(genresControllerStatsQueryGroupMax)
+    .optional(),
+  q: zod.string().max(genresControllerStatsQueryQMax).optional(),
+  ratingMax: zod
+    .number()
+    .min(genresControllerStatsQueryRatingMaxMin)
+    .max(genresControllerStatsQueryRatingMaxMax)
+    .multipleOf(genresControllerStatsQueryRatingMaxMultipleOf)
+    .optional(),
+  ratingMin: zod
+    .number()
+    .min(genresControllerStatsQueryRatingMinMin)
+    .max(genresControllerStatsQueryRatingMinMax)
+    .multipleOf(genresControllerStatsQueryRatingMinMultipleOf)
+    .optional(),
+  filter: zod
+    .enum(["all", "unread", "in_queue", "finished", "want_to_buy"])
+    .default(genresControllerStatsQueryFilterDefault),
+  pageNumber: zod
     .int()
-    .min(genresControllerStatsResponseReadingQueueCountMin)
-    .max(genresControllerStatsResponseReadingQueueCountMax),
-  wantToBuyCount: zod
+    .min(1)
+    .max(genresControllerStatsQueryPageNumberMax)
+    .default(genresControllerStatsQueryPageNumberDefault),
+  pageSize: zod
     .int()
-    .min(genresControllerStatsResponseWantToBuyCountMin)
-    .max(genresControllerStatsResponseWantToBuyCountMax),
+    .min(1)
+    .max(genresControllerStatsQueryPageSizeMax)
+    .default(genresControllerStatsQueryPageSizeDefault),
+  sort: zod
+    .enum(["books_count_desc", "name_asc", "read_count_desc", "queue_count_desc", "rating_desc"])
+    .default(genresControllerStatsQuerySortDefault),
 });
-export const GenresControllerStatsResponse = zod.array(GenresControllerStatsResponseItem);
+
+export const genresControllerStatsResponseItemsItemBooksCountMin = 0;
+export const genresControllerStatsResponseItemsItemBooksCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseItemsItemRatedBooksCountMin = 0;
+export const genresControllerStatsResponseItemsItemRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseItemsItemReadCountMin = 0;
+export const genresControllerStatsResponseItemsItemReadCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseItemsItemReadingQueueCountMin = 0;
+export const genresControllerStatsResponseItemsItemReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseItemsItemWantToBuyCountMin = 0;
+export const genresControllerStatsResponseItemsItemWantToBuyCountMax = 9007199254740991;
+
+export const genresControllerStatsResponsePageMin = -9007199254740991;
+export const genresControllerStatsResponsePageMax = 9007199254740991;
+
+export const genresControllerStatsResponsePagesCountMin = -9007199254740991;
+export const genresControllerStatsResponsePagesCountMax = 9007199254740991;
+
+export const genresControllerStatsResponsePageSizeMin = -9007199254740991;
+export const genresControllerStatsResponsePageSizeMax = 9007199254740991;
+
+export const genresControllerStatsResponseTotalCountMin = -9007199254740991;
+export const genresControllerStatsResponseTotalCountMax = 9007199254740991;
+
+export const GenresControllerStatsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      averageRating: zod.number().nullable(),
+      booksCount: zod
+        .int()
+        .min(genresControllerStatsResponseItemsItemBooksCountMin)
+        .max(genresControllerStatsResponseItemsItemBooksCountMax),
+      coverUrls: zod.array(zod.string()),
+      groupKey: zod.string(),
+      groupName: zod.string(),
+      key: zod.string(),
+      label: zod.string(),
+      ratedBooksCount: zod
+        .int()
+        .min(genresControllerStatsResponseItemsItemRatedBooksCountMin)
+        .max(genresControllerStatsResponseItemsItemRatedBooksCountMax),
+      readCount: zod
+        .int()
+        .min(genresControllerStatsResponseItemsItemReadCountMin)
+        .max(genresControllerStatsResponseItemsItemReadCountMax),
+      readingQueueCount: zod
+        .int()
+        .min(genresControllerStatsResponseItemsItemReadingQueueCountMin)
+        .max(genresControllerStatsResponseItemsItemReadingQueueCountMax),
+      wantToBuyCount: zod
+        .int()
+        .min(genresControllerStatsResponseItemsItemWantToBuyCountMin)
+        .max(genresControllerStatsResponseItemsItemWantToBuyCountMax),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(genresControllerStatsResponsePageMin)
+    .max(genresControllerStatsResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(genresControllerStatsResponsePagesCountMin)
+    .max(genresControllerStatsResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(genresControllerStatsResponsePageSizeMin)
+    .max(genresControllerStatsResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(genresControllerStatsResponseTotalCountMin)
+    .max(genresControllerStatsResponseTotalCountMax),
+});
 
 /**
- * @summary Delete a custom genre of the current user
+ * @summary Get the Genres page facets; quick counts honour search and advanced filters but ignore the quick filter, sort and pagination
  */
-export const GenresControllerDeleteParams = zod.object({
-  id: zod.string(),
+export const genresControllerFacetsQueryBooksMaxMin = 0;
+export const genresControllerFacetsQueryBooksMaxMax = 9007199254740991;
+
+export const genresControllerFacetsQueryBooksMinMin = 0;
+export const genresControllerFacetsQueryBooksMinMax = 9007199254740991;
+
+export const genresControllerFacetsQueryGroupItemMax = 64;
+
+export const genresControllerFacetsQueryGroupMax = 100;
+
+export const genresControllerFacetsQueryQMax = 100;
+
+export const genresControllerFacetsQueryRatingMaxMin = 0.5;
+export const genresControllerFacetsQueryRatingMaxMax = 10;
+export const genresControllerFacetsQueryRatingMaxMultipleOf = 0.5;
+
+export const genresControllerFacetsQueryRatingMinMin = 0.5;
+export const genresControllerFacetsQueryRatingMinMax = 10;
+export const genresControllerFacetsQueryRatingMinMultipleOf = 0.5;
+
+export const GenresControllerFacetsQueryParams = zod.object({
+  booksMax: zod
+    .int()
+    .min(genresControllerFacetsQueryBooksMaxMin)
+    .max(genresControllerFacetsQueryBooksMaxMax)
+    .optional(),
+  booksMin: zod
+    .int()
+    .min(genresControllerFacetsQueryBooksMinMin)
+    .max(genresControllerFacetsQueryBooksMinMax)
+    .optional(),
+  group: zod
+    .array(zod.string().min(1).max(genresControllerFacetsQueryGroupItemMax))
+    .max(genresControllerFacetsQueryGroupMax)
+    .optional(),
+  q: zod.string().max(genresControllerFacetsQueryQMax).optional(),
+  ratingMax: zod
+    .number()
+    .min(genresControllerFacetsQueryRatingMaxMin)
+    .max(genresControllerFacetsQueryRatingMaxMax)
+    .multipleOf(genresControllerFacetsQueryRatingMaxMultipleOf)
+    .optional(),
+  ratingMin: zod
+    .number()
+    .min(genresControllerFacetsQueryRatingMinMin)
+    .max(genresControllerFacetsQueryRatingMinMax)
+    .multipleOf(genresControllerFacetsQueryRatingMinMultipleOf)
+    .optional(),
 });
 
-export const GenresControllerDeleteResponse = zod.void();
+export const genresControllerFacetsResponseQuickCountsAllMin = 0;
+export const genresControllerFacetsResponseQuickCountsAllMax = 9007199254740991;
+
+export const genresControllerFacetsResponseQuickCountsFinishedMin = 0;
+export const genresControllerFacetsResponseQuickCountsFinishedMax = 9007199254740991;
+
+export const genresControllerFacetsResponseQuickCountsInQueueMin = 0;
+export const genresControllerFacetsResponseQuickCountsInQueueMax = 9007199254740991;
+
+export const genresControllerFacetsResponseQuickCountsUnreadMin = 0;
+export const genresControllerFacetsResponseQuickCountsUnreadMax = 9007199254740991;
+
+export const genresControllerFacetsResponseQuickCountsWantToBuyMin = 0;
+export const genresControllerFacetsResponseQuickCountsWantToBuyMax = 9007199254740991;
+
+export const GenresControllerFacetsResponse = zod.object({
+  groups: zod
+    .array(
+      zod.object({
+        key: zod.string(),
+        label: zod.string(),
+      }),
+    )
+    .describe("Stable system groups represented in the unfiltered user Genres dataset."),
+  quickCounts: zod
+    .object({
+      all: zod
+        .int()
+        .min(genresControllerFacetsResponseQuickCountsAllMin)
+        .max(genresControllerFacetsResponseQuickCountsAllMax),
+      finished: zod
+        .int()
+        .min(genresControllerFacetsResponseQuickCountsFinishedMin)
+        .max(genresControllerFacetsResponseQuickCountsFinishedMax),
+      in_queue: zod
+        .int()
+        .min(genresControllerFacetsResponseQuickCountsInQueueMin)
+        .max(genresControllerFacetsResponseQuickCountsInQueueMax),
+      unread: zod
+        .int()
+        .min(genresControllerFacetsResponseQuickCountsUnreadMin)
+        .max(genresControllerFacetsResponseQuickCountsUnreadMax),
+      want_to_buy: zod
+        .int()
+        .min(genresControllerFacetsResponseQuickCountsWantToBuyMin)
+        .max(genresControllerFacetsResponseQuickCountsWantToBuyMax),
+    })
+    .describe("Quick-filter counts under the committed search and advanced filters."),
+});
+
+/**
+ * @summary Get the Genres summary, independent of search, filters, sort and pagination
+ */
+export const genresControllerSummaryResponseBooksWithGenresCountMin = 0;
+export const genresControllerSummaryResponseBooksWithGenresCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseFinishedBooksCountMin = 0;
+export const genresControllerSummaryResponseFinishedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseFinishedBooksWithGenresCountMin = 0;
+export const genresControllerSummaryResponseFinishedBooksWithGenresCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseHighestRatedLeadersItemBooksCountMin = 0;
+export const genresControllerSummaryResponseHighestRatedLeadersItemBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseHighestRatedLeadersItemRatedBooksCountMin = 0;
+export const genresControllerSummaryResponseHighestRatedLeadersItemRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseHighestRatedLeadersItemReadCountMin = 0;
+export const genresControllerSummaryResponseHighestRatedLeadersItemReadCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseHighestRatedLeadersItemReadingQueueCountMin = 0;
+export const genresControllerSummaryResponseHighestRatedLeadersItemReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseHighestRatedLeadersItemWantToBuyCountMin = 0;
+export const genresControllerSummaryResponseHighestRatedLeadersItemWantToBuyCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseHighestRatedLeadersCountExclusiveMin = 0;
+export const genresControllerSummaryResponseHighestRatedLeadersCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseLibraryBooksCountMin = 0;
+export const genresControllerSummaryResponseLibraryBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostFrequentLeadersItemBooksCountMin = 0;
+export const genresControllerSummaryResponseMostFrequentLeadersItemBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostFrequentLeadersItemRatedBooksCountMin = 0;
+export const genresControllerSummaryResponseMostFrequentLeadersItemRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostFrequentLeadersItemReadCountMin = 0;
+export const genresControllerSummaryResponseMostFrequentLeadersItemReadCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostFrequentLeadersItemReadingQueueCountMin = 0;
+export const genresControllerSummaryResponseMostFrequentLeadersItemReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostFrequentLeadersItemWantToBuyCountMin = 0;
+export const genresControllerSummaryResponseMostFrequentLeadersItemWantToBuyCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostFrequentLeadersCountExclusiveMin = 0;
+export const genresControllerSummaryResponseMostFrequentLeadersCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostQueuedLeadersItemBooksCountMin = 0;
+export const genresControllerSummaryResponseMostQueuedLeadersItemBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostQueuedLeadersItemRatedBooksCountMin = 0;
+export const genresControllerSummaryResponseMostQueuedLeadersItemRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostQueuedLeadersItemReadCountMin = 0;
+export const genresControllerSummaryResponseMostQueuedLeadersItemReadCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostQueuedLeadersItemReadingQueueCountMin = 0;
+export const genresControllerSummaryResponseMostQueuedLeadersItemReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostQueuedLeadersItemWantToBuyCountMin = 0;
+export const genresControllerSummaryResponseMostQueuedLeadersItemWantToBuyCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostQueuedLeadersCountExclusiveMin = 0;
+export const genresControllerSummaryResponseMostQueuedLeadersCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostReadLeadersItemBooksCountMin = 0;
+export const genresControllerSummaryResponseMostReadLeadersItemBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostReadLeadersItemRatedBooksCountMin = 0;
+export const genresControllerSummaryResponseMostReadLeadersItemRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostReadLeadersItemReadCountMin = 0;
+export const genresControllerSummaryResponseMostReadLeadersItemReadCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostReadLeadersItemReadingQueueCountMin = 0;
+export const genresControllerSummaryResponseMostReadLeadersItemReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostReadLeadersItemWantToBuyCountMin = 0;
+export const genresControllerSummaryResponseMostReadLeadersItemWantToBuyCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostReadLeadersCountExclusiveMin = 0;
+export const genresControllerSummaryResponseMostReadLeadersCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemBooksCountMin = 0;
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemRatedBooksCountMin = 0;
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemReadCountMin = 0;
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemReadCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemReadingQueueCountMin = 0;
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemWantToBuyCountMin = 0;
+export const genresControllerSummaryResponseMostWantedToBuyLeadersItemWantToBuyCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseMostWantedToBuyLeadersCountExclusiveMin = 0;
+export const genresControllerSummaryResponseMostWantedToBuyLeadersCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseQueuedBooksCountMin = 0;
+export const genresControllerSummaryResponseQueuedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseQueuedBooksWithGenresCountMin = 0;
+export const genresControllerSummaryResponseQueuedBooksWithGenresCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseRatedBooksCountMin = 0;
+export const genresControllerSummaryResponseRatedBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseRatedBooksWithGenresCountMin = 0;
+export const genresControllerSummaryResponseRatedBooksWithGenresCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseUsedGenresCountMin = 0;
+export const genresControllerSummaryResponseUsedGenresCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseWantToBuyBooksCountMin = 0;
+export const genresControllerSummaryResponseWantToBuyBooksCountMax = 9007199254740991;
+
+export const genresControllerSummaryResponseWantToBuyBooksWithGenresCountMin = 0;
+export const genresControllerSummaryResponseWantToBuyBooksWithGenresCountMax = 9007199254740991;
+
+export const GenresControllerSummaryResponse = zod.object({
+  booksWithGenresCount: zod
+    .int()
+    .min(genresControllerSummaryResponseBooksWithGenresCountMin)
+    .max(genresControllerSummaryResponseBooksWithGenresCountMax),
+  finishedBooksCount: zod
+    .int()
+    .min(genresControllerSummaryResponseFinishedBooksCountMin)
+    .max(genresControllerSummaryResponseFinishedBooksCountMax),
+  finishedBooksWithGenresCount: zod
+    .int()
+    .min(genresControllerSummaryResponseFinishedBooksWithGenresCountMin)
+    .max(genresControllerSummaryResponseFinishedBooksWithGenresCountMax),
+  highestRated: zod
+    .object({
+      leaders: zod
+        .array(
+          zod.object({
+            averageRating: zod.number().nullable(),
+            booksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseHighestRatedLeadersItemBooksCountMin)
+              .max(genresControllerSummaryResponseHighestRatedLeadersItemBooksCountMax),
+            key: zod.string(),
+            label: zod.string(),
+            ratedBooksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseHighestRatedLeadersItemRatedBooksCountMin)
+              .max(genresControllerSummaryResponseHighestRatedLeadersItemRatedBooksCountMax),
+            readCount: zod
+              .int()
+              .min(genresControllerSummaryResponseHighestRatedLeadersItemReadCountMin)
+              .max(genresControllerSummaryResponseHighestRatedLeadersItemReadCountMax),
+            readingQueueCount: zod
+              .int()
+              .min(genresControllerSummaryResponseHighestRatedLeadersItemReadingQueueCountMin)
+              .max(genresControllerSummaryResponseHighestRatedLeadersItemReadingQueueCountMax),
+            wantToBuyCount: zod
+              .int()
+              .min(genresControllerSummaryResponseHighestRatedLeadersItemWantToBuyCountMin)
+              .max(genresControllerSummaryResponseHighestRatedLeadersItemWantToBuyCountMax),
+          }),
+        )
+        .describe("At most two tied leaders in a stable order."),
+      leadersCount: zod
+        .int()
+        .gt(genresControllerSummaryResponseHighestRatedLeadersCountExclusiveMin)
+        .max(genresControllerSummaryResponseHighestRatedLeadersCountMax)
+        .describe("Total number of tied leaders."),
+    })
+    .nullable(),
+  libraryBooksCount: zod
+    .int()
+    .min(genresControllerSummaryResponseLibraryBooksCountMin)
+    .max(genresControllerSummaryResponseLibraryBooksCountMax),
+  mostFrequent: zod
+    .object({
+      leaders: zod
+        .array(
+          zod.object({
+            averageRating: zod.number().nullable(),
+            booksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostFrequentLeadersItemBooksCountMin)
+              .max(genresControllerSummaryResponseMostFrequentLeadersItemBooksCountMax),
+            key: zod.string(),
+            label: zod.string(),
+            ratedBooksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostFrequentLeadersItemRatedBooksCountMin)
+              .max(genresControllerSummaryResponseMostFrequentLeadersItemRatedBooksCountMax),
+            readCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostFrequentLeadersItemReadCountMin)
+              .max(genresControllerSummaryResponseMostFrequentLeadersItemReadCountMax),
+            readingQueueCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostFrequentLeadersItemReadingQueueCountMin)
+              .max(genresControllerSummaryResponseMostFrequentLeadersItemReadingQueueCountMax),
+            wantToBuyCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostFrequentLeadersItemWantToBuyCountMin)
+              .max(genresControllerSummaryResponseMostFrequentLeadersItemWantToBuyCountMax),
+          }),
+        )
+        .describe("At most two tied leaders in a stable order."),
+      leadersCount: zod
+        .int()
+        .gt(genresControllerSummaryResponseMostFrequentLeadersCountExclusiveMin)
+        .max(genresControllerSummaryResponseMostFrequentLeadersCountMax)
+        .describe("Total number of tied leaders."),
+    })
+    .nullable(),
+  mostQueued: zod
+    .object({
+      leaders: zod
+        .array(
+          zod.object({
+            averageRating: zod.number().nullable(),
+            booksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostQueuedLeadersItemBooksCountMin)
+              .max(genresControllerSummaryResponseMostQueuedLeadersItemBooksCountMax),
+            key: zod.string(),
+            label: zod.string(),
+            ratedBooksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostQueuedLeadersItemRatedBooksCountMin)
+              .max(genresControllerSummaryResponseMostQueuedLeadersItemRatedBooksCountMax),
+            readCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostQueuedLeadersItemReadCountMin)
+              .max(genresControllerSummaryResponseMostQueuedLeadersItemReadCountMax),
+            readingQueueCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostQueuedLeadersItemReadingQueueCountMin)
+              .max(genresControllerSummaryResponseMostQueuedLeadersItemReadingQueueCountMax),
+            wantToBuyCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostQueuedLeadersItemWantToBuyCountMin)
+              .max(genresControllerSummaryResponseMostQueuedLeadersItemWantToBuyCountMax),
+          }),
+        )
+        .describe("At most two tied leaders in a stable order."),
+      leadersCount: zod
+        .int()
+        .gt(genresControllerSummaryResponseMostQueuedLeadersCountExclusiveMin)
+        .max(genresControllerSummaryResponseMostQueuedLeadersCountMax)
+        .describe("Total number of tied leaders."),
+    })
+    .nullable(),
+  mostRead: zod
+    .object({
+      leaders: zod
+        .array(
+          zod.object({
+            averageRating: zod.number().nullable(),
+            booksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostReadLeadersItemBooksCountMin)
+              .max(genresControllerSummaryResponseMostReadLeadersItemBooksCountMax),
+            key: zod.string(),
+            label: zod.string(),
+            ratedBooksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostReadLeadersItemRatedBooksCountMin)
+              .max(genresControllerSummaryResponseMostReadLeadersItemRatedBooksCountMax),
+            readCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostReadLeadersItemReadCountMin)
+              .max(genresControllerSummaryResponseMostReadLeadersItemReadCountMax),
+            readingQueueCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostReadLeadersItemReadingQueueCountMin)
+              .max(genresControllerSummaryResponseMostReadLeadersItemReadingQueueCountMax),
+            wantToBuyCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostReadLeadersItemWantToBuyCountMin)
+              .max(genresControllerSummaryResponseMostReadLeadersItemWantToBuyCountMax),
+          }),
+        )
+        .describe("At most two tied leaders in a stable order."),
+      leadersCount: zod
+        .int()
+        .gt(genresControllerSummaryResponseMostReadLeadersCountExclusiveMin)
+        .max(genresControllerSummaryResponseMostReadLeadersCountMax)
+        .describe("Total number of tied leaders."),
+    })
+    .nullable(),
+  mostWantedToBuy: zod
+    .object({
+      leaders: zod
+        .array(
+          zod.object({
+            averageRating: zod.number().nullable(),
+            booksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostWantedToBuyLeadersItemBooksCountMin)
+              .max(genresControllerSummaryResponseMostWantedToBuyLeadersItemBooksCountMax),
+            key: zod.string(),
+            label: zod.string(),
+            ratedBooksCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostWantedToBuyLeadersItemRatedBooksCountMin)
+              .max(genresControllerSummaryResponseMostWantedToBuyLeadersItemRatedBooksCountMax),
+            readCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostWantedToBuyLeadersItemReadCountMin)
+              .max(genresControllerSummaryResponseMostWantedToBuyLeadersItemReadCountMax),
+            readingQueueCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostWantedToBuyLeadersItemReadingQueueCountMin)
+              .max(genresControllerSummaryResponseMostWantedToBuyLeadersItemReadingQueueCountMax),
+            wantToBuyCount: zod
+              .int()
+              .min(genresControllerSummaryResponseMostWantedToBuyLeadersItemWantToBuyCountMin)
+              .max(genresControllerSummaryResponseMostWantedToBuyLeadersItemWantToBuyCountMax),
+          }),
+        )
+        .describe("At most two tied leaders in a stable order."),
+      leadersCount: zod
+        .int()
+        .gt(genresControllerSummaryResponseMostWantedToBuyLeadersCountExclusiveMin)
+        .max(genresControllerSummaryResponseMostWantedToBuyLeadersCountMax)
+        .describe("Total number of tied leaders."),
+    })
+    .nullable(),
+  queuedBooksCount: zod
+    .int()
+    .min(genresControllerSummaryResponseQueuedBooksCountMin)
+    .max(genresControllerSummaryResponseQueuedBooksCountMax),
+  queuedBooksWithGenresCount: zod
+    .int()
+    .min(genresControllerSummaryResponseQueuedBooksWithGenresCountMin)
+    .max(genresControllerSummaryResponseQueuedBooksWithGenresCountMax),
+  ratedBooksCount: zod
+    .int()
+    .min(genresControllerSummaryResponseRatedBooksCountMin)
+    .max(genresControllerSummaryResponseRatedBooksCountMax),
+  ratedBooksWithGenresCount: zod
+    .int()
+    .min(genresControllerSummaryResponseRatedBooksWithGenresCountMin)
+    .max(genresControllerSummaryResponseRatedBooksWithGenresCountMax),
+  usedGenresCount: zod
+    .int()
+    .min(genresControllerSummaryResponseUsedGenresCountMin)
+    .max(genresControllerSummaryResponseUsedGenresCountMax),
+  wantToBuyBooksCount: zod
+    .int()
+    .min(genresControllerSummaryResponseWantToBuyBooksCountMin)
+    .max(genresControllerSummaryResponseWantToBuyBooksCountMax),
+  wantToBuyBooksWithGenresCount: zod
+    .int()
+    .min(genresControllerSummaryResponseWantToBuyBooksWithGenresCountMin)
+    .max(genresControllerSummaryResponseWantToBuyBooksWithGenresCountMax),
+});
+
+/**
+ * @summary Get the contextual Genres overview, independent of search, filters, sort and pagination
+ */
+export const genresControllerOverviewResponseDormantGenresItemBooksCountMin = 0;
+export const genresControllerOverviewResponseDormantGenresItemBooksCountMax = 9007199254740991;
+
+export const genresControllerOverviewResponseDormantGenresItemLastReadingActivityAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+  );
+export const genresControllerOverviewResponseDormantGenresItemReadCountMin = 0;
+export const genresControllerOverviewResponseDormantGenresItemReadCountMax = 9007199254740991;
+
+export const genresControllerOverviewResponseNewForYouGenresItemBooksCountMin = 0;
+export const genresControllerOverviewResponseNewForYouGenresItemBooksCountMax = 9007199254740991;
+
+export const genresControllerOverviewResponseNewForYouGenresItemFirstAddedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const genresControllerOverviewResponseUnratedFinishedGenresItemLatestUnratedFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+  );
+export const genresControllerOverviewResponseUnratedFinishedGenresItemUnratedFinishedCountMin = 0;
+export const genresControllerOverviewResponseUnratedFinishedGenresItemUnratedFinishedCountMax = 9007199254740991;
+
+export const GenresControllerOverviewResponse = zod.object({
+  dormantGenres: zod.array(
+    zod.object({
+      booksCount: zod
+        .int()
+        .min(genresControllerOverviewResponseDormantGenresItemBooksCountMin)
+        .max(genresControllerOverviewResponseDormantGenresItemBooksCountMax),
+      key: zod.string(),
+      label: zod.string(),
+      lastReadingActivityAt: zod.iso
+        .datetime({ offset: true })
+        .regex(genresControllerOverviewResponseDormantGenresItemLastReadingActivityAtRegExp),
+      readCount: zod
+        .int()
+        .min(genresControllerOverviewResponseDormantGenresItemReadCountMin)
+        .max(genresControllerOverviewResponseDormantGenresItemReadCountMax),
+    }),
+  ),
+  newForYouGenres: zod.array(
+    zod.object({
+      booksCount: zod
+        .int()
+        .min(genresControllerOverviewResponseNewForYouGenresItemBooksCountMin)
+        .max(genresControllerOverviewResponseNewForYouGenresItemBooksCountMax),
+      firstAddedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(genresControllerOverviewResponseNewForYouGenresItemFirstAddedAtRegExp),
+      key: zod.string(),
+      label: zod.string(),
+    }),
+  ),
+  unratedFinishedGenres: zod.array(
+    zod.object({
+      key: zod.string(),
+      label: zod.string(),
+      latestUnratedFinishedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(
+          genresControllerOverviewResponseUnratedFinishedGenresItemLatestUnratedFinishedAtRegExp,
+        )
+        .nullable(),
+      unratedFinishedCount: zod
+        .int()
+        .min(genresControllerOverviewResponseUnratedFinishedGenresItemUnratedFinishedCountMin)
+        .max(genresControllerOverviewResponseUnratedFinishedGenresItemUnratedFinishedCountMax),
+    }),
+  ),
+});

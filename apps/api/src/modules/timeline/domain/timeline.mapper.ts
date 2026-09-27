@@ -51,6 +51,7 @@ type EventRow = {
   eventType: string;
   id: string;
   importance: string;
+  isSpoiler: boolean;
   location: Nullable<string>;
   pageNumber: Nullable<number>;
   personalNote: Nullable<string>;
@@ -58,7 +59,7 @@ type EventRow = {
   storyTime: Nullable<string>;
   summary: Nullable<string>;
   threadStatus: Nullable<string>;
-  timeline: { colorKey: Nullable<string>; name: string };
+  timeline: { colorKey: string; name: string };
   timelineId: string;
   timelineOrder: number;
   title: string;
@@ -71,7 +72,7 @@ type RelationRow = {
 };
 
 type TimelineRow = {
-  colorKey: Nullable<string>;
+  colorKey: string;
   createdAt: Date;
   description: Nullable<string>;
   id: string;
@@ -130,6 +131,7 @@ export function toEventView(row: EventRow): TimelineEventView {
     eventType: TimelineEventTypeSchema.parse(row.eventType),
     id: row.id,
     importance: TimelineImportanceSchema.parse(row.importance),
+    isSpoiler: row.isSpoiler,
     location: row.location,
     pageNumber: row.pageNumber,
     personalNote: row.personalNote,
@@ -138,7 +140,7 @@ export function toEventView(row: EventRow): TimelineEventView {
     summary: row.summary,
     threadStatus:
       row.threadStatus === null ? null : TimelineThreadStatusSchema.parse(row.threadStatus),
-    timelineColorKey: parseColorKey(row.timeline.colorKey),
+    timelineColorKey: TimelineColorKeySchema.parse(row.timeline.colorKey),
     timelineId: row.timelineId,
     timelineName: row.timeline.name,
     timelineOrder: row.timelineOrder,
@@ -149,7 +151,7 @@ export function toEventView(row: EventRow): TimelineEventView {
 
 export function toTimelineView(timeline: TimelineRow, eventsCount: number): TimelineView {
   return {
-    colorKey: parseColorKey(timeline.colorKey),
+    colorKey: TimelineColorKeySchema.parse(timeline.colorKey),
     createdAt: timeline.createdAt.toISOString(),
     description: timeline.description,
     eventsCount,
@@ -159,10 +161,6 @@ export function toTimelineView(timeline: TimelineRow, eventsCount: number): Time
     position: timeline.position,
     updatedAt: timeline.updatedAt.toISOString(),
   };
-}
-
-function parseColorKey(value: Nullable<string>): TimelineView["colorKey"] {
-  return value === null ? null : TimelineColorKeySchema.parse(value);
 }
 
 function toRelationEntry(

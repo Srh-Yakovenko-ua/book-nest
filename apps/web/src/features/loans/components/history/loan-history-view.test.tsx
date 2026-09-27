@@ -16,7 +16,14 @@ import { toast } from "sonner";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "@/test-utils";
 
 import { LoanHistoryView } from "./loan-history-view";
 
@@ -104,6 +111,8 @@ const OVERVIEW: LoanHistoryOverviewView = {
     },
   ],
 };
+
+const viewport = mockIntersectionObserver();
 
 beforeAll(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -842,13 +851,13 @@ describe("LoanHistoryView result count", () => {
     expect(await screen.findByText(shownCount(10, 12))).toBeInTheDocument();
   });
 
-  it("grows the count when the reader asks for more", async () => {
+  it("grows the count when the next page scrolls into view", async () => {
     mockHistory(historyItems(12));
 
     renderHistory();
 
     await screen.findByText(shownCount(10, 12));
-    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    viewport.enterViewport();
 
     expect(await screen.findByText(shownCount(12, 12))).toBeInTheDocument();
   });
@@ -1522,26 +1531,28 @@ describe("LoanHistoryView pagination", () => {
     expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
   });
 
-  it("appends the next page when the reader asks for more", async () => {
+  it("appends the next page when it scrolls into view", async () => {
     mockHistory(historyItems(12));
 
     renderHistory();
 
     await findRow("Книга 1");
-    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    viewport.enterViewport();
 
     expect(await screen.findByText("Книга 11")).toBeInTheDocument();
     expect(screen.getByText("Книга 1")).toBeInTheDocument();
     expect(requests.some((entry) => entry.url.includes("pageNumber=2"))).toBe(true);
   });
 
-  it("keeps the show-more button away when every loan already fits", async () => {
+  it("asks for no further page when every loan already fits", async () => {
     mockHistory(historyItems(3));
 
     renderHistory();
 
     await findRow("Книга 1");
-    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
+    viewport.enterViewport();
+
+    expect(requests.some((entry) => entry.url.includes("pageNumber=2"))).toBe(false);
   });
 
   it("returns to the first page when a filter changes", async () => {
@@ -1550,16 +1561,16 @@ describe("LoanHistoryView pagination", () => {
     renderHistory();
 
     await findRow("Книга 1");
-    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    viewport.enterViewport();
     await screen.findByText("Книга 11");
 
+    requests.length = 0;
     await userEvent.click(chip(quickFilters.on_time));
 
     await waitFor(() => {
-      expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
+      expect(firstListUrl()).toContain("result=on_time");
     });
-    expect(lastListUrl()).toContain("pageNumber=1");
-    expect(lastListUrl()).toContain("result=on_time");
+    expect(firstListUrl()).toContain("pageNumber=1");
   });
 });
 
@@ -1775,6 +1786,12 @@ function findStatCard(label: string): Promise<HTMLElement> {
     if (card === undefined) throw new Error(`Stat card not found: ${label}`);
     return card;
   });
+}
+
+function firstListUrl(): string {
+  const found = requests.find((entry) => isListRequest(entry.url));
+  if (found === undefined) throw new Error("the history list was never requested");
+  return found.url;
 }
 
 function formatUkDate(isoDate: string): string {

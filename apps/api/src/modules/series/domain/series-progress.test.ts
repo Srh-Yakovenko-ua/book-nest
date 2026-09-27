@@ -11,7 +11,7 @@ function makeBook(overrides: Partial<SeriesBookPreview> = {}): SeriesBookPreview
     ownershipStatus: "none",
     partNumber: 1,
     publicationYear: null,
-    publisherId: null,
+    publisher: null,
     readingStatus: "not_started",
     title: "Untitled",
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),

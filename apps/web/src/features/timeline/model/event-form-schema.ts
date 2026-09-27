@@ -59,6 +59,7 @@ export function buildEventFormSchema({ messages, pagesCount }: BuildEventFormSch
       .max(EVENT_DESCRIPTION_MAX, { error: messages.descriptionTooLong }),
     eventType: TimelineEventTypeSchema,
     importance: TimelineImportanceSchema,
+    isSpoiler: z.boolean(),
     location: z.string().trim().max(EVENT_LOCATION_MAX, { error: messages.locationTooLong }),
     page: z
       .number()
@@ -94,6 +95,7 @@ export function eventFormDefaults({
       description: event.description ?? "",
       eventType: event.eventType,
       importance: event.importance,
+      isSpoiler: event.isSpoiler,
       location: event.location ?? "",
       page: event.pageNumber ?? undefined,
       personalNote: event.personalNote ?? "",
@@ -116,6 +118,7 @@ export function eventFormDefaults({
     description: "",
     eventType: "main",
     importance: "medium",
+    isSpoiler: false,
     location: "",
     page: suggestedPage,
     personalNote: "",
@@ -134,6 +137,7 @@ export function eventFormValuesToInput(values: EventFormValues): CreateTimelineE
     description: emptyToNull(values.description),
     eventType: values.eventType,
     importance: values.importance,
+    isSpoiler: values.isSpoiler,
     location: emptyToNull(values.location),
     pageNumber: values.page ?? null,
     personalNote: emptyToNull(values.personalNote),

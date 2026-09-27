@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 
 import { bookKeys } from "@/features/books/api/book-keys";
+import { invalidateGenreDerivedQueries } from "@/features/genres/api/genres-keys";
 
 import { listKeys } from "./list-keys";
 
@@ -40,8 +41,13 @@ export function useListCacheInvalidation(listId: string): ListCacheInvalidation 
     listDuplicated: () => invalidate(listKeys.index, listKeys.summary),
     listEdited: () => invalidate(listKeys.detail(listId), listKeys.index, bookKeys.root),
     positionChanged: () => invalidate(listKeys.detail(listId)),
-    queueChanged: () => invalidate(listKeys.detail(listId), listKeys.overview(listId)),
-    readingStatusChanged: () =>
-      invalidate(listKeys.detail(listId), listKeys.overview(listId), bookKeys.root),
+    queueChanged: () => {
+      invalidate(listKeys.detail(listId), listKeys.overview(listId));
+      void invalidateGenreDerivedQueries(queryClient);
+    },
+    readingStatusChanged: () => {
+      invalidate(listKeys.detail(listId), listKeys.overview(listId), bookKeys.root);
+      void invalidateGenreDerivedQueries(queryClient);
+    },
   };
 }

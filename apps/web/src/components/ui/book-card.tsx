@@ -1,5 +1,7 @@
 "use client";
 
+import type { TagView } from "@app/shared";
+
 import { cva, type VariantProps } from "class-variance-authority";
 import Image from "next/image";
 import * as React from "react";
@@ -8,6 +10,7 @@ import { GenreIcon, type GenreIconName, UiIcon, type UiIconName } from "@/compon
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import { type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +63,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     ratingLabel?: string;
     series?: { href: string; name: string; positionLabel?: string };
     status?: StatusEntry;
-    tags?: string[];
+    tags?: TagView[];
     title: string;
   };
 
@@ -303,13 +306,12 @@ function BookCard({
 
             <div className="flex min-h-6 flex-wrap items-center gap-1.5">
               {(tags ?? []).slice(0, TAGS_VISIBLE).map((tag) => (
-                <span
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-foreground/80"
-                  key={tag}
-                >
-                  <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
-                  {tag}
-                </span>
+                <TagChip
+                  className="shrink-0 px-2 py-0.5 text-xs whitespace-nowrap"
+                  color={tag.color}
+                  key={tag.id}
+                  name={tag.name}
+                />
               ))}
               {(tags ?? []).length > TAGS_VISIBLE ? (
                 <span className={morePillClass}>+{(tags ?? []).length - TAGS_VISIBLE}</span>

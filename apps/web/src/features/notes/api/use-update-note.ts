@@ -5,14 +5,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { noteControllerEditNote } from "@/shared/api/generated/endpoints/notes/notes";
 
-import { notesKeys } from "./notes-keys";
+import type { NoteRefreshTiming } from "./note-mutation-effects";
+
+import { refreshAfterNoteMutation, writeUpdatedNote } from "./note-mutation-effects";
 
 type UpdateNoteVariables = {
   input: UpdateNoteInput;
   noteId: string;
 };
 
-export function useUpdateNote() {
+export function useUpdateNote({ refresh = "awaited" }: { refresh?: NoteRefreshTiming } = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -20,8 +22,10 @@ export function useUpdateNote() {
       const response = await noteControllerEditNote(noteId, input);
       return NoteViewSchema.parse(response);
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: notesKeys.root });
+    onSuccess: (note) => {
+      writeUpdatedNote(queryClient, note);
+      const refreshed = refreshAfterNoteMutation(queryClient, { kind: "update", note });
+      return refresh === "awaited" ? refreshed : undefined;
     },
   });
 }

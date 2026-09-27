@@ -1,9 +1,11 @@
 import type { Nullable } from "@app/shared";
 
+import { TimelineEventsQuerySchema } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type {
   EventScalarRow,
+  EventViewRow,
   TimelineEventRepository,
 } from "../infrastructure/timeline-event.repository.js";
 import type {
@@ -32,9 +34,12 @@ type Config = {
 };
 
 function createService(config: Config = {}): {
+  countEvents: ReturnType<typeof vi.fn>;
   createRelation: ReturnType<typeof vi.fn>;
+  listEvents: ReturnType<typeof vi.fn>;
   relationService: TimelineRelationService;
   service: TimelineEventService;
+  update: ReturnType<typeof vi.fn>;
 } {
   const createRelation = config.createRelationError
     ? vi.fn().mockRejectedValue(config.createRelationError)
@@ -55,13 +60,19 @@ function createService(config: Config = {}): {
         targetEventId: OTHER_ID,
       });
 
+  const countEvents = vi.fn().mockResolvedValue(0);
+  const listEvents = vi.fn().mockResolvedValue([]);
+  const update = vi.fn().mockResolvedValue(makeEventViewRow());
+
   const timelineEventRepository = {
+    countEvents,
     createRelation,
     findEventInBook: vi.fn().mockResolvedValue(config.eventInBook ?? null),
     findOwnedDetail: vi.fn().mockResolvedValue(null),
     findOwnedEvent: vi.fn().mockResolvedValue(config.ownedEvent ?? null),
     findOwnedRelation: vi.fn().mockResolvedValue(config.ownedRelation ?? null),
-    update: vi.fn(),
+    listEvents,
+    update,
   } as unknown as TimelineEventRepository;
 
   const timelineRepository = {
@@ -79,7 +90,7 @@ function createService(config: Config = {}): {
   );
   const relationService = new TimelineRelationService(timelineEventRepository);
 
-  return { createRelation, relationService, service };
+  return { countEvents, createRelation, listEvents, relationService, service, update };
 }
 
 function makeContext(overrides: Partial<BookReadingContext> = {}): BookReadingContext {
@@ -97,6 +108,7 @@ function makeEvent(overrides: Partial<EventScalarRow> = {}): EventScalarRow {
     id: EVENT_ID,
     importance: "medium",
     importanceRank: 1,
+    isSpoiler: false,
     location: null,
     pageNumber: null,
     personalNote: null,
@@ -112,6 +124,10 @@ function makeEvent(overrides: Partial<EventScalarRow> = {}): EventScalarRow {
   };
 }
 
+function makeEventViewRow(): EventViewRow {
+  return { ...makeEvent(), timeline: { colorKey: "parchment", name: "Main" } };
+}
+
 describe("TimelineEventService", () => {
   it("rejects creating an event for a book the user does not own", async () => {
     const { service } = createService({ bookContext: null });
@@ -119,6 +135,7 @@ describe("TimelineEventService", () => {
       service.createEvent(USER_ID, BOOK_ID, {
         eventType: "main",
         importance: "medium",
+        isSpoiler: false,
         title: "x",
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
@@ -189,5 +206,41 @@ describe("TimelineEventService", () => {
     await expect(
       service.updateEvent(USER_ID, EVENT_ID, { pageNumber: 250 }),
     ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("forwards an isSpoiler toggle to the repository", async () => {
+    const { service, update } = createService({
+      bookContext: makeContext(),
+      ownedEvent: makeEvent(),
+    });
+    await service.updateEvent(USER_ID, EVENT_ID, { isSpoiler: true });
+    expect(update).toHaveBeenCalledWith({ eventId: EVENT_ID, fields: { isSpoiler: true } });
+  });
+
+  it("leaves isSpoiler untouched when the update omits it", async () => {
+    const { service, update } = createService({
+      bookContext: makeContext(),
+      ownedEvent: makeEvent(),
+    });
+    await service.updateEvent(USER_ID, EVENT_ID, { title: "Renamed" });
+    expect(update).toHaveBeenCalledWith({ eventId: EVENT_ID, fields: { title: "Renamed" } });
+  });
+
+  it("passes withoutChapter to both the list and the count query", async () => {
+    const { countEvents, listEvents, service } = createService({ bookContext: makeContext() });
+    await service.listEvents(
+      USER_ID,
+      BOOK_ID,
+      TimelineEventsQuerySchema.parse({ withoutChapter: "true" }),
+    );
+    expect(listEvents).toHaveBeenCalledWith(expect.objectContaining({ withoutChapter: true }));
+    expect(countEvents).toHaveBeenCalledWith(expect.objectContaining({ withoutChapter: true }));
+  });
+
+  it("defaults withoutChapter to false when the query omits it", async () => {
+    const { countEvents, listEvents, service } = createService({ bookContext: makeContext() });
+    await service.listEvents(USER_ID, BOOK_ID, TimelineEventsQuerySchema.parse({}));
+    expect(listEvents).toHaveBeenCalledWith(expect.objectContaining({ withoutChapter: false }));
+    expect(countEvents).toHaveBeenCalledWith(expect.objectContaining({ withoutChapter: false }));
   });
 });

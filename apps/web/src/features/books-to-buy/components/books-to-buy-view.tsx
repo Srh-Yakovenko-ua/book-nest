@@ -11,7 +11,7 @@ import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters, useGenres } from "@/features/books";
-import { useTagsSearch } from "@/features/books/api/use-tags-search";
+import { useSelectedTags } from "@/features/books/api/use-tags-search";
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { useRouter } from "@/i18n/navigation";
 
@@ -35,19 +35,18 @@ export function BooksToBuyView() {
   const { data, isError, isPending, refetch } = useWishlist(wishlist.listParams);
   const facets = useWishlistFacets();
   const genres = useGenres();
-  const tags = useTagsSearch("");
+  const selectedTags = useSelectedTags(wishlist.state.tag);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
 
   const allBooks = data?.books ?? [];
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
 
   function rememberEntity(id: string, name: string) {
     setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
   }
 
   function resolveEntityName(id: string): string | undefined {
-    return entityLabels[id] ?? tagNameById.get(id);
+    return entityLabels[id] ?? selectedTags.get(id)?.name;
   }
 
   const storeOptions = (facets.data?.stores ?? []).map((store) => ({
@@ -57,6 +56,7 @@ export function BooksToBuyView() {
   const filterChips = useWishlistFilterChips({
     genreName: (key) => genreNameByKey.get(key) ?? key,
     resolveEntityName,
+    resolveTag: (id) => selectedTags.get(id),
     setState: wishlist.setState,
     state: wishlist.state,
   });

@@ -9,12 +9,14 @@ const ISBN_FRAGMENT_PATTERN = /^\d+$/;
 
 type BookSearchConditionsInput = {
   includeDedication?: boolean;
+  includePublisher?: boolean;
   search: string | undefined;
   searchGenreKeys?: string[];
 };
 
 export function buildBookSearchConditions({
   includeDedication,
+  includePublisher = true,
   search,
   searchGenreKeys,
 }: BookSearchConditionsInput): Prisma.BookWhereInput[] | undefined {
@@ -28,8 +30,7 @@ export function buildBookSearchConditions({
     { originalTitle: { contains, mode: "insensitive" } },
     ...buildAuthorSearchConditions(search),
     { series: { name: { contains, mode: "insensitive" } } },
-    { publisher: { name: { contains, mode: "insensitive" } } },
-    { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },
+    ...(includePublisher ? buildPublisherSearchConditions(contains) : []),
     { tags: { some: { tag: { name: { contains, mode: "insensitive" } } } } },
     { translator: { contains, mode: "insensitive" } },
     { illustrator: { contains, mode: "insensitive" } },
@@ -70,6 +71,13 @@ function buildAuthorSearchConditions(search: string): Prisma.BookWhereInput[] {
   return [
     { authors: { some: { author: { name: contains } } } },
     { authors: { some: { author: { names: { some: { name: contains } } } } } },
+  ];
+}
+
+function buildPublisherSearchConditions(contains: string): Prisma.BookWhereInput[] {
+  return [
+    { publisher: { name: { contains, mode: "insensitive" } } },
+    { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },
   ];
 }
 

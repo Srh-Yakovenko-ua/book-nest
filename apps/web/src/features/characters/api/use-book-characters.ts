@@ -8,7 +8,7 @@ import { bookCharactersControllerList } from "@/shared/api/generated/endpoints/c
 
 import { characterKeys } from "./character-keys";
 
-type BookCharactersPage = z.infer<typeof PaginatedCharacterSummarySchema>;
+export type BookCharactersPage = z.infer<typeof PaginatedCharacterSummarySchema>;
 
 export function useBookCharacters(bookId: string, params: BookCharactersControllerListParams) {
   return useQuery({

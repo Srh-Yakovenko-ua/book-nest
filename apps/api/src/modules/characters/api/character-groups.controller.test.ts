@@ -424,10 +424,10 @@ describe("character group spoiler redaction", () => {
     expect(JSON.stringify(safe.body)).not.toContain("The Traitor");
   });
 
-  it("keeps a profile-hidden member in the owner's views but drops it in a reading context", async () => {
+  it("drops a profile-hidden member from the group details with or without a reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
-    const visible = await createCharacter(accessToken, "Sansa Stark");
+    const visible = await createCharacterInBook(accessToken, bookId, "Sansa Stark");
     const hiddenRes = await authed("post", "/api/characters", accessToken).send({
       character: { hideProfileAsSpoiler: true, name: "The Ghost Heir" },
     });
@@ -441,11 +441,12 @@ describe("character group spoiler redaction", () => {
     expect(created.body.memberCount).toBe(2);
 
     const full = await authed("get", `/api/character-groups/${groupId}`, accessToken);
-    expect(full.body.memberCount).toBe(2);
+    expect(full.body.memberCount).toBe(1);
     const fullMemberIds = full.body.members.map(
       (member: { characterId: string }) => member.characterId,
     );
-    expect(fullMemberIds).toEqual(expect.arrayContaining([visible, hidden]));
+    expect(fullMemberIds).toEqual([visible]);
+    expect(JSON.stringify(full.body)).not.toContain("The Ghost Heir");
 
     const list = await authed("get", "/api/character-groups", accessToken);
     const listedGroup = list.body.items.find((group: { id: string }) => group.id === groupId);

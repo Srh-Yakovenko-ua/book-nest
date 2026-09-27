@@ -97,3 +97,26 @@ describe("EditionDetailsSection clearing optional fields", () => {
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ isbn: null });
   });
 });
+
+describe("EditionDetailsSection untouched saved values", () => {
+  it("submits the saved pages count when nobody touches the field", async () => {
+    const { onSubmit } = renderSection({ pagesCount: 576 });
+
+    await submit();
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ pagesCount: 576 });
+  });
+
+  it("submits the saved pages count when only another field is edited", async () => {
+    const { onSubmit } = renderSection({ pagesCount: 576, translator: "Олена Оксенич" });
+
+    await userEvent.type(screen.getByLabelText(new RegExp(fields.illustrator)), "Кевін Танг");
+    await submit();
+
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({
+      illustrator: "Кевін Танг",
+      pagesCount: 576,
+    });
+  });
+});

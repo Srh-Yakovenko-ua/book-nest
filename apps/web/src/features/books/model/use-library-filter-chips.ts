@@ -1,5 +1,6 @@
 "use client";
 
+import { TAG_COLOR_DEFAULT, type TagView } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "../components/library-active-filters";
@@ -7,17 +8,26 @@ import type { LibraryQueryState } from "./library-query";
 import type { UseLibraryQueryResult } from "./use-library-query";
 
 import { rangeLabel } from "./filter-chips";
+import { LIBRARY_PUBLISHER_PRESENCE_DEFAULT } from "./library-query";
+
+const ADVANCED_BADGE_EXCLUDED_CHIP_KEYS: ReadonlySet<string> = new Set(["publisherPresence", "q"]);
 
 type UseLibraryFilterChipsOptions = {
   genreName: (key: string) => string;
   resolveEntityName: (id: string) => string | undefined;
+  resolveTag: (id: string) => TagView | undefined;
   setState: UseLibraryQueryResult["setState"];
   state: LibraryQueryState;
 };
 
+export function countAdvancedFilterChips(chips: ActiveFilterChip[]): number {
+  return chips.filter((chip) => !ADVANCED_BADGE_EXCLUDED_CHIP_KEYS.has(chip.key)).length;
+}
+
 export function useLibraryFilterChips({
   genreName,
   resolveEntityName,
+  resolveTag,
   setState,
   state,
 }: UseLibraryFilterChipsOptions): ActiveFilterChip[] {
@@ -75,8 +85,9 @@ export function useLibraryFilterChips({
   for (const value of state.tag) {
     chips.push({
       key: `tag:${value}`,
-      label: resolveEntityName(value) ?? t("unknown"),
+      label: resolveTag(value)?.name ?? resolveEntityName(value) ?? t("unknown"),
       onRemove: () => void setState({ tag: state.tag.filter((item) => item !== value) }),
+      tagColor: resolveTag(value)?.color ?? TAG_COLOR_DEFAULT,
     });
   }
 
@@ -111,6 +122,14 @@ export function useLibraryFilterChips({
       label: t("publisher", { name: resolveEntityName(value) ?? t("unknown") }),
       onRemove: () =>
         void setState({ publisher: state.publisher.filter((item) => item !== value) }),
+    });
+  }
+
+  if (state.publisherPresence !== LIBRARY_PUBLISHER_PRESENCE_DEFAULT) {
+    chips.push({
+      key: "publisherPresence",
+      label: t(`publisherPresence.${state.publisherPresence}`),
+      onRemove: () => void setState({ publisherPresence: null }),
     });
   }
 

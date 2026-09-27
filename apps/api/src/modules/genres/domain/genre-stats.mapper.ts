@@ -1,38 +1,25 @@
-import type { GenreStatsView, Nullable } from "@app/shared";
+import type { GenreStatsView } from "@app/shared";
 
-export type GenreStatsAggregateRow = {
-  averageRating: Nullable<number>;
-  booksCount: number;
-  key: string;
-  readCount: number;
-  readingQueueCount: number;
-  wantToBuyCount: number;
-};
+import type { GenreAggregate } from "./genre-aggregate.js";
 
-const RATING_FRACTION_DIGITS = 2;
-
-export function toGenreStatsViews({
-  aggregates,
-  coverUrlsByKey,
-  labelByKey,
+export function toGenreStatsView({
+  coverUrls,
+  genre,
 }: {
-  aggregates: GenreStatsAggregateRow[];
-  coverUrlsByKey: Map<string, string[]>;
-  labelByKey: Map<string, string>;
-}): GenreStatsView[] {
-  return aggregates.map((row) => ({
-    averageRating: row.averageRating === null ? null : roundRating(row.averageRating),
-    booksCount: row.booksCount,
-    coverUrls: coverUrlsByKey.get(row.key) ?? [],
-    key: row.key,
-    label: labelByKey.get(row.key) ?? row.key,
-    readCount: row.readCount,
-    readingQueueCount: row.readingQueueCount,
-    wantToBuyCount: row.wantToBuyCount,
-  }));
-}
-
-function roundRating(value: number): number {
-  const factor = 10 ** RATING_FRACTION_DIGITS;
-  return Math.round(value * factor) / factor;
+  coverUrls: string[];
+  genre: GenreAggregate;
+}): GenreStatsView {
+  return {
+    averageRating: genre.averageRating,
+    booksCount: genre.booksCount,
+    coverUrls,
+    groupKey: genre.groupKey,
+    groupName: genre.groupName,
+    key: genre.key,
+    label: genre.label,
+    ratedBooksCount: genre.ratedBooksCount,
+    readCount: genre.readCount,
+    readingQueueCount: genre.readingQueueCount,
+    wantToBuyCount: genre.wantToBuyCount,
+  };
 }

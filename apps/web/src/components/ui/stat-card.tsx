@@ -82,6 +82,8 @@ const valueVariants = cva("font-heading leading-[1.12] font-bold text-ink tabula
   },
 });
 
+type StatCardLabelOverflow = "truncate" | "wrap";
+
 type StatCardProps = Omit<React.ComponentProps<typeof Card>, "children" | "size"> &
   Pick<VariantProps<typeof statCardVariants>, "size"> & {
     caption?: React.ReactNode;
@@ -91,12 +93,18 @@ type StatCardProps = Omit<React.ComponentProps<typeof Card>, "children" | "size"
     iconSlot?: React.ReactNode;
     iconTone?: StatCardIconTone;
     label: React.ReactNode;
+    labelOverflow?: StatCardLabelOverflow;
     microfact?: React.ReactNode;
     trend?: StatTrend;
     unit?: React.ReactNode;
     value: React.ReactNode;
     valueClassName?: string;
   };
+
+const statCardLabelOverflow = {
+  truncate: "truncate",
+  wrap: "leading-snug text-balance",
+} as const satisfies Record<StatCardLabelOverflow, string>;
 
 type StatTrend = {
   direction: "down" | "up";
@@ -115,6 +123,7 @@ function StatCard({
   icon,
   iconSlot,
   label,
+  labelOverflow = "truncate",
   value,
   iconTone = "primary",
   caption,
@@ -137,7 +146,14 @@ function StatCard({
         {iconSlot ?? <UiIcon name={icon} />}
       </span>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium text-muted-foreground">{label}</span>
+        <span
+          className={cn(
+            "text-sm font-medium text-muted-foreground",
+            statCardLabelOverflow[labelOverflow],
+          )}
+        >
+          {label}
+        </span>
         {unit === undefined ? (
           <span className={cn(valueVariants({ size }), valueClassName)}>{value}</span>
         ) : (

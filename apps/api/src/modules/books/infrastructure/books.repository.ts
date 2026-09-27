@@ -21,7 +21,12 @@ import { subDays, subMonths } from "date-fns";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
+import type {
+  DedicationsQuickCountFilters,
+  DedicationsQuickCountTotals,
+} from "../domain/dedications-quick-counts.js";
 
+import { ACTIVE_BOOK_SQL } from "../../../core/database/active-book-sql.js";
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
@@ -39,8 +44,6 @@ import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
 const log = createLogger("books.repository");
-
-export const ACTIVE_BOOK_SQL = Prisma.sql`AND book.deleted_at IS NULL`;
 
 const CLEARED_QUEUE_PLACEMENT = {
   queuePosition: null,
@@ -209,6 +212,7 @@ export function withRelations(userId: string) {
             authors: { include: { author: true }, orderBy: { position: "asc" } },
             createdAt: true,
             formats: true,
+            genres: true,
             id: true,
             isFavorite: true,
             language: true,
@@ -216,10 +220,10 @@ export function withRelations(userId: string) {
             pagesCount: true,
             partNumber: true,
             publicationYear: true,
-            publisherId: true,
+            publisher: { select: { id: true, name: true } },
             readingProgress: { select: { rating: true } },
             readingStatus: true,
-            tags: { select: { tag: { select: { id: true, name: true } } } },
+            tags: { select: { tag: { select: { color: true, id: true, name: true } } } },
             title: true,
             updatedAt: true,
           },
@@ -617,6 +621,20 @@ export class BooksRepository {
         });
       }
     });
+  }
+
+  async countDedicationQuickFilters({
+    filters,
+  }: {
+    filters: DedicationsQuickCountFilters;
+  }): Promise<DedicationsQuickCountTotals> {
+    const [all, favorites, finished, unfinished] = await Promise.all([
+      this.countDedicationsForQuery({ filter: filters.all }),
+      this.countDedicationsForQuery({ filter: filters.favorites }),
+      this.countDedicationsForQuery({ filter: filters.finished }),
+      this.countDedicationsForQuery({ filter: filters.unfinished }),
+    ]);
+    return { all, favorites, finished, unfinished };
   }
 
   countDedicationsForQuery({ filter }: { filter: DedicationsFilter }): Promise<number> {

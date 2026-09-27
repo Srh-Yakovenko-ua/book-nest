@@ -10,6 +10,7 @@ describe("EventCard", () => {
   it("shows the title, type and importance labels", () => {
     renderWithProviders(
       <EventCard
+        contextMode="full"
         event={makeTimelineEventView({ importance: "key", title: "Битва під Содденом" })}
         onOpen={vi.fn()}
         showTimelineName={false}
@@ -25,6 +26,7 @@ describe("EventCard", () => {
     const onOpen = vi.fn();
     renderWithProviders(
       <EventCard
+        contextMode="full"
         event={makeTimelineEventView({ id: "event-7", title: "Дуель на мосту" })}
         onOpen={onOpen}
         showTimelineName={false}
@@ -36,22 +38,59 @@ describe("EventCard", () => {
     expect(onOpen).toHaveBeenCalledWith("event-7");
   });
 
-  it("renders the page and story time in the meta row", () => {
+  it("renders the whole context row when nothing is suppressed", () => {
     renderWithProviders(
       <EventCard
-        event={makeTimelineEventView({ pageNumber: 128, storyTime: "Третій день подорожі" })}
+        contextMode="full"
+        event={makeTimelineEventView({
+          chapter: "Розділ 4",
+          location: "Визима",
+          pageNumber: 128,
+          storyTime: "Третій день подорожі",
+        })}
         onOpen={vi.fn()}
         showTimelineName={false}
       />,
     );
 
+    expect(screen.getByText("Розділ 4")).toBeInTheDocument();
     expect(screen.getByText("128")).toBeInTheDocument();
     expect(screen.getByText("Третій день подорожі")).toBeInTheDocument();
+    expect(screen.getByText("Визима")).toBeInTheDocument();
+  });
+
+  it("drops the chapter that the chapter group already shows", () => {
+    renderWithProviders(
+      <EventCard
+        contextMode="withoutChapter"
+        event={makeTimelineEventView({ chapter: "Розділ 4", pageNumber: 128 })}
+        onOpen={vi.fn()}
+        showTimelineName={false}
+      />,
+    );
+
+    expect(screen.queryByText("Розділ 4")).not.toBeInTheDocument();
+    expect(screen.getByText("128")).toBeInTheDocument();
+  });
+
+  it("drops the story time that the divider already shows", () => {
+    renderWithProviders(
+      <EventCard
+        contextMode="withoutStoryTime"
+        event={makeTimelineEventView({ chapter: "Розділ 4", storyTime: "Третій день подорожі" })}
+        onOpen={vi.fn()}
+        showTimelineName={false}
+      />,
+    );
+
+    expect(screen.queryByText("Третій день подорожі")).not.toBeInTheDocument();
+    expect(screen.getByText("Розділ 4")).toBeInTheDocument();
   });
 
   it("marks an open thread with a badge", () => {
     renderWithProviders(
       <EventCard
+        contextMode="full"
         event={makeTimelineEventView({ threadStatus: "open" })}
         onOpen={vi.fn()}
         showTimelineName={false}
@@ -64,6 +103,7 @@ describe("EventCard", () => {
   it("marks a resolved thread with a badge", () => {
     renderWithProviders(
       <EventCard
+        contextMode="full"
         event={makeTimelineEventView({ threadStatus: "resolved" })}
         onOpen={vi.fn()}
         showTimelineName={false}
@@ -73,15 +113,32 @@ describe("EventCard", () => {
     expect(screen.getByText("Розв’язано")).toBeInTheDocument();
   });
 
+  it("keeps the internal event details out of the card", () => {
+    renderWithProviders(
+      <EventCard
+        contextMode="full"
+        event={makeTimelineEventView({
+          description: "Довгий опис події",
+          personalNote: "Особиста нотатка",
+        })}
+        onOpen={vi.fn()}
+        showTimelineName={false}
+      />,
+    );
+
+    expect(screen.queryByText("Довгий опис події")).not.toBeInTheDocument();
+    expect(screen.queryByText("Особиста нотатка")).not.toBeInTheDocument();
+  });
+
   it("shows the timeline name only in the multi-line layout", () => {
     const event = makeTimelineEventView({ timelineName: "Флешбеки" });
     const { rerender } = renderWithProviders(
-      <EventCard event={event} onOpen={vi.fn()} showTimelineName={false} />,
+      <EventCard contextMode="full" event={event} onOpen={vi.fn()} showTimelineName={false} />,
     );
 
     expect(screen.queryByText("Флешбеки")).not.toBeInTheDocument();
 
-    rerender(<EventCard event={event} onOpen={vi.fn()} showTimelineName />);
+    rerender(<EventCard contextMode="full" event={event} onOpen={vi.fn()} showTimelineName />);
 
     expect(screen.getByText("Флешбеки")).toBeInTheDocument();
   });
@@ -90,6 +147,7 @@ describe("EventCard", () => {
     renderWithProviders(
       <EventCard
         actions={<button type="button">Дії події</button>}
+        contextMode="full"
         event={makeTimelineEventView()}
         onOpen={vi.fn()}
         showTimelineName={false}

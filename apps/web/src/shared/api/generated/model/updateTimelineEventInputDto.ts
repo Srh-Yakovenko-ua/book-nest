@@ -22,6 +22,7 @@ export interface UpdateTimelineEventInputDto {
   description?: string | null;
   eventType?: UpdateTimelineEventInputDtoEventType;
   importance?: UpdateTimelineEventInputDtoImportance;
+  isSpoiler?: boolean;
   /**
    * @maxLength 200
    * @nullable

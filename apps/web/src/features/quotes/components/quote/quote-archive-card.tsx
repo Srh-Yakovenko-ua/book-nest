@@ -34,7 +34,7 @@ export function QuoteArchiveCard({ quote }: { quote: QuoteView }) {
     >
       <div className="flex shrink-0 items-start gap-2">
         <QuoteBookHeader book={quote.book} />
-        <QuoteActions bookHref={bookHref} className="ml-auto" quote={quote} />
+        <QuoteActions className="ml-auto" quote={quote} />
       </div>
 
       <QuoteBody fitTo={card} onExpand={fullView.openFrom} quote={quote} />

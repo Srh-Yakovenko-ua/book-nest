@@ -1,4 +1,11 @@
-import type { BookFormat, BookView, MediaView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type {
+  BookFormat,
+  BookView,
+  MediaView,
+  OwnershipStatus,
+  ReadingStatus,
+  TagView,
+} from "@app/shared";
 
 import { type GenreIconName, isGenreIconName, type UiIconName } from "@/components/icons";
 import {
@@ -36,7 +43,7 @@ export type LibraryBook = {
   selected?: boolean;
   series?: LibraryBookSeries;
   status: StatusEntry;
-  tags?: string[];
+  tags?: TagView[];
   title: string;
   year?: number;
 };
@@ -97,7 +104,7 @@ export function toLibraryBook(book: BookView, labels: LibraryBookLabels): Librar
     book.ownershipStatus === "none" || ownershipBase === undefined
       ? undefined
       : { ...ownershipBase, label: labels.ownershipLabel(book.ownershipStatus) };
-  const tags = book.tags.length === 0 ? undefined : book.tags.map((tag) => tag.name);
+  const tags = book.tags.length === 0 ? undefined : book.tags;
   const loan = toLoanNote(book, labels);
   const formats = toFormats(book, labels);
   const series = toSeries(book, labels);

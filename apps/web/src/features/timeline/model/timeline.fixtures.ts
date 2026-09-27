@@ -87,6 +87,7 @@ export function makeTimelineEventView(
     eventType: "main",
     id: "event-1",
     importance: "medium",
+    isSpoiler: false,
     location: null,
     pageNumber: null,
     personalNote: null,
@@ -94,7 +95,7 @@ export function makeTimelineEventView(
     storyTime: null,
     summary: null,
     threadStatus: null,
-    timelineColorKey: null,
+    timelineColorKey: "sky",
     timelineId: "line-1",
     timelineName: "Основна лінія",
     timelineOrder: 0,
@@ -116,13 +117,16 @@ export function makeTimelineOverview(
 ): TimelineOverviewView {
   return {
     byImportance: [{ count: 3, importance: "medium" }],
-    byTimeline: [{ colorKey: null, count: 3, timelineId: "line-1", timelineName: "Основна лінія" }],
+    byTimeline: [
+      { colorKey: "sky", count: 3, timelineId: "line-1", timelineName: "Основна лінія" },
+    ],
     byType: [{ count: 3, eventType: "main" }],
     chapterDensity: [{ chapter: null, count: 3 }],
     eventsAfterPosition: 0,
     eventsBeforePosition: 0,
     eventsUnknownPosition: 3,
     readingPosition: makeReadingPosition(),
+    resolvedCount: 0,
     totalEvents: 3,
     unresolvedCount: 0,
     ...overrides,
@@ -141,7 +145,7 @@ export function makeTimelineSummary(
 
 export function makeTimelineView(overrides: Partial<TimelineView> = {}): TimelineView {
   return {
-    colorKey: null,
+    colorKey: "sky",
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     eventsCount: 3,

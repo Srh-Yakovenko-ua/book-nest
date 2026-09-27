@@ -8,6 +8,8 @@ import { request } from "@/lib/http-client";
 import { genreViewSchema } from "./use-genres";
 
 const RECENT_GENRES_LIMIT = 8;
+
+export const RECENT_GENRES_KEY = ["genres", "recent"] as const;
 const recentGenresSchema = z.array(genreViewSchema);
 
 export function useRecentGenres() {
@@ -19,6 +21,6 @@ export function useRecentGenres() {
       });
       return recentGenresSchema.parse(body);
     },
-    queryKey: ["genres", "recent"],
+    queryKey: RECENT_GENRES_KEY,
   });
 }

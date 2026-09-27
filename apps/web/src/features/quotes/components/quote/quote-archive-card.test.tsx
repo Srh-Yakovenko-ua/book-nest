@@ -289,28 +289,16 @@ describe("QuoteArchiveCard favorite", () => {
 });
 
 describe("QuoteArchiveCard actions menu", () => {
-  it("offers editing, the book, copying and deletion", async () => {
+  it("offers editing, copying and deletion without a book entry", async () => {
     renderCard();
 
     await openMenu();
 
     expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual([
       "Редагувати",
-      "Перейти до книги",
       "Скопіювати цитату",
       "Видалити",
     ]);
-  });
-
-  it("links the menu entry to the book page", async () => {
-    renderCard();
-
-    await openMenu();
-
-    expect(await screen.findByRole("menuitem", { name: "Перейти до книги" })).toHaveAttribute(
-      "href",
-      "/books/book-1",
-    );
   });
 
   it("copies the quote text and confirms it with a toast", async () => {

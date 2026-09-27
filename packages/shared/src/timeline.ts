@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
+import {
+  BOOK_NEST_PALETTE_COLORS,
+  type BookNestPaletteColor,
+  BookNestPaletteColorSchema,
+} from "./palette.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const TIMELINE_NAME_MIN = 1;
@@ -39,24 +44,11 @@ export const TIMELINE_ERROR_CODES = {
   timelineNotFound: "timeline_not_found",
 } as const;
 
-export const TIMELINE_COLOR_KEYS = [
-  "slate",
-  "stone",
-  "amber",
-  "orange",
-  "rose",
-  "red",
-  "emerald",
-  "teal",
-  "sky",
-  "blue",
-  "violet",
-  "fuchsia",
-] as const;
+export const TIMELINE_COLOR_KEYS = BOOK_NEST_PALETTE_COLORS;
 
-export const TimelineColorKeySchema = z.enum(TIMELINE_COLOR_KEYS);
+export const TimelineColorKeySchema = BookNestPaletteColorSchema;
 
-export type TimelineColorKey = z.infer<typeof TimelineColorKeySchema>;
+export type TimelineColorKey = BookNestPaletteColor;
 
 export const TIMELINE_EVENT_TYPES = [
   "main",
@@ -132,7 +124,7 @@ const multiEnumQuery = <ItemSchema extends z.ZodType>(item: ItemSchema) =>
   z.preprocess(parseCsvList, z.array(item).optional());
 
 export const CreateTimelineInputSchema = z.object({
-  colorKey: TimelineColorKeySchema.nullish(),
+  colorKey: TimelineColorKeySchema.optional(),
   description: z.string().trim().max(TIMELINE_DESCRIPTION_MAX).nullish(),
   name: z.string().trim().min(TIMELINE_NAME_MIN).max(TIMELINE_NAME_MAX),
 });
@@ -140,7 +132,7 @@ export const CreateTimelineInputSchema = z.object({
 export type CreateTimelineInput = z.infer<typeof CreateTimelineInputSchema>;
 
 export const UpdateTimelineInputSchema = z.object({
-  colorKey: TimelineColorKeySchema.nullish(),
+  colorKey: TimelineColorKeySchema.optional(),
   description: z.string().trim().max(TIMELINE_DESCRIPTION_MAX).nullish(),
   name: z.string().trim().min(TIMELINE_NAME_MIN).max(TIMELINE_NAME_MAX).optional(),
 });
@@ -179,6 +171,7 @@ export const CreateTimelineEventInputSchema = z.object({
   description: z.string().trim().max(EVENT_DESCRIPTION_MAX).nullish(),
   eventType: TimelineEventTypeSchema.default("main"),
   importance: TimelineImportanceSchema.default("medium"),
+  isSpoiler: z.boolean().default(false),
   location: z.string().trim().max(EVENT_LOCATION_MAX).nullish(),
   pageNumber: z.coerce.number().int().positive().max(TIMELINE_EVENT_PAGE_MAX).nullish(),
   personalNote: z.string().trim().max(EVENT_PERSONAL_NOTE_MAX).nullish(),
@@ -197,6 +190,7 @@ export const UpdateTimelineEventInputSchema = z.object({
   description: z.string().trim().max(EVENT_DESCRIPTION_MAX).nullish(),
   eventType: TimelineEventTypeSchema.optional(),
   importance: TimelineImportanceSchema.optional(),
+  isSpoiler: z.boolean().optional(),
   location: z.string().trim().max(EVENT_LOCATION_MAX).nullish(),
   pageNumber: z.coerce.number().int().positive().max(TIMELINE_EVENT_PAGE_MAX).nullish(),
   personalNote: z.string().trim().max(EVENT_PERSONAL_NOTE_MAX).nullish(),
@@ -250,12 +244,13 @@ export const TimelineEventsQuerySchema = z.object({
   sort: TimelineEventSortSchema.default("book_order"),
   timelineId: z.string().uuid().optional(),
   unresolved: QueryBooleanSchema.optional(),
+  withoutChapter: QueryBooleanSchema.optional(),
 });
 
 export type TimelineEventsQuery = z.infer<typeof TimelineEventsQuerySchema>;
 
 export const TimelineViewSchema = z.object({
-  colorKey: TimelineColorKeySchema.nullable(),
+  colorKey: TimelineColorKeySchema,
   createdAt: z.string(),
   description: z.string().nullable(),
   eventsCount: z.number().int().nonnegative(),
@@ -295,6 +290,7 @@ export const TimelineEventViewSchema = z.object({
   eventType: TimelineEventTypeSchema,
   id: z.string(),
   importance: TimelineImportanceSchema,
+  isSpoiler: z.boolean(),
   location: z.string().nullable(),
   pageNumber: z.number().int().nullable(),
   personalNote: z.string().nullable(),
@@ -302,7 +298,7 @@ export const TimelineEventViewSchema = z.object({
   storyTime: z.string().nullable(),
   summary: z.string().nullable(),
   threadStatus: TimelineThreadStatusSchema.nullable(),
-  timelineColorKey: TimelineColorKeySchema.nullable(),
+  timelineColorKey: TimelineColorKeySchema,
   timelineId: z.string(),
   timelineName: z.string(),
   timelineOrder: z.number().int(),
@@ -374,7 +370,7 @@ export const TimelineImportanceDistributionSchema = z.object({
 });
 
 export const TimelineLineDistributionSchema = z.object({
-  colorKey: TimelineColorKeySchema.nullable(),
+  colorKey: TimelineColorKeySchema,
   count: z.number().int().nonnegative(),
   timelineId: z.string(),
   timelineName: z.string(),
@@ -402,6 +398,7 @@ export const TimelineOverviewViewSchema = z.object({
   eventsBeforePosition: z.number().int().nonnegative(),
   eventsUnknownPosition: z.number().int().nonnegative(),
   readingPosition: TimelineReadingPositionSchema,
+  resolvedCount: z.number().int().nonnegative(),
   totalEvents: z.number().int().nonnegative(),
   unresolvedCount: z.number().int().nonnegative(),
 });

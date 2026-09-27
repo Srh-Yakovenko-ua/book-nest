@@ -1,7 +1,7 @@
 import type {
   LibraryPublisherDetail,
+  LibraryPublisherDetailStats,
   LibraryPublisherListItem,
-  LibraryPublisherPriceTotal,
   LibraryPublishersPage,
   LibraryPublishersSummary,
   LibraryPublisherStats,
@@ -22,8 +22,14 @@ export function makePublisherDetail(
     name: "Vivat",
     websiteUrl: "https://vivat.com.ua",
     ...rest,
-    stats: stats ?? makePublisherStats(),
+    stats: stats ?? makePublisherDetailStats(),
   };
+}
+
+export function makePublisherDetailStats(
+  overrides: Partial<LibraryPublisherDetailStats> = {},
+): LibraryPublisherDetailStats {
+  return { ...makePublisherStats(), wishlistWithoutPriceCount: 0, ...overrides };
 }
 
 export function makePublisherListItem(
@@ -39,17 +45,6 @@ export function makePublisherListItem(
     websiteUrl: "https://vivat.com.ua",
     ...rest,
     stats: stats ?? makePublisherStats(),
-  };
-}
-
-export function makePublisherPriceTotal(
-  overrides: Partial<LibraryPublisherPriceTotal> = {},
-): LibraryPublisherPriceTotal {
-  return {
-    amount: 450,
-    currency: "UAH",
-    pricedBooksCount: 2,
-    ...overrides,
   };
 }
 
@@ -72,11 +67,18 @@ export function makePublishersSummary(
 ): LibraryPublishersSummary {
   return {
     averageBookRating: 4,
+    bestRatedPublishers: [],
+    booksToBuyWithPublisherCount: 7,
     booksWithoutPublisherCount: 0,
     booksWithPublisherCount: 340,
     expectedPriceTotals: [],
+    mostReadPublisher: null,
+    mostRepresentedPublisher: null,
     publishersCount: 12,
+    publishersInPlansCount: 3,
     ratedBooksCount: 20,
+    topFiveBooksCoveragePercent: 60,
+    unreadPublishers: [],
     wantToBuyBooksCount: 7,
     ...overrides,
   };

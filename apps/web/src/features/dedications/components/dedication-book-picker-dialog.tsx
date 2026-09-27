@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLibraryBooks } from "@/features/books/api/use-books";
-import { type LibraryListParams } from "@/features/books/model/library-query";
+import { libraryListParams } from "@/features/books/model/library-query";
 import { useRouter } from "@/i18n/navigation";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
 
@@ -72,21 +72,12 @@ function PickerForm({ onDone }: { onDone: () => void }) {
   const deferredSearch = useDeferredValue(search);
   const query = deferredSearch.trim();
 
-  const listParams: LibraryListParams = {
-    ageCategory: [],
-    author: [],
-    format: [],
-    genre: [],
+  const listParams = libraryListParams({
     hasDedication: "false",
-    language: [],
-    owner: [],
     pageSize: PICKER_PAGE_SIZE,
-    publisher: [],
     sort: BooksControllerListSort.title_asc,
-    status: [],
-    tag: [],
     ...(query === "" ? {} : { q: query }),
-  };
+  });
   const books = useLibraryBooks(listParams);
   const items: BookView[] = (books.data?.pages ?? [])
     .flatMap((page) => page.items)

@@ -71,6 +71,7 @@ export class CharacterTheoriesController {
     return this.characterTheoriesService.create({ input: body, userId: user.id });
   }
 
+  @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiNotFoundResponse({ description: "Context book not found" })
   @ApiOkResponse({
     description:
@@ -83,6 +84,9 @@ export class CharacterTheoriesController {
   @ApiQuery({ name: "seriesId", required: false })
   @ApiQuery({ name: "status", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "contextChapter", required: false })
+  @ApiQuery({ name: "contextPage", required: false })
+  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

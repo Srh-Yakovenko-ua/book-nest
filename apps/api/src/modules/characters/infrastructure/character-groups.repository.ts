@@ -39,11 +39,6 @@ export type CharacterGroupSummaryRow = Prisma.CharacterGroupGetPayload<{
   include: typeof summaryInclude;
 }>;
 
-export type ContextCharacterPresence = {
-  hiddenPresenceCharacterIds: string[];
-  revealedCharacterIds: string[];
-};
-
 export type CreateGroupData = {
   customType: Nullable<string>;
   description: Nullable<string>;
@@ -198,44 +193,6 @@ export class CharacterGroupsRepository {
       select: graphMembershipSelect,
       where: { characterId: { in: characterIds }, group: { userId } },
     });
-  }
-
-  async listMembershipPresence({
-    allowedBookIds,
-    characterIds,
-    userId,
-  }: {
-    allowedBookIds: string[];
-    characterIds: string[];
-    userId: string;
-  }): Promise<ContextCharacterPresence> {
-    if (characterIds.length === 0) {
-      return { hiddenPresenceCharacterIds: [], revealedCharacterIds: [] };
-    }
-    const scope = { deletedAt: null, userId };
-    const [revealed, hidden] = await Promise.all([
-      allowedBookIds.length === 0
-        ? []
-        : this.prisma.bookCharacter.findMany({
-            distinct: ["characterId"],
-            select: { characterId: true },
-            where: {
-              bookId: { in: allowedBookIds },
-              character: scope,
-              characterId: { in: characterIds },
-              hidePresenceAsSpoiler: false,
-            },
-          }),
-      this.prisma.bookCharacter.findMany({
-        distinct: ["characterId"],
-        select: { characterId: true },
-        where: { character: scope, characterId: { in: characterIds }, hidePresenceAsSpoiler: true },
-      }),
-    ]);
-    return {
-      hiddenPresenceCharacterIds: hidden.map((row) => row.characterId),
-      revealedCharacterIds: revealed.map((row) => row.characterId),
-    };
   }
 
   listOwnedGroups({

@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import type { LibraryListParams } from "../model/library-query";
 
 import { useLibraryBooks } from "../api/use-books";
+import { libraryListParams } from "../model/library-query";
 import { BOOK_PICKER_SCROLL_AREA, BookPickerResults, BookPickerSelected } from "./book-picker";
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -148,18 +149,9 @@ function libraryParams(
   search: string,
 ): LibraryListParams {
   const q = search.trim();
-  return {
-    ageCategory: [],
-    author: [],
-    format: [],
-    genre: [],
-    language: [],
-    owner: [],
+  return libraryListParams({
     pageSize: PAGE_SIZE,
-    publisher: [],
-    status: [],
-    tag: [],
     ...baseParams,
     ...(q === "" ? {} : { q }),
-  };
+  });
 }

@@ -2,38 +2,19 @@ import type { Nullable } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import type { PublisherModel } from "../../../generated/prisma/models.js";
-import type { LibraryStatsRow, PriceTotalRow } from "./publisher-library.mapper.js";
+import type {
+  LibraryStatsRow,
+  PriceTotalRow,
+  SummaryInsightsRow,
+} from "./publisher-library.mapper.js";
 
 import {
-  toLibraryPublisherDetailFromModel,
+  toLibraryPublisherDetail,
   toLibraryPublisherListItem,
   toLibraryPublishersSummary,
 } from "./publisher-library.mapper.js";
 
 const PUBLISHER_ID = "22222222-2222-4222-8222-222222222222";
-const USER_ID = "11111111-1111-4111-8111-111111111111";
-
-function publisherModel(overrides: Partial<PublisherModel> = {}): PublisherModel {
-  return {
-    countryCode: null,
-    createdAt: new Date("2026-02-01T10:00:00.000Z"),
-    foundedYear: null,
-    id: PUBLISHER_ID,
-    logoAttribution: null,
-    logoLicense: null,
-    logoLicenseUrl: null,
-    logoUrl: null,
-    name: "Penguin",
-    normalizedName: "penguin",
-    searchText: "penguin",
-    updatedAt: new Date("2026-02-02T11:00:00.000Z"),
-    userId: USER_ID,
-    websiteUrl: null,
-    wikidataId: null,
-    ...overrides,
-  };
-}
 
 function statsRow(overrides: Partial<LibraryStatsRow> = {}): LibraryStatsRow {
   return {
@@ -137,34 +118,31 @@ describe("toLibraryPublisherListItem", () => {
   });
 });
 
-describe("toLibraryPublisherDetailFromModel", () => {
-  it("marks a model owned by a user as custom with zeroed stats", () => {
-    const detail = toLibraryPublisherDetailFromModel(publisherModel({ userId: USER_ID }));
+describe("toLibraryPublisherDetail", () => {
+  it("extends the list item stats with the wishlist-without-price count", () => {
+    const row = statsRow({ booksCount: 4, wantToBuyCount: 2 });
 
-    expect(detail.isCustom).toBe(true);
-    expect(detail.stats).toEqual({
-      averageRating: null,
-      booksCount: 0,
-      lastBookAddedAt: null,
-      lastBookReadAt: null,
-      queueCount: 0,
-      ratedBooksCount: 0,
-      readCount: 0,
-      readingCount: 0,
-      seriesCount: 0,
-      wantToBuyCount: 0,
-      wantToReadCount: 0,
+    const detail = toLibraryPublisherDetail({ ...row, wishlistWithoutPriceCount: 1 });
+
+    expect(detail).toEqual({
+      ...toLibraryPublisherListItem(row),
+      stats: { ...toLibraryPublisherListItem(row).stats, wishlistWithoutPriceCount: 1 },
     });
-  });
-
-  it("marks a model without a user as not custom", () => {
-    const detail = toLibraryPublisherDetailFromModel(publisherModel({ userId: null }));
-
-    expect(detail.isCustom).toBe(false);
   });
 });
 
 describe("toLibraryPublishersSummary", () => {
+  const EMPTY_INSIGHTS: SummaryInsightsRow = {
+    attributedBooksCount: 0,
+    bestRatedPublishers: [],
+    booksToBuyWithPublisherCount: 0,
+    mostReadPublisher: null,
+    mostRepresentedPublisher: null,
+    publishersInPlansCount: 0,
+    topFiveBooksCount: 0,
+    unreadPublishers: [],
+  };
+
   function priceTotal(overrides: Partial<PriceTotalRow> = {}): PriceTotalRow {
     return { amount: "0.00", currency: "UAH", pricedBooksCount: 0, ...overrides };
   }
@@ -179,6 +157,7 @@ describe("toLibraryPublishersSummary", () => {
         ratedBooksCount: 4,
         wantToBuyBooksCount: 0,
       },
+      insights: EMPTY_INSIGHTS,
       priceTotals: [],
     });
 
@@ -195,6 +174,7 @@ describe("toLibraryPublishersSummary", () => {
         ratedBooksCount: 0,
         wantToBuyBooksCount: 0,
       },
+      insights: EMPTY_INSIGHTS,
       priceTotals: [],
     });
 
@@ -211,6 +191,7 @@ describe("toLibraryPublishersSummary", () => {
         ratedBooksCount: 0,
         wantToBuyBooksCount: 0,
       },
+      insights: EMPTY_INSIGHTS,
       priceTotals: [
         priceTotal({ amount: "10.00", currency: "EUR", pricedBooksCount: 1 }),
         priceTotal({ amount: "500.00", currency: "UAH", pricedBooksCount: 2 }),
@@ -233,6 +214,7 @@ describe("toLibraryPublishersSummary", () => {
         ratedBooksCount: 5,
         wantToBuyBooksCount: 6,
       },
+      insights: EMPTY_INSIGHTS,
       priceTotals: [],
     });
 
@@ -256,9 +238,89 @@ describe("toLibraryPublishersSummary", () => {
         ratedBooksCount: 0,
         wantToBuyBooksCount: 0,
       },
+      insights: EMPTY_INSIGHTS,
       priceTotals: emptyTotals,
     });
 
     expect(summary.expectedPriceTotals).toEqual([]);
+  });
+
+  const EMPTY_COUNTS = {
+    averageBookRating: null,
+    booksWithoutPublisherCount: 0,
+    booksWithPublisherCount: 0,
+    publishersCount: 0,
+    ratedBooksCount: 0,
+    wantToBuyBooksCount: 0,
+  };
+
+  it("keeps the top five coverage percent unrounded", () => {
+    const summary = toLibraryPublishersSummary({
+      counts: EMPTY_COUNTS,
+      insights: { ...EMPTY_INSIGHTS, attributedBooksCount: 3, topFiveBooksCount: 2 },
+      priceTotals: [],
+    });
+
+    expect(summary.topFiveBooksCoveragePercent).toBeCloseTo(66.666666667, 8);
+  });
+
+  it("keeps a coverage below one percent instead of rounding it to zero", () => {
+    const summary = toLibraryPublishersSummary({
+      counts: EMPTY_COUNTS,
+      insights: { ...EMPTY_INSIGHTS, attributedBooksCount: 250, topFiveBooksCount: 1 },
+      priceTotals: [],
+    });
+
+    expect(summary.topFiveBooksCoveragePercent).toBe(0.4);
+  });
+
+  it("reports zero coverage when no book is attributed to a publisher", () => {
+    const summary = toLibraryPublishersSummary({
+      counts: EMPTY_COUNTS,
+      insights: EMPTY_INSIGHTS,
+      priceTotals: [],
+    });
+
+    expect(summary.topFiveBooksCoveragePercent).toBe(0);
+  });
+
+  it("rounds each best rated publisher average to two decimals", () => {
+    const summary = toLibraryPublishersSummary({
+      counts: EMPTY_COUNTS,
+      insights: {
+        ...EMPTY_INSIGHTS,
+        bestRatedPublishers: [
+          { averageRating: 7.666666, id: PUBLISHER_ID, name: "Penguin", ratedBooksCount: 3 },
+        ],
+      },
+      priceTotals: [],
+    });
+
+    expect(summary.bestRatedPublishers).toEqual([
+      { averageRating: 7.67, id: PUBLISHER_ID, name: "Penguin", ratedBooksCount: 3 },
+    ]);
+  });
+
+  it("passes the publisher insights through unchanged", () => {
+    const summary = toLibraryPublishersSummary({
+      counts: EMPTY_COUNTS,
+      insights: {
+        ...EMPTY_INSIGHTS,
+        booksToBuyWithPublisherCount: 4,
+        mostReadPublisher: { id: PUBLISHER_ID, name: "Penguin", readCount: 5 },
+        mostRepresentedPublisher: { booksCount: 9, id: PUBLISHER_ID, name: "Penguin" },
+        publishersInPlansCount: 2,
+        unreadPublishers: [{ id: PUBLISHER_ID, name: "Penguin", unreadCount: 4 }],
+      },
+      priceTotals: [],
+    });
+
+    expect(summary).toMatchObject({
+      booksToBuyWithPublisherCount: 4,
+      mostReadPublisher: { id: PUBLISHER_ID, name: "Penguin", readCount: 5 },
+      mostRepresentedPublisher: { booksCount: 9, id: PUBLISHER_ID, name: "Penguin" },
+      publishersInPlansCount: 2,
+      unreadPublishers: [{ id: PUBLISHER_ID, name: "Penguin", unreadCount: 4 }],
+    });
   });
 });

@@ -3,6 +3,7 @@ import type { Nullable } from "@app/shared";
 import type { ReadingPositionGate } from "./reading-position.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { warnOnAmbiguousSeriesOrder } from "./series-order-warning.js";
 import { resolveAllowedBookIds } from "./series-representative.js";
 
 export type ContextBookReader = {
@@ -21,21 +22,6 @@ export type ResolvedReadingContext = {
   partNumberById: Map<string, Nullable<number>>;
   positionGate?: Nullable<ReadingPositionGate>;
 };
-
-export async function resolveContextAllowedBookIds({
-  contextBookId,
-  notFoundCode,
-  reader,
-  userId,
-}: {
-  contextBookId: string;
-  notFoundCode: string;
-  reader: ContextBookReader;
-  userId: string;
-}): Promise<string[]> {
-  const context = await resolveReadingContext({ contextBookId, notFoundCode, reader, userId });
-  return context.allowedBookIds;
-}
 
 export async function resolveReadingContext({
   contextBookId,
@@ -59,6 +45,7 @@ export async function resolveReadingContext({
     };
   }
   const seriesBooks = await reader.listSeriesBooks({ seriesId: contextBook.seriesId, userId });
+  warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId: contextBook.seriesId });
   return {
     allowedBookIds: resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks }),
     partNumberById: new Map(seriesBooks.map((book) => [book.id, book.partNumber])),

@@ -32,6 +32,7 @@ export type BookAuthorFacetRow = z.infer<typeof AuthorFacetRowSchema>;
 export type BookGenreFacetRow = z.infer<typeof GenreFacetRowSchema>;
 
 type FacetsInput = {
+  publisherId: string | undefined;
   scope: BookFacetScope;
   search: string | undefined;
   userId: string;
@@ -50,7 +51,12 @@ const SCOPE_CONDITION: Record<BookFacetScope, Prisma.Sql> = {
 export class BookFacetsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async authorFacets({ scope, search, userId }: FacetsInput): Promise<BookAuthorFacetRow[]> {
+  async authorFacets({
+    publisherId,
+    scope,
+    search,
+    userId,
+  }: FacetsInput): Promise<BookAuthorFacetRow[]> {
     const result = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
         a.id::text AS "id",
@@ -60,6 +66,7 @@ export class BookFacetsRepository {
       JOIN book_authors ba ON ba.book_id = b.id
       JOIN authors a ON a.id = ba.author_id
       WHERE b.user_id = ${userId}::uuid AND b.deleted_at IS NULL ${SCOPE_CONDITION[scope]}
+        ${publisherMatches(publisherId)}
         ${nameMatches("a.name", search)}
       GROUP BY a.id, a.name
       ORDER BY count(*) DESC, a.name ASC
@@ -70,7 +77,7 @@ export class BookFacetsRepository {
     return rows;
   }
 
-  async genreFacets({ scope, userId }: FacetsInput): Promise<BookGenreFacetRow[]> {
+  async genreFacets({ publisherId, scope, userId }: FacetsInput): Promise<BookGenreFacetRow[]> {
     const result = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
         g.key AS "key",
@@ -78,6 +85,7 @@ export class BookFacetsRepository {
       FROM books b
       CROSS JOIN LATERAL unnest(b.genres) AS g(key)
       WHERE b.user_id = ${userId}::uuid AND b.deleted_at IS NULL ${SCOPE_CONDITION[scope]}
+        ${publisherMatches(publisherId)}
       GROUP BY g.key
       ORDER BY count(*) DESC, g.key ASC
       LIMIT ${BOOK_FACETS.maxRows}
@@ -106,4 +114,9 @@ export class BookFacetsRepository {
 function nameMatches(column: string, search: string | undefined): Prisma.Sql {
   if (search === undefined) return Prisma.empty;
   return Prisma.sql`AND ${ilikeContains({ column: Prisma.raw(column), search })}`;
+}
+
+function publisherMatches(publisherId: string | undefined): Prisma.Sql {
+  if (publisherId === undefined) return Prisma.empty;
+  return Prisma.sql`AND b.publisher_id = ${publisherId}::uuid`;
 }

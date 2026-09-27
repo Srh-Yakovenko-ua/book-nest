@@ -5,6 +5,7 @@ import type {
   Nullable,
   SeriesOwnership,
   TagView,
+  TagViewSource,
 } from "@app/shared";
 
 import {
@@ -13,6 +14,7 @@ import {
   BookLanguageSchema,
   ownershipStatusHoldsCopy,
   OwnershipStatusSchema,
+  toTagView,
 } from "@app/shared";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
@@ -26,7 +28,7 @@ export type SeriesAggregateBookRow = {
   ownershipStatus: string;
   pagesCount: Nullable<number>;
   readingProgress: Nullable<{ rating: Nullable<number> }>;
-  tags: { tag: { id: string; name: string } }[];
+  tags: { tag: TagViewSource }[];
 };
 
 export type SeriesBooksAggregates = {
@@ -85,7 +87,7 @@ function collectTags(books: readonly Pick<SeriesAggregateBookRow, "tags">[]): Ta
   for (const book of books) {
     for (const bookTag of book.tags) {
       if (!tagsById.has(bookTag.tag.id)) {
-        tagsById.set(bookTag.tag.id, { id: bookTag.tag.id, name: bookTag.tag.name });
+        tagsById.set(bookTag.tag.id, toTagView(bookTag.tag));
       }
     }
   }
