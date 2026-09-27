@@ -89,3 +89,62 @@ export const MultiTogglesIndependently: Story = {
     await expect(fantasy).toHaveAttribute("aria-pressed", "true");
   },
 };
+
+const QUICK_FILTER_OPTIONS = [
+  { count: 128, label: "Усі", value: "all" },
+  { count: 42, label: "Читаю", value: "reading" },
+  { count: 73, label: "Прочитані", value: "finished" },
+  { count: 0, label: "У черзі", value: "queue" },
+] as const;
+
+function QuickFilterExample() {
+  const [value, setValue] = useState("reading");
+  return (
+    <ChipGroup
+      label="Швидкі фільтри"
+      mode="single"
+      onValueChange={setValue}
+      options={QUICK_FILTER_OPTIONS}
+      size="sm"
+      value={value}
+    />
+  );
+}
+
+export const QuickFilterCounts: Story = {
+  render: () => <QuickFilterExample />,
+  play: async ({ canvas }) => {
+    const empty = canvas.getByRole("radio", { name: "У черзі 0" });
+    await expect(empty).toBeEnabled();
+    await userEvent.click(empty);
+    await expect(empty).toHaveAttribute("aria-checked", "true");
+  },
+};
+
+function QuickFilterPendingExample() {
+  const [value, setValue] = useState("reading");
+  return (
+    <ChipGroup
+      countsPending
+      label="Швидкі фільтри"
+      mode="single"
+      onValueChange={setValue}
+      options={QUICK_FILTER_OPTIONS.map(({ label, value: optionValue }) => ({
+        label,
+        value: optionValue,
+      }))}
+      size="sm"
+      value={value}
+    />
+  );
+}
+
+export const QuickFilterCountsPending: Story = {
+  render: () => <QuickFilterPendingExample />,
+  play: async ({ canvas }) => {
+    const finished = canvas.getByRole("radio", { name: "Прочитані" });
+    await expect(finished).toBeEnabled();
+    await userEvent.click(finished);
+    await expect(finished).toHaveAttribute("aria-checked", "true");
+  },
+};

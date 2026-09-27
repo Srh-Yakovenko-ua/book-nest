@@ -1,5 +1,4 @@
 import type {
-  BookCharacterImportance,
   CharacterSummaryView,
   Nullable,
   SeriesCharactersSort,
@@ -9,6 +8,7 @@ import type {
 import { compareAsc, isBefore } from "date-fns";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
+import { BOOK_CHARACTER_IMPORTANCE_RANK } from "./character-importance-order.js";
 
 export type DefaultReadingContext = {
   contextBookId: Nullable<string>;
@@ -39,20 +39,13 @@ export type SeriesReadingContextBook = {
   partNumber: Nullable<number>;
 };
 
-const SERIES_IMPORTANCE_RANK: Record<BookCharacterImportance, number> = {
-  central: 0,
-  episodic: 3,
-  major: 1,
-  mentioned: 4,
-  supporting: 2,
-};
-
 const SERIES_SUMMARY_COMPARATORS: Record<
   SeriesCharactersSort,
   (left: CharacterSummaryView, right: CharacterSummaryView) => number
 > = {
   importance: (left, right) =>
-    SERIES_IMPORTANCE_RANK[left.importance] - SERIES_IMPORTANCE_RANK[right.importance] ||
+    BOOK_CHARACTER_IMPORTANCE_RANK[left.importance] -
+      BOOK_CHARACTER_IMPORTANCE_RANK[right.importance] ||
     UKRAINIAN_COLLATION.compare(left.name, right.name),
   name: (left, right) => UKRAINIAN_COLLATION.compare(left.name, right.name),
 };
@@ -103,7 +96,9 @@ export function resolveAllowedBookIds({
   }
   const limit = contextBook.partNumber;
   return seriesBooks
-    .filter((book) => book.partNumber !== null && book.partNumber <= limit)
+    .filter(
+      (book) => book.id === contextBook.id || (book.partNumber !== null && book.partNumber < limit),
+    )
     .map((book) => book.id);
 }
 

@@ -70,6 +70,8 @@ model User {
   readingGoalActivities       ReadingGoalActivity[]
   quoteRediscoveryImpressions QuoteRediscoveryImpression[]
   quotePostFinishReviews      QuotePostFinishReview[]
+  noteRediscoveryImpressions  NoteRediscoveryImpression[]
+  notePostFinishReviews       NotePostFinishReview[]
 
   @@map("users")
 }
@@ -368,6 +370,7 @@ model BookReadingCycle {
   events                     BookReadingProgressEvent[]
   qualifiedGoalBooks         ReadingGoalBook[]
   quotePostFinishReviews     QuotePostFinishReview[]
+  notePostFinishReviews      NotePostFinishReview[]
 
   @@index([userId, finishedAt])
   @@index([bookId, state])
@@ -570,6 +573,8 @@ model Note {
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   book           Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   series         Series?   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  rediscoveryImpressions NoteRediscoveryImpression[]
 
   @@index([bookId])
   @@index([seriesId])
@@ -924,12 +929,45 @@ model QuotePostFinishReview {
   @@map("quote_post_finish_reviews")
 }
 
+model NoteRediscoveryImpression {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  noteId     String   @map("note_id") @db.Uuid
+  surface    String
+  contextKey String   @map("context_key")
+  sourceKey  String   @map("source_key")
+  shownOn    DateTime @map("shown_on") @db.Date
+  shownAt    DateTime @default(now()) @map("shown_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, surface, contextKey, noteId, shownOn])
+  @@index([noteId, shownOn(sort: Desc)])
+  @@index([userId, surface, contextKey, shownAt(sort: Desc)])
+  @@map("note_rediscovery_impressions")
+}
+
+model NotePostFinishReview {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  readingCycleId String   @map("reading_cycle_id") @db.Uuid
+  reviewedAt     DateTime @default(now()) @map("reviewed_at") @db.Timestamptz
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readingCycle BookReadingCycle @relation(fields: [readingCycleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, readingCycleId])
+  @@index([readingCycleId])
+  @@map("note_post_finish_reviews")
+}
+
 model BookTimeline {
   id          String              @id @default(uuid()) @db.Uuid
   bookId      String              @map("book_id") @db.Uuid
   name        String
   description String?
-  colorKey    String?             @map("color_key")
+  colorKey    String              @map("color_key")
   position    Int
   isDefault   Boolean             @default(false) @map("is_default")
   deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz
@@ -959,6 +997,7 @@ model BookTimelineEvent {
   eventType         String                      @default("main") @map("event_type")
   importance        String                      @default("medium")
   importanceRank    Int                         @default(1) @map("importance_rank")
+  isSpoiler         Boolean                     @default(false) @map("is_spoiler")
   personalNote      String?                     @map("personal_note")
   threadStatus      String?                     @map("thread_status")
   resolvedByEventId String?                     @map("resolved_by_event_id") @db.Uuid
@@ -1082,8 +1121,9 @@ model BookCharacter {
   bookId                      String              @map("book_id") @db.Uuid
   characterId                 String              @map("character_id") @db.Uuid
   displayName                 String?             @map("display_name")
-  importance                  String              @default("supporting")
-  status                      String              @default("active")
+  importance                  String              @default("not_specified")
+  importanceRank              Int                 @default(5) @map("importance_rank")
+  status                      String              @default("not_specified")
   statusCustomText            String?             @map("status_custom_text")
   description                 String?
   personalImpression          String?             @map("personal_impression")
@@ -1117,6 +1157,7 @@ model BookCharacter {
   @@index([bookId])
   @@index([characterId])
   @@index([bookId, importance])
+  @@index([bookId, importanceRank])
   @@index([portraitMediaId])
   @@map("book_characters")
 }

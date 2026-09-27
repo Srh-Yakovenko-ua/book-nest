@@ -1,12 +1,17 @@
 import type {
   LibraryPublisherDetail,
   LibraryPublisherListItem,
+  LibraryPublishersBestRated,
+  LibraryPublishersMostRead,
+  LibraryPublishersMostRepresented,
   LibraryPublishersSummary,
-  LibraryPublisherStats,
+  LibraryPublishersUnread,
   Nullable,
 } from "@app/shared";
 
-import type { PublisherModel } from "../../../generated/prisma/models.js";
+export type LibraryDetailStatsRow = LibraryStatsRow & {
+  wishlistWithoutPriceCount: number;
+};
 
 export type LibraryStatsRow = {
   averageRating: Nullable<number>;
@@ -43,35 +48,25 @@ export type SummaryCountsRow = {
   wantToBuyBooksCount: number;
 };
 
-const RATING_FRACTION_DIGITS = 2;
-
-const ZERO_STATS: LibraryPublisherStats = {
-  averageRating: null,
-  booksCount: 0,
-  lastBookAddedAt: null,
-  lastBookReadAt: null,
-  queueCount: 0,
-  ratedBooksCount: 0,
-  readCount: 0,
-  readingCount: 0,
-  seriesCount: 0,
-  wantToBuyCount: 0,
-  wantToReadCount: 0,
+export type SummaryInsightsRow = {
+  attributedBooksCount: number;
+  bestRatedPublishers: LibraryPublishersBestRated[];
+  booksToBuyWithPublisherCount: number;
+  mostReadPublisher: Nullable<LibraryPublishersMostRead>;
+  mostRepresentedPublisher: Nullable<LibraryPublishersMostRepresented>;
+  publishersInPlansCount: number;
+  topFiveBooksCount: number;
+  unreadPublishers: LibraryPublishersUnread[];
 };
 
-export function toLibraryPublisherDetail(row: LibraryStatsRow): LibraryPublisherDetail {
-  return toLibraryPublisherListItem(row);
-}
+const RATING_FRACTION_DIGITS = 2;
+const PERCENT_SCALE = 100;
 
-export function toLibraryPublisherDetailFromModel(model: PublisherModel): LibraryPublisherDetail {
+export function toLibraryPublisherDetail(row: LibraryDetailStatsRow): LibraryPublisherDetail {
+  const listItem = toLibraryPublisherListItem(row);
   return {
-    countryCode: model.countryCode,
-    foundedYear: model.foundedYear,
-    id: model.id,
-    isCustom: model.userId !== null,
-    name: model.name,
-    stats: ZERO_STATS,
-    websiteUrl: model.websiteUrl,
+    ...listItem,
+    stats: { ...listItem.stats, wishlistWithoutPriceCount: row.wishlistWithoutPriceCount },
   };
 }
 
@@ -101,14 +96,21 @@ export function toLibraryPublisherListItem(row: LibraryStatsRow): LibraryPublish
 
 export function toLibraryPublishersSummary({
   counts,
+  insights,
   priceTotals,
 }: {
   counts: SummaryCountsRow;
+  insights: SummaryInsightsRow;
   priceTotals: PriceTotalRow[];
 }): LibraryPublishersSummary {
   return {
     averageBookRating:
       counts.averageBookRating === null ? null : roundRating(counts.averageBookRating),
+    bestRatedPublishers: insights.bestRatedPublishers.map((publisher) => ({
+      ...publisher,
+      averageRating: roundRating(publisher.averageRating),
+    })),
+    booksToBuyWithPublisherCount: insights.booksToBuyWithPublisherCount,
     booksWithoutPublisherCount: counts.booksWithoutPublisherCount,
     booksWithPublisherCount: counts.booksWithPublisherCount,
     expectedPriceTotals: priceTotals.map((row) => ({
@@ -116,8 +118,13 @@ export function toLibraryPublishersSummary({
       currency: row.currency,
       pricedBooksCount: row.pricedBooksCount,
     })),
+    mostReadPublisher: insights.mostReadPublisher,
+    mostRepresentedPublisher: insights.mostRepresentedPublisher,
     publishersCount: counts.publishersCount,
+    publishersInPlansCount: insights.publishersInPlansCount,
     ratedBooksCount: counts.ratedBooksCount,
+    topFiveBooksCoveragePercent: toCoveragePercent(insights),
+    unreadPublishers: insights.unreadPublishers,
     wantToBuyBooksCount: counts.wantToBuyBooksCount,
   };
 }
@@ -125,4 +132,14 @@ export function toLibraryPublishersSummary({
 function roundRating(value: number): number {
   const factor = 10 ** RATING_FRACTION_DIGITS;
   return Math.round(value * factor) / factor;
+}
+
+function toCoveragePercent({
+  attributedBooksCount,
+  topFiveBooksCount,
+}: Pick<SummaryInsightsRow, "attributedBooksCount" | "topFiveBooksCount">): number {
+  if (attributedBooksCount === 0) {
+    return 0;
+  }
+  return (topFiveBooksCount / attributedBooksCount) * PERCENT_SCALE;
 }

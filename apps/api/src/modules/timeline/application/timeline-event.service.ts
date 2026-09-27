@@ -76,6 +76,7 @@ export class TimelineEventService {
           eventType: input.eventType,
           importance: input.importance,
           importanceRank: importanceRank(input.importance),
+          isSpoiler: input.isSpoiler,
           location: emptyToNull(input.location),
           pageNumber: input.pageNumber ?? null,
           personalNote: emptyToNull(input.personalNote),
@@ -129,6 +130,7 @@ export class TimelineEventService {
       search: normalizeSearch(query.search),
       timelineId: query.timelineId,
       unresolved: query.unresolved ?? false,
+      withoutChapter: query.withoutChapter ?? false,
     };
 
     const [items, totalCount] = await Promise.all([
@@ -185,6 +187,9 @@ export class TimelineEventService {
     if (input.importance !== undefined) {
       fields.importance = input.importance;
       fields.importanceRank = importanceRank(input.importance);
+    }
+    if (input.isSpoiler !== undefined) {
+      fields.isSpoiler = input.isSpoiler;
     }
     if (input.threadStatus !== undefined) {
       fields.threadStatus = input.threadStatus ?? null;

@@ -1,12 +1,8 @@
 "use client";
 
-import type {
-  DeleteTimelineQuery,
-  Nullable,
-  TimelineDeleteStrategy,
-  TimelineView,
-} from "@app/shared";
+import type { DeleteTimelineQuery, TimelineDeleteStrategy, TimelineView } from "@app/shared";
 
+import { TimelineDeleteStrategySchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -33,47 +29,48 @@ import {
 import { cn } from "@/lib/utils";
 
 import { useDeleteTimeline } from "../api/use-delete-timeline";
-import { markerClass } from "../model/color-key";
+import { markerStyle } from "../model/color-key";
 
 type DeleteTimelineDialogProps = {
   bookId: string;
+  onClose: () => void;
   onDeleted: (deletedTimelineId: string) => void;
-  onOpenChange: (open: boolean) => void;
-  timeline: Nullable<TimelineView>;
+  timeline: TimelineView;
   timelines: TimelineView[];
 };
 
 export function DeleteTimelineDialog({
   bookId,
+  onClose,
   onDeleted,
-  onOpenChange,
   timeline,
   timelines,
 }: DeleteTimelineDialogProps) {
   const t = useTranslations("timeline.manage");
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={timeline !== null}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      open
+    >
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("deleteTitle")}</DialogTitle>
           <DialogDescription>
-            {timeline === null
-              ? null
-              : timeline.eventsCount === 0
-                ? t("deleteEmptyDescription")
-                : t("eventCountLine", { count: timeline.eventsCount })}
+            {timeline.eventsCount === 0
+              ? t("deleteEmptyDescription")
+              : t("eventCountLine", { count: timeline.eventsCount })}
           </DialogDescription>
         </DialogHeader>
-        {timeline === null ? null : (
-          <DeleteTimelineForm
-            bookId={bookId}
-            onDeleted={onDeleted}
-            onDone={() => onOpenChange(false)}
-            timeline={timeline}
-            timelines={timelines}
-          />
-        )}
+        <DeleteTimelineForm
+          bookId={bookId}
+          onCancel={onClose}
+          onDeleted={onDeleted}
+          timeline={timeline}
+          timelines={timelines}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -81,14 +78,14 @@ export function DeleteTimelineDialog({
 
 function DeleteTimelineForm({
   bookId,
+  onCancel,
   onDeleted,
-  onDone,
   timeline,
   timelines,
 }: {
   bookId: string;
+  onCancel: () => void;
   onDeleted: (deletedTimelineId: string) => void;
-  onDone: () => void;
   timeline: TimelineView;
   timelines: TimelineView[];
 }) {
@@ -97,10 +94,15 @@ function DeleteTimelineForm({
   const tToast = useTranslations("timeline.toast");
 
   const deleteTimeline = useDeleteTimeline();
-  const otherLines = timelines.filter((line) => line.id !== timeline.id);
+  const otherLines = timelines
+    .filter((line) => line.id !== timeline.id)
+    .sort((first, second) => first.position - second.position);
+  const preselectedTarget = otherLines.find((line) => line.isDefault) ?? otherLines[0];
 
-  const [strategy, setStrategy] = useState<Nullable<TimelineDeleteStrategy>>(null);
-  const [targetTimelineId, setTargetTimelineId] = useState(otherLines[0]?.id ?? "");
+  const [strategy, setStrategy] = useState<TimelineDeleteStrategy>(
+    preselectedTarget === undefined ? "delete" : "move",
+  );
+  const [targetTimelineId, setTargetTimelineId] = useState(preselectedTarget?.id ?? "");
   const [confirmDeleteEvents, setConfirmDeleteEvents] = useState(false);
 
   const isDeleting = deleteTimeline.isPending;
@@ -114,7 +116,6 @@ function DeleteTimelineForm({
         onSuccess: () => {
           toast.success(tToast("lineDeleted"));
           onDeleted(timeline.id);
-          onDone();
         },
       },
     );
@@ -123,7 +124,7 @@ function DeleteTimelineForm({
   if (!hasEvents) {
     return (
       <DialogFooter>
-        <Button disabled={isDeleting} onClick={onDone} type="button" variant="secondary">
+        <Button disabled={isDeleting} onClick={onCancel} type="button" variant="secondary">
           {t("cancel")}
         </Button>
         <Button
@@ -139,28 +140,25 @@ function DeleteTimelineForm({
     );
   }
 
-  const canConfirm =
-    strategy === "move"
-      ? targetTimelineId !== ""
-      : strategy === "delete"
-        ? confirmDeleteEvents
-        : false;
+  const canConfirm = strategy === "move" ? targetTimelineId !== "" : confirmDeleteEvents;
 
   function confirm() {
     if (strategy === "move") {
       submit({ strategy: "move", targetTimelineId });
       return;
     }
-    if (strategy === "delete") {
-      submit({ strategy: "delete" });
-    }
+    submit({ strategy: "delete" });
   }
 
   return (
     <>
       <RadioGroup
-        onValueChange={(value) => setStrategy(value as TimelineDeleteStrategy)}
-        value={strategy ?? ""}
+        disabled={isDeleting}
+        onValueChange={(value) => {
+          const parsed = TimelineDeleteStrategySchema.safeParse(value);
+          if (parsed.success) setStrategy(parsed.data);
+        }}
+        value={strategy}
       >
         {otherLines.length > 0 ? (
           <div
@@ -181,7 +179,11 @@ function DeleteTimelineForm({
             {strategy === "move" ? (
               <div className="mt-3 flex flex-col gap-2 pl-7">
                 <Label htmlFor="delete-move-target">{t("targetLineLabel")}</Label>
-                <Select onValueChange={setTargetTimelineId} value={targetTimelineId}>
+                <Select
+                  disabled={isDeleting}
+                  onValueChange={setTargetTimelineId}
+                  value={targetTimelineId}
+                >
                   <SelectTrigger
                     className="h-10 w-full data-[size=default]:h-10"
                     id="delete-move-target"
@@ -193,7 +195,8 @@ function DeleteTimelineForm({
                       <SelectItem key={line.id} value={line.id}>
                         <span
                           aria-hidden
-                          className={cn("size-2 rounded-full", markerClass(line.colorKey))}
+                          className="size-2 rounded-full"
+                          style={markerStyle(line.colorKey)}
                         />
                         {line.name}
                       </SelectItem>
@@ -230,6 +233,7 @@ function DeleteTimelineForm({
             >
               <Checkbox
                 checked={confirmDeleteEvents}
+                disabled={isDeleting}
                 id="delete-confirm-events"
                 onCheckedChange={(value) => setConfirmDeleteEvents(value === true)}
               />
@@ -240,7 +244,7 @@ function DeleteTimelineForm({
       </RadioGroup>
 
       <DialogFooter>
-        <Button disabled={isDeleting} onClick={onDone} type="button" variant="secondary">
+        <Button disabled={isDeleting} onClick={onCancel} type="button" variant="secondary">
           {t("cancel")}
         </Button>
         <Button

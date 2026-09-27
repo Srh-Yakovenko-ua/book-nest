@@ -39,6 +39,7 @@ export type LibraryFilter = {
   readingStatuses?: ReadingStatus[];
   search?: string;
   searchGenreKeys?: string[];
+  searchPublisher?: boolean;
   tagIds?: string[];
   userId: string;
   yearMax?: number;
@@ -138,6 +139,7 @@ export function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput 
   }
 
   const searchConditions = buildBookSearchConditions({
+    includePublisher: filter.searchPublisher,
     search: filter.search,
     searchGenreKeys: filter.searchGenreKeys,
   });

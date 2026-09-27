@@ -16,7 +16,7 @@ export type TimelineFormValues = z.infer<ReturnType<typeof buildTimelineFormSche
 
 export function buildTimelineFormSchema(messages: TimelineFormMessages) {
   return z.object({
-    colorKey: TimelineColorKeySchema.nullable(),
+    colorKey: TimelineColorKeySchema,
     description: z
       .string()
       .trim()

@@ -15,11 +15,13 @@ import {
 
 import type { CharactersRosterSort } from "../model/characters-roster-query";
 
-import { CHARACTERS_ROSTER_SORTS } from "../model/characters-roster-query";
+import {
+  CHARACTERS_ROSTER_SORT_DEFAULT,
+  CHARACTERS_ROSTER_SORTS,
+} from "../model/characters-roster-query";
 
 type CharactersToolbarProps = {
   onAdd: () => void;
-  onOpenPalette: () => void;
   onSearch: (value: string) => void;
   onSortChange: (value: CharactersRosterSort) => void;
   search: string;
@@ -28,7 +30,6 @@ type CharactersToolbarProps = {
 
 export function CharactersToolbar({
   onAdd,
-  onOpenPalette,
   onSearch,
   onSortChange,
   search,
@@ -39,26 +40,15 @@ export function CharactersToolbar({
 
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div className="flex flex-1 items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <DebouncedSearchInput
-            clearLabel={t("searchClear")}
-            label={t("searchLabel")}
-            onClear={() => onSearch("")}
-            onSearch={onSearch}
-            placeholder={t("searchPlaceholder")}
-            value={search}
-          />
-        </div>
-        <Button
-          aria-label={t("palette")}
-          className="h-10 shrink-0"
-          onClick={onOpenPalette}
-          variant="secondary"
-        >
-          <UiIcon name="search" size={16} />
-          <span className="hidden sm:inline">{t("palette")}</span>
-        </Button>
+      <div className="min-w-0 flex-1">
+        <DebouncedSearchInput
+          clearLabel={t("searchClear")}
+          label={t("searchLabel")}
+          onClear={() => onSearch("")}
+          onSearch={onSearch}
+          placeholder={t("searchPlaceholder")}
+          value={search}
+        />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -87,5 +77,7 @@ export function CharactersToolbar({
 }
 
 function toSort(value: string): CharactersRosterSort {
-  return CHARACTERS_ROSTER_SORTS.find((option) => option === value) ?? "recommended";
+  return (
+    CHARACTERS_ROSTER_SORTS.find((option) => option === value) ?? CHARACTERS_ROSTER_SORT_DEFAULT
+  );
 }

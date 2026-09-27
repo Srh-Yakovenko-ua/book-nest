@@ -1099,6 +1099,186 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Смуги доставки показують справжню частку",
     version: null,
   },
+  {
+    bodyEn:
+      "Notes now have their own section in the sidebar with two pages, Book notes and Series notes, and your old links to notes still open. Each page has its own summary cards, search, sorting and a Filters panel whose counts update as you pick other filters. Quick chips show all notes, favorites, pinned notes, notes without spoilers or only those with spoilers, and you can switch between a grid and a list. Cards have a new look and open in full in a separate window, and a note marked as a spoiler stays hidden until you choose to reveal it. A series note no longer asks for a chapter or page.",
+    bodyUk:
+      "Нотатки тепер мають окремий розділ у бічному меню з двома сторінками: «Нотатки книг» і «Нотатки до серій», а ваші старі посилання на нотатки й далі відкриваються. На кожній сторінці є свої картки підсумків, пошук, сортування та панель «Фільтри», лічильники в якій оновлюються, коли ви обираєте інші фільтри. Швидкі фільтри показують усі нотатки, улюблені, закріплені, без спойлерів або лише зі спойлерами, а вигляд можна перемикати між сіткою та списком. Картки отримали новий вигляд і відкриваються повністю в окремому вікні, а нотатка зі спойлером лишається прихованою, доки ви її не відкриєте. Нотатка до серії більше не просить вказати розділ чи сторінку.",
+    category: "improvement",
+    publishedAt: "2026-09-19T00:00:00.000Z",
+    slug: "notes-books-and-series-pages",
+    titleEn: "Separate pages for book and series notes",
+    titleUk: "Окремі сторінки нотаток книг і серій",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The book notes page has two new side blocks. Revisit a note brings back one of your earlier notes, and After finishing shows how many notes, favorites and pinned notes you left on a book you recently finished, with a link to them. On the series notes page, Before you continue the series gathers what to recall from the previous parts before you start the next book or while you are reading it.",
+    bodyUk:
+      "На сторінці нотаток книг збоку з'явилися два блоки. «Згадати нотатку» повертає одну з ваших давніших нотаток, а «Після завершення» показує, скільки нотаток, улюблених і закріплених ви залишили до нещодавно дочитаної книги, і веде до них. На сторінці нотаток до серій блок «Перед продовженням серії» збирає те, що варто згадати з попередніх частин перед наступною книгою або під час її читання.",
+    category: "feature",
+    publishedAt: "2026-09-19T00:00:01.000Z",
+    slug: "notes-contextual-reminders",
+    titleEn: "Notes that remind you in time",
+    titleUk: "Нотатки, що нагадують вчасно",
+    version: null,
+  },
+  {
+    bodyEn:
+      'When you add a book to a series, the publisher field now fills in on its own: we take the publisher that most books of that series already have, and a note under the field says which one it is and how many books it covers. You can change it or clear it. On the series page, a publisher shared by several books now shows how many, like "Vivat (5), КСД (2)".',
+    bodyUk:
+      "Коли ви додаєте книгу до серії, поле видавництва тепер заповнюється автоматично: підставляємо те, яке стоїть у більшості книг цієї серії, а під полем видно, яке саме і скільки книг воно охоплює. Значення можна змінити або очистити. На сторінці серії біля видавництва, спільного для кількох книг, тепер видно їхню кількість, наприклад «Vivat (5), КСД (2)».",
+    category: "feature",
+    publishedAt: "2026-09-22T00:00:00.000Z",
+    slug: "series-publisher-suggestion",
+    titleEn: "Series publisher suggestion",
+    titleUk: "Підказка видавництва серії",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Saving the Edit book form used to erase the page count even if you never touched that field, and a book in transit also lost the Price in its delivery details. Both numbers now stay as you saved them, whether you change another field or save without changing anything.",
+    bodyUk:
+      "Раніше кожне збереження форми «Редагувати книгу» стирало кількість сторінок, навіть якщо ви цього поля не торкалися, а в книги в дорозі зникала ще й «Вартість» у деталях доставки. Тепер обидва числа лишаються такими, як ви їх зберегли, хоч ви змінюєте інше поле, хоч зберігаєте форму взагалі без змін.",
+    category: "fix",
+    publishedAt: "2026-09-22T00:00:01.000Z",
+    slug: "book-form-keeps-numbers",
+    titleEn: "Book edits keep the page count and price",
+    titleUk: "Редагування книги зберігає кількість сторінок і вартість",
+    version: null,
+  },
+  {
+    bodyEn:
+      'Genres and tags no longer share one page with a switch: the menu now has two separate items, Genres and Tags. The Genres page has search, sorting, quick filters and six summary cards, and its genre cards sit three to a row, show book covers and how many you have read, and open your library filtered by that genre. The side blocks Not visited in a while, New for you and Something to rate suggest where to look next. Tags can be shown as a grid or a list, the page opens with the newest tags first, and Edit and Delete now sit in a menu on each tag. In Tag structure each type has its own icon, Where they’re used shows the split as one bar with a legend, and the numbers now say what they count, like "28 tags · 88%".',
+    bodyUk:
+      "Жанри й теги більше не ділять одну сторінку з перемикачем: у меню тепер два окремі пункти, «Жанри» і «Теги». На сторінці жанрів є пошук, сортування, швидкі фільтри й шість карток підсумків, а картки жанрів стоять по три в ряд, показують обкладинки книг і скільки з них прочитано та відкривають бібліотеку з цим жанром. Бічні блоки «Давно не повертались», «Новий для вас» і «Є що оцінити» підказують, куди зазирнути далі. Теги можна переглядати сіткою або списком, сторінка відкривається з новими тегами на початку, а «Редагувати» й «Видалити» тепер у меню кожного тегу. У блоці «Структура тегів» кожен тип має свою іконку, «Де використовуються» показує розподіл однією смугою з легендою, а біля чисел тепер видно, що саме пораховано, наприклад «28 тегів · 88%».",
+    category: "improvement",
+    publishedAt: "2026-09-23T00:00:00.000Z",
+    slug: "genres-and-tags-pages",
+    titleEn: "Separate Genres and Tags pages",
+    titleUk: "Окремі сторінки жанрів і тегів",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The Publishers page now has search, twelve sort options, quick and advanced filters, four summary cards and a Needs attention block that leads to books without a publisher, and the search and filters bar spans the full page width. Publisher cards are lighter and more compact, reading top to bottom as name, books and rating, three stats and the date of the latest addition, and cards in one row line up with each other. In Still unread the publisher and its unread book count fit on one line, and in Best rated the rating sits on the right with the number of ratings under the name. A publisher's page has two tabs: Overview, with the latest added book, what you are reading now, your wishlist and series, and Books, with all of that publisher's books, search and filters. When you edit your own publisher you can search the country list, and a publisher can be deleted only when no books are linked to it.",
+    bodyUk:
+      "Сторінка «Видавництва» тепер має пошук, дванадцять варіантів сортування, швидкі й розширені фільтри, чотири картки підсумків і блок «Потребують уваги», що веде до книг без видавництва, а пошук і фільтри займають усю ширину сторінки. Картки видавництв стали легшими й компактнішими: згори донизу йдуть назва, книги й рейтинг, три показники та дата останнього поповнення, а картки в одному ряду вирівняні між собою. У блоці «Ще не прочитано» видавництво й кількість непрочитаних книг уміщуються в один рядок, у «Найкраще оцінено» оцінка тепер праворуч, а кількість оцінок під назвою. Сторінка видавництва має дві вкладки: «Огляд» з останньою доданою книгою, тим, що ви зараз читаєте, списком бажань і серіями, та «Книги» з усіма книгами цього видавництва, пошуком і фільтрами. Під час редагування власного видавництва країну можна знайти пошуком, а видалити видавництво можна лише тоді, коли до нього не прив'язано жодної книги.",
+    category: "improvement",
+    publishedAt: "2026-09-23T00:00:01.000Z",
+    slug: "publishers-archive-rework",
+    titleEn: "Reworked publisher pages",
+    titleUk: "Оновлені сторінки видавництв",
+    version: null,
+  },
+  {
+    bodyEn:
+      "While you are reading a book, its Characters tab leaves out anyone whose first appearance is recorded later than the page you are on. They are missing from the list, the counts and search, and their page says the character is unavailable in this book. Once you finish the book, that limit lifts. The edit page has a new Spoilers section where you choose which fields stay hidden in this book until you press Show: the name, status, details, appearance, species, image or your impression. There you can also hide that the character appears in the book at all, and the rest of your settings are kept.",
+    bodyUk:
+      "Поки ви читаєте книгу, вкладка «Персонажі» не показує тих, чия перша поява записана далі за сторінку, на якій ви зараз. Їх немає ні в списку, ні в лічильниках, ні в пошуку, а їхня сторінка повідомляє, що персонаж недоступний у цій книзі. Щойно ви дочитаєте книгу, це обмеження знімається. На сторінці редагування з'явився розділ «Спойлери», де можна вибрати, які поля в цій книзі будуть приховані, доки ви не натиснете «Показати»: ім'я, статус, дані, зовнішність, вид, зображення чи ваше враження. Там само можна приховати сам факт появи персонажа в книзі, і решта налаштувань при цьому збережеться.",
+    category: "feature",
+    publishedAt: "2026-09-23T00:00:02.000Z",
+    slug: "characters-spoiler-guard",
+    titleEn: "Characters without spoilers",
+    titleUk: "Персонажі без спойлерів",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A character now opens on its own page instead of a side panel: first what is recorded about it in this book, then its general profile and every other book it appears in. You now edit a character on a separate page too, where the shared details and the details for this book are saved separately, so if one part fails to save, the other is kept. Instead of two ways to add a character there is now one Add character window: search by name, add someone from another book in one click, or create a new one with just a name. You now delete a character entirely from its page, and the confirmation lists everything that goes with it.",
+    bodyUk:
+      "Персонаж тепер відкривається на окремій сторінці, а не в бічній панелі: спершу те, що записано про нього в цій книзі, далі загальний профіль і всі інші книги, де він з'являється. Редагувати персонажа тепер теж можна на окремій сторінці, де загальні дані й дані цієї книги зберігаються окремо, тож якщо одна частина не збережеться, друга не пропаде. Замість двох способів додати персонажа тепер є одне вікно «Додати персонажа»: шукайте за іменем, додайте когось з іншої книги одним кліком або створіть нового, вказавши лише ім'я. Повністю видалити персонажа тепер можна на його сторінці, і вікно підтвердження перелічує все, що зникне разом із ним.",
+    category: "feature",
+    publishedAt: "2026-09-24T00:00:00.000Z",
+    slug: "characters-own-page",
+    titleEn: "A page for every character",
+    titleUk: "Окрема сторінка для кожного персонажа",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A character's other names are now split into those used in every book and those that belong only to this book, and search on the Characters tab finds the character by them too. In the Role in the story section you can mark a point-of-view character, set the narrator type and record the first appearance: chapter, page and a note. New characters no longer get Supporting importance and Alive status by default. Until you choose, they show Not specified, and characters you already have keep their values. Name, image, species and your attitude can be set for this book only, and each field shows whether the main value is in use and lets you switch back to it.",
+    bodyUk:
+      "Інші імена персонажа тепер поділено на ті, що діють в усіх книгах, і ті, що належать лише цій книзі, а пошук на вкладці «Персонажі» знаходить його й за ними. У розділі «Роль у розповіді» можна позначити POV-персонажа, вказати тип наратора і записати першу появу: розділ, сторінку та нотатку. Нові персонажі більше не отримують автоматично важливість «Другорядний» і статус «Живий». Поки ви нічого не вибрали, там стоїть «Не вказано», а вже додані персонажі зберігають свої значення. Ім'я, зображення, вид і ваше ставлення можна задати лише для цієї книги, а кожне поле показує, чи діє основне значення, і дає до нього повернутися.",
+    category: "improvement",
+    publishedAt: "2026-09-24T00:00:01.000Z",
+    slug: "character-book-details",
+    titleEn: "Character details per book",
+    titleUk: "Дані персонажа для кожної книги",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Every tag now shows in its own color everywhere, the way it does on the Tags page: on book cards, on the book page, and in the tags field of the book form along with its suggestions. The tag filter on All books, Favorites, Wishlist and Reading queue shows each tag in its color, and the tags you pick look the same in the Filters panel and above the book list. If you opened a filter from a link, selected tags beyond the first twenty used to show as unknown, and now each one shows its name and color. When you add or edit a tag, the color picker names the chosen color and shows how the tag will look, and the Tag palette block on the Tags page shows each color with its tag count underneath.",
+    bodyUk:
+      "Кожен тег тепер скрізь має свій колір, як на сторінці «Теги»: у картках книг, на сторінці книги та в полі тегів у формі книги разом із підказками. У фільтрі за тегами на сторінках «Усі книги», «Улюблені», «Список бажань» і «Черга читання» кожен тег теж у своєму кольорі, і так само виглядають вибрані теги в панелі «Фільтри» та над списком книг. Раніше фільтр, відкритий за посиланням, показував вибрані теги поза першою двадцяткою як невідомі, а тепер кожен має свою назву й колір. Під час додавання чи редагування тегу вибір кольору називає обраний колір і показує, як виглядатиме тег, а в блоці «Палітра тегів» на сторінці «Теги» під кожним кольором видно кількість тегів.",
+    category: "improvement",
+    publishedAt: "2026-09-24T00:00:02.000Z",
+    slug: "tag-colors-everywhere",
+    titleEn: "Tags in their own colors",
+    titleUk: "Теги у власних кольорах",
+    version: null,
+  },
+  {
+    bodyEn:
+      'If you opened your books from a genre link, the genre was applied, but the Filters panel only said "1 genre" and the genre itself was buried deep in the list. Now a field with one selected value shows its name, and every selected value appears under the field, where you can remove it. When you open the list, the selected options come first. This works in the Filters panel on the books, series, lists, notes and quotes pages.',
+    bodyUk:
+      "Якщо ви відкривали книги за посиланням жанру, жанр застосовувався, але панель «Фільтри» показувала лише «1 жанр», а сам жанр губився глибоко в списку. Тепер, коли вибрано одне значення, поле показує його назву, а кожне вибране значення видно під полем, і там його можна прибрати. Коли ви розгортаєте список, вибрані варіанти йдуть першими. Це працює в панелі «Фільтри» на сторінках книг, серій, списків, нотаток і цитат.",
+    category: "fix",
+    publishedAt: "2026-09-24T00:00:03.000Z",
+    slug: "facet-filter-selected-values",
+    titleEn: "Selected values in filters",
+    titleUk: "Вибрані значення у фільтрах",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Quick filters in the library and on the Favorites, To return, Lent out, Dedications, Books in transit and Publishers pages now show how many results each one opens under your current search and advanced filters. Before, most of them showed library-wide totals that did not change as you searched, Books in transit hid its numbers during a search, and Publishers had none at all. A filter at zero stays clickable, All gets a count too, and while the numbers load or refresh the filters stay in place at the same width, so the row no longer jumps. Counts look the same on every page, including notes, tags, genres, quotes and lists, and on a phone every filter is easier to tap. On the loans pages, the line that says how many loans are shown now counts them against the loans that match your search, not against every active loan.",
+    bodyUk:
+      "Швидкі фільтри в бібліотеці та на сторінках «Улюблені», «Треба повернути», «Передано іншим», «Присвяти», «Книги в дорозі» й «Видавництва» тепер показують, скільки результатів відкриє кожен із них з урахуванням поточного пошуку та розширених фільтрів. Раніше більшість із них показувала загальні цифри по всій бібліотеці, які не змінювалися під час пошуку, сторінка «Книги в дорозі» ховала числа, щойно ви щось шукали, а на сторінці «Видавництва» їх не було зовсім. Фільтр із нулем лишається активним, фільтр «Усі» теж показує свою кількість, а поки числа завантажуються чи оновлюються, фільтри стоять на місці й не змінюють ширини, тож рядок більше не стрибає. Кількості виглядають однаково на всіх сторінках, зокрема в нотатках, тегах, жанрах, цитатах і списках, а на телефоні в кожен фільтр легше влучити пальцем. На сторінках позик рядок «Показано … із …» тепер порівнює показані позики з тими, що відповідають пошуку, а не з усіма активними.",
+    category: "improvement",
+    publishedAt: "2026-09-24T00:00:04.000Z",
+    slug: "quick-filter-counts",
+    titleEn: "Quick filters count what they show",
+    titleUk: "Швидкі фільтри рахують те, що показують",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The library, favorites, lists, tags, genres, publishers, loans, deliveries, notes, quotes, dedications, characters and a book's event timeline no longer make you press a button to see more. The next part of the list loads on its own as you scroll down, a little before you reach the end. If it fails to load, everything already on screen stays put and a button to try again appears at the bottom. Before, a failed load could replace the whole list with an error message.",
+    bodyUk:
+      "Бібліотека, улюблені, списки, теги, жанри, видавництва, позики, доставки, нотатки, цитати, присвяти, персонажі та хронологія подій книги більше не просять натискати «Показати ще». Наступна частина списку підвантажується сама, поки ви гортаєте донизу, ще до того, як дійдете до кінця. Якщо завантажити її не вдалося, усе вже показане лишається на екрані, а внизу з'являється кнопка, щоб спробувати ще раз. Раніше в такому разі замість усього списку могло з'явитися повідомлення про помилку.",
+    category: "improvement",
+    publishedAt: "2026-09-25T00:00:00.000Z",
+    slug: "endless-scroll",
+    titleEn: "Endless scrolling in lists",
+    titleUk: "Нескінченна прокрутка списків",
+    version: null,
+  },
+  {
+    bodyEn:
+      "When you add a new book to a series, including from the series page, its genres now fill in on their own. If the series has its own genres, we use those; otherwise we take up to five genres that more than half of the books in the series share, so a series with a single book passes on that book's genres. A note under the field says where the genres came from, and you can change them. If you already picked genres yourself, the form keeps them and offers the series genres as a suggestion instead.",
+    bodyUk:
+      "Коли ви додаєте нову книгу до серії, зокрема зі сторінки серії, її жанри тепер заповнюються автоматично. Якщо в серії вказано власні жанри, підставляємо їх, а якщо ні, беремо до п'яти жанрів, які мають більше половини книг серії, тож серія з однією книгою передає жанри саме цієї книги. Під полем видно, звідки взялися жанри, і їх можна змінити. Якщо ви вже обрали жанри самі, форма їх не замінює, а пропонує взяти жанри серії.",
+    category: "feature",
+    publishedAt: "2026-09-26T00:00:00.000Z",
+    slug: "series-genres-prefill",
+    titleEn: "Genres from the series",
+    titleUk: "Жанри з серії",
+    version: null,
+  },
+  {
+    bodyEn:
+      "In the event timeline you can now mark an event as a Spoiler. With the Spoiler guard on, these events and any event beyond your current page stay hidden in the timeline view, the list and the event window until you choose Show event. Timelines now use the same eight colors as tags: a new timeline gets the first color not yet taken, and your existing timelines got colors from the new palette. The Overview shows the whole book at a glance, each summary card or chart opens the matching events with fresh filters instead of adding to the ones you had, and Filters has a new Without a chapter option. The event form is split into sections you can collapse, and following a related event keeps you in the same window.",
+    bodyUk:
+      "У хронології подій тепер можна позначити подію як «Спойлер». Коли увімкнено «Захист від спойлерів», такі події, а також усі, що стоять далі вашої поточної сторінки, приховані у стрічці, списку та вікні події, доки ви не натиснете «Показати подію». Часові лінії тепер мають ті самі вісім кольорів, що й теги: нова лінія отримує перший ще не зайнятий колір, а наявні лінії отримали кольори з нової палітри. «Огляд» показує всю книгу одразу, кожна картка підсумків і діаграма відкриває відповідні події з чистими фільтрами замість того, щоб додаватися до попередніх, а у «Фільтрах» з'явився пункт «Без зазначеного розділу». Форму події розбито на розділи, які можна згортати, а пов'язана подія відкривається в тому самому вікні.",
+    category: "improvement",
+    publishedAt: "2026-09-26T00:00:01.000Z",
+    slug: "timeline-spoilers-and-palette",
+    titleEn: "Timeline spoilers and colors",
+    titleUk: "Спойлери й кольори в хронології",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

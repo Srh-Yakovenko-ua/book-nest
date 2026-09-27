@@ -1,10 +1,13 @@
+import type { LibraryQuickFilterKey as LibraryQuickCountKey } from "@app/shared";
+
 import type {
   BooksControllerListBookType,
   BooksControllerListOwnerItem,
   BooksControllerListStatusItem,
+  BooksControllerQuickCountsParams,
 } from "@/shared/api/generated/model";
 
-import type { LibraryQueryState, LibraryScope } from "./library-query";
+import type { LibraryListParams, LibraryQueryState, LibraryScope } from "./library-query";
 
 export const LIBRARY_QUICK_FILTER_KEYS = [
   "all",
@@ -17,7 +20,7 @@ export const LIBRARY_QUICK_FILTER_KEYS = [
   "borrowed",
   "series",
   "solo",
-] as const;
+] as const satisfies readonly LibraryQuickCountKey[];
 
 export type LibraryQuickFilterKey = (typeof LIBRARY_QUICK_FILTER_KEYS)[number];
 
@@ -33,42 +36,12 @@ const QUICK_FILTERS_OUTSIDE_FAVORITES_SCOPE: readonly LibraryQuickFilterKey[] = 
   "borrowed",
 ];
 
-export type LibraryQuickFilterCounts = Partial<Record<LibraryQuickFilterKey, number>>;
-
 export type LibraryQuickFilterPatch = {
   bookType: BooksControllerListBookType | null;
   isFavorite: boolean | null;
   owner: BooksControllerListOwnerItem[] | null;
   status: BooksControllerListStatusItem[] | null;
 };
-
-type LibraryQuickFilterCountSource = {
-  borrowed?: number;
-  favorites?: number;
-  finished?: number;
-  inTransit?: number;
-  reading?: number;
-  series?: number;
-  solo?: number;
-  total?: number;
-  wantToBuy?: number;
-  wantToRead?: number;
-};
-
-export function quickFilterCounts(source: LibraryQuickFilterCountSource): LibraryQuickFilterCounts {
-  return {
-    all: source.total,
-    borrowed: source.borrowed,
-    favorites: source.favorites,
-    finished: source.finished,
-    in_transit: source.inTransit,
-    reading: source.reading,
-    series: source.series,
-    solo: source.solo,
-    want_to_buy: source.wantToBuy,
-    want_to_read: source.wantToRead,
-  };
-}
 
 export function quickFilterKeysForScope(scope: LibraryScope): readonly LibraryQuickFilterKey[] {
   if (scope === "all") return LIBRARY_QUICK_FILTER_KEYS;
@@ -78,6 +51,22 @@ export function quickFilterKeysForScope(scope: LibraryScope): readonly LibraryQu
     );
   }
   return LIBRARY_QUICK_FILTER_KEYS.filter((key) => !QUICK_FILTERS_OUTSIDE_MY_SCOPE.includes(key));
+}
+
+export function toLibraryQuickCountsParams(
+  listParams: LibraryListParams,
+  scope: LibraryScope,
+): BooksControllerQuickCountsParams {
+  const {
+    bookType: _bookType,
+    isFavorite: _isFavorite,
+    owner: _owner,
+    pageSize: _pageSize,
+    sort: _sort,
+    status: _status,
+    ...countFilters
+  } = listParams;
+  return { ...countFilters, scope };
 }
 
 const QUICK_FILTER_CLEARED: LibraryQuickFilterPatch = {

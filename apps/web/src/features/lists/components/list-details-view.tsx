@@ -8,8 +8,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { LibraryBookLabels } from "@/features/books/model/library-book";
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
 import { UiIcon } from "@/components/icons";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Button } from "@/components/ui/button";
 import { useGenres } from "@/features/books/api/use-genres";
 import { useAddToReadingQueue } from "@/features/books/api/use-reading-queue";
@@ -63,10 +65,9 @@ import { ListSidebar } from "./list-sidebar";
 import { ListStatsCards, useListSummaryCards } from "./list-stats-cards";
 
 type ListDetailsViewProps = {
-  hasNextPage: boolean;
   id: string;
   isFetching: boolean;
-  isFetchingNextPage: boolean;
+  loadMoreState: InfiniteScrollState;
   onLoadMore: () => void;
   pages: CustomListDetail[];
 };
@@ -80,10 +81,9 @@ type NoResultsProps = {
 };
 
 export function ListDetailsView({
-  hasNextPage,
   id,
   isFetching,
-  isFetchingNextPage,
+  loadMoreState,
   onLoadMore,
   pages,
 }: ListDetailsViewProps) {
@@ -353,18 +353,11 @@ export function ListDetailsView({
           )}
         </div>
 
-        {hasNextPage ? (
-          <div className="flex justify-center">
-            <Button
-              disabled={isFetchingNextPage}
-              loading={isFetchingNextPage}
-              onClick={onLoadMore}
-              variant="secondary"
-            >
-              {t("loadMore")}
-            </Button>
-          </div>
-        ) : null}
+        <InfiniteScrollFooter
+          errorLabel={t("loadMoreError")}
+          onLoadMore={onLoadMore}
+          state={loadMoreState}
+        />
       </>
     );
   }

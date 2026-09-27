@@ -4,10 +4,11 @@ import type { QuoteView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -105,52 +106,30 @@ export function QuotesContent({
         ))}
       </ul>
 
-      <LoadMoreFooter
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        isLoadMoreError={isLoadMoreError}
+      <InfiniteScrollFooter
+        allShownLabel={t("allShown")}
+        className="pt-2 text-center"
+        errorLabel={t("loadMoreError")}
         onLoadMore={onLoadMore}
+        state={nextPageState({ hasNextPage, isFetchingNextPage, isLoadMoreError })}
       />
     </div>
   );
 }
 
-function LoadMoreFooter({
+function nextPageState({
   hasNextPage,
   isFetchingNextPage,
   isLoadMoreError,
-  onLoadMore,
 }: {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
-  onLoadMore: () => void;
-}) {
-  const t = useTranslations("quotes");
-
-  return (
-    <div className="flex flex-col items-center gap-2 pt-2">
-      {hasNextPage ? (
-        <>
-          {isLoadMoreError ? (
-            <p className="text-sm text-error" role="alert">
-              {t("loadMoreError")}
-            </p>
-          ) : null}
-          <Button
-            disabled={isFetchingNextPage}
-            loading={isFetchingNextPage}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </>
-      ) : (
-        <p className="text-xs text-muted-foreground">{t("allShown")}</p>
-      )}
-    </div>
-  );
+}): InfiniteScrollState {
+  if (isFetchingNextPage) return "loading";
+  if (isLoadMoreError) return "error";
+  if (hasNextPage) return "idle";
+  return "none";
 }
 
 function QuotesSkeleton({ view }: { view: QuotesViewMode }) {

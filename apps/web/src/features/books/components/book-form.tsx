@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookFormat, BookView, OwnershipStatus, ReadingStatus, TagColor } from "@app/shared";
 
 import {
   BOOK_AUTHORS_REQUIRED_MESSAGE,
@@ -8,6 +8,7 @@ import {
   BOOK_DESCRIPTION_MAX,
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  TAG_COLOR_DEFAULT,
 } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
@@ -39,8 +40,8 @@ import type { BookFormMode } from "../model/book-form-mode";
 
 import { useCreateBook } from "../api/use-create-book";
 import { useGenres } from "../api/use-genres";
+import { useSearchedTagColors } from "../api/use-tags-search";
 import { useUpdateBook } from "../api/use-update-book";
-import { BOOK_GENRES_MAX } from "../model/book-classification-fields";
 import { readBookFormDraft } from "../model/book-form-draft";
 import {
   FORMAT_OPTIONS,
@@ -66,6 +67,15 @@ import {
 } from "../model/create-book-form";
 import { buildQueuePriorityPayload } from "../model/queue-priority";
 import { BASIC_INFO_FIELDS } from "../model/section-completeness";
+import {
+  resolveSeriesGenresSuggestion,
+  type SeriesGenresHint,
+  type SeriesGenresSource,
+} from "../model/series-genres-suggestion";
+import {
+  resolveSeriesPublisherSuggestion,
+  type SeriesPublisherSuggestion,
+} from "../model/series-publisher-suggestion";
 import { AuthorsField } from "./authors-field";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
@@ -126,26 +136,51 @@ export function BookForm(props: BookFormProps) {
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
   const initialSeries = props.mode === "create" ? (props.initialSeries ?? null) : null;
   const initialPublisher = props.mode === "create" ? (props.initialPublisher ?? null) : null;
+
+  const locale = useLocale();
+  const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
+  const [restoredDraft] = useState(() => readBookFormDraft(draftKey, locale));
+
+  const publisherOwnedByUser = restoredDraft?.publisherEdited ?? initialPublisher !== null;
+  const initialPublisherSuggestion = resolveSeriesPublisherSuggestion({
+    isPublisherEdited: publisherOwnedByUser,
+    publisherSelection: restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? null,
+    seriesSelection: initialSeries?.selection ?? null,
+  });
+
+  const initialGenresSuggestion = resolveSeriesGenresSuggestion(initialSeries?.selection ?? null);
+  const prefilledSeriesGenres =
+    initialGenresSuggestion.kind === "apply" ? initialGenresSuggestion.genres : [];
+  const initialSeriesGenresHint: null | SeriesGenresHint =
+    initialSeries !== null &&
+    initialGenresSuggestion.kind === "apply" &&
+    restoredDraft?.values.genres === undefined
+      ? { seriesName: initialSeries.selection.name, source: initialGenresSuggestion.source }
+      : null;
+
   const createSeriesDefaults = initialSeries
     ? ({
         ...createBookFormDefaults,
         authors: initialSeries.selection.authors.map(authorSelectionToReference),
         bookType: "series_part",
+        genres: prefilledSeriesGenres,
         partNumber: initialSeries.partNumber,
         seriesId: initialSeries.selection.id,
       } satisfies Partial<CreateBookFormValues>)
     : createBookFormDefaults;
+  const defaultPublisherId =
+    initialPublisher?.kind === "catalog"
+      ? initialPublisher.id
+      : initialPublisherSuggestion.kind === "apply"
+        ? initialPublisherSuggestion.publisher.id
+        : undefined;
   const createDefaults =
-    initialPublisher !== null && initialPublisher.kind === "catalog"
-      ? ({
+    defaultPublisherId === undefined
+      ? createSeriesDefaults
+      : ({
           ...createSeriesDefaults,
-          publisherId: initialPublisher.id,
-        } satisfies Partial<CreateBookFormValues>)
-      : createSeriesDefaults;
-
-  const locale = useLocale();
-  const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
-  const [restoredDraft] = useState(() => readBookFormDraft(draftKey, locale));
+          publisherId: defaultPublisherId,
+        } satisfies Partial<CreateBookFormValues>);
 
   const createBook = useCreateBook();
   const updateBook = useUpdateBook(bookId ?? "");
@@ -162,8 +197,15 @@ export function BookForm(props: BookFormProps) {
       [],
   );
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
-    restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? initialPublisher ?? null,
+    restoredDraft?.publisherSelection ??
+      initial?.publisherSelection ??
+      initialPublisher ??
+      (initialPublisherSuggestion.kind === "apply" ? initialPublisherSuggestion.publisher : null),
   );
+  const [publisherSuggestion, setPublisherSuggestion] = useState<SeriesPublisherSuggestion>(
+    initialPublisherSuggestion,
+  );
+  const [publisherEdited, setPublisherEdited] = useState(publisherOwnedByUser);
   const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(
     restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? initialSeries?.selection ?? null,
   );
@@ -179,11 +221,14 @@ export function BookForm(props: BookFormProps) {
   const [uploadedCover, setUploadedCover] = useState<null | { file: File; mediaId: string }>(null);
   const [seriesConflict, setSeriesConflict] = useState<null | SeriesPartNumberConflict>(null);
   const [seriesClearedByAuthors, setSeriesClearedByAuthors] = useState(false);
-  const [genresAutofilled, setGenresAutofilled] = useState(false);
-  const [seriesGenresHintName, setSeriesGenresHintName] = useState<null | string>(null);
+  const [genresAutofilled, setGenresAutofilled] = useState(initialSeriesGenresHint !== null);
+  const [seriesGenresHint, setSeriesGenresHint] = useState<null | SeriesGenresHint>(
+    initialSeriesGenresHint,
+  );
   const [seriesGenresSuggestion, setSeriesGenresSuggestion] = useState<null | {
     genres: string[];
     seriesName: string;
+    source: SeriesGenresSource;
   }>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -255,6 +300,7 @@ export function BookForm(props: BookFormProps) {
             authorSelections,
             loanContactSelection,
             locale,
+            publisherEdited,
             publisherSelection,
             seriesSelection,
             values: getValues(),
@@ -273,6 +319,7 @@ export function BookForm(props: BookFormProps) {
     getValues,
     loanContactSelection,
     locale,
+    publisherEdited,
     publisherSelection,
     seriesSelection,
     subscribe,
@@ -285,6 +332,7 @@ export function BookForm(props: BookFormProps) {
   const ownershipStatusValue = useWatch({ control, name: "ownershipStatus" }) ?? "none";
   const genresValue = useWatch({ control, name: "genres" }) ?? [];
   const tagsValue = useWatch({ control, name: "tags" }) ?? [];
+  const searchedTagColors = useSearchedTagColors();
   const formatsValue = useWatch({ control, name: "formats" }) ?? [];
   const isFavoriteValue = useWatch({ control, name: "isFavorite" }) ?? false;
   const inQueueValue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
@@ -295,13 +343,41 @@ export function BookForm(props: BookFormProps) {
   function clearAutofilledGenres() {
     setValue("genres", [], { shouldDirty: true, shouldValidate: true });
     setGenresAutofilled(false);
-    setSeriesGenresHintName(null);
+    setSeriesGenresHint(null);
+  }
+
+  function clearSuggestedPublisher() {
+    setPublisherSuggestion({ kind: "none" });
+    setPublisherSelection(null);
+    setValue("publisherId", undefined, { shouldDirty: false });
+    setValue("publisherName", undefined, { shouldDirty: false });
+  }
+
+  function syncPublisherSuggestion(selection: null | SeriesSelection) {
+    if (mode !== "create") return;
+    const suggestion = resolveSeriesPublisherSuggestion({
+      isPublisherEdited: publisherEdited,
+      publisherSelection: publisherSuggestion.kind === "apply" ? null : publisherSelection,
+      seriesSelection: selection,
+    });
+
+    if (suggestion.kind === "none") {
+      if (publisherSuggestion.kind === "none") return;
+      clearSuggestedPublisher();
+      return;
+    }
+
+    setPublisherSuggestion(suggestion);
+    setPublisherSelection(suggestion.publisher);
+    setValue("publisherId", suggestion.publisher.id, { shouldDirty: false });
+    setValue("publisherName", undefined, { shouldDirty: false });
   }
 
   function handleSeriesSelectionChange(selection: null | SeriesSelection) {
     setSeriesConflict(null);
     setSeriesClearedByAuthors(false);
     setSeriesSelection(selection);
+    syncPublisherSuggestion(selection);
     if (selection !== null && selection.authors.length > 0) {
       setAuthorSelections(selection.authors);
       setValue("authors", selection.authors.map(authorSelectionToReference), {
@@ -310,12 +386,7 @@ export function BookForm(props: BookFormProps) {
       });
     }
 
-    const seriesGenres =
-      selection?.kind === "existing"
-        ? selection.genres
-        : selection?.kind === "new"
-          ? selection.draft.genres
-          : [];
+    const genresSuggestion = resolveSeriesGenresSuggestion(selection);
     setSeriesGenresSuggestion(null);
 
     if (selection === null) {
@@ -326,22 +397,23 @@ export function BookForm(props: BookFormProps) {
     const current = getValues("genres") ?? [];
     const replaceable = current.length === 0 || genresAutofilled;
 
-    if (seriesGenres.length === 0) {
+    if (genresSuggestion.kind === "none") {
       if (genresAutofilled) clearAutofilledGenres();
       return;
     }
 
     if (replaceable) {
-      setValue("genres", seriesGenres.slice(0, BOOK_GENRES_MAX), {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
+      setValue("genres", genresSuggestion.genres, { shouldDirty: true, shouldValidate: true });
       setGenresAutofilled(true);
-      setSeriesGenresHintName(selection.name);
+      setSeriesGenresHint({ seriesName: selection.name, source: genresSuggestion.source });
       return;
     }
 
-    setSeriesGenresSuggestion({ genres: seriesGenres, seriesName: selection.name });
+    setSeriesGenresSuggestion({
+      genres: genresSuggestion.genres,
+      seriesName: selection.name,
+      source: genresSuggestion.source,
+    });
   }
 
   function handleLoanContactChange(selection: LoanContactSelection | null) {
@@ -376,6 +448,7 @@ export function BookForm(props: BookFormProps) {
     });
     if (clearSeries) {
       setSeriesSelection(null);
+      syncPublisherSuggestion(null);
       setValue("seriesId", undefined);
       setValue("newSeries", undefined, { shouldValidate: true });
       clearErrors(["partNumber", "seriesId", "newSeries"]);
@@ -395,7 +468,17 @@ export function BookForm(props: BookFormProps) {
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const previewGenres = genresValue.map((key) => genreNameByKey.get(key) ?? key);
-  const previewTags = tagsValue.filter((value): value is string => typeof value === "string");
+  const bookTags = props.mode === "edit" ? props.book.tags : [];
+  function tagColorOf(name: string): TagColor {
+    return (
+      searchedTagColors.get(name.toLowerCase()) ??
+      bookTags.find((tag) => tag.name.toLowerCase() === name.toLowerCase())?.color ??
+      TAG_COLOR_DEFAULT
+    );
+  }
+  const previewTags = tagsValue
+    .filter((value): value is string => typeof value === "string")
+    .map((name) => ({ color: tagColorOf(name), name }));
   const previewFormats = formatsValue.filter(isBookFormat);
   const previewRating = typeof ratingValue === "number" ? ratingValue : undefined;
 
@@ -686,11 +769,17 @@ export function BookForm(props: BookFormProps) {
               </span>
             </Label>
             <PublisherAutocomplete
-              describedBy={errors.publisherName ? "book-publisher-error" : undefined}
+              describedBy={
+                errors.publisherName
+                  ? "book-publisher-hint book-publisher-error"
+                  : "book-publisher-hint"
+              }
               id="book-publisher"
               invalid={errors.publisherName !== undefined}
               label={t("fields.publisher")}
               onChange={(selection: null | PublisherSelection) => {
+                setPublisherEdited(true);
+                setPublisherSuggestion({ kind: "none" });
                 setPublisherSelection(selection);
                 if (selection === null) {
                   setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
@@ -714,7 +803,18 @@ export function BookForm(props: BookFormProps) {
               placeholder={t("fields.publisherPlaceholder")}
               value={publisherSelection}
             />
-            <p className="text-xs text-muted-foreground">{t("fields.publisherHint")}</p>
+            <p
+              aria-live="polite"
+              className="text-xs text-muted-foreground"
+              id="book-publisher-hint"
+            >
+              {publisherSuggestion.kind === "apply"
+                ? t("fields.publisherSeriesHint", {
+                    count: publisherSuggestion.bookCount,
+                    name: publisherSuggestion.publisher.name,
+                  })
+                : t("fields.publisherHint")}
+            </p>
             <FieldError error={errors.publisherName} id="book-publisher-error" />
           </div>
 
@@ -787,29 +887,34 @@ export function BookForm(props: BookFormProps) {
         <ClassificationSection
           control={control}
           errors={errors}
-          genresHintSeriesName={seriesGenresHintName}
+          genresHint={seriesGenresHint}
           genresSuggestion={
             seriesGenresSuggestion === null
               ? null
               : {
                   genres: seriesGenresSuggestion.genres,
                   onApply: () => {
-                    setValue("genres", seriesGenresSuggestion.genres.slice(0, BOOK_GENRES_MAX), {
+                    setValue("genres", seriesGenresSuggestion.genres, {
                       shouldDirty: true,
                       shouldValidate: true,
                     });
                     setGenresAutofilled(true);
-                    setSeriesGenresHintName(seriesGenresSuggestion.seriesName);
+                    setSeriesGenresHint({
+                      seriesName: seriesGenresSuggestion.seriesName,
+                      source: seriesGenresSuggestion.source,
+                    });
                     setSeriesGenresSuggestion(null);
                   },
                   onDismiss: () => setSeriesGenresSuggestion(null),
+                  source: seriesGenresSuggestion.source,
                 }
           }
           onGenresUserEdit={() => {
             setGenresAutofilled(false);
-            setSeriesGenresHintName(null);
+            setSeriesGenresHint(null);
             setSeriesGenresSuggestion(null);
           }}
+          tagColorOf={tagColorOf}
         />
 
         <ReadingStatusSection

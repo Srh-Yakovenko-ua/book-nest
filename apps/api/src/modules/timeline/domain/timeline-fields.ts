@@ -15,6 +15,7 @@ export type UpdateEventFields = {
   eventType?: string;
   importance?: string;
   importanceRank?: number;
+  isSpoiler?: boolean;
   location?: Nullable<string>;
   pageNumber?: Nullable<number>;
   personalNote?: Nullable<string>;

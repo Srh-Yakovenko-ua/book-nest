@@ -20,7 +20,6 @@ export function ListQuickFilters({ counts, onSelect, value }: ListQuickFiltersPr
   const t = useTranslations("lists.details.quickFilters");
   const options = LIST_QUICK_FILTER_KEYS.map((key) => ({
     count: counts[key],
-    disabled: counts[key] === 0 && key !== "all" && key !== value,
     label: t(key),
     value: key,
   }));

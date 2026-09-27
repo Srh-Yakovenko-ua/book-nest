@@ -3,7 +3,7 @@
 import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { useFittedLineClamp } from "../../hooks/use-fitted-line-clamp";
+import { useFittedLineClamp } from "@/hooks/use-fitted-line-clamp";
 
 type QuotePreviewProps = {
   expandAction: ReactNode;

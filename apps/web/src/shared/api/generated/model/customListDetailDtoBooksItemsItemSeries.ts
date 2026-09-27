@@ -8,6 +8,7 @@
 import type { CustomListDetailDtoBooksItemsItemSeriesAgeCategoriesItem } from "./customListDetailDtoBooksItemsItemSeriesAgeCategoriesItem";
 import type { CustomListDetailDtoBooksItemsItemSeriesAuthorsItem } from "./customListDetailDtoBooksItemsItemSeriesAuthorsItem";
 import type { CustomListDetailDtoBooksItemsItemSeriesCoversItem } from "./customListDetailDtoBooksItemsItemSeriesCoversItem";
+import type { CustomListDetailDtoBooksItemsItemSeriesDominantPublisher } from "./customListDetailDtoBooksItemsItemSeriesDominantPublisher";
 import type { CustomListDetailDtoBooksItemsItemSeriesFormatsItem } from "./customListDetailDtoBooksItemsItemSeriesFormatsItem";
 import type { CustomListDetailDtoBooksItemsItemSeriesLanguagesItem } from "./customListDetailDtoBooksItemsItemSeriesLanguagesItem";
 import type { CustomListDetailDtoBooksItemsItemSeriesNextBook } from "./customListDetailDtoBooksItemsItemSeriesNextBook";
@@ -26,10 +27,13 @@ export type CustomListDetailDtoBooksItemsItemSeries = {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: CustomListDetailDtoBooksItemsItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: CustomListDetailDtoBooksItemsItemSeriesDominantPublisher;
   finishedInSeries: number;
   formats?: CustomListDetailDtoBooksItemsItemSeriesFormatsItem[];
   genres: string[];

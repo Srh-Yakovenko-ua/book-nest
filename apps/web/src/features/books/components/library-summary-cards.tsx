@@ -21,6 +21,7 @@ export type LibrarySummaryCard = {
   unit?: ReactNode;
   value: number | string;
   valueClassName?: string;
+  valueKind?: "name";
 };
 
 type LibrarySummaryCardsProps = {

@@ -314,33 +314,15 @@ export const TagSuggestionAddsExisting: Story = {
   },
 };
 
-export const DeleteSavedTagFromSuggestions: Story = {
+export const SavedTagSuggestionHasNoDeleteControl: Story = {
   play: async ({ canvas }) => {
-    let deletedTagPath: null | string = null;
-    mockFetch(
-      taxonomyHandler((path, init) => {
-        if (path.includes("/api/tags/") && init?.method === "DELETE") {
-          deletedTagPath = path;
-          return jsonResponse(204, null);
-        }
-        return emptyAuthorSearch;
-      }),
-    );
+    mockFetch(taxonomyHandler());
     const surface = within(document.body);
 
     await userEvent.click(canvas.getByLabelText("Теги"));
-    const deleteControl = await surface.findByRole("button", {
-      name: "Видалити збережений тег «улюблене»",
-    });
-    await userEvent.click(deleteControl);
+    const suggestion = await surface.findByRole("option", { name: /улюблене/ });
 
-    const dialog = within(await surface.findByRole("alertdialog"));
-    await expect(dialog.getByText("Видалити тег?")).toBeVisible();
-
-    await userEvent.click(dialog.getByRole("button", { name: "Видалити тег" }));
-
-    await waitFor(() => expect(deletedTagPath).not.toBeNull());
-    await expect(deletedTagPath).toContain("/api/tags/tag-1");
+    await expect(within(suggestion).queryByRole("button")).toBeNull();
   },
 };
 
@@ -866,8 +848,34 @@ function authorView(seed: { id: string; name: string }): AuthorView {
   };
 }
 
+function mockEmpireanSeries() {
+  getQueryClient().clear();
+  const empirean = seriesView({
+    authors: [],
+    commonGenres: ["fantasy", "romance"],
+    dominantPublisher: { bookCount: 5, id: "publisher-vivat", name: "Vivat" },
+    id: "series-empirean",
+    name: "Емпіреї",
+  });
+  const base = taxonomyHandler();
+  mockFetch((path, init) => {
+    if (path.includes("/api/series") && init?.method !== "POST") {
+      return jsonResponse(200, {
+        items: [empirean],
+        page: 1,
+        pagesCount: 1,
+        pageSize: 20,
+        totalCount: 1,
+      });
+    }
+    return base(path, init);
+  });
+}
+
 function seriesView(seed: {
   authors: { id: string; name: string }[];
+  commonGenres?: string[];
+  dominantPublisher?: SeriesView["dominantPublisher"];
   id: string;
   name: string;
 }): SeriesView {
@@ -877,9 +885,11 @@ function seriesView(seed: {
     averagePages: null,
     averageRating: null,
     booksInSeries: 0,
+    commonGenres: seed.commonGenres ?? [],
     covers: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
+    dominantPublisher: seed.dominantPublisher ?? null,
     finishedInSeries: 0,
     formats: [],
     genres: [],
@@ -926,6 +936,27 @@ function mockWitcherSeries() {
     return base(path, init);
   });
 }
+
+export const SeriesPickPrefillsPublisher: Story = {
+  beforeEach: mockEmpireanSeries,
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
+    await userEvent.click(canvas.getByLabelText("Серія"));
+    await userEvent.click(await surface.findByText("Емпіреї"));
+
+    await waitFor(() => expect(canvas.getByLabelText(/Видавництво/)).toHaveValue("Vivat"));
+    await expect(
+      canvas.getByText(
+        "Підставили Vivat: це видавництво 5 книг цієї серії. Змініть, якщо це інше видання.",
+      ),
+    ).toBeVisible();
+    await expect(canvas.getByLabelText(/Видавництво/)).toHaveAccessibleDescription(
+      /Підставили Vivat/,
+    );
+  },
+};
 
 export const SeriesPickSyncsAuthorsAndSubsetRestores: Story = {
   beforeEach: mockWitcherSeries,

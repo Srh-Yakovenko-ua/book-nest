@@ -371,8 +371,8 @@ describe("series book aggregates through GET /api/books/:id", () => {
     const res = await getBook(accessToken, bookIds[2]);
 
     expect(res.body.series.tags).toEqual([
-      { id: tagIds.courtIntrigue, name: SERIES_TAG_NAMES.courtIntrigue },
-      { id: tagIds.saga, name: SERIES_TAG_NAMES.saga },
+      { color: "parchment", id: tagIds.courtIntrigue, name: SERIES_TAG_NAMES.courtIntrigue },
+      { color: "parchment", id: tagIds.saga, name: SERIES_TAG_NAMES.saga },
     ]);
   });
 

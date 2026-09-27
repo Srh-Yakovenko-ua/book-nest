@@ -53,7 +53,8 @@ export type CreateCharacterInBookDto =
          */
         firstAppearancePage?: number | null;
         hidePresenceAsSpoiler?: boolean;
-        importance?: "central" | "major" | "supporting" | "episodic" | "mentioned";
+        importance?:
+          "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
         /** @nullable */
         narratorType?:
@@ -110,7 +111,8 @@ export type CreateCharacterInBookDto =
          */
         speciesOverride?: string | null;
         speciesOverrideIsSpoiler?: boolean;
-        status?: "active" | "missing" | "dead" | "unknown" | "transformed" | "other";
+        status?:
+          "active" | "missing" | "dead" | "unknown" | "transformed" | "other" | "not_specified";
         /**
          * @maxLength 200
          * @nullable
@@ -168,7 +170,8 @@ export type CreateCharacterInBookDto =
          */
         firstAppearancePage?: number | null;
         hidePresenceAsSpoiler?: boolean;
-        importance?: "central" | "major" | "supporting" | "episodic" | "mentioned";
+        importance?:
+          "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
         /** @nullable */
         narratorType?:
@@ -225,7 +228,8 @@ export type CreateCharacterInBookDto =
          */
         speciesOverride?: string | null;
         speciesOverrideIsSpoiler?: boolean;
-        status?: "active" | "missing" | "dead" | "unknown" | "transformed" | "other";
+        status?:
+          "active" | "missing" | "dead" | "unknown" | "transformed" | "other" | "not_specified";
         /**
          * @maxLength 200
          * @nullable

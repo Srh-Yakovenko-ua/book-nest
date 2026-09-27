@@ -93,6 +93,7 @@ export type BooksControllerListParams = {
    * @maximum 10
    */
   ratingMin?: number;
+  searchPublisher?: string;
   sort?: BooksControllerListSort;
   /**
    * @maxItems 100

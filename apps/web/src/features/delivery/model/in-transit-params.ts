@@ -1,4 +1,4 @@
-import type { InTransitAttentionReason, InTransitSummaryView, Nullable } from "@app/shared";
+import type { InTransitAttentionReason, Nullable } from "@app/shared";
 
 import {
   ActiveMoneyAgeBucketSchema,
@@ -17,6 +17,7 @@ import {
 import type {
   DeliveryReadControllerInTransitListParams,
   DeliveryReadControllerInTransitListPriceCurrency,
+  DeliveryReadControllerInTransitQuickCountsParams,
 } from "@/shared/api/generated/model";
 
 import {
@@ -210,16 +211,6 @@ export function toDeliveryAttentionReason(
   );
 }
 
-export function toDeliveryFilterCounts(summary: InTransitSummaryView): DeliveryFilterCounts {
-  return {
-    all: summary.activeBooksCount,
-    delayed: summary.delayedCount,
-    in_transit: summary.inTransitCount,
-    ordered: summary.orderedCount,
-    ready_for_pickup: summary.readyForPickupCount,
-  };
-}
-
 export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListParams {
   const search = state.q.trim();
   const flags = deliveryRangeFlags(state);
@@ -251,6 +242,13 @@ export function toDeliveryListParams(state: DeliveryQueryState): DeliveryListPar
           ...(state.priceMax === null ? {} : { priceMax: state.priceMax }),
         }),
   };
+}
+
+export function toInTransitQuickCountsParams(
+  listParams: DeliveryListParams,
+): DeliveryReadControllerInTransitQuickCountsParams {
+  const { filter: _filter, pageSize: _pageSize, sort: _sort, ...countFilters } = listParams;
+  return countFilters;
 }
 
 function dayBound(

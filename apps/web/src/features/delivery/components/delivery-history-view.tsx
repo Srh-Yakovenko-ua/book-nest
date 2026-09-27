@@ -4,12 +4,13 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { pageTabsTriggerId } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import type { HistoryOrderCardModel } from "../model/history-order-card-model";
@@ -30,7 +31,11 @@ type DeliveryHistoryViewProps = {
   onLoadMore: () => void;
   onResetFilters: () => void;
   onRetry: () => void;
-  pagination: { hasNextPage: boolean; isFetchingNextPage: boolean };
+  pagination: {
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+    isFetchNextPageError: boolean;
+  };
   renderCard: (model: HistoryOrderCardModel) => ReactNode;
   showToolbar: boolean;
   sidebar?: ReactNode;
@@ -173,22 +178,24 @@ function HistoryContentArea({
     return <EmptyState onPrimary={onResetFilters} state={filteredState} />;
   }
 
+  const scrollState: InfiniteScrollState = pagination.isFetchNextPageError
+    ? "error"
+    : pagination.isFetchingNextPage
+      ? "loading"
+      : pagination.hasNextPage
+        ? "idle"
+        : "none";
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">{content.items.map((model) => renderCard(model))}</div>
 
-      {pagination.hasNextPage ? (
-        <div className="flex justify-center pt-2">
-          <Button
-            disabled={pagination.isFetchingNextPage}
-            loading={pagination.isFetchingNextPage}
-            onClick={onLoadMore}
-            variant="secondary"
-          >
-            {t("loadMore")}
-          </Button>
-        </div>
-      ) : null}
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={onLoadMore}
+        retryLabel={t("states.error.retry")}
+        state={scrollState}
+      />
     </div>
   );
 }

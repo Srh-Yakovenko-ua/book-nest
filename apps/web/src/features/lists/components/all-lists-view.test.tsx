@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
+import {
+  mockIntersectionObserver,
+  renderWithProviders,
+  screen,
+  userEvent,
+  within,
+} from "@/test-utils";
 
 import { makeCustomListCard } from "../model/lists.fixtures";
 import { AllListsView } from "./all-lists-view";
@@ -30,7 +36,6 @@ function renderView(overrides: Partial<ViewProps> = {}) {
     isPending: false,
     lists: [makeCustomListCard()],
     loadMoreErrorLabel: "Не вдалося завантажити ще списки",
-    loadMoreLabel: "Показати ще",
     onClearFilters: vi.fn(),
     onCreateList: vi.fn(),
     onDeleteList: vi.fn(),
@@ -48,6 +53,8 @@ function renderView(overrides: Partial<ViewProps> = {}) {
 }
 
 describe("AllListsView", () => {
+  const viewport = mockIntersectionObserver();
+
   it("renders the lists as cards in the given order", () => {
     const lists: CustomListCard[] = [
       makeCustomListCard({ id: "a", name: "Альфа" }),
@@ -118,11 +125,26 @@ describe("AllListsView", () => {
     expect(onClearFilters).toHaveBeenCalledOnce();
   });
 
-  it("loads the next page from the pagination footer", async () => {
+  it("loads the next page once the sentinel reaches the viewport", () => {
     const onLoadMore = vi.fn();
     renderView({ hasNextPage: true, onLoadMore });
 
-    await userEvent.click(screen.getByRole("button", { name: "Показати ще" }));
+    viewport.enterViewport();
+
+    expect(onLoadMore).toHaveBeenCalledOnce();
+  });
+
+  it("stops auto-loading and offers a retry when the next page fails", async () => {
+    const onLoadMore = vi.fn();
+    renderView({ hasNextPage: true, isLoadMoreError: true, onLoadMore });
+
+    viewport.enterViewport();
+    expect(onLoadMore).not.toHaveBeenCalled();
+
+    const alert = screen.getByRole("alert");
+    expect(within(alert).getByText("Не вдалося завантажити ще списки")).toBeInTheDocument();
+
+    await userEvent.click(within(alert).getByRole("button"));
 
     expect(onLoadMore).toHaveBeenCalledOnce();
   });

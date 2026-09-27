@@ -73,7 +73,7 @@ export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): Ser
     rating: null,
     readingStatus: "finished",
     startedAt: null,
-    tags: [{ id: "tag-1", name: "дракони" }],
+    tags: [{ color: "rose", id: "tag-1", name: "дракони" }],
     title: "Четверте крило",
     ...overrides,
   };
@@ -143,7 +143,7 @@ export function makeSeriesDetailsView(
         title: "Оніксове полум'я",
       }),
     ],
-    publishers: publishers ?? [{ id: "publisher-1", name: "Vivat" }],
+    publishers: publishers ?? [{ bookCount: 3, id: "publisher-1", name: "Vivat" }],
     stats: stats ?? makeSeriesStats(),
   };
 }
@@ -224,6 +224,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     averagePages: 507,
     averageRating: 8.5,
     booksInSeries: 3,
+    commonGenres: ["fantasy", "romance"],
     covers: [
       makeSeriesCoverPreview({ bookId: "series-book-1", title: "Четверте крило" }),
       makeSeriesCoverPreview({ bookId: "series-book-2", title: "Ковадло зірок" }),
@@ -231,6 +232,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     ],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
+    dominantPublisher: { bookCount: 3, id: "publisher-1", name: "Vivat" },
     finishedInSeries: 1,
     formats: ["paper"],
     genres: [],
@@ -253,7 +255,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     pagesCount: 1520,
     readingInSeries: 1,
     status: "ongoing",
-    tags: [{ id: "tag-1", name: "дракони" }],
+    tags: [{ color: "honey", id: "tag-1", name: "дракони" }],
     totalBooks: 5,
     ...overrides,
   };

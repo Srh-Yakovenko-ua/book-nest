@@ -19,15 +19,27 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookNotesFacetsViewDto,
+  BookNotesOverviewViewDto,
+  BookNotesSummaryViewDto,
   CreateNoteInputDto,
+  CreateSeriesNoteInputDto,
   EntityNotesViewDto,
   NoteDeletionResultDto,
+  NotePostFinishReviewInputDto,
+  NoteRediscoveryImpressionInputDto,
   NoteViewDto,
-  NotesControllerListParams,
+  NotesControllerBookFacetsParams,
+  NotesControllerListBookArchiveParams,
+  NotesControllerListSeriesArchiveParams,
   NotesControllerListTrashParams,
-  NotesSummaryViewDto,
+  NotesControllerSeriesFacetsParams,
+  NotesControllerSeriesOverviewParams,
   PaginatedNotesDto,
   PaginatedTrashedNotesDto,
+  SeriesNotesFacetsViewDto,
+  SeriesNotesOverviewViewDto,
+  SeriesNotesSummaryViewDto,
   UpdateNoteInputDto,
 } from "../../model";
 
@@ -616,7 +628,7 @@ export const getNoteControllerCreateSeriesNoteUrl = (id: string) => {
  */
 export const noteControllerCreateSeriesNote = async (
   id: string,
-  createNoteInputDto: CreateNoteInputDto,
+  createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<noteControllerCreateSeriesNoteResponse> => {
   return customInstance<noteControllerCreateSeriesNoteResponse>(
@@ -625,16 +637,16 @@ export const noteControllerCreateSeriesNote = async (
       ...options,
       method: "POST",
       headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(createNoteInputDto),
+      body: JSON.stringify(createSeriesNoteInputDto),
     },
   );
 };
 
 export const getNoteControllerCreateSeriesNoteQueryKey = (
   id: string,
-  createNoteInputDto?: CreateNoteInputDto,
+  createSeriesNoteInputDto?: CreateSeriesNoteInputDto,
 ) => {
-  return ["POST", `/api/series/${id}/notes`, createNoteInputDto] as const;
+  return ["POST", `/api/series/${id}/notes`, createSeriesNoteInputDto] as const;
 };
 
 export const getNoteControllerCreateSeriesNoteQueryOptions = <
@@ -642,7 +654,7 @@ export const getNoteControllerCreateSeriesNoteQueryOptions = <
   TError = void,
 >(
   id: string,
-  createNoteInputDto: CreateNoteInputDto,
+  createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof noteControllerCreateSeriesNote>>, TError, TData>
@@ -653,11 +665,12 @@ export const getNoteControllerCreateSeriesNoteQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getNoteControllerCreateSeriesNoteQueryKey(id, createNoteInputDto);
+    queryOptions?.queryKey ??
+    getNoteControllerCreateSeriesNoteQueryKey(id, createSeriesNoteInputDto);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof noteControllerCreateSeriesNote>>> = ({
     signal,
-  }) => noteControllerCreateSeriesNote(id, createNoteInputDto, { signal, ...requestOptions });
+  }) => noteControllerCreateSeriesNote(id, createSeriesNoteInputDto, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -681,7 +694,7 @@ export function useNoteControllerCreateSeriesNote<
   TError = void,
 >(
   id: string,
-  createNoteInputDto: CreateNoteInputDto,
+  createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof noteControllerCreateSeriesNote>>, TError, TData>
@@ -703,7 +716,7 @@ export function useNoteControllerCreateSeriesNote<
   TError = void,
 >(
   id: string,
-  createNoteInputDto: CreateNoteInputDto,
+  createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof noteControllerCreateSeriesNote>>, TError, TData>
@@ -725,7 +738,7 @@ export function useNoteControllerCreateSeriesNote<
   TError = void,
 >(
   id: string,
-  createNoteInputDto: CreateNoteInputDto,
+  createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof noteControllerCreateSeriesNote>>, TError, TData>
@@ -743,7 +756,7 @@ export function useNoteControllerCreateSeriesNote<
   TError = void,
 >(
   id: string,
-  createNoteInputDto: CreateNoteInputDto,
+  createSeriesNoteInputDto: CreateSeriesNoteInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof noteControllerCreateSeriesNote>>, TError, TData>
@@ -754,7 +767,7 @@ export function useNoteControllerCreateSeriesNote<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getNoteControllerCreateSeriesNoteQueryOptions(
     id,
-    createNoteInputDto,
+    createSeriesNoteInputDto,
     options,
   );
 
@@ -1444,87 +1457,117 @@ export function useNotesControllerListTrash<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerSummaryResponse200 = {
-  data: NotesSummaryViewDto;
+export type notesControllerBookFacetsResponse200 = {
+  data: BookNotesFacetsViewDto;
   status: 200;
 };
 
-export type notesControllerSummaryResponse401 = {
+export type notesControllerBookFacetsResponse401 = {
   data: void;
   status: 401;
 };
 
-export type notesControllerSummaryResponseSuccess = notesControllerSummaryResponse200 & {
+export type notesControllerBookFacetsResponseSuccess = notesControllerBookFacetsResponse200 & {
   headers: Headers;
 };
-export type notesControllerSummaryResponseError = notesControllerSummaryResponse401 & {
+export type notesControllerBookFacetsResponseError = notesControllerBookFacetsResponse401 & {
   headers: Headers;
 };
 
-export type notesControllerSummaryResponse =
-  notesControllerSummaryResponseSuccess | notesControllerSummaryResponseError;
+export type notesControllerBookFacetsResponse =
+  notesControllerBookFacetsResponseSuccess | notesControllerBookFacetsResponseError;
 
-export const getNotesControllerSummaryUrl = () => {
-  return `/api/notes/summary`;
+export const getNotesControllerBookFacetsUrl = (params?: NotesControllerBookFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["category", "customCategory", "author", "book"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notes/books/facets?${stringifiedParams}`
+    : `/api/notes/books/facets`;
 };
 
 /**
- * @summary Get summary counts for the current user's notes
+ * @summary Get the contextual facets of the current user's book notes; every dimension ignores its own selection and the quick filter
  */
-export const notesControllerSummary = async (
+export const notesControllerBookFacets = async (
+  params?: NotesControllerBookFacetsParams,
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerSummaryResponse> => {
-  return customInstance<notesControllerSummaryResponse>(getNotesControllerSummaryUrl(), {
-    ...options,
-    method: "GET",
-  });
+): Promise<notesControllerBookFacetsResponse> => {
+  return customInstance<notesControllerBookFacetsResponse>(
+    getNotesControllerBookFacetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getNotesControllerSummaryQueryKey = () => {
-  return [`/api/notes/summary`] as const;
+export const getNotesControllerBookFacetsQueryKey = (params?: NotesControllerBookFacetsParams) => {
+  return [`/api/notes/books/facets`, ...(params ? [params] : [])] as const;
 };
 
-export const getNotesControllerSummaryQueryOptions = <
-  TData = Awaited<ReturnType<typeof notesControllerSummary>>,
+export const getNotesControllerBookFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerBookFacets>>,
   TError = void,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof notesControllerSummary>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: NotesControllerBookFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getNotesControllerSummaryQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerBookFacetsQueryKey(params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerSummary>>> = ({ signal }) =>
-    notesControllerSummary({ signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerBookFacets>>> = ({
+    signal,
+  }) => notesControllerBookFacets(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof notesControllerSummary>>,
+    Awaited<ReturnType<typeof notesControllerBookFacets>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type NotesControllerSummaryQueryResult = NonNullable<
-  Awaited<ReturnType<typeof notesControllerSummary>>
+export type NotesControllerBookFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerBookFacets>>
 >;
-export type NotesControllerSummaryQueryError = void;
+export type NotesControllerBookFacetsQueryError = void;
 
-export function useNotesControllerSummary<
-  TData = Awaited<ReturnType<typeof notesControllerSummary>>,
+export function useNotesControllerBookFacets<
+  TData = Awaited<ReturnType<typeof notesControllerBookFacets>>,
   TError = void,
 >(
+  params: undefined | NotesControllerBookFacetsParams,
   options: {
     query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSummary>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookFacets>>, TError, TData>
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof notesControllerSummary>>,
+          Awaited<ReturnType<typeof notesControllerBookFacets>>,
           TError,
-          Awaited<ReturnType<typeof notesControllerSummary>>
+          Awaited<ReturnType<typeof notesControllerBookFacets>>
         >,
         "initialData"
       >;
@@ -1532,19 +1575,20 @@ export function useNotesControllerSummary<
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useNotesControllerSummary<
-  TData = Awaited<ReturnType<typeof notesControllerSummary>>,
+export function useNotesControllerBookFacets<
+  TData = Awaited<ReturnType<typeof notesControllerBookFacets>>,
   TError = void,
 >(
+  params?: NotesControllerBookFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSummary>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookFacets>>, TError, TData>
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof notesControllerSummary>>,
+          Awaited<ReturnType<typeof notesControllerBookFacets>>,
           TError,
-          Awaited<ReturnType<typeof notesControllerSummary>>
+          Awaited<ReturnType<typeof notesControllerBookFacets>>
         >,
         "initialData"
       >;
@@ -1552,35 +1596,37 @@ export function useNotesControllerSummary<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useNotesControllerSummary<
-  TData = Awaited<ReturnType<typeof notesControllerSummary>>,
+export function useNotesControllerBookFacets<
+  TData = Awaited<ReturnType<typeof notesControllerBookFacets>>,
   TError = void,
 >(
+  params?: NotesControllerBookFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSummary>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookFacets>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Get summary counts for the current user's notes
+ * @summary Get the contextual facets of the current user's book notes; every dimension ignores its own selection and the quick filter
  */
 
-export function useNotesControllerSummary<
-  TData = Awaited<ReturnType<typeof notesControllerSummary>>,
+export function useNotesControllerBookFacets<
+  TData = Awaited<ReturnType<typeof notesControllerBookFacets>>,
   TError = void,
 >(
+  params?: NotesControllerBookFacetsParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSummary>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookFacets>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getNotesControllerSummaryQueryOptions(options);
+  const queryOptions = getNotesControllerBookFacetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -1589,102 +1635,88 @@ export function useNotesControllerSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type notesControllerListResponse200 = {
-  data: PaginatedNotesDto;
+export type notesControllerBookSummaryResponse200 = {
+  data: BookNotesSummaryViewDto;
   status: 200;
 };
 
-export type notesControllerListResponse401 = {
+export type notesControllerBookSummaryResponse401 = {
   data: void;
   status: 401;
 };
 
-export type notesControllerListResponseSuccess = notesControllerListResponse200 & {
+export type notesControllerBookSummaryResponseSuccess = notesControllerBookSummaryResponse200 & {
   headers: Headers;
 };
-export type notesControllerListResponseError = notesControllerListResponse401 & {
+export type notesControllerBookSummaryResponseError = notesControllerBookSummaryResponse401 & {
   headers: Headers;
 };
 
-export type notesControllerListResponse =
-  notesControllerListResponseSuccess | notesControllerListResponseError;
+export type notesControllerBookSummaryResponse =
+  notesControllerBookSummaryResponseSuccess | notesControllerBookSummaryResponseError;
 
-export const getNotesControllerListUrl = (params?: NotesControllerListParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/notes?${stringifiedParams}` : `/api/notes`;
+export const getNotesControllerBookSummaryUrl = () => {
+  return `/api/notes/books/summary`;
 };
 
 /**
- * @summary List and search the current user's notes archive
+ * @summary Get the stable summary of the current user's book notes, independent of search, filters, sort and pagination
  */
-export const notesControllerList = async (
-  params?: NotesControllerListParams,
+export const notesControllerBookSummary = async (
   options?: Parameters<typeof customInstance>[1],
-): Promise<notesControllerListResponse> => {
-  return customInstance<notesControllerListResponse>(getNotesControllerListUrl(params), {
+): Promise<notesControllerBookSummaryResponse> => {
+  return customInstance<notesControllerBookSummaryResponse>(getNotesControllerBookSummaryUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getNotesControllerListQueryKey = (params?: NotesControllerListParams) => {
-  return [`/api/notes`, ...(params ? [params] : [])] as const;
+export const getNotesControllerBookSummaryQueryKey = () => {
+  return [`/api/notes/books/summary`] as const;
 };
 
-export const getNotesControllerListQueryOptions = <
-  TData = Awaited<ReturnType<typeof notesControllerList>>,
+export const getNotesControllerBookSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerBookSummary>>,
   TError = void,
->(
-  params?: NotesControllerListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerList>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getNotesControllerListQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerBookSummaryQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerList>>> = ({ signal }) =>
-    notesControllerList(params, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerBookSummary>>> = ({
+    signal,
+  }) => notesControllerBookSummary({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof notesControllerList>>,
+    Awaited<ReturnType<typeof notesControllerBookSummary>>,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 };
 
-export type NotesControllerListQueryResult = NonNullable<
-  Awaited<ReturnType<typeof notesControllerList>>
+export type NotesControllerBookSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerBookSummary>>
 >;
-export type NotesControllerListQueryError = void;
+export type NotesControllerBookSummaryQueryError = void;
 
-export function useNotesControllerList<
-  TData = Awaited<ReturnType<typeof notesControllerList>>,
+export function useNotesControllerBookSummary<
+  TData = Awaited<ReturnType<typeof notesControllerBookSummary>>,
   TError = void,
 >(
-  params: undefined | NotesControllerListParams,
   options: {
     query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerList>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookSummary>>, TError, TData>
     > &
       Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof notesControllerList>>,
+          Awaited<ReturnType<typeof notesControllerBookSummary>>,
           TError,
-          Awaited<ReturnType<typeof notesControllerList>>
+          Awaited<ReturnType<typeof notesControllerBookSummary>>
         >,
         "initialData"
       >;
@@ -1692,20 +1724,19 @@ export function useNotesControllerList<
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useNotesControllerList<
-  TData = Awaited<ReturnType<typeof notesControllerList>>,
+export function useNotesControllerBookSummary<
+  TData = Awaited<ReturnType<typeof notesControllerBookSummary>>,
   TError = void,
 >(
-  params?: NotesControllerListParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerList>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookSummary>>, TError, TData>
     > &
       Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof notesControllerList>>,
+          Awaited<ReturnType<typeof notesControllerBookSummary>>,
           TError,
-          Awaited<ReturnType<typeof notesControllerList>>
+          Awaited<ReturnType<typeof notesControllerBookSummary>>
         >,
         "initialData"
       >;
@@ -1713,37 +1744,1463 @@ export function useNotesControllerList<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useNotesControllerList<
-  TData = Awaited<ReturnType<typeof notesControllerList>>,
+export function useNotesControllerBookSummary<
+  TData = Awaited<ReturnType<typeof notesControllerBookSummary>>,
   TError = void,
 >(
-  params?: NotesControllerListParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerList>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookSummary>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List and search the current user's notes archive
+ * @summary Get the stable summary of the current user's book notes, independent of search, filters, sort and pagination
  */
 
-export function useNotesControllerList<
-  TData = Awaited<ReturnType<typeof notesControllerList>>,
+export function useNotesControllerBookSummary<
+  TData = Awaited<ReturnType<typeof notesControllerBookSummary>>,
   TError = void,
 >(
-  params?: NotesControllerListParams,
   options?: {
     query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof notesControllerList>>, TError, TData>
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookSummary>>, TError, TData>
     >;
     request?: SecondParameter<typeof customInstance>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getNotesControllerListQueryOptions(params, options);
+  const queryOptions = getNotesControllerBookSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerBookOverviewResponse200 = {
+  data: BookNotesOverviewViewDto;
+  status: 200;
+};
+
+export type notesControllerBookOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerBookOverviewResponseSuccess = notesControllerBookOverviewResponse200 & {
+  headers: Headers;
+};
+export type notesControllerBookOverviewResponseError = notesControllerBookOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type notesControllerBookOverviewResponse =
+  notesControllerBookOverviewResponseSuccess | notesControllerBookOverviewResponseError;
+
+export const getNotesControllerBookOverviewUrl = () => {
+  return `/api/notes/books/overview`;
+};
+
+/**
+ * @summary Get the contextual overview of the book notes page; read-only, it never records an impression or a review
+ */
+export const notesControllerBookOverview = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerBookOverviewResponse> => {
+  return customInstance<notesControllerBookOverviewResponse>(getNotesControllerBookOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getNotesControllerBookOverviewQueryKey = () => {
+  return [`/api/notes/books/overview`] as const;
+};
+
+export const getNotesControllerBookOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerBookOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerBookOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerBookOverview>>> = ({
+    signal,
+  }) => notesControllerBookOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerBookOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerBookOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerBookOverview>>
+>;
+export type NotesControllerBookOverviewQueryError = void;
+
+export function useNotesControllerBookOverview<
+  TData = Awaited<ReturnType<typeof notesControllerBookOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerBookOverview>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerBookOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerBookOverview<
+  TData = Awaited<ReturnType<typeof notesControllerBookOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerBookOverview>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerBookOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerBookOverview<
+  TData = Awaited<ReturnType<typeof notesControllerBookOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the contextual overview of the book notes page; read-only, it never records an impression or a review
+ */
+
+export function useNotesControllerBookOverview<
+  TData = Awaited<ReturnType<typeof notesControllerBookOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerBookOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerBookOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerReviewPostFinishResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type notesControllerReviewPostFinishResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type notesControllerReviewPostFinishResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerReviewPostFinishResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type notesControllerReviewPostFinishResponseSuccess =
+  notesControllerReviewPostFinishResponse204 & {
+    headers: Headers;
+  };
+export type notesControllerReviewPostFinishResponseError = (
+  | notesControllerReviewPostFinishResponse400
+  | notesControllerReviewPostFinishResponse401
+  | notesControllerReviewPostFinishResponse404
+) & {
+  headers: Headers;
+};
+
+export type notesControllerReviewPostFinishResponse =
+  notesControllerReviewPostFinishResponseSuccess | notesControllerReviewPostFinishResponseError;
+
+export const getNotesControllerReviewPostFinishUrl = () => {
+  return `/api/notes/books/post-finish/review`;
+};
+
+/**
+ * @summary Mark the notes of one finished reading cycle as reviewed, so the book notes recap stops offering it
+ */
+export const notesControllerReviewPostFinish = async (
+  notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerReviewPostFinishResponse> => {
+  return customInstance<notesControllerReviewPostFinishResponse>(
+    getNotesControllerReviewPostFinishUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(notePostFinishReviewInputDto),
+    },
+  );
+};
+
+export const getNotesControllerReviewPostFinishQueryKey = (
+  notePostFinishReviewInputDto?: NotePostFinishReviewInputDto,
+) => {
+  return ["POST", `/api/notes/books/post-finish/review`, notePostFinishReviewInputDto] as const;
+};
+
+export const getNotesControllerReviewPostFinishQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerReviewPostFinish>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getNotesControllerReviewPostFinishQueryKey(notePostFinishReviewInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerReviewPostFinish>>> = ({
+    signal,
+  }) =>
+    notesControllerReviewPostFinish(notePostFinishReviewInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerReviewPostFinishQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerReviewPostFinish>>
+>;
+export type NotesControllerReviewPostFinishQueryError = void;
+
+export function useNotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerReviewPostFinish>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerReviewPostFinish>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerReviewPostFinish>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerReviewPostFinish>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerReviewPostFinish>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Mark the notes of one finished reading cycle as reviewed, so the book notes recap stops offering it
+ */
+
+export function useNotesControllerReviewPostFinish<
+  TData = Awaited<ReturnType<typeof notesControllerReviewPostFinish>>,
+  TError = void,
+>(
+  notePostFinishReviewInputDto: NotePostFinishReviewInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerReviewPostFinish>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerReviewPostFinishQueryOptions(
+    notePostFinishReviewInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerSeriesOverviewResponse200 = {
+  data: SeriesNotesOverviewViewDto;
+  status: 200;
+};
+
+export type notesControllerSeriesOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerSeriesOverviewResponseSuccess =
+  notesControllerSeriesOverviewResponse200 & {
+    headers: Headers;
+  };
+export type notesControllerSeriesOverviewResponseError =
+  notesControllerSeriesOverviewResponse401 & {
+    headers: Headers;
+  };
+
+export type notesControllerSeriesOverviewResponse =
+  notesControllerSeriesOverviewResponseSuccess | notesControllerSeriesOverviewResponseError;
+
+export const getNotesControllerSeriesOverviewUrl = (
+  params?: NotesControllerSeriesOverviewParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["series"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notes/series/overview?${stringifiedParams}`
+    : `/api/notes/series/overview`;
+};
+
+/**
+ * @summary Get the contextual overview of the series notes page for the series the backend resolves; read-only
+ */
+export const notesControllerSeriesOverview = async (
+  params?: NotesControllerSeriesOverviewParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerSeriesOverviewResponse> => {
+  return customInstance<notesControllerSeriesOverviewResponse>(
+    getNotesControllerSeriesOverviewUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getNotesControllerSeriesOverviewQueryKey = (
+  params?: NotesControllerSeriesOverviewParams,
+) => {
+  return [`/api/notes/series/overview`, ...(params ? [params] : [])] as const;
+};
+
+export const getNotesControllerSeriesOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerSeriesOverviewQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerSeriesOverview>>> = ({
+    signal,
+  }) => notesControllerSeriesOverview(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerSeriesOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerSeriesOverview>>
+>;
+export type NotesControllerSeriesOverviewQueryError = void;
+
+export function useNotesControllerSeriesOverview<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+  TError = void,
+>(
+  params: undefined | NotesControllerSeriesOverviewParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerSeriesOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerSeriesOverview<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerSeriesOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerSeriesOverview<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the contextual overview of the series notes page for the series the backend resolves; read-only
+ */
+
+export function useNotesControllerSeriesOverview<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesOverview>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerSeriesOverviewQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerRecordRediscoveryImpressionResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type notesControllerRecordRediscoveryImpressionResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type notesControllerRecordRediscoveryImpressionResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerRecordRediscoveryImpressionResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type notesControllerRecordRediscoveryImpressionResponseSuccess =
+  notesControllerRecordRediscoveryImpressionResponse204 & {
+    headers: Headers;
+  };
+export type notesControllerRecordRediscoveryImpressionResponseError = (
+  | notesControllerRecordRediscoveryImpressionResponse400
+  | notesControllerRecordRediscoveryImpressionResponse401
+  | notesControllerRecordRediscoveryImpressionResponse404
+) & {
+  headers: Headers;
+};
+
+export type notesControllerRecordRediscoveryImpressionResponse =
+  | notesControllerRecordRediscoveryImpressionResponseSuccess
+  | notesControllerRecordRediscoveryImpressionResponseError;
+
+export const getNotesControllerRecordRediscoveryImpressionUrl = () => {
+  return `/api/notes/rediscovery/impression`;
+};
+
+/**
+ * @summary Record that a rediscovered note was shown today, on whichever notes page its impression key came from
+ */
+export const notesControllerRecordRediscoveryImpression = async (
+  noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerRecordRediscoveryImpressionResponse> => {
+  return customInstance<notesControllerRecordRediscoveryImpressionResponse>(
+    getNotesControllerRecordRediscoveryImpressionUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(noteRediscoveryImpressionInputDto),
+    },
+  );
+};
+
+export const getNotesControllerRecordRediscoveryImpressionQueryKey = (
+  noteRediscoveryImpressionInputDto?: NoteRediscoveryImpressionInputDto,
+) => {
+  return ["POST", `/api/notes/rediscovery/impression`, noteRediscoveryImpressionInputDto] as const;
+};
+
+export const getNotesControllerRecordRediscoveryImpressionQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getNotesControllerRecordRediscoveryImpressionQueryKey(noteRediscoveryImpressionInputDto);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>
+  > = ({ signal }) =>
+    notesControllerRecordRediscoveryImpression(noteRediscoveryImpressionInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerRecordRediscoveryImpressionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>
+>;
+export type NotesControllerRecordRediscoveryImpressionQueryError = void;
+
+export function useNotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Record that a rediscovered note was shown today, on whichever notes page its impression key came from
+ */
+
+export function useNotesControllerRecordRediscoveryImpression<
+  TData = Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+  TError = void,
+>(
+  noteRediscoveryImpressionInputDto: NoteRediscoveryImpressionInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof notesControllerRecordRediscoveryImpression>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerRecordRediscoveryImpressionQueryOptions(
+    noteRediscoveryImpressionInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerSeriesFacetsResponse200 = {
+  data: SeriesNotesFacetsViewDto;
+  status: 200;
+};
+
+export type notesControllerSeriesFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerSeriesFacetsResponseSuccess = notesControllerSeriesFacetsResponse200 & {
+  headers: Headers;
+};
+export type notesControllerSeriesFacetsResponseError = notesControllerSeriesFacetsResponse401 & {
+  headers: Headers;
+};
+
+export type notesControllerSeriesFacetsResponse =
+  notesControllerSeriesFacetsResponseSuccess | notesControllerSeriesFacetsResponseError;
+
+export const getNotesControllerSeriesFacetsUrl = (params?: NotesControllerSeriesFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      "category",
+      "customCategory",
+      "author",
+      "genre",
+      "reading",
+      "series",
+      "status",
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notes/series/facets?${stringifiedParams}`
+    : `/api/notes/series/facets`;
+};
+
+/**
+ * @summary Get the contextual facets of the current user's series notes; every dimension ignores its own selection and the quick filter
+ */
+export const notesControllerSeriesFacets = async (
+  params?: NotesControllerSeriesFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerSeriesFacetsResponse> => {
+  return customInstance<notesControllerSeriesFacetsResponse>(
+    getNotesControllerSeriesFacetsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getNotesControllerSeriesFacetsQueryKey = (
+  params?: NotesControllerSeriesFacetsParams,
+) => {
+  return [`/api/notes/series/facets`, ...(params ? [params] : [])] as const;
+};
+
+export const getNotesControllerSeriesFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerSeriesFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerSeriesFacets>>> = ({
+    signal,
+  }) => notesControllerSeriesFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerSeriesFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerSeriesFacets>>
+>;
+export type NotesControllerSeriesFacetsQueryError = void;
+
+export function useNotesControllerSeriesFacets<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+  TError = void,
+>(
+  params: undefined | NotesControllerSeriesFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerSeriesFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerSeriesFacets<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerSeriesFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerSeriesFacets<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the contextual facets of the current user's series notes; every dimension ignores its own selection and the quick filter
+ */
+
+export function useNotesControllerSeriesFacets<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesFacets>>,
+  TError = void,
+>(
+  params?: NotesControllerSeriesFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerSeriesFacetsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerSeriesSummaryResponse200 = {
+  data: SeriesNotesSummaryViewDto;
+  status: 200;
+};
+
+export type notesControllerSeriesSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerSeriesSummaryResponseSuccess =
+  notesControllerSeriesSummaryResponse200 & {
+    headers: Headers;
+  };
+export type notesControllerSeriesSummaryResponseError = notesControllerSeriesSummaryResponse401 & {
+  headers: Headers;
+};
+
+export type notesControllerSeriesSummaryResponse =
+  notesControllerSeriesSummaryResponseSuccess | notesControllerSeriesSummaryResponseError;
+
+export const getNotesControllerSeriesSummaryUrl = () => {
+  return `/api/notes/series/summary`;
+};
+
+/**
+ * @summary Get the stable summary of the current user's series notes, independent of search, filters, sort and pagination
+ */
+export const notesControllerSeriesSummary = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerSeriesSummaryResponse> => {
+  return customInstance<notesControllerSeriesSummaryResponse>(
+    getNotesControllerSeriesSummaryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getNotesControllerSeriesSummaryQueryKey = () => {
+  return [`/api/notes/series/summary`] as const;
+};
+
+export const getNotesControllerSeriesSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerSeriesSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerSeriesSummary>>> = ({
+    signal,
+  }) => notesControllerSeriesSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerSeriesSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerSeriesSummary>>
+>;
+export type NotesControllerSeriesSummaryQueryError = void;
+
+export function useNotesControllerSeriesSummary<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerSeriesSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerSeriesSummary<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerSeriesSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerSeriesSummary<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the stable summary of the current user's series notes, independent of search, filters, sort and pagination
+ */
+
+export function useNotesControllerSeriesSummary<
+  TData = Awaited<ReturnType<typeof notesControllerSeriesSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerSeriesSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerSeriesSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerListBookArchiveResponse200 = {
+  data: PaginatedNotesDto;
+  status: 200;
+};
+
+export type notesControllerListBookArchiveResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerListBookArchiveResponseSuccess =
+  notesControllerListBookArchiveResponse200 & {
+    headers: Headers;
+  };
+export type notesControllerListBookArchiveResponseError =
+  notesControllerListBookArchiveResponse401 & {
+    headers: Headers;
+  };
+
+export type notesControllerListBookArchiveResponse =
+  notesControllerListBookArchiveResponseSuccess | notesControllerListBookArchiveResponseError;
+
+export const getNotesControllerListBookArchiveUrl = (
+  params?: NotesControllerListBookArchiveParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["category", "customCategory", "author", "book"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notes/books?${stringifiedParams}`
+    : `/api/notes/books`;
+};
+
+/**
+ * @summary List and search the current user's book notes archive
+ */
+export const notesControllerListBookArchive = async (
+  params?: NotesControllerListBookArchiveParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerListBookArchiveResponse> => {
+  return customInstance<notesControllerListBookArchiveResponse>(
+    getNotesControllerListBookArchiveUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getNotesControllerListBookArchiveQueryKey = (
+  params?: NotesControllerListBookArchiveParams,
+) => {
+  return [`/api/notes/books`, ...(params ? [params] : [])] as const;
+};
+
+export const getNotesControllerListBookArchiveQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListBookArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListBookArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerListBookArchiveQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerListBookArchive>>> = ({
+    signal,
+  }) => notesControllerListBookArchive(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerListBookArchiveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerListBookArchive>>
+>;
+export type NotesControllerListBookArchiveQueryError = void;
+
+export function useNotesControllerListBookArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+  TError = void,
+>(
+  params: undefined | NotesControllerListBookArchiveParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListBookArchive>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerListBookArchive>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerListBookArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListBookArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListBookArchive>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerListBookArchive>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerListBookArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListBookArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListBookArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List and search the current user's book notes archive
+ */
+
+export function useNotesControllerListBookArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListBookArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListBookArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListBookArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerListBookArchiveQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type notesControllerListSeriesArchiveResponse200 = {
+  data: PaginatedNotesDto;
+  status: 200;
+};
+
+export type notesControllerListSeriesArchiveResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type notesControllerListSeriesArchiveResponseSuccess =
+  notesControllerListSeriesArchiveResponse200 & {
+    headers: Headers;
+  };
+export type notesControllerListSeriesArchiveResponseError =
+  notesControllerListSeriesArchiveResponse401 & {
+    headers: Headers;
+  };
+
+export type notesControllerListSeriesArchiveResponse =
+  notesControllerListSeriesArchiveResponseSuccess | notesControllerListSeriesArchiveResponseError;
+
+export const getNotesControllerListSeriesArchiveUrl = (
+  params?: NotesControllerListSeriesArchiveParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      "category",
+      "customCategory",
+      "author",
+      "genre",
+      "reading",
+      "series",
+      "status",
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/notes/series?${stringifiedParams}`
+    : `/api/notes/series`;
+};
+
+/**
+ * @summary List and search the current user's series notes archive
+ */
+export const notesControllerListSeriesArchive = async (
+  params?: NotesControllerListSeriesArchiveParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<notesControllerListSeriesArchiveResponse> => {
+  return customInstance<notesControllerListSeriesArchiveResponse>(
+    getNotesControllerListSeriesArchiveUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getNotesControllerListSeriesArchiveQueryKey = (
+  params?: NotesControllerListSeriesArchiveParams,
+) => {
+  return [`/api/notes/series`, ...(params ? [params] : [])] as const;
+};
+
+export const getNotesControllerListSeriesArchiveQueryOptions = <
+  TData = Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListSeriesArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListSeriesArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getNotesControllerListSeriesArchiveQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof notesControllerListSeriesArchive>>> = ({
+    signal,
+  }) => notesControllerListSeriesArchive(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type NotesControllerListSeriesArchiveQueryResult = NonNullable<
+  Awaited<ReturnType<typeof notesControllerListSeriesArchive>>
+>;
+export type NotesControllerListSeriesArchiveQueryError = void;
+
+export function useNotesControllerListSeriesArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+  TError = void,
+>(
+  params: undefined | NotesControllerListSeriesArchiveParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListSeriesArchive>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerListSeriesArchive>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerListSeriesArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListSeriesArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListSeriesArchive>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+          TError,
+          Awaited<ReturnType<typeof notesControllerListSeriesArchive>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useNotesControllerListSeriesArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListSeriesArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListSeriesArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List and search the current user's series notes archive
+ */
+
+export function useNotesControllerListSeriesArchive<
+  TData = Awaited<ReturnType<typeof notesControllerListSeriesArchive>>,
+  TError = void,
+>(
+  params?: NotesControllerListSeriesArchiveParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof notesControllerListSeriesArchive>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getNotesControllerListSeriesArchiveQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

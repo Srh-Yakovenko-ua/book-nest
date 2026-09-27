@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, MediaView, Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import Image from "next/image";
@@ -29,6 +29,11 @@ type BookPickerSelectedProps = {
   emptyLabel: string;
   onRemove: (book: BookView) => void;
   removeLabel: string;
+};
+
+type BookThumbBook = {
+  cover?: Nullable<MediaView>;
+  title: string;
 };
 
 export function BookPickerResults({
@@ -106,10 +111,13 @@ export function BookPickerSelected({
   );
 }
 
-export function BookThumb({ book }: { book: BookView }) {
+export function BookThumb({ book }: { book: BookThumbBook }) {
   if (book.cover === null || book.cover === undefined) {
     return (
-      <span className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-accent text-icon">
+      <span
+        className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-accent text-icon"
+        data-slot="book-thumb"
+      >
         <UiIcon name="book" size={16} />
       </span>
     );
@@ -117,8 +125,9 @@ export function BookThumb({ book }: { book: BookView }) {
 
   return (
     <Image
-      alt={book.title}
+      alt=""
       className="h-12 w-9 shrink-0 rounded-sm object-cover"
+      data-slot="book-thumb"
       height={48}
       src={book.cover.urls.thumb}
       unoptimized

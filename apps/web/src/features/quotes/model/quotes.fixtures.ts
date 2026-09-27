@@ -1,11 +1,8 @@
 import type { QuoteView } from "@app/shared";
 
-type TextMetrics = {
-  clientHeight: number;
-  scrollHeight: number;
-};
+type TextMetrics = Partial<Record<(typeof TEXT_METRIC_NAMES)[number], number>>;
 
-const TEXT_METRIC_NAMES = ["clientHeight", "scrollHeight"] as const;
+const TEXT_METRIC_NAMES = ["clientHeight", "scrollHeight", "clientWidth", "scrollWidth"] as const;
 
 export function makeQuote(overrides: Partial<QuoteView> = {}): QuoteView {
   return {
@@ -37,7 +34,7 @@ export function stubTextMetrics(metrics: TextMetrics): () => void {
   for (const name of TEXT_METRIC_NAMES) {
     Object.defineProperty(HTMLElement.prototype, name, {
       configurable: true,
-      get: () => metrics[name],
+      get: () => metrics[name] ?? 0,
     });
   }
 

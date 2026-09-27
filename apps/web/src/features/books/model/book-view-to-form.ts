@@ -43,6 +43,8 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
             kind: "catalog" as const,
             name: author.name,
           })),
+          commonGenres: book.series.commonGenres,
+          dominantPublisher: book.series.dominantPublisher,
           genres: book.series.genres,
           id: book.series.id,
           kind: "existing",

@@ -6,6 +6,7 @@ import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import type {
   LibraryListParams,
+  LibraryPublisherContext,
   LibraryQueryState,
   LibraryScope,
   LibraryViewMode,
@@ -18,6 +19,7 @@ import {
   LIBRARY_FILTERS_RESET,
   libraryQueryParsers,
   toLibraryListParams,
+  withoutPublisherFilters,
 } from "./library-query";
 
 export type UseLibraryQueryResult = {
@@ -36,10 +38,14 @@ export type UseLibraryQueryResult = {
   view: LibraryViewMode;
 };
 
-export function useLibraryQuery(scope: LibraryScope): UseLibraryQueryResult {
+export function useLibraryQuery(
+  scope: LibraryScope,
+  context?: LibraryPublisherContext,
+): UseLibraryQueryResult {
   const parsers: typeof libraryQueryParsers =
     scope === "favorites" ? favoritesQueryParsers : libraryQueryParsers;
-  const [state, setState] = useQueryStates(parsers);
+  const [urlState, setState] = useQueryStates(parsers);
+  const state = context === undefined ? urlState : withoutPublisherFilters(urlState);
 
   return {
     clearAll: () => void setState({ q: null, ...LIBRARY_FILTERS_RESET }),
@@ -47,7 +53,7 @@ export function useLibraryQuery(scope: LibraryScope): UseLibraryQueryResult {
     clearSearch: () => void setState({ q: null }),
     hasActiveFilters: hasActiveLibraryFilters(state),
     hasActiveSearch: hasActiveLibrarySearch(state),
-    listParams: toLibraryListParams(state, scope),
+    listParams: toLibraryListParams(state, scope, context),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),
     setState,

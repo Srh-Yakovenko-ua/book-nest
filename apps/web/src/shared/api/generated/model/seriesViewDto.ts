@@ -8,6 +8,7 @@
 import type { SeriesViewDtoAgeCategoriesItem } from "./seriesViewDtoAgeCategoriesItem";
 import type { SeriesViewDtoAuthorsItem } from "./seriesViewDtoAuthorsItem";
 import type { SeriesViewDtoCoversItem } from "./seriesViewDtoCoversItem";
+import type { SeriesViewDtoDominantPublisher } from "./seriesViewDtoDominantPublisher";
 import type { SeriesViewDtoFormatsItem } from "./seriesViewDtoFormatsItem";
 import type { SeriesViewDtoLanguagesItem } from "./seriesViewDtoLanguagesItem";
 import type { SeriesViewDtoNextBook } from "./seriesViewDtoNextBook";
@@ -23,10 +24,13 @@ export interface SeriesViewDto {
   /** @nullable */
   averageRating?: number | null;
   booksInSeries: number;
+  commonGenres?: string[];
   covers: SeriesViewDtoCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  dominantPublisher?: SeriesViewDtoDominantPublisher;
   finishedInSeries: number;
   formats?: SeriesViewDtoFormatsItem[];
   genres: string[];

@@ -31,6 +31,8 @@ import type {
   LoanHistoryOverviewViewDto,
   LoanHistoryPeopleViewDto,
   LoansControllerListParams,
+  LoansControllerQuickCountsParams,
+  LoansQuickCountsViewDto,
   LoansSummaryViewDto,
   PaginatedLoanHistoryDto,
   PaginatedLoansDto,
@@ -194,6 +196,184 @@ export function useLoansControllerSummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getLoansControllerSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type loansControllerQuickCountsResponse200 = {
+  data: LoansQuickCountsViewDto;
+  status: 200;
+};
+
+export type loansControllerQuickCountsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type loansControllerQuickCountsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type loansControllerQuickCountsResponseSuccess = loansControllerQuickCountsResponse200 & {
+  headers: Headers;
+};
+export type loansControllerQuickCountsResponseError = (
+  loansControllerQuickCountsResponse400 | loansControllerQuickCountsResponse401
+) & {
+  headers: Headers;
+};
+
+export type loansControllerQuickCountsResponse =
+  loansControllerQuickCountsResponseSuccess | loansControllerQuickCountsResponseError;
+
+export const getLoansControllerQuickCountsUrl = (params?: LoansControllerQuickCountsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/loans/quick-counts?${stringifiedParams}`
+    : `/api/loans/quick-counts`;
+};
+
+/**
+ * @summary Count the current user active loans per quick filter
+ */
+export const loansControllerQuickCounts = async (
+  params?: LoansControllerQuickCountsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<loansControllerQuickCountsResponse> => {
+  return customInstance<loansControllerQuickCountsResponse>(
+    getLoansControllerQuickCountsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLoansControllerQuickCountsQueryKey = (
+  params?: LoansControllerQuickCountsParams,
+) => {
+  return [`/api/loans/quick-counts`, ...(params ? [params] : [])] as const;
+};
+
+export const getLoansControllerQuickCountsQueryOptions = <
+  TData = Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+  TError = void,
+>(
+  params?: LoansControllerQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loansControllerQuickCounts>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getLoansControllerQuickCountsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof loansControllerQuickCounts>>> = ({
+    signal,
+  }) => loansControllerQuickCounts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type LoansControllerQuickCountsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof loansControllerQuickCounts>>
+>;
+export type LoansControllerQuickCountsQueryError = void;
+
+export function useLoansControllerQuickCounts<
+  TData = Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+  TError = void,
+>(
+  params: undefined | LoansControllerQuickCountsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loansControllerQuickCounts>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof loansControllerQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoansControllerQuickCounts<
+  TData = Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+  TError = void,
+>(
+  params?: LoansControllerQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loansControllerQuickCounts>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+          TError,
+          Awaited<ReturnType<typeof loansControllerQuickCounts>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useLoansControllerQuickCounts<
+  TData = Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+  TError = void,
+>(
+  params?: LoansControllerQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loansControllerQuickCounts>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Count the current user active loans per quick filter
+ */
+
+export function useLoansControllerQuickCounts<
+  TData = Awaited<ReturnType<typeof loansControllerQuickCounts>>,
+  TError = void,
+>(
+  params?: LoansControllerQuickCountsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof loansControllerQuickCounts>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getLoansControllerQuickCountsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

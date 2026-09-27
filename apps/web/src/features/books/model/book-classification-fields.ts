@@ -1,5 +1,7 @@
 import type { AgeCategory, BookLanguage } from "@app/shared";
 
+export { BOOK_GENRES_MAX } from "@app/shared";
+
 export const AGE_CATEGORY_OPTIONS = [
   "not_specified",
   "no_restrictions",
@@ -19,5 +21,3 @@ export const BOOK_LANGUAGE_OPTIONS = [
   "spanish",
   "other",
 ] as const satisfies readonly BookLanguage[];
-
-export const BOOK_GENRES_MAX = 5;

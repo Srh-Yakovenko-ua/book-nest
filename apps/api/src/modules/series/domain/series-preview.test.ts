@@ -12,7 +12,7 @@ function makeBook(overrides: Partial<SeriesBookPreview> = {}): SeriesBookPreview
     ownershipStatus: "none",
     partNumber: 1,
     publicationYear: null,
-    publisherId: null,
+    publisher: null,
     readingStatus: "not_started",
     title: "Untitled",
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -288,39 +288,6 @@ describe("summarizeSeriesBooks missingPartNumbers", () => {
     ]);
 
     expect(summary.missingPartNumbers).toEqual([2]);
-  });
-});
-
-describe("summarizeSeriesBooks hasPublisher", () => {
-  it("is false when no book carries a publisher", () => {
-    const summary = summarizeSeriesBooks([
-      makeBook({ id: "part-1", partNumber: 1, publisherId: null }),
-      makeBook({ id: "part-2", partNumber: 2, publisherId: null }),
-    ]);
-
-    expect(summary.hasPublisher).toBe(false);
-  });
-
-  it("is false for a series with no books", () => {
-    expect(summarizeSeriesBooks([]).hasPublisher).toBe(false);
-  });
-
-  it("is true when only some books carry a publisher", () => {
-    const summary = summarizeSeriesBooks([
-      makeBook({ id: "part-1", partNumber: 1, publisherId: null }),
-      makeBook({ id: "part-2", partNumber: 2, publisherId: "publisher-vivat" }),
-    ]);
-
-    expect(summary.hasPublisher).toBe(true);
-  });
-
-  it("is true when every book carries a publisher", () => {
-    const summary = summarizeSeriesBooks([
-      makeBook({ id: "part-1", partNumber: 1, publisherId: "publisher-vivat" }),
-      makeBook({ id: "part-2", partNumber: 2, publisherId: "publisher-abab" }),
-    ]);
-
-    expect(summary.hasPublisher).toBe(true);
   });
 });
 

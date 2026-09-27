@@ -21,4 +21,9 @@ export type TagsControllerSearchParams = {
    * @maxLength 100
    */
   search?: string;
+  /**
+   * Only these tags, so a filter restored from a URL can show each tag with its name and color
+   * @maxItems 100
+   */
+  ids?: string[];
 };

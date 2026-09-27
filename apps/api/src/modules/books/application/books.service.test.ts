@@ -389,6 +389,7 @@ describe("BooksService.create", () => {
         tags: [
           {
             tag: {
+              color: "rose",
               createdAt: new Date("2026-02-01T10:00:00.000Z"),
               id: TAG_ID,
               name: "dark academia",
@@ -440,7 +441,7 @@ describe("BooksService.create", () => {
       readingProgress: null,
       readingStatus: "not_started",
       series: null,
-      tags: [{ id: TAG_ID, name: "dark academia" }],
+      tags: [{ color: "rose", id: TAG_ID, name: "dark academia" }],
       title: "Dune",
       translator: null,
       updatedAt: "2026-02-02T11:00:00.000Z",

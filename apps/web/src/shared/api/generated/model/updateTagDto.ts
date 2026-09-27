@@ -5,11 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { UpdateTagDtoColor } from "./updateTagDtoColor";
 import type { UpdateTagDtoType } from "./updateTagDtoType";
 
 export interface UpdateTagDto {
   /** @nullable */
-  color?: string | null;
+  color?: UpdateTagDtoColor;
   /** @nullable */
   description?: string | null;
   name?: string;

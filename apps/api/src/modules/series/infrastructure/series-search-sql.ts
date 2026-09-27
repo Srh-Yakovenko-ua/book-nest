@@ -1,4 +1,9 @@
-import type { SeriesAttentionFilter, SeriesCompleteness, SeriesSearchQuery } from "@app/shared";
+import type {
+  SeriesAttentionFilter,
+  SeriesCompleteness,
+  SeriesReadingState,
+  SeriesSearchQuery,
+} from "@app/shared";
 
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -38,7 +43,9 @@ const ATTENTION_SQL: Record<Exclude<SeriesAttentionFilter, "any">, Prisma.Sql> =
   unknown_status: Prisma.sql`facts.status = 'unknown'`,
 };
 
-const READING_STATE_SQL: Record<NonNullable<SeriesSearchQuery["reading"]>, Prisma.Sql> = {
+const CANONICAL_AUTHOR_ALIAS = Prisma.raw("canonical_author");
+
+const READING_STATE_SQL: Record<SeriesReadingState, Prisma.Sql> = {
   completed: Prisma.sql`facts.fully_read`,
   empty: Prisma.sql`facts.books_count = 0`,
   in_progress: Prisma.sql`(facts.books_count > 0 AND NOT facts.fully_read AND facts.is_started)`,
@@ -50,13 +57,87 @@ type SeriesFactsInput = {
   userId: string;
 };
 
+export function buildSeriesCanonicalAuthorMatch({
+  matchesAuthor,
+  seriesId,
+}: {
+  matchesAuthor: (author: Prisma.Sql) => Prisma.Sql;
+  seriesId: Prisma.Sql;
+}): Prisma.Sql {
+  const authorCondition = matchesAuthor(CANONICAL_AUTHOR_ALIAS);
+  return Prisma.sql`(
+    EXISTS (
+      SELECT 1
+      FROM books canonical_book
+      JOIN book_authors canonical_book_author ON canonical_book_author.book_id = canonical_book.id
+      JOIN authors canonical_author ON canonical_author.id = canonical_book_author.author_id
+      WHERE canonical_book.series_id = ${seriesId}
+        AND canonical_book.deleted_at IS NULL
+        AND ${authorCondition}
+    )
+    OR (
+      NOT ${seriesHasActiveBooks(seriesId)}
+      AND EXISTS (
+        SELECT 1
+        FROM series_authors canonical_series_author
+        JOIN authors canonical_author ON canonical_author.id = canonical_series_author.author_id
+        WHERE canonical_series_author.series_id = ${seriesId}
+          AND ${authorCondition}
+      )
+    )
+  )`;
+}
+
+export function buildSeriesCanonicalAuthorSortKey(seriesId: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`COALESCE(
+    (
+      SELECT canonical_author.name
+      FROM books canonical_book
+      JOIN book_authors canonical_book_author ON canonical_book_author.book_id = canonical_book.id
+      JOIN authors canonical_author ON canonical_author.id = canonical_book_author.author_id
+      WHERE canonical_book.series_id = ${seriesId}
+        AND canonical_book.deleted_at IS NULL
+      ORDER BY
+        canonical_book.part_number ASC NULLS LAST,
+        canonical_book.created_at ASC,
+        canonical_book.id ASC,
+        canonical_book_author.position ASC
+      LIMIT 1
+    ),
+    (
+      SELECT canonical_author.name
+      FROM series_authors canonical_series_author
+      JOIN authors canonical_author ON canonical_author.id = canonical_series_author.author_id
+      WHERE canonical_series_author.series_id = ${seriesId}
+        AND NOT ${seriesHasActiveBooks(seriesId)}
+      ORDER BY canonical_author.name ASC, canonical_author.id ASC
+      LIMIT 1
+    )
+  )`;
+}
+
 export function buildSeriesCountQuery(input: SeriesFactsInput): Prisma.Sql {
   return Prisma.sql`
-    ${seriesFactsCte(input)}
+    ${seriesFactsCte({ userId: input.userId })}
     SELECT count(*)::int AS total
     FROM facts
     WHERE ${buildSeriesFilters(input.query)}
   `;
+}
+
+export function buildSeriesIdsInReadingStates({
+  readingStates,
+  userId,
+}: {
+  readingStates: SeriesReadingState[];
+  userId: string;
+}): Prisma.Sql {
+  return Prisma.sql`(
+    ${seriesFactsCte({ userId })}
+    SELECT facts.id
+    FROM facts
+    WHERE ${joinWithOr(readingStates.map((readingState) => READING_STATE_SQL[readingState]))}
+  )`;
 }
 
 export function buildSeriesPageQuery({
@@ -66,7 +147,7 @@ export function buildSeriesPageQuery({
   userId,
 }: SeriesFactsInput & { skip: number; take: number }): Prisma.Sql {
   return Prisma.sql`
-    ${seriesFactsCte({ query, userId })}
+    ${seriesFactsCte({ userId })}
     SELECT facts.id
     FROM facts
     WHERE ${buildSeriesFilters(query)}
@@ -84,25 +165,10 @@ function buildAttentionFilter(attention: SeriesAttentionFilter): Prisma.Sql {
 }
 
 function buildAuthorFilter(authorIds: string[]): Prisma.Sql {
-  return Prisma.sql`(
-    EXISTS (
-      SELECT 1
-      FROM books book
-      JOIN book_authors book_author ON book_author.book_id = book.id
-      WHERE book.series_id = facts.id
-        AND book.deleted_at IS NULL
-        AND book_author.author_id = ANY(${authorIds}::uuid[])
-    )
-    OR (
-      facts.books_count = 0
-      AND EXISTS (
-        SELECT 1
-        FROM series_authors series_author
-        WHERE series_author.series_id = facts.id
-          AND series_author.author_id = ANY(${authorIds}::uuid[])
-      )
-    )
-  )`;
+  return buildSeriesCanonicalAuthorMatch({
+    matchesAuthor: (author) => Prisma.sql`${author}.id = ANY(${authorIds}::uuid[])`,
+    seriesId: Prisma.sql`facts.id`,
+  });
 }
 
 function buildSearchFilter(search: string): Prisma.Sql {
@@ -195,7 +261,7 @@ function joinWithOr(conditions: Prisma.Sql[]): Prisma.Sql {
   return Prisma.sql`(${Prisma.join(conditions, " OR ")})`;
 }
 
-function seriesFactsCte({ userId }: SeriesFactsInput): Prisma.Sql {
+function seriesFactsCte({ userId }: { userId: string }): Prisma.Sql {
   return Prisma.sql`
     WITH base AS (
       SELECT
@@ -272,4 +338,12 @@ function seriesFactsCte({ userId }: SeriesFactsInput): Prisma.Sql {
       FROM base
     )
   `;
+}
+
+function seriesHasActiveBooks(seriesId: Prisma.Sql): Prisma.Sql {
+  return Prisma.sql`EXISTS (
+    SELECT 1
+    FROM books active_book
+    WHERE active_book.series_id = ${seriesId} AND active_book.deleted_at IS NULL
+  )`;
 }

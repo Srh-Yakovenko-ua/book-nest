@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   ArrowUpRight,
   BookCopy,
+  BookOpen,
   ChartColumnBig,
   ChevronDown,
   ChevronLeft,
@@ -25,6 +26,7 @@ import {
   NotebookPen,
   Quote,
   Settings,
+  Shapes,
   ShoppingBag,
   Tags,
   Truck,
@@ -70,7 +72,7 @@ type NavKey =
   | "dedications"
   | "delivery"
   | "favorites"
-  | "genresTags"
+  | "genres"
   | "home"
   | "lists"
   | "loans"
@@ -81,7 +83,8 @@ type NavKey =
   | "readingQueue"
   | "series"
   | "settings"
-  | "statistics";
+  | "statistics"
+  | "tags";
 
 type NavLink = {
   icon: React.ElementType;
@@ -99,7 +102,10 @@ type NavMessageKey =
   | "nav.loansBorrowed"
   | "nav.loansContacts"
   | "nav.loansHistory"
-  | "nav.loansLent";
+  | "nav.loansLent"
+  | "nav.notes"
+  | "nav.notesBooks"
+  | "nav.notesSeries";
 
 type NavSection = {
   children: readonly [NavSectionChild, ...NavSectionChild[]];
@@ -158,9 +164,20 @@ const NAV_ITEMS = [
   { icon: Feather, key: "dedications", kind: "link", to: "/dedications" },
   { icon: BookCopy, key: "series", kind: "link", to: "/series" },
   { icon: Landmark, key: "publishers", kind: "link", to: "/publishers" },
-  { icon: Tags, key: "genresTags", kind: "link", to: "/genres-tags" },
+  { icon: Shapes, key: "genres", kind: "link", to: "/genres" },
+  { icon: Tags, key: "tags", kind: "link", to: "/tags" },
   { icon: ListChecks, key: "lists", kind: "link", to: "/lists" },
-  { icon: NotebookPen, key: "notes", kind: "link", to: "/notes" },
+  {
+    children: [
+      { icon: BookOpen, labelKey: "nav.notesBooks", to: "/notes/books" },
+      { icon: BookCopy, labelKey: "nav.notesSeries", to: "/notes/series" },
+    ],
+    icon: NotebookPen,
+    key: "notes",
+    kind: "section",
+    listLabelKey: "nav.notes",
+    pathPrefix: "/notes",
+  },
   { icon: Settings, key: "settings", kind: "link", to: "/settings" },
 ] satisfies readonly NavItem[];
 

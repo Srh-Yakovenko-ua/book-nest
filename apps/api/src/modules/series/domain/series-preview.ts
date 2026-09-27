@@ -15,11 +15,13 @@ export type SeriesBookPreview = {
   ownershipStatus: OwnershipStatus;
   partNumber: Nullable<number>;
   publicationYear: Nullable<number>;
-  publisherId: Nullable<string>;
+  publisher: Nullable<SeriesBookPublisher>;
   readingStatus: ReadingStatus;
   title: string;
   updatedAt: Date;
 };
+
+export type SeriesBookPublisher = { id: string; name: string };
 
 export type SeriesBookRow = {
   createdAt: Date;
@@ -27,7 +29,7 @@ export type SeriesBookRow = {
   ownershipStatus: string;
   partNumber: Nullable<number>;
   publicationYear: Nullable<number>;
-  publisherId: Nullable<string>;
+  publisher: Nullable<SeriesBookPublisher>;
   readingStatus: string;
   title: string;
   updatedAt: Date;
@@ -36,7 +38,6 @@ export type SeriesBookRow = {
 export type SeriesBooksSummary = {
   finishedInSeries: number;
   hasPublicationYears: boolean;
-  hasPublisher: boolean;
   missingPartNumbers: readonly number[];
   nextBook: Nullable<SeriesNextBookSummary>;
   readingInSeries: number;
@@ -68,7 +69,6 @@ export function summarizeSeriesBooks(books: SeriesBookPreview[]): SeriesBooksSum
   return {
     finishedInSeries: countFinishedBooks(books),
     hasPublicationYears: hasAnyPublicationYear(books),
-    hasPublisher: hasAnyPublisher(books),
     missingPartNumbers: collectMissingPartNumbers(books),
     nextBook:
       nextBook === undefined
@@ -123,8 +123,4 @@ function hasAnyPublicationYear(
   books: readonly Pick<SeriesBookPreview, "publicationYear">[],
 ): boolean {
   return books.some((book) => book.publicationYear !== null);
-}
-
-function hasAnyPublisher(books: readonly Pick<SeriesBookPreview, "publisherId">[]): boolean {
-  return books.some((book) => book.publisherId !== null);
 }

@@ -106,7 +106,7 @@ export class BookRelationsResolver {
     input: CreateBookInput;
     userId: string;
   }): Promise<void> {
-    await this.genresService.assertGenresSelectable(userId, input.genres);
+    await this.genresService.assertGenresSelectable(input.genres);
     if (input.coverMediaId != null) {
       await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
     }
@@ -120,7 +120,7 @@ export class BookRelationsResolver {
     userId: string;
   }): Promise<void> {
     if (input.genres !== undefined) {
-      await this.genresService.assertGenresSelectable(userId, input.genres);
+      await this.genresService.assertGenresSelectable(input.genres);
     }
     if (input.coverMediaId != null) {
       await this.mediaService.assertOwned({ id: input.coverMediaId, userId });

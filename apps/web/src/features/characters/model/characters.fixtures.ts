@@ -38,6 +38,7 @@ export function makeBookCharacterView(
     appearanceNotes: null,
     appearanceNotesIsSpoiler: false,
     attitude: null,
+    book: { cover: null, id: "book-1", series: null, title: "Останнє бажання" },
     bookId: "book-1",
     characterId: "char-1",
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -133,6 +134,7 @@ export function makeCharacterSummary(
     id: "book-char-1",
     importance: "central",
     isFavorite: false,
+    isPovCharacter: false,
     name: "Ґеральт",
     portrait: null,
     status: null,
@@ -160,8 +162,12 @@ export function makeDeletionPreview(
   return {
     aliasCount: 2,
     appearanceCount: 3,
+    formCount: 0,
+    groupCount: 0,
+    relationshipCount: 0,
     roleCount: 1,
     tagCount: 0,
+    theoryCount: 0,
     ...overrides,
   };
 }

@@ -1,4 +1,4 @@
-import type { CreateNoteInput, Nullable } from "@app/shared";
+import type { CreateNoteInput, CreateSeriesNoteInput, Nullable } from "@app/shared";
 
 import { NOTE_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,10 +6,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookAccessService } from "../../books/index.js";
 import type { MediaService } from "../../media/index.js";
 import type { SeriesService } from "../../series/index.js";
-import type { NoteSummaryCounts } from "../domain/note-summary.js";
 import type { NotesRepository, NoteWithEntity } from "../infrastructure/notes.repository.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { NotesService } from "./notes.service.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
@@ -17,24 +16,12 @@ const BOOK_ID = "22222222-2222-2222-2222-222222222222";
 const SERIES_ID = "33333333-3333-3333-3333-333333333333";
 const NOTE_ID = "44444444-4444-4444-4444-444444444444";
 
-const EMPTY_COUNTS: NoteSummaryCounts = {
-  availableCustomCategories: [],
-  bookNotesCount: 0,
-  booksWithNotesCount: 0,
-  favoriteCount: 0,
-  pinnedCount: 0,
-  seriesWithNotesCount: 0,
-  total: 0,
-  withSpoilerCount: 0,
-};
-
 type ServiceConfig = {
   bookExists?: boolean;
   createResult?: NoteWithEntity;
   deleteCount?: number;
   findResult?: Nullable<NoteWithEntity>;
   seriesExists?: boolean;
-  summaryResult?: NoteSummaryCounts;
   updateResult?: NoteWithEntity;
 };
 
@@ -49,7 +36,6 @@ function createService(config: ServiceConfig = {}): {
   const deleteOwned = vi.fn().mockResolvedValue(config.deleteCount ?? 1);
   const findOwnedById = vi.fn().mockResolvedValue(config.findResult ?? null);
   const update = vi.fn().mockResolvedValue(config.updateResult ?? makeBookNote());
-  const summaryCounts = vi.fn().mockResolvedValue(config.summaryResult ?? EMPTY_COUNTS);
   const assertOwned = vi.fn(async ({ notFoundCode }: { notFoundCode?: string }): Promise<void> => {
     if (config.bookExists === false) {
       throw new NotFoundError("Book not found", { code: notFoundCode });
@@ -61,7 +47,6 @@ function createService(config: ServiceConfig = {}): {
     create,
     deleteOwned,
     findOwnedById,
-    summaryCounts,
     update,
   } as unknown as NotesRepository;
   const bookAccess = { assertOwned } as unknown as BookAccessService;
@@ -111,6 +96,15 @@ const baseInput: CreateNoteInput = {
   text: "A thought",
 };
 
+const baseSeriesInput: CreateSeriesNoteInput = {
+  category: null,
+  customCategory: null,
+  isFavorite: false,
+  isPinned: false,
+  isSpoiler: false,
+  text: "A thought",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -133,9 +127,9 @@ describe("NotesService ownership", () => {
   it("rejects creating a series note when the series is not owned", async () => {
     const { create, existsSeries, service } = createService({ seriesExists: false });
 
-    await expect(service.createSeriesNote(USER_ID, SERIES_ID, baseInput)).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      service.createSeriesNote(USER_ID, SERIES_ID, baseSeriesInput),
+    ).rejects.toBeInstanceOf(NotFoundError);
     expect(existsSeries).toHaveBeenCalledWith({ seriesId: SERIES_ID, userId: USER_ID });
     expect(create).not.toHaveBeenCalled();
   });
@@ -162,6 +156,22 @@ describe("NotesService create", () => {
         entityType: "book",
         seriesId: null,
         userId: USER_ID,
+      }),
+    );
+  });
+
+  it("never persists chapter or page for a new series note", async () => {
+    const { create, service } = createService();
+
+    await service.createSeriesNote(USER_ID, SERIES_ID, baseSeriesInput);
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookId: null,
+        chapter: null,
+        entityType: "series",
+        page: null,
+        seriesId: SERIES_ID,
       }),
     );
   });
@@ -206,7 +216,69 @@ describe("NotesService edit", () => {
     await service.editNote(USER_ID, NOTE_ID, { isFavorite: true });
 
     expect(update).toHaveBeenCalledWith({
-      fields: { isFavorite: true },
+      fields: { isFavorite: true, updatedAt: current.updatedAt },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it.each([
+    { input: { isPinned: true }, label: "a pin toggle" },
+    { input: { isFavorite: true }, label: "a favorite toggle" },
+    { input: { isFavorite: false, isPinned: true }, label: "both flags at once" },
+  ])("keeps the stored updatedAt for $label", async ({ input }) => {
+    const current = makeBookNote({ updatedAt: new Date("2026-03-04T05:06:07.000Z") });
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, input);
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { ...input, updatedAt: current.updatedAt },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it.each([
+    { input: { isPinned: true, text: "Revised" }, label: "a text edit alongside a flag" },
+    { input: { isSpoiler: true }, label: "a spoiler change" },
+    { input: { isFavorite: true, isSpoiler: false }, label: "a spoiler change alongside a flag" },
+    { input: { page: 7 }, label: "a page change" },
+    { input: { category: "plot" as const }, label: "a category change" },
+  ])("lets updatedAt advance for $label", async ({ input }) => {
+    const current = makeBookNote();
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, input);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fields: expect.not.objectContaining({ updatedAt: expect.anything() }),
+      }),
+    );
+  });
+
+  it("leaves a saved chapter and page untouched when the patch omits them", async () => {
+    const current = makeBookNote({ chapter: "Prologue", page: 12 });
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { text: "Revised thought" });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { text: "Revised thought" },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it("clears a saved chapter and page when the patch sets them to null", async () => {
+    const current = makeBookNote({ chapter: "Prologue", page: 12 });
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { chapter: null, page: null });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { chapter: null, page: null },
       noteId: NOTE_ID,
       userId: USER_ID,
     });
@@ -239,25 +311,63 @@ describe("NotesService edit", () => {
   });
 });
 
-describe("NotesService summary", () => {
-  it("maps repository counts into the summary view", async () => {
-    const { service } = createService({
-      summaryResult: {
-        availableCustomCategories: ["romance arc"],
-        bookNotesCount: 4,
-        booksWithNotesCount: 2,
-        favoriteCount: 1,
-        pinnedCount: 1,
-        seriesWithNotesCount: 1,
-        total: 6,
-        withSpoilerCount: 2,
-      },
+describe("NotesService edit on a series note", () => {
+  function makeSeriesNote(): NoteWithEntity {
+    return makeBookNote({ book: null, bookId: null, entityType: "series", seriesId: SERIES_ID });
+  }
+
+  it.each([
+    { input: { page: 5 }, label: "a page" },
+    { input: { chapter: "Prologue" }, label: "a chapter" },
+  ])("rejects adding $label", async ({ input }) => {
+    const current = makeSeriesNote();
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    const rejection = service.editNote(USER_ID, NOTE_ID, input);
+
+    await expect(rejection).rejects.toBeInstanceOf(BadRequestError);
+    await expect(rejection).rejects.toMatchObject({
+      code: NOTE_ERROR_CODES.seriesNoteLocationUnsupported,
     });
+    expect(update).not.toHaveBeenCalled();
+  });
 
-    const summary = await service.summary(USER_ID);
+  it("accepts an explicit null page and chapter as a removal", async () => {
+    const current = makeSeriesNote();
+    const { service, update } = createService({ findResult: current, updateResult: current });
 
-    expect(summary.seriesNotesCount).toBe(2);
-    expect(summary.withoutSpoilerCount).toBe(4);
-    expect(summary.availableCustomCategories).toEqual(["romance arc"]);
+    await service.editNote(USER_ID, NOTE_ID, { chapter: null, page: null });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { chapter: null, page: null },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it("treats a blank chapter as a removal", async () => {
+    const current = makeSeriesNote();
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { chapter: "   " });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { chapter: null },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it("leaves page and chapter out of the update when the patch omits them", async () => {
+    const current = makeSeriesNote();
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { text: "Revised" });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { text: "Revised" },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
   });
 });

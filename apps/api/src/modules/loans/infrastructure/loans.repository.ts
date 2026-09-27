@@ -1,10 +1,18 @@
-import type { LoanFilter, LoanReminderFilter, LoanSort, LoanType, Nullable } from "@app/shared";
+import type {
+  LoanFilter,
+  LoanReminderFilter,
+  LoanSort,
+  LoansQuickCounts,
+  LoanType,
+  Nullable,
+} from "@app/shared";
 
 import { LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+import type { LoansQuickCountFilters } from "../domain/loans-quick-counts.js";
 
 import { escapeLikePattern } from "../../../core/database/like-pattern.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -113,6 +121,20 @@ export class LoansRepository {
 
   countLoans(input: LoansFilterInput): Promise<number> {
     return this.prisma.bookLoan.count({ where: buildLoansWhere(input) });
+  }
+
+  async countQuickFilters({
+    filters,
+  }: {
+    filters: LoansQuickCountFilters;
+  }): Promise<LoansQuickCounts> {
+    const [all, noReturnDate, overdue, returnSoon] = await Promise.all([
+      this.countLoans(filters.all),
+      this.countLoans(filters.no_return_date),
+      this.countLoans(filters.overdue),
+      this.countLoans(filters.return_soon),
+    ]);
+    return { all, no_return_date: noReturnDate, overdue, return_soon: returnSoon };
   }
 
   coverAssets(ids: string[]): Promise<MediaAssetModel[]> {

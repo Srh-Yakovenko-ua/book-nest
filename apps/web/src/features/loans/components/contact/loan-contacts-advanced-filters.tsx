@@ -30,6 +30,7 @@ import {
 type LoanContactsAdvancedFiltersProps = {
   activeCount: number;
   counts?: LoanContactCounts;
+  countsPending?: boolean;
   setState: UseLoanContactsQueryResult["setState"];
   status: UseLoanContactsQueryResult["status"];
 };
@@ -37,6 +38,7 @@ type LoanContactsAdvancedFiltersProps = {
 export function LoanContactsAdvancedFilters({
   activeCount,
   counts,
+  countsPending,
   setState,
   status,
 }: LoanContactsAdvancedFiltersProps) {
@@ -72,6 +74,7 @@ export function LoanContactsAdvancedFilters({
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4">
           <FilterSection title={t("sections.status")}>
             <ChipGroup
+              countsPending={countsPending}
               label={t("sections.status")}
               mode="single"
               onValueChange={(next) => {

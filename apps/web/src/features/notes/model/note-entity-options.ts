@@ -1,6 +1,19 @@
-import type { BookView, SeriesView } from "@app/shared";
+import type { BookView, NoteBookPreview, SeriesView } from "@app/shared";
+
+import type { BookSelectOption } from "@/features/books/model/book-select-option";
+
+import { toSeriesSelectOption } from "@/features/series/model/series-select-option";
 
 import type { NoteEntityRef } from "./note-entity";
+
+export function bookSelectOptionFromPreview(book: NoteBookPreview): BookSelectOption {
+  return {
+    authorName: book.author ?? "",
+    cover: book.cover,
+    id: book.id,
+    title: book.title,
+  };
+}
 
 export function noteEntityRefFromBook(book: BookView): NoteEntityRef {
   return {
@@ -15,14 +28,5 @@ export function noteEntityRefFromBook(book: BookView): NoteEntityRef {
 }
 
 export function noteEntityRefFromSeries(series: SeriesView): NoteEntityRef {
-  return {
-    series: {
-      authors: series.authors.map((author) => author.name),
-      booksCount: series.booksInSeries,
-      cover: null,
-      id: series.id,
-      name: series.name,
-    },
-    type: "series",
-  };
+  return { series: toSeriesSelectOption(series), type: "series" };
 }

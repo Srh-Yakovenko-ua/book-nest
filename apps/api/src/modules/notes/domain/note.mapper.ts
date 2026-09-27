@@ -2,11 +2,17 @@ import type { MediaView, NoteView, Nullable } from "@app/shared";
 
 import { NoteCategorySchema, NoteEntityTypeSchema } from "@app/shared";
 
+import { resolveSeriesCanonicalAuthors } from "../../series/index.js";
 import { emptyToNull } from "./note-fields.js";
 
 export type NoteEntityCovers = {
   book: Nullable<MediaView>;
   series: Nullable<MediaView>;
+};
+
+type NoteCoverSource<TAsset> = {
+  book: Nullable<{ coverMedia: Nullable<TAsset> }>;
+  series: Nullable<{ books: { coverMedia: Nullable<TAsset> }[] }>;
 };
 
 type NoteMapperSource = {
@@ -23,13 +29,33 @@ type NoteMapperSource = {
   page: Nullable<number>;
   series: Nullable<{
     _count: { books: number };
-    authors: { author: { name: string } }[];
+    authors: { author: { id: string; name: string } }[];
+    books: {
+      authors: { author: { id: string; name: string }; position: number }[];
+      createdAt: Date;
+      partNumber: Nullable<number>;
+    }[];
     id: string;
     name: string;
   }>;
   text: string;
   updatedAt: Date;
 };
+
+export function resolveNoteEntityCovers<TAsset>({
+  buildCover,
+  note,
+}: {
+  buildCover: (asset: Nullable<TAsset>) => Nullable<MediaView>;
+  note: NoteCoverSource<TAsset>;
+}): NoteEntityCovers {
+  const firstSeriesCover =
+    note.series?.books.find((book) => book.coverMedia !== null)?.coverMedia ?? null;
+  return {
+    book: buildCover(note.book?.coverMedia ?? null),
+    series: buildCover(firstSeriesCover),
+  };
+}
 
 export function toNoteView(note: NoteMapperSource, covers: NoteEntityCovers): NoteView {
   return {
@@ -56,7 +82,7 @@ export function toNoteView(note: NoteMapperSource, covers: NoteEntityCovers): No
       note.series === null
         ? null
         : {
-            authors: note.series.authors.map((seriesAuthor) => seriesAuthor.author.name),
+            authors: resolveSeriesCanonicalAuthors(note.series).map((author) => author.name),
             booksCount: note.series._count.books,
             cover: covers.series,
             id: note.series.id,

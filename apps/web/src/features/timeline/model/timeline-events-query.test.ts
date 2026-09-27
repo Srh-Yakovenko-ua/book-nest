@@ -26,6 +26,7 @@ describe("createFilterState", () => {
       sort: "book_order",
       timelineId: null,
       unresolved: false,
+      withoutChapter: false,
     });
   });
 
@@ -96,6 +97,10 @@ describe("hasActiveEventFilters", () => {
   it("is active when the recap toggle is on", () => {
     expect(hasActiveEventFilters(state({ recap: true }))).toBe(true);
   });
+
+  it("is active when the without-chapter toggle is on", () => {
+    expect(hasActiveEventFilters(state({ withoutChapter: true }))).toBe(true);
+  });
 });
 
 describe("toApiParams", () => {
@@ -144,5 +149,13 @@ describe("toApiParams", () => {
 
   it("encodes the recap toggle as a string flag", () => {
     expect(toApiParams(state({ recap: true }), 1).recap).toBe("true");
+  });
+
+  it("encodes the without-chapter toggle as a string flag", () => {
+    expect(toApiParams(state({ withoutChapter: true }), 1).withoutChapter).toBe("true");
+  });
+
+  it("omits the without-chapter flag when it is off", () => {
+    expect(toApiParams(state(), 1)).not.toHaveProperty("withoutChapter");
   });
 });

@@ -4,6 +4,7 @@ import type {
   CharacterDetailsView,
   CharacterDuplicateCandidatesView,
   CharacterGlobalSummaryView,
+  CharacterOverviewView,
   Paginator,
 } from "@app/shared";
 
@@ -59,6 +60,7 @@ import { CharacterDeletionPreviewDto } from "./view-dto/character-deletion-previ
 import { CharacterDeletionResultDto } from "./view-dto/character-deletion-result.view-dto.js";
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
 import { CharacterDuplicateCandidatesDto } from "./view-dto/character-duplicate-candidates.view-dto.js";
+import { CharacterOverviewDto } from "./view-dto/character-overview.view-dto.js";
 import { PaginatedCharacterGlobalSummaryDto } from "./view-dto/paginated-character-global-summary.view-dto.js";
 
 @ApiTags("characters")
@@ -139,6 +141,19 @@ export class CharactersController {
     return this.charactersService.duplicateCandidates({ query, userId: user.id });
   }
 
+  @ApiOkResponse({
+    description: "Owner-scoped totals and the tie-safe most frequent character of the catalog",
+    type: CharacterOverviewDto,
+  })
+  @ApiOperation({ summary: "Get the aggregate overview of the global characters catalog" })
+  @Get("overview")
+  overview(@CurrentUser() user: AuthenticatedUser): Promise<CharacterOverviewView> {
+    return this.charactersService.overview({ userId: user.id });
+  }
+
+  @ApiBadRequestResponse({
+    description: "A reading position was supplied without contextBookId",
+  })
   @ApiNotFoundResponse({ description: "Character or context book not found" })
   @ApiOkResponse({
     description:

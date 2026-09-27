@@ -1,0 +1,163 @@
+{
+  "spec": "docs/adr/0001-quick-filter-counts-follow-the-query.md",
+  "rule": "A quick filter count is the number of results that chip would show under the current search and advanced filters, ignoring the selected quick filter. Zero stays enabled, previous counts stay on screen while refetching, All has a count, rendering goes through ChipGroup count only. Summaries for sidebars and stat cards stay unfiltered.",
+  "adoptedAssumptions": [
+    "New count endpoints are separate GET routes returning only counts, fetched by their own hook with placeholderData: keepPreviousData, mirroring the notes/tags/genres/quotes facets pattern. Counts are not embedded in paginated list responses, so fetching page 2 of an infinite list never recomputes them.",
+    "Every count query reuses the list's own WHERE builder with the quick filter axes cleared. No hand-copied WHERE.",
+    "Existing summary endpoints keep their shape and stay unfiltered.",
+    "/books, /my-library, the publisher books tab and /favorites share one endpoint: favorites is the library query with isFavorite forced true, and its chips are a subset of the library chip axes.",
+    "Mobile chip height: ChipGroup gets a 44px minimum touch target below sm on every page (decided 2026-09-24); the publishers-only override goes away."
+  ],
+  "openDecisions": [],
+  "slices": [
+    {
+      "id": "S1",
+      "title": "Frontend alignment with no backend change",
+      "tasks": [
+        {
+          "id": "S1.1",
+          "desc": "ChipGroup count: one style that stays legible on the selected chip (check contrast against the primary fill)",
+          "files": ["apps/web/src/components/ui/chip-group.tsx"]
+        },
+        {
+          "id": "S1.2",
+          "desc": "Replace hand-rolled count labels with ChipGroup count",
+          "files": [
+            "apps/web/src/features/notes/components/notes-quick-chips.tsx",
+            "apps/web/src/features/tags/components/tags-toolbar.tsx",
+            "apps/web/src/features/genres/components/genres-toolbar.tsx"
+          ]
+        },
+        {
+          "id": "S1.3",
+          "desc": "Lists: stop disabling zero-count chips",
+          "files": ["apps/web/src/features/lists/components/list-quick-filters.tsx"]
+        },
+        {
+          "id": "S1.4",
+          "desc": "Quotes facets hook: placeholderData keepPreviousData",
+          "files": ["apps/web/src/features/quotes/api/use-quotes-facets.ts"]
+        },
+        {
+          "id": "S1.5",
+          "desc": "Move max-sm min-h-11 into ChipGroup for every page and drop the publishers-only override",
+          "files": [
+            "apps/web/src/components/ui/chip-group.tsx",
+            "apps/web/src/features/publishers/components/publisher-quick-filters.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Library quick counts: /books, /my-library, publisher books tab, /favorites",
+      "tasks": [
+        {
+          "id": "S2.1",
+          "desc": "Shared query schema = LibraryBooksQuery minus paging, sort and quick axes (status, owner, bookType, isFavorite as quick); response = count per LibraryQuickFilterKey"
+        },
+        {
+          "id": "S2.2",
+          "desc": "Repository: one SQL with count(*) FILTER over buildLibraryWhere with quick axes cleared",
+          "files": ["apps/api/src/modules/books/infrastructure/book-library-read.repository.ts"]
+        },
+        {
+          "id": "S2.3",
+          "desc": "Service, controller GET /api/books/quick-counts, Swagger, tests"
+        },
+        {
+          "id": "S2.4",
+          "desc": "FE hook with keepPreviousData; BooksArchive and favorites-view take chip counts from it; overview summary still feeds summary cards, sidebar, libraryTotal and home",
+          "files": [
+            "apps/web/src/features/books/components/books-archive.tsx",
+            "apps/web/src/features/books/components/favorites-view.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "Loans quick counts: /loans/lent, /loans/borrowed",
+      "tasks": [
+        {
+          "id": "S3.1",
+          "desc": "Count endpoint taking the list params, built on buildLoanFilterConditions / buildLoansWhere, replacing the hand-copied overdue/return-soon SQL for chips",
+          "files": ["apps/api/src/modules/loans/infrastructure/loans.repository.ts"]
+        },
+        {
+          "id": "S3.2",
+          "desc": "FE wiring in loans-view; loans summary keeps feeding cards and sidebar",
+          "files": ["apps/web/src/features/loans/components/loans-view.tsx"]
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "Dedications quick counts",
+      "tasks": [
+        {
+          "id": "S4.1",
+          "desc": "Count endpoint taking q and genre, built on buildDedicationsWhere + applyDedicationStatusFilter",
+          "files": ["apps/api/src/modules/books/infrastructure/books.repository.ts"]
+        },
+        {
+          "id": "S4.2",
+          "desc": "FE wiring; summary keeps feeding cards and availableGenres",
+          "files": ["apps/web/src/features/dedications/components/dedications-view.tsx"]
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "Delivery in-transit quick counts",
+      "tasks": [
+        {
+          "id": "S5.1",
+          "desc": "Count endpoint taking the list params, built on buildInTransitConditions without the category",
+          "files": ["apps/api/src/modules/delivery/infrastructure/in-transit-sql.ts"]
+        },
+        {
+          "id": "S5.2",
+          "desc": "FE: stop hiding counts during search or filters",
+          "files": ["apps/web/src/features/delivery/components/delivery-in-transit.tsx"]
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "title": "Publishers quick counts (new)",
+      "tasks": [
+        {
+          "id": "S6.1",
+          "desc": "Count endpoint over the grouped publishers subquery, HAVING built without quickFilterCondition, count(*) FILTER per chip",
+          "files": ["apps/api/src/modules/publishers/infrastructure/publishers.repository.ts"]
+        },
+        {
+          "id": "S6.2",
+          "desc": "PublisherQuickFilters takes counts; wire in all-publishers",
+          "files": [
+            "apps/web/src/features/publishers/components/publisher-quick-filters.tsx",
+            "apps/web/src/features/publishers/components/all-publishers.tsx"
+          ]
+        }
+      ]
+    }
+  ],
+  "alreadyCompliant": [
+    "/lists/[id] (except S1.3)",
+    "/loans/history",
+    "/notes/*",
+    "/tags",
+    "/genres",
+    "/quotes (except S1.4)"
+  ],
+  "definitionOfDone": [
+    "Every page with quick filter chips shows a count on every chip, including All",
+    "With a search active, clicking a chip shows exactly the number it displayed",
+    "Selecting a chip does not change the counts of the other chips",
+    "Summary cards and sidebars show the same numbers as before",
+    "No quick filter chip is disabled",
+    "Counts do not blink while typing a search",
+    "typecheck, lint, format:check green; touched tests pass; blast-radius run for each contract slice"
+  ]
+}

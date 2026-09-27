@@ -9,4 +9,9 @@
 export type SeriesDetailsViewDtoPublishersItem = {
   id: string;
   name: string;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  bookCount: number;
 };

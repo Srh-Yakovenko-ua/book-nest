@@ -5,6 +5,7 @@ import type { LoanListItemView, LoanType, Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 import type {
   LoansControllerListFilter,
@@ -12,8 +13,8 @@ import type {
 } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Button } from "@/components/ui/button";
 import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
@@ -23,9 +24,10 @@ import type { LoanAttentionKey, LoansAttention, LoansPeople } from "./loans-side
 
 import { useLoanContact } from "../api/use-loan-contact";
 import { useLoansList } from "../api/use-loans-list";
+import { useLoansQuickCounts } from "../api/use-loans-quick-counts";
 import { useLoansSummary } from "../api/use-loans-summary";
 import { LOAN_PAGES } from "../model/loan-pages";
-import { loansQuickFilterCounts } from "../model/loans-quick-filters";
+import { toLoansQuickCountsParams } from "../model/loans-quick-filters";
 import { useLoanContactDrawer } from "../model/use-loan-contact-drawer";
 import { useLoansFilterChips } from "../model/use-loans-filter-chips";
 import { useLoansQuery } from "../model/use-loans-query";
@@ -66,6 +68,7 @@ export function LoansView({ type }: { type: LoanType }) {
   const query = useLoansQuery(type);
   const summary = useLoansSummary();
   const list = useLoansList(query.listParams);
+  const quickCounts = useLoansQuickCounts(toLoansQuickCountsParams(query.listParams));
   const selectedContact = useLoanContact(query.contactId === "" ? null : query.contactId);
   const contactName = selectedContact.data?.name ?? null;
   const filterChips = useLoansFilterChips({
@@ -92,7 +95,8 @@ export function LoansView({ type }: { type: LoanType }) {
   const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
   const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
   const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
-  const showChrome = !list.isError && (list.isPending || hasAnyLoans);
+  const hasListError = list.isError && !list.isFetchNextPageError;
+  const showChrome = !hasListError && (list.isPending || hasAnyLoans);
   const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
 
   const attention: Nullable<LoansAttention> = summary.isError
@@ -122,7 +126,7 @@ export function LoansView({ type }: { type: LoanType }) {
       direction={page.direction}
       hasActiveFilters={query.hasActiveFilters}
       hasActiveSearch={query.hasActiveSearch}
-      isError={list.isError}
+      isError={hasListError}
       isPending={list.isPending}
       items={items}
       onAddBook={() => router.push("/books/new")}
@@ -190,9 +194,8 @@ export function LoansView({ type }: { type: LoanType }) {
           />
 
           <LoansQuickFilters
-            counts={
-              directionSummary === undefined ? undefined : loansQuickFilterCounts(directionSummary)
-            }
+            counts={quickCounts.data}
+            countsPending={quickCounts.isPending}
             onSelect={query.setFilter}
             value={query.filter}
           />
@@ -200,20 +203,18 @@ export function LoansView({ type }: { type: LoanType }) {
           <LibraryActiveFilters chips={filterChips} onClearAll={query.clearFilters} />
 
           <p className="text-sm text-muted-foreground" role="status">
-            {list.isPending || directionSummary === undefined
-              ? ""
-              : t("shownCount", { shown: totalCount, total: directionSummary.totalCount })}
+            {list.isPending ? "" : t("shownCount", { shown: items.length, total: totalCount })}
           </p>
 
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-6">
               {loansContent}
 
-              {items.length > 0 && list.hasNextPage ? (
-                <LoansLoadMore
-                  isFetchingNextPage={list.isFetchingNextPage}
-                  isLoadMoreError={list.isFetchNextPageError}
+              {items.length > 0 ? (
+                <InfiniteScrollFooter
+                  errorLabel={t("loadMoreError")}
                   onLoadMore={() => void list.fetchNextPage()}
+                  state={nextPageState(list)}
                 />
               ) : null}
             </div>
@@ -376,32 +377,17 @@ function LoansContent({
   );
 }
 
-function LoansLoadMore({
+function nextPageState({
+  hasNextPage,
   isFetchingNextPage,
-  isLoadMoreError,
-  onLoadMore,
+  isFetchNextPageError,
 }: {
+  hasNextPage: boolean;
   isFetchingNextPage: boolean;
-  isLoadMoreError: boolean;
-  onLoadMore: () => void;
-}) {
-  const t = useTranslations("loans");
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {isLoadMoreError ? (
-        <p className="text-sm text-error" role="alert">
-          {t("loadMoreError")}
-        </p>
-      ) : null}
-      <Button
-        disabled={isFetchingNextPage}
-        loading={isFetchingNextPage}
-        onClick={onLoadMore}
-        variant="secondary"
-      >
-        {t("loadMore")}
-      </Button>
-    </div>
-  );
+  isFetchNextPageError: boolean;
+}): InfiniteScrollState {
+  if (isFetchNextPageError) return "error";
+  if (isFetchingNextPage) return "loading";
+  if (hasNextPage) return "idle";
+  return "none";
 }

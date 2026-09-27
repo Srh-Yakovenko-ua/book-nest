@@ -629,19 +629,31 @@ describe("thread status and resolution", () => {
 });
 
 describe("recap filter", () => {
-  it("includes events up to the position and page-less events, excluding those ahead", async () => {
+  it("keeps only events up to the position, excluding page-less events and those ahead", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken, { pagesCount: 100 });
     await setCurrentPage(accessToken, bookId, 50);
     await createTitledEvent(accessToken, bookId, "behind", { pageNumber: 30 });
+    await createTitledEvent(accessToken, bookId, "at the position", { pageNumber: 50 });
     await createTitledEvent(accessToken, bookId, "ahead", { pageNumber: 70 });
     await createTitledEvent(accessToken, bookId, "unknown page");
 
     const res = await listEvents(accessToken, bookId, "?recap=true&sort=book_order");
     const titles = res.body.items.map((event: { title: string }) => event.title);
-    expect(titles).toContain("behind");
-    expect(titles).toContain("unknown page");
-    expect(titles).not.toContain("ahead");
+    expect(titles).toEqual(["behind", "at the position"]);
+    expect(res.body.totalCount).toBe(2);
+  });
+
+  it("keeps the selected sort while filtering strictly", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, { pagesCount: 100 });
+    await setCurrentPage(accessToken, bookId, 50);
+    await createTitledEvent(accessToken, bookId, "low", { importance: "low", pageNumber: 10 });
+    await createTitledEvent(accessToken, bookId, "key", { importance: "key", pageNumber: 20 });
+    await createTitledEvent(accessToken, bookId, "ahead", { importance: "key", pageNumber: 90 });
+
+    const res = await listEvents(accessToken, bookId, "?recap=true&sort=importance");
+    expect(res.body.items.map((event: { title: string }) => event.title)).toEqual(["key", "low"]);
   });
 
   it("returns all events for recap when the reading position is unknown", async () => {
@@ -652,6 +664,99 @@ describe("recap filter", () => {
 
     const res = await listEvents(accessToken, bookId, "?recap=true");
     expect(res.body.totalCount).toBe(2);
+  });
+});
+
+describe("withoutChapter filter", () => {
+  it("returns only events that have no chapter", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await createTitledEvent(accessToken, bookId, "chaptered", { chapter: "Глава 1" });
+    await createTitledEvent(accessToken, bookId, "blank chapter", { chapter: "   " });
+    await createTitledEvent(accessToken, bookId, "no chapter");
+
+    const res = await listEvents(accessToken, bookId, "?withoutChapter=true&sort=book_order");
+    expect(res.body.totalCount).toBe(2);
+    expect(res.body.items.map((event: { title: string }) => event.title)).toEqual([
+      "blank chapter",
+      "no chapter",
+    ]);
+  });
+
+  it("composes with the other filters instead of replacing them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await createTitledEvent(accessToken, bookId, "key without chapter", { importance: "key" });
+    await createTitledEvent(accessToken, bookId, "key with chapter", {
+      chapter: "Глава 2",
+      importance: "key",
+    });
+    await createTitledEvent(accessToken, bookId, "low without chapter", { importance: "low" });
+
+    const res = await listEvents(accessToken, bookId, "?withoutChapter=true&keyOnly=true");
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.items[0].title).toBe("key without chapter");
+  });
+
+  it("returns every event when the filter is absent", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await createTitledEvent(accessToken, bookId, "chaptered", { chapter: "Глава 1" });
+    await createTitledEvent(accessToken, bookId, "no chapter");
+
+    const res = await listEvents(accessToken, bookId);
+    expect(res.body.totalCount).toBe(2);
+  });
+});
+
+describe("spoiler flag", () => {
+  it("defaults to false and is carried through create, list and detail", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const plain = await createTitledEvent(accessToken, bookId, "no spoiler");
+    expect(plain.body.isSpoiler).toBe(false);
+
+    const spoiler = await createTitledEvent(accessToken, bookId, "the twist", { isSpoiler: true });
+    expect(spoiler.body.isSpoiler).toBe(true);
+
+    const detail = await authed("get", `/api/timeline-events/${spoiler.body.id}`, accessToken);
+    expect(detail.body.isSpoiler).toBe(true);
+
+    const list = await listEvents(accessToken, bookId, "?sort=book_order");
+    expect(list.body.items.map((event: { isSpoiler: boolean }) => event.isSpoiler)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
+  it("toggles on update and stays put when the update omits it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const event = await createTitledEvent(accessToken, bookId, "reveal", { isSpoiler: true });
+
+    const renamed = await authed(
+      "patch",
+      `/api/timeline-events/${event.body.id}`,
+      accessToken,
+    ).send({ title: "The reveal" });
+    expect(renamed.status).toBe(HttpStatus.OK);
+    expect(renamed.body.isSpoiler).toBe(true);
+
+    const cleared = await authed(
+      "patch",
+      `/api/timeline-events/${event.body.id}`,
+      accessToken,
+    ).send({ isSpoiler: false });
+    expect(cleared.status).toBe(HttpStatus.OK);
+    expect(cleared.body.isSpoiler).toBe(false);
+  });
+
+  it("rejects a non-boolean spoiler flag", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const res = await createEvent(accessToken, bookId, { isSpoiler: "yes", title: "Bad" });
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
   });
 });
 
@@ -695,6 +800,7 @@ describe("overview", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.totalEvents).toBe(3);
     expect(res.body.unresolvedCount).toBe(1);
+    expect(res.body.resolvedCount).toBe(0);
     expect(res.body.readingPosition).toEqual({
       currentPage: 50,
       guardDefault: true,
@@ -706,6 +812,34 @@ describe("overview", () => {
 
     const battle = res.body.byType.find((row: { eventType: string }) => row.eventType === "battle");
     expect(battle.count).toBe(2);
+  });
+
+  it("counts open and resolved threads exactly, ignoring events without a status", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await createTitledEvent(accessToken, bookId, "open one", { threadStatus: "open" });
+    await createTitledEvent(accessToken, bookId, "open two", { threadStatus: "open" });
+    await createTitledEvent(accessToken, bookId, "resolved one", { threadStatus: "resolved" });
+    await createTitledEvent(accessToken, bookId, "no thread");
+
+    const res = await authed("get", `/api/books/${bookId}/timeline/overview`, accessToken);
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.totalEvents).toBe(4);
+    expect(res.body.unresolvedCount).toBe(2);
+    expect(res.body.resolvedCount).toBe(1);
+  });
+
+  it("reports a non-null palette color for every timeline", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await authed("post", `/api/books/${bookId}/timelines`, accessToken).send({ name: "Future" });
+    await createTitledEvent(accessToken, bookId, "one");
+
+    const res = await authed("get", `/api/books/${bookId}/timeline/overview`, accessToken);
+    expect(res.body.byTimeline.map((row: { colorKey: string }) => row.colorKey)).toEqual([
+      "parchment",
+      "terracotta",
+    ]);
   });
 });
 

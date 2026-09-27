@@ -6,26 +6,24 @@ import type {
   TimelineRelationType,
 } from "@app/shared";
 
-import { TimelineRelationTypeSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ChipGroup } from "@/components/ui/chip-group";
 
 import { useCreateEventRelation } from "../api/use-create-event-relation";
 import { useDeleteEventRelation } from "../api/use-delete-event-relation";
 import { useTimelineEvent } from "../api/use-timeline-event";
-import { EventSearchSelect } from "./event-search-select";
+import { TimelineEventSingleSelectPicker } from "./timeline-event-single-select-picker";
+
+const RELATION_CHIP_ORDER = [
+  "related",
+  "follows_from",
+  "foreshadows",
+] as const satisfies readonly TimelineRelationType[];
 
 type EventRelationEditorProps = {
   bookId: string;
@@ -70,28 +68,32 @@ export function EventRelationEditor({ bookId, eventId }: EventRelationEditorProp
 
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">{t("relationsInstantSaveHint")}</p>
+
       <div className="flex flex-col gap-2">
-        <Label htmlFor="event-relation-type">{t("relationTypeLabel")}</Label>
-        <Select
-          onValueChange={(value) => setRelationType(value as TimelineRelationType)}
+        <span className="text-xs font-medium text-muted-foreground">{t("relationTypeLabel")}</span>
+        <ChipGroup
+          className="gap-2"
+          label={t("relationTypeLabel")}
+          mode="single"
+          onValueChange={(value) => {
+            const next = RELATION_CHIP_ORDER.find((option) => option === value);
+            if (next === undefined) return;
+            setRelationType(next);
+          }}
+          options={RELATION_CHIP_ORDER.map((option) => ({
+            label: tRelation(option),
+            value: option,
+          }))}
+          size="sm"
           value={relationType}
-        >
-          <SelectTrigger className="h-9 w-full data-[size=default]:h-9" id="event-relation-type">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TimelineRelationTypeSchema.options.map((option) => (
-              <SelectItem key={option} value={option}>
-                {tRelation(option)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <EventSearchSelect
+        />
+        <TimelineEventSingleSelectPicker
           bookId={bookId}
           excludeIds={excludeIds}
           onSelect={addRelation}
-          placeholder={t("relationTargetPlaceholder")}
+          searchLabel={t("relationTargetPlaceholder")}
+          selectedId={null}
         />
       </div>
 
@@ -109,6 +111,7 @@ export function EventRelationEditor({ bookId, eventId }: EventRelationEditorProp
                   {tRelation(entry.relationType)}
                 </span>
                 <span className="truncate text-sm text-foreground">{entry.event.title}</span>
+                <RelationRowMeta entry={entry} />
               </span>
               <Button
                 aria-label={t("relationRemove")}
@@ -140,11 +143,27 @@ export function EventRelationEditor({ bookId, eventId }: EventRelationEditorProp
                   {tInverse(entry.relationType)}
                 </span>
                 <span className="truncate text-sm text-foreground">{entry.event.title}</span>
+                <RelationRowMeta entry={entry} />
               </li>
             ))}
           </ul>
         </div>
       )}
     </div>
+  );
+}
+
+function RelationRowMeta({ entry }: { entry: TimelineEventRelationEntry }) {
+  const t = useTranslations("timeline");
+  const { chapter, pageNumber, timelineName } = entry.event;
+
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+      <span className="truncate">{timelineName}</span>
+      {chapter === null ? null : <span className="truncate">{chapter}</span>}
+      {pageNumber === null ? null : (
+        <span className="tabular-nums">{t("list.page", { page: pageNumber })}</span>
+      )}
+    </span>
   );
 }

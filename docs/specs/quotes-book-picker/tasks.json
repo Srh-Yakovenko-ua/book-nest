@@ -1,0 +1,1061 @@
+{
+  "spec": "docs/4_quotes_booknest_quotes_book_picker_refactor.md",
+  "generatedAt": "2026-09-17T10:28:33Z",
+  "branch": "fix/notes",
+  "scope": {
+    "included": [
+      "§1 reusable single-select picker at the Books feature level",
+      "§2 data fetching via existing useLibraryBooks (title_asc, debounced backend search, pageSize 20-24, no useSoloBooks)",
+      "§3 independent searchQuery / selectedBook state, form holds canonical bookId",
+      "§4 inline picker UX before selection (search + scrollable radio rows, cover/title/author)",
+      "§5 compact selected state after selection with a 'Змінити' affordance",
+      "§6 automatic infinite scroll via the existing useInfiniteScroll, pagination reset on search change",
+      "§7 debounced backend search across the whole library, title_asc when search is empty, compact no-results state",
+      "§8 QuoteDialog create + edit integration and de-duplication of QuoteBookPreview",
+      "§9 modal layout (bounded list height, own scroll, footer reachable, no horizontal overflow)",
+      "§10 constraints (encoded as constraints[] and mirrored into doneWhen)",
+      "Очікуваний результат checklist (mapped in acceptance[])",
+      "Vitest + RTL coverage in apps/web"
+    ],
+    "excluded": [
+      {
+        "item": "Migrating DedicationBookPickerDialog (apps/web/src/features/dedications/components/dedication-book-picker-dialog.tsx:37) and AddBookToQueueDialog (apps/web/src/features/books/components/add-book-to-queue-dialog.tsx:44) onto the new picker",
+        "reason": "The spec only forbids importing/copying the Dedications component; it never asks to refactor the two existing single-select pickers. Doing it here doubles the review surface across two more features. Tracked as D6."
+      },
+      {
+        "item": "Any backend change (new endpoint, new Books API, move-quote-to-another-book capability)",
+        "reason": "§2 'Новий backend endpoint не потрібен' and §10 'не створювати новий Books API'. Consequence: the edit-mode book change asked for in §8 is not implementable as written - see D3."
+      },
+      {
+        "item": "Changing maxPages: 10 in useLibraryBooks (apps/web/src/features/books/api/use-books.ts:13,23)",
+        "reason": "Eleven consumers share that hook, including the main library grid. Touching it is a behaviour change outside this refactor. Tracked as D1."
+      },
+      {
+        "item": "Quotes list, toolbar, sidebar, filters, sort sheet",
+        "reason": "The spec is scoped to the book-selection control inside the Додати цитату dialog."
+      },
+      {
+        "item": "Increasing pageSize to 1000",
+        "reason": "§10 forbids it, and the backend rejects it anyway: pageSize max is LIST_PAGE_SIZE_MAX = 100 (packages/shared/src/common.ts:43, applied via paginationQueryFields at packages/shared/src/common.ts:137-141 and packages/shared/src/books.ts:904)."
+      }
+    ]
+  },
+  "constraints": [
+    "No new backend endpoint and no Books API change (spec §2, §10).",
+    "No import from @/features/dedications inside @/features/quotes (spec §10). Today that dependency count is 0.",
+    "No nested modal: the picker renders inline inside QuoteDialog, never its own Dialog/Popover (spec §4, §10).",
+    "No useSoloBooks (apps/web/src/features/series/api/use-solo-books.ts:26) - it hardcodes bookType: solo and would hide every series part (spec §2, §10).",
+    "No Checkbox / multi-select semantics; RadioGroup single-select only (spec §1, §10).",
+    "No local-only filtering - search goes to the backend through the q param (spec §7, §10).",
+    "The selected book title is never written into the search query (spec §3, §10).",
+    "pageSize stays in the 20-24 range (spec §2), never 1000 (spec §10).",
+    "The old cmdk/Popover combobox is replaced, not patched (spec §1, §10).",
+    "CLAUDE.md §8: no code comments, no any, no non-null !, Zod at boundaries, feature-sliced FE, Tailwind semantic tokens only, RHF + Zod + shadcn used directly with no wrapper components, date-fns for any date math, no fetch in components (go through the feature api/ layer)."
+  ],
+  "tasks": [
+    {
+      "id": "T0",
+      "layer": "books-feature",
+      "mandatory": true,
+      "dependsOn": [],
+      "title": "Make maxPages configurable on useLibraryBooks without changing the current default",
+      "origin": "D1 answer",
+      "files": ["apps/web/src/features/books/api/use-books.ts"],
+      "doneWhen": [
+        "useLibraryBooks accepts an optional maxPages override (options argument or params field, typed, no any).",
+        "When the override is absent the retained-page window stays exactly 10, so all 11 existing consumers keep their current behaviour.",
+        "Passing maxPages: 0 reaches the useInfiniteQuery options untouched, which TanStack Query treats as unlimited (verified: query-core build/modern/utils.js:216-219 addToEnd(items,item,max=0) only slices when max is truthy).",
+        "The override is NOT part of the query key in a way that would break existing cache entries for current consumers.",
+        "No other useLibraryBooks consumer is edited."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "apps/web/src/features/books/api/use-books.ts:15-18 LIBRARY_BOOKS_RETENTION { paged: {maxPages:10}, whole: {maxPages:0, staleTime:Infinity} }",
+        "use-books.ts:26-27 retention defaults to paged, so the retained window stays exactly 10 for all other consumers",
+        "use-books.ts:30 the retention object is spread into the useInfiniteQuery options untouched",
+        "book-single-select-picker.tsx:85-87 passes retention: LIBRARY_BOOKS_RETENTION.whole (maxPages 0 = unlimited)",
+        "use-books.ts:42 retention is queryKey[3]. Judged safe in substance: every consumer builds the key through this one function, there is no persister and no dehydrate/hydrate anywhere (grep: 0 hits), all invalidation is prefix-based on queryKey[0..1] (use-create-book.ts:21, use-update-book.ts:18, use-book-actions.ts:28+168-171, book-keys.ts:26-27), and the only length-sensitive matcher (book-keys.ts:16-24, length===3) guards detail keys, which are unaffected"
+      ],
+      "deviations": [
+        "doneWhen 5 (no other useLibraryBooks consumer is edited) is violated on the letter: add-book-to-queue-dialog.tsx:79-83, book-multi-select-picker.tsx:152-157 and dedication-book-picker-dialog.tsx:75-80 were edited in the review-fix pass to call libraryListParams(). Verified param-equivalent: identical key set, identical override ordering (pageSize before baseParams before q), and TanStack hashes keys order-independently. No behaviour or cache change."
+      ]
+    },
+    {
+      "id": "T1",
+      "title": "Create BookSingleSelectPicker shell and its useLibraryBooks wiring",
+      "specRef": "§1 базовий підхід, §2 data fetching",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "File exists and exports a `BookSingleSelectPicker` function component marked \"use client\".",
+        "It calls `useLibraryBooks` from `../api/use-books`; the file contains no `useSoloBooks` import.",
+        "The list params object sets `sort: BooksControllerListSort.title_asc` explicitly (import from @/shared/api/generated/model), matching dedication-book-picker-dialog.tsx:85.",
+        "`pageSize` is a module-level named constant whose value is between 20 and 24 inclusive (see D2); it is never 1000.",
+        "`q` is added to the params only when the trimmed search is non-empty (same shape as book-multi-select-picker.tsx:150-164).",
+        "The file imports neither `cmdk` nor any `Command*`/`Popover*` primitive.",
+        "No `any`, no `!`, no code comments in the file."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "book-single-select-picker.tsx:1 use client; :57 export function BookSingleSelectPicker",
+        "picker:21 imports useLibraryBooks from ../api/use-books; no useSoloBooks import in features/books or features/quotes (grep: 0)",
+        "picker:344 sort: BooksControllerListSort.title_asc, imported at :16",
+        "picker:26-30 module-level BOOK_SINGLE_SELECT_PICKER.pageSize = 20 (D2); never 1000",
+        "picker:340,346 q is added only when the trimmed search is non-empty",
+        "picker:1-24 imports no cmdk and no Command*/Popover* primitive",
+        "no any, no non-null !, no comments in the file (grep clean)"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Make searchQuery and the selected book independent state",
+      "specRef": "§3 Search і selected book",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "The component holds exactly one local search state (`useState` string) and receives the selection through a `value` prop + `onChange` callback; there is no state that serves both.",
+        "No code path assigns a book title into the search state (grep: no setter call whose argument reads `.title`).",
+        "The search input's change handler never calls `onChange` (i.e. typing cannot clear the selection) - this is the inverse of quotes/components/book-picker.tsx:102-106.",
+        "Clearing the search (empty string or clear button) does not call `onChange`.",
+        "The search input's `value` is the search state only, never the selected book's title - this is the inverse of quotes/components/book-picker.tsx:108."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:67 exactly one useState search; the selection arrives as the value prop (:50) with onChange (:49)",
+        "no setter call writes a .title (grep clean)",
+        "picker:179 the input change handler calls setSearch only",
+        "picker:180 onClear calls setSearch(\"\") only",
+        "picker:183 the input value is the raw search state"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Debounce the search through the existing useDebouncedValue hook",
+      "specRef": "§2 debounced backend search, §7 Search behavior",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "The raw search state is passed through `useDebouncedValue` from `@/hooks/use-debounced-value` (apps/web/src/hooks/use-debounced-value.ts:5) with a module-level delay constant of 250 ms, matching book-multi-select-picker.tsx:21,52.",
+        "No new debounce utility is written and `useDeferredValue` is not used for the query params.",
+        "Only the debounced value reaches the `useLibraryBooks` params object; the input stays fully controlled by the raw state."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:13,69 useDebouncedValue(search, BOOK_SINGLE_SELECT_PICKER.searchDebounceMs) with the constant = 250 at :28",
+        "no new debounce utility; useDeferredValue is absent from the file",
+        "picker:85 only debouncedSearch reaches searchParams(); the Input stays bound to the raw state at :183"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Render single-select result rows with RadioGroup and cover/title/author",
+      "specRef": "§1 RadioGroup / selectable book rows, §4 UX до вибору",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "Rows render inside `RadioGroup` / `RadioGroupItem` from `@/components/ui/radio-group`; the file imports no `Checkbox`.",
+        "`RadioGroup value` equals the selected book id (or \"\" when nothing is selected), as in add-book-to-queue-dialog.tsx:266.",
+        "Each row renders a cover thumbnail with a no-cover fallback, the title and the authors line, reusing `BookThumb` (apps/web/src/features/books/components/book-picker.tsx:109) rather than a fourth local PickerCover copy.",
+        "The selected row is visually marked by a class bound to the selection (e.g. `border-primary`/`ring-primary` as in add-book-to-series-dialog.tsx:332), not only by the radio dot.",
+        "Each `RadioGroupItem` has an `aria-label` built from the book title and each row's `Label`/`label` is associated with its item.",
+        "Colours come from semantic tokens only (`text-ink`, `text-muted-foreground`, `border-border`, `bg-secondary`, `border-primary`); no raw hex/rgb values."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:11,285,324 RadioGroup / RadioGroupItem from @/components/ui/radio-group; no Checkbox import (grep clean)",
+        "picker:293 RadioGroup value={selectedId ?? \"\"}",
+        "picker:325 reuses BookThumb from ./book-picker (cover + no-cover fallback at book-picker.tsx:114-121); no fourth local cover copy",
+        "picker:320 border-primary bg-secondary/40 ring-1 ring-primary bound to isSelected",
+        "picker:317-324 each row is a Label with htmlFor pointing at its RadioGroupItem id; the accessible name resolves (book-single-select-picker.test.tsx:41-43 getByRole('radio', { name: 'Книга 1 Автор 1' }) passes)",
+        "picker:319-330 semantic tokens only (text-ink, text-muted-foreground, border-border, bg-secondary, border-primary, accent-border - all defined in styles/globals.css:19,33); no hex/rgb/hsl (grep clean)"
+      ],
+      "deviations": [
+        "doneWhen 5 asked for an aria-label on each RadioGroupItem. The implementation dropped selectBookAria from the labels type and from both locales and composes the accessible name from the wrapping Label instead. This is the recorded course correction; the resulting name is asserted by the tests, so the intent (each row is addressable by its book) holds."
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Wire automatic infinite scroll and per-search pagination reset",
+      "specRef": "§6 Infinite scroll",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "The component calls `useInfiniteScroll` from `@/hooks/use-infinite-scroll` with `{ hasNextPage, isFetchingNextPage, itemCount, onLoadMore: fetchNextPage }`, matching add-book-to-series-dialog.tsx:137-142.",
+        "The scrolling element carries both `ref={scrollRef}` and `onScroll={onScroll}` (add-book-to-series-dialog.tsx:318).",
+        "There is no `Завантажити ще` / `Показати ще` Button or CommandItem as the paging control; only a fetching indicator is allowed while `isFetchingNextPage`.",
+        "Rendered items derive solely from `data.pages.flatMap(...)` of the current query; there is no useState/useRef accumulator that could carry rows across a search change.",
+        "The debounced search value is part of the params object handed to `useLibraryBooks`, so a new search produces a new query key (use-books.ts:29) and page 1 restarts."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:14,90-95 useInfiniteScroll({ hasNextPage, isFetchingNextPage, itemCount, onLoadMore: fetchNextPage })",
+        "picker:210-211 the scrolling element carries onScroll={onScroll} and ref={attachList}, which forwards to scrollRef (:97-103)",
+        "no load-more Button or CommandItem; only the isFetchingNextPage notice at :227-231, and its absence is asserted at book-single-select-picker.test.tsx:288-290",
+        "picker:89 items = (data?.pages ?? []).flatMap(...); no useState/useRef accumulator",
+        "picker:85 the debounced search sits inside the params object, so a new search is a new queryKey (use-books.ts:42) and paging restarts; asserted at book-single-select-picker.test.tsx:300-312"
+      ]
+    },
+    {
+      "id": "T6",
+      "title": "Add loading, error and compact no-results states to the picker list",
+      "specRef": "§7 No results, §4 Результати",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "While `isPending`, the list area renders a skeleton or a loading notice with `role=\"status\"`, not an empty box.",
+        "When `isError` is true, a message renders with `role=\"alert\"`.",
+        "When the fetch resolved with zero items, exactly one compact line of copy (the `empty` label, uk: `Книг не знайдено`) renders inside the bounded list container - no full-height illustration or dashed empty block.",
+        "With an empty search the picker shows the library (no `q` param), so the empty state only appears for real no-match results."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:254-269 isPending renders a four-row skeleton block with role=\"status\" (:256) and an sr-only loading label (:257)",
+        "picker:272-278 isError renders a message with role=\"alert\"; asserted at book-single-select-picker.test.tsx:217-223",
+        "picker:280-281 zero items render exactly one compact <p> with labels.empty inside the bounded container; asserted once at book-single-select-picker.test.tsx:208-215",
+        "picker:340-346 no q param when the search is blank; asserted at book-single-select-picker.test.tsx:194"
+      ]
+    },
+    {
+      "id": "T7",
+      "title": "Add the compact selected state and the Змінити affordance",
+      "specRef": "§5 UX після вибору",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T2", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "When `value !== null` and the picker is not in change mode, it renders a compact card with cover, title, author and a `Змінити` button - the search field and the results list are not rendered.",
+        "Pressing `Змінити` switches to the search + list view through local component state only; it does not call `onChange`, so the selection survives (spec §5: 'не очищує поточну книгу одразу').",
+        "While in change mode, `RadioGroup value` equals `value.id`, so the current book shows as selected among the results (spec §8 edit mode).",
+        "Selecting a different row calls `onChange(nextBook)` and returns to the compact state.",
+        "The file imports no `Dialog*` or `Popover*` primitive: the picker is inline, never a nested modal.",
+        "The change-mode flag is a discriminated local state or a single boolean derived from one source of truth, not two booleans that can disagree (docs/code-principles.md §3.3)."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:139-162 when value !== null and view === 'value' it renders BookSingleSelectValue plus the change Button; no search field, no list",
+        "picker:146-149 the change Button only sets local view state; onChange is untouched (book-single-select-picker.test.tsx:236,251 assert onChange fired once across a full search/clear cycle)",
+        "picker:293 while in list view RadioGroup value equals the selected id, so the current book shows as checked (test :250)",
+        "picker:126-131 select() calls onChange(book) then collapses",
+        "picker:1-24 no Dialog* or Popover* import: the picker is inline",
+        "picker:55,68 a single PickerView union ('list' | 'value'); no pair of booleans that can disagree"
+      ],
+      "deviations": [
+        "doneWhen 4 collapses on pointer selection only (picker:128-130, isPointerSelectionRef). Keyboard arrow navigation fires onChange but deliberately keeps the list open, because Radix RadioGroup emits onValueChange on every arrow key; the collapse then happens when focus leaves the picker (picker:133-137). Both paths are covered: book-single-select-picker.test.tsx:316-327 (arrow keeps the list open) and :346-357 (blur collapses)."
+      ]
+    },
+    {
+      "id": "T8",
+      "title": "Define the picker public API: value type, onChange payload, labels",
+      "specRef": "§1 reusable picker, §3 form зберігає canonical bookId",
+      "layer": "books-feature",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.tsx"],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "The exported props type is annotated (docs/code-principles.md §3.1) and contains: `value` (nullable minimal book option), `onChange`, `labels`, and optional `baseParams`/`id`/`invalid` as needed.",
+        "The `value` shape is satisfiable from `QuoteView.book` (`{ cover, firstAuthorName, id, title }`, packages/shared/src/quotes.ts:136-141) without inventing fields - i.e. it is not `BookView` (see D7).",
+        "All user-facing copy arrives via a `labels` object prop, mirroring `BookMultiSelectPickerLabels` (book-multi-select-picker.tsx:24-34); the file contains no hardcoded Ukrainian or English string.",
+        "`Nullable<T>` from `@app/shared` is used instead of a hand-written `T | null` (CLAUDE.md §8.2).",
+        "Quotes imports it by deep path `@/features/books/components/book-single-select-picker`, matching the existing precedent at apps/web/src/features/delivery/components/create-book-order-dialog.tsx:52; `apps/web/src/features/books/index.ts` is not modified."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:42-51 the exported props type is annotated: value, onChange, labels, baseParams, id, labelledBy, describedBy, invalid",
+        "picker:50 value: Nullable<BookSelectOption>; BookSelectOption = {authorName, cover, id, title} (book-select-option.ts:6-13) is satisfiable from QuoteView.book {cover, firstAuthorName, id, title} (packages/shared/src/quotes.ts:136-141) - quote-actions.tsx:132-137 does exactly that mapping",
+        "picker:32-40 BookSingleSelectPickerLabels; the file contains no hardcoded Ukrainian or English copy (D5 answer (a))",
+        "picker:50,72,74,252 use Nullable<T> from @app/shared, not a hand-written T | null",
+        "quote-dialog.tsx:43-44 deep-path imports; apps/web/src/features/books/index.ts is not in the diff"
+      ]
+    },
+    {
+      "id": "T9",
+      "title": "Add the picker i18n keys to uk.json and en.json",
+      "specRef": "§4, §5, §7 (search placeholder, empty, Змінити, loading, error labels)",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "Every label the picker needs (search placeholder, list aria-label, select-book aria template, empty, loading, load error, change) exists in both uk.json and en.json under the namespace chosen in D5.",
+        "The set of key paths added to uk.json and to en.json is identical - no locale left behind.",
+        "Existing `quotes.bookPicker` keys are either reused/renamed for the new labels or removed (see T13); no orphaned key remains in either file.",
+        "No English string is left in uk.json and no Ukrainian string in en.json."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "quotes.dialog.bookPicker {change, collapse, empty, loadError, loading, results, search} added to both uk.json and en.json (diff at uk.json/en.json around :6469)",
+        "key-path parity computed this run: uk 5954 paths, en 5954 paths, 0 paths unique to either side",
+        "the old quotes.bookPicker block {clear, empty, heading, loadMore, searching} and quotes.dialog.bookPlaceholder are removed from both locales; grep finds no reader of either",
+        "quotes.dialog.errors.bookRequired added in both locales, each in its own language"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "Move the canonical bookId into the QuoteDialog RHF form",
+      "specRef": "§3 form зберігає canonical bookId, §8 create mode",
+      "layer": "quotes-feature",
+      "files": ["apps/web/src/features/quotes/components/quote-dialog.tsx"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "`QuoteFormValues` (quote-dialog.tsx:61-68) gains a `bookId` field and `buildSchema` (quote-dialog.tsx:175-201) validates it as a required non-empty string in create mode, with the error message coming from a translated `QuoteMessages` entry.",
+        "The book selection is rendered through a RHF `Controller` bound to `bookId`; the standalone `useState<Nullable<QuoteBookOption>>` at quote-dialog.tsx:90 is gone.",
+        "Create submit calls `createQuote.mutate({ bookId: <form value>, input })` - it no longer reads an out-of-form `book.id` (quote-dialog.tsx:349-350).",
+        "Submitting with no book chosen is refused with a visible, announced validation message and issues zero write requests (amended from the original disabled-button criterion - see ratification note).",
+        "Discard tracking still fires when only the book was picked: the `dirty` computation at quote-dialog.tsx:94 no longer needs the `picksBook && pickedBook !== null` special case because RHF `isDirty` covers it.",
+        "RHF + Zod + shadcn are used directly; no wrapper Form/FormField component is introduced (CLAUDE.md §7)."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "quote-dialog.tsx:66-74 QuoteFormValues holds book: Nullable<BookSelectOption>; buildSchema validates it at :164-166 with messages.bookRequired, supplied from tErrors at :306",
+        "quote-dialog.tsx:241-263 a RHF Controller bound to 'book'; the standalone useState<Nullable<QuoteBookOption>> that HEAD had at quote-dialog.tsx:90 is gone",
+        "quote-dialog.tsx:344-347 create submit reads values.book.id, not an out-of-form book",
+        "quote-dialog.tsx:95,320 dirty is RHF isDirty only; the picksBook && pickedBook !== null special case is gone",
+        "RHF + Zod + shadcn used directly; no wrapper Form/FormField introduced"
+      ],
+      "deviations": [
+        "doneWhen 4 NOT met. quote-dialog.tsx:359 submitDisabled = text.trim().length === 0 || hasErrors || pending. The book === null term HEAD carried (quote-dialog.tsx:362 at HEAD) was dropped and not replaced. With text typed and no book chosen the submit button is enabled; pressing it runs the resolver, renders 'Оберіть книгу' and fires no write request (proved by quote-dialog.test.tsx:96-108). Functionally safe, arguably better a11y, but it is a substitution of a validation message for the disabled control the plan specified, and no recorded decision covers it.",
+        "doneWhen 1 names the field bookId and asks for a required non-empty string. The implementation holds the whole BookSelectOption instead. Judged as satisfying the intent: canonical book identity now lives in the RHF form, the out-of-form state is gone, and the value is Zod-parsed at the boundary via BookSelectOptionSchema (book-select-option.ts:6)."
+      ],
+      "ratification": "RATIFIED 2026-09-17 by the orchestrator. The submit button is NOT disabled on an empty book selection; instead the resolver runs, quotes.dialog.errors.bookRequired renders in the existing FieldError, and zero write requests are issued. This was an authorized choice: the review brief required resolving the dead-branch nit by either dropping the book term from submitDisabled so the message could show, or removing the whole error apparatus. Dropping the term is the better half - a mute disabled control explains nothing to a screen reader, while the validation message names the missing field. The spec only requires that a quote cannot be created without a book (section 8); it never mandates a disabled button. That guarantee still holds and is asserted by quote-dialog.test.tsx:96-108. doneWhen criterion 4 of T10 and criterion 1 of T18 are amended accordingly."
+    },
+    {
+      "id": "T11",
+      "title": "Render the inline picker in QuoteDialog create mode",
+      "specRef": "§4 UX до вибору, §8 create mode",
+      "layer": "quotes-feature",
+      "files": ["apps/web/src/features/quotes/components/quote-dialog.tsx"],
+      "dependsOn": ["T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "The `createWithBookPicker` branch (quote-dialog.tsx:121-138) renders `BookSingleSelectPicker` inline under the `Книга *` label, inside the same DialogContent - no second Dialog, no Popover.",
+        "`import { BookPicker } from \"./book-picker\"` (quote-dialog.tsx:49) is removed.",
+        "Labels are supplied from `useTranslations` in the Quotes feature and passed as the `labels` prop.",
+        "The picker's `id` is wired to the `Label htmlFor` so the field label still targets the control.",
+        "The invalid state of the `bookId` field renders a `FieldError` consistent with the other fields (quote-dialog.tsx:408)."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "quote-dialog.tsx:381-382 the book === null branch (createWithBookPicker) renders QuoteBookField, which mounts BookSingleSelectPicker at :245 inline inside the single DialogContent at :119; quote-dialog.test.tsx:129-135 asserts exactly one role=dialog while the list is open",
+        "the import of ./book-picker is gone and features/quotes/components/book-picker.tsx is deleted",
+        "quote-dialog.tsx:230-231,250-258 labels come from useTranslations('quotes.dialog.bookPicker') and are passed as the labels prop",
+        "quote-dialog.tsx:235,247 Label htmlFor='quote-book' matches the picker id, which lands on the search Input (picker:178)",
+        "quote-dialog.tsx:264 FieldError error={errors.book} id='quote-book-error', wired into the picker through describedBy at :246"
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "Preselect the current book in edit mode and show the compact state first",
+      "specRef": "§8 Edit mode",
+      "layer": "quotes-feature",
+      "files": [
+        "apps/web/src/features/quotes/components/quote-dialog.tsx",
+        "apps/web/src/features/quotes/components/quote/quote-actions.tsx"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "In edit mode the dialog's first render shows the compact selected book (cover + title + author) built from the quote's own book (`quote.book`, passed today at quote-actions.tsx:131-141) - never the search list.",
+        "The RHF `bookId` default value in edit mode is `quote.bookId`.",
+        "`updateQuote.mutate` still routes to the book that owns the quote (`quote.bookId`, quote-dialog.tsx:335) because `UpdateQuoteInputSchema` carries no bookId (packages/shared/src/quotes.ts:50-57).",
+        "Whether a `Змінити` affordance appears in edit mode is implemented per the answer to D3, and whichever option is chosen, the edit dialog cannot submit a bookId that differs from the quote's owning book."
+      ],
+      "status": "done",
+      "blockedBy": ["D3"],
+      "verdict": "done",
+      "proof": [
+        "quote-dialog.tsx:98 book is non-null for mode='edit', so :383-388 renders BookSingleSelectValue directly and the picker is never mounted; quote-dialog.test.tsx:145-151 asserts no search field and no radiogroup on first render",
+        "the edit default comes from quote-actions.tsx:131-142 built from quote.book, whose id equals quote.bookId by construction (apps/api/src/modules/quotes/domain/quote.mapper.ts:12-19: book.id comes from the quote.book relation of quote.bookId)",
+        "quote-dialog.tsx:330-332 updateQuote.mutate uses quote.bookId; buildPayload (:145-158) carries no bookId, matching UpdateQuoteInputSchema",
+        "D3 answer (a) implemented and confirmed: no Змінити in edit mode (quote-dialog.test.tsx:153-157), and the edit dialog structurally cannot submit a differing bookId - the picker is not rendered, the payload type has no bookId field, and the URL is built from quote.bookId (asserted at quote-dialog.test.tsx:165-173)"
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "Remove the duplicate book preview inside QuoteDialog",
+      "specRef": "§8 Перевір поточний QuoteBookPreview / Не залишати два preview однієї книги",
+      "layer": "quotes-feature",
+      "files": ["apps/web/src/features/quotes/components/quote-dialog.tsx"],
+      "dependsOn": ["T11", "T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "In every mode (create, createWithBookPicker, edit) the dialog renders the selected book exactly once - resolved per D4.",
+        "Either the local `QuoteBookPreview` (quote-dialog.tsx:235-269) is deleted, or it is passed into the picker as the compact selected state; it is not rendered alongside the picker's own compact card.",
+        "`<QuoteBookPreview` appears at most once as a JSX element in quote-dialog.tsx, or zero times if the component was deleted.",
+        "If the component survives, it is renamed so it no longer collides with the exported shared type `QuoteBookPreview` (packages/shared/src/quotes.ts:143)."
+      ],
+      "status": "done",
+      "blockedBy": ["D4"],
+      "verdict": "done",
+      "proof": [
+        "the private QuoteBookPreview that HEAD had at quote-dialog.tsx:235-269 is deleted; zero JSX occurrences remain",
+        "D4 split implemented: BookSingleSelectValue (book-single-select-value.tsx:16) is the single selected-book representation, used by the picker (picker:142) and by QuoteDialog for edit / create-with-known-book (quote-dialog.tsx:386); no renderSelected slot exists",
+        "exactly one preview per mode: quote-dialog.test.tsx:121-127 (create) and :159-163 (edit)",
+        "the name collision with the exported shared type QuoteBookPreview is gone; the only remaining reference is quote/quote-book-header.tsx:3,11 consuming the shared type, pre-existing and unrelated"
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "Delete the old Quotes cmdk combobox and its dead i18n keys",
+      "specRef": "§1 Не латати поточний combobox, §10, Очікуваний результат",
+      "layer": "quotes-feature",
+      "files": [
+        "apps/web/src/features/quotes/components/book-picker.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "`apps/web/src/features/quotes/components/book-picker.tsx` is deleted.",
+        "No file in apps/web imports `./book-picker` from the quotes feature or references the removed `BookPicker` symbol.",
+        "`quotes.bookPicker` keys that are no longer read are removed from uk.json and en.json (current block: clear, empty, heading, loadMore, searching).",
+        "`pnpm knip` reports no new unused file, export or dependency caused by this change (in particular `cmdk` stays used only by components/ui/command.tsx and its other consumers).",
+        "`toQuoteBookOption` (apps/web/src/features/quotes/model/quote-book.ts:10) is either still used or deleted with its type - no dead export left behind."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "apps/web/src/features/quotes/components/book-picker.tsx is deleted (staged deletion in git status)",
+        "grep: no import of ./book-picker inside features/quotes and no remaining BookPicker symbol reference anywhere in apps/web",
+        "quotes.bookPicker {clear, empty, heading, loadMore, searching} removed from uk.json and en.json; no reader remains",
+        "pnpm knip run on the working tree and on a stashed pre-change baseline produce identical output (1 unused devDep lint-staged, 2 unlisted binaries, 1 config hint) - no new unused file, export or dependency",
+        "toQuoteBookOption, QuoteBookOption and features/quotes/model/quote-book.ts are deleted; grep across apps/web finds zero references. The single caller, book-quotes-block.tsx:13,67, was migrated to toBookSelectOption (book-select-option.ts:15). No caller was missed."
+      ]
+    },
+    {
+      "id": "T15",
+      "title": "Keep the QuoteDialog layout inside the viewport with the picker embedded",
+      "specRef": "§9 Modal layout",
+      "layer": "quotes-feature",
+      "files": [
+        "apps/web/src/features/quotes/components/quote-dialog.tsx",
+        "apps/web/src/features/books/components/book-single-select-picker.tsx"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "The picker's results container has a bounded max-height class (e.g. `max-h-64`/`max-h-72`, matching dedication-book-picker-dialog.tsx:118 and add-book-to-series-dialog.tsx:318) plus its own `overflow-y-auto`.",
+        "`DialogContent` keeps the current responsive pattern `max-h-[90vh] overflow-y-auto sm:max-w-xl` (quote-dialog.tsx:116) - the shadcn/radix Dialog from components/ui/dialog.tsx:18 stays, no drawer variant is introduced.",
+        "`DialogFooter` with the submit button is reachable without scrolling past an unbounded list at 375px viewport height 667px.",
+        "Every text column inside a row uses `min-w-0` + `truncate`, so no row forces horizontal overflow.",
+        "Verified visually at 375px and at 1280px width with a screenshot attached to the implementation report."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "picker:201 the results container is max-h-64 overflow-y-auto rounded-lg border border-border",
+        "quote-dialog.tsx:119 DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-xl' unchanged; the shadcn/radix Dialog is still used and no drawer variant is introduced",
+        "the list is height-bounded at 256px inside a 90vh scroll container, so DialogFooter (:518) is never pushed past an unbounded list",
+        "picker:326-330 and book-single-select-value.tsx:20-27 apply min-w-0 + truncate to every text column; BookThumb and the action button are shrink-0"
+      ],
+      "deviations": [
+        "doneWhen 5 (screenshots at 375px and 1280px attached to the implementation report) has no evidence observable this run."
+      ],
+      "evidence": "375px and 1280px screenshots reviewed by the orchestrator 2026-09-17 (scratchpad picker-list-clean-375.png, picker-compact-clean-375.png, picker-list-clean-1280.png): bounded list with its own scroll, compact state with the change action, no horizontal overflow, fields stack correctly. Also exercised live against the deployed dev API in the user account at 1280px."
+    },
+    {
+      "id": "T16",
+      "title": "RTL tests for BookSingleSelectPicker state independence and query params",
+      "specRef": "§3 rules, §2 params, §7 no results",
+      "layer": "test",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.test.tsx"],
+      "dependsOn": ["T7", "T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "The test renders through `renderWithProviders` from `@/test-utils` and mocks `fetch` via `vi.stubGlobal(\"fetch\", ...)` - the hook is never mocked (docs/code-principles.md §8).",
+        "Test: typing in the search field leaves the previously selected book selected.",
+        "Test: clearing the search leaves the previously selected book selected.",
+        "Test: selecting a book leaves the search input value unchanged (its title is not written into the field).",
+        "Test: the first request URL contains `sort=title_asc` and `pageSize=<the module constant>`; after typing and advancing timers it contains `q=<typed>`.",
+        "Test: a response with zero items renders the empty copy `Книг не знайдено` once.",
+        "Queries use `getByRole` / `getByLabelText`, not `getByTestId`."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "book-single-select-picker.test.tsx:9,174 renderWithProviders + vi.stubGlobal('fetch', fetchMock); useLibraryBooks is never mocked",
+        "typing keeps the selection: :227-239",
+        "clearing the search keeps the selection: :241-252",
+        "selecting does not write the title into the search field: :254-263",
+        "the first request carries sort=title_asc, pageSize=20, pageNumber=1 and no q: :184-195; the typed q arrives after the debounce: :197-204",
+        "a zero-item response renders 'Книг не знайдено' exactly once: :208-215",
+        "queries use getByRole / findByRole / getByLabelText; no getByTestId in the file",
+        "executed this run: 2 files, 22 tests, 0 failures"
+      ]
+    },
+    {
+      "id": "T17",
+      "title": "RTL test for the infinite-scroll append and the search reset",
+      "specRef": "§6 Infinite scroll",
+      "layer": "test",
+      "files": ["apps/web/src/features/books/components/book-single-select-picker.test.tsx"],
+      "dependsOn": ["T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "Test: with a two-page response, the second page is requested without any click on a load-more control (scroll/threshold driven) and its rows are appended to page one's rows.",
+        "Test: after changing the search, the rendered rows contain no title from the previous search's result set.",
+        "No `Показати ще` button is queried anywhere in the picker tests, proving it is not the paging UX."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "two-page append driven by a wheel event with no click, asserting 4 radios after the scroll: :279-298",
+        "previous-search rows dropped after a new search: :300-312",
+        "no load-more control exists; :288-290 asserts its absence rather than using it as the paging UX"
+      ]
+    },
+    {
+      "id": "T18",
+      "title": "RTL test for the QuoteDialog create flow with the picker",
+      "specRef": "§8 Create mode, Очікуваний результат",
+      "layer": "test",
+      "files": ["apps/web/src/features/quotes/components/quote-dialog.test.tsx"],
+      "dependsOn": ["T11", "T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "Test: with mode=\"createWithBookPicker\", submitting without a book shows the bookRequired message and issues no write request (amended from the original disabled-button criterion - see T10 ratification).",
+        "Test: after selecting a book and filling the required text, submit issues a POST whose URL contains `/api/books/<selected id>/quotes`.",
+        "Test: after selecting a book, the book's title appears exactly once in the dialog (no duplicate preview) - assert with `getAllByText(title)` length 1 or an equivalent scoped query.",
+        "Test: the dialog renders no nested dialog - `getAllByRole(\"dialog\")` has length 1 while the picker list is open.",
+        "fetch is mocked at the global boundary; `renderWithProviders` is used."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "POST to /api/books/picked-book/quotes after selecting the row: :110-119",
+        "the chosen book title appears exactly once in the dialog: :121-127",
+        "exactly one role=dialog while the picker list is open: :129-135",
+        "fetch stubbed at the global boundary (:68-78) and renderWithProviders used (:87-89)"
+      ],
+      "deviations": [
+        "doneWhen 1 (submit disabled until a book row is selected) is not asserted. The test at :96-108 asserts the weaker behaviour the implementation actually has: submitting without a book renders 'Оберіть книгу' and fires zero write requests. Same root divergence as T10."
+      ],
+      "ratification": "RATIFIED 2026-09-17 by the orchestrator. The submit button is NOT disabled on an empty book selection; instead the resolver runs, quotes.dialog.errors.bookRequired renders in the existing FieldError, and zero write requests are issued. This was an authorized choice: the review brief required resolving the dead-branch nit by either dropping the book term from submitDisabled so the message could show, or removing the whole error apparatus. Dropping the term is the better half - a mute disabled control explains nothing to a screen reader, while the validation message names the missing field. The spec only requires that a quote cannot be created without a book (section 8); it never mandates a disabled button. That guarantee still holds and is asserted by quote-dialog.test.tsx:96-108. doneWhen criterion 4 of T10 and criterion 1 of T18 are amended accordingly."
+    },
+    {
+      "id": "T19",
+      "title": "RTL test for the QuoteDialog edit flow",
+      "specRef": "§8 Edit mode",
+      "layer": "test",
+      "files": ["apps/web/src/features/quotes/components/quote-dialog.test.tsx"],
+      "dependsOn": ["T12", "T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "Test: with `mode=\"edit\"` the dialog shows the quote's book in the compact state on first render and no search field is visible initially.",
+        "Test: submitting issues a PATCH whose URL contains `/api/books/<quote.bookId>/quotes/<quote.id>`.",
+        "Test: the quote's book title appears exactly once in the dialog.",
+        "If D3 resolves to keeping a `Змінити` affordance in edit mode, a test asserts the submitted bookId still equals `quote.bookId`."
+      ],
+      "status": "done",
+      "blockedBy": ["D3"],
+      "verdict": "done",
+      "proof": [
+        "compact state on first render with no search field: quote-dialog.test.tsx:145-151",
+        "PATCH /api/books/book-1/quotes/quote-1: :165-173",
+        "the quote's book title appears exactly once: :159-163",
+        "D3 resolved to no Змінити, and :153-157 asserts the affordance is absent - the stronger form of the conditional clause"
+      ]
+    },
+    {
+      "id": "T20",
+      "title": "Run the quality gates and capture the evidence",
+      "specRef": "CLAUDE.md §9, spec Очікуваний результат",
+      "layer": "gates",
+      "files": [],
+      "dependsOn": ["T14", "T15", "T16", "T17", "T18", "T19"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm typecheck` green (output captured).",
+        "`pnpm lint` green.",
+        "`pnpm format:check` green.",
+        "`pnpm exec vitest run --project unit src/features/books/components/book-single-select-picker.test.tsx src/features/quotes/components/quote-dialog.test.tsx` green from apps/web.",
+        "The sibling suites that touch the changed files are run too: quotes-view.test.tsx and any test asserting the removed `quotes.bookPicker` copy.",
+        "`pnpm knip` shows no new unused file/export after the deletion in T14.",
+        "`pnpm dev:web` starts clean and the Quotes page add-quote dialog is exercised manually (no console errors), with a screenshot for T15."
+      ],
+      "status": "done",
+      "verdict": "done",
+      "proof": [
+        "pnpm typecheck: 3/3 tasks successful (turbo FULL TURBO replay against the current working-tree hash)",
+        "pnpm lint: 0 errors, 8 warnings, all 8 located in files untouched by this diff (book-ownership-status-dialog, book-reading-status-dialog, cover-field, delivery-dialog, reading-history-event.test, series-order-check-block, use-reveal-delivery-target, use-mobile)",
+        "pnpm exec vitest run --project unit src/features/books/components/book-single-select-picker.test.tsx src/features/quotes/components/quote-dialog.test.tsx -> 2 files, 22 tests passed",
+        "sibling suites: src/features/quotes + src/features/dedications + add-book-to-queue-dialog.test.tsx + add-books-to-list-dialog.test.tsx + create-book-order-dialog.test.tsx -> 17 files, 243 tests passed",
+        "pnpm knip: byte-identical to the stashed pre-change baseline, no new finding"
+      ],
+      "deviations": [
+        "pnpm format:check fails, but only on untracked docs: the spec md, this tasks.json and six unrelated docs files. prettier --check on apps/web/src/**/*.{ts,tsx,json} is clean, so the production diff is format-green. This tasks.json is prettier-formatted as of this run.",
+        "pnpm dev:web clean start and a manual pass through the add-quote dialog with a screenshot: no evidence observable this run."
+      ],
+      "evidence": "typecheck 3/3; lint 0 errors (8 pre-existing warnings in untouched files); prettier clean on all touched source files (format:check red only on untracked docs/** spec inputs, out of scope); 22 tests in the two new files, 179 in features/quotes, 2153 across the books/dedications/lists/delivery/loans blast radius; knip no new finding. Manual pass performed by the orchestrator against the deployed dev API in the user account: title_asc order, pageSize 20, backend author search, selection surviving a search, compact state, change action, automatic page-2 append, bounded list scroll, no nested dialog, clean console."
+    }
+  ],
+  "acceptance": [
+    {
+      "check": "current Quotes combobox більше не використовується",
+      "tasks": ["T11", "T14"]
+    },
+    {
+      "check": "є reusable BookSingleSelectPicker",
+      "tasks": ["T1", "T8"]
+    },
+    {
+      "check": "search і selected book state незалежні",
+      "tasks": ["T2", "T16"]
+    },
+    {
+      "check": "вся library доступна через infinite scroll",
+      "tasks": ["T5", "T17"],
+      "caveat": "bounded by maxPages: 10 in use-books.ts:23 - see D1"
+    },
+    {
+      "check": "search працює по backend library",
+      "tasks": ["T1", "T3", "T16"]
+    },
+    {
+      "check": "books мають predictable title_asc",
+      "tasks": ["T1", "T16"]
+    },
+    {
+      "check": "selection single-select",
+      "tasks": ["T4"]
+    },
+    {
+      "check": "немає nested modal",
+      "tasks": ["T7", "T11", "T18"]
+    },
+    {
+      "check": "після вибору picker згортається у compact state",
+      "tasks": ["T7"]
+    },
+    {
+      "check": "Змінити повертає список",
+      "tasks": ["T7"]
+    },
+    {
+      "check": "create/edit Quote правильно працюють із bookId",
+      "tasks": ["T10", "T12", "T18", "T19"]
+    },
+    {
+      "check": "немає duplicate book preview",
+      "tasks": ["T13", "T18", "T19"]
+    },
+    {
+      "check": "використані існуючі BookNest patterns і data source",
+      "tasks": ["T1", "T3", "T4", "T5"]
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "How deep must the infinite scroll actually reach, given useLibraryBooks caps the page window?",
+      "context": "apps/web/src/features/books/api/use-books.ts:13,23 sets `maxPages: 10`. With pageSize 20-24 that retains 200-240 rows; fetching page 11 evicts page 1, so the rendered list shifts instead of growing. The spec's acceptance line says 'вся library доступна через infinite scroll'.",
+      "options": [
+        "(a) Accept the 10-page window: the backend search reaches anything deeper (q matches title, original title, authors, series, publisher, tags, translator, illustrator, isbn - apps/api/src/modules/books/infrastructure/book-search.ts:26-48).",
+        "(b) Give the picker its own infinite query in books/api without maxPages (~25 lines, zero blast radius on the 11 existing useLibraryBooks consumers).",
+        "(c) Remove or raise maxPages inside useLibraryBooks (touches the main library grid and 10 other consumers; memory risk)."
+      ],
+      "recommendation": "(a). A dialog picker with debounced backend search does not need unbounded depth, and (c) is a behaviour change to the library grid that no task asked for. Escalate to (b) only if the acceptance line is read literally.",
+      "blocks": ["T5"],
+      "answer": "(d) NEW OPTION chosen by the user: make maxPages a configurable option on useLibraryBooks, keeping the existing default of 10 for all current consumers, and pass maxPages: 0 (TanStack Query = unlimited, verified in query-core utils.js addToEnd(items,item,max=0)) from BookSingleSelectPicker so every fetched page stays in data.pages and infinite scroll can walk the whole library. No separate picker-local infinite query. No global behaviour change. No hard 200-book limit. Search stays backend-driven through the same useLibraryBooks.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    },
+    {
+      "id": "D2",
+      "question": "pageSize 20 or 24?",
+      "context": "Spec §2 says 'приблизно 20-24'. Codebase: LIBRARY_PAGE_SIZE = 24 (apps/web/src/features/books/model/library-query.ts:25) is the library grid size; every dialog picker uses 20 (dedication-book-picker-dialog.tsx:29, add-book-to-queue-dialog.tsx:36, use-solo-books.ts:12, quotes/components/book-picker.tsx:23); BookMultiSelectPicker uses 24 (book-multi-select-picker.tsx:22).",
+      "options": ["20 (dialog-picker precedent)", "24 (LIBRARY_PAGE_SIZE constant reuse)"],
+      "recommendation": "20 - it matches every other single-select dialog picker and shortens the first paint inside a modal. Interacts with D1: 20 x 10 pages = 200 rows.",
+      "blocks": ["T1"],
+      "answer": "(a) pageSize 20 - dialog-picker precedent (dedication-book-picker-dialog.tsx:29, add-book-to-queue-dialog.tsx:36). Decided by the orchestrator, not escalated.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    },
+    {
+      "id": "D3",
+      "question": "Does edit mode get a working 'Змінити' that can move the quote to another book?",
+      "context": "Spec §8 asks for it. The backend cannot do it and §2/§10 forbid a new endpoint: `UpdateQuoteInputSchema` has no bookId (packages/shared/src/quotes.ts:50-57) and the update call is scoped by the owning book id in the path (apps/web/src/features/quotes/api/use-quote-mutations.ts:55, controller route /api/books/:bookId/quotes/:quoteId). This is the one spec requirement the code cannot satisfy as written.",
+      "options": [
+        "(a) Edit mode shows only the compact selected book, with no Змінити affordance; the picker's change mode is a create-mode capability.",
+        "(b) Edit mode renders the picker in a read-only/disabled state so the user sees why the book is fixed.",
+        "(c) Add a move-quote capability to the Quotes API (BE work, contradicts the no-new-endpoint constraint).",
+        "(d) FE-only 'move' by delete + recreate (non-atomic, loses the quote id and createdAt)."
+      ],
+      "recommendation": "(a), and record the deviation from §8 in the PR body. (d) is a data-loss pattern and (c) is out of the stated scope.",
+      "blocks": ["T12", "T19"],
+      "answer": "(a) No backend work in this refactor. UpdateQuoteInputSchema keeps no bookId. create mode: full picker, then compact selected state with a Змінити button. edit mode: compact selected state of the current book immediately, NO Змінити button, picker never opens, submit sends no bookId, and no disabled/read-only book list is rendered. The §8 requirement for Змінити in edit mode is deliberately amended to match the current backend contract; record the deviation in the PR body.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    },
+    {
+      "id": "D4",
+      "question": "Who owns the compact selected state - the new picker or the existing QuoteBookPreview?",
+      "context": "The spec itself forks here (§8: 'прибрати дубль; або reuse QuoteBookPreview як selected state'). `QuoteBookPreview` is a private, unexported function inside apps/web/src/features/quotes/components/quote-dialog.tsx:235-269, rendered for every mode at quote-dialog.tsx:386, and its name collides with the exported shared type `QuoteBookPreview` (packages/shared/src/quotes.ts:143).",
+      "options": [
+        "(a) The picker owns a generic compact selected row and the local QuoteBookPreview is deleted - one component, reusable by the next caller, but the Quotes-specific look (w-16 cover, font-heading title, user icon) is replaced by the books-feature row look.",
+        "(b) The picker takes a `renderSelected`/children slot and Quotes passes QuoteBookPreview - keeps the Quotes visual, costs one more prop (composition over props, docs/code-principles.md §4.7)."
+      ],
+      "recommendation": "(a). The compact card is a picker concern, not a quotes concern, and it is what makes the component reusable. Pick (b) only if the current Quotes visual is deliberate design; if so, rename the local component to avoid the shared-type collision.",
+      "blocks": ["T13"],
+      "answer": "(a) with an explicit split: the compact selected UI is its own reusable presentation primitive at the Books feature level, NOT hidden privately inside the picker. BookSingleSelectPicker owns search/list plus the transition into the compact state; BookSingleSelectValue is the single representation of an already-selected book (cover + title + author + optional action). Quotes create mode renders the picker, which shows BookSingleSelectValue with a Змінити action; Quotes edit mode renders BookSingleSelectValue directly with no action. Delete the private QuoteBookPreview at quote-dialog.tsx:235-269. Do NOT add a renderSelected slot. Do NOT keep a Quotes-specific selected-book visual.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    },
+    {
+      "id": "D5",
+      "question": "Where do the picker's strings live: a `labels` prop owned by each caller, or the picker's own i18n namespace?",
+      "context": "The codebase is split. The one books-feature component consumed by other features takes a labels object (BookMultiSelectPickerLabels, book-multi-select-picker.tsx:24-34; caller supplies them at loan-books-step.tsx:47-56 and create-book-order-dialog.tsx:144). The two in-feature single-select pickers call useTranslations on their own namespace (dedication-book-picker-dialog.tsx:67 -> dedications.picker, add-book-to-queue-dialog -> its own block). Quotes already owns `quotes.bookPicker` {clear, empty, heading, loadMore, searching} in uk.json and en.json.",
+      "options": [
+        "(a) labels prop; Quotes keys live under quotes.dialog.bookPicker (rename/reuse the existing quotes.bookPicker block).",
+        "(b) The picker calls useTranslations on a new shared namespace, e.g. books.singleSelectPicker, and callers pass nothing."
+      ],
+      "recommendation": "(a) - it is the only precedent for a books-feature component crossing feature boundaries, and it keeps each caller's copy in its own namespace.",
+      "blocks": ["T8", "T9"],
+      "answer": "(a) labels prop, following book-multi-select-picker.tsx:24-34. Quotes keys live under quotes.dialog.bookPicker (rename/reuse the existing quotes.bookPicker block). Decided by the orchestrator.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    },
+    {
+      "id": "D6",
+      "question": "Do we migrate the two existing single-select pickers onto the new component in this PR?",
+      "context": "This is the third implementation of the same control: DedicationBookPickerDialog (dedication-book-picker-dialog.tsx:37) and AddBookToQueueDialog (add-book-to-queue-dialog.tsx:44) both do RadioGroup + useLibraryBooks + sort title_asc + pageSize 20 + a local PickerCover copy. docs/code-principles.md §0.0 lever 5 says standardize on the third real use. The spec never asks for it; it only forbids importing or copying the Dedications component.",
+      "options": [
+        "(a) Ship the Quotes refactor only; log a follow-up to migrate the other two.",
+        "(b) Migrate all three in this PR - removes two duplicates, but adds the dedications and reading-queue flows (and their tests) to the review surface."
+      ],
+      "recommendation": "(a). Keep the diff auditable against this spec; the duplicates are already noted and can be removed in a follow-up PR with their own tests.",
+      "blocks": [],
+      "answer": "(a) Ship Quotes only. Do not migrate dedication-book-picker-dialog.tsx or add-book-to-queue-dialog.tsx in this PR; log a follow-up. Decided by the orchestrator.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    },
+    {
+      "id": "D7",
+      "question": "What type crosses the picker boundary for the selected book?",
+      "context": "The list yields `BookView`, but Quotes' edit mode only has `QuoteView.book` = `{ cover, firstAuthorName, id, title }` (packages/shared/src/quotes.ts:136-141), which cannot be widened into a BookView. Quotes already has a mapper `toQuoteBookOption` (apps/web/src/features/quotes/model/quote-book.ts:10).",
+      "options": [
+        "(a) `value: Nullable<BookSelectOption>` (minimal {id,title,authorName,cover}) for display + `onChange(book: BookView)` so callers keep full data; Quotes maps with toQuoteBookOption.",
+        "(b) `value: Nullable<string>` (id only) and the caller renders the compact state - incompatible with D4 option (a).",
+        "(c) `value` and `onChange` both use the minimal option type - simplest, but throws away the BookView a caller might need."
+      ],
+      "recommendation": "(a). It satisfies both call sites, keeps the compact card inside the picker, and reuses the existing mapper.",
+      "blocks": ["T8"],
+      "answer": "(a) value: Nullable<BookSelectOption>, onChange receives the picked BookView, the caller maps through the existing toQuoteBookOption (features/quotes/model/quote-book.ts:10). Decided by the orchestrator.",
+      "answeredAt": "2026-09-17",
+      "status": "answered"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Quotes BookPicker mixes selected book and search query in one state",
+      "specRef": "intro",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/quotes/components/book-picker.tsx:43-55 - `query` is seeded from `value?.title` and a render-phase sync writes the selected title back into it; the same `query` is the input's value at :108"
+    },
+    {
+      "claim": "Picking a book writes its title into the search query",
+      "specRef": "intro, §3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/quotes/components/book-picker.tsx:48-51 (setQuery(value.title)) reached via pick() at :62-65"
+    },
+    {
+      "claim": "The selected book can be reset by typing in search",
+      "specRef": "intro, §3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/quotes/components/book-picker.tsx:105 - `if (value !== null) onChange(null)` inside onValueChange"
+    },
+    {
+      "claim": "The list is effectively limited to the first page of books",
+      "specRef": "intro",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/quotes/components/book-picker.tsx:155-171 renders a 'Показати ще' CommandItem that calls fetchNextPage. The real cap is `maxPages: 10` in apps/web/src/features/books/api/use-books.ts:13,23, plus the absence of any explicit sort (so the backend default created_desc applies, packages/shared/src/books.ts:912)"
+    },
+    {
+      "claim": "The current control is a small cmdk/Popover combobox",
+      "specRef": "§1, §4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/quotes/components/book-picker.tsx:5 (cmdk), :13 (Popover), :76-127 (CommandPrimitive inside PopoverAnchor/PopoverContent)"
+    },
+    {
+      "claim": "useLibraryBooks exists and is the right data source",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/api/use-books.ts:15 - `useLibraryBooks(params: LibraryListParams)` is a `useInfiniteQuery` with keepPreviousData (:24), page-number paging (:18-22) and maxPages 10 (:23); LibraryListParams = Omit<BooksControllerListParams, \"pageNumber\"> (apps/web/src/features/books/model/library-query.ts:85)"
+    },
+    {
+      "claim": "title_asc is the canonical sort value",
+      "specRef": "§2, §7",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/shared/api/generated/model/booksControllerListSort.ts:18; already used by two pickers at apps/web/src/features/dedications/components/dedication-book-picker-dialog.tsx:85 and apps/web/src/features/books/components/add-book-to-queue-dialog.tsx:88"
+    },
+    {
+      "claim": "useSoloBooks exists and must not be used here",
+      "specRef": "§2, §10",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/series/api/use-solo-books.ts:26-41 hardcodes `bookType: BooksControllerListBookType.solo`, so every series part is excluded; its only consumer is apps/web/src/features/series/components/add-book-to-series-dialog.tsx:132"
+    },
+    {
+      "claim": "QuoteBookPreview exists as a component to check",
+      "specRef": "§8",
+      "verdict": "MOVED",
+      "evidence": "It is not its own file: it is a private, unexported function inside apps/web/src/features/quotes/components/quote-dialog.tsx:235-269, rendered once for every mode at quote-dialog.tsx:386. Its name also collides with the exported shared type `QuoteBookPreview` (packages/shared/src/quotes.ts:143)"
+    },
+    {
+      "claim": "Two previews of the same book exist today",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "In createWithBookPicker mode the combobox input shows the picked title (apps/web/src/features/quotes/components/book-picker.tsx:108) while QuoteBookPreview renders the same book below it (quote-dialog.tsx:386)"
+    },
+    {
+      "claim": "The form stores a canonical bookId",
+      "specRef": "§3",
+      "verdict": "FALSE",
+      "evidence": "`QuoteFormValues` has no bookId (apps/web/src/features/quotes/components/quote-dialog.tsx:61-68) and neither does buildSchema (:178-200). The picked book lives in a component `useState` at :90 and is read at submit time from `book.id` (:349-350)"
+    },
+    {
+      "claim": "Edit mode preselects the current book",
+      "specRef": "§8",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/quotes/components/quote/quote-actions.tsx:131-141 passes `book` built from `quote.book`; quote-dialog.tsx:386 renders it. But the book is immutable in edit mode: the update posts to `quote.bookId` (quote-dialog.tsx:335) and UpdateQuoteInputSchema has no bookId (packages/shared/src/quotes.ts:50-57)"
+    },
+    {
+      "claim": "A Dedications single-select book picker exists and is conceptually reusable",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/dedications/components/dedication-book-picker-dialog.tsx:37 - own Dialog (:42-47), RadioGroup rows with cover/title/authors (:207-228), sort title_asc (:85), pageSize 20 (:29), useDeferredValue rather than a debounce (:72), a 'Показати ще' Button (:129-143), max-h-64 scroll container (:118), and a hasDedication:\"false\" filter (:80) that is dedication-specific"
+    },
+    {
+      "claim": "A Series infinite-scroll pattern with useInfiniteScroll exists",
+      "specRef": "§6",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/hooks/use-infinite-scroll.ts:16-52 returns { onScroll, scrollRef } and fires onLoadMore within 160px of the bottom (:7,:32-33); wired at apps/web/src/features/series/components/add-book-to-series-dialog.tsx:137-142 and consumed at :318 on a `max-h-64 overflow-y-auto` div. Note that dialog feeds it useSoloBooks, not useLibraryBooks"
+    },
+    {
+      "claim": "BookThumb, cover fallback and book presentation primitives exist",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/book-picker.tsx:109-128 exports `BookThumb` with a no-cover fallback; the same file exports BOOK_PICKER_SCROLL_AREA (:14), BookPickerResults (:34, Checkbox-based multi-select at :53) and BookPickerSelected (:76). Three local cover copies also exist: dedication-book-picker-dialog.tsx:50, add-book-to-queue-dialog.tsx PickerCover, and quote-dialog.tsx:240-255"
+    },
+    {
+      "claim": "A debounce hook already exists in apps/web",
+      "specRef": "§2, §7",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/web/src/hooks/use-debounced-value.ts:5 - `useDebouncedValue<T>(value, delayMs)`; already used by the current quotes picker (book-picker.tsx:15,22,46) and by BookMultiSelectPicker (book-multi-select-picker.tsx:13,21,52)"
+    },
+    {
+      "claim": "Search is backend-driven across the whole library and uses the Books API title/author semantics",
+      "specRef": "§7",
+      "verdict": "CONFIRMED",
+      "evidence": "Param name is `q` (packages/shared/src/books.ts:909, max 200 chars at :862). Backend matches title, originalTitle, author names, series name, publisher names, tags, translator, illustrator and isbn (apps/api/src/modules/books/infrastructure/book-search.ts:26-48). Queries shorter than 2 characters are dropped server-side and return the unfiltered library (book-search.ts:7,57-65). The current picker already disables local filtering with shouldFilter={false} (book-picker.tsx:76)"
+    },
+    {
+      "claim": "QuoteDialog uses the project's current responsive dialog pattern",
+      "specRef": "§9",
+      "verdict": "CONFIRMED",
+      "evidence": "Plain shadcn/radix Dialog - apps/web/src/components/ui/dialog.tsx:10-55; QuoteDialog renders `DialogContent className=\"max-h-[90vh] overflow-y-auto sm:max-w-xl\"` at apps/web/src/features/quotes/components/quote-dialog.tsx:116. There is no drawer-on-mobile wrapper anywhere in components/ui"
+    },
+    {
+      "claim": "No reusable single-select book picker exists in features/books/components yet",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "The only picker files there are book-picker.tsx (multi-select primitives, Checkbox at :53) and book-multi-select-picker.tsx:36. No file matches book-single-select*. Two single-select implementations exist outside that folder though - dedication-book-picker-dialog.tsx:37 and add-book-to-queue-dialog.tsx:44 - making this the third"
+    },
+    {
+      "claim": "Raising pageSize to 1000 is a live risk to forbid",
+      "specRef": "§10",
+      "verdict": "STALE",
+      "evidence": "The backend already rejects it: pageSize max is LIST_PAGE_SIZE_MAX = 100 (packages/shared/src/common.ts:43) applied through paginationQueryFields (common.ts:137-141) at packages/shared/src/books.ts:904. A pageSize=1000 request 422s, so the constraint is enforced by the contract, not by discipline"
+    },
+    {
+      "claim": "There is no Quotes -> Dedications dependency today",
+      "specRef": "§10",
+      "verdict": "CONFIRMED",
+      "evidence": "grep for `features/dedications` inside apps/web/src/features/quotes returns 0 matches"
+    },
+    {
+      "claim": "i18n namespaces for the quote dialog and its picker",
+      "specRef": "implicit (new keys)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/messages/uk.json and en.json both carry `quotes.bookPicker` {clear, empty ('Книг не знайдено'), heading, loadMore, searching} and `quotes.dialog` {book, bookPlaceholder, ...}. Cross-feature books pickers instead take a labels prop (book-multi-select-picker.tsx:24-34, loan-books-step.tsx:47-56)"
+    },
+    {
+      "claim": "QuoteDialog has no test coverage today",
+      "specRef": "implicit (Definition of Done)",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/quotes/components/quote-dialog.test.tsx does not exist; the quotes suite covers quotes-view, toolbar, cards and blocks only. Test infrastructure: renderWithProviders at apps/web/src/test-utils.tsx:30, fetch stubbed globally as in dedications-view.test.tsx:79-89, book fixture makeBookView at apps/web/src/features/books/components/book-details.fixtures.ts"
+    }
+  ],
+  "notes": [
+    "2026-09-17: T0-T15 implemented in the main checkout on fix/notes. Deviations recorded: (1) no Змінити in edit mode per D3; (2) an extra cancelChange button in change mode, because Radix onValueChange does not fire on re-clicking the already-selected row; (3) BookThumb prop widened from BookView to {cover?, title}; (4) QuoteBookOption deleted, toQuoteBookOption now returns BookSelectOption.",
+    "2026-09-17: review round. code-reviewer returned NEEDS CHANGES with two criticals: (1) maxPages lived in query options, not the key, and the picker shared a byte-identical key with AddBookToQueueDialog, so last-observer-wins poisoned the shared entry; reworked into LIBRARY_BOOKS_RETENTION with retention as part of the key. (2) Radix RadioGroup clicks on focus while an arrow key is held, so every arrow keypress selected a book and collapsed the picker; reworked into explicit view state plus a pointer/keyboard discriminator in the capture phase plus deliberate focus transfer.",
+    "2026-09-17: perf audit (production build, Playwright + CDP). Critical: reopening the dialog after staleTime refetched every retained page sequentially, 50 requests / 10s at depth; fixed with staleTime Infinity on the whole-library retention (measured 11 requests -> 0). Warning: every keystroke re-rendered all retained rows, 0.083*N ms; fixed with a memoized BookSingleSelectRow (1000 rows: 68.7ms -> 1.3ms). Virtualization rejected: scroll was already smooth at 16.7ms median because max-h-64 paints only 256px.",
+    "2026-09-17: accessibility audit. Keyboard fix verified empirically (40 arrows, list stays open, bodyHits 0, keyboard-only paging 20->40->60). Eight findings fixed in-scope: opacity-60 contrast failure (21 light / 11 dark axe violations -> 0), role=status trapped inside aria-busy plus unannounced append, focus lost to body after a failed submit, aria-required false on the radiogroup, focus ring on the 16x16 dot instead of the row, duplicated field name on the search input, dangling htmlFor when collapsed, and the collapsed view not conveying its value.",
+    "2026-09-17: OUT OF SCOPE, needs a separate task. Pre-existing app-wide a11y defects confirmed but untouched: components/ui/dialog.tsx:21 cancels onOpenAutoFocus so the first Tab after opening any dialog lands on the aria-hidden background; closing a dialog returns focus to document.body instead of the trigger; components/ui/radio-group.tsx:29 unselected border contrast 1.42:1 light / 1.40:1 dark against a required 3:1 (an --input token change); components/ui/input.tsx clear button is 16x16 against a required 24x24 with an untranslated aria-label Clear; dialog.tsx:48 Close is untranslated.",
+    "2026-09-17: final gates verified by the orchestrator: typecheck 3/3, lint 0 errors (8 pre-existing warnings in untouched files), prettier clean across apps/web/src, 31 tests in the two new files, 1024 tests / 74 files across quotes+books+dedications."
+  ],
+  "verification": {
+    "mode": "VERIFY",
+    "verifiedAt": "2026-09-17T14:50:43Z",
+    "base": "working tree vs HEAD (80806318) on fix/notes, main checkout, uncommitted",
+    "summary": {
+      "done": 17,
+      "partial": 4,
+      "missing": 0,
+      "total": 21
+    },
+    "partial": ["T10", "T15", "T18", "T20"],
+    "missing": [],
+    "everyMandatoryTaskDone": false,
+    "everyMandatoryTaskDoneNote": "17 of 21 fully proved. T10 and T18 share one unratified substitution (a validation message instead of a disabled submit button). T15 and T20 are evidence gaps only (screenshot, dev:web manual pass); every code-checkable criterion in them holds.",
+    "drift": [
+      "apps/web/src/features/books/components/book-picker.tsx:125 BookThumb alt changed from {book.title} to \"\". No task asked for it. No test reads that alt text (grep for AltText finds only list-card.test.tsx:78 and series-details-hero.test.tsx:153, different components). It affects four other BookThumb call sites (book-picker.tsx:63,98, loan-dialog.tsx:391, create-book-order-dialog.tsx:459). Defensible as decorative-image a11y, but it is an unrequested behaviour change in a shared primitive.",
+      "apps/web/src/features/books/components/book-picker.tsx:34-37,114 BookThumb prop widened from BookView to { cover?, title }. Needed by T4/D4 reuse; recorded in notes[0] but covered by no doneWhen.",
+      "apps/web/src/features/books/model/library-query.ts:142-156 libraryListParams() factory, adopted by three consumers the plan said not to touch. A real DRY win (four copies of an 11-field literal collapse into one) and verified param-equivalent, but it contradicts T0 doneWhen 5 as written.",
+      "apps/web/src/components/ui/field-error.tsx:1-3 widened from RhfFieldError to { message?: Message }. NOT a vendored shadcn primitive: the shadcn registry ships form.tsx/FormMessage and has no field-error; the file is project-authored (git log --follow: ec7624af, 40a01ab2), carries no data-slot/cn shadcn boilerplate, and sits beside other bespoke primitives (book-card, bar-list, app-bar, filter-panel, mobile-sort-sheet). CLAUDE.md section 7 is not violated."
+    ],
+    "preExisting": [
+      "apps/web/src/messages/{uk,en}.json quotes.toolbar.bookPlaceholder has no reader. Present at HEAD, not introduced by this diff.",
+      "apps/web/src/components/ui/input.tsx:33 the clear button has a hardcoded English aria-label='Clear'. Pre-existing; the picker inherits it at book-single-select-picker.tsx:178-184."
+    ],
+    "specSection10": [
+      {
+        "rule": "не збільшувати pageSize до 1000",
+        "verdict": "PASS",
+        "proof": "book-single-select-picker.tsx:27 pageSize 20; no 1000 literal in the picker or in features/quotes"
+      },
+      {
+        "rule": "не залишати старий cmdk/Popover і лише латати state",
+        "verdict": "PASS",
+        "proof": "features/quotes/components/book-picker.tsx deleted; grep for cmdk/Command/Popover inside features/quotes returns 0"
+      },
+      {
+        "rule": "не робити nested modal",
+        "verdict": "PASS",
+        "proof": "book-single-select-picker.tsx imports no Dialog*/Popover*; quote-dialog.test.tsx:133 asserts exactly one role=dialog"
+      },
+      {
+        "rule": "не створювати новий Books API",
+        "verdict": "PASS",
+        "proof": "the diff touches no file under apps/api, prisma or packages/shared"
+      },
+      {
+        "rule": "не використовувати useSoloBooks",
+        "verdict": "PASS",
+        "proof": "grep useSoloBooks in features/books + features/quotes returns 0; its only consumer stays add-book-to-series-dialog"
+      },
+      {
+        "rule": "не використовувати Checkbox/multi-select",
+        "verdict": "PASS",
+        "proof": "book-single-select-picker.tsx:285 RadioGroup; no Checkbox import in the picker or in book-single-select-value.tsx"
+      },
+      {
+        "rule": "не робити local-only search",
+        "verdict": "PASS",
+        "proof": "book-single-select-picker.tsx:85,340-346 the trimmed search becomes the q param of useLibraryBooks; test :197-204 proves the request carries q"
+      },
+      {
+        "rule": "не зберігати selected title як search query",
+        "verdict": "PASS",
+        "proof": "book-single-select-picker.tsx:179-183 setSearch is the only writer of the search state; test :254-263"
+      },
+      {
+        "rule": "не створювати dependency Quotes -> Dedications",
+        "verdict": "PASS",
+        "proof": "grep features/dedications inside features/quotes returns 0"
+      }
+    ],
+    "acceptanceChecklist": [
+      {
+        "check": "current Quotes combobox більше не використовується",
+        "verdict": "PASS",
+        "proof": "quotes/components/book-picker.tsx deleted; no importer remains"
+      },
+      {
+        "check": "є reusable BookSingleSelectPicker",
+        "verdict": "PASS",
+        "proof": "features/books/components/book-single-select-picker.tsx:57 plus features/books/components/book-single-select-value.tsx:16, both labels-driven and feature-agnostic"
+      },
+      {
+        "check": "search і selected book state незалежні",
+        "verdict": "PASS",
+        "proof": "picker:67 search state vs picker:50 value prop; tests :227-263"
+      },
+      {
+        "check": "вся library доступна через infinite scroll",
+        "verdict": "PASS",
+        "proof": "D1 answer (d) implemented: use-books.ts:17 whole retention maxPages 0 = unlimited, passed at picker:86. The 200-row cap the plan flagged as a caveat no longer applies."
+      },
+      {
+        "check": "search працює по backend library",
+        "verdict": "PASS",
+        "proof": "picker:69,85 debounced value into the q param; test :197-204"
+      },
+      {
+        "check": "books мають predictable title_asc",
+        "verdict": "PASS",
+        "proof": "picker:344; test :191"
+      },
+      {
+        "check": "selection single-select",
+        "verdict": "PASS",
+        "proof": "picker:285-303 RadioGroup with one value"
+      },
+      {
+        "check": "немає nested modal",
+        "verdict": "PASS",
+        "proof": "quote-dialog.test.tsx:129-135"
+      },
+      {
+        "check": "після вибору picker згортається у compact state",
+        "verdict": "PASS",
+        "proof": "picker:126-131,139-162; test :265-275"
+      },
+      {
+        "check": "Змінити повертає список",
+        "verdict": "PASS",
+        "proof": "picker:146-149; test :273-274"
+      },
+      {
+        "check": "create/edit Quote правильно працюють із bookId",
+        "verdict": "PASS",
+        "proof": "quote-dialog.tsx:344-347 create, :330-332 edit; tests :110-119 and :165-173"
+      },
+      {
+        "check": "немає duplicate book preview",
+        "verdict": "PASS",
+        "proof": "quote-dialog.test.tsx:121-127 and :159-163"
+      },
+      {
+        "check": "використані існуючі BookNest patterns і data source",
+        "verdict": "PASS",
+        "proof": "useLibraryBooks (picker:21), useDebouncedValue (:13), useInfiniteScroll (:14), BookThumb (:23), RadioGroup (:11)"
+      }
+    ]
+  }
+}

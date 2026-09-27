@@ -18,9 +18,9 @@ const meta = {
       { count: 9, key: "mystery", name: "Детектив" },
     ],
     topTags: [
-      { id: "1", name: "slow burn" },
-      { id: "2", name: "dark academia" },
-      { id: "3", name: "dragons" },
+      { color: "sage", id: "1", name: "slow burn" },
+      { color: "rose", id: "2", name: "dark academia" },
+      { color: "sky", id: "3", name: "dragons" },
     ],
   },
   component: LibrarySummarySidebar,

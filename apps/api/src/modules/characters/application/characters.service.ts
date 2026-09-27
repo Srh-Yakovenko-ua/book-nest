@@ -4,6 +4,7 @@ import type {
   CharacterDuplicateCandidatesQuery,
   CharacterDuplicateCandidatesView,
   CharacterGlobalSummaryView,
+  CharacterOverviewView,
   CharactersListQuery,
   CreateCharacter,
   Paginator,
@@ -13,11 +14,15 @@ import type {
 import {
   CHARACTER_DUPLICATE_CANDIDATES_MAX,
   CHARACTER_ERROR_CODES,
+  CHARACTER_OVERVIEW_LEADERS_MAX,
+  CharactersListQuerySchema,
   normalizeName,
   normalizeSearch,
   readingPositionFromQuery,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+
+import type { GlobalCharacterFilter } from "../infrastructure/characters.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
@@ -172,14 +177,24 @@ export class CharactersService {
     if (query.contextBookId !== undefined) {
       await this.accessAsserter.assertBookOwned({ bookId: query.contextBookId, userId });
     }
-    const duplicateNormalizedNames = query.possibleDuplicates
-      ? await this.charactersRepository.findDuplicateNormalizedNames({
-          archived: query.archived ?? false,
-          includeHiddenProfiles: query.includeHiddenProfiles ?? false,
-          userId,
-        })
-      : undefined;
-    const filter = toGlobalFilter({ duplicateNormalizedNames, query, userId });
+    const [duplicateNormalizedNames, multipleBookCharacterIds] = await Promise.all([
+      query.possibleDuplicates
+        ? this.charactersRepository.findDuplicateNormalizedNames({
+            archived: query.archived ?? false,
+            includeHiddenProfiles: query.includeHiddenProfiles ?? false,
+            userId,
+          })
+        : undefined,
+      query.multipleBooks === true
+        ? this.charactersRepository.listMultipleBookCharacterIds({ userId })
+        : undefined,
+    ]);
+    const filter = toGlobalFilter({
+      duplicateNormalizedNames,
+      multipleBookCharacterIds,
+      query,
+      userId,
+    });
 
     const [rows, totalCount] = await Promise.all([
       this.charactersRepository.listGlobalSummaries({
@@ -196,6 +211,59 @@ export class CharactersService {
       pageSize: query.pageSize,
       totalCount,
     });
+  }
+
+  async overview({ userId }: { userId: string }): Promise<CharacterOverviewView> {
+    const baseQuery = CharactersListQuerySchema.parse({});
+    const baseFilter = (overrides: Partial<CharactersListQuery> = {}): GlobalCharacterFilter =>
+      toGlobalFilter({
+        duplicateNormalizedNames: undefined,
+        multipleBookCharacterIds: undefined,
+        query: { ...baseQuery, ...overrides },
+        userId,
+      });
+
+    const multipleBookCharacterIds = await this.charactersRepository.listMultipleBookCharacterIds({
+      userId,
+    });
+
+    const [totalCount, favoriteCount, withPersonalImpressionCount, multipleBooksCount, leaders] =
+      await Promise.all([
+        this.charactersRepository.countGlobalSummaries(baseFilter()),
+        this.charactersRepository.countGlobalSummaries(baseFilter({ favorite: true })),
+        this.charactersRepository.countGlobalSummaries(baseFilter({ hasPersonalImpression: true })),
+        this.charactersRepository.countGlobalSummaries(
+          toGlobalFilter({
+            duplicateNormalizedNames: undefined,
+            multipleBookCharacterIds,
+            query: baseQuery,
+            userId,
+          }),
+        ),
+        this.charactersRepository.findAppearanceLeaders({
+          limit: CHARACTER_OVERVIEW_LEADERS_MAX,
+          userId,
+        }),
+      ]);
+
+    return {
+      favoriteCount,
+      mostFrequent:
+        leaders.leaderCount === 0
+          ? null
+          : {
+              appearanceCount: leaders.appearanceCount,
+              leaderCount: leaders.leaderCount,
+              leaders: leaders.leaders.map((leader) => ({
+                avatar: this.viewMapper.mediaViewOf(leader.avatarMedia),
+                id: leader.id,
+                name: leader.name,
+              })),
+            },
+      multipleBooksCount,
+      totalCount,
+      withPersonalImpressionCount,
+    };
   }
 
   async updateGlobal({

@@ -19,4 +19,5 @@ export const CharacterGraphViewDtoNodesItemImportance = {
   supporting: "supporting",
   episodic: "episodic",
   mentioned: "mentioned",
+  not_specified: "not_specified",
 } as const;

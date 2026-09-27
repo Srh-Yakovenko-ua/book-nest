@@ -3,51 +3,54 @@
 import type { LibraryPublisherDetail } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { useRouter } from "@/i18n/navigation";
 
+import { usePublisherOverview } from "../api/use-publisher-overview";
+import { isPublisherDetailTab } from "../model/publisher-detail-url";
+import { usePublisherDetailTab } from "../model/use-publisher-detail-tab";
 import { DeletePublisherDialog } from "./delete-publisher-dialog";
 import { EditPublisherDialog } from "./edit-publisher-dialog";
 import { PublisherBooksTab } from "./publisher-books-tab";
 import { PublisherDetailsHero } from "./publisher-details-hero";
 import { PublisherOverviewTab } from "./publisher-overview-tab";
 import { PublisherStatsGrid } from "./publisher-stats-grid";
-import { PublisherToBuyTab } from "./publisher-to-buy-tab";
 
 type PublisherDetailsViewProps = {
   details: LibraryPublisherDetail;
 };
 
-const DETAIL_TABS = ["overview", "books", "toBuy"] as const;
-
-type DetailTab = (typeof DETAIL_TABS)[number];
-
-const tabParser = parseAsStringLiteral(DETAIL_TABS).withDefault("overview");
-
 export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
   const t = useTranslations("publishers.details.tabs");
   const router = useRouter();
-
-  const [tab, setTab] = useQueryState("tab", tabParser);
+  const { selectTab, tab } = usePublisherDetailTab();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLButtonElement>(null);
+  const overview = usePublisherOverview(details.id, {
+    enabled: tab === "overview" && details.stats.booksCount > 0,
+  });
 
   const tabItems: PageTabsItem[] = [
     { label: t("overview"), value: "overview" },
     { label: t("books"), value: "books" },
-    { label: t("toBuy"), value: "toBuy" },
   ];
+
+  const restoreActionsMenuFocus = (event: Event) => {
+    event.preventDefault();
+    actionsMenuRef.current?.focus();
+  };
 
   const onAddBook = () => router.push(`/books/new?publisherId=${details.id}`);
 
   return (
     <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2">
       <PublisherDetailsHero
+        actionsMenuRef={actionsMenuRef}
         details={details}
         onAddBook={onAddBook}
         onDelete={() => setDeleteOpen(true)}
@@ -57,29 +60,35 @@ export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
       <PublisherStatsGrid stats={details.stats} />
 
       <PageTabs
+        ariaLabel={t("ariaLabel")}
         items={tabItems}
-        onValueChange={(value) => void setTab(isDetailTab(value) ? value : "overview")}
+        onValueChange={(value) => selectTab(isPublisherDetailTab(value) ? value : "overview")}
         value={tab}
       >
         <PageTabsPanel value="overview">
           <PublisherOverviewTab
-            onViewBooks={() => void setTab("books")}
-            onViewToBuy={() => void setTab("toBuy")}
-            publisherId={details.id}
+            booksCount={details.stats.booksCount}
+            onAddBook={onAddBook}
+            overview={overview}
           />
         </PageTabsPanel>
         <PageTabsPanel value="books">
-          <PublisherBooksTab publisherId={details.id} />
-        </PageTabsPanel>
-        <PageTabsPanel value="toBuy">
-          <PublisherToBuyTab publisherId={details.id} />
+          <PublisherBooksTab onAddBook={onAddBook} publisherId={details.id} />
         </PageTabsPanel>
       </PageTabs>
 
       {details.isCustom ? (
         <>
-          <EditPublisherDialog details={details} onOpenChange={setEditOpen} open={editOpen} />
+          <EditPublisherDialog
+            details={details}
+            onCloseAutoFocus={restoreActionsMenuFocus}
+            onOpenChange={setEditOpen}
+            open={editOpen}
+          />
           <DeletePublisherDialog
+            booksCount={details.stats.booksCount}
+            onCloseAutoFocus={restoreActionsMenuFocus}
+            onGoToBooks={() => selectTab("books")}
             onOpenChange={setDeleteOpen}
             open={deleteOpen}
             publisherId={details.id}
@@ -89,8 +98,4 @@ export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
       ) : null}
     </div>
   );
-}
-
-function isDetailTab(value: string): value is DetailTab {
-  return DETAIL_TABS.includes(value as DetailTab);
 }

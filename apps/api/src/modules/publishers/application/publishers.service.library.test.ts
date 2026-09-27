@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { PublisherModel } from "../../../generated/prisma/models.js";
-import type { LibraryStatsRow } from "../domain/publisher-library.mapper.js";
+import type { MediaService } from "../../media/index.js";
+import type { LibraryDetailStatsRow, LibraryStatsRow } from "../domain/publisher-library.mapper.js";
+import type { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
 import type { PublishersRepository } from "../infrastructure/publishers.repository.js";
 
 import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
@@ -16,11 +18,14 @@ const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
 const PUBLISHER_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_PUBLISHER_ID = "44444444-4444-4444-8444-444444444444";
 
+const QUICK_COUNTS = { all: 6, read: 2, reading: 2, series: 1, to_buy: 1 };
+
 type RepositoryMock = {
   aggregateLibrary: ReturnType<typeof vi.fn>;
   aggregateLibraryDetail: ReturnType<typeof vi.fn>;
   countBooks: ReturnType<typeof vi.fn>;
   countLibrary: ReturnType<typeof vi.fn>;
+  countLibraryQuickFilters: ReturnType<typeof vi.fn>;
   deleteWithNames: ReturnType<typeof vi.fn>;
   findById: ReturnType<typeof vi.fn>;
   findByNormalized: ReturnType<typeof vi.fn>;
@@ -32,7 +37,7 @@ type RepositoryMock = {
 
 type ServiceOverrides = {
   aggregateLibrary?: LibraryStatsRow[];
-  aggregateLibraryDetail?: Nullable<LibraryStatsRow>;
+  aggregateLibraryDetail?: Nullable<LibraryDetailStatsRow>;
   countBooks?: number;
   countLibrary?: number;
   findById?: Nullable<PublisherModel>;
@@ -51,6 +56,7 @@ function buildService(overrides: ServiceOverrides = {}): {
     aggregateLibraryDetail: vi.fn().mockResolvedValue(overrides.aggregateLibraryDetail ?? null),
     countBooks: vi.fn().mockResolvedValue(overrides.countBooks ?? 0),
     countLibrary: vi.fn().mockResolvedValue(overrides.countLibrary ?? 0),
+    countLibraryQuickFilters: vi.fn().mockResolvedValue(QUICK_COUNTS),
     deleteWithNames: vi.fn().mockResolvedValue(undefined),
     findById: vi.fn().mockResolvedValue(overrides.findById ?? null),
     findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
@@ -67,6 +73,8 @@ function buildService(overrides: ServiceOverrides = {}): {
   const service = new PublishersService(
     repository as unknown as PublishersRepository,
     transactionRunner as unknown as TransactionRunner,
+    {} as PublisherOverviewRepository,
+    {} as MediaService,
   );
 
   return { repository, service, txClient };
@@ -93,7 +101,7 @@ function publisher(overrides: Partial<PublisherModel> = {}): PublisherModel {
   };
 }
 
-function statsRow(overrides: Partial<LibraryStatsRow> = {}): LibraryStatsRow {
+function statsRow(overrides: Partial<LibraryDetailStatsRow> = {}): LibraryDetailStatsRow {
   return {
     averageRating: null,
     booksCount: 3,
@@ -112,6 +120,7 @@ function statsRow(overrides: Partial<LibraryStatsRow> = {}): LibraryStatsRow {
     wantToBuyCount: 0,
     wantToReadCount: 0,
     websiteUrl: null,
+    wishlistWithoutPriceCount: 0,
     ...overrides,
   };
 }
@@ -266,21 +275,19 @@ describe("PublishersService.updateCustom", () => {
     expect(detail).toMatchObject({ name: "Renamed Press", stats: { booksCount: 4 } });
   });
 
-  it("falls back to the model with zeroed stats when the publisher has no books", async () => {
+  it("throws NotFoundError when the publisher disappears before the detail is read", async () => {
     const { service } = buildService({
       aggregateLibraryDetail: null,
       findById: publisher(),
-      updateCustom: publisher({ name: "Renamed Press" }),
     });
 
-    const detail = await service.updateCustom(renameInput);
-
-    expect(detail).toMatchObject({ name: "Renamed Press", stats: { booksCount: 0 } });
+    await expect(service.updateCustom(renameInput)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
 describe("PublishersService.libraryList", () => {
   const baseQuery = {
+    filter: "all",
     geography: "all",
     locale: "uk",
     order: "desc",
@@ -313,6 +320,33 @@ describe("PublishersService.libraryList", () => {
     );
   });
 
+  it("treats absent hasWantToRead and hasQueue flags as false", async () => {
+    const { repository, service } = buildService();
+
+    await service.libraryList({ query: { ...baseQuery }, userId: USER_ID });
+
+    expect(repository.aggregateLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ hasQueue: false, hasWantToRead: false }),
+    );
+  });
+
+  it("forwards the quick filter and the new advanced flags to both the page and the count", async () => {
+    const { repository, service } = buildService();
+
+    await service.libraryList({
+      query: { ...baseQuery, filter: "series", hasQueue: true, hasWantToRead: true },
+      userId: USER_ID,
+    });
+
+    const expected = expect.objectContaining({
+      filter: "series",
+      hasQueue: true,
+      hasWantToRead: true,
+    });
+    expect(repository.aggregateLibrary).toHaveBeenCalledWith(expected);
+    expect(repository.countLibrary).toHaveBeenCalledWith(expected);
+  });
+
   it("computes skip and take from the page coordinates", async () => {
     const { repository, service } = buildService();
 
@@ -336,5 +370,48 @@ describe("PublishersService.libraryList", () => {
 
     expect(page).toMatchObject({ page: 1, pageSize: 10, totalCount: 42 });
     expect(page.items[0]?.stats.booksCount).toBe(5);
+  });
+});
+
+describe("PublishersService.libraryQuickCounts", () => {
+  const baseQuery = { geography: "all", source: "all" } as const;
+
+  it("counts under the search, geography, source and advanced flags without any quick filter", async () => {
+    const { repository, service } = buildService();
+
+    await service.libraryQuickCounts({
+      query: { ...baseQuery, geography: "ua", hasQueue: true, search: "pen", source: "custom" },
+      userId: USER_ID,
+    });
+
+    expect(repository.countLibraryQuickFilters).toHaveBeenCalledWith({
+      geography: "ua",
+      hasBooksToBuy: false,
+      hasQueue: true,
+      hasRatedBooks: false,
+      hasSeries: false,
+      hasWantToRead: false,
+      search: "pen",
+      source: "custom",
+      userId: USER_ID,
+    });
+  });
+
+  it("returns the repository totals per quick filter key", async () => {
+    const { service } = buildService();
+
+    const counts = await service.libraryQuickCounts({ query: { ...baseQuery }, userId: USER_ID });
+
+    expect(counts).toEqual(QUICK_COUNTS);
+  });
+
+  it("does not touch the summary or the list queries", async () => {
+    const { repository, service } = buildService();
+
+    await service.libraryQuickCounts({ query: { ...baseQuery }, userId: USER_ID });
+
+    expect(repository.aggregateLibrary).not.toHaveBeenCalled();
+    expect(repository.countLibrary).not.toHaveBeenCalled();
+    expect(repository.summaryCounts).not.toHaveBeenCalled();
   });
 });

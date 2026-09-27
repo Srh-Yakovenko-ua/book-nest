@@ -1,5 +1,6 @@
 "use client";
 
+import { TAG_COLOR_DEFAULT, type TagView } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import type { ActiveFilterChip } from "@/features/books";
@@ -14,6 +15,7 @@ import { resolvePriceCurrency } from "./wishlist-query";
 type UseWishlistFilterChipsOptions = {
   genreName: (key: string) => string;
   resolveEntityName: (id: string) => string | undefined;
+  resolveTag: (id: string) => TagView | undefined;
   setState: UseWishlistQueryResult["setState"];
   state: WishlistQueryState;
 };
@@ -21,6 +23,7 @@ type UseWishlistFilterChipsOptions = {
 export function useWishlistFilterChips({
   genreName,
   resolveEntityName,
+  resolveTag,
   setState,
   state,
 }: UseWishlistFilterChipsOptions): ActiveFilterChip[] {
@@ -114,8 +117,9 @@ export function useWishlistFilterChips({
   for (const value of state.tag) {
     chips.push({
       key: `tag:${value}`,
-      label: resolveEntityName(value) ?? t("unknown"),
+      label: resolveTag(value)?.name ?? resolveEntityName(value) ?? t("unknown"),
       onRemove: () => void setState({ tag: state.tag.filter((item) => item !== value) }),
+      tagColor: resolveTag(value)?.color ?? TAG_COLOR_DEFAULT,
     });
   }
 

@@ -9,14 +9,14 @@ import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { DeletePublisherDialog } from "./delete-publisher-dialog";
 
-const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+const { pushMock, replaceMock } = vi.hoisted(() => ({ pushMock: vi.fn(), replaceMock: vi.fn() }));
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
   usePathname: () => "/publishers/publisher-1",
-  useRouter: () => ({ push: pushMock, replace: vi.fn() }),
+  useRouter: () => ({ push: pushMock, replace: replaceMock }),
 }));
 
 vi.mock("sonner", () => ({
@@ -34,9 +34,12 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderDialog() {
+function renderDialog({ booksCount = 0, onGoToBooks = vi.fn() } = {}) {
   return renderWithProviders(
     <DeletePublisherDialog
+      booksCount={booksCount}
+      onCloseAutoFocus={vi.fn()}
+      onGoToBooks={onGoToBooks}
       onOpenChange={vi.fn()}
       open
       publisherId="publisher-1"
@@ -63,27 +66,52 @@ afterEach(() => {
 });
 
 describe("DeletePublisherDialog", () => {
-  it("deletes the publisher and returns to the list on confirm", async () => {
+  it("deletes a publisher without books and replaces the route with the list", async () => {
+    renderDialog();
+
+    expect(screen.getByText("Видалити видавництво?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Видавництво видалено"));
+    expect(replaceMock).toHaveBeenCalledWith("/publishers");
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the blocked state for a publisher with books and sends no delete request", async () => {
+    const onGoToBooks = vi.fn();
+    renderDialog({ booksCount: 3, onGoToBooks });
+
+    expect(screen.getByText("Видавництво не можна видалити")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Видалити" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Перейти до книг" }));
+
+    expect(onGoToBooks).toHaveBeenCalledOnce();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("maps a server PUBLISHER_HAS_BOOKS conflict to the blocked state", async () => {
+    respondToDelete = () => jsonResponse({ code: "PUBLISHER_HAS_BOOKS", message: "linked" }, 409);
+
     renderDialog();
 
     await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Видавництво видалено"));
-    expect(pushMock).toHaveBeenCalledWith("/publishers");
+    expect(await screen.findByText("Видавництво не можна видалити")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Перейти до книг" })).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it("explains why a publisher with linked books cannot be deleted", async () => {
-    respondToDelete = () => jsonResponse({ message: "linked" }, 409);
+  it("shows a form-level error for other failures", async () => {
+    respondToDelete = () => jsonResponse({ message: "boom" }, 500);
 
     renderDialog();
 
     await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
 
     expect(
-      await screen.findByText(
-        "Не можна видалити видавництво, до якого привʼязані книги. Спочатку відвʼяжи книги.",
-      ),
+      await screen.findByText("Не вдалося видалити видавництво. Спробуй ще раз."),
     ).toBeInTheDocument();
-    expect(pushMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 });

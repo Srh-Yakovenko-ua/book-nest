@@ -5,6 +5,7 @@ import type {
   BookOrderItemRowView,
   InTransitFacetsView,
   InTransitImpactView,
+  InTransitQuickCounts,
   InTransitSummaryView,
   PaginatedOrderHistoryGroups,
   Paginator,
@@ -14,9 +15,16 @@ import {
   BookOrderHistoryFacetsQuerySchema,
   BookOrderHistoryQuerySchema,
   InTransitQuerySchema,
+  InTransitQuickCountsQuerySchema,
 } from "@app/shared";
 import { Controller, Get, Query } from "@nestjs/common";
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
@@ -28,11 +36,13 @@ import { DeliveryReadService } from "../application/delivery-read.service.js";
 import { BookOrderHistoryFacetsQueryDto } from "./input-dto/book-order-history-facets-query.input-dto.js";
 import { BookOrderHistoryQueryDto } from "./input-dto/book-order-history-query.input-dto.js";
 import { InTransitQueryDto } from "./input-dto/in-transit-query.input-dto.js";
+import { InTransitQuickCountsQueryDto } from "./input-dto/in-transit-quick-counts-query.input-dto.js";
 import { BookOrderHistoryFacetsViewDto } from "./view-dto/book-order-history-facets.view-dto.js";
 import { BookOrderHistoryOutcomeViewDto } from "./view-dto/book-order-history-outcome.view-dto.js";
 import { BookOrderHistorySummaryViewDto } from "./view-dto/book-order-history-summary.view-dto.js";
 import { InTransitFacetsViewDto } from "./view-dto/in-transit-facets.view-dto.js";
 import { InTransitImpactViewDto } from "./view-dto/in-transit-impact.view-dto.js";
+import { InTransitQuickCountsViewDto } from "./view-dto/in-transit-quick-counts.view-dto.js";
 import { InTransitSummaryViewDto } from "./view-dto/in-transit-summary.view-dto.js";
 import { PaginatedBookOrderItemRowsDto } from "./view-dto/paginated-book-order-item-rows.view-dto.js";
 import { PaginatedOrderHistoryGroupsDto } from "./view-dto/paginated-order-history-groups.view-dto.js";
@@ -79,6 +89,22 @@ export class DeliveryReadController {
   @Throttle(READ_THROTTLE)
   inTransitFacets(@CurrentUser() user: AuthenticatedUser): Promise<InTransitFacetsView> {
     return this.deliveryReadService.inTransitFacets({ userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "How many books on their way each in-transit quick filter would show under the given search and advanced filters, ignoring the selected quick filter",
+    type: InTransitQuickCountsViewDto,
+  })
+  @ApiOperation({ summary: "Count the books on their way per in-transit quick filter" })
+  @Get("books/in-transit/quick-counts")
+  @Throttle(READ_THROTTLE)
+  inTransitQuickCounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(InTransitQuickCountsQuerySchema)) query: InTransitQuickCountsQueryDto,
+  ): Promise<InTransitQuickCounts> {
+    return this.deliveryReadService.inTransitQuickCounts({ query, userId: user.id });
   }
 
   @ApiOkResponse({

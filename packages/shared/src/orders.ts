@@ -623,6 +623,35 @@ export const InTransitQuerySchema = z.object({
 
 export type InTransitQuery = z.infer<typeof InTransitQuerySchema>;
 
+export const InTransitQuickCountsQuerySchema = InTransitQuerySchema.omit({
+  filter: true,
+  pageNumber: true,
+  pageSize: true,
+  sort: true,
+});
+
+export type InTransitQuickCountsQuery = z.infer<typeof InTransitQuickCountsQuerySchema>;
+
+export const InTransitQuickFilterKeySchema = InTransitFilterSchema.extract([
+  "all",
+  "ordered",
+  "in_transit",
+  "ready_for_pickup",
+  "delayed",
+]);
+
+export type InTransitQuickFilterKey = z.infer<typeof InTransitQuickFilterKeySchema>;
+
+export const InTransitQuickCountsSchema = z.object({
+  all: CountSchema,
+  delayed: CountSchema,
+  in_transit: CountSchema,
+  ordered: CountSchema,
+  ready_for_pickup: CountSchema,
+}) satisfies z.ZodType<Record<InTransitQuickFilterKey, number>>;
+
+export type InTransitQuickCounts = z.infer<typeof InTransitQuickCountsSchema>;
+
 export const DeliveryFacetEntrySchema = z.object({ count: CountSchema, name: z.string() });
 
 export type DeliveryFacetEntry = z.infer<typeof DeliveryFacetEntrySchema>;

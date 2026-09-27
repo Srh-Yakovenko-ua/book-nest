@@ -1,31 +1,32 @@
 import type {
+  BookNotesQuery,
   CreateNoteInput,
+  CreateSeriesNoteInput,
   EntityNotesView,
   NoteCategory,
-  NotesQuery,
-  NotesSummaryView,
   NoteView,
   Nullable,
   Paginator,
+  SeriesNotesQuery,
   UpdateNoteInput,
 } from "@app/shared";
 
-import { normalizeSearch, NOTE_ERROR_CODES, NoteCategorySchema } from "@app/shared";
+import { NOTE_ERROR_CODES, NoteCategorySchema, NoteEntityTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { BookAccessService } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { SeriesService } from "../../series/index.js";
-import { emptyToNull, resolveCustomCategory } from "../domain/note-fields.js";
-import { buildNotesSummary } from "../domain/note-summary.js";
-import { type NoteEntityCovers, toNoteView } from "../domain/note.mapper.js";
+import { emptyToNull, resolveCustomCategory, touchesNoteContent } from "../domain/note-fields.js";
+import { resolveNoteEntityCovers, toNoteView } from "../domain/note.mapper.js";
 import {
   NotesRepository,
   type NoteWithEntity,
   type UpdateNoteFields,
 } from "../infrastructure/notes.repository.js";
+import { toBookNotesDataset, toSeriesNotesDataset } from "./note-archive-dataset.js";
 
 @Injectable()
 export class NotesService {
@@ -61,7 +62,7 @@ export class NotesService {
   async createSeriesNote(
     userId: string,
     seriesId: string,
-    input: CreateNoteInput,
+    input: CreateSeriesNoteInput,
   ): Promise<NoteView> {
     await this.assertSeriesOwned(userId, seriesId);
     const category = input.category ?? null;
@@ -69,13 +70,13 @@ export class NotesService {
     const created = await this.notesRepository.create({
       bookId: null,
       category,
-      chapter: emptyToNull(input.chapter),
+      chapter: null,
       customCategory: resolveCustomCategory({ category, customCategory: input.customCategory }),
       entityType: "series",
       isFavorite: input.isFavorite,
       isPinned: input.isPinned,
       isSpoiler: input.isSpoiler,
-      page: input.page ?? null,
+      page: null,
       seriesId,
       text: input.text,
       userId,
@@ -95,52 +96,61 @@ export class NotesService {
     return this.toView(updated);
   }
 
+  async listBookArchive({
+    query,
+    userId,
+  }: {
+    query: BookNotesQuery;
+    userId: string;
+  }): Promise<Paginator<NoteView>> {
+    const selection = { dataset: toBookNotesDataset({ query, userId }), quickFilter: query.filter };
+
+    const [items, totalCount] = await Promise.all([
+      this.notesRepository.listBookArchive({
+        ...selection,
+        sort: query.sort,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
+      }),
+      this.notesRepository.countBookArchive(selection),
+    ]);
+
+    return this.toPaginator({ items, query, totalCount });
+  }
+
   async listBookNotes(userId: string, bookId: string): Promise<EntityNotesView> {
     await this.assertBookOwned(userId, bookId);
     const notes = await this.notesRepository.listByBook(userId, bookId);
     return { notes: notes.map((note) => this.toView(note)), totalCount: notes.length };
   }
 
-  async listGlobal(userId: string, query: NotesQuery): Promise<Paginator<NoteView>> {
-    const filter = {
-      bookId: query.bookId,
-      category: query.category,
-      customCategory: query.customCategory,
-      entityType: query.entityType,
-      filter: query.filter,
-      hasChapter: query.hasChapter,
-      hasPage: query.hasPage,
-      search: normalizeSearch(query.search),
-      seriesId: query.seriesId,
-      userId,
+  async listSeriesArchive({
+    query,
+    userId,
+  }: {
+    query: SeriesNotesQuery;
+    userId: string;
+  }): Promise<Paginator<NoteView>> {
+    const selection = {
+      dataset: toSeriesNotesDataset({ query, userId }),
+      quickFilter: query.filter,
     };
 
     const [items, totalCount] = await Promise.all([
-      this.notesRepository.listNotes({
-        ...filter,
+      this.notesRepository.listSeriesArchive({
+        ...selection,
         sort: query.sort,
         ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
-      this.notesRepository.countNotes(filter),
+      this.notesRepository.countSeriesArchive(selection),
     ]);
 
-    return buildPaginator({
-      items: items.map((note) => this.toView(note)),
-      pageNumber: query.pageNumber,
-      pageSize: query.pageSize,
-      totalCount,
-    });
+    return this.toPaginator({ items, query, totalCount });
   }
 
   async listSeriesNotes(userId: string, seriesId: string): Promise<EntityNotesView> {
     await this.assertSeriesOwned(userId, seriesId);
     const notes = await this.notesRepository.listBySeries(userId, seriesId);
     return { notes: notes.map((note) => this.toView(note)), totalCount: notes.length };
-  }
-
-  async summary(userId: string): Promise<NotesSummaryView> {
-    const counts = await this.notesRepository.summaryCounts(userId);
-    return buildNotesSummary(counts);
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
@@ -159,6 +169,10 @@ export class NotesService {
   }
 
   private buildUpdateFields(current: NoteWithEntity, input: UpdateNoteInput): UpdateNoteFields {
+    if (current.entityType === NoteEntityTypeSchema.enum.series) {
+      assertNoSeriesNoteLocation(input);
+    }
+
     const fields: UpdateNoteFields = {};
 
     if (input.text !== undefined) {
@@ -192,15 +206,46 @@ export class NotesService {
       fields.customCategory = resolveCustomCategory({ category, customCategory });
     }
 
+    if (!touchesNoteContent(input)) {
+      fields.updatedAt = current.updatedAt;
+    }
+
     return fields;
   }
 
+  private toPaginator({
+    items,
+    query,
+    totalCount,
+  }: {
+    items: NoteWithEntity[];
+    query: { pageNumber: number; pageSize: number };
+    totalCount: number;
+  }): Paginator<NoteView> {
+    return buildPaginator({
+      items: items.map((note) => this.toView(note)),
+      pageNumber: query.pageNumber,
+      pageSize: query.pageSize,
+      totalCount,
+    });
+  }
+
   private toView(note: NoteWithEntity): NoteView {
-    const covers: NoteEntityCovers = {
-      book: this.mediaService.buildViewOrNull(note.book?.coverMedia ?? null),
-      series: this.mediaService.buildViewOrNull(note.series?.books[0]?.coverMedia ?? null),
-    };
+    const covers = resolveNoteEntityCovers({
+      buildCover: (asset) => this.mediaService.buildViewOrNull(asset),
+      note,
+    });
     return toNoteView(note, covers);
+  }
+}
+
+function assertNoSeriesNoteLocation(input: UpdateNoteInput): void {
+  const addsPage = input.page !== undefined && input.page !== null;
+  const addsChapter = input.chapter !== undefined && emptyToNull(input.chapter) !== null;
+  if (addsPage || addsChapter) {
+    throw new BadRequestError("Series notes cannot have a page or chapter", {
+      code: NOTE_ERROR_CODES.seriesNoteLocationUnsupported,
+    });
   }
 }
 

@@ -18,14 +18,12 @@ const FAKE_TX = {} as Prisma.TransactionClient;
 function buildService(): {
   repository: {
     acquireCreateLock: ReturnType<typeof vi.fn>;
-    countBooksByTag: ReturnType<typeof vi.fn>;
     countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     deleteOwned: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findByNormalizedExcluding: ReturnType<typeof vi.fn>;
     findOwnedById: ReturnType<typeof vi.fn>;
-    listOwned: ReturnType<typeof vi.fn>;
     searchOwned: ReturnType<typeof vi.fn>;
     touchLastUsed: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -35,14 +33,12 @@ function buildService(): {
 } {
   const repository = {
     acquireCreateLock: vi.fn().mockResolvedValue(undefined),
-    countBooksByTag: vi.fn().mockResolvedValue([]),
     countOwned: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
     deleteOwned: vi.fn().mockResolvedValue(0),
     findByNormalized: vi.fn().mockResolvedValue(null),
     findByNormalizedExcluding: vi.fn().mockResolvedValue(null),
     findOwnedById: vi.fn().mockResolvedValue(null),
-    listOwned: vi.fn().mockResolvedValue([]),
     searchOwned: vi.fn().mockResolvedValue([]),
     touchLastUsed: vi.fn().mockResolvedValue(undefined),
     update: vi.fn(),
@@ -119,11 +115,11 @@ describe("TagsService.create", () => {
   it("persists color and description when provided", async () => {
     const { repository, service } = buildService();
     repository.create.mockResolvedValue(
-      tag({ color: "#A96E47", description: "moody university vibes", type: "atmosphere" }),
+      tag({ color: "terracotta", description: "moody university vibes", type: "atmosphere" }),
     );
 
     await service.create(USER_ID, {
-      color: "#A96E47",
+      color: "terracotta",
       description: "moody university vibes",
       name: "dark academia",
       type: "atmosphere",
@@ -131,7 +127,7 @@ describe("TagsService.create", () => {
 
     expect(repository.create).toHaveBeenCalledWith(
       {
-        color: "#A96E47",
+        color: "terracotta",
         description: "moody university vibes",
         name: "dark academia",
         normalizedName: "dark academia",
@@ -243,7 +239,7 @@ describe("TagsService.update", () => {
 
   it("clears color and description when they are set to null", async () => {
     const { repository, service } = buildService();
-    repository.findOwnedById.mockResolvedValue(tag({ color: "#A96E47", description: "old" }));
+    repository.findOwnedById.mockResolvedValue(tag({ color: "terracotta", description: "old" }));
     repository.update.mockResolvedValue(tag({ color: null, description: null }));
 
     await service.update(USER_ID, TAG_ID, { color: null, description: null });
@@ -252,47 +248,6 @@ describe("TagsService.update", () => {
       { data: { color: null, description: null }, id: TAG_ID, userId: USER_ID },
       FAKE_TX,
     );
-  });
-});
-
-describe("TagsService.stats", () => {
-  it("merges book counts into each owned tag and defaults missing counts to zero", async () => {
-    const { repository, service } = buildService();
-    repository.listOwned.mockResolvedValue([
-      tag({
-        description: "moody university vibes",
-        id: TAG_ID,
-        name: "dark academia",
-        normalizedName: "dark academia",
-      }),
-      tag({ id: OTHER_TAG_ID, name: "slow burn", normalizedName: "slow burn" }),
-    ]);
-    repository.countBooksByTag.mockResolvedValue([{ count: 3, tagId: TAG_ID }]);
-
-    const stats = await service.stats(USER_ID);
-
-    expect(stats).toEqual([
-      {
-        booksCount: 3,
-        color: null,
-        description: "moody university vibes",
-        id: TAG_ID,
-        lastUsedAt: null,
-        name: "dark academia",
-        normalizedName: "dark academia",
-        type: "custom",
-      },
-      {
-        booksCount: 0,
-        color: null,
-        description: null,
-        id: OTHER_TAG_ID,
-        lastUsedAt: null,
-        name: "slow burn",
-        normalizedName: "slow burn",
-        type: "custom",
-      },
-    ]);
   });
 });
 
@@ -398,7 +353,7 @@ describe("TagsService.search", () => {
     });
 
     expect(page).toEqual({
-      items: [{ id: TAG_ID, name: "dark academia" }],
+      items: [{ color: "parchment", id: TAG_ID, name: "dark academia" }],
       page: 1,
       pagesCount: 1,
       pageSize: 10,

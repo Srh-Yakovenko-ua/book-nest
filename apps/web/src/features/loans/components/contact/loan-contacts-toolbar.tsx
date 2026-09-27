@@ -14,10 +14,11 @@ import { LoanContactsAdvancedFilters } from "./loan-contacts-advanced-filters";
 
 type LoanContactsToolbarProps = {
   counts?: LoanContactCounts;
+  countsPending?: boolean;
   query: UseLoanContactsQueryResult;
 };
 
-export function LoanContactsToolbar({ counts, query }: LoanContactsToolbarProps) {
+export function LoanContactsToolbar({ counts, countsPending, query }: LoanContactsToolbarProps) {
   const t = useTranslations("loans.contactsPage.toolbar");
   const chips = useLoanContactsFilterChips({ setState: query.setState, state: query.state });
 
@@ -38,6 +39,7 @@ export function LoanContactsToolbar({ counts, query }: LoanContactsToolbarProps)
         <LoanContactsAdvancedFilters
           activeCount={query.activeFilterCount}
           counts={counts}
+          countsPending={countsPending}
           setState={query.setState}
           status={query.status}
         />

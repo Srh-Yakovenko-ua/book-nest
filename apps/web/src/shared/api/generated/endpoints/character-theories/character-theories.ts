@@ -232,6 +232,11 @@ export type characterTheoriesControllerListResponse200 = {
   status: 200;
 };
 
+export type characterTheoriesControllerListResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type characterTheoriesControllerListResponse401 = {
   data: void;
   status: 401;
@@ -247,7 +252,9 @@ export type characterTheoriesControllerListResponseSuccess =
     headers: Headers;
   };
 export type characterTheoriesControllerListResponseError = (
-  characterTheoriesControllerListResponse401 | characterTheoriesControllerListResponse404
+  | characterTheoriesControllerListResponse400
+  | characterTheoriesControllerListResponse401
+  | characterTheoriesControllerListResponse404
 ) & {
   headers: Headers;
 };

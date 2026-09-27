@@ -271,7 +271,7 @@ describe("POST /api/books", () => {
     );
   });
 
-  it("accepts a book using the caller's own custom genre", async () => {
+  it("rejects a book using a genre row owned by the caller instead of the system catalog", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await seedGenres([{ isDefault: false, key: "comfort-reads", name: "Comfort Reads", userId }]);
 
@@ -281,8 +281,10 @@ describe("POST /api/books", () => {
       title: "Dune",
     });
 
-    expect(res.status).toBe(201);
-    expect(res.body.genres).toEqual(["comfort-reads"]);
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
+    );
   });
 
   it("reuses the same author row when the name is given in a different case and spacing", async () => {

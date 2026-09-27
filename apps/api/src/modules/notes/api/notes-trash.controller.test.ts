@@ -130,11 +130,11 @@ describe("note trash", () => {
       text: "Hidden thought",
     });
 
-    const archive = await authed("get", "/api/notes", accessToken);
+    const archive = await authed("get", "/api/notes/books", accessToken);
     expect(archive.body.totalCount).toBe(0);
 
-    const summary = await authed("get", "/api/notes/summary", accessToken);
-    expect(summary.body.total).toBe(0);
+    const summary = await authed("get", "/api/notes/books/summary", accessToken);
+    expect(summary.body.bookNotesCount).toBe(0);
 
     const perBook = await authed("get", `/api/books/${bookId}/notes`, accessToken);
     expect(perBook.body.notes).toEqual([]);
@@ -152,7 +152,7 @@ describe("note trash", () => {
     expect(res.status).toBe(HttpStatus.NO_CONTENT);
     expect(removeCalls).toEqual([noteId]);
 
-    const archive = await authed("get", "/api/notes", accessToken);
+    const archive = await authed("get", "/api/notes/books", accessToken);
     expect(archive.body.totalCount).toBe(1);
   });
 

@@ -1,4 +1,4 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, TagViewSource } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
@@ -14,7 +14,7 @@ type AggregateBookInput = {
   ownershipStatus?: string;
   pagesCount?: Nullable<number>;
   rating?: Nullable<number>;
-  tags?: { id: string; name: string }[];
+  tags?: TagViewSource[];
 };
 
 function bookRow(overrides: AggregateBookInput = {}): SeriesAggregateBookRow {
@@ -59,7 +59,7 @@ describe("summarizeSeriesAggregates with a single book", () => {
         ownershipStatus: "owned",
         pagesCount: 320,
         rating: 9,
-        tags: [{ id: "tag-1", name: "epic" }],
+        tags: [{ color: "sage", id: "tag-1", name: "epic" }],
       }),
     ]);
 
@@ -72,7 +72,7 @@ describe("summarizeSeriesAggregates with a single book", () => {
       languages: ["polish"],
       ownership: { ownedCount: 1, total: 1 },
       pagesCount: 320,
-      tags: [{ id: "tag-1", name: "epic" }],
+      tags: [{ color: "sage", id: "tag-1", name: "epic" }],
     });
   });
 });
@@ -87,7 +87,7 @@ describe("summarizeSeriesAggregates with many books", () => {
         ownershipStatus: "borrowed_from_someone",
         pagesCount: 100,
         rating: 7,
-        tags: [{ id: "tag-zebra", name: "zebra" }],
+        tags: [{ color: "sage", id: "tag-zebra", name: "zebra" }],
       }),
       bookRow({
         ageCategory: "6_plus",
@@ -98,8 +98,8 @@ describe("summarizeSeriesAggregates with many books", () => {
         pagesCount: 200,
         rating: 8,
         tags: [
-          { id: "tag-alpha", name: "alpha" },
-          { id: "tag-zebra", name: "zebra" },
+          { color: "sage", id: "tag-alpha", name: "alpha" },
+          { color: "sage", id: "tag-zebra", name: "zebra" },
         ],
       }),
       bookRow({
@@ -121,8 +121,8 @@ describe("summarizeSeriesAggregates with many books", () => {
       ownership: { ownedCount: 1, total: 3 },
       pagesCount: 300,
       tags: [
-        { id: "tag-alpha", name: "alpha" },
-        { id: "tag-zebra", name: "zebra" },
+        { color: "sage", id: "tag-alpha", name: "alpha" },
+        { color: "sage", id: "tag-zebra", name: "zebra" },
       ],
     });
   });
@@ -386,28 +386,41 @@ describe("summarizeSeriesAggregates tags", () => {
 
   it("deduplicates a tag carried by several books into one id and name pair", () => {
     const aggregates = summarizeSeriesAggregates([
-      bookRow({ tags: [{ id: "tag-1", name: "epic" }] }),
-      bookRow({ tags: [{ id: "tag-1", name: "epic" }] }),
+      bookRow({ tags: [{ color: "sage", id: "tag-1", name: "epic" }] }),
+      bookRow({ tags: [{ color: "sage", id: "tag-1", name: "epic" }] }),
     ]);
 
-    expect(aggregates.tags).toEqual([{ id: "tag-1", name: "epic" }]);
+    expect(aggregates.tags).toEqual([{ color: "sage", id: "tag-1", name: "epic" }]);
+  });
+
+  it("reads a missing or legacy tag color as parchment", () => {
+    const aggregates = summarizeSeriesAggregates([
+      bookRow({
+        tags: [
+          { color: null, id: "tag-alpha", name: "alpha" },
+          { color: "crimson", id: "tag-zebra", name: "zebra" },
+        ],
+      }),
+    ]);
+
+    expect(aggregates.tags.map((tag) => tag.color)).toEqual(["parchment", "parchment"]);
   });
 
   it("sorts the tags of every book by name rather than by first appearance", () => {
     const aggregates = summarizeSeriesAggregates([
       bookRow({
         tags: [
-          { id: "tag-zebra", name: "zebra" },
-          { id: "tag-alpha", name: "alpha" },
+          { color: "sage", id: "tag-zebra", name: "zebra" },
+          { color: "sage", id: "tag-alpha", name: "alpha" },
         ],
       }),
-      bookRow({ tags: [{ id: "tag-middle", name: "middle" }] }),
+      bookRow({ tags: [{ color: "sage", id: "tag-middle", name: "middle" }] }),
     ]);
 
     expect(aggregates.tags).toEqual([
-      { id: "tag-alpha", name: "alpha" },
-      { id: "tag-middle", name: "middle" },
-      { id: "tag-zebra", name: "zebra" },
+      { color: "sage", id: "tag-alpha", name: "alpha" },
+      { color: "sage", id: "tag-middle", name: "middle" },
+      { color: "sage", id: "tag-zebra", name: "zebra" },
     ]);
   });
 });

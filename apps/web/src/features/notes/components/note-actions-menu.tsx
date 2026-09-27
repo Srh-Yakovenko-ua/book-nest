@@ -1,6 +1,6 @@
 "use client";
 
-import type { NoteView } from "@app/shared";
+import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
@@ -15,52 +15,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 type NoteActionsMenuProps = {
-  isPending: boolean;
-  note: NoteView;
   onDelete: () => void;
-  onEdit: () => void;
-  onToggleFavorite: () => void;
-  onTogglePin: () => void;
+  onEdit: Nullable<() => void>;
 };
 
-export function NoteActionsMenu({
-  isPending,
-  note,
-  onDelete,
-  onEdit,
-  onToggleFavorite,
-  onTogglePin,
-}: NoteActionsMenuProps) {
+export function NoteActionsMenu({ onDelete, onEdit }: NoteActionsMenuProps) {
   const t = useTranslations("notes");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          aria-label={t("card.menu")}
-          className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
-          size="icon-sm"
-          variant="ghost"
-        >
-          <UiIcon name="more" size={18} />
+        <Button aria-label={t("card.menu")} size="icon-sm" variant="ghost">
+          <UiIcon className="text-muted-foreground" name="more" size={16} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuItem onSelect={onEdit}>
-          <UiIcon name="edit" size={16} />
-          {t("actions.edit")}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={isPending} onSelect={onTogglePin}>
-          <UiIcon name="bookmark" size={16} />
-          {note.isPinned ? t("actions.unpin") : t("actions.pin")}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={isPending} onSelect={onToggleFavorite}>
-          <UiIcon name={note.isFavorite ? "heart-fill" : "heart"} size={16} />
-          {note.isFavorite ? t("actions.unfavorite") : t("actions.favorite")}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+      <DropdownMenuContent align="end">
+        {onEdit === null ? null : (
+          <>
+            <DropdownMenuItem onSelect={onEdit}>
+              <UiIcon name="edit" size={14} />
+              {t("actions.edit")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onSelect={onDelete} variant="destructive">
-          <UiIcon name="trash" size={16} />
+          <UiIcon name="trash" size={14} />
           {t("actions.delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>

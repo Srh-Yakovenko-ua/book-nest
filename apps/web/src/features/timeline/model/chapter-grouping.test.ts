@@ -53,6 +53,16 @@ describe("groupEventsByChapter", () => {
     expect(groups[0]?.events.map((event) => event.id)).toEqual(["a", "b", "c"]);
   });
 
+  it("keeps one group per chapter across a flattened api page boundary", () => {
+    const firstPage = [eventWithChapter("a", "Розділ 1"), eventWithChapter("b", "Розділ 2")];
+    const secondPage = [eventWithChapter("c", "Розділ 2"), eventWithChapter("d", "Розділ 3")];
+
+    const groups = groupEventsByChapter([...firstPage, ...secondPage]);
+
+    expect(groups.map((group) => group.chapter)).toEqual(["Розділ 1", "Розділ 2", "Розділ 3"]);
+    expect(groups[1]?.events.map((event) => event.id)).toEqual(["b", "c"]);
+  });
+
   it("does not normalize spelling or casing between chapters", () => {
     const groups = groupEventsByChapter([
       eventWithChapter("a", "Пролог"),
