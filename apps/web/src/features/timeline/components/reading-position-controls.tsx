@@ -8,6 +8,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 type ReadingPositionControlsProps = {
   guardEnabled: boolean;
@@ -27,7 +28,12 @@ export function ReadingPositionControls({
   const t = useTranslations("timeline");
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-4 gap-y-2",
+        !readingPosition.positionKnown && "sm:justify-end",
+      )}
+    >
       {readingPosition.positionKnown ? (
         <Button
           aria-pressed={recap}

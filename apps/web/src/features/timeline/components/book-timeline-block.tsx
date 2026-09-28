@@ -149,7 +149,11 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
 
   function changeView(next: TimelineViewMode) {
     void setView(next);
-    writeTimelineViewMode(next);
+    if (next !== "overview") writeTimelineViewMode(next);
+  }
+
+  function leaveOverview() {
+    changeView(readTimelineViewMode() ?? DEFAULT_TIMELINE_VIEW_MODE);
   }
 
   function selectTimeline(next: Nullable<string>) {
@@ -237,7 +241,6 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
         onDelete={() => setDeleteTarget(event)}
         onEdit={() => setEventDialog({ event, mode: "edit" })}
         onMove={() => setMoveTarget(event)}
-        onView={() => setOpenEventId(event.id)}
         reorderScope={reorderScope}
       />
     );
@@ -352,8 +355,35 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            {showFilterControls ? (
+          {viewMode === "overview" ? (
+            <div className="flex flex-col gap-2">
+              <Button
+                className="-ml-2.5 w-fit self-start text-muted-foreground"
+                onClick={leaveOverview}
+                size="sm"
+                variant="ghost"
+              >
+                <UiIcon name="arrow-left" size={16} />
+                {t("overview.back")}
+              </Button>
+              <div className="flex flex-col gap-0.5">
+                <h3 className="font-heading text-base leading-tight font-semibold text-ink">
+                  {t("overview.heading")}
+                </h3>
+                <p className="text-sm text-muted-foreground">{t("overview.subtitle")}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <TimelineViewSwitch onChange={changeView} value={viewMode} />
+              <Button onClick={() => changeView("overview")} size="sm" variant="secondary">
+                <UiIcon name="chart" size={16} />
+                {t("overview.action")}
+              </Button>
+            </div>
+          )}
+          {showFilterControls ? (
+            <>
               <TimelineSwitcher
                 activeTimelineId={activeTimelineId}
                 onManageLines={() => setManagement({ mode: "manage" })}
@@ -361,15 +391,6 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
                 timelines={timelines}
                 totalEvents={totalEvents}
               />
-            ) : null}
-            <TimelineViewSwitch
-              className="shrink-0 self-start"
-              onChange={changeView}
-              value={viewMode}
-            />
-          </div>
-          {showFilterControls ? (
-            <>
               <TimelineToolbar
                 filters={filters}
                 isAllLines={isAllLines}
@@ -399,23 +420,25 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
 
   return (
     <section className="flex flex-col gap-6 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-detail-block md:p-6">
-      <header className="flex flex-wrap items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
-          <UiIcon name="calendar" size={18} />
-        </span>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="font-heading text-base leading-tight font-semibold text-ink">
-            {t("title")}
-            {totalEvents > 0 ? (
-              <span className="font-normal text-muted-foreground tabular-nums">
-                {" · "}
-                {totalEvents}
-              </span>
-            ) : null}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
+            <UiIcon name="calendar" size={18} />
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="font-heading text-base leading-tight font-semibold text-ink">
+              {t("title")}
+              {totalEvents > 0 ? (
+                <span className="font-normal text-muted-foreground tabular-nums">
+                  {" · "}
+                  {totalEvents}
+                </span>
+              ) : null}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+          </div>
         </div>
-        <Button className="ml-auto hidden md:inline-flex" onClick={openCreateEvent} size="sm">
+        <Button className="hidden shrink-0 md:inline-flex" onClick={openCreateEvent} size="sm">
           <UiIcon name="plus" size={16} />
           {t("addEvent")}
         </Button>

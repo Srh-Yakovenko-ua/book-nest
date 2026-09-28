@@ -12,25 +12,28 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { SpoilerGate } from "@/components/spoiler-gate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 import type { EventGuardReason } from "../model/event-guard";
 
 import { useTimelineEvent } from "../api/use-timeline-event";
-import { markerStyle } from "../model/color-key";
 import { eventGuardReason, GUARD_REASON_LABEL_KEYS } from "../model/event-guard";
 import { eventTypeMeta } from "../model/event-type-meta";
-import { importanceMeta } from "../model/importance-meta";
+import { TimelineImportanceChip } from "./timeline-importance-chip";
+import { TimelineLineChip } from "./timeline-line-chip";
+
+const DETAIL_STYLES = {
+  sectionLabel: "text-[11px] font-semibold tracking-wide text-foreground uppercase",
+} as const;
 
 type EventDetailDialogProps = {
   currentPage: Nullable<number>;
@@ -174,7 +177,6 @@ function EventDetailBody({
   const tType = useTranslations("timeline.eventType");
   const tForm = useTranslations("timeline.form");
   const typeMeta = eventTypeMeta(event.eventType);
-  const importance = importanceMeta(event.importance);
 
   const contextItems = [
     { label: tForm("chapterLabel"), value: event.chapter },
@@ -199,18 +201,14 @@ function EventDetailBody({
 
   return (
     <>
-      <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-14 sm:px-6">
+      <DialogHeader className="shrink-0 gap-2 border-b border-border px-5 pt-5 pr-14 pb-3 sm:px-6 sm:pr-14">
         <BackButton canGoBack={canGoBack} onBack={onBack} />
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-md bg-accent px-1.5 py-0.5 text-xs text-icon">
             <UiIcon name={typeMeta.icon} size={13} />
             {tType(event.eventType)}
           </span>
-          <span
-            className={cn("rounded-full px-2 py-0.5 text-xs font-medium", importance.badgeClass)}
-          >
-            {t(importance.labelKey)}
-          </span>
+          <TimelineImportanceChip importance={event.importance} />
           <ThreadBadge status={event.threadStatus} />
           {event.isSpoiler ? (
             <Badge variant="warning">
@@ -218,30 +216,25 @@ function EventDetailBody({
               {t("spoiler.label")}
             </Badge>
           ) : null}
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span
-              aria-hidden
-              className="size-2 shrink-0 rounded-full"
-              style={markerStyle(event.timelineColorKey)}
-            />
-            {event.timelineName}
-          </span>
+          <TimelineLineChip
+            colorKey={event.timelineColorKey}
+            name={event.timelineName}
+            size="compact"
+          />
         </div>
         <DialogTitle>{event.title}</DialogTitle>
         {event.summary === null ? null : <DialogDescription>{event.summary}</DialogDescription>}
       </DialogHeader>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4 sm:px-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 pt-4 pb-3.5 sm:px-6">
         {contextItems.length === 0 ? null : (
-          <section className="rounded-lg border border-border bg-secondary/30 p-3">
-            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {t("detail.context")}
-            </h3>
-            <dl className="mt-2 grid grid-cols-2 gap-3">
+          <section className="rounded-lg border border-border bg-secondary/30 px-2.5 py-3">
+            <h3 className={DETAIL_STYLES.sectionLabel}>{t("detail.context")}</h3>
+            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
               {contextItems.map((item) => (
                 <div className="flex flex-col gap-0.5" key={item.label}>
-                  <dt className="text-xs text-muted-foreground">{item.label}</dt>
-                  <dd className="text-sm text-foreground">{item.value}</dd>
+                  <dt className="text-xs font-medium text-foreground/85">{item.label}</dt>
+                  <dd className="text-sm font-normal text-foreground">{item.value}</dd>
                 </div>
               ))}
             </dl>
@@ -299,12 +292,7 @@ function EventDetailBody({
         )}
       </div>
 
-      <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-border px-5 py-4 sm:flex-row sm:justify-between sm:px-6">
-        <DialogClose asChild>
-          <Button type="button" variant="secondary">
-            {t("detail.close")}
-          </Button>
-        </DialogClose>
+      <div className="flex shrink-0 flex-col-reverse gap-2.5 border-t border-border px-5 py-3 sm:flex-row sm:justify-end sm:px-6">
         <div className="flex flex-col-reverse gap-2.5 sm:flex-row">
           <Button onClick={() => onDelete(event)} type="button" variant="destructive">
             <UiIcon name="trash" size={16} />
@@ -333,7 +321,7 @@ function EventLinkRow({
 
   return (
     <button
-      className="flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors outline-none hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex w-full cursor-pointer flex-col gap-0.5 rounded-lg border border-border bg-card px-3 py-1.5 text-left transition-colors outline-none hover:border-accent-border hover:bg-secondary/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       onClick={() => onNavigate(event.id)}
       type="button"
     >
@@ -360,10 +348,8 @@ function EventLinkRow({
 
 function Field({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="flex flex-col gap-1.5">
-      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        {title}
-      </h3>
+    <section className="flex flex-col gap-2">
+      <h3 className={DETAIL_STYLES.sectionLabel}>{title}</h3>
       {children}
     </section>
   );
@@ -381,28 +367,25 @@ function GuardedEventBody({
   reason: EventGuardReason;
 }) {
   const t = useTranslations("timeline");
+  const reasonLabel = t(GUARD_REASON_LABEL_KEYS[reason]);
 
   return (
     <>
-      <DialogHeader className="shrink-0 px-5 py-4 pr-14 sm:px-6">
+      <DialogHeader className="shrink-0 px-5 py-4 pr-14 sm:px-6 sm:pr-14">
         <BackButton canGoBack={canGoBack} onBack={onBack} />
-        <DialogTitle className="text-base">{t(GUARD_REASON_LABEL_KEYS[reason])}</DialogTitle>
+        <DialogTitle className="sr-only">{reasonLabel}</DialogTitle>
       </DialogHeader>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-5 py-8 text-center sm:px-6">
-        <UiIcon className="text-muted-foreground" name="eye-off" size={28} />
-        <Button onClick={onReveal} type="button" variant="secondary">
-          <UiIcon name="eye" size={16} />
-          {t("guarded.reveal")}
-        </Button>
-      </div>
-
-      <div className="flex shrink-0 justify-end border-t border-border px-5 py-4 sm:px-6">
-        <DialogClose asChild>
-          <Button type="button" variant="secondary">
-            {t("detail.close")}
-          </Button>
-        </DialogClose>
+      <div className="flex-1 px-5 pb-8 sm:px-6">
+        <SpoilerGate
+          action={
+            <Button className="h-11 sm:h-8" onClick={onReveal} size="sm" type="button">
+              {t("guarded.reveal")}
+            </Button>
+          }
+          description={t("guarded.gateDescription")}
+          title={reasonLabel}
+        />
       </div>
     </>
   );

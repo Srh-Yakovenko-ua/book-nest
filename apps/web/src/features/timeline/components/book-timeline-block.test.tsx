@@ -168,18 +168,39 @@ describe("BookTimelineBlock", () => {
     renderBlock();
 
     await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
-    await userEvent.click(screen.getByRole("radio", { name: "Список" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Таблиця" }));
 
-    expect(screen.getByRole("radio", { name: "Список" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Таблиця" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Стрічка" })).not.toBeChecked();
   });
 
-  it("hides the line navigation in the overview and keeps the view switch", async () => {
+  it("hides the line navigation and the view switch in the overview", async () => {
     renderBlock("?view=overview");
 
-    expect(await screen.findByRole("radio", { name: "Огляд" })).toBeChecked();
+    expect(await screen.findByRole("heading", { name: "Огляд хронології" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "До подій" })).toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: /Усі лінії/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Таблиця" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Керувати лініями" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Огляд хронології" })).not.toBeInTheDocument();
+  });
+
+  it("opens the overview from its own action and returns to the last events view", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+
+    renderBlock("", onUrlUpdate);
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    await userEvent.click(screen.getByRole("radio", { name: "Таблиця" }));
+    await userEvent.click(screen.getByRole("button", { name: "Огляд хронології" }));
+
+    expect(await screen.findByRole("heading", { name: "Огляд хронології" })).toBeInTheDocument();
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("view")).toBe("overview"));
+
+    await userEvent.click(screen.getByRole("button", { name: "До подій" }));
+
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("view")).toBe("list"));
+    expect(screen.getByRole("radio", { name: "Таблиця" })).toBeChecked();
   });
 
   it("shows a skeleton while the timeline is loading", () => {
@@ -514,11 +535,11 @@ describe("BookTimelineBlock timeline management", () => {
     expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
   });
 
-  it("closes the whole management flow from Готово", async () => {
+  it("closes the whole management flow from the dialog dismiss control", async () => {
     renderBlock();
 
-    await openManage();
-    await userEvent.click(screen.getByRole("button", { name: "Готово" }));
+    const manageDialog = await openManage();
+    await userEvent.click(within(manageDialog).getByRole("button", { name: "Close" }));
 
     await waitFor(() => expect(screen.queryAllByRole("dialog")).toHaveLength(0));
   });

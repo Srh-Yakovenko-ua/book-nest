@@ -7083,7 +7083,10 @@
   "timeline": {
     "title": "Event timeline",
     "subtitle": "Key story beats in the order the plot unfolds — so you can quickly recall what already happened when you return to the book.",
-    "allLines": "All timelines {count}",
+    "lines": "Lines",
+    "allLines": "All timelines",
+    "moreLines": "+{count} more",
+    "otherLines": "Other lines",
     "mainLine": "Main timeline",
     "newLine": "New timeline",
     "manageLines": "Manage timelines",
@@ -7092,9 +7095,8 @@
     "editEvent": "Edit event",
     "viewLabel": "View",
     "view": {
-      "stream": "Timeline view",
-      "list": "List view",
-      "overview": "Overview"
+      "stream": "Timeline",
+      "list": "Table"
     },
     "sort": {
       "label": "Sort",
@@ -7108,8 +7110,9 @@
     "guard": "Spoiler guard",
     "guarded": {
       "reasonFuture": "This event is beyond your current reading position",
-      "reasonManual": "This event is marked as a spoiler",
+      "reasonManual": "This event contains a spoiler",
       "reasonBoth": "This event is hidden",
+      "gateDescription": "The event details are hidden.",
       "reveal": "Show event"
     },
     "positionMarker": "You are here · p. {page}",
@@ -7150,6 +7153,10 @@
       "open": "Open thread",
       "resolved": "Resolved",
       "resolvedBy": "Resolved by"
+    },
+    "card": {
+      "type": "Type: {value}",
+      "importance": "Importance: {value}"
     },
     "form": {
       "titleLabel": "Event title",
@@ -7226,7 +7233,7 @@
     "filters": {
       "title": "Filters",
       "searchLabel": "Search events",
-      "searchPlaceholder": "Search by title",
+      "searchPlaceholder": "Search events…",
       "typeLabel": "Event type",
       "importanceLabel": "Importance",
       "unresolved": "Only open threads",
@@ -7244,12 +7251,9 @@
       "openThreads": "Open threads"
     },
     "list": {
-      "number": "#",
       "event": "Event",
-      "context": "Context",
       "type": "Type",
       "importance": "Importance",
-      "timeline": "Timeline",
       "page": "p. {page}",
       "actions": "Actions"
     },
@@ -7257,7 +7261,6 @@
       "description": "Detailed description",
       "related": "Related events",
       "resolves": "This event resolves",
-      "close": "Close",
       "edit": "Edit",
       "delete": "Delete",
       "context": "Context",
@@ -7297,6 +7300,7 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Optional explanation",
       "markerLabel": "Timeline color",
+      "previewLabel": "Preview",
       "cancel": "Cancel",
       "deleteTitle": "Delete this timeline?",
       "eventCountLine": "This timeline has {count} events.",
@@ -7307,6 +7311,7 @@
       "targetLineLabel": "Where to move events",
       "confirmDelete": "Delete",
       "description": "Create, rename, reorder, and delete the book's timelines.",
+      "autoSaveHint": "Changes are applied automatically.",
       "createDescription": "Create a separate line for a parallel plot, flashbacks, or another perspective.",
       "editDescription": "Update the name, description, or color marker of the line.",
       "optional": "optional",
@@ -7319,7 +7324,6 @@
       "deleteDefaultHint": "Make another timeline the default first.",
       "deleteEmptyDescription": "This timeline will be deleted. This action cannot be undone.",
       "deleteConfirmCheckbox": "I understand the events will be deleted permanently",
-      "done": "Done",
       "lineCount": "{count, plural, one {# timeline} other {# timelines}}",
       "emptyTitle": "No timelines created yet",
       "loading": "Loading timelines",
@@ -7337,6 +7341,10 @@
       "rose": "Dusty rose"
     },
     "overview": {
+      "action": "Timeline overview",
+      "back": "Back to events",
+      "heading": "Timeline overview",
+      "subtitle": "A book-wide summary of your timeline events.",
       "byType": "By event type",
       "byImportance": "By importance",
       "chapterDensity": "Event density by chapter",
@@ -7382,7 +7390,6 @@
     },
     "actions": {
       "menu": "Event actions",
-      "view": "View",
       "edit": "Edit",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -7395,7 +7402,8 @@
     "moveDialog": {
       "title": "Move event",
       "description": "Choose the timeline to move this event to.",
-      "targetLabel": "Timeline",
+      "currentLabel": "Current line",
+      "targetLabel": "Move to",
       "targetPlaceholder": "Choose a line",
       "confirm": "Move",
       "cancel": "Cancel",
@@ -7409,7 +7417,6 @@
       "cancel": "Cancel",
       "deleting": "Deleting…"
     },
-    "linesLabel": "Timelines",
     "activeFilters": {
       "label": "Active filters",
       "remove": "Remove “{label}”",
