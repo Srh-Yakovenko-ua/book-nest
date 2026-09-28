@@ -131,6 +131,16 @@ export function eventFormDefaults({
   };
 }
 
+export function eventFormNextInBatch(values: EventFormValues): EventFormValues {
+  return {
+    ...eventFormDefaults({ timelineId: values.timelineId }),
+    chapter: values.chapter,
+    location: values.location,
+    page: values.page,
+    storyTime: values.storyTime,
+  };
+}
+
 export function eventFormValuesToInput(values: EventFormValues): CreateTimelineEventInput {
   return {
     chapter: emptyToNull(values.chapter),

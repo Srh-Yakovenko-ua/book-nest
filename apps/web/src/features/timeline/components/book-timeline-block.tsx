@@ -33,6 +33,7 @@ import {
   createFilterState,
   hasActiveEventFilters,
   normalizeSortForMode,
+  sortForModeChange,
 } from "../model/timeline-events-query";
 import {
   DEFAULT_TIMELINE_VIEW_MODE,
@@ -56,9 +57,9 @@ import { TimelineError } from "./timeline-error";
 import { TimelineFilteredEmpty } from "./timeline-filtered-empty";
 import { TimelineFormDialog } from "./timeline-form-dialog";
 import { TimelineLineEmpty } from "./timeline-line-empty";
+import { TimelineLineSelect } from "./timeline-line-select";
 import { TimelineOverviewView } from "./timeline-overview-view";
 import { TimelineSkeleton } from "./timeline-skeleton";
-import { TimelineSwitcher } from "./timeline-switcher";
 import { TimelineToolbar } from "./timeline-toolbar";
 import { TimelineViewSwitch } from "./timeline-view-switch";
 
@@ -89,20 +90,12 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     timelineId !== null && timelines.some((line) => line.id === timelineId) ? timelineId : null;
   const isAllLines = activeTimelineId === null;
 
-  useEffect(() => {
-    if (
-      timelineId !== null &&
-      timelines.length > 0 &&
-      !timelines.some((line) => line.id === timelineId)
-    ) {
-      void setTimelineId(null);
-    }
-  }, [setTimelineId, timelineId, timelines]);
-
   const storedView = useSyncExternalStore(subscribeViewMode, readTimelineViewMode, () => null);
   const viewMode = view ?? storedView ?? DEFAULT_TIMELINE_VIEW_MODE;
 
-  const [filters, setFilters] = useState<TimelineEventsFilterState>(() => createFilterState(null));
+  const [filters, setFilters] = useState<TimelineEventsFilterState>(() =>
+    createFilterState(timelineId),
+  );
   const [openEventId, setOpenEventId] = useState<Nullable<string>>(null);
   const [guardOverride, setGuardOverride] = useState<Nullable<boolean>>(null);
   const [revealedEventIds, setRevealedEventIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -111,7 +104,17 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const [deleteTarget, setDeleteTarget] = useState<Nullable<TimelineEventView>>(null);
   const [management, setManagement] = useState<TimelineManagementState>({ mode: "closed" });
 
-  const eventFilters: TimelineEventsFilterState = { ...filters, timelineId: activeTimelineId };
+  useEffect(() => {
+    if (timelineId === null || timelines.length === 0) return;
+    if (timelines.some((line) => line.id === timelineId)) return;
+    void setTimelineId(null);
+  }, [setTimelineId, timelineId, timelines]);
+
+  const eventFilters: TimelineEventsFilterState = {
+    ...filters,
+    sort: normalizeSortForMode(filters.sort, isAllLines),
+    timelineId: activeTimelineId,
+  };
   const eventsQuery = useTimelineEvents(book.id, eventFilters, {
     enabled: viewMode !== "overview",
   });
@@ -128,7 +131,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
       : (summaryQuery.data?.timelines.find((line) => line.timelineId === activeTimelineId)
           ?.eventsCount ?? 0);
   const events = eventsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const hasActiveFilters = hasActiveEventFilters(filters);
+  const hasActiveFilters = hasActiveEventFilters(eventFilters);
   const hasEventsError = eventsQuery.isError && !eventsQuery.isFetchNextPageError;
   const loadMoreState: InfiniteScrollState = eventsQuery.isFetchNextPageError
     ? "error"
@@ -141,27 +144,37 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const defaultLineId = timelines.find((line) => line.isDefault)?.id ?? timelines[0]?.id ?? null;
   const createTimelineId = activeTimelineId ?? defaultLineId;
   const canReorder =
-    (filters.sort === "book_order" || filters.sort === "timeline_order") && !hasActiveFilters;
+    (eventFilters.sort === "book_order" || eventFilters.sort === "timeline_order") &&
+    !hasActiveFilters;
   const reorderScope: TimelineReorderScope =
-    filters.sort === "timeline_order" ? "timeline" : "book";
+    eventFilters.sort === "timeline_order" ? "timeline" : "book";
   const eventIndexById = new Map(events.map((event, index) => [event.id, index] as const));
   const skeletonShape = viewMode === "list" ? "list" : "stream";
 
   function changeView(next: TimelineViewMode) {
     void setView(next);
-    writeTimelineViewMode(next);
+    if (next !== "overview") writeTimelineViewMode(next);
+  }
+
+  function leaveOverview() {
+    changeView(readTimelineViewMode() ?? DEFAULT_TIMELINE_VIEW_MODE);
   }
 
   function selectTimeline(next: Nullable<string>) {
     void setTimelineId(next);
-    setFilters((prev) => ({ ...prev, sort: normalizeSortForMode(prev.sort, next === null) }));
+    setFilters((prev) => ({
+      ...prev,
+      sort: sortForModeChange({
+        nextTimelineId: next,
+        previousTimelineId: activeTimelineId,
+        sort: eventFilters.sort,
+      }),
+      timelineId: next,
+    }));
   }
 
   function resetFilters() {
-    setFilters((prev) => ({
-      ...createFilterState(prev.timelineId),
-      sort: normalizeSortForMode(prev.sort, activeTimelineId === null),
-    }));
+    setFilters({ ...createFilterState(activeTimelineId), sort: eventFilters.sort });
   }
 
   function drillDownToType(eventType: TimelineEventType) {
@@ -237,7 +250,6 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
         onDelete={() => setDeleteTarget(event)}
         onEdit={() => setEventDialog({ event, mode: "edit" })}
         onMove={() => setMoveTarget(event)}
-        onView={() => setOpenEventId(event.id)}
         reorderScope={reorderScope}
       />
     );
@@ -318,7 +330,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
             onRevealEvent={revealEvent}
             renderActions={renderActions}
             revealedEventIds={revealedEventIds}
-            sort={filters.sort}
+            sort={eventFilters.sort}
           />
         )}
         <InfiniteScrollFooter
@@ -352,31 +364,56 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            {showFilterControls ? (
-              <TimelineSwitcher
-                activeTimelineId={activeTimelineId}
-                onManageLines={() => setManagement({ mode: "manage" })}
-                onSelect={selectTimeline}
-                timelines={timelines}
-                totalEvents={totalEvents}
-              />
-            ) : null}
-            <TimelineViewSwitch
-              className="shrink-0 self-start"
-              onChange={changeView}
-              value={viewMode}
-            />
-          </div>
+          {viewMode === "overview" ? (
+            <div className="flex flex-col gap-2">
+              <Button
+                className="-ml-2.5 w-fit self-start text-muted-foreground"
+                onClick={leaveOverview}
+                size="sm"
+                variant="ghost"
+              >
+                <UiIcon name="arrow-left" size={16} />
+                {t("overview.back")}
+              </Button>
+              <div className="flex flex-col gap-0.5">
+                <h3 className="font-heading text-base leading-tight font-semibold text-ink">
+                  {t("overview.heading")}
+                </h3>
+                <p className="text-sm text-muted-foreground">{t("overview.subtitle")}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <TimelineViewSwitch onChange={changeView} value={viewMode} />
+              <div className="flex items-center gap-2">
+                <Button onClick={() => changeView("overview")} size="sm" variant="secondary">
+                  <UiIcon name="chart" size={16} />
+                  {t("overview.action")}
+                </Button>
+                <Button onClick={() => setManagement({ mode: "manage" })} size="sm" variant="tonal">
+                  <UiIcon name="layers" size={16} />
+                  {t("manageLines")}
+                </Button>
+              </div>
+            </div>
+          )}
           {showFilterControls ? (
             <>
               <TimelineToolbar
-                filters={filters}
+                filters={eventFilters}
                 isAllLines={isAllLines}
+                linePicker={
+                  <TimelineLineSelect
+                    activeTimelineId={activeTimelineId}
+                    onSelect={selectTimeline}
+                    timelines={timelines}
+                    totalEvents={totalEvents}
+                  />
+                }
                 onFiltersChange={setFilters}
               />
               <TimelineActiveFilters
-                filters={filters}
+                filters={eventFilters}
                 onChange={setFilters}
                 onClearAll={resetFilters}
               />
@@ -386,7 +423,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
                   onGuardChange={setGuardOverride}
                   onRecapChange={(recap) => setFilters((prev) => ({ ...prev, recap }))}
                   readingPosition={readingPosition}
-                  recap={filters.recap}
+                  recap={eventFilters.recap}
                 />
               )}
             </>
@@ -399,23 +436,25 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
 
   return (
     <section className="flex flex-col gap-6 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-detail-block md:p-6">
-      <header className="flex flex-wrap items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
-          <UiIcon name="calendar" size={18} />
-        </span>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="font-heading text-base leading-tight font-semibold text-ink">
-            {t("title")}
-            {totalEvents > 0 ? (
-              <span className="font-normal text-muted-foreground tabular-nums">
-                {" · "}
-                {totalEvents}
-              </span>
-            ) : null}
-          </h2>
-          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
+            <UiIcon name="calendar" size={18} />
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="font-heading text-base leading-tight font-semibold text-ink">
+              {t("title")}
+              {totalEvents > 0 ? (
+                <span className="font-normal text-muted-foreground tabular-nums">
+                  {" · "}
+                  {totalEvents}
+                </span>
+              ) : null}
+            </h2>
+            <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+          </div>
         </div>
-        <Button className="ml-auto hidden md:inline-flex" onClick={openCreateEvent} size="sm">
+        <Button className="hidden shrink-0 md:inline-flex" onClick={openCreateEvent} size="sm">
           <UiIcon name="plus" size={16} />
           {t("addEvent")}
         </Button>

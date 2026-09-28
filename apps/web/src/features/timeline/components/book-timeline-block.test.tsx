@@ -20,6 +20,8 @@ import {
 } from "../model/timeline.fixtures";
 import { BookTimelineBlock } from "./book-timeline-block";
 
+const LINE_PICKER_LABEL = "Лінії";
+
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let timelinesResponder: () => Response;
@@ -48,13 +50,22 @@ function lastEventsParams(): URLSearchParams {
   return new URL(String(last[0]), "http://localhost").searchParams;
 }
 
+function linePicker(): HTMLElement {
+  return screen.getByRole("combobox", { name: LINE_PICKER_LABEL });
+}
+
+async function openLinePicker() {
+  await userEvent.click(linePicker());
+  await screen.findByRole("option", { name: /Усі лінії/ });
+}
+
 function renderBlock(
   search = "",
   onUrlUpdate?: OnUrlUpdateFunction,
   book: BookView = makeBookView({ id: "book-1", pagesCount: 320 }),
 ) {
   return renderWithProviders(
-    <NuqsTestingAdapter onUrlUpdate={onUrlUpdate} searchParams={search}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={search}>
       <BookTimelineBlock book={book} />
     </NuqsTestingAdapter>,
   );
@@ -110,15 +121,15 @@ describe("BookTimelineBlock", () => {
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("5");
   });
 
-  it("keeps the all-lines chip next to a single line", async () => {
+  it("shows all lines as the current selection next to a single line", async () => {
     renderBlock();
 
     await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
-    expect(screen.getByRole("radio", { name: /Усі лінії/ })).toBeInTheDocument();
+    expect(linePicker()).toHaveTextContent("Усі лінії");
     expect(screen.getAllByText("Основна лінія").length).toBeGreaterThan(0);
   });
 
-  it("shows the all-lines switcher across multiple lines", async () => {
+  it("lists every line with its event count in the line picker", async () => {
     timelinesResponder = () =>
       jsonResponse(
         makeTimelineListView({
@@ -132,10 +143,14 @@ describe("BookTimelineBlock", () => {
 
     renderBlock();
 
-    const allLines = await screen.findByRole("radio", { name: /Усі лінії/ });
-    expect(allLines).toBeChecked();
-    expect(screen.getByRole("radio", { name: /Лінія А/ })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Лінія Б/ })).toBeInTheDocument();
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    expect(linePicker()).toHaveTextContent("Усі лінії8");
+
+    await openLinePicker();
+
+    expect(screen.getByRole("option", { name: "Усі лінії 8" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Лінія А 5" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Лінія Б 3" })).toBeInTheDocument();
   });
 
   it("requests events without a timeline id while in all-lines mode", async () => {
@@ -145,7 +160,7 @@ describe("BookTimelineBlock", () => {
     expect(lastEventsParams().has("timelineId")).toBe(false);
   });
 
-  it("filters events to a line when its chip is selected", async () => {
+  it("filters events to a line when it is picked from the line select", async () => {
     timelinesResponder = () =>
       jsonResponse(
         makeTimelineListView({
@@ -159,27 +174,104 @@ describe("BookTimelineBlock", () => {
 
     renderBlock("", onUrlUpdate);
 
-    await userEvent.click(await screen.findByRole("radio", { name: /Лінія Б/ }));
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    await openLinePicker();
+    await userEvent.click(screen.getByRole("option", { name: "Лінія Б 3" }));
 
     await waitFor(() => expect(events.at(-1)?.searchParams.get("timelineId")).toBe("line-2"));
+    expect(linePicker()).toHaveTextContent("Лінія Б3");
+  });
+
+  it("switches to the internal line order when a line is picked from all lines", async () => {
+    timelinesResponder = () =>
+      jsonResponse(
+        makeTimelineListView({
+          timelines: [
+            makeTimelineView({ id: "line-1", name: "Лінія А" }),
+            makeTimelineView({ id: "line-2", isDefault: false, name: "Лінія Б" }),
+          ],
+        }),
+      );
+
+    renderBlock();
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    expect(lastEventsParams().get("sort")).toBe("book_order");
+
+    await openLinePicker();
+    await userEvent.click(screen.getByRole("option", { name: "Лінія Б 3" }));
+
+    await waitFor(() => expect(lastEventsParams().get("sort")).toBe("timeline_order"));
+  });
+
+  it("opens a deep link to a line in that line's own order", async () => {
+    timelinesResponder = () =>
+      jsonResponse(
+        makeTimelineListView({
+          timelines: [
+            makeTimelineView({ id: "line-1", name: "Лінія А" }),
+            makeTimelineView({ id: "line-2", isDefault: false, name: "Лінія Б" }),
+          ],
+        }),
+      );
+
+    renderBlock("?timelineId=line-2");
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+
+    await waitFor(() => expect(lastEventsParams().get("timelineId")).toBe("line-2"));
+    expect(lastEventsParams().get("sort")).toBe("timeline_order");
+  });
+
+  it("recovers to the all-lines order when the linked line no longer exists", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+
+    renderBlock("?timelineId=gone", onUrlUpdate);
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("timelineId")).toBeNull());
+    expect(lastEventsParams().get("sort")).toBe("book_order");
+    expect(lastEventsParams().has("timelineId")).toBe(false);
   });
 
   it("switches from the stream to the list view", async () => {
     renderBlock();
 
     await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
-    await userEvent.click(screen.getByRole("radio", { name: "Список" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Таблиця" }));
 
-    expect(screen.getByRole("radio", { name: "Список" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Таблиця" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Стрічка" })).not.toBeChecked();
   });
 
-  it("hides the line navigation in the overview and keeps the view switch", async () => {
+  it("hides the line navigation and the view switch in the overview", async () => {
     renderBlock("?view=overview");
 
-    expect(await screen.findByRole("radio", { name: "Огляд" })).toBeChecked();
-    expect(screen.queryByRole("radio", { name: /Усі лінії/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Огляд хронології" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "До подій" })).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: LINE_PICKER_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Таблиця" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Керувати лініями" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Огляд хронології" })).not.toBeInTheDocument();
+  });
+
+  it("opens the overview from its own action and returns to the last events view", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+
+    renderBlock("", onUrlUpdate);
+
+    await screen.findByRole("button", { name: "Геральт прибуває до Визими" });
+    await userEvent.click(screen.getByRole("radio", { name: "Таблиця" }));
+    await userEvent.click(screen.getByRole("button", { name: "Огляд хронології" }));
+
+    expect(await screen.findByRole("heading", { name: "Огляд хронології" })).toBeInTheDocument();
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("view")).toBe("overview"));
+
+    await userEvent.click(screen.getByRole("button", { name: "До подій" }));
+
+    await waitFor(() => expect(events.at(-1)?.searchParams.get("view")).toBe("list"));
+    expect(screen.getByRole("radio", { name: "Таблиця" })).toBeChecked();
   });
 
   it("shows a skeleton while the timeline is loading", () => {
@@ -514,11 +606,11 @@ describe("BookTimelineBlock timeline management", () => {
     expect(await screen.findByRole("dialog", { name: "Керування лініями" })).toBeInTheDocument();
   });
 
-  it("closes the whole management flow from Готово", async () => {
+  it("closes the whole management flow from the dialog dismiss control", async () => {
     renderBlock();
 
-    await openManage();
-    await userEvent.click(screen.getByRole("button", { name: "Готово" }));
+    const manageDialog = await openManage();
+    await userEvent.click(within(manageDialog).getByRole("button", { name: "Close" }));
 
     await waitFor(() => expect(screen.queryAllByRole("dialog")).toHaveLength(0));
   });

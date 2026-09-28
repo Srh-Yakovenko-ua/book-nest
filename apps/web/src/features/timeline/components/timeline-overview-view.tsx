@@ -7,14 +7,13 @@ import type {
   TimelineOverviewView as TimelineOverview,
   TimelineView,
 } from "@app/shared";
-import type { ReactNode } from "react";
 
 import { TIMELINE_EVENT_TYPES } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
-import { Card, CardContent } from "@/components/ui/card";
 import { PALETTE_COLOR_STYLES } from "@/components/ui/palette-color";
+import { StatCard } from "@/components/ui/stat-card";
 import { formatNumber } from "@/lib/format";
 
 import { markerStyle } from "../model/color-key";
@@ -70,6 +69,7 @@ export function TimelineOverviewView({
   timelines,
 }: TimelineOverviewViewProps) {
   const t = useTranslations("timeline.overview");
+  const locale = useLocale();
 
   const namedChapters = toNamedChapters(overview.chapterDensity);
   const noChapterCount = overview.chapterDensity.find((item) => item.chapter === null)?.count ?? 0;
@@ -102,25 +102,58 @@ export function TimelineOverviewView({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <SummaryCard
-          fact={namedChapters.length > 0 ? t("inChapters", { count: namedChapters.length }) : null}
-          label={t("totalEvents")}
-          value={overview.totalEvents}
-        />
-        <SummaryCard
-          fact={
-            overview.resolvedCount > 0 ? t("resolvedFact", { count: overview.resolvedCount }) : null
-          }
-          label={t("unresolved")}
-          value={overview.unresolvedCount}
-        />
-        <SummaryCard fact={null} label={t("keyEvents")} value={keyCount} />
-        <SummaryCard
-          fact={defaultLine === undefined ? null : <DefaultLineFact line={defaultLine} />}
-          label={t("timelines")}
-          value={timelines.length}
-        />
+      <div className="@container/timeline-summary">
+        <div className="grid grid-cols-1 gap-3 @sm/timeline-summary:grid-cols-2 @3xl/timeline-summary:grid-cols-4">
+          <StatCard
+            className="h-full"
+            icon="calendar"
+            iconBadgeSize="sm"
+            iconTone="primary"
+            label={t("totalEvents")}
+            microfact={
+              namedChapters.length > 0
+                ? t("inChapters", { count: namedChapters.length })
+                : undefined
+            }
+            size="compact"
+            value={formatNumber(overview.totalEvents, locale)}
+          />
+          <StatCard
+            className="h-full"
+            icon="help-circle"
+            iconBadgeSize="sm"
+            iconTone="info"
+            label={t("unresolved")}
+            microfact={
+              overview.resolvedCount > 0
+                ? t("resolvedFact", { count: overview.resolvedCount })
+                : undefined
+            }
+            size="compact"
+            value={formatNumber(overview.unresolvedCount, locale)}
+          />
+          <StatCard
+            className="h-full"
+            icon="star"
+            iconBadgeSize="sm"
+            iconTone="favorite"
+            label={t("keyEvents")}
+            size="compact"
+            value={formatNumber(keyCount, locale)}
+          />
+          <StatCard
+            className="h-full"
+            icon="layers"
+            iconBadgeSize="sm"
+            iconTone="success"
+            label={t("timelines")}
+            microfact={
+              defaultLine === undefined ? undefined : <DefaultLineFact line={defaultLine} />
+            }
+            size="compact"
+            value={formatNumber(timelines.length, locale)}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -240,24 +273,6 @@ function maxCount(counts: number[]): number {
 
 function normalizeChapter(chapter: string): string {
   return chapter.trim().toLowerCase();
-}
-
-function SummaryCard({ fact, label, value }: { fact: ReactNode; label: string; value: number }) {
-  const locale = useLocale();
-
-  return (
-    <Card className="h-full gap-1" size="sm">
-      <CardContent className="flex flex-col gap-0.5">
-        <span className="text-xl font-semibold text-ink tabular-nums">
-          {formatNumber(value, locale)}
-        </span>
-        <span className="text-xs text-muted-foreground">{label}</span>
-        {fact === null ? null : (
-          <span className="mt-1 flex min-w-0 text-xs text-muted-foreground">{fact}</span>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 function TimelinesCard({
