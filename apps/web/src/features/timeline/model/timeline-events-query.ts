@@ -70,6 +70,19 @@ export function normalizeSortForMode(
   return isAllLines ? "book_order" : "timeline_order";
 }
 
+export function sortForModeChange({
+  nextTimelineId,
+  previousTimelineId,
+  sort,
+}: {
+  nextTimelineId: Nullable<string>;
+  previousTimelineId: Nullable<string>;
+  sort: TimelineEventSort;
+}): TimelineEventSort {
+  if (sort === defaultEventSort(previousTimelineId)) return defaultEventSort(nextTimelineId);
+  return normalizeSortForMode(sort, nextTimelineId === null);
+}
+
 export function sortOptionsForMode(isAllLines: boolean): readonly TimelineEventSort[] {
   return isAllLines ? ALL_LINES_SORT_OPTIONS : LINE_SORT_OPTIONS;
 }

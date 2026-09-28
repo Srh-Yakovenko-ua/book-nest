@@ -13,6 +13,7 @@ import { PublishersModule } from "../publishers/index.js";
 import { ReadingGoalsModule } from "../reading-goals/index.js";
 import { SeriesModule } from "../series/index.js";
 import { TagsModule } from "../tags/index.js";
+import { BookChaptersController } from "./api/book-chapters.controller.js";
 import { BookDeliveryController } from "./api/book-delivery.controller.js";
 import { BookListsController } from "./api/book-lists.controller.js";
 import { BookLoanBatchController } from "./api/book-loan-batch.controller.js";
@@ -25,6 +26,7 @@ import { BulkBooksController } from "./api/bulk-books.controller.js";
 import { ListDetailsController } from "./api/list-details.controller.js";
 import { ListMembershipController } from "./api/list-membership.controller.js";
 import { BookAccessService } from "./application/book-access.service.js";
+import { BookChaptersService } from "./application/book-chapters.service.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
 import { BookFacetsService } from "./application/book-facets.service.js";
@@ -53,6 +55,7 @@ import { ReadingHistoryProvenanceService } from "./application/reading-history-p
 import { ReadingLifecycleCoordinator } from "./application/reading-lifecycle.coordinator.js";
 import { WishlistService } from "./application/wishlist.service.js";
 import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
+import { BookChaptersRepository } from "./infrastructure/book-chapters.repository.js";
 import { BookFacetsRepository } from "./infrastructure/book-facets.repository.js";
 import { BookLibraryReadRepository } from "./infrastructure/book-library-read.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
@@ -79,6 +82,7 @@ import { ReadingHistoryStateRepository } from "./infrastructure/reading-history-
     ListDetailsController,
     ListMembershipController,
     BookListsController,
+    BookChaptersController,
   ],
   exports: [
     BookAccessService,
@@ -142,6 +146,8 @@ import { ReadingHistoryStateRepository } from "./infrastructure/reading-history-
     ListMembershipRepository,
     BookListsService,
     BookListsRepository,
+    BookChaptersService,
+    BookChaptersRepository,
   ],
 })
 export class BooksModule {}

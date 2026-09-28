@@ -5,6 +5,7 @@ import type { EventFormMessages } from "./event-form-schema";
 import {
   buildEventFormSchema,
   eventFormDefaults,
+  eventFormNextInBatch,
   eventFormValuesToInput,
 } from "./event-form-schema";
 import { makeTimelineEventView } from "./timeline.fixtures";
@@ -181,5 +182,67 @@ describe("eventFormDefaults", () => {
     expect(defaults.page).toBe(88);
     expect(defaults.storyTime).toBe("Ніч");
     expect(defaults.importance).toBe("key");
+  });
+});
+
+describe("eventFormNextInBatch", () => {
+  function batchSource(overrides: Record<string, unknown> = {}) {
+    return buildEventFormSchema({ messages, pagesCount: null }).parse({
+      ...baseValues(),
+      chapter: "Розділ 7",
+      description: "Довгий опис",
+      eventType: "twist",
+      importance: "key",
+      isSpoiler: true,
+      location: "Каер Морен",
+      page: 128,
+      personalNote: "Моя нотатка",
+      resolvedByEventId: "event-9",
+      storyTime: "Друга ніч",
+      summary: "Короткий підсумок",
+      threadStatus: "resolved",
+      title: "Перша подія",
+      ...overrides,
+    });
+  }
+
+  it("carries the place in the book into the next entry", () => {
+    const next = eventFormNextInBatch(batchSource());
+    expect(next.chapter).toBe("Розділ 7");
+    expect(next.location).toBe("Каер Морен");
+    expect(next.page).toBe(128);
+    expect(next.storyTime).toBe("Друга ніч");
+    expect(next.timelineId).toBe("line-1");
+  });
+
+  it("resets everything unique to a single event", () => {
+    const next = eventFormNextInBatch(batchSource());
+    const defaults = eventFormDefaults({ timelineId: "line-1" });
+    expect(next.title).toBe(defaults.title);
+    expect(next.summary).toBe(defaults.summary);
+    expect(next.description).toBe(defaults.description);
+    expect(next.personalNote).toBe(defaults.personalNote);
+    expect(next.importance).toBe(defaults.importance);
+    expect(next.isSpoiler).toBe(defaults.isSpoiler);
+    expect(next.threadStatus).toBe(defaults.threadStatus);
+    expect(next.resolvedByEventId).toBe(defaults.resolvedByEventId);
+    expect(next.eventType).toBe(defaults.eventType);
+  });
+
+  it("keeps the typed page instead of the page the reading position would suggest", () => {
+    const suggested = eventFormDefaults({
+      readingPosition: { currentPage: 42, guardDefault: false, positionKnown: true },
+      timelineId: "line-1",
+    });
+    expect(suggested.page).toBe(42);
+    expect(eventFormNextInBatch(batchSource()).page).toBe(128);
+  });
+
+  it("keeps an omitted page omitted", () => {
+    expect(eventFormNextInBatch(batchSource({ page: undefined })).page).toBeUndefined();
+  });
+
+  it("keeps a timeline-less form without a timeline", () => {
+    expect(eventFormNextInBatch(batchSource({ timelineId: null })).timelineId).toBeNull();
   });
 });

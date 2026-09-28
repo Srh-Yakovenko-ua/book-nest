@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon } from "@/components/icons";
 import {
   AlertDialog,
@@ -48,6 +49,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useBookChapters } from "@/features/books/api/use-book-chapters";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -69,6 +71,7 @@ import {
   EVENT_SUMMARY_MAX,
   EVENT_TITLE_MAX,
   eventFormDefaults,
+  eventFormNextInBatch,
   eventFormValuesToInput,
 } from "../model/event-form-schema";
 import { eventTypeMeta } from "../model/event-type-meta";
@@ -250,6 +253,8 @@ function EventForm({
     thread: defaultValues.threadStatus !== null,
   }));
 
+  const chaptersQuery = useBookChapters(bookId, { enabled: openSections.place });
+
   useEffect(() => {
     dirtyRef.current = isDirty;
   }, [dirtyRef, isDirty]);
@@ -318,10 +323,11 @@ function EventForm({
         onSuccess: () => {
           toast.success(tToast("created"));
           if (addAnother) {
-            reset(eventFormDefaults({ readingPosition, timelineId: values.timelineId }));
+            const nextValues = eventFormNextInBatch(values);
+            reset(nextValues);
             setOpenSections({
-              details: false,
-              place: readingPosition?.positionKnown === true,
+              details: nextValues.location.trim() !== "",
+              place: true,
               relations: false,
               thread: false,
             });
@@ -512,15 +518,21 @@ function EventForm({
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
               <Label htmlFor="event-chapter">{t("chapterLabel")}</Label>
-              <Input
-                aria-describedby={errors.chapter ? "event-chapter-error" : undefined}
-                aria-invalid={errors.chapter !== undefined}
-                autoComplete="off"
-                className="h-10"
-                id="event-chapter"
-                maxLength={EVENT_CHAPTER_MAX}
-                placeholder={t("chapterPlaceholder")}
-                {...register("chapter")}
+              <Controller
+                control={control}
+                name="chapter"
+                render={({ field }) => (
+                  <ChapterCombobox
+                    describedBy={errors.chapter ? "event-chapter-error" : undefined}
+                    id="event-chapter"
+                    invalid={errors.chapter !== undefined}
+                    maxLength={EVENT_CHAPTER_MAX}
+                    onChange={field.onChange}
+                    options={chaptersQuery.data?.chapters ?? []}
+                    placeholder={t("chapterPlaceholder")}
+                    value={field.value}
+                  />
+                )}
               />
               <FieldError error={errors.chapter} id="event-chapter-error" />
             </div>

@@ -19,6 +19,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookChaptersViewDto,
   BookDeletionResultDto,
   BookFacetsViewDto,
   BookListsViewDto,
@@ -9456,6 +9457,176 @@ export function useBookListsControllerSetLists<
     setBookListsInputDto,
     options,
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type bookChaptersControllerGetChaptersResponse200 = {
+  data: BookChaptersViewDto;
+  status: 200;
+};
+
+export type bookChaptersControllerGetChaptersResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookChaptersControllerGetChaptersResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookChaptersControllerGetChaptersResponseSuccess =
+  bookChaptersControllerGetChaptersResponse200 & {
+    headers: Headers;
+  };
+export type bookChaptersControllerGetChaptersResponseError = (
+  bookChaptersControllerGetChaptersResponse401 | bookChaptersControllerGetChaptersResponse404
+) & {
+  headers: Headers;
+};
+
+export type bookChaptersControllerGetChaptersResponse =
+  bookChaptersControllerGetChaptersResponseSuccess | bookChaptersControllerGetChaptersResponseError;
+
+export const getBookChaptersControllerGetChaptersUrl = (bookId: string) => {
+  return `/api/books/${bookId}/chapters`;
+};
+
+/**
+ * @summary List the chapters this book already uses with how often each is used
+ */
+export const bookChaptersControllerGetChapters = async (
+  bookId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<bookChaptersControllerGetChaptersResponse> => {
+  return customInstance<bookChaptersControllerGetChaptersResponse>(
+    getBookChaptersControllerGetChaptersUrl(bookId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBookChaptersControllerGetChaptersQueryKey = (bookId: string) => {
+  return [`/api/books/${bookId}/chapters`] as const;
+};
+
+export const getBookChaptersControllerGetChaptersQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBookChaptersControllerGetChaptersQueryKey(bookId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>> = ({
+    signal,
+  }) => bookChaptersControllerGetChapters(bookId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: bookId !== null && bookId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookChaptersControllerGetChaptersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>
+>;
+export type BookChaptersControllerGetChaptersQueryError = void;
+
+export function useBookChaptersControllerGetChapters<
+  TData = Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+  TError = void,
+>(
+  bookId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+          TError,
+          Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookChaptersControllerGetChapters<
+  TData = Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+          TError,
+          Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookChaptersControllerGetChapters<
+  TData = Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the chapters this book already uses with how often each is used
+ */
+
+export function useBookChaptersControllerGetChapters<
+  TData = Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookChaptersControllerGetChapters>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookChaptersControllerGetChaptersQueryOptions(bookId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

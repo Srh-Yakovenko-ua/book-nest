@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom/vitest";
+import type { BookChapterUsageView } from "@app/shared";
+
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -37,10 +39,6 @@ function createCall() {
   );
 }
 
-function expandSection(name: RegExp) {
-  return userEvent.click(screen.getByRole("button", { name }));
-}
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { "Content-Type": "application/json" },
@@ -68,9 +66,11 @@ function renderForm(props: Partial<Parameters<typeof EventFormDialog>[0]> = {}) 
 }
 
 function routeFetch({
+  chapters = [],
   detail,
   listItems = [],
 }: {
+  chapters?: BookChapterUsageView[];
   detail?: unknown;
   listItems?: ReturnType<typeof makeTimelineEventView>[];
 } = {}) {
@@ -78,6 +78,9 @@ function routeFetch({
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
 
+    if (url.includes("/books/book-1/chapters")) {
+      return Promise.resolve(jsonResponse({ chapters }));
+    }
     if (url.includes("/relations") && method === "POST") {
       return Promise.resolve(
         jsonResponse({
@@ -104,6 +107,10 @@ function routeFetch({
 
 function titleField() {
   return screen.getByLabelText(/Назва події/);
+}
+
+function toggleSection(name: RegExp) {
+  return userEvent.click(screen.getByRole("button", { name }));
 }
 
 function updateCall() {
@@ -137,7 +144,7 @@ describe("EventFormDialog create", () => {
     expect(screen.queryByLabelText("Розділ")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Детальний опис")).not.toBeInTheDocument();
 
-    await expandSection(/Місце в книзі/);
+    await toggleSection(/Місце в книзі/);
 
     expect(screen.getByLabelText("Розділ")).toBeInTheDocument();
   });
@@ -176,6 +183,17 @@ describe("EventFormDialog create", () => {
     expect(bodyOf(createCall())).toMatchObject({ isSpoiler: true });
   });
 
+  it("normalizes the chapter to the spelling the book already uses", async () => {
+    routeFetch({ chapters: [{ chapter: "Розділ 1", count: 7 }] });
+    renderForm();
+
+    await toggleSection(/Місце в книзі/);
+    await userEvent.type(screen.getByLabelText("Розділ"), "розділ 1");
+    await userEvent.click(await screen.findByRole("option", { name: "Розділ 1 7" }));
+
+    expect(screen.getByLabelText("Розділ")).toHaveValue("Розділ 1");
+  });
+
   it("opens the place section with the current reading page already filled in", () => {
     renderForm({ readingPosition: makeReadingPosition({ currentPage: 42, positionKnown: true }) });
 
@@ -186,7 +204,7 @@ describe("EventFormDialog create", () => {
     renderForm({ pagesCount: 100 });
 
     await userEvent.type(titleField(), "Помилкова сторінка");
-    await expandSection(/Місце в книзі/);
+    await toggleSection(/Місце в книзі/);
     await userEvent.type(screen.getByLabelText("Сторінка"), "150");
     await userEvent.click(screen.getByRole("button", { name: "Зберегти подію" }));
 
@@ -239,6 +257,46 @@ describe("EventFormDialog create", () => {
     await waitFor(() => expect(titleField()).toHaveValue(""));
     expect(screen.getByRole("switch")).not.toBeChecked();
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps the place in the book for the next entry after save-and-add-another", async () => {
+    renderForm();
+
+    await userEvent.type(titleField(), "Перша подія");
+    await toggleSection(/Місце в книзі/);
+    await userEvent.type(screen.getByLabelText("Сторінка"), "128");
+    await userEvent.type(screen.getByLabelText("Розділ"), "Розділ 7");
+    await userEvent.type(screen.getByLabelText("Внутрішньосюжетний час"), "Друга ніч");
+    await toggleSection(/Деталі події/);
+    await userEvent.type(screen.getByLabelText("Локація"), "Каер Морен");
+    await toggleSection(/Деталі події/);
+    expect(screen.queryByLabelText("Локація")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти й додати ще" }));
+
+    await waitFor(() => expect(createCall()).toBeDefined());
+    await waitFor(() => expect(titleField()).toHaveValue(""));
+
+    expect(screen.getByLabelText("Розділ")).toHaveValue("Розділ 7");
+    expect(screen.getByLabelText("Сторінка")).toHaveValue(128);
+    expect(screen.getByLabelText("Внутрішньосюжетний час")).toHaveValue("Друга ніч");
+    expect(screen.getByLabelText("Локація")).toHaveValue("Каер Морен");
+  });
+
+  it("leaves the details section collapsed after save-and-add-another without a location", async () => {
+    renderForm();
+
+    await userEvent.type(titleField(), "Перша подія");
+    await toggleSection(/Місце в книзі/);
+    await userEvent.type(screen.getByLabelText("Розділ"), "Розділ 7");
+
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти й додати ще" }));
+
+    await waitFor(() => expect(createCall()).toBeDefined());
+    await waitFor(() => expect(titleField()).toHaveValue(""));
+
+    expect(screen.getByLabelText("Розділ")).toHaveValue("Розділ 7");
+    expect(screen.queryByLabelText("Локація")).not.toBeInTheDocument();
   });
 });
 
@@ -319,7 +377,7 @@ describe("EventFormDialog edit", () => {
   it("saves a relation immediately without submitting the form", async () => {
     renderEdit();
 
-    await expandSection(/Зв’язки з іншими подіями/);
+    await toggleSection(/Зв’язки з іншими подіями/);
     await userEvent.click(await screen.findByRole("radio", { name: "Пророцтво відьми" }));
 
     await waitFor(() => expect(relationCall()).toBeDefined());

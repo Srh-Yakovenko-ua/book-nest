@@ -6872,7 +6872,7 @@
       "title": "Leave without saving?",
       "description": "Your changes will be lost.",
       "cancel": "Cancel",
-      "confirm": "Leave without saving"
+      "confirm": "Leave"
     },
     "empty": {
       "title": "You have no quotes yet",
@@ -7085,8 +7085,6 @@
     "subtitle": "Key story beats in the order the plot unfolds — so you can quickly recall what already happened when you return to the book.",
     "lines": "Lines",
     "allLines": "All timelines",
-    "moreLines": "+{count} more",
-    "otherLines": "Other lines",
     "mainLine": "Main timeline",
     "newLine": "New timeline",
     "manageLines": "Manage timelines",

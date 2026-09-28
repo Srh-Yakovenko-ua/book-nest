@@ -12705,3 +12705,25 @@ export const BookListsControllerSetListsResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary List the chapters this book already uses with how often each is used
+ */
+export const BookChaptersControllerGetChaptersParams = zod.object({
+  bookId: zod.string(),
+});
+
+export const bookChaptersControllerGetChaptersResponseChaptersItemCountMin = 0;
+export const bookChaptersControllerGetChaptersResponseChaptersItemCountMax = 9007199254740991;
+
+export const BookChaptersControllerGetChaptersResponse = zod.object({
+  chapters: zod.array(
+    zod.object({
+      chapter: zod.string(),
+      count: zod
+        .int()
+        .min(bookChaptersControllerGetChaptersResponseChaptersItemCountMin)
+        .max(bookChaptersControllerGetChaptersResponseChaptersItemCountMax),
+    }),
+  ),
+});

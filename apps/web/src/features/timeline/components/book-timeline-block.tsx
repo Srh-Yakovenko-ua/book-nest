@@ -33,6 +33,7 @@ import {
   createFilterState,
   hasActiveEventFilters,
   normalizeSortForMode,
+  sortForModeChange,
 } from "../model/timeline-events-query";
 import {
   DEFAULT_TIMELINE_VIEW_MODE,
@@ -56,9 +57,9 @@ import { TimelineError } from "./timeline-error";
 import { TimelineFilteredEmpty } from "./timeline-filtered-empty";
 import { TimelineFormDialog } from "./timeline-form-dialog";
 import { TimelineLineEmpty } from "./timeline-line-empty";
+import { TimelineLineSelect } from "./timeline-line-select";
 import { TimelineOverviewView } from "./timeline-overview-view";
 import { TimelineSkeleton } from "./timeline-skeleton";
-import { TimelineSwitcher } from "./timeline-switcher";
 import { TimelineToolbar } from "./timeline-toolbar";
 import { TimelineViewSwitch } from "./timeline-view-switch";
 
@@ -89,20 +90,12 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
     timelineId !== null && timelines.some((line) => line.id === timelineId) ? timelineId : null;
   const isAllLines = activeTimelineId === null;
 
-  useEffect(() => {
-    if (
-      timelineId !== null &&
-      timelines.length > 0 &&
-      !timelines.some((line) => line.id === timelineId)
-    ) {
-      void setTimelineId(null);
-    }
-  }, [setTimelineId, timelineId, timelines]);
-
   const storedView = useSyncExternalStore(subscribeViewMode, readTimelineViewMode, () => null);
   const viewMode = view ?? storedView ?? DEFAULT_TIMELINE_VIEW_MODE;
 
-  const [filters, setFilters] = useState<TimelineEventsFilterState>(() => createFilterState(null));
+  const [filters, setFilters] = useState<TimelineEventsFilterState>(() =>
+    createFilterState(timelineId),
+  );
   const [openEventId, setOpenEventId] = useState<Nullable<string>>(null);
   const [guardOverride, setGuardOverride] = useState<Nullable<boolean>>(null);
   const [revealedEventIds, setRevealedEventIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -111,7 +104,17 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const [deleteTarget, setDeleteTarget] = useState<Nullable<TimelineEventView>>(null);
   const [management, setManagement] = useState<TimelineManagementState>({ mode: "closed" });
 
-  const eventFilters: TimelineEventsFilterState = { ...filters, timelineId: activeTimelineId };
+  useEffect(() => {
+    if (timelineId === null || timelines.length === 0) return;
+    if (timelines.some((line) => line.id === timelineId)) return;
+    void setTimelineId(null);
+  }, [setTimelineId, timelineId, timelines]);
+
+  const eventFilters: TimelineEventsFilterState = {
+    ...filters,
+    sort: normalizeSortForMode(filters.sort, isAllLines),
+    timelineId: activeTimelineId,
+  };
   const eventsQuery = useTimelineEvents(book.id, eventFilters, {
     enabled: viewMode !== "overview",
   });
@@ -128,7 +131,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
       : (summaryQuery.data?.timelines.find((line) => line.timelineId === activeTimelineId)
           ?.eventsCount ?? 0);
   const events = eventsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const hasActiveFilters = hasActiveEventFilters(filters);
+  const hasActiveFilters = hasActiveEventFilters(eventFilters);
   const hasEventsError = eventsQuery.isError && !eventsQuery.isFetchNextPageError;
   const loadMoreState: InfiniteScrollState = eventsQuery.isFetchNextPageError
     ? "error"
@@ -141,9 +144,10 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
   const defaultLineId = timelines.find((line) => line.isDefault)?.id ?? timelines[0]?.id ?? null;
   const createTimelineId = activeTimelineId ?? defaultLineId;
   const canReorder =
-    (filters.sort === "book_order" || filters.sort === "timeline_order") && !hasActiveFilters;
+    (eventFilters.sort === "book_order" || eventFilters.sort === "timeline_order") &&
+    !hasActiveFilters;
   const reorderScope: TimelineReorderScope =
-    filters.sort === "timeline_order" ? "timeline" : "book";
+    eventFilters.sort === "timeline_order" ? "timeline" : "book";
   const eventIndexById = new Map(events.map((event, index) => [event.id, index] as const));
   const skeletonShape = viewMode === "list" ? "list" : "stream";
 
@@ -158,14 +162,19 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
 
   function selectTimeline(next: Nullable<string>) {
     void setTimelineId(next);
-    setFilters((prev) => ({ ...prev, sort: normalizeSortForMode(prev.sort, next === null) }));
+    setFilters((prev) => ({
+      ...prev,
+      sort: sortForModeChange({
+        nextTimelineId: next,
+        previousTimelineId: activeTimelineId,
+        sort: eventFilters.sort,
+      }),
+      timelineId: next,
+    }));
   }
 
   function resetFilters() {
-    setFilters((prev) => ({
-      ...createFilterState(prev.timelineId),
-      sort: normalizeSortForMode(prev.sort, activeTimelineId === null),
-    }));
+    setFilters({ ...createFilterState(activeTimelineId), sort: eventFilters.sort });
   }
 
   function drillDownToType(eventType: TimelineEventType) {
@@ -321,7 +330,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
             onRevealEvent={revealEvent}
             renderActions={renderActions}
             revealedEventIds={revealedEventIds}
-            sort={filters.sort}
+            sort={eventFilters.sort}
           />
         )}
         <InfiniteScrollFooter
@@ -376,28 +385,35 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-2">
               <TimelineViewSwitch onChange={changeView} value={viewMode} />
-              <Button onClick={() => changeView("overview")} size="sm" variant="secondary">
-                <UiIcon name="chart" size={16} />
-                {t("overview.action")}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => changeView("overview")} size="sm" variant="secondary">
+                  <UiIcon name="chart" size={16} />
+                  {t("overview.action")}
+                </Button>
+                <Button onClick={() => setManagement({ mode: "manage" })} size="sm" variant="tonal">
+                  <UiIcon name="layers" size={16} />
+                  {t("manageLines")}
+                </Button>
+              </div>
             </div>
           )}
           {showFilterControls ? (
             <>
-              <TimelineSwitcher
-                activeTimelineId={activeTimelineId}
-                onManageLines={() => setManagement({ mode: "manage" })}
-                onSelect={selectTimeline}
-                timelines={timelines}
-                totalEvents={totalEvents}
-              />
               <TimelineToolbar
-                filters={filters}
+                filters={eventFilters}
                 isAllLines={isAllLines}
+                linePicker={
+                  <TimelineLineSelect
+                    activeTimelineId={activeTimelineId}
+                    onSelect={selectTimeline}
+                    timelines={timelines}
+                    totalEvents={totalEvents}
+                  />
+                }
                 onFiltersChange={setFilters}
               />
               <TimelineActiveFilters
-                filters={filters}
+                filters={eventFilters}
                 onChange={setFilters}
                 onClearAll={resetFilters}
               />
@@ -407,7 +423,7 @@ export function BookTimelineBlock({ book }: BookTimelineBlockProps) {
                   onGuardChange={setGuardOverride}
                   onRecapChange={(recap) => setFilters((prev) => ({ ...prev, recap }))}
                   readingPosition={readingPosition}
-                  recap={filters.recap}
+                  recap={eventFilters.recap}
                 />
               )}
             </>

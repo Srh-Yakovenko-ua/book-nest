@@ -31,6 +31,8 @@ export * from "./bookBudgetOverviewViewDtoBudgetsItemCurrentMonthOutlook";
 export * from "./bookBudgetOverviewViewDtoBudgetsItemSpendCoverage";
 export * from "./bookBudgetOverviewViewDtoBudgetsItemUpcomingChangesItem";
 export * from "./bookBudgetOverviewViewDtoBudgetsItemUpcomingChangesItemKind";
+export * from "./bookChaptersViewDto";
+export * from "./bookChaptersViewDtoChaptersItem";
 export * from "./bookCharacterGraphControllerGetCategoriesItem";
 export * from "./bookCharacterGraphControllerGetClusterBy";
 export * from "./bookCharacterGraphControllerGetMode";

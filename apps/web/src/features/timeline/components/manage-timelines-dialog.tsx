@@ -171,7 +171,7 @@ export function ManageTimelinesDialog({
           <ul className="flex max-h-[60vh] min-h-0 flex-col divide-y divide-border overflow-x-hidden overflow-y-auto">
             {orderedTimelines.map((timeline, index) => (
               <li
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 transition-colors hover:bg-secondary/40"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5"
                 key={timeline.id}
               >
                 <span

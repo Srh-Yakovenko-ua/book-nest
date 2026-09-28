@@ -5,6 +5,7 @@ import type { BooksControllerQuickCountsParams } from "@/shared/api/generated/mo
 export const BOOKS_ROOT = "/api/books";
 
 export const bookKeys = {
+  chapters: (id: string) => [...bookKeys.detail(id), "chapters"] as const,
   deliveryHistory: (id: string) => [...bookKeys.detail(id), "deliveries"] as const,
   detail: (id: string) => [BOOKS_ROOT, "detail", id] as const,
   quickCounts: (params: BooksControllerQuickCountsParams) =>
