@@ -19,15 +19,19 @@ export function PublisherOverviewWishlist({ books }: PublisherOverviewWishlistPr
     <PublisherOverviewSection title={t("sections.wishlist")}>
       {books.map((book) => (
         <li key={book.id}>
-          <PublisherOverviewBookRow book={book}>
-            {book.bestOffer === null ? (
-              <span className="text-xs text-muted-foreground">{t("noPrice")}</span>
-            ) : (
-              <span className="text-sm font-semibold text-foreground tabular-nums">
-                {formatStorePrice({ ...book.bestOffer, locale })}
-              </span>
-            )}
-          </PublisherOverviewBookRow>
+          <PublisherOverviewBookRow
+            book={book}
+            trailing={
+              book.bestOffer === null ? (
+                <span className="text-xs text-muted-foreground">{t("noPrice")}</span>
+              ) : (
+                <span className="text-sm font-semibold whitespace-nowrap text-foreground tabular-nums">
+                  {formatStorePrice({ ...book.bestOffer, locale })}
+                </span>
+              )
+            }
+            variant="compact"
+          />
         </li>
       ))}
     </PublisherOverviewSection>

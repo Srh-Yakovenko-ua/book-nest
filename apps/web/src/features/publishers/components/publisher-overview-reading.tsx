@@ -19,7 +19,7 @@ export function PublisherOverviewReading({ books }: PublisherOverviewReadingProp
     <PublisherOverviewSection title={t("sections.reading")}>
       {books.map((book) => (
         <li key={book.id}>
-          <PublisherOverviewBookRow book={book}>
+          <PublisherOverviewBookRow book={book} variant="reading">
             {book.readingStatus === "rereading" ? <RereadingBadge /> : null}
             {book.progress === null ? null : <ReadingProgress progress={book.progress} />}
           </PublisherOverviewBookRow>
@@ -35,9 +35,10 @@ function ReadingProgress({ progress }: { progress: PublisherOverviewReadingProgr
   const percent = Math.min(100, Math.round((currentPage / pagesCount) * 100));
 
   return (
-    <span className="flex flex-col gap-1">
+    <span className="mt-0.5 flex w-full max-w-sm flex-col gap-1.5">
       <Progress
         aria-label={t("progressAriaLabel", { current: currentPage, total: pagesCount })}
+        className="h-1.5"
         value={percent}
       />
       <span className="text-xs text-muted-foreground tabular-nums">

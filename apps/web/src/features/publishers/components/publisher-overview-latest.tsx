@@ -25,7 +25,7 @@ export function PublisherOverviewLatest({ book }: PublisherOverviewLatestProps) 
   return (
     <PublisherOverviewSection title={t("sections.latest")}>
       <li>
-        <PublisherOverviewBookRow book={book}>
+        <PublisherOverviewBookRow book={book} variant="featured">
           {book.series === null ? null : <LatestBookSeries series={book.series} />}
           <span className="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary">{tStatus(book.readingStatus)}</Badge>
@@ -50,7 +50,7 @@ function LatestBookSeries({ series }: { series: PublisherOverviewLatestBookSerie
     return t("seriesPartOfTotal", { name, part: partNumber, total: totalBooks });
   }
 
-  return <span className="truncate text-xs text-muted-foreground">{label()}</span>;
+  return <span className="truncate text-sm text-muted-foreground">{label()}</span>;
 }
 
 function useLatestBookBadge(book: PublisherOverviewLatestBook): Nullable<string> {
