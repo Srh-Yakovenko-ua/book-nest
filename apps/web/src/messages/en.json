@@ -7644,7 +7644,8 @@
         "addBook": "Add book",
         "menu": "Publisher actions",
         "edit": "Edit",
-        "delete": "Delete"
+        "delete": "Delete",
+        "merge": "Merge into another"
       },
       "states": {
         "loading": "Loading publisher",
@@ -7737,6 +7738,30 @@
         "discardTitle": "Discard changes?",
         "discardDescription": "Your unsaved changes will be lost."
       },
+      "mergeDialog": {
+        "title": "Merge publisher",
+        "description": "All books move to the publisher you pick, and this custom publisher is then removed.",
+        "sourceLabel": "Merging",
+        "sourceBooks": "{count, plural, one {# book in your library} other {# books in your library}}",
+        "ownBadge": "Custom",
+        "catalogBadge": "Catalog",
+        "searchLabel": "Where to move the books",
+        "searchPlaceholder": "Search publishers",
+        "searching": "Searching…",
+        "empty": "No publishers found",
+        "previewLabel": "After the merge",
+        "previewNote": "Every linked book will be reassigned to “{name}”.",
+        "confirm": "Merge",
+        "merging": "Merging…",
+        "cancel": "Cancel",
+        "errors": {
+          "samePublisher": "A publisher can't be merged into itself. Pick a different one.",
+          "globalSource": "This publisher comes from the shared catalog, so it can't be merged. Only your own publishers can be merged.",
+          "notFound": "One of the publishers is gone. Refresh the page and try again.",
+          "linkedBooks": "Books are still linked to this publisher, so the merge was rolled back. Nothing changed — try again.",
+          "generic": "Couldn't merge the publishers. Try again."
+        }
+      },
       "deleteDialog": {
         "title": "Delete publisher?",
         "description": "The publisher “{name}” will be deleted permanently.",
@@ -7744,15 +7769,17 @@
         "cancel": "Cancel",
         "deleting": "Deleting…",
         "blockedTitle": "This publisher can't be deleted",
-        "blockedDescription": "Books are still linked to “{name}”. Assign them another publisher or delete them first.",
+        "blockedDescription": "Books are still linked to “{name}”. Merge it into another publisher, or reassign those books yourself.",
         "goToBooks": "Go to books",
         "close": "Close",
-        "genericError": "Couldn't delete the publisher. Try again."
+        "genericError": "Couldn't delete the publisher. Try again.",
+        "merge": "Merge into another"
       },
       "toast": {
         "updated": "Publisher updated",
         "deleted": "Publisher deleted",
-        "error": "Something went wrong"
+        "error": "Something went wrong",
+        "merged": "Publishers merged. {count, plural, =0 {There were no books to move} one {# book moved} other {# books moved}}"
       }
     }
   },

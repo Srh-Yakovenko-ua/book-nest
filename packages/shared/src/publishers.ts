@@ -287,3 +287,20 @@ export const UpdatePublisherInputSchema = z.object({
 });
 
 export type UpdatePublisherInput = z.infer<typeof UpdatePublisherInputSchema>;
+
+export const PUBLISHER_MERGE_ERROR_CODES = {
+  samePublisher: "PUBLISHER_MERGE_SAME_PUBLISHER",
+} as const;
+
+export const MergePublisherInputSchema = z.object({
+  targetPublisherId: z.uuid(),
+});
+
+export type MergePublisherInput = z.infer<typeof MergePublisherInputSchema>;
+
+export const PublisherMergeResultSchema = z.object({
+  movedBooksCount: z.number().int().nonnegative(),
+  targetPublisherId: z.string(),
+});
+
+export type PublisherMergeResult = z.infer<typeof PublisherMergeResultSchema>;

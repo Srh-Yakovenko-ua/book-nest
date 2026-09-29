@@ -24,6 +24,8 @@ import type {
   LibraryPublishersPageDto,
   LibraryPublishersQuickCountsDto,
   LibraryPublishersSummaryDto,
+  MergePublisherDto,
+  PublisherMergeResultDto,
   PublishersControllerLibraryDetailParams,
   PublishersControllerLibraryListParams,
   PublishersControllerLibraryQuickCountsParams,
@@ -1330,6 +1332,216 @@ export function usePublishersControllerLibraryOverview<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getPublishersControllerLibraryOverviewQueryOptions(publisherId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type publishersControllerMergeCustomResponse200 = {
+  data: PublisherMergeResultDto;
+  status: 200;
+};
+
+export type publishersControllerMergeCustomResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type publishersControllerMergeCustomResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type publishersControllerMergeCustomResponse403 = {
+  data: void;
+  status: 403;
+};
+
+export type publishersControllerMergeCustomResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type publishersControllerMergeCustomResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type publishersControllerMergeCustomResponseSuccess =
+  publishersControllerMergeCustomResponse200 & {
+    headers: Headers;
+  };
+export type publishersControllerMergeCustomResponseError = (
+  | publishersControllerMergeCustomResponse400
+  | publishersControllerMergeCustomResponse401
+  | publishersControllerMergeCustomResponse403
+  | publishersControllerMergeCustomResponse404
+  | publishersControllerMergeCustomResponse409
+) & {
+  headers: Headers;
+};
+
+export type publishersControllerMergeCustomResponse =
+  publishersControllerMergeCustomResponseSuccess | publishersControllerMergeCustomResponseError;
+
+export const getPublishersControllerMergeCustomUrl = (sourcePublisherId: string) => {
+  return `/api/publishers/${sourcePublisherId}/merge`;
+};
+
+/**
+ * @summary Merge a custom publisher into another visible publisher and delete the source
+ */
+export const publishersControllerMergeCustom = async (
+  sourcePublisherId: string,
+  mergePublisherDto: MergePublisherDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<publishersControllerMergeCustomResponse> => {
+  return customInstance<publishersControllerMergeCustomResponse>(
+    getPublishersControllerMergeCustomUrl(sourcePublisherId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(mergePublisherDto),
+    },
+  );
+};
+
+export const getPublishersControllerMergeCustomQueryKey = (
+  sourcePublisherId: string,
+  mergePublisherDto?: MergePublisherDto,
+) => {
+  return ["POST", `/api/publishers/${sourcePublisherId}/merge`, mergePublisherDto] as const;
+};
+
+export const getPublishersControllerMergeCustomQueryOptions = <
+  TData = Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+  TError = void,
+>(
+  sourcePublisherId: string,
+  mergePublisherDto: MergePublisherDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerMergeCustom>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getPublishersControllerMergeCustomQueryKey(sourcePublisherId, mergePublisherDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof publishersControllerMergeCustom>>> = ({
+    signal,
+  }) =>
+    publishersControllerMergeCustom(sourcePublisherId, mergePublisherDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: sourcePublisherId !== null && sourcePublisherId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type PublishersControllerMergeCustomQueryResult = NonNullable<
+  Awaited<ReturnType<typeof publishersControllerMergeCustom>>
+>;
+export type PublishersControllerMergeCustomQueryError = void;
+
+export function usePublishersControllerMergeCustom<
+  TData = Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+  TError = void,
+>(
+  sourcePublisherId: string,
+  mergePublisherDto: MergePublisherDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerMergeCustom>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerMergeCustom>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerMergeCustom<
+  TData = Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+  TError = void,
+>(
+  sourcePublisherId: string,
+  mergePublisherDto: MergePublisherDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerMergeCustom>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerMergeCustom>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerMergeCustom<
+  TData = Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+  TError = void,
+>(
+  sourcePublisherId: string,
+  mergePublisherDto: MergePublisherDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerMergeCustom>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Merge a custom publisher into another visible publisher and delete the source
+ */
+
+export function usePublishersControllerMergeCustom<
+  TData = Awaited<ReturnType<typeof publishersControllerMergeCustom>>,
+  TError = void,
+>(
+  sourcePublisherId: string,
+  mergePublisherDto: MergePublisherDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerMergeCustom>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getPublishersControllerMergeCustomQueryOptions(
+    sourcePublisherId,
+    mergePublisherDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

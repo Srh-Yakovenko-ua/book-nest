@@ -202,6 +202,12 @@ type LibraryHavingFlags = {
   hasWantToRead: boolean;
 };
 
+type ReassignBooksInput = {
+  sourcePublisherId: string;
+  targetPublisherId: string;
+  userId: string;
+};
+
 type RecentPublishersInput = {
   limit: number;
   userId: string;
@@ -383,8 +389,11 @@ export class PublishersRepository {
     return deleted.count;
   }
 
-  findById(id: string): Promise<Nullable<PublisherModel>> {
-    return this.prisma.publisher.findUnique({ where: { id } });
+  findById(
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<PublisherModel>> {
+    return client.publisher.findUnique({ where: { id } });
   }
 
   findByNormalized(
@@ -412,6 +421,17 @@ export class PublishersRepository {
       where: { id: { in: ids }, ...visibleToUser(userId) },
       ...primaryNamesArgs,
     });
+  }
+
+  async reassignBooks(
+    { sourcePublisherId, targetPublisherId, userId }: ReassignBooksInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const reassigned = await client.book.updateMany({
+      data: { publisherId: targetPublisherId },
+      where: { publisherId: sourcePublisherId, userId },
+    });
+    return reassigned.count;
   }
 
   async recentPublisherIds({ limit, userId }: RecentPublishersInput): Promise<string[]> {

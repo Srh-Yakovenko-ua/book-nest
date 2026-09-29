@@ -34,12 +34,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderDialog({ booksCount = 0, onGoToBooks = vi.fn() } = {}) {
+function renderDialog({ booksCount = 0, onGoToBooks = vi.fn(), onMerge = vi.fn() } = {}) {
   return renderWithProviders(
     <DeletePublisherDialog
       booksCount={booksCount}
       onCloseAutoFocus={vi.fn()}
       onGoToBooks={onGoToBooks}
+      onMerge={onMerge}
       onOpenChange={vi.fn()}
       open
       publisherId="publisher-1"
@@ -70,6 +71,7 @@ describe("DeletePublisherDialog", () => {
     renderDialog();
 
     expect(screen.getByText("Видалити видавництво?")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Обʼєднати з іншим" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Видавництво видалено"));
@@ -90,6 +92,16 @@ describe("DeletePublisherDialog", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("offers a merge instead of a dead end when books are linked", async () => {
+    const onMerge = vi.fn();
+    renderDialog({ booksCount: 3, onMerge });
+
+    await userEvent.click(screen.getByRole("button", { name: "Обʼєднати з іншим" }));
+
+    expect(onMerge).toHaveBeenCalledOnce();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("maps a server PUBLISHER_HAS_BOOKS conflict to the blocked state", async () => {
     respondToDelete = () => jsonResponse({ code: "PUBLISHER_HAS_BOOKS", message: "linked" }, 409);
 
@@ -100,6 +112,17 @@ describe("DeletePublisherDialog", () => {
     expect(await screen.findByText("Видавництво не можна видалити")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Перейти до книг" })).toBeInTheDocument();
     expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it("offers a merge when a zero-count publisher still conflicts on the server", async () => {
+    respondToDelete = () => jsonResponse({ code: "PUBLISHER_HAS_BOOKS", message: "linked" }, 409);
+    const onMerge = vi.fn();
+    renderDialog({ onMerge });
+
+    await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Обʼєднати з іншим" }));
+
+    expect(onMerge).toHaveBeenCalledOnce();
   });
 
   it("shows a form-level error for other failures", async () => {

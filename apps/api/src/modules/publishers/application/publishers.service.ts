@@ -9,19 +9,25 @@ import type {
   LibraryPublishersSummary,
   Nullable,
   Paginator,
+  PublisherMergeResult,
   PublisherSearchPaginationQuery,
   PublisherView,
   UpdatePublisherInput,
 } from "@app/shared";
 
-import { normalizeName } from "@app/shared";
+import { normalizeName, PUBLISHER_MERGE_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { PublisherModel } from "../../../generated/prisma/models.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import {
   isForeignKeyConstraintError,
@@ -62,6 +68,12 @@ type LibrarySummaryInput = {
   userId: string;
 };
 
+type MergeCustomInput = {
+  sourcePublisherId: string;
+  targetPublisherId: string;
+  userId: string;
+};
+
 type OwnedPublisherInput = {
   publisherId: string;
   userId: string;
@@ -94,16 +106,7 @@ export class PublishersService {
   ) {}
 
   async deleteCustom({ publisherId, userId }: OwnedPublisherInput): Promise<void> {
-    const publisher = await this.publishersRepository.findById(publisherId);
-    if (publisher === null) {
-      throw new NotFoundError("Publisher not found");
-    }
-    if (publisher.userId === null) {
-      throw new ForbiddenError();
-    }
-    if (publisher.userId !== userId) {
-      throw new NotFoundError("Publisher not found");
-    }
+    await this.loadOwnedCustom({ publisherId, userId });
 
     await this.transactionRunner.run(async (tx) => {
       const linkedBooks = await this.publishersRepository.countBooks(publisherId, tx);
@@ -210,6 +213,50 @@ export class PublishersService {
     return toLibraryPublishersSummary({ counts, insights, priceTotals });
   }
 
+  async mergeCustom({
+    sourcePublisherId,
+    targetPublisherId,
+    userId,
+  }: MergeCustomInput): Promise<PublisherMergeResult> {
+    if (sourcePublisherId === targetPublisherId) {
+      throw new BadRequestError("A publisher cannot be merged into itself", {
+        code: PUBLISHER_MERGE_ERROR_CODES.samePublisher,
+      });
+    }
+
+    const movedBooksCount = await this.transactionRunner.run(async (tx) => {
+      await this.loadOwnedCustom({ publisherId: sourcePublisherId, userId }, tx);
+
+      const target = await this.publishersRepository.findVisibleById(userId, targetPublisherId, tx);
+      if (target === null) {
+        throw new NotFoundError("Publisher not found");
+      }
+
+      const reassignedBooks = await this.publishersRepository.reassignBooks(
+        { sourcePublisherId, targetPublisherId, userId },
+        tx,
+      );
+
+      let deleted: number;
+      try {
+        deleted = await this.publishersRepository.deleteWithNames(sourcePublisherId, tx);
+      } catch (error) {
+        if (isForeignKeyConstraintError(error)) {
+          throw publisherHasBooksError();
+        }
+        throw error;
+      }
+
+      if (deleted === 0) {
+        throw new NotFoundError("Publisher not found");
+      }
+
+      return reassignedBooks;
+    });
+
+    return { movedBooksCount, targetPublisherId };
+  }
+
   async recent({ limit, locale, userId }: RecentPublishersInput): Promise<PublisherView[]> {
     const ids = await this.publishersRepository.recentPublisherIds({ limit, userId });
     if (ids.length === 0) {
@@ -292,16 +339,7 @@ export class PublishersService {
     publisherId,
     userId,
   }: UpdateCustomInput): Promise<LibraryPublisherDetail> {
-    const publisher = await this.publishersRepository.findById(publisherId);
-    if (publisher === null) {
-      throw new NotFoundError("Publisher not found");
-    }
-    if (publisher.userId === null) {
-      throw new ForbiddenError();
-    }
-    if (publisher.userId !== userId) {
-      throw new NotFoundError("Publisher not found");
-    }
+    await this.loadOwnedCustom({ publisherId, userId });
 
     const rename =
       input.name === undefined
@@ -323,6 +361,23 @@ export class PublishersService {
     await this.runCustomUpdate({ input, publisherId, rename });
 
     return this.libraryDetail({ locale: CUSTOM_PUBLISHER_LOCALE, publisherId, userId });
+  }
+
+  private async loadOwnedCustom(
+    { publisherId, userId }: OwnedPublisherInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<PublisherModel> {
+    const publisher = await this.publishersRepository.findById(publisherId, client);
+    if (publisher === null) {
+      throw new NotFoundError("Publisher not found");
+    }
+    if (publisher.userId === null) {
+      throw new ForbiddenError();
+    }
+    if (publisher.userId !== userId) {
+      throw new NotFoundError("Publisher not found");
+    }
+    return publisher;
   }
 
   private async runCustomUpdate({

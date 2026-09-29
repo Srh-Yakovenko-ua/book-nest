@@ -69,6 +69,7 @@ beforeEach(() => {
     if (url.includes("/library-overview")) return Promise.resolve(jsonResponse(emptyOverview()));
     if (url.includes("/api/books")) return Promise.resolve(jsonResponse(emptyBooksPage()));
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse([]));
+    if (url.includes("/api/publishers")) return Promise.resolve(jsonResponse(emptyBooksPage()));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -81,14 +82,24 @@ afterEach(() => {
 
 describe("PublisherDetailsView", () => {
   describe("hero", () => {
-    it("keeps edit and delete in the overflow menu of a custom publisher", async () => {
+    it("keeps edit, merge and delete in the overflow menu of a custom publisher", async () => {
       renderView(makePublisherDetail({ isCustom: true }));
 
       expect(screen.queryByRole("button", { name: "Редагувати" })).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: "Дії з видавництвом" }));
 
       expect(await screen.findByRole("menuitem", { name: "Редагувати" })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: "Обʼєднати з іншим" })).toBeInTheDocument();
       expect(screen.getByRole("menuitem", { name: "Видалити" })).toBeInTheDocument();
+    });
+
+    it("opens the merge dialog from the overflow menu", async () => {
+      renderView(makePublisherDetail({ isCustom: true }));
+
+      await userEvent.click(screen.getByRole("button", { name: "Дії з видавництвом" }));
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Обʼєднати з іншим" }));
+
+      expect(await screen.findByRole("dialog", { name: "Обʼєднати видавництво" })).toBeVisible();
     });
 
     it.each([
@@ -114,6 +125,7 @@ describe("PublisherDetailsView", () => {
       renderView(makePublisherDetail({ isCustom: false }));
 
       expect(screen.queryByRole("button", { name: "Дії з видавництвом" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("menuitem", { name: "Обʼєднати з іншим" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Додати книгу" })).toBeInTheDocument();
     });
 

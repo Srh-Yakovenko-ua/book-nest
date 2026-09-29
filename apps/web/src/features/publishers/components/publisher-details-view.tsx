@@ -15,6 +15,7 @@ import { isPublisherDetailTab } from "../model/publisher-detail-url";
 import { usePublisherDetailTab } from "../model/use-publisher-detail-tab";
 import { DeletePublisherDialog } from "./delete-publisher-dialog";
 import { EditPublisherDialog } from "./edit-publisher-dialog";
+import { MergePublisherDialog } from "./merge-publisher-dialog";
 import { PublisherBooksTab } from "./publisher-books-tab";
 import { PublisherDetailsHero } from "./publisher-details-hero";
 import { PublisherOverviewTab } from "./publisher-overview-tab";
@@ -30,6 +31,7 @@ export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
   const { selectTab, tab } = usePublisherDetailTab();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const actionsMenuRef = useRef<HTMLButtonElement>(null);
   const overview = usePublisherOverview(details.id, {
     enabled: tab === "overview" && details.stats.booksCount > 0,
@@ -45,6 +47,8 @@ export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
     actionsMenuRef.current?.focus();
   };
 
+  const keepFocusForMergeDialog = (event: Event) => event.preventDefault();
+
   const onAddBook = () => router.push(`/books/new?publisherId=${details.id}`);
 
   return (
@@ -55,6 +59,7 @@ export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
         onAddBook={onAddBook}
         onDelete={() => setDeleteOpen(true)}
         onEdit={() => setEditOpen(true)}
+        onMerge={() => setMergeOpen(true)}
       />
 
       <PublisherStatsGrid stats={details.stats} />
@@ -87,10 +92,19 @@ export function PublisherDetailsView({ details }: PublisherDetailsViewProps) {
           />
           <DeletePublisherDialog
             booksCount={details.stats.booksCount}
-            onCloseAutoFocus={restoreActionsMenuFocus}
+            onCloseAutoFocus={mergeOpen ? keepFocusForMergeDialog : restoreActionsMenuFocus}
             onGoToBooks={() => selectTab("books")}
+            onMerge={() => setMergeOpen(true)}
             onOpenChange={setDeleteOpen}
             open={deleteOpen}
+            publisherId={details.id}
+            publisherName={details.name}
+          />
+          <MergePublisherDialog
+            booksCount={details.stats.booksCount}
+            onCloseAutoFocus={restoreActionsMenuFocus}
+            onOpenChange={setMergeOpen}
+            open={mergeOpen}
             publisherId={details.id}
             publisherName={details.name}
           />

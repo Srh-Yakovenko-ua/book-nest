@@ -721,6 +721,32 @@ export const PublishersControllerLibraryOverviewResponse = zod.object({
 });
 
 /**
+ * @summary Merge a custom publisher into another visible publisher and delete the source
+ */
+export const PublishersControllerMergeCustomParams = zod.object({
+  sourcePublisherId: zod.string(),
+});
+
+export const publishersControllerMergeCustomBodyTargetPublisherIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const PublishersControllerMergeCustomBody = zod.object({
+  targetPublisherId: zod.uuid().regex(publishersControllerMergeCustomBodyTargetPublisherIdRegExp),
+});
+
+export const publishersControllerMergeCustomResponseMovedBooksCountMin = 0;
+export const publishersControllerMergeCustomResponseMovedBooksCountMax = 9007199254740991;
+
+export const PublishersControllerMergeCustomResponse = zod.object({
+  movedBooksCount: zod
+    .int()
+    .min(publishersControllerMergeCustomResponseMovedBooksCountMin)
+    .max(publishersControllerMergeCustomResponseMovedBooksCountMax),
+  targetPublisherId: zod.string(),
+});
+
+/**
  * @summary Edit a custom publisher owned by the current user
  */
 export const PublishersControllerUpdateCustomParams = zod.object({
