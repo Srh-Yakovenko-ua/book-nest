@@ -320,7 +320,7 @@ export class PublishersRepository {
   }
 
   countBooks(publisherId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
-    return client.book.count({ where: { ...SOFT_DELETE_SCOPE.active, publisherId } });
+    return client.book.count({ where: { publisherId } });
   }
 
   countLibrary(input: CountLibraryInput): Promise<number> {

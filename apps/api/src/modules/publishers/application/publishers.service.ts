@@ -23,7 +23,10 @@ import type { PublisherModel } from "../../../generated/prisma/models.js";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import {
+  isForeignKeyConstraintError,
+  rethrowUniqueConstraintAs,
+} from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toLibraryPublisherCriteria } from "../domain/publisher-library-criteria.js";
 import {
@@ -105,11 +108,19 @@ export class PublishersService {
     await this.transactionRunner.run(async (tx) => {
       const linkedBooks = await this.publishersRepository.countBooks(publisherId, tx);
       if (linkedBooks > 0) {
-        throw new ConflictError("Publisher still has linked books", {
-          code: "PUBLISHER_HAS_BOOKS",
-        });
+        throw publisherHasBooksError();
       }
-      const deleted = await this.publishersRepository.deleteWithNames(publisherId, tx);
+
+      let deleted: number;
+      try {
+        deleted = await this.publishersRepository.deleteWithNames(publisherId, tx);
+      } catch (error) {
+        if (isForeignKeyConstraintError(error)) {
+          throw publisherHasBooksError();
+        }
+        throw error;
+      }
+
       if (deleted === 0) {
         throw new NotFoundError("Publisher not found");
       }
@@ -353,4 +364,8 @@ export class PublishersService {
       });
     }
   }
+}
+
+function publisherHasBooksError(): ConflictError {
+  return new ConflictError("Publisher still has linked books", { code: "PUBLISHER_HAS_BOOKS" });
 }

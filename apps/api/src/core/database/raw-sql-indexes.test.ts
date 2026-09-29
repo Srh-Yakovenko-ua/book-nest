@@ -5,19 +5,22 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { createTestApp } from "../../test/create-test-app.js";
+import { isForeignKeyConstraintError } from "../prisma-errors.js";
 import { PrismaService } from "./prisma.service.js";
 
 const IndexRowSchema = z.object({ indexdef: z.string(), indexname: z.string() });
 
 const ConstraintRowSchema = z.object({ conname: z.string() });
 
-const ForeignKeyRowSchema = z.object({
+const DeleteActionRowSchema = z.object({ onDelete: z.string() });
+
+const ForeignKeyRowSchema = DeleteActionRowSchema.extend({
   column: z.string(),
-  onDelete: z.string(),
   table: z.string(),
 });
 
 const NO_ACTION = "a";
+const RESTRICT = "r";
 
 const MEDIA_REFERENCE_COUNT = 4;
 
@@ -51,6 +54,7 @@ let app: INestApplication;
 let indexes: Map<string, string>;
 let constraints: Set<string>;
 let mediaReferenceActions: Map<string, string>;
+let bookPublisherDeleteAction: string;
 
 beforeAll(async () => {
   app = await createTestApp([]);
@@ -88,6 +92,14 @@ beforeAll(async () => {
       .parse(foreignKeyRows)
       .map((row) => [`${row.table}.${row.column}`, row.onDelete]),
   );
+  const publisherForeignKeyRows = await prisma.$queryRaw`
+    SELECT confdeltype::text AS "onDelete"
+    FROM pg_constraint
+    WHERE conname = 'books_publisher_id_fkey' AND contype = 'f'
+  `;
+  bookPublisherDeleteAction = z
+    .tuple([DeleteActionRowSchema])
+    .parse(publisherForeignKeyRows)[0].onDelete;
 });
 
 afterAll(async () => {
@@ -188,5 +200,107 @@ describe("media references are enforced by the database, not by counting in code
       id: userId,
     });
     await expect(prisma.mediaAsset.count({ where: { userId } })).resolves.toBe(0);
+  });
+});
+
+describe("a publisher cannot be deleted out from under a book", () => {
+  it("keeps books.publisher_id ON DELETE RESTRICT so a trashed book never loses its publisher", () => {
+    expect(
+      bookPublisherDeleteAction,
+      "ON DELETE SET NULL lets a publisher deletion silently strip the publisher from trashed books",
+    ).toBe(RESTRICT);
+  });
+
+  it("refuses to delete a publisher that a trashed book still references", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = randomUUID();
+    const publisherId = randomUUID();
+    const trashedAt = new Date("2026-05-01T10:00:00.000Z");
+
+    await prisma.user.create({
+      data: {
+        email: `restrict-${userId}@example.test`,
+        id: userId,
+        name: "Restrict probe",
+        passwordHash: "x",
+      },
+    });
+    await prisma.publisher.create({
+      data: {
+        id: publisherId,
+        name: "Restrict Press",
+        normalizedName: `restrict press ${publisherId}`,
+        userId,
+      },
+    });
+    await prisma.book.create({
+      data: {
+        deletedAt: trashedAt,
+        publisherId,
+        purgeAt: trashedAt,
+        title: "Trashed probe",
+        userId,
+      },
+    });
+
+    const rejection = await prisma.publisher
+      .delete({ where: { id: publisherId } })
+      .then(() => null)
+      .catch((error: unknown) => error);
+
+    expect(isForeignKeyConstraintError(rejection)).toBe(true);
+    await expect(prisma.book.count({ where: { publisherId, userId } })).resolves.toBe(1);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("still lets a stale signup be deleted while its books reference its own custom publisher", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = randomUUID();
+    const publisherId = randomUUID();
+
+    await prisma.user.create({
+      data: {
+        email: `cleanup-${userId}@example.test`,
+        id: userId,
+        name: "Cleanup probe",
+        passwordHash: "x",
+      },
+    });
+    await prisma.publisher.create({
+      data: {
+        id: publisherId,
+        name: "Cleanup Press",
+        normalizedName: `cleanup press ${publisherId}`,
+        userId,
+      },
+    });
+    await prisma.publisherName.create({
+      data: {
+        isPrimary: true,
+        locale: "uk",
+        name: "Cleanup Press",
+        normalizedName: "cleanup press",
+        publisherId,
+      },
+    });
+    await prisma.book.create({
+      data: { publisherId, title: "Active probe", userId },
+    });
+    await prisma.book.create({
+      data: {
+        deletedAt: new Date("2026-05-01T10:00:00.000Z"),
+        publisherId,
+        purgeAt: new Date("2026-05-01T10:00:00.000Z"),
+        title: "Trashed probe",
+        userId,
+      },
+    });
+
+    await expect(prisma.user.delete({ where: { id: userId } })).resolves.toMatchObject({
+      id: userId,
+    });
+    await expect(prisma.publisher.count({ where: { userId } })).resolves.toBe(0);
+    await expect(prisma.book.count({ where: { userId } })).resolves.toBe(0);
   });
 });

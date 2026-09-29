@@ -1,7 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
@@ -9,10 +9,12 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
+import { PublishersRepository } from "../infrastructure/publishers.repository.js";
 import { PublishersModule } from "../publishers.module.js";
 import { seedBook, seedPublisher } from "./publisher-library.fixtures.js";
 
 const MISSING_ID = "00000000-0000-4000-8000-000000000000";
+const TRASHED_AT = new Date("2026-05-01T10:00:00.000Z");
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -29,6 +31,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await truncateAllTables(app);
 });
 
@@ -281,6 +284,54 @@ describe("DELETE /api/publishers/:id own custom publisher", () => {
     expect(res.body.code).toBe("PUBLISHER_HAS_BOOKS");
     const remaining = await prisma.publisher.findUnique({ where: { id: publisher.id } });
     expect(remaining).not.toBeNull();
+  });
+
+  it("returns 409 and keeps the link when the only linked book sits in the trash", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const publisher = await seedPublisher({
+      name: "Trashed",
+      normalizedName: "trashed",
+      prisma,
+      userId,
+    });
+    const book = await seedBook({ prisma, publisherId: publisher.id, userId });
+    await prisma.book.update({
+      data: { deletedAt: TRASHED_AT, purgeAt: TRASHED_AT },
+      where: { id: book.id },
+    });
+
+    const res = await deletePublisher(accessToken, publisher.id);
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("PUBLISHER_HAS_BOOKS");
+    const remaining = await prisma.publisher.findUnique({ where: { id: publisher.id } });
+    const trashedBook = await prisma.book.findUnique({
+      select: { publisherId: true },
+      where: { id: book.id },
+    });
+    expect(remaining).not.toBeNull();
+    expect(trashedBook?.publisherId).toBe(publisher.id);
+  });
+
+  it("returns 409 rather than 500 when a book slips past the count guard and the constraint rejects the delete", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const publisher = await seedPublisher({
+      name: "Raced",
+      normalizedName: "raced",
+      prisma,
+      userId,
+    });
+    await seedBook({ prisma, publisherId: publisher.id, userId });
+    vi.spyOn(app.get(PublishersRepository), "countBooks").mockResolvedValue(0);
+
+    const res = await deletePublisher(accessToken, publisher.id);
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("PUBLISHER_HAS_BOOKS");
+    const remaining = await prisma.publisher.findUnique({ where: { id: publisher.id } });
+    const names = await prisma.publisherName.count({ where: { publisherId: publisher.id } });
+    expect(remaining).not.toBeNull();
+    expect(names).toBe(1);
   });
 });
 
