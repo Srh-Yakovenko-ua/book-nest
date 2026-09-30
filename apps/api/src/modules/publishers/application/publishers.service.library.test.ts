@@ -8,7 +8,10 @@ import type { PublisherModel } from "../../../generated/prisma/models.js";
 import type { MediaService } from "../../media/index.js";
 import type { LibraryDetailStatsRow, LibraryStatsRow } from "../domain/publisher-library.mapper.js";
 import type { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
-import type { PublishersRepository } from "../infrastructure/publishers.repository.js";
+import type {
+  PublishersRepository,
+  PublisherWithNames,
+} from "../infrastructure/publishers.repository.js";
 
 import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { PublishersService } from "./publishers.service.js";
@@ -28,7 +31,7 @@ type RepositoryMock = {
   countLibraryQuickFilters: ReturnType<typeof vi.fn>;
   deleteWithNames: ReturnType<typeof vi.fn>;
   findById: ReturnType<typeof vi.fn>;
-  findByNormalized: ReturnType<typeof vi.fn>;
+  findNameMatches: ReturnType<typeof vi.fn>;
   summaryCounts: ReturnType<typeof vi.fn>;
   summaryPriceTotals: ReturnType<typeof vi.fn>;
   updateCustom: ReturnType<typeof vi.fn>;
@@ -41,7 +44,7 @@ type ServiceOverrides = {
   countBooks?: number;
   countLibrary?: number;
   findById?: Nullable<PublisherModel>;
-  findByNormalized?: Nullable<PublisherModel>;
+  findNameMatches?: PublisherWithNames[];
   updateCustom?: PublisherModel;
 };
 
@@ -59,7 +62,7 @@ function buildService(overrides: ServiceOverrides = {}): {
     countLibraryQuickFilters: vi.fn().mockResolvedValue(QUICK_COUNTS),
     deleteWithNames: vi.fn().mockResolvedValue(undefined),
     findById: vi.fn().mockResolvedValue(overrides.findById ?? null),
-    findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
+    findNameMatches: vi.fn().mockResolvedValue(overrides.findNameMatches ?? []),
     summaryCounts: vi.fn(),
     summaryPriceTotals: vi.fn(),
     updateCustom: vi.fn().mockResolvedValue(overrides.updateCustom ?? publisher()),
@@ -98,6 +101,23 @@ function publisher(overrides: Partial<PublisherModel> = {}): PublisherModel {
     websiteUrl: null,
     wikidataId: null,
     ...overrides,
+  };
+}
+
+function publisherWithNames(overrides: Partial<PublisherModel> = {}): PublisherWithNames {
+  const base = publisher(overrides);
+  return {
+    ...base,
+    names: [
+      {
+        id: `${base.id}-name`,
+        isPrimary: true,
+        locale: "uk",
+        name: base.name,
+        normalizedName: base.normalizedName,
+        publisherId: base.id,
+      },
+    ],
   };
 }
 
@@ -196,13 +216,50 @@ describe("PublishersService.updateCustom", () => {
     await expect(service.updateCustom(renameInput)).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("throws a PUBLISHER_DUPLICATE_NAME conflict when the new name collides with a different publisher", async () => {
+  it("throws a PUBLISHER_DUPLICATE_NAME conflict when the new name exactly matches a different publisher", async () => {
     const { service } = buildService({
       findById: publisher(),
-      findByNormalized: publisher({ id: OTHER_PUBLISHER_ID, name: "Renamed Press" }),
+      findNameMatches: [
+        publisherWithNames({
+          id: OTHER_PUBLISHER_ID,
+          name: "Renamed Press",
+          normalizedName: "renamed press",
+        }),
+      ],
     });
 
     await expect(service.updateCustom(renameInput)).rejects.toBeInstanceOf(ConflictError);
+    await expect(service.updateCustom(renameInput)).rejects.toMatchObject({
+      code: "PUBLISHER_DUPLICATE_NAME",
+    });
+  });
+
+  it("throws a PUBLISHER_DUPLICATE_NAME conflict when the new name matches another publisher alias", async () => {
+    const aliasOwner = publisherWithNames({
+      id: OTHER_PUBLISHER_ID,
+      name: "Publishing House Renamed Press",
+      normalizedName: "publishing house renamed press",
+    });
+    const { service } = buildService({
+      findById: publisher(),
+      findNameMatches: [
+        {
+          ...aliasOwner,
+          names: [
+            ...aliasOwner.names,
+            {
+              id: `${OTHER_PUBLISHER_ID}-alias`,
+              isPrimary: false,
+              locale: "uk",
+              name: "Renamed Press",
+              normalizedName: "renamed press",
+              publisherId: OTHER_PUBLISHER_ID,
+            },
+          ],
+        },
+      ],
+    });
+
     await expect(service.updateCustom(renameInput)).rejects.toMatchObject({
       code: "PUBLISHER_DUPLICATE_NAME",
     });
@@ -212,12 +269,25 @@ describe("PublishersService.updateCustom", () => {
     const { service } = buildService({
       aggregateLibraryDetail: statsRow({ name: "Renamed Press" }),
       findById: publisher(),
-      findByNormalized: publisher({ id: PUBLISHER_ID }),
+      findNameMatches: [publisherWithNames({ id: PUBLISHER_ID, normalizedName: "renamed press" })],
     });
 
     const detail = await service.updateCustom(renameInput);
 
     expect(detail.name).toBe("Renamed Press");
+  });
+
+  it("lets the rename through when no exact or alias match exists", async () => {
+    const { repository, service } = buildService({
+      aggregateLibraryDetail: statsRow({ name: "Renamed Press" }),
+      findById: publisher(),
+      findNameMatches: [],
+    });
+
+    const detail = await service.updateCustom(renameInput);
+
+    expect(detail.name).toBe("Renamed Press");
+    expect(repository.updateCustom).toHaveBeenCalled();
   });
 
   it("skips the duplicate-name check when no name is provided", async () => {
@@ -232,7 +302,7 @@ describe("PublishersService.updateCustom", () => {
       userId: USER_ID,
     });
 
-    expect(repository.findByNormalized).not.toHaveBeenCalled();
+    expect(repository.findNameMatches).not.toHaveBeenCalled();
   });
 
   it("updates the primary name only when a rename is requested", async () => {

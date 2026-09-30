@@ -365,6 +365,32 @@ export const PublishersControllerLibraryListResponse = zod.object({
 });
 
 /**
+ * @summary List publishers that would duplicate the given publisher name
+ */
+export const publishersControllerDuplicateCandidatesQueryExcludePublisherIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const PublishersControllerDuplicateCandidatesQueryParams = zod.object({
+  excludePublisherId: zod
+    .uuid()
+    .regex(publishersControllerDuplicateCandidatesQueryExcludePublisherIdRegExp)
+    .optional(),
+  locale: zod.enum(["en", "uk"]).optional(),
+  name: zod.string(),
+});
+
+export const PublishersControllerDuplicateCandidatesResponseItem = zod.object({
+  id: zod.string(),
+  isCustom: zod.boolean(),
+  matchKind: zod.enum(["exact", "alias", "strong"]),
+  name: zod.string(),
+});
+export const PublishersControllerDuplicateCandidatesResponse = zod.array(
+  PublishersControllerDuplicateCandidatesResponseItem,
+);
+
+/**
  * @summary List recently used publishers for the current user
  */
 export const publishersControllerRecentQueryLimitDefault = 8;
@@ -718,6 +744,32 @@ export const PublishersControllerLibraryOverviewResponse = zod.object({
       }),
     )
     .max(publishersControllerLibraryOverviewResponseWishlistMax),
+});
+
+/**
+ * @summary Merge a custom publisher into another visible publisher and delete the source
+ */
+export const PublishersControllerMergeCustomParams = zod.object({
+  sourcePublisherId: zod.string(),
+});
+
+export const publishersControllerMergeCustomBodyTargetPublisherIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const PublishersControllerMergeCustomBody = zod.object({
+  targetPublisherId: zod.uuid().regex(publishersControllerMergeCustomBodyTargetPublisherIdRegExp),
+});
+
+export const publishersControllerMergeCustomResponseMovedBooksCountMin = 0;
+export const publishersControllerMergeCustomResponseMovedBooksCountMax = 9007199254740991;
+
+export const PublishersControllerMergeCustomResponse = zod.object({
+  movedBooksCount: zod
+    .int()
+    .min(publishersControllerMergeCustomResponseMovedBooksCountMin)
+    .max(publishersControllerMergeCustomResponseMovedBooksCountMax),
+  targetPublisherId: zod.string(),
 });
 
 /**

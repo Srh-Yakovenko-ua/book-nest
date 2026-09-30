@@ -23,11 +23,13 @@ import type {
 } from "../domain/publisher-library.mapper.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { PUBLISHER_BOOK_STATUSES } from "../domain/publisher-book-statuses.js";
+import { PUBLISHER_MATCH_TUNING } from "../domain/publisher-name-matching.js";
 
 const PUBLISHER_STAT_SQL = {
   activeSeriesCount: Prisma.sql`count(DISTINCT s.id) FILTER (WHERE s.deleted_at IS NULL)`,
@@ -95,6 +97,8 @@ const SummaryCountsRowSchema = z.object({
   wantToBuyBooksCount: z.number(),
 });
 
+const CandidateIdRowSchema = z.object({ id: z.string() });
+
 const LibraryCountRowSchema = z.object({ count: z.number() });
 
 const LibraryQuickCountsRowSchema = z.object({
@@ -140,6 +144,10 @@ const EMPTY_SUMMARY_INSIGHTS: SummaryInsightsRow = {
   unreadPublishers: [],
 };
 
+const allNamesArgs = {
+  include: { names: true },
+} satisfies Prisma.PublisherDefaultArgs;
+
 const primaryNamesArgs = {
   include: { names: { where: { isPrimary: true } } },
 } satisfies Prisma.PublisherDefaultArgs;
@@ -164,6 +172,8 @@ export type PublisherNameSeed = {
   name: string;
   normalizedName: string;
 };
+
+export type PublisherWithNames = Prisma.PublisherGetPayload<typeof allNamesArgs>;
 
 export type PublisherWithPrimaryNames = Prisma.PublisherGetPayload<typeof primaryNamesArgs>;
 
@@ -202,6 +212,17 @@ type LibraryHavingFlags = {
   hasWantToRead: boolean;
 };
 
+type NameMatchesInput = {
+  normalizedName: string;
+  userId: string;
+};
+
+type ReassignBooksInput = {
+  sourcePublisherId: string;
+  targetPublisherId: string;
+  userId: string;
+};
+
 type RecentPublishersInput = {
   limit: number;
   userId: string;
@@ -226,6 +247,11 @@ type SearchPublishersInput = {
   skip: number;
   take: number;
   userId: string;
+};
+
+type StrongCandidatesInput = {
+  userId: string;
+  variants: string[];
 };
 
 type SummaryInsightsInput = {
@@ -320,7 +346,7 @@ export class PublishersRepository {
   }
 
   countBooks(publisherId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
-    return client.book.count({ where: { ...SOFT_DELETE_SCOPE.active, publisherId } });
+    return client.book.count({ where: { publisherId } });
   }
 
   countLibrary(input: CountLibraryInput): Promise<number> {
@@ -383,17 +409,67 @@ export class PublishersRepository {
     return deleted.count;
   }
 
-  findById(id: string): Promise<Nullable<PublisherModel>> {
-    return this.prisma.publisher.findUnique({ where: { id } });
-  }
-
-  findByNormalized(
-    userId: string,
-    normalizedName: string,
+  findById(
+    id: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<PublisherModel>> {
-    return client.publisher.findFirst({
-      where: { normalizedName, ...visibleToUser(userId) },
+    return client.publisher.findUnique({ where: { id } });
+  }
+
+  findNameMatches(
+    { normalizedName, userId }: NameMatchesInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<PublisherWithNames[]> {
+    return client.publisher.findMany({
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      where: {
+        AND: [
+          visibleToUser(userId),
+          { OR: [{ normalizedName }, { names: { some: { normalizedName } } }] },
+        ],
+      },
+      ...allNamesArgs,
+    });
+  }
+
+  findStrongCandidates(
+    { userId, variants }: StrongCandidatesInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<PublisherWithNames[]> {
+    if (variants.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      await tx.$queryRaw(Prisma.sql`
+        SELECT set_config(
+          'pg_trgm.word_similarity_threshold',
+          ${String(PUBLISHER_MATCH_TUNING.wordSimilarityThreshold)},
+          true
+        )
+      `);
+
+      const rows = await tx.$queryRaw(Prisma.sql`
+        SELECT p.id AS "id"
+        FROM publishers p
+        JOIN LATERAL unnest(ARRAY[${Prisma.join(variants)}]::text[]) AS v(variant)
+          ON p.search_text %> v.variant
+        WHERE (p.user_id IS NULL OR p.user_id = ${userId}::uuid)
+        GROUP BY p.id, p.name
+        ORDER BY max(word_similarity(v.variant, p.search_text)) DESC, p.name ASC, p.id ASC
+        LIMIT ${PUBLISHER_MATCH_TUNING.retrievalCandidateLimit}
+      `);
+
+      const ids = z.array(CandidateIdRowSchema).parse(rows);
+      if (ids.length === 0) {
+        return [];
+      }
+
+      return tx.publisher.findMany({
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+        where: { id: { in: ids.map((row) => row.id) }, ...visibleToUser(userId) },
+        ...allNamesArgs,
+      });
     });
   }
 
@@ -412,6 +488,17 @@ export class PublishersRepository {
       where: { id: { in: ids }, ...visibleToUser(userId) },
       ...primaryNamesArgs,
     });
+  }
+
+  async reassignBooks(
+    { sourcePublisherId, targetPublisherId, userId }: ReassignBooksInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const reassigned = await client.book.updateMany({
+      data: { publisherId: targetPublisherId },
+      where: { publisherId: sourcePublisherId, userId },
+    });
+    return reassigned.count;
   }
 
   async recentPublisherIds({ limit, userId }: RecentPublishersInput): Promise<string[]> {

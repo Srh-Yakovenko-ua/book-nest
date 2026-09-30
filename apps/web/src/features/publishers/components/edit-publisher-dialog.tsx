@@ -11,7 +11,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -30,6 +30,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { YearPicker } from "@/components/ui/year-picker";
 import { DiscardConfirmDialog } from "@/features/books";
+import {
+  PUBLISHER_LOOKUP,
+  usePublisherDuplicateCandidates,
+} from "@/features/books/api/use-publisher-duplicate-candidates";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ApiError } from "@/lib/http-client";
 
 import { useUpdatePublisher } from "../api/use-update-publisher";
@@ -180,6 +185,9 @@ function EditPublisherForm({
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  const nameValue = useWatch({ control, name: "name" }) ?? "";
+  const nameAlreadyTaken = useNameAlreadyTaken({ name: nameValue, publisherId: details.id });
+
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     const payload: UpdatePublisherInput = {
@@ -226,6 +234,11 @@ function EditPublisherForm({
           {...register("name")}
         />
         <FieldError error={errors.name} id="edit-publisher-name-error" />
+        {nameAlreadyTaken && errors.name === undefined ? (
+          <p className="text-xs text-warning" role="status">
+            {t("duplicate")}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -318,4 +331,22 @@ function EditPublisherForm({
       </DialogFooter>
     </form>
   );
+}
+
+function useNameAlreadyTaken({
+  name,
+  publisherId,
+}: {
+  name: string;
+  publisherId: string;
+}): boolean {
+  const trimmedName = name.trim();
+  const debouncedName = useDebouncedValue(trimmedName, PUBLISHER_LOOKUP.debounceMs);
+  const { data: candidates = [] } = usePublisherDuplicateCandidates({
+    excludePublisherId: publisherId,
+    name: debouncedName,
+  });
+
+  if (debouncedName !== trimmedName) return false;
+  return candidates.some((candidate) => candidate.matchKind !== "strong");
 }

@@ -13,6 +13,10 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { cn } from "@/lib/utils";
 
+import {
+  PUBLISHER_LOOKUP,
+  usePublisherDuplicateCandidates,
+} from "../api/use-publisher-duplicate-candidates";
 import { usePublishersSearch } from "../api/use-publishers-search";
 import { useRecentPublishers } from "../api/use-recent-publishers";
 import { type PublisherSelection } from "../model/create-book-form";
@@ -27,13 +31,12 @@ type PublisherAutocompleteProps = {
   value: null | PublisherSelection;
 };
 
-const SEARCH_DEBOUNCE_MS = 250;
-const MIN_QUERY_LENGTH = 2;
-
 type PublisherOptionProps = {
   onSelect: () => void;
-  publisher: PublisherView;
+  publisher: PublisherRow;
 };
+
+type PublisherRow = Pick<PublisherView, "id" | "isCustom" | "name">;
 
 export function PublisherAutocomplete({
   describedBy,
@@ -56,7 +59,7 @@ export function PublisherAutocomplete({
     if (value === null && trackedValue !== null && query === trackedValue.name) setQuery("");
   }
 
-  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  const debouncedQuery = useDebouncedValue(query, PUBLISHER_LOOKUP.debounceMs);
   const {
     fetchNextPage,
     hasNextPage,
@@ -65,6 +68,9 @@ export function PublisherAutocomplete({
     items: publishers,
   } = usePublishersSearch(debouncedQuery);
   const { data: recentPublishers = [] } = useRecentPublishers();
+  const { data: fetchedCandidates = [] } = usePublisherDuplicateCandidates({
+    name: debouncedQuery,
+  });
   const { onScroll, scrollRef } = useInfiniteScroll({
     hasNextPage,
     isFetchingNextPage,
@@ -74,24 +80,28 @@ export function PublisherAutocomplete({
 
   const trimmedQuery = query.trim();
   const normalizedQuery = trimmedQuery.toLowerCase();
-  const filteredRecent =
+  const candidates = debouncedQuery.trim() === trimmedQuery ? fetchedCandidates : [];
+  const existingMatches = candidates.filter((candidate) => candidate.matchKind !== "strong");
+  const similarMatches = existingMatches.length > 0 ? [] : candidates;
+
+  const matchedIds = new Set([...existingMatches, ...similarMatches].map((match) => match.id));
+  const filteredRecent = (
     normalizedQuery.length === 0
       ? recentPublishers
       : recentPublishers.filter((publisher) =>
           publisher.name.toLowerCase().includes(normalizedQuery),
-        );
-  const recentIds = new Set(filteredRecent.map((publisher) => publisher.id));
-  const catalogResults = publishers.filter((publisher) => !recentIds.has(publisher.id));
+        )
+  ).filter((publisher) => !matchedIds.has(publisher.id));
+  const listedIds = new Set([...matchedIds, ...filteredRecent.map((publisher) => publisher.id)]);
+  const catalogResults = publishers.filter((publisher) => !listedIds.has(publisher.id));
 
   const showCustomOption =
-    trimmedQuery.length >= MIN_QUERY_LENGTH &&
-    ![...publishers, ...recentPublishers].some(
-      (publisher) => publisher.name.toLowerCase() === normalizedQuery,
-    );
+    trimmedQuery.length >= PUBLISHER_LOOKUP.minNameLength && existingMatches.length === 0;
+  const customIsSecondary = similarMatches.length > 0;
 
-  const hasResults = filteredRecent.length > 0 || catalogResults.length > 0;
+  const hasResults = listedIds.size > 0 || catalogResults.length > 0;
 
-  function pickCatalog(publisher: PublisherView) {
+  function pickCatalog(publisher: PublisherRow) {
     onChange({ id: publisher.id, kind: "catalog", name: publisher.name });
     setQuery(publisher.name);
     setOpen(false);
@@ -177,6 +187,28 @@ export function PublisherAutocomplete({
             {!isFetching && !hasResults && !showCustomOption ? (
               <CommandEmpty>{t("publisher.empty")}</CommandEmpty>
             ) : null}
+            {existingMatches.length > 0 ? (
+              <CommandGroup heading={t("publisher.existingHeading")}>
+                {existingMatches.map((match) => (
+                  <PublisherOption
+                    key={match.id}
+                    onSelect={() => pickCatalog(match)}
+                    publisher={match}
+                  />
+                ))}
+              </CommandGroup>
+            ) : null}
+            {similarMatches.length > 0 ? (
+              <CommandGroup heading={t("publisher.similarHeading")}>
+                {similarMatches.map((match) => (
+                  <PublisherOption
+                    key={match.id}
+                    onSelect={() => pickCatalog(match)}
+                    publisher={match}
+                  />
+                ))}
+              </CommandGroup>
+            ) : null}
             {filteredRecent.length > 0 ? (
               <CommandGroup heading={t("publisher.recentHeading")}>
                 {filteredRecent.map((publisher) => (
@@ -211,9 +243,17 @@ export function PublisherAutocomplete({
                   onSelect={pickCustom}
                   value={`custom-${trimmedQuery}`}
                 >
-                  <UiIcon className="text-primary" name="plus" size={16} />
-                  <span className="min-w-0 truncate">
-                    {t("publisher.useCustom", { name: trimmedQuery })}
+                  <UiIcon
+                    className={customIsSecondary ? "text-muted-foreground" : "text-primary"}
+                    name="plus"
+                    size={16}
+                  />
+                  <span
+                    className={cn("min-w-0 truncate", customIsSecondary && "text-muted-foreground")}
+                  >
+                    {customIsSecondary
+                      ? t("publisher.useCustomAnyway", { name: trimmedQuery })
+                      : t("publisher.useCustom", { name: trimmedQuery })}
                   </span>
                 </CommandItem>
               </CommandGroup>

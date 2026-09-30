@@ -5,6 +5,8 @@ import type {
   LibraryPublishersQuickCounts,
   LibraryPublishersSummary,
   Paginator,
+  PublisherDuplicateCandidate,
+  PublisherMergeResult,
   PublisherView,
 } from "@app/shared";
 
@@ -15,6 +17,8 @@ import {
   LibraryPublishersQuickCountsQuerySchema,
   LibraryPublishersQuickFilterSchema,
   LibraryPublishersSummaryQuerySchema,
+  MergePublisherInputSchema,
+  PublisherDuplicateCandidatesQuerySchema,
   PublisherSearchPaginationQuerySchema,
   RecentPublishersQuerySchema,
   UpdatePublisherInputSchema,
@@ -28,6 +32,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
 } from "@nestjs/common";
 import {
@@ -57,6 +62,8 @@ import { LibraryPublisherDetailQueryDto } from "./input-dto/library-publisher-de
 import { LibraryPublishersQueryDto } from "./input-dto/library-publishers-query.input-dto.js";
 import { LibraryPublishersQuickCountsQueryDto } from "./input-dto/library-publishers-quick-counts-query.input-dto.js";
 import { LibraryPublishersSummaryQueryDto } from "./input-dto/library-publishers-summary-query.input-dto.js";
+import { MergePublisherDto } from "./input-dto/merge-publisher.input-dto.js";
+import { PublisherDuplicateCandidatesQueryDto } from "./input-dto/publisher-duplicate-candidates-query.input-dto.js";
 import { PublisherSearchPaginationQueryDto } from "./input-dto/publisher-search-query.input-dto.js";
 import { RecentPublishersQueryDto } from "./input-dto/recent-publishers-query.input-dto.js";
 import { UpdatePublisherDto } from "./input-dto/update-publisher.input-dto.js";
@@ -65,6 +72,8 @@ import { LibraryPublisherOverviewDto } from "./view-dto/library-publisher-overvi
 import { LibraryPublishersPageDto } from "./view-dto/library-publishers-page.view-dto.js";
 import { LibraryPublishersQuickCountsDto } from "./view-dto/library-publishers-quick-counts.view-dto.js";
 import { LibraryPublishersSummaryDto } from "./view-dto/library-publishers-summary.view-dto.js";
+import { PublisherDuplicateCandidateDto } from "./view-dto/publisher-duplicate-candidate.view-dto.js";
+import { PublisherMergeResultDto } from "./view-dto/publisher-merge-result.view-dto.js";
 
 @ApiTags("publishers")
 @Controller("api/publishers")
@@ -133,6 +142,32 @@ export class PublishersController {
   ): Promise<Paginator<LibraryPublisherListItem>> {
     return this.publishersService.libraryList({ query, userId: user.id });
   }
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "Publishers that already cover this name, ordered exact, then alias, then strong suggestions",
+    isArray: true,
+    type: PublisherDuplicateCandidateDto,
+  })
+  @ApiOperation({ summary: "List publishers that would duplicate the given publisher name" })
+  @ApiQuery({ name: "name" })
+  @ApiQuery({ name: "excludePublisherId", required: false })
+  @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
+  @Get("duplicate-candidates")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  duplicateCandidates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(PublisherDuplicateCandidatesQuerySchema))
+    query: PublisherDuplicateCandidatesQueryDto,
+  ): Promise<PublisherDuplicateCandidate[]> {
+    return this.publishersService.duplicateCandidates({
+      excludePublisherId: query.excludePublisherId,
+      locale: query.locale,
+      name: query.name,
+      userId: user.id,
+    });
+  }
   @ApiOkResponse({ description: "Publishers the current user recently used in their own books" })
   @ApiOperation({ summary: "List recently used publishers for the current user" })
   @ApiQuery({ name: "limit", required: false })
@@ -200,6 +235,37 @@ export class PublishersController {
     @Param("publisherId", ParseUUIDPipe) publisherId: string,
   ): Promise<LibraryPublisherOverview> {
     return this.publishersService.libraryOverview({ publisherId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({
+    description: "Validation failed or both ids point at the same publisher",
+  })
+  @ApiBody({ type: MergePublisherDto })
+  @ApiConflictResponse({ description: "The source publisher still has linked books" })
+  @ApiForbiddenResponse({ description: "Global publishers cannot be merged away" })
+  @ApiNotFoundResponse({ description: "Source or target publisher not found" })
+  @ApiOkResponse({
+    description: "The target publisher and how many books were moved onto it",
+    type: PublisherMergeResultDto,
+  })
+  @ApiOperation({
+    summary: "Merge a custom publisher into another visible publisher and delete the source",
+  })
+  @ApiParam({ name: "sourcePublisherId" })
+  @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
+  @Post(":sourcePublisherId/merge")
+  @Throttle(MUTATION_THROTTLE)
+  mergeCustom(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("sourcePublisherId", ParseUUIDPipe) sourcePublisherId: string,
+    @Body(new ZodBodyPipe(MergePublisherInputSchema)) body: MergePublisherDto,
+  ): Promise<PublisherMergeResult> {
+    return this.publishersService.mergeCustom({
+      sourcePublisherId,
+      targetPublisherId: body.targetPublisherId,
+      userId: user.id,
+    });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

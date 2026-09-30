@@ -1,4 +1,4 @@
-import type { PublisherView } from "@app/shared";
+import type { PublisherDuplicateCandidate, PublisherView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { useState } from "react";
@@ -36,15 +36,20 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 function mockPublishers({
+  duplicates = [],
   recent = [],
   search = [],
 }: {
+  duplicates?: PublisherDuplicateCandidate[];
   recent?: PublisherSeed[];
   search?: PublisherSeed[];
 }) {
   getQueryClient().clear();
   globalThis.fetch = ((input: RequestInfo | URL) => {
     const url = String(input);
+    if (url.includes("/api/publishers/duplicate-candidates")) {
+      return Promise.resolve(jsonResponse(200, duplicates));
+    }
     if (url.includes("/api/publishers/recent")) {
       return Promise.resolve(jsonResponse(200, recent.map(toPublisherView)));
     }

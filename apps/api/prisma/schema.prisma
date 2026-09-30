@@ -257,7 +257,7 @@ model Book {
   updatedAt                     DateTime                         @updatedAt @map("updated_at") @db.Timestamptz
   user                          User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
   authors                       BookAuthor[]
-  publisher                     Publisher?                       @relation(fields: [publisherId], references: [id])
+  publisher                     Publisher?                       @relation(fields: [publisherId], references: [id], onDelete: Restrict)
   series                        Series?                          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   coverMedia                    MediaAsset?                      @relation(fields: [coverMediaId], references: [id], onDelete: NoAction)
   tags                          BookTag[]

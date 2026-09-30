@@ -9,21 +9,37 @@ import type {
   LibraryPublishersSummary,
   Nullable,
   Paginator,
+  PublisherDuplicateCandidate,
+  PublisherMatchKind,
+  PublisherMergeResult,
   PublisherSearchPaginationQuery,
   PublisherView,
   UpdatePublisherInput,
 } from "@app/shared";
 
-import { normalizeName } from "@app/shared";
+import {
+  normalizeName,
+  PUBLISHER_MERGE_ERROR_CODES,
+  PUBLISHER_NAME_ERROR_CODES,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { PublisherModel } from "../../../generated/prisma/models.js";
+import type { PublisherWithNames } from "../infrastructure/publishers.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import {
+  isForeignKeyConstraintError,
+  rethrowUniqueConstraintAs,
+} from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toLibraryPublisherCriteria } from "../domain/publisher-library-criteria.js";
 import {
@@ -31,12 +47,27 @@ import {
   toLibraryPublisherListItem,
   toLibraryPublishersSummary,
 } from "../domain/publisher-library.mapper.js";
+import {
+  buildPublisherMatchVariants,
+  comparePublisherCandidates,
+  PUBLISHER_MATCH_TUNING,
+  scoreStrongMatch,
+} from "../domain/publisher-name-matching.js";
 import { toLibraryPublisherOverview } from "../domain/publisher-overview.mapper.js";
-import { toPublisherView } from "../domain/publisher.mapper.js";
+import { toPublisherDuplicateCandidate, toPublisherView } from "../domain/publisher.mapper.js";
 import { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
 import { PublishersRepository } from "../infrastructure/publishers.repository.js";
 
 const CUSTOM_PUBLISHER_LOCALE = "uk";
+
+const RELIABLE_MATCH_SCORE = 1;
+
+type DuplicateCandidatesInput = {
+  excludePublisherId?: string;
+  locale: CatalogLocale;
+  name: string;
+  userId: string;
+};
 
 type LibraryDetailInput = {
   locale: CatalogLocale;
@@ -59,6 +90,12 @@ type LibrarySummaryInput = {
   userId: string;
 };
 
+type MergeCustomInput = {
+  sourcePublisherId: string;
+  targetPublisherId: string;
+  userId: string;
+};
+
 type OwnedPublisherInput = {
   publisherId: string;
   userId: string;
@@ -70,10 +107,17 @@ type RecentPublishersInput = {
   userId: string;
 };
 
+type ReliableMatch = {
+  matchKind: PublisherMatchKind;
+  publisher: PublisherWithNames;
+};
+
 type ResolvePublisherInput = {
   id?: string;
   name?: string;
 };
+
+type ScoredCandidate = PublisherDuplicateCandidate & { score: number };
 
 type UpdateCustomInput = {
   input: UpdatePublisherInput;
@@ -91,29 +135,64 @@ export class PublishersService {
   ) {}
 
   async deleteCustom({ publisherId, userId }: OwnedPublisherInput): Promise<void> {
-    const publisher = await this.publishersRepository.findById(publisherId);
-    if (publisher === null) {
-      throw new NotFoundError("Publisher not found");
-    }
-    if (publisher.userId === null) {
-      throw new ForbiddenError();
-    }
-    if (publisher.userId !== userId) {
-      throw new NotFoundError("Publisher not found");
-    }
+    await this.loadOwnedCustom({ publisherId, userId });
 
     await this.transactionRunner.run(async (tx) => {
       const linkedBooks = await this.publishersRepository.countBooks(publisherId, tx);
       if (linkedBooks > 0) {
-        throw new ConflictError("Publisher still has linked books", {
-          code: "PUBLISHER_HAS_BOOKS",
-        });
+        throw publisherHasBooksError();
       }
-      const deleted = await this.publishersRepository.deleteWithNames(publisherId, tx);
+
+      let deleted: number;
+      try {
+        deleted = await this.publishersRepository.deleteWithNames(publisherId, tx);
+      } catch (error) {
+        if (isForeignKeyConstraintError(error)) {
+          throw publisherHasBooksError();
+        }
+        throw error;
+      }
+
       if (deleted === 0) {
         throw new NotFoundError("Publisher not found");
       }
     });
+  }
+
+  async duplicateCandidates({
+    excludePublisherId,
+    locale,
+    name,
+    userId,
+  }: DuplicateCandidatesInput): Promise<PublisherDuplicateCandidate[]> {
+    const variants = buildPublisherMatchVariants(name);
+
+    const [reliable, strongRows] = await Promise.all([
+      this.reliableMatches({ name, userId }),
+      this.publishersRepository.findStrongCandidates({ userId, variants }),
+    ]);
+
+    const reliableIds = new Set(reliable.map((match) => match.publisher.id));
+
+    const reliableCandidates = reliable.map(({ matchKind, publisher }) => ({
+      ...toPublisherDuplicateCandidate({ locale, matchKind, publisher }),
+      score: RELIABLE_MATCH_SCORE,
+    }));
+
+    const strongCandidates = strongRows
+      .filter((publisher) => !reliableIds.has(publisher.id))
+      .map((publisher) => ({
+        ...toPublisherDuplicateCandidate({ locale, matchKind: "strong", publisher }),
+        score: scoreStrongMatch({ candidateNames: toCandidateNames(publisher), variants }),
+      }))
+      .filter((candidate) => candidate.score >= PUBLISHER_MATCH_TUNING.minimumStrongSimilarity)
+      .sort(comparePublisherCandidates)
+      .slice(0, PUBLISHER_MATCH_TUNING.strongSuggestionLimit);
+
+    return [...reliableCandidates, ...strongCandidates]
+      .filter((candidate) => candidate.id !== excludePublisherId)
+      .sort(comparePublisherCandidates)
+      .map(toCandidateView);
   }
 
   async libraryDetail({
@@ -199,6 +278,50 @@ export class PublishersService {
     return toLibraryPublishersSummary({ counts, insights, priceTotals });
   }
 
+  async mergeCustom({
+    sourcePublisherId,
+    targetPublisherId,
+    userId,
+  }: MergeCustomInput): Promise<PublisherMergeResult> {
+    if (sourcePublisherId === targetPublisherId) {
+      throw new BadRequestError("A publisher cannot be merged into itself", {
+        code: PUBLISHER_MERGE_ERROR_CODES.samePublisher,
+      });
+    }
+
+    const movedBooksCount = await this.transactionRunner.run(async (tx) => {
+      await this.loadOwnedCustom({ publisherId: sourcePublisherId, userId }, tx);
+
+      const target = await this.publishersRepository.findVisibleById(userId, targetPublisherId, tx);
+      if (target === null) {
+        throw new NotFoundError("Publisher not found");
+      }
+
+      const reassignedBooks = await this.publishersRepository.reassignBooks(
+        { sourcePublisherId, targetPublisherId, userId },
+        tx,
+      );
+
+      let deleted: number;
+      try {
+        deleted = await this.publishersRepository.deleteWithNames(sourcePublisherId, tx);
+      } catch (error) {
+        if (isForeignKeyConstraintError(error)) {
+          throw publisherHasBooksError();
+        }
+        throw error;
+      }
+
+      if (deleted === 0) {
+        throw new NotFoundError("Publisher not found");
+      }
+
+      return reassignedBooks;
+    });
+
+    return { movedBooksCount, targetPublisherId };
+  }
+
   async recent({ limit, locale, userId }: RecentPublishersInput): Promise<PublisherView[]> {
     const ids = await this.publishersRepository.recentPublisherIds({ limit, userId });
     if (ids.length === 0) {
@@ -231,21 +354,24 @@ export class PublishersService {
       return null;
     }
 
-    const normalizedName = normalizeName(input.name);
-    const existing = await this.publishersRepository.findByNormalized(
-      userId,
-      normalizedName,
-      client,
-    );
-    if (existing !== null) {
-      return existing.id;
+    const matches = await this.reliableMatches({ name: input.name, userId }, client);
+    if (matches.length > 1) {
+      throw new ConflictError("Several publishers already match this name", {
+        code: PUBLISHER_NAME_ERROR_CODES.ambiguousName,
+        details: { publisherIds: matches.map((match) => match.publisher.id) },
+      });
+    }
+
+    const single = matches[0];
+    if (single !== undefined) {
+      return single.publisher.id;
     }
 
     const created = await this.publishersRepository.upsertByNormalized(
       {
         locale: CUSTOM_PUBLISHER_LOCALE,
         name: input.name,
-        normalizedName,
+        normalizedName: normalizeName(input.name),
         userId,
       },
       client,
@@ -281,7 +407,31 @@ export class PublishersService {
     publisherId,
     userId,
   }: UpdateCustomInput): Promise<LibraryPublisherDetail> {
-    const publisher = await this.publishersRepository.findById(publisherId);
+    await this.loadOwnedCustom({ publisherId, userId });
+
+    const rename =
+      input.name === undefined
+        ? undefined
+        : { name: input.name, normalizedName: normalizeName(input.name) };
+
+    if (rename !== undefined) {
+      const matches = await this.reliableMatches({ name: rename.name, userId });
+      const taken = matches.some((match) => match.publisher.id !== publisherId);
+      if (taken) {
+        throw publisherDuplicateNameError();
+      }
+    }
+
+    await this.runCustomUpdate({ input, publisherId, rename });
+
+    return this.libraryDetail({ locale: CUSTOM_PUBLISHER_LOCALE, publisherId, userId });
+  }
+
+  private async loadOwnedCustom(
+    { publisherId, userId }: OwnedPublisherInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<PublisherModel> {
+    const publisher = await this.publishersRepository.findById(publisherId, client);
     if (publisher === null) {
       throw new NotFoundError("Publisher not found");
     }
@@ -291,27 +441,23 @@ export class PublishersService {
     if (publisher.userId !== userId) {
       throw new NotFoundError("Publisher not found");
     }
+    return publisher;
+  }
 
-    const rename =
-      input.name === undefined
-        ? undefined
-        : { name: input.name, normalizedName: normalizeName(input.name) };
+  private async reliableMatches(
+    { name, userId }: { name: string; userId: string },
+    client?: Prisma.TransactionClient,
+  ): Promise<ReliableMatch[]> {
+    const normalizedName = normalizeName(name);
+    const rows = await this.publishersRepository.findNameMatches(
+      { normalizedName, userId },
+      client,
+    );
 
-    if (rename !== undefined) {
-      const existing = await this.publishersRepository.findByNormalized(
-        userId,
-        rename.normalizedName,
-      );
-      if (existing !== null && existing.id !== publisherId) {
-        throw new ConflictError("A publisher with this name already exists", {
-          code: "PUBLISHER_DUPLICATE_NAME",
-        });
-      }
-    }
-
-    await this.runCustomUpdate({ input, publisherId, rename });
-
-    return this.libraryDetail({ locale: CUSTOM_PUBLISHER_LOCALE, publisherId, userId });
+    return rows.map((publisher) => ({
+      matchKind: publisher.normalizedName === normalizedName ? "exact" : "alias",
+      publisher,
+    }));
   }
 
   private async runCustomUpdate({
@@ -344,13 +490,30 @@ export class PublishersService {
         return row;
       });
     } catch (error) {
-      rethrowUniqueConstraintAs({
-        error,
-        toError: () =>
-          new ConflictError("A publisher with this name already exists", {
-            code: "PUBLISHER_DUPLICATE_NAME",
-          }),
-      });
+      rethrowUniqueConstraintAs({ error, toError: publisherDuplicateNameError });
     }
   }
+}
+
+function publisherDuplicateNameError(): ConflictError {
+  return new ConflictError("A publisher with this name already exists", {
+    code: PUBLISHER_NAME_ERROR_CODES.duplicateName,
+  });
+}
+
+function publisherHasBooksError(): ConflictError {
+  return new ConflictError("Publisher still has linked books", { code: "PUBLISHER_HAS_BOOKS" });
+}
+
+function toCandidateNames(publisher: PublisherWithNames): string[] {
+  return [publisher.name, ...publisher.names.map((publisherName) => publisherName.name)];
+}
+
+function toCandidateView({
+  id,
+  isCustom,
+  matchKind,
+  name,
+}: ScoredCandidate): PublisherDuplicateCandidate {
+  return { id, isCustom, matchKind, name };
 }

@@ -287,3 +287,48 @@ export const UpdatePublisherInputSchema = z.object({
 });
 
 export type UpdatePublisherInput = z.infer<typeof UpdatePublisherInputSchema>;
+
+export const PUBLISHER_NAME_ERROR_CODES = {
+  ambiguousName: "PUBLISHER_AMBIGUOUS_NAME",
+  duplicateName: "PUBLISHER_DUPLICATE_NAME",
+} as const;
+
+export const PublisherMatchKindSchema = z.enum(["exact", "alias", "strong"]);
+
+export type PublisherMatchKind = z.infer<typeof PublisherMatchKindSchema>;
+
+export const PublisherDuplicateCandidateSchema = z.object({
+  id: z.string(),
+  isCustom: z.boolean(),
+  matchKind: PublisherMatchKindSchema,
+  name: z.string(),
+});
+
+export type PublisherDuplicateCandidate = z.infer<typeof PublisherDuplicateCandidateSchema>;
+
+export const PublisherDuplicateCandidatesQuerySchema = z.object({
+  excludePublisherId: z.uuid().optional(),
+  locale: CatalogLocaleSchema.default("uk"),
+  name: TaxonomyNameSchema,
+});
+
+export type PublisherDuplicateCandidatesQuery = z.infer<
+  typeof PublisherDuplicateCandidatesQuerySchema
+>;
+
+export const PUBLISHER_MERGE_ERROR_CODES = {
+  samePublisher: "PUBLISHER_MERGE_SAME_PUBLISHER",
+} as const;
+
+export const MergePublisherInputSchema = z.object({
+  targetPublisherId: z.uuid(),
+});
+
+export type MergePublisherInput = z.infer<typeof MergePublisherInputSchema>;
+
+export const PublisherMergeResultSchema = z.object({
+  movedBooksCount: z.number().int().nonnegative(),
+  targetPublisherId: z.string(),
+});
+
+export type PublisherMergeResult = z.infer<typeof PublisherMergeResultSchema>;
