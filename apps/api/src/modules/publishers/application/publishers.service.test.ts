@@ -9,18 +9,21 @@ import type { MediaService } from "../../media/index.js";
 import type { PublisherOverviewRepository } from "../infrastructure/publisher-overview.repository.js";
 import type {
   PublishersRepository,
+  PublisherWithNames,
   PublisherWithPrimaryNames,
 } from "../infrastructure/publishers.repository.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { PublishersService } from "./publishers.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const PUBLISHER_ID = "22222222-2222-4222-8222-222222222222";
 const GLOBAL_ID = "33333333-3333-4333-8333-333333333333";
+const OTHER_GLOBAL_ID = "55555555-5555-4555-8555-555555555555";
 
 function buildService(overrides: {
-  findByNormalized?: Nullable<PublisherModel>;
+  findNameMatches?: PublisherWithNames[];
+  findStrongCandidates?: PublisherWithNames[];
   findVisibleById?: Nullable<PublisherModel>;
   findVisibleByIds?: PublisherWithPrimaryNames[];
   recentPublisherIds?: string[];
@@ -29,7 +32,8 @@ function buildService(overrides: {
 }): {
   repository: {
     countVisible: ReturnType<typeof vi.fn>;
-    findByNormalized: ReturnType<typeof vi.fn>;
+    findNameMatches: ReturnType<typeof vi.fn>;
+    findStrongCandidates: ReturnType<typeof vi.fn>;
     findVisibleById: ReturnType<typeof vi.fn>;
     findVisibleByIds: ReturnType<typeof vi.fn>;
     recentPublisherIds: ReturnType<typeof vi.fn>;
@@ -48,7 +52,8 @@ function buildService(overrides: {
   const searchVisible = overrides.searchVisible ?? [];
   const repository = {
     countVisible: vi.fn().mockResolvedValue(searchVisible.length),
-    findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
+    findNameMatches: vi.fn().mockResolvedValue(overrides.findNameMatches ?? []),
+    findStrongCandidates: vi.fn().mockResolvedValue(overrides.findStrongCandidates ?? []),
     findVisibleById: vi.fn().mockResolvedValue(overrides.findVisibleById ?? null),
     findVisibleByIds: vi.fn().mockResolvedValue(overrides.findVisibleByIds ?? []),
     recentPublisherIds: vi.fn().mockResolvedValue(overrides.recentPublisherIds ?? []),
@@ -93,6 +98,34 @@ function publisher(overrides: Partial<PublisherModel> = {}): PublisherModel {
   };
 }
 
+function publisherWithAllNames({
+  aliases = [],
+  ...overrides
+}: Partial<PublisherModel> & { aliases?: string[] } = {}): PublisherWithNames {
+  const base = publisher(overrides);
+  return {
+    ...base,
+    names: [
+      {
+        id: `${base.id}-primary`,
+        isPrimary: true,
+        locale: "uk",
+        name: base.name,
+        normalizedName: base.normalizedName,
+        publisherId: base.id,
+      },
+      ...aliases.map((alias) => ({
+        id: `${base.id}-${alias}`,
+        isPrimary: false,
+        locale: "uk",
+        name: alias,
+        normalizedName: alias.toLowerCase(),
+        publisherId: base.id,
+      })),
+    ],
+  };
+}
+
 function publisherWithNames(
   overrides: Partial<PublisherWithPrimaryNames> = {},
 ): PublisherWithPrimaryNames {
@@ -131,12 +164,14 @@ describe("PublishersService.resolveOrCreate by id", () => {
 });
 
 describe("PublishersService.resolveOrCreate by name", () => {
-  it("reuses the matching publisher and does not upsert a new one", async () => {
+  it("reuses the exactly matching publisher and does not upsert a new one", async () => {
     const { repository, service } = buildService({
-      findByNormalized: publisher({ id: GLOBAL_ID }),
+      findNameMatches: [
+        publisherWithAllNames({ id: GLOBAL_ID, name: "Vivat", normalizedName: "vivat" }),
+      ],
     });
 
-    const id = await service.resolveOrCreate(USER_ID, { name: "Penguin" });
+    const id = await service.resolveOrCreate(USER_ID, { name: "Vivat" });
 
     expect(id).toBe(GLOBAL_ID);
     expect(repository.upsertByNormalized).not.toHaveBeenCalled();
@@ -144,18 +179,81 @@ describe("PublishersService.resolveOrCreate by name", () => {
 
   it("matches an existing publisher case-insensitively and whitespace-collapsed", async () => {
     const { repository, service } = buildService({
-      findByNormalized: publisher({ id: GLOBAL_ID }),
+      findNameMatches: [
+        publisherWithAllNames({ id: GLOBAL_ID, name: "Vivat", normalizedName: "vivat" }),
+      ],
     });
 
-    await service.resolveOrCreate(USER_ID, { name: "  PENGUIN   Books  " });
+    const id = await service.resolveOrCreate(USER_ID, { name: "  VIVAT   " });
 
-    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "penguin books", undefined);
+    expect(id).toBe(GLOBAL_ID);
+    expect(repository.findNameMatches).toHaveBeenCalledWith(
+      { normalizedName: "vivat", userId: USER_ID },
+      undefined,
+    );
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+  });
+
+  it("reuses the publisher whose alias carries the typed name", async () => {
+    const { repository, service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({
+          aliases: ["Vivat"],
+          id: GLOBAL_ID,
+          name: "Видавництво Vivat",
+          normalizedName: "видавництво vivat",
+        }),
+      ],
+    });
+
+    const id = await service.resolveOrCreate(USER_ID, { name: "Vivat" });
+
+    expect(id).toBe(GLOBAL_ID);
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+  });
+
+  it("throws PUBLISHER_AMBIGUOUS_NAME and creates nothing when several publishers match", async () => {
+    const { repository, service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({ id: GLOBAL_ID, name: "Vivat", normalizedName: "vivat" }),
+        publisherWithAllNames({
+          aliases: ["Vivat"],
+          id: OTHER_GLOBAL_ID,
+          name: "Видавництво Vivat",
+          normalizedName: "видавництво vivat",
+        }),
+      ],
+    });
+
+    const failure = service.resolveOrCreate(USER_ID, { name: "Vivat" });
+
+    await expect(failure).rejects.toBeInstanceOf(ConflictError);
+    await expect(service.resolveOrCreate(USER_ID, { name: "Vivat" })).rejects.toMatchObject({
+      code: "PUBLISHER_AMBIGUOUS_NAME",
+      details: { publisherIds: [GLOBAL_ID, OTHER_GLOBAL_ID] },
+    });
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+  });
+
+  it("skips the ambiguity check entirely when an id was supplied", async () => {
+    const { repository, service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({ id: GLOBAL_ID, name: "Vivat", normalizedName: "vivat" }),
+        publisherWithAllNames({ id: OTHER_GLOBAL_ID, name: "Vivat", normalizedName: "vivat" }),
+      ],
+      findVisibleById: publisher({ id: PUBLISHER_ID }),
+    });
+
+    const id = await service.resolveOrCreate(USER_ID, { id: PUBLISHER_ID, name: "Vivat" });
+
+    expect(id).toBe(PUBLISHER_ID);
+    expect(repository.findNameMatches).not.toHaveBeenCalled();
   });
 
   it("upserts a custom publisher with the user id when no match exists", async () => {
     const created = publisher({ id: PUBLISHER_ID, userId: USER_ID });
     const { repository, service } = buildService({
-      findByNormalized: null,
+      findNameMatches: [],
       upsertByNormalized: created,
     });
 
@@ -175,13 +273,122 @@ describe("PublishersService.resolveOrCreate by name", () => {
 
   it("propagates errors raised by the upsert", async () => {
     const { service } = buildService({
-      findByNormalized: null,
+      findNameMatches: [],
       upsertByNormalized: new Error("connection lost"),
     });
 
     await expect(service.resolveOrCreate(USER_ID, { name: "Penguin" })).rejects.toThrow(
       "connection lost",
     );
+  });
+});
+
+describe("PublishersService.duplicateCandidates", () => {
+  it("orders exact before alias before strong and hides the internal score", async () => {
+    const { service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({
+          aliases: ["Laboratory"],
+          id: GLOBAL_ID,
+          name: "Видавництво Лабораторія",
+          normalizedName: "видавництво лабораторія",
+        }),
+        publisherWithAllNames({
+          id: OTHER_GLOBAL_ID,
+          name: "Laboratory",
+          normalizedName: "laboratory",
+        }),
+      ],
+      findStrongCandidates: [
+        publisherWithAllNames({
+          id: PUBLISHER_ID,
+          name: "Laboratory (publishing)",
+          normalizedName: "laboratory (publishing)",
+        }),
+      ],
+    });
+
+    const candidates = await service.duplicateCandidates({
+      locale: "uk",
+      name: "Laboratory",
+      userId: USER_ID,
+    });
+
+    expect(candidates).toEqual([
+      { id: OTHER_GLOBAL_ID, isCustom: true, matchKind: "exact", name: "Laboratory" },
+      { id: GLOBAL_ID, isCustom: true, matchKind: "alias", name: "Видавництво Лабораторія" },
+      { id: PUBLISHER_ID, isCustom: true, matchKind: "strong", name: "Laboratory (publishing)" },
+    ]);
+  });
+
+  it("drops the excluded publisher from every match kind", async () => {
+    const { service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({
+          id: OTHER_GLOBAL_ID,
+          name: "Laboratory",
+          normalizedName: "laboratory",
+        }),
+      ],
+      findStrongCandidates: [
+        publisherWithAllNames({
+          id: PUBLISHER_ID,
+          name: "Laboratory (publishing)",
+          normalizedName: "laboratory (publishing)",
+        }),
+      ],
+    });
+
+    const candidates = await service.duplicateCandidates({
+      excludePublisherId: OTHER_GLOBAL_ID,
+      locale: "uk",
+      name: "Laboratory",
+      userId: USER_ID,
+    });
+
+    expect(candidates.map((candidate) => candidate.id)).toEqual([PUBLISHER_ID]);
+  });
+
+  it("keeps a publisher that is already an exact match out of the strong suggestions", async () => {
+    const exactRow = publisherWithAllNames({
+      id: GLOBAL_ID,
+      name: "Laboratory",
+      normalizedName: "laboratory",
+    });
+    const { service } = buildService({
+      findNameMatches: [exactRow],
+      findStrongCandidates: [exactRow],
+    });
+
+    const candidates = await service.duplicateCandidates({
+      locale: "uk",
+      name: "Laboratory",
+      userId: USER_ID,
+    });
+
+    expect(candidates).toEqual([
+      { id: GLOBAL_ID, isCustom: true, matchKind: "exact", name: "Laboratory" },
+    ]);
+  });
+
+  it("drops retrieved rows that score below the strong threshold", async () => {
+    const { service } = buildService({
+      findStrongCandidates: [
+        publisherWithAllNames({
+          id: PUBLISHER_ID,
+          name: "Penguin Random House",
+          normalizedName: "penguin random house",
+        }),
+      ],
+    });
+
+    const candidates = await service.duplicateCandidates({
+      locale: "uk",
+      name: "Penguin Books",
+      userId: USER_ID,
+    });
+
+    expect(candidates).toEqual([]);
   });
 });
 

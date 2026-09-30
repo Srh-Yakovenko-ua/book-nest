@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { LibraryPublisherDetail } from "@app/shared";
+import type { LibraryPublisherDetail, PublisherDuplicateCandidate } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useState } from "react";
@@ -33,6 +33,7 @@ vi.mock("sonner", () => ({
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
+let duplicateCandidates: PublisherDuplicateCandidate[];
 let respondToUpdate: () => Response;
 
 function EditHarness({ details }: { details: LibraryPublisherDetail }) {
@@ -66,12 +67,16 @@ function renderDialog(details = makePublisherDetail({ isCustom: true, name: "Viv
 }
 
 beforeEach(() => {
+  duplicateCandidates = [];
   respondToUpdate = () => jsonResponse(makePublisherDetail({ isCustom: true, name: "Vivat" }));
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "PATCH") return Promise.resolve(respondToUpdate());
+    if (String(input).includes("/api/publishers/duplicate-candidates")) {
+      return Promise.resolve(jsonResponse(duplicateCandidates));
+    }
     return Promise.reject(new Error(`unexpected ${method} ${String(input)}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -107,6 +112,24 @@ describe("EditPublisherDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
 
     expect(await screen.findByText("Видавництво з такою назвою вже існує")).toBeInTheDocument();
+  });
+
+  it("warns while typing a name that already belongs to another publisher", async () => {
+    duplicateCandidates = [
+      { id: "publisher-2", isCustom: false, matchKind: "alias", name: "Видавництво Vivat" },
+    ];
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Видавництво з такою назвою вже існує",
+    );
+    const candidatesUrl = fetchMock.mock.calls
+      .map(([input]) => String(input))
+      .find((url) => url.includes("/api/publishers/duplicate-candidates"));
+    expect(candidatesUrl).toContain("excludePublisherId=publisher-1");
   });
 
   it("confirms a successful save with a toast", async () => {

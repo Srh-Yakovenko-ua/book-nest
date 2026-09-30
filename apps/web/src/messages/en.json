@@ -1405,9 +1405,13 @@
       "empty": "No publishers found.",
       "recentHeading": "Recently used",
       "allHeading": "All publishers",
+      "existingHeading": "This publisher already exists",
+      "similarHeading": "Similar publishers",
       "createHeading": "Add custom",
       "customBadge": "custom",
-      "useCustom": "Use “{name}”"
+      "useCustom": "Use “{name}”",
+      "useCustomAnyway": "Add “{name}” as custom anyway",
+      "ambiguous": "This name matches several publishers. Pick the right one from the list."
     },
     "store": {
       "recentHeading": "Recently used",

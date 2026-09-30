@@ -365,6 +365,32 @@ export const PublishersControllerLibraryListResponse = zod.object({
 });
 
 /**
+ * @summary List publishers that would duplicate the given publisher name
+ */
+export const publishersControllerDuplicateCandidatesQueryExcludePublisherIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
+export const PublishersControllerDuplicateCandidatesQueryParams = zod.object({
+  excludePublisherId: zod
+    .uuid()
+    .regex(publishersControllerDuplicateCandidatesQueryExcludePublisherIdRegExp)
+    .optional(),
+  locale: zod.enum(["en", "uk"]).optional(),
+  name: zod.string(),
+});
+
+export const PublishersControllerDuplicateCandidatesResponseItem = zod.object({
+  id: zod.string(),
+  isCustom: zod.boolean(),
+  matchKind: zod.enum(["exact", "alias", "strong"]),
+  name: zod.string(),
+});
+export const PublishersControllerDuplicateCandidatesResponse = zod.array(
+  PublishersControllerDuplicateCandidatesResponseItem,
+);
+
+/**
  * @summary List recently used publishers for the current user
  */
 export const publishersControllerRecentQueryLimitDefault = 8;

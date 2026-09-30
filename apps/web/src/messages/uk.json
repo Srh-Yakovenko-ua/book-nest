@@ -1405,9 +1405,13 @@
       "empty": "Видавництв не знайдено.",
       "recentHeading": "Раніше використані",
       "allHeading": "Усі видавництва",
+      "existingHeading": "Це видавництво вже є",
+      "similarHeading": "Схожі видавництва",
       "createHeading": "Додати власне",
       "customBadge": "власне",
-      "useCustom": "Використати «{name}»"
+      "useCustom": "Використати «{name}»",
+      "useCustomAnyway": "Усе одно додати «{name}» як власне",
+      "ambiguous": "Ця назва збігається з кількома видавництвами. Оберіть потрібне зі списку."
     },
     "store": {
       "recentHeading": "Раніше використані",

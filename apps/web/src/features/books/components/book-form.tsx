@@ -8,6 +8,7 @@ import {
   BOOK_DESCRIPTION_MAX,
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  PUBLISHER_NAME_ERROR_CODES,
   TAG_COLOR_DEFAULT,
 } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -626,6 +627,11 @@ export function BookForm(props: BookFormProps) {
   });
 
   function handleMutationError(error: unknown) {
+    if (error instanceof ApiError && error.code === PUBLISHER_NAME_ERROR_CODES.ambiguousName) {
+      setError("publisherName", { message: t("publisher.ambiguous") });
+      toast.error(t("publisher.ambiguous"));
+      return;
+    }
     if (error instanceof ApiError && error.fieldErrors) {
       for (const fieldError of error.fieldErrors) {
         const conflict = toSeriesPartNumberConflict(fieldError);
