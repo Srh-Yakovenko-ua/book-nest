@@ -50,6 +50,7 @@ import type { BookFormMode } from "../model/book-form-mode";
 import { useCreateBook } from "../api/use-create-book";
 import { useGenres } from "../api/use-genres";
 import {
+  isReliableMatch,
   PUBLISHER_LOOKUP,
   publisherDuplicateCandidatesQueryOptions,
 } from "../api/use-publisher-duplicate-candidates";
@@ -427,9 +428,7 @@ export function BookForm(props: BookFormProps) {
       return blockPublisherSubmit(t("publisher.lookupFailed"));
     }
 
-    const [firstReliable, secondReliable] = candidates.filter(
-      (candidate) => candidate.matchKind !== "strong",
-    );
+    const [firstReliable, secondReliable] = candidates.filter(isReliableMatch);
     if (secondReliable !== undefined) return blockPublisherSubmit(t("publisher.ambiguous"));
     if (firstReliable !== undefined) {
       handlePublisherSelectionChange({
