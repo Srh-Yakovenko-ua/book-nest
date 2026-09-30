@@ -10,6 +10,8 @@ import type { PublisherDuplicateCandidateDtoMatchKind } from "./publisherDuplica
 export interface PublisherDuplicateCandidateDto {
   id: string;
   isCustom: boolean;
+  /** @nullable */
+  matchedName: string | null;
   matchKind: PublisherDuplicateCandidateDtoMatchKind;
   name: string;
 }

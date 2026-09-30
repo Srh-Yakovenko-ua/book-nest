@@ -91,6 +91,7 @@ function CharacterEditForm({
   const tAliases = useTranslations("characters.aliases");
   const tErrors = useTranslations("characters.form.errors");
   const tToast = useTranslations("characters.toast");
+  const tDiscardChanges = useTranslations("common.discardChanges");
   const router = useRouter();
   const updateCharacter = useUpdateCharacter();
   const updateBookCharacter = useUpdateBookCharacter();
@@ -229,6 +230,8 @@ function CharacterEditForm({
       </div>
 
       <DiscardConfirmDialog
+        cancelLabel={tDiscardChanges("cancel")}
+        confirmLabel={tDiscardChanges("confirm")}
         description={t("discardDescription")}
         onConfirm={leave}
         onOpenChange={setDiscardOpen}

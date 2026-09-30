@@ -176,6 +176,21 @@ describe("CharacterEditPage scope orchestration", () => {
   });
 });
 
+describe("CharacterEditPage leaving a dirty form", () => {
+  it("offers to keep editing instead of losing the changes", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+    await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
+
+    expect(await screen.findByText("Відхилити зміни?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Так, вийти" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Продовжити редагування" })).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
 describe("CharacterEditPage without a book context", () => {
   it("shows only the shared section", async () => {
     renderEdit("");

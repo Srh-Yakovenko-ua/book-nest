@@ -108,6 +108,7 @@ type RecentPublishersInput = {
 };
 
 type ReliableMatch = {
+  matchedNormalizedName: string;
   matchKind: PublisherMatchKind;
   publisher: PublisherWithNames;
 };
@@ -174,8 +175,8 @@ export class PublishersService {
 
     const reliableIds = new Set(reliable.map((match) => match.publisher.id));
 
-    const reliableCandidates = reliable.map(({ matchKind, publisher }) => ({
-      ...toPublisherDuplicateCandidate({ locale, matchKind, publisher }),
+    const reliableCandidates = reliable.map(({ matchedNormalizedName, matchKind, publisher }) => ({
+      ...toPublisherDuplicateCandidate({ locale, matchedNormalizedName, matchKind, publisher }),
       score: RELIABLE_MATCH_SCORE,
     }));
 
@@ -455,6 +456,7 @@ export class PublishersService {
     );
 
     return rows.map((publisher) => ({
+      matchedNormalizedName: normalizedName,
       matchKind: publisher.normalizedName === normalizedName ? "exact" : "alias",
       publisher,
     }));
@@ -512,8 +514,9 @@ function toCandidateNames(publisher: PublisherWithNames): string[] {
 function toCandidateView({
   id,
   isCustom,
+  matchedName,
   matchKind,
   name,
 }: ScoredCandidate): PublisherDuplicateCandidate {
-  return { id, isCustom, matchKind, name };
+  return { id, isCustom, matchedName, matchKind, name };
 }

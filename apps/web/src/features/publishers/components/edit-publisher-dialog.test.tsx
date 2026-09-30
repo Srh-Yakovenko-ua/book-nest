@@ -114,9 +114,15 @@ describe("EditPublisherDialog", () => {
     expect(await screen.findByText("Видавництво з такою назвою вже існує")).toBeInTheDocument();
   });
 
-  it("warns while typing a name that already belongs to another publisher", async () => {
+  it("names the publisher whose alias already answers to the typed name", async () => {
     duplicateCandidates = [
-      { id: "publisher-2", isCustom: false, matchKind: "alias", name: "Видавництво Vivat" },
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat Books",
+        matchKind: "alias",
+        name: "Видавництво Vivat",
+      },
     ];
 
     renderDialog();
@@ -124,12 +130,58 @@ describe("EditPublisherDialog", () => {
     await userEvent.type(screen.getByLabelText("Назва"), " Books");
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Видавництво з такою назвою вже існує",
+      "Цю назву вже використовує видавництво «Видавництво Vivat», бо воно також відоме як «Vivat Books»",
     );
     const candidatesUrl = fetchMock.mock.calls
       .map(([input]) => String(input))
       .find((url) => url.includes("/api/publishers/duplicate-candidates"));
     expect(candidatesUrl).toContain("excludePublisherId=publisher-1");
+  });
+
+  it("names the publisher that holds the typed name outright", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat Books",
+        matchKind: "exact",
+        name: "Vivat Books",
+      },
+    ];
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Цю назву вже використовує видавництво «Vivat Books»",
+    );
+    expect(screen.queryByText(/також відоме як/)).not.toBeInTheDocument();
+  });
+
+  it("stays quiet when only a fuzzy match came back", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: null,
+        matchKind: "strong",
+        name: "Vivat Books",
+      },
+    ];
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls
+          .map(([input]) => String(input))
+          .some((url) => url.includes("/api/publishers/duplicate-candidates")),
+      ).toBe(true),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("confirms a successful save with a toast", async () => {
@@ -147,6 +199,8 @@ describe("EditPublisherDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
 
     expect(await screen.findByText("Відхилити зміни?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Так, вийти" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Продовжити редагування" })).toBeInTheDocument();
   });
   it("omits an unchanged legacy country code from the payload", async () => {
     renderDialog(makePublisherDetail({ countryCode: "XX", name: "Vivat" }));

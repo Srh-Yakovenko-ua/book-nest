@@ -300,6 +300,7 @@ export type PublisherMatchKind = z.infer<typeof PublisherMatchKindSchema>;
 export const PublisherDuplicateCandidateSchema = z.object({
   id: z.string(),
   isCustom: z.boolean(),
+  matchedName: z.string().nullable(),
   matchKind: PublisherMatchKindSchema,
   name: z.string(),
 });

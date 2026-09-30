@@ -8,7 +8,11 @@
     "increment": "Increase",
     "opensInNewTab": "(opens in a new tab)",
     "ratingValueText": "{value} of {max}",
-    "clear": "Clear"
+    "clear": "Clear",
+    "discardChanges": {
+      "cancel": "Keep editing",
+      "confirm": "Yes, leave"
+    }
   },
   "nav": {
     "home": "Home",
@@ -1409,9 +1413,14 @@
       "similarHeading": "Similar publishers",
       "createHeading": "Add custom",
       "customBadge": "custom",
+      "alsoKnownAs": "also known as “{name}”",
       "useCustom": "Use “{name}”",
       "useCustomAnyway": "Add “{name}” as custom anyway",
-      "ambiguous": "This name matches several publishers. Pick the right one from the list."
+      "ambiguous": "This name matches several publishers. Pick the right one from the list.",
+      "pickOrConfirmCustom": "Pick a publisher from the list, or confirm that “{name}” is a new publisher.",
+      "confirmCustom": "There is no publisher “{name}” yet. Confirm creating it in the suggestion list.",
+      "nameTooShort": "A publisher name needs at least 2 characters. Finish it or clear the field.",
+      "lookupFailed": "We could not check the publisher. Please try again."
     },
     "store": {
       "recentHeading": "Recently used",
@@ -7735,6 +7744,8 @@
         "submit": "Save",
         "cancel": "Cancel",
         "duplicate": "A publisher with this name already exists",
+        "duplicateTaken": "The publisher “{name}” already uses this name",
+        "duplicateTakenAlias": "The publisher “{name}” already uses this name, because it is also known as “{matchedName}”",
         "invalidUrl": "Enter a valid link",
         "invalidYear": "Enter a valid year",
         "invalidName": "Name must be at least 2 characters long",
