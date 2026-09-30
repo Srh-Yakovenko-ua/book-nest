@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 import {
   distinctMatchedName,
+  isReliableMatch,
   PUBLISHER_LOOKUP,
   usePublisherDuplicateCandidates,
 } from "../api/use-publisher-duplicate-candidates";
@@ -84,7 +85,7 @@ export function PublisherAutocomplete({
   const trimmedQuery = query.trim();
   const normalizedQuery = trimmedQuery.toLowerCase();
   const candidates = debouncedQuery.trim() === trimmedQuery ? fetchedCandidates : [];
-  const existingMatches = candidates.filter((candidate) => candidate.matchKind !== "strong");
+  const existingMatches = candidates.filter(isReliableMatch);
   const similarMatches = existingMatches.length > 0 ? [] : candidates;
 
   const matchedIds = new Set([...existingMatches, ...similarMatches].map((match) => match.id));

@@ -37,6 +37,7 @@ import { YearPicker } from "@/components/ui/year-picker";
 import { DiscardConfirmDialog } from "@/features/books";
 import {
   distinctMatchedName,
+  isReliableMatch,
   PUBLISHER_LOOKUP,
   usePublisherDuplicateCandidates,
 } from "@/features/books/api/use-publisher-duplicate-candidates";
@@ -367,5 +368,5 @@ function useConflictingPublisher({
   });
 
   if (debouncedName !== trimmedName) return null;
-  return candidates.find((candidate) => candidate.matchKind !== "strong") ?? null;
+  return candidates.find(isReliableMatch) ?? null;
 }

@@ -16,6 +16,7 @@ vi.mock("sonner", () => ({
 }));
 
 const copy = messages.readingQueue.volumeModal;
+const CANCEL_LABEL = messages.books.actions.cancel;
 
 const BOOK_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
 const BOOK_B = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
@@ -318,6 +319,33 @@ describe("QueueVolumeDataDialog", () => {
     expect(screen.getByRole("button", { name: "Так, вийти" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Продовжити редагування" })).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("offers to keep editing when the cancel button abandons a filled-in row", async () => {
+    mockBulkFetch(() => Promise.resolve(jsonResponse(successResult())));
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    renderDialog([missingPagesItem(1, BOOK_A, "Єдина")], onOpenChange);
+
+    await user.type(pagesInputFor("Єдина"), "320");
+    await user.click(screen.getByRole("button", { name: CANCEL_LABEL }));
+
+    expect(await screen.findByText(copy.discard.title)).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("closes right away when the cancel button abandons an untouched form", async () => {
+    mockBulkFetch(() => Promise.resolve(jsonResponse(successResult())));
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    renderDialog([missingPagesItem(1, BOOK_A, "Єдина")], onOpenChange);
+
+    await user.click(screen.getByRole("button", { name: CANCEL_LABEL }));
+
+    expect(screen.queryByText(copy.discard.title)).not.toBeInTheDocument();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("refuses to submit when nothing was filled in", async () => {

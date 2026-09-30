@@ -109,6 +109,14 @@ export function QueueVolumeDataDialog({ items, onOpenChange, open }: QueueVolume
     onOpenChange(false);
   }
 
+  function requestClose() {
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
+    close();
+  }
+
   return (
     <>
       <Dialog
@@ -117,17 +125,18 @@ export function QueueVolumeDataDialog({ items, onOpenChange, open }: QueueVolume
             onOpenChange(true);
             return;
           }
-          if (dirty) {
-            setDiscardOpen(true);
-            return;
-          }
-          close();
+          requestClose();
         }}
         open={open}
       >
         <DialogContent className="flex max-h-[85dvh] flex-col gap-4 overflow-hidden max-sm:h-dvh max-sm:max-w-none max-sm:rounded-none sm:max-w-2xl">
           {open ? (
-            <VolumeDataForm items={items} onDirty={() => setDirty(true)} onDone={close} />
+            <VolumeDataForm
+              items={items}
+              onCancel={requestClose}
+              onDirty={() => setDirty(true)}
+              onSaved={close}
+            />
           ) : null}
         </DialogContent>
       </Dialog>
@@ -269,12 +278,14 @@ function toBulkItems(rows: VolumeRowValue[]): UpdatePagesCountItem[] {
 
 function VolumeDataForm({
   items,
+  onCancel,
   onDirty,
-  onDone,
+  onSaved,
 }: {
   items: ReadingQueueItemView[];
+  onCancel: () => void;
   onDirty: () => void;
-  onDone: () => void;
+  onSaved: () => void;
 }) {
   const t = useTranslations("readingQueue.volumeModal");
   const tFormat = useTranslations("books.format.options");
@@ -349,7 +360,7 @@ function VolumeDataForm({
 
     if (remaining.length === 0) {
       toast.success(t("saved"));
-      onDone();
+      onSaved();
       return;
     }
 
@@ -483,7 +494,7 @@ function VolumeDataForm({
         <div className="flex gap-2">
           <Button
             disabled={bulkUpdate.isPending}
-            onClick={onDone}
+            onClick={onCancel}
             type="button"
             variant="secondary"
           >

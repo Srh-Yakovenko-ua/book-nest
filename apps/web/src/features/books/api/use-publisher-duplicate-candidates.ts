@@ -27,6 +27,10 @@ export function distinctMatchedName(candidate: PublisherDuplicateCandidate): Nul
   return matchedName;
 }
 
+export function isReliableMatch(candidate: PublisherDuplicateCandidate): boolean {
+  return candidate.matchKind === "exact" || candidate.matchKind === "alias";
+}
+
 export function publisherDuplicateCandidatesQueryOptions({
   excludePublisherId,
   locale,
