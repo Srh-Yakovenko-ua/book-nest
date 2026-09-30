@@ -89,7 +89,7 @@ import {
   resolveSeriesPublisherSuggestion,
   type SeriesPublisherSuggestion,
 } from "../model/series-publisher-suggestion";
-import { AuthorsField } from "./authors-field";
+import { AuthorsField, useAuthorsFieldFocus } from "./authors-field";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
 import { ClassificationSection } from "./classification-section";
@@ -218,6 +218,7 @@ export function BookForm(props: BookFormProps) {
       initialSeries?.selection.authors ??
       [],
   );
+  const authorsFocus = useAuthorsFieldFocus();
   const initialPublisherSelection: null | PublisherSelection =
     restoredDraft?.publisherSelection ??
     initial?.publisherSelection ??
@@ -841,7 +842,7 @@ export function BookForm(props: BookFormProps) {
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1">
-              <Label htmlFor="book-author">{t("fields.author")}</Label>
+              <Label {...authorsFocus.labelProps}>{t("fields.author")}</Label>
               <span aria-hidden className="text-destructive">
                 *
               </span>
@@ -852,10 +853,10 @@ export function BookForm(props: BookFormProps) {
               render={() => (
                 <AuthorsField
                   describedBy={authorsErrorMessage === undefined ? undefined : "book-author-error"}
-                  id="book-author"
                   invalid={errors.authors !== undefined}
                   onChange={handleAuthorsChange}
                   value={authorSelections}
+                  {...authorsFocus.fieldProps}
                 />
               )}
             />
