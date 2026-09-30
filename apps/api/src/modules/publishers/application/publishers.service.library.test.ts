@@ -277,6 +277,61 @@ describe("PublishersService.updateCustom", () => {
     expect(detail.name).toBe("Renamed Press");
   });
 
+  it("still throws a PUBLISHER_DUPLICATE_NAME conflict when the rename targets a global catalog publisher", async () => {
+    const { service } = buildService({
+      findById: publisher(),
+      findNameMatches: [
+        publisherWithNames({
+          id: OTHER_PUBLISHER_ID,
+          name: "Renamed Press",
+          normalizedName: "renamed press",
+          userId: null,
+        }),
+      ],
+    });
+
+    await expect(service.updateCustom(renameInput)).rejects.toMatchObject({
+      code: "PUBLISHER_DUPLICATE_NAME",
+    });
+  });
+
+  it("updates catalog fields when the unchanged name already collides with another publisher", async () => {
+    const { repository, service } = buildService({
+      aggregateLibraryDetail: statsRow({ foundedYear: 1999 }),
+      findById: publisher(),
+      findNameMatches: [publisherWithNames({ id: OTHER_PUBLISHER_ID })],
+    });
+
+    const detail = await service.updateCustom({
+      input: { foundedYear: 1999, name: "My Press" },
+      publisherId: PUBLISHER_ID,
+      userId: USER_ID,
+    });
+
+    expect(detail.foundedYear).toBe(1999);
+    expect(repository.findNameMatches).not.toHaveBeenCalled();
+  });
+
+  it("accepts a letter-case change of the publisher's own name", async () => {
+    const { repository, service, txClient } = buildService({
+      aggregateLibraryDetail: statsRow({ name: "MY PRESS" }),
+      findById: publisher(),
+      findNameMatches: [publisherWithNames({ id: OTHER_PUBLISHER_ID })],
+    });
+
+    const detail = await service.updateCustom({
+      input: { name: "MY PRESS" },
+      publisherId: PUBLISHER_ID,
+      userId: USER_ID,
+    });
+
+    expect(detail.name).toBe("MY PRESS");
+    expect(repository.updatePrimaryName).toHaveBeenCalledWith(
+      { name: "MY PRESS", normalizedName: "my press", publisherId: PUBLISHER_ID },
+      txClient,
+    );
+  });
+
   it("lets the rename through when no exact or alias match exists", async () => {
     const { repository, service } = buildService({
       aggregateLibraryDetail: statsRow({ name: "Renamed Press" }),

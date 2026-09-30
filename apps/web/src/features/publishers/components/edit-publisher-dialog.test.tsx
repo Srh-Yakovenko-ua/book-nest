@@ -138,6 +138,75 @@ describe("EditPublisherDialog", () => {
     expect(candidatesUrl).toContain("excludePublisherId=publisher-1");
   });
 
+  it("offers a merge when the untouched name already collides", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "exact",
+        name: "Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Таку саму назву має видавництво «Vivat». Їх можна обʼєднати в одне.",
+    );
+  });
+
+  it("credits the alias when the untouched name collides through one", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "alias",
+        name: "Видавництво Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Таку саму назву має видавництво «Видавництво Vivat», бо воно також відоме як «Vivat». Їх можна обʼєднати в одне.",
+    );
+  });
+
+  it("switches from the merge wording to the taken wording once a new name is typed", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "exact",
+        name: "Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Таку саму назву має видавництво");
+
+    duplicateCandidates = [
+      {
+        id: "publisher-3",
+        isCustom: false,
+        matchedName: "Vivat Books",
+        matchKind: "exact",
+        name: "Vivat Books",
+      },
+    ];
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Цю назву вже використовує видавництво «Vivat Books»",
+      ),
+    );
+  });
+
   it("names the publisher that holds the typed name outright", async () => {
     duplicateCandidates = [
       {
@@ -212,6 +281,30 @@ describe("EditPublisherDialog", () => {
     const body = lastPatchBody();
     expect(body).toMatchObject({ name: "Vivat Plus" });
     expect(body).not.toHaveProperty("countryCode");
+  });
+
+  it("omits an untouched name from the payload", async () => {
+    renderDialog(makePublisherDetail({ countryCode: "UA", isCustom: true, name: "Vivat" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Очистити країну" }));
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const body = lastPatchBody();
+    expect(body).toMatchObject({ countryCode: null });
+    expect(body).not.toHaveProperty("name");
+  });
+
+  it("omits a name that was edited back to the original", async () => {
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), "!");
+    await userEvent.clear(screen.getByLabelText("Назва"));
+    await userEvent.type(screen.getByLabelText("Назва"), "Vivat");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(lastPatchBody()).not.toHaveProperty("name");
   });
 
   it("sends a country picked through the searchable select", async () => {

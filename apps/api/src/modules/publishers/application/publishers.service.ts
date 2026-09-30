@@ -408,14 +408,14 @@ export class PublishersService {
     publisherId,
     userId,
   }: UpdateCustomInput): Promise<LibraryPublisherDetail> {
-    await this.loadOwnedCustom({ publisherId, userId });
+    const publisher = await this.loadOwnedCustom({ publisherId, userId });
 
     const rename =
       input.name === undefined
         ? undefined
         : { name: input.name, normalizedName: normalizeName(input.name) };
 
-    if (rename !== undefined) {
+    if (rename !== undefined && rename.normalizedName !== publisher.normalizedName) {
       const matches = await this.reliableMatches({ name: rename.name, userId });
       const taken = matches.some((match) => match.publisher.id !== publisherId);
       if (taken) {

@@ -8,6 +8,7 @@ import type {
 } from "@app/shared";
 
 import {
+  normalizeName,
   PublisherCountryCodeSchema,
   PublisherFoundedYearSchema,
   PublisherWebsiteUrlSchema,
@@ -136,6 +137,38 @@ export function EditPublisherDialog({
   );
 }
 
+function DuplicateNotice({
+  conflictingPublisher,
+  keepsOwnName,
+}: {
+  conflictingPublisher: Nullable<PublisherDuplicateCandidate>;
+  keepsOwnName: boolean;
+}) {
+  const t = useTranslations("publishers.details.editDialog");
+  if (conflictingPublisher === null) return null;
+
+  const { name } = conflictingPublisher;
+  const matchedName = distinctMatchedName(conflictingPublisher);
+
+  if (keepsOwnName) {
+    return (
+      <p className="text-xs text-muted-foreground" role="status">
+        {matchedName === null
+          ? t("duplicateSelf", { name })
+          : t("duplicateSelfAlias", { matchedName, name })}
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-xs text-warning" role="status">
+      {matchedName === null
+        ? t("duplicateTaken", { name })
+        : t("duplicateTakenAlias", { matchedName, name })}
+    </p>
+  );
+}
+
 function EditPublisherForm({
   details,
   onCancel,
@@ -200,14 +233,12 @@ function EditPublisherForm({
     name: nameValue,
     publisherId: details.id,
   });
-  const conflictingAlias =
-    conflictingPublisher === null ? null : distinctMatchedName(conflictingPublisher);
+  const keepsOwnName = normalizeName(nameValue) === normalizeName(details.name);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     const payload: UpdatePublisherInput = {
       foundedYear: values.foundedYear,
-      name: TaxonomyNameSchema.parse(values.name),
       websiteUrl:
         values.websiteUrl.trim() === "" ? null : PublisherWebsiteUrlSchema.parse(values.websiteUrl),
       ...(dirtyFields.countryCode === true
@@ -218,6 +249,7 @@ function EditPublisherForm({
                 : PublisherCountryCodeSchema.parse(values.countryCode),
           }
         : {}),
+      ...(dirtyFields.name === true ? { name: TaxonomyNameSchema.parse(values.name) } : {}),
     };
 
     updatePublisher.mutate(payload, {
@@ -249,16 +281,12 @@ function EditPublisherForm({
           {...register("name")}
         />
         <FieldError error={errors.name} id="edit-publisher-name-error" />
-        {conflictingPublisher === null || errors.name !== undefined ? null : (
-          <p className="text-xs text-warning" role="status">
-            {conflictingAlias === null
-              ? t("duplicateTaken", { name: conflictingPublisher.name })
-              : t("duplicateTakenAlias", {
-                  matchedName: conflictingAlias,
-                  name: conflictingPublisher.name,
-                })}
-          </p>
-        )}
+        {errors.name === undefined ? (
+          <DuplicateNotice
+            conflictingPublisher={conflictingPublisher}
+            keepsOwnName={keepsOwnName}
+          />
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2">
