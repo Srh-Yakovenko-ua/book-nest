@@ -2,6 +2,7 @@ import type { PublisherOverviewSeries, SeriesStatus } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 
@@ -43,18 +44,22 @@ function SeriesRow({ series }: { series: PublisherOverviewSeries }) {
 
   return (
     <Link
-      className="flex cursor-pointer flex-col gap-1.5 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="-mx-3 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       href={`/series/${series.id}`}
     >
-      <span className="flex items-start justify-between gap-2">
-        <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-          {series.name}
+      <span
+        aria-hidden
+        className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-icon"
+      >
+        <UiIcon name="layers" size={18} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-sm font-semibold text-foreground">{series.name}</span>
+        <span className="truncate text-xs text-muted-foreground">
+          {`${t("seriesBooks", { count: series.booksCount })} · ${readCopy()}`}
         </span>
-        <Badge variant={SERIES_STATUS_BADGE_VARIANT[series.status]}>{tStatus(series.status)}</Badge>
       </span>
-      <span className="text-xs text-muted-foreground">
-        {`${t("seriesBooks", { count: series.booksCount })} · ${readCopy()}`}
-      </span>
+      <Badge variant={SERIES_STATUS_BADGE_VARIANT[series.status]}>{tStatus(series.status)}</Badge>
     </Link>
   );
 }

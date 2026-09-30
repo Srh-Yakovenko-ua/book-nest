@@ -11,11 +11,14 @@ export function PublisherOverviewSection({ children, title }: PublisherOverviewS
   const headingId = useId();
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-3">
-      <h2 className="font-heading text-sm font-semibold text-ink" id={headingId}>
+    <section
+      aria-labelledby={headingId}
+      className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-soft"
+    >
+      <h2 className="font-heading text-lg font-semibold text-ink" id={headingId}>
         {title}
       </h2>
-      <ul className="flex flex-col gap-2.5">{children}</ul>
+      <ul className="flex flex-col divide-y divide-border/70">{children}</ul>
     </section>
   );
 }
