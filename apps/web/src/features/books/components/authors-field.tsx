@@ -1,11 +1,11 @@
 "use client";
 
-import type { AuthorView } from "@app/shared";
+import type { AuthorView, Nullable } from "@app/shared";
 
 import { BOOK_AUTHORS_MAX, TaxonomyNameSchema } from "@app/shared";
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, type RefObject, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -24,13 +24,19 @@ const SUGGESTION_LIMIT = 8;
 
 type AuthorsFieldProps = {
   describedBy?: string;
-  id: string;
+  inputRef: RefObject<Nullable<HTMLInputElement>>;
   invalid: boolean;
   onChange: (next: AuthorSelection[]) => void;
   value: AuthorSelection[];
 };
 
-export function AuthorsField({ describedBy, id, invalid, onChange, value }: AuthorsFieldProps) {
+export function AuthorsField({
+  describedBy,
+  inputRef,
+  invalid,
+  onChange,
+  value,
+}: AuthorsFieldProps) {
   const t = useTranslations("books");
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
@@ -166,13 +172,10 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
             ))}
             <CommandPrimitive.Input
               aria-describedby={describedBy}
-              aria-expanded={open && !atMax}
               aria-invalid={invalid}
               aria-required
-              autoComplete="off"
               className="h-7 min-w-[90px] flex-1 border-0 bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
               disabled={atMax}
-              id={id}
               onClick={() => setOpen(true)}
               onFocus={() => setOpen(true)}
               onKeyDown={handleKeyDown}
@@ -181,6 +184,7 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
                 setOpen(true);
               }}
               placeholder={inputPlaceholder}
+              ref={inputRef}
               value={draft}
             />
           </div>
@@ -234,4 +238,15 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
       </Popover>
     </CommandPrimitive>
   );
+}
+
+export function useAuthorsFieldFocus() {
+  const inputRef = useRef<Nullable<HTMLInputElement>>(null);
+  return {
+    fieldProps: { inputRef },
+    labelProps: {
+      className: "cursor-pointer",
+      onClick: () => inputRef.current?.focus(),
+    },
+  };
 }

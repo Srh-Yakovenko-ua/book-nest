@@ -6,7 +6,7 @@ export { useGenres } from "./api/use-genres";
 export { useMarkOwned, useRemoveFromWishlist } from "./api/use-ownership";
 export { usePublishersSearch } from "./api/use-publishers-search";
 export { useRecentPublishers } from "./api/use-recent-publishers";
-export { AuthorsField } from "./components/authors-field";
+export { AuthorsField, useAuthorsFieldFocus } from "./components/authors-field";
 export { BookDateField } from "./components/book-date-field";
 export { BookDetails } from "./components/book-details";
 export { BookFormatFilter } from "./components/book-format-filter";

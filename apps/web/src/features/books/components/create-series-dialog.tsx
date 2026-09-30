@@ -27,7 +27,7 @@ import type { AuthorSelection, SeriesSelection } from "../model/create-book-form
 
 import { BOOK_GENRES_MAX } from "../model/book-classification-fields";
 import { authorSelectionToReference, NewSeriesInputSchema } from "../model/create-book-form";
-import { AuthorsField } from "./authors-field";
+import { AuthorsField, useAuthorsFieldFocus } from "./authors-field";
 import { GenresField } from "./genres-field";
 import { SeriesStatusChips } from "./series-status-chips";
 
@@ -91,6 +91,7 @@ function CreateSeriesForm({
   const t = useTranslations("books");
   const [name, setName] = useState(initialName);
   const [authors, setAuthors] = useState<AuthorSelection[]>(initialAuthors);
+  const authorsFocus = useAuthorsFieldFocus();
   const [status, setStatus] = useState<SeriesStatus>("unknown");
   const [genres, setGenres] = useState<string[]>([]);
   const [totalBooks, setTotalBooks] = useState<number | undefined>(undefined);
@@ -161,15 +162,15 @@ function CreateSeriesForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="new-series-authors">
+        <Label {...authorsFocus.labelProps}>
           {t("series.create.authors")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <AuthorsField
-          id="new-series-authors"
           invalid={false}
           onChange={setAuthors}
           value={authors}
+          {...authorsFocus.fieldProps}
         />
       </div>
 

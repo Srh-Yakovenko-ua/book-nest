@@ -30,6 +30,7 @@ import {
   BOOK_GENRES_MAX,
   GenresField,
   SeriesStatusChips,
+  useAuthorsFieldFocus,
 } from "@/features/books";
 import {
   blockNegativeNumberKeys,
@@ -89,6 +90,7 @@ function EditSeriesForm({
   const [authors, setAuthors] = useState<AuthorSelection[]>(
     series.authors.map((author) => ({ id: author.id, kind: "catalog", name: author.name })),
   );
+  const authorsFocus = useAuthorsFieldFocus();
   const [serverError, setServerError] = useState<null | string>(null);
 
   const {
@@ -157,7 +159,7 @@ function EditSeriesForm({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={hasBooks ? undefined : "edit-series-authors"}>
+        <Label {...(hasBooks ? {} : authorsFocus.labelProps)}>
           {tFields("authors")}
           {hasBooks ? null : (
             <>
@@ -179,10 +181,10 @@ function EditSeriesForm({
           </div>
         ) : (
           <AuthorsField
-            id="edit-series-authors"
             invalid={false}
             onChange={setAuthors}
             value={authors}
+            {...authorsFocus.fieldProps}
           />
         )}
       </div>
