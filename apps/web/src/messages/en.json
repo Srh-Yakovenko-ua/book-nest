@@ -1420,7 +1420,8 @@
       "pickOrConfirmCustom": "Pick a publisher from the list, or confirm that “{name}” is a new publisher.",
       "confirmCustom": "There is no publisher “{name}” yet. Confirm creating it in the suggestion list.",
       "nameTooShort": "A publisher name needs at least 2 characters. Finish it or clear the field.",
-      "lookupFailed": "We could not check the publisher. Please try again."
+      "lookupFailed": "We could not check the publisher. Please try again.",
+      "lookupUnavailable": "We could not check whether this publisher already exists."
     },
     "store": {
       "recentHeading": "Recently used",

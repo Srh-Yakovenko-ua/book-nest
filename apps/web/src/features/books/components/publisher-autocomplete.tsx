@@ -72,7 +72,7 @@ export function PublisherAutocomplete({
     items: publishers,
   } = usePublishersSearch(debouncedQuery);
   const { data: recentPublishers = [] } = useRecentPublishers();
-  const { data: fetchedCandidates = [] } = usePublisherDuplicateCandidates({
+  const { data: fetchedCandidates = [], isError } = usePublisherDuplicateCandidates({
     name: debouncedQuery,
   });
   const { onScroll, scrollRef } = useInfiniteScroll({
@@ -84,7 +84,10 @@ export function PublisherAutocomplete({
 
   const trimmedQuery = query.trim();
   const normalizedQuery = trimmedQuery.toLowerCase();
-  const candidates = debouncedQuery.trim() === trimmedQuery ? fetchedCandidates : [];
+  const lookupMatchesQuery = debouncedQuery.trim() === trimmedQuery;
+  const lookupIsEnabled = trimmedQuery.length >= PUBLISHER_LOOKUP.minNameLength;
+  const lookupUnavailable = isError && lookupMatchesQuery && lookupIsEnabled;
+  const candidates = lookupMatchesQuery ? fetchedCandidates : [];
   const existingMatches = candidates.filter(isReliableMatch);
   const similarMatches = existingMatches.length > 0 ? [] : candidates;
 
@@ -99,8 +102,7 @@ export function PublisherAutocomplete({
   const listedIds = new Set([...matchedIds, ...filteredRecent.map((publisher) => publisher.id)]);
   const catalogResults = publishers.filter((publisher) => !listedIds.has(publisher.id));
 
-  const showCustomOption =
-    trimmedQuery.length >= PUBLISHER_LOOKUP.minNameLength && existingMatches.length === 0;
+  const showCustomOption = lookupIsEnabled && existingMatches.length === 0;
   const customIsSecondary = similarMatches.length > 0;
 
   const hasResults = listedIds.size > 0 || catalogResults.length > 0;
@@ -242,6 +244,11 @@ export function PublisherAutocomplete({
             {isFetchingNextPage ? (
               <div className="px-2 py-1.5 text-center text-xs text-muted-foreground">
                 {t("publisher.searching")}
+              </div>
+            ) : null}
+            {lookupUnavailable ? (
+              <div className="px-2 py-1.5 text-center text-xs text-warning" role="status">
+                {t("publisher.lookupUnavailable")}
               </div>
             ) : null}
             {showCustomOption ? (

@@ -20,6 +20,7 @@ const RANOK: PublisherView = publisherView("publisher-ranok", "Ранок");
 const fetchMock = vi.fn<(input: RequestInfo | URL) => Promise<Response>>();
 
 let candidates: PublisherDuplicateCandidate[] = [];
+let duplicateLookupFails = false;
 let recent: PublisherView[] = [];
 let searchResults: PublisherView[] = [];
 
@@ -97,6 +98,7 @@ async function typeQuery(text: string) {
 
 beforeEach(() => {
   candidates = [];
+  duplicateLookupFails = false;
   recent = [];
   searchResults = [];
 
@@ -104,6 +106,7 @@ beforeEach(() => {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/publishers/duplicate-candidates")) {
+      if (duplicateLookupFails) return Promise.resolve(new Response("boom", { status: 500 }));
       return Promise.resolve(jsonResponse(candidates));
     }
     if (url.includes("/api/publishers/recent")) return Promise.resolve(jsonResponse(recent));
@@ -253,5 +256,20 @@ describe("PublisherAutocomplete duplicate candidates", () => {
     expect(await screen.findByText("Це видавництво вже є")).toBeInTheDocument();
     expect(screen.getAllByText("Видавництво Vivat")).toHaveLength(1);
     expect(screen.queryByText("Раніше використані")).not.toBeInTheDocument();
+  });
+
+  it("says the duplicate check failed and still offers the custom option", async () => {
+    duplicateLookupFails = true;
+    searchResults = [RANOK];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Vivat");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Не вдалося перевірити, чи таке видавництво вже є.",
+    );
+    expect(await screen.findByText("Ранок")).toBeInTheDocument();
+    expect(screen.getByText("Використати «Vivat»")).toBeInTheDocument();
+    expect(screen.queryByText("Видавництв не знайдено.")).not.toBeInTheDocument();
   });
 });
