@@ -88,7 +88,7 @@ describe("GET /api/publishers/duplicate-candidates classification", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
-      { id: vivat.id, isCustom: false, matchKind: "exact", name: "Vivat" },
+      { id: vivat.id, isCustom: false, matchedName: "Vivat", matchKind: "exact", name: "Vivat" },
     ]);
   });
 
@@ -100,7 +100,13 @@ describe("GET /api/publishers/duplicate-candidates classification", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
-      { id: vivat.id, isCustom: false, matchKind: "alias", name: "Видавництво Vivat" },
+      {
+        id: vivat.id,
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "alias",
+        name: "Видавництво Vivat",
+      },
     ]);
   });
 
@@ -135,6 +141,7 @@ describe("GET /api/publishers/duplicate-candidates classification", () => {
       {
         id: laboratory.id,
         isCustom: false,
+        matchedName: null,
         matchKind: "strong",
         name: "Лабораторія (видавництво)",
       },
@@ -154,7 +161,7 @@ describe("GET /api/publishers/duplicate-candidates classification", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([
-      { id: vivat.id, isCustom: false, matchKind: "strong", name: "Vivat" },
+      { id: vivat.id, isCustom: false, matchedName: null, matchKind: "strong", name: "Vivat" },
     ]);
   });
 
@@ -173,6 +180,50 @@ describe("GET /api/publishers/duplicate-candidates classification", () => {
 
     expect(osnovy.body).toEqual([]);
     expect(penguin.body).toEqual([]);
+  });
+});
+
+describe("GET /api/publishers/duplicate-candidates matched name", () => {
+  async function seedLaboratoryWithLocalizedAlias(): Promise<{ id: string }> {
+    return seedPublisher({
+      name: "Видавництво Лабораторія",
+      names: [
+        {
+          isPrimary: true,
+          locale: "uk",
+          name: "Видавництво Лабораторія",
+          normalizedName: "видавництво лабораторія",
+        },
+        { isPrimary: true, locale: "en", name: "Laboratory", normalizedName: "laboratory" },
+        { isPrimary: false, locale: "uk", name: "LABORATORY", normalizedName: "laboratory" },
+      ],
+      normalizedName: "видавництво лабораторія",
+      prisma,
+      searchText: "видавництво лабораторія laboratory",
+      userId: null,
+    });
+  }
+
+  it("picks the requested locale when one publisher holds the matched name twice", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedLaboratoryWithLocalizedAlias();
+
+    const ukrainian = await duplicateCandidates(accessToken, {
+      locale: "uk",
+      name: "Laboratory",
+    });
+    const english = await duplicateCandidates(accessToken, { locale: "en", name: "Laboratory" });
+
+    expect(ukrainian.body[0]).toMatchObject({
+      matchedName: "LABORATORY",
+      matchKind: "alias",
+      name: "Видавництво Лабораторія",
+    });
+    expect(english.body[0]).toMatchObject({
+      matchedName: "Laboratory",
+      matchKind: "alias",
+      name: "Laboratory",
+    });
   });
 });
 

@@ -304,6 +304,22 @@ describe("QueueVolumeDataDialog", () => {
     await vi.waitFor(() => expect(submit).toBeDisabled());
   });
 
+  it("offers to keep editing when a filled-in row is about to be abandoned", async () => {
+    mockBulkFetch(() => Promise.resolve(jsonResponse(successResult())));
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    renderDialog([missingPagesItem(1, BOOK_A, "Єдина")], onOpenChange);
+
+    await user.type(pagesInputFor("Єдина"), "320");
+    await user.keyboard("{Escape}");
+
+    expect(await screen.findByText(copy.discard.title)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Так, вийти" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Продовжити редагування" })).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
   it("refuses to submit when nothing was filled in", async () => {
     const { fetchMock } = mockBulkFetch(() => Promise.resolve(jsonResponse(successResult())));
     const user = userEvent.setup();

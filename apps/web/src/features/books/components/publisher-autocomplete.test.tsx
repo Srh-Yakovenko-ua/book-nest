@@ -23,13 +23,19 @@ let candidates: PublisherDuplicateCandidate[] = [];
 let recent: PublisherView[] = [];
 let searchResults: PublisherView[] = [];
 
-function candidate(
-  publisher: PublisherView,
-  matchKind: PublisherDuplicateCandidate["matchKind"],
-): PublisherDuplicateCandidate {
+function candidate({
+  matchedName,
+  matchKind,
+  publisher,
+}: {
+  matchedName: PublisherDuplicateCandidate["matchedName"];
+  matchKind: PublisherDuplicateCandidate["matchKind"];
+  publisher: PublisherView;
+}): PublisherDuplicateCandidate {
   return {
     id: publisher.id,
     isCustom: publisher.isCustom,
+    matchedName,
     matchKind,
     name: publisher.name,
   };
@@ -42,18 +48,21 @@ function describeSelection(selection: null | PublisherSelection): string {
 }
 
 function Harness() {
+  const [query, setQuery] = useState("");
   const [selection, setSelection] = useState<null | PublisherSelection>(null);
   return (
     <>
       <PublisherAutocomplete
-        id="publisher"
         invalid={false}
         label="Видавництво"
         onChange={setSelection}
+        onQueryChange={setQuery}
         placeholder={PLACEHOLDER}
+        query={query}
         value={selection}
       />
       <p data-testid="selection">{describeSelection(selection)}</p>
+      <p data-testid="query">{`raw: ${query}`}</p>
     </>
   );
 }
@@ -118,7 +127,9 @@ afterEach(() => {
 
 describe("PublisherAutocomplete duplicate candidates", () => {
   it("hides the create-custom option when the name is already an existing publisher", async () => {
-    candidates = [candidate(VIVAT_SHORT, "exact")];
+    candidates = [
+      candidate({ matchedName: VIVAT_SHORT.name, matchKind: "exact", publisher: VIVAT_SHORT }),
+    ];
 
     renderWithProviders(<Harness />);
     await typeQuery("Vivat");
@@ -129,7 +140,7 @@ describe("PublisherAutocomplete duplicate candidates", () => {
   });
 
   it("selects the publisher behind an alias by id instead of offering a custom one", async () => {
-    candidates = [candidate(VIVAT_GLOBAL, "alias")];
+    candidates = [candidate({ matchedName: "Віват", matchKind: "alias", publisher: VIVAT_GLOBAL })];
 
     renderWithProviders(<Harness />);
     await typeQuery("Віват");
@@ -145,7 +156,7 @@ describe("PublisherAutocomplete duplicate candidates", () => {
   });
 
   it("keeps the create-custom option as a secondary action next to similar publishers", async () => {
-    candidates = [candidate(VIVAT_GLOBAL, "strong")];
+    candidates = [candidate({ matchedName: null, matchKind: "strong", publisher: VIVAT_GLOBAL })];
 
     renderWithProviders(<Harness />);
     await typeQuery("Vivat");
@@ -153,6 +164,68 @@ describe("PublisherAutocomplete duplicate candidates", () => {
     expect(await screen.findByText("Схожі видавництва")).toBeInTheDocument();
     expect(screen.getByText("Усе одно додати «Vivat» як власне")).toBeInTheDocument();
     expect(screen.queryByText("Це видавництво вже є")).not.toBeInTheDocument();
+  });
+
+  it("explains which stored name an alias candidate matched", async () => {
+    candidates = [candidate({ matchedName: "Віват", matchKind: "alias", publisher: VIVAT_GLOBAL })];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Віват");
+
+    expect(await screen.findByText("також відоме як «Віват»")).toBeInTheDocument();
+  });
+
+  it("keeps an exact match on its own name unannotated", async () => {
+    candidates = [
+      candidate({ matchedName: VIVAT_GLOBAL.name, matchKind: "exact", publisher: VIVAT_GLOBAL }),
+    ];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Видавництво Vivat");
+
+    expect(await screen.findByText("Це видавництво вже є")).toBeInTheDocument();
+    expect(screen.queryByText(/також відоме як/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a similar publisher without a matched name unannotated", async () => {
+    candidates = [candidate({ matchedName: null, matchKind: "strong", publisher: VIVAT_GLOBAL })];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Vivat");
+
+    expect(await screen.findByText("Схожі видавництва")).toBeInTheDocument();
+    expect(screen.queryByText(/також відоме як/)).not.toBeInTheDocument();
+  });
+
+  it("skips the hint when the matched name differs from the shown one only by case", async () => {
+    candidates = [
+      candidate({ matchedName: "видавництво vivat", matchKind: "alias", publisher: VIVAT_GLOBAL }),
+    ];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("видавництво vivat");
+
+    expect(await screen.findByText("Це видавництво вже є")).toBeInTheDocument();
+    expect(screen.queryByText(/також відоме як/)).not.toBeInTheDocument();
+  });
+
+  it("reports the raw typed text to the owner without committing a selection", async () => {
+    renderWithProviders(<Harness />);
+    await typeQuery("Час");
+
+    expect(screen.getByTestId("query")).toHaveTextContent("Час");
+    expect(screen.getByTestId("selection")).toHaveTextContent("none");
+  });
+
+  it("reports the picked publisher name as the raw text", async () => {
+    candidates = [candidate({ matchedName: "Віват", matchKind: "alias", publisher: VIVAT_GLOBAL })];
+
+    renderWithProviders(<Harness />);
+    await typeQuery("Віват");
+
+    await userEvent.click(await screen.findByText("Видавництво Vivat"));
+
+    expect(screen.getByTestId("query")).toHaveTextContent("Видавництво Vivat");
   });
 
   it("renders a publisher returned by both recent and search only once", async () => {
@@ -168,7 +241,9 @@ describe("PublisherAutocomplete duplicate candidates", () => {
   });
 
   it("renders a matched publisher once even when recent and search repeat it", async () => {
-    candidates = [candidate(VIVAT_GLOBAL, "exact")];
+    candidates = [
+      candidate({ matchedName: VIVAT_GLOBAL.name, matchKind: "exact", publisher: VIVAT_GLOBAL }),
+    ];
     recent = [VIVAT_GLOBAL];
     searchResults = [VIVAT_GLOBAL];
 

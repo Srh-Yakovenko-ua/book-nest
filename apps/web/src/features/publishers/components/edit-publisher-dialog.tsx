@@ -1,6 +1,11 @@
 "use client";
 
-import type { LibraryPublisherDetail, Nullable, UpdatePublisherInput } from "@app/shared";
+import type {
+  LibraryPublisherDetail,
+  Nullable,
+  PublisherDuplicateCandidate,
+  UpdatePublisherInput,
+} from "@app/shared";
 
 import {
   PublisherCountryCodeSchema,
@@ -31,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { YearPicker } from "@/components/ui/year-picker";
 import { DiscardConfirmDialog } from "@/features/books";
 import {
+  distinctMatchedName,
   PUBLISHER_LOOKUP,
   usePublisherDuplicateCandidates,
 } from "@/features/books/api/use-publisher-duplicate-candidates";
@@ -67,6 +73,7 @@ export function EditPublisherDialog({
   open,
 }: EditPublisherDialogProps) {
   const t = useTranslations("publishers.details.editDialog");
+  const tDiscardChanges = useTranslations("common.discardChanges");
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
@@ -112,6 +119,8 @@ export function EditPublisherDialog({
         </DialogContent>
       </Dialog>
       <DiscardConfirmDialog
+        cancelLabel={tDiscardChanges("cancel")}
+        confirmLabel={tDiscardChanges("confirm")}
         description={t("discardDescription")}
         onConfirm={() => {
           setDiscardOpen(false);
@@ -186,7 +195,12 @@ function EditPublisherForm({
   }, [isDirty, onDirtyChange]);
 
   const nameValue = useWatch({ control, name: "name" }) ?? "";
-  const nameAlreadyTaken = useNameAlreadyTaken({ name: nameValue, publisherId: details.id });
+  const conflictingPublisher = useConflictingPublisher({
+    name: nameValue,
+    publisherId: details.id,
+  });
+  const conflictingAlias =
+    conflictingPublisher === null ? null : distinctMatchedName(conflictingPublisher);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -234,11 +248,16 @@ function EditPublisherForm({
           {...register("name")}
         />
         <FieldError error={errors.name} id="edit-publisher-name-error" />
-        {nameAlreadyTaken && errors.name === undefined ? (
+        {conflictingPublisher === null || errors.name !== undefined ? null : (
           <p className="text-xs text-warning" role="status">
-            {t("duplicate")}
+            {conflictingAlias === null
+              ? t("duplicateTaken", { name: conflictingPublisher.name })
+              : t("duplicateTakenAlias", {
+                  matchedName: conflictingAlias,
+                  name: conflictingPublisher.name,
+                })}
           </p>
-        ) : null}
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -333,13 +352,13 @@ function EditPublisherForm({
   );
 }
 
-function useNameAlreadyTaken({
+function useConflictingPublisher({
   name,
   publisherId,
 }: {
   name: string;
   publisherId: string;
-}): boolean {
+}): Nullable<PublisherDuplicateCandidate> {
   const trimmedName = name.trim();
   const debouncedName = useDebouncedValue(trimmedName, PUBLISHER_LOOKUP.debounceMs);
   const { data: candidates = [] } = usePublisherDuplicateCandidates({
@@ -347,6 +366,6 @@ function useNameAlreadyTaken({
     name: debouncedName,
   });
 
-  if (debouncedName !== trimmedName) return false;
-  return candidates.some((candidate) => candidate.matchKind !== "strong");
+  if (debouncedName !== trimmedName) return null;
+  return candidates.find((candidate) => candidate.matchKind !== "strong") ?? null;
 }

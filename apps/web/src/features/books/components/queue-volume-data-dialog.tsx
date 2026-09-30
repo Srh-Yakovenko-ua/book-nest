@@ -99,6 +99,7 @@ type VolumeRowValue = {
 
 export function QueueVolumeDataDialog({ items, onOpenChange, open }: QueueVolumeDataDialogProps) {
   const t = useTranslations("readingQueue.volumeModal");
+  const tDiscardChanges = useTranslations("common.discardChanges");
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
@@ -132,6 +133,8 @@ export function QueueVolumeDataDialog({ items, onOpenChange, open }: QueueVolume
       </Dialog>
 
       <DiscardConfirmDialog
+        cancelLabel={tDiscardChanges("cancel")}
+        confirmLabel={tDiscardChanges("confirm")}
         description={t("discard.description")}
         onConfirm={close}
         onOpenChange={setDiscardOpen}

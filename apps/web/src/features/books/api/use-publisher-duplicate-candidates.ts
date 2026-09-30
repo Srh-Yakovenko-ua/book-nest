@@ -1,7 +1,7 @@
-import type { PublisherDuplicateCandidate } from "@app/shared";
+import type { Nullable, PublisherDuplicateCandidate } from "@app/shared";
 
 import { CatalogLocaleSchema, PublisherDuplicateCandidateSchema } from "@app/shared";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { z } from "zod";
 
@@ -14,25 +14,33 @@ export const PUBLISHER_LOOKUP = {
   minNameLength: 2,
 } as const;
 
-type UsePublisherDuplicateCandidatesArgs = {
+type PublisherDuplicateCandidatesArgs = {
   excludePublisherId?: string;
+  locale: string;
   name: string;
 };
 
-export function usePublisherDuplicateCandidates({
+export function distinctMatchedName(candidate: PublisherDuplicateCandidate): Nullable<string> {
+  const matchedName = candidate.matchedName?.trim() ?? "";
+  if (matchedName === "") return null;
+  if (matchedName.toLowerCase() === candidate.name.trim().toLowerCase()) return null;
+  return matchedName;
+}
+
+export function publisherDuplicateCandidatesQueryOptions({
   excludePublisherId,
+  locale,
   name,
-}: UsePublisherDuplicateCandidatesArgs) {
-  const trimmed = name.trim();
-  const locale = CatalogLocaleSchema.catch("uk").parse(useLocale());
+}: PublisherDuplicateCandidatesArgs) {
+  const trimmedName = name.trim();
   const params: PublishersControllerDuplicateCandidatesParams = {
-    locale,
-    name: trimmed,
+    locale: CatalogLocaleSchema.catch("uk").parse(locale),
+    name: trimmedName,
     ...(excludePublisherId === undefined ? {} : { excludePublisherId }),
   };
 
-  return useQuery({
-    enabled: trimmed.length >= PUBLISHER_LOOKUP.minNameLength,
+  return queryOptions({
+    enabled: trimmedName.length >= PUBLISHER_LOOKUP.minNameLength,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<PublisherDuplicateCandidate[]> =>
       z
@@ -40,4 +48,12 @@ export function usePublisherDuplicateCandidates({
         .parse(await publishersControllerDuplicateCandidates(params)),
     queryKey: ["publishers", "duplicates", params],
   });
+}
+
+export function usePublisherDuplicateCandidates(
+  args: Omit<PublisherDuplicateCandidatesArgs, "locale">,
+) {
+  const locale = useLocale();
+
+  return useQuery(publisherDuplicateCandidatesQueryOptions({ ...args, locale }));
 }

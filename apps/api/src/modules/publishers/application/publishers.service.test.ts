@@ -126,6 +126,43 @@ function publisherWithAllNames({
   };
 }
 
+function publisherWithLocalizedAliases(): PublisherWithNames {
+  const base = publisher({
+    id: GLOBAL_ID,
+    name: "Видавництво Лабораторія",
+    normalizedName: "видавництво лабораторія",
+  });
+  return {
+    ...base,
+    names: [
+      {
+        id: `${base.id}-en-alias`,
+        isPrimary: true,
+        locale: "en",
+        name: "Laboratory",
+        normalizedName: "laboratory",
+        publisherId: base.id,
+      },
+      {
+        id: `${base.id}-uk-alias`,
+        isPrimary: false,
+        locale: "uk",
+        name: "LABORATORY",
+        normalizedName: "laboratory",
+        publisherId: base.id,
+      },
+      {
+        id: `${base.id}-uk-primary`,
+        isPrimary: true,
+        locale: "uk",
+        name: base.name,
+        normalizedName: base.normalizedName,
+        publisherId: base.id,
+      },
+    ],
+  };
+}
+
 function publisherWithNames(
   overrides: Partial<PublisherWithPrimaryNames> = {},
 ): PublisherWithPrimaryNames {
@@ -315,9 +352,27 @@ describe("PublishersService.duplicateCandidates", () => {
     });
 
     expect(candidates).toEqual([
-      { id: OTHER_GLOBAL_ID, isCustom: true, matchKind: "exact", name: "Laboratory" },
-      { id: GLOBAL_ID, isCustom: true, matchKind: "alias", name: "Видавництво Лабораторія" },
-      { id: PUBLISHER_ID, isCustom: true, matchKind: "strong", name: "Laboratory (publishing)" },
+      {
+        id: OTHER_GLOBAL_ID,
+        isCustom: true,
+        matchedName: "Laboratory",
+        matchKind: "exact",
+        name: "Laboratory",
+      },
+      {
+        id: GLOBAL_ID,
+        isCustom: true,
+        matchedName: "Laboratory",
+        matchKind: "alias",
+        name: "Видавництво Лабораторія",
+      },
+      {
+        id: PUBLISHER_ID,
+        isCustom: true,
+        matchedName: null,
+        matchKind: "strong",
+        name: "Laboratory (publishing)",
+      },
     ]);
   });
 
@@ -367,7 +422,13 @@ describe("PublishersService.duplicateCandidates", () => {
     });
 
     expect(candidates).toEqual([
-      { id: GLOBAL_ID, isCustom: true, matchKind: "exact", name: "Laboratory" },
+      {
+        id: GLOBAL_ID,
+        isCustom: true,
+        matchedName: "Laboratory",
+        matchKind: "exact",
+        name: "Laboratory",
+      },
     ]);
   });
 
@@ -389,6 +450,93 @@ describe("PublishersService.duplicateCandidates", () => {
     });
 
     expect(candidates).toEqual([]);
+  });
+});
+
+describe("PublishersService.duplicateCandidates matchedName", () => {
+  it("returns the alias that matched rather than the display name", async () => {
+    const { service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({
+          aliases: ["Laboratory"],
+          id: GLOBAL_ID,
+          name: "Видавництво Лабораторія",
+          normalizedName: "видавництво лабораторія",
+        }),
+      ],
+    });
+
+    const [candidate] = await service.duplicateCandidates({
+      locale: "uk",
+      name: "  LABORATORY  ",
+      userId: USER_ID,
+    });
+
+    expect(candidate).toMatchObject({
+      matchedName: "Laboratory",
+      matchKind: "alias",
+      name: "Видавництво Лабораторія",
+    });
+  });
+
+  it("returns the stored name that an exact match landed on", async () => {
+    const { service } = buildService({
+      findNameMatches: [
+        publisherWithAllNames({
+          id: OTHER_GLOBAL_ID,
+          name: "Laboratory",
+          normalizedName: "laboratory",
+        }),
+      ],
+    });
+
+    const [candidate] = await service.duplicateCandidates({
+      locale: "uk",
+      name: "laboratory",
+      userId: USER_ID,
+    });
+
+    expect(candidate).toMatchObject({ matchedName: "Laboratory", matchKind: "exact" });
+  });
+
+  it("leaves matchedName null for a strong suggestion", async () => {
+    const { service } = buildService({
+      findStrongCandidates: [
+        publisherWithAllNames({
+          id: PUBLISHER_ID,
+          name: "Laboratory (publishing)",
+          normalizedName: "laboratory (publishing)",
+        }),
+      ],
+    });
+
+    const [candidate] = await service.duplicateCandidates({
+      locale: "uk",
+      name: "Laboratory",
+      userId: USER_ID,
+    });
+
+    expect(candidate).toMatchObject({ matchedName: null, matchKind: "strong" });
+  });
+
+  it("prefers the requested locale when one publisher holds the matched name twice", async () => {
+    const { service } = buildService({
+      findNameMatches: [publisherWithLocalizedAliases()],
+    });
+
+    const [ukrainian] = await service.duplicateCandidates({
+      locale: "uk",
+      name: "Laboratory",
+      userId: USER_ID,
+    });
+    const [english] = await service.duplicateCandidates({
+      locale: "en",
+      name: "Laboratory",
+      userId: USER_ID,
+    });
+
+    expect(ukrainian?.matchedName).toBe("LABORATORY");
+    expect(english?.matchedName).toBe("Laboratory");
   });
 });
 

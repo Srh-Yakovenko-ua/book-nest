@@ -383,6 +383,7 @@ export const PublishersControllerDuplicateCandidatesQueryParams = zod.object({
 export const PublishersControllerDuplicateCandidatesResponseItem = zod.object({
   id: zod.string(),
   isCustom: zod.boolean(),
+  matchedName: zod.string().nullable(),
   matchKind: zod.enum(["exact", "alias", "strong"]),
   name: zod.string(),
 });

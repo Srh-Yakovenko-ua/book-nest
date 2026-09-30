@@ -1,10 +1,10 @@
 "use client";
 
-import type { PublisherView } from "@app/shared";
+import type { PublisherDuplicateCandidate, PublisherView } from "@app/shared";
 
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -14,6 +14,7 @@ import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { cn } from "@/lib/utils";
 
 import {
+  distinctMatchedName,
   PUBLISHER_LOOKUP,
   usePublisherDuplicateCandidates,
 } from "../api/use-publisher-duplicate-candidates";
@@ -23,41 +24,43 @@ import { type PublisherSelection } from "../model/create-book-form";
 
 type PublisherAutocompleteProps = {
   describedBy?: string;
-  id: string;
   invalid: boolean;
   label: string;
   onChange: (selection: null | PublisherSelection) => void;
+  onQueryChange: (query: string) => void;
   placeholder: string;
+  query: string;
   value: null | PublisherSelection;
 };
 
 type PublisherOptionProps = {
+  children?: ReactNode;
   onSelect: () => void;
   publisher: PublisherRow;
 };
 
 type PublisherRow = Pick<PublisherView, "id" | "isCustom" | "name">;
 
+const PUBLISHER_INPUT_SLOT = "publisher-input";
+
+export function focusPublisherInput() {
+  const input = document.querySelector(`[data-slot="${PUBLISHER_INPUT_SLOT}"]`);
+  if (input instanceof HTMLInputElement) input.focus();
+}
+
 export function PublisherAutocomplete({
   describedBy,
-  id,
   invalid,
   label,
   onChange,
+  onQueryChange,
   placeholder,
+  query,
   value,
 }: PublisherAutocompleteProps) {
   const t = useTranslations("books");
-  const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
-  const [trackedValue, setTrackedValue] = useState(value);
   const anchorRef = useRef<HTMLDivElement>(null);
-
-  if (value !== trackedValue) {
-    setTrackedValue(value);
-    if (value !== null && value.name !== query) setQuery(value.name);
-    if (value === null && trackedValue !== null && query === trackedValue.name) setQuery("");
-  }
 
   const debouncedQuery = useDebouncedValue(query, PUBLISHER_LOOKUP.debounceMs);
   const {
@@ -103,19 +106,19 @@ export function PublisherAutocomplete({
 
   function pickCatalog(publisher: PublisherRow) {
     onChange({ id: publisher.id, kind: "catalog", name: publisher.name });
-    setQuery(publisher.name);
+    onQueryChange(publisher.name);
     setOpen(false);
   }
 
   function pickCustom() {
     onChange({ kind: "custom", name: trimmedQuery });
-    setQuery(trimmedQuery);
+    onQueryChange(trimmedQuery);
     setOpen(false);
   }
 
   function handleClear() {
     onChange(null);
-    setQuery("");
+    onQueryChange("");
     setOpen(false);
   }
 
@@ -145,11 +148,11 @@ export function PublisherAutocomplete({
                 invalid &&
                   "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
               )}
-              id={id}
+              data-slot={PUBLISHER_INPUT_SLOT}
               onClick={() => setOpen(true)}
               onFocus={() => setOpen(true)}
               onValueChange={(next) => {
-                setQuery(next);
+                onQueryChange(next);
                 setOpen(true);
                 if (value !== null) onChange(null);
               }}
@@ -194,7 +197,9 @@ export function PublisherAutocomplete({
                     key={match.id}
                     onSelect={() => pickCatalog(match)}
                     publisher={match}
-                  />
+                  >
+                    <MatchedNameHint candidate={match} />
+                  </PublisherOption>
                 ))}
               </CommandGroup>
             ) : null}
@@ -205,7 +210,9 @@ export function PublisherAutocomplete({
                     key={match.id}
                     onSelect={() => pickCatalog(match)}
                     publisher={match}
-                  />
+                  >
+                    <MatchedNameHint candidate={match} />
+                  </PublisherOption>
                 ))}
               </CommandGroup>
             ) : null}
@@ -265,12 +272,26 @@ export function PublisherAutocomplete({
   );
 }
 
-function PublisherOption({ onSelect, publisher }: PublisherOptionProps) {
+function MatchedNameHint({ candidate }: { candidate: PublisherDuplicateCandidate }) {
+  const t = useTranslations("books");
+  const matchedName = distinctMatchedName(candidate);
+  if (matchedName === null) return null;
+  return (
+    <span className="truncate text-xs text-muted-foreground">
+      {t("publisher.alsoKnownAs", { name: matchedName })}
+    </span>
+  );
+}
+
+function PublisherOption({ children, onSelect, publisher }: PublisherOptionProps) {
   const t = useTranslations("books");
   return (
     <CommandItem className="cursor-pointer items-start" onSelect={onSelect} value={publisher.id}>
-      <UiIcon className="shrink-0 text-muted-foreground" name="building" size={16} />
-      <span className="min-w-0 break-words whitespace-normal">{publisher.name}</span>
+      <UiIcon className="mt-0.5 shrink-0 text-muted-foreground" name="building" size={16} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="break-words whitespace-normal">{publisher.name}</span>
+        {children}
+      </span>
       {publisher.isCustom ? (
         <span className="shrink-0 text-xs text-muted-foreground">{t("publisher.customBadge")}</span>
       ) : null}

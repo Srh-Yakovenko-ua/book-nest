@@ -12,15 +12,17 @@ import { PublisherAutocomplete } from "./publisher-autocomplete";
 type PublisherSeed = { id: string; isCustom?: boolean; name: string };
 
 function Harness() {
+  const [query, setQuery] = useState("");
   const [value, setValue] = useState<null | PublisherSelection>(null);
   return (
     <div className="w-80">
       <PublisherAutocomplete
-        id="publisher"
         invalid={false}
         label="Видавництво"
         onChange={setValue}
+        onQueryChange={setQuery}
         placeholder="Почніть вводити назву видавництва…"
+        query={query}
         value={value}
       />
       <p data-testid="selection">{value === null ? "none" : `${value.kind}:${value.name}`}</p>
@@ -82,11 +84,12 @@ function toPublisherView(item: PublisherSeed): PublisherView {
 
 const meta = {
   args: {
-    id: "publisher",
     invalid: false,
     label: "Видавництво",
     onChange: () => undefined,
+    onQueryChange: () => undefined,
     placeholder: "Почніть вводити назву видавництва…",
+    query: "",
     value: null,
   },
   beforeEach: () => {
