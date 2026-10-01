@@ -285,7 +285,7 @@ function MatchedNameHint({ candidate }: { candidate: PublisherDuplicateCandidate
   const matchedName = distinctMatchedName(candidate);
   if (matchedName === null) return null;
   return (
-    <span className="truncate text-xs text-muted-foreground">
+    <span className="text-xs break-words whitespace-normal text-muted-foreground">
       {t("publisher.alsoKnownAs", { name: matchedName })}
     </span>
   );

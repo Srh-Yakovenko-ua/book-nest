@@ -11,11 +11,34 @@ import { PublisherAutocomplete } from "./publisher-autocomplete";
 
 type PublisherSeed = { id: string; isCustom?: boolean; name: string };
 
-function Harness() {
-  const [query, setQuery] = useState("");
+const ALIAS_MATCHES = {
+  long: {
+    id: "publisher-knyholav-group",
+    isCustom: true,
+    matchedName: "Основи Книголав Паблішинг Хаус Україна",
+    matchKind: "alias",
+    name: "Видавнича група «Основи Книголав Паблішинг»",
+  },
+  short: {
+    id: "publisher-knyholav",
+    isCustom: false,
+    matchedName: "Kniholove",
+    matchKind: "alias",
+    name: "Книголав",
+  },
+} as const satisfies Record<string, PublisherDuplicateCandidate>;
+
+function Harness({
+  fullWidth = false,
+  initialQuery = "",
+}: {
+  fullWidth?: boolean;
+  initialQuery?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [value, setValue] = useState<null | PublisherSelection>(null);
   return (
-    <div className="w-80">
+    <div className={fullWidth ? "w-full p-4" : "w-80"}>
       <PublisherAutocomplete
         invalid={false}
         label="Видавництво"
@@ -175,6 +198,27 @@ export const CreateCustom: Story = {
     );
   },
   render: () => <Harness />,
+};
+
+export const AliasHintOnLongNames: Story = {
+  beforeEach: () => {
+    mockPublishers({ duplicates: [ALIAS_MATCHES.long, ALIAS_MATCHES.short] });
+  },
+  parameters: { layout: "fullscreen" },
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("combobox", { name: "Видавництво" }));
+
+    await waitFor(() => expect(surface.getByText("Це видавництво вже є")).toBeVisible());
+    await expect(
+      await surface.findByText("також відоме як «Основи Книголав Паблішинг Хаус Україна»"),
+    ).toBeVisible();
+    await expect(surface.getByText("також відоме як «Kniholove»")).toBeVisible();
+    await expect(surface.getByText("Видавнича група «Основи Книголав Паблішинг»")).toBeVisible();
+    await expect(surface.getByText("власне")).toBeVisible();
+  },
+  render: () => <Harness fullWidth initialQuery="Книголав" />,
 };
 
 export const AccessibleName: Story = {
