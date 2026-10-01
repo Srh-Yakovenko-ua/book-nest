@@ -34,6 +34,7 @@ vi.mock("sonner", () => ({
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let duplicateCandidates: PublisherDuplicateCandidate[];
+let respondToCandidates: () => Response;
 let respondToUpdate: () => Response;
 
 function EditHarness({ details }: { details: LibraryPublisherDetail }) {
@@ -68,6 +69,7 @@ function renderDialog(details = makePublisherDetail({ isCustom: true, name: "Viv
 
 beforeEach(() => {
   duplicateCandidates = [];
+  respondToCandidates = () => jsonResponse(duplicateCandidates);
   respondToUpdate = () => jsonResponse(makePublisherDetail({ isCustom: true, name: "Vivat" }));
 
   fetchMock.mockReset();
@@ -75,7 +77,7 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "PATCH") return Promise.resolve(respondToUpdate());
     if (String(input).includes("/api/publishers/duplicate-candidates")) {
-      return Promise.resolve(jsonResponse(duplicateCandidates));
+      return Promise.resolve(respondToCandidates());
     }
     return Promise.reject(new Error(`unexpected ${method} ${String(input)}`));
   });
@@ -248,6 +250,34 @@ describe("EditPublisherDialog", () => {
         fetchMock.mock.calls
           .map(([input]) => String(input))
           .some((url) => url.includes("/api/publishers/duplicate-candidates")),
+      ).toBe(true),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("admits that the duplicate check failed while a new name is being typed", async () => {
+    respondToCandidates = () => jsonResponse({ message: "lookup down" }, 500);
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Не вдалося перевірити, чи таку назву вже хтось використовує.",
+    );
+  });
+
+  it("stays quiet about a failed duplicate check while the name is untouched", async () => {
+    respondToCandidates = () => jsonResponse({ message: "lookup down" }, 500);
+
+    const { queryClient } = renderDialog();
+
+    await waitFor(() =>
+      expect(
+        queryClient
+          .getQueryCache()
+          .getAll()
+          .some((query) => query.state.status === "error"),
       ).toBe(true),
     );
     expect(screen.queryByRole("status")).not.toBeInTheDocument();

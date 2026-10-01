@@ -7749,6 +7749,7 @@
         "duplicateSelfAlias": "The publisher “{name}” has the same name, because it is also known as “{matchedName}”. You can merge them into one.",
         "duplicateTaken": "The publisher “{name}” already uses this name",
         "duplicateTakenAlias": "The publisher “{name}” already uses this name, because it is also known as “{matchedName}”",
+        "lookupUnavailable": "We could not check whether another publisher already uses this name.",
         "invalidUrl": "Enter a valid link",
         "invalidYear": "Enter a valid year",
         "invalidName": "Name must be at least 2 characters long",
