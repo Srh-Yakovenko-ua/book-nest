@@ -68,6 +68,11 @@ type EditPublisherFormValues = {
   websiteUrl: string;
 };
 
+type PublisherLookupState = {
+  conflictingPublisher: Nullable<PublisherDuplicateCandidate>;
+  lookupUnavailable: boolean;
+};
+
 export function EditPublisherDialog({
   details,
   onCloseAutoFocus,
@@ -229,11 +234,12 @@ function EditPublisherForm({
   }, [isDirty, onDirtyChange]);
 
   const nameValue = useWatch({ control, name: "name" }) ?? "";
-  const conflictingPublisher = useConflictingPublisher({
+  const { conflictingPublisher, lookupUnavailable } = useConflictingPublisher({
     name: nameValue,
     publisherId: details.id,
   });
   const keepsOwnName = normalizeName(nameValue) === normalizeName(details.name);
+  const showLookupUnavailable = lookupUnavailable && conflictingPublisher === null && !keepsOwnName;
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -282,10 +288,17 @@ function EditPublisherForm({
         />
         <FieldError error={errors.name} id="edit-publisher-name-error" />
         {errors.name === undefined ? (
-          <DuplicateNotice
-            conflictingPublisher={conflictingPublisher}
-            keepsOwnName={keepsOwnName}
-          />
+          <>
+            <DuplicateNotice
+              conflictingPublisher={conflictingPublisher}
+              keepsOwnName={keepsOwnName}
+            />
+            {showLookupUnavailable ? (
+              <p className="text-xs text-warning" role="status">
+                {t("lookupUnavailable")}
+              </p>
+            ) : null}
+          </>
         ) : null}
       </div>
 
@@ -387,14 +400,18 @@ function useConflictingPublisher({
 }: {
   name: string;
   publisherId: string;
-}): Nullable<PublisherDuplicateCandidate> {
+}): PublisherLookupState {
   const trimmedName = name.trim();
   const debouncedName = useDebouncedValue(trimmedName, PUBLISHER_LOOKUP.debounceMs);
-  const { data: candidates = [] } = usePublisherDuplicateCandidates({
+  const { data: candidates = [], isError } = usePublisherDuplicateCandidates({
     excludePublisherId: publisherId,
     name: debouncedName,
   });
 
-  if (debouncedName !== trimmedName) return null;
-  return candidates.find(isReliableMatch) ?? null;
+  const lookupMatchesName = debouncedName === trimmedName;
+
+  return {
+    conflictingPublisher: lookupMatchesName ? (candidates.find(isReliableMatch) ?? null) : null,
+    lookupUnavailable: isError && lookupMatchesName,
+  };
 }
