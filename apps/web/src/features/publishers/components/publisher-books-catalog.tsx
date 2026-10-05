@@ -1,18 +1,25 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { BooksArchive } from "@/features/books";
 
-type PublisherBooksTabProps = {
+type PublisherBooksCatalogProps = {
   onAddBook: () => void;
   publisherId: string;
+  sidebar?: ReactNode;
 };
 
-export function PublisherBooksTab({ onAddBook, publisherId }: PublisherBooksTabProps) {
-  const t = useTranslations("publishers.details.booksTab");
+export function PublisherBooksCatalog({
+  onAddBook,
+  publisherId,
+  sidebar,
+}: PublisherBooksCatalogProps) {
+  const t = useTranslations("publishers.details.catalog");
 
   const emptyState: EmptyStateEntry = {
     desc: t("empty.description"),
@@ -36,6 +43,7 @@ export function PublisherBooksTab({ onAddBook, publisherId }: PublisherBooksTabP
       onAddBook={onAddBook}
       publisherContext={{ publisherId }}
       scope="all"
+      sidebar={sidebar}
     />
   );
 }

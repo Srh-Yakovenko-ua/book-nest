@@ -28,7 +28,6 @@ type DeleteOutcome = "failed" | "idle" | "linkedBooks";
 type DeletePublisherDialogProps = {
   booksCount: number;
   onCloseAutoFocus: (event: Event) => void;
-  onGoToBooks: () => void;
   onMerge: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -39,7 +38,6 @@ type DeletePublisherDialogProps = {
 export function DeletePublisherDialog({
   booksCount,
   onCloseAutoFocus,
-  onGoToBooks,
   onMerge,
   onOpenChange,
   open,
@@ -68,11 +66,6 @@ export function DeletePublisherDialog({
       >
         {blocked ? (
           <BlockedDeleteContent
-            onGoToBooks={() => {
-              setOutcome("idle");
-              onOpenChange(false);
-              onGoToBooks();
-            }}
             onMerge={() => {
               setOutcome("idle");
               onOpenChange(false);
@@ -108,11 +101,9 @@ export function DeletePublisherDialog({
 }
 
 function BlockedDeleteContent({
-  onGoToBooks,
   onMerge,
   publisherName,
 }: {
-  onGoToBooks: () => void;
   onMerge: () => void;
   publisherName: string;
 }) {
@@ -131,9 +122,6 @@ function BlockedDeleteContent({
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel>{t("close")}</AlertDialogCancel>
-        <AlertDialogAction onClick={onGoToBooks} variant="secondary">
-          {t("goToBooks")}
-        </AlertDialogAction>
         <AlertDialogAction onClick={onMerge}>
           <UiIcon name="swap" size={16} />
           {t("merge")}

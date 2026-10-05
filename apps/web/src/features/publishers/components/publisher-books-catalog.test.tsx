@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
-import { PublisherBooksTab } from "./publisher-books-tab";
+import { PublisherBooksCatalog } from "./publisher-books-catalog";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -85,10 +85,10 @@ function quickCounts(total: number) {
   };
 }
 
-function renderTab(searchParams = "") {
+function renderCatalog(searchParams = "") {
   return renderWithProviders(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <PublisherBooksTab onAddBook={vi.fn()} publisherId={PUBLISHER_ID} />
+      <PublisherBooksCatalog onAddBook={vi.fn()} publisherId={PUBLISHER_ID} />
     </NuqsTestingAdapter>,
   );
 }
@@ -109,10 +109,10 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("PublisherBooksTab", () => {
+describe("PublisherBooksCatalog", () => {
   it("scopes the list to the fixed publisher and never forwards publisherPresence", async () => {
     mockApi({ books: [makeBookView()], total: 1 });
-    renderTab("?publisher=other&publisherPresence=missing&q=дюна");
+    renderCatalog("?publisher=other&publisherPresence=missing&q=дюна");
 
     await waitFor(() => expect(requests("/api/books")).not.toHaveLength(0));
     for (const url of requests("/api/books")) {
@@ -124,7 +124,7 @@ describe("PublisherBooksTab", () => {
 
   it("scopes the quick-filter counts to the fixed publisher", async () => {
     mockApi({ books: [makeBookView()], total: 1 });
-    renderTab("?publisher=other&q=дюна");
+    renderCatalog("?publisher=other&q=дюна");
 
     await waitFor(() => expect(requests("/api/books/quick-counts")).not.toHaveLength(0));
     const [request] = requests("/api/books/quick-counts");
@@ -136,7 +136,7 @@ describe("PublisherBooksTab", () => {
 
   it("keeps the library total on the overview scoped to the fixed publisher", async () => {
     mockApi({ books: [makeBookView()], total: 1 });
-    renderTab();
+    renderCatalog();
 
     await waitFor(() => expect(requests("/api/books/overview")).not.toHaveLength(0));
     expect(requests("/api/books/overview")[0]?.searchParams.get("publisher")).toBe(PUBLISHER_ID);
@@ -145,7 +145,7 @@ describe("PublisherBooksTab", () => {
   it("renders the canonical archive without a heading level one or the publisher line", async () => {
     const book = makeBookView();
     mockApi({ books: [book], total: 1 });
-    renderTab();
+    renderCatalog();
 
     expect(await screen.findByText(book.title)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
@@ -155,7 +155,7 @@ describe("PublisherBooksTab", () => {
 
   it("hides the publisher section and scopes the facets in Advanced Filters", async () => {
     mockApi({ books: [makeBookView()], total: 1 });
-    renderTab();
+    renderCatalog();
 
     await userEvent.click(await screen.findByRole("button", { name: /Фільтри/ }));
     const sheet = await screen.findByRole("dialog");
@@ -168,14 +168,14 @@ describe("PublisherBooksTab", () => {
 
   it("shows the publisher empty state when the publisher has no books", async () => {
     mockApi({ books: [], total: 0 });
-    renderTab();
+    renderCatalog();
 
     expect(await screen.findByText("Ще немає книг цього видавництва")).toBeInTheDocument();
   });
 
   it("offers to clear filters when filters leave no books", async () => {
     mockApi({ books: [], total: 3 });
-    renderTab("?status=finished");
+    renderCatalog("?status=finished");
 
     expect(await screen.findByText("Немає книг за вибраними фільтрами")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Очистити фільтри" })).toBeInTheDocument();
