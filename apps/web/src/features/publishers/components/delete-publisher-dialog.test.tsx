@@ -34,12 +34,11 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderDialog({ booksCount = 0, onGoToBooks = vi.fn(), onMerge = vi.fn() } = {}) {
+function renderDialog({ booksCount = 0, onMerge = vi.fn() } = {}) {
   return renderWithProviders(
     <DeletePublisherDialog
       booksCount={booksCount}
       onCloseAutoFocus={vi.fn()}
-      onGoToBooks={onGoToBooks}
       onMerge={onMerge}
       onOpenChange={vi.fn()}
       open
@@ -79,16 +78,12 @@ describe("DeletePublisherDialog", () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it("shows the blocked state for a publisher with books and sends no delete request", async () => {
-    const onGoToBooks = vi.fn();
-    renderDialog({ booksCount: 3, onGoToBooks });
+  it("shows the blocked state for a publisher with books and sends no delete request", () => {
+    renderDialog({ booksCount: 3 });
 
     expect(screen.getByText("Видавництво не можна видалити")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Видалити" })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Перейти до книг" }));
-
-    expect(onGoToBooks).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "Закрити" })).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -110,7 +105,7 @@ describe("DeletePublisherDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Видалити" }));
 
     expect(await screen.findByText("Видавництво не можна видалити")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Перейти до книг" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Обʼєднати з іншим" })).toBeInTheDocument();
     expect(replaceMock).not.toHaveBeenCalled();
   });
 

@@ -1,13 +1,12 @@
 import type { Nullable } from "@app/shared";
 
-import { createSerializer, type inferParserType, parseAsString } from "nuqs/server";
+import { type inferParserType, parseAsString } from "nuqs/server";
 
 import { libraryQueryParsers } from "@/features/books";
-import { BooksControllerListOwnerItem } from "@/shared/api/generated/model";
-
-const PUBLISHER_DETAIL_TABS = ["overview", "books"] as const;
-
-export type PublisherDetailTab = (typeof PUBLISHER_DETAIL_TABS)[number];
+import {
+  BooksControllerListOwnerItem,
+  BooksControllerListPublisherPresence,
+} from "@/shared/api/generated/model";
 
 export const publisherDetailUrlParsers = {
   ...libraryQueryParsers,
@@ -21,48 +20,30 @@ type PublisherDetailUrlPatch = {
 type PublisherDetailUrlState = inferParserType<typeof publisherDetailUrlParsers>;
 
 const PUBLISHER_DETAIL_URL = {
-  booksTab: "books",
   legacyWishlistTab: "toBuy",
 } as const;
-
-const serializeBooksParams = createSerializer(libraryQueryParsers);
-
-export function isPublisherDetailTab(value: string): value is PublisherDetailTab {
-  return PUBLISHER_DETAIL_TABS.some((tab) => tab === value);
-}
-
-export function publisherBooksUrl(): PublisherDetailUrlPatch {
-  return { ...publisherOverviewUrl(), tab: PUBLISHER_DETAIL_URL.booksTab };
-}
 
 export function publisherDetailUrlNormalization(
   state: PublisherDetailUrlState,
 ): Nullable<PublisherDetailUrlPatch> {
+  const carriesFixedPublisher =
+    state.publisher.length > 0 ||
+    state.publisherPresence !== BooksControllerListPublisherPresence.all;
+
   if (state.tab === PUBLISHER_DETAIL_URL.legacyWishlistTab) {
     return {
       owner: [BooksControllerListOwnerItem.want_to_buy],
       publisher: null,
-      tab: PUBLISHER_DETAIL_URL.booksTab,
+      publisherPresence: null,
+      tab: null,
     };
   }
 
-  if (state.tab === PUBLISHER_DETAIL_URL.booksTab) {
-    return state.publisher.length === 0 ? null : { publisher: null };
+  if (state.tab !== null) {
+    return carriesFixedPublisher
+      ? { publisher: null, publisherPresence: null, tab: null }
+      : { tab: null };
   }
 
-  const hasBooksParams = serializeBooksParams(state) !== "";
-  if (state.tab === null && !hasBooksParams) return null;
-
-  return publisherOverviewUrl();
-}
-
-export function publisherOverviewUrl(): PublisherDetailUrlPatch {
-  return Object.fromEntries(Object.keys(publisherDetailUrlParsers).map((key) => [key, null]));
-}
-
-export function resolvePublisherDetailTab(tab: Nullable<string>): PublisherDetailTab {
-  if (tab === PUBLISHER_DETAIL_URL.booksTab || tab === PUBLISHER_DETAIL_URL.legacyWishlistTab) {
-    return "books";
-  }
-  return "overview";
+  return carriesFixedPublisher ? { publisher: null, publisherPresence: null } : null;
 }

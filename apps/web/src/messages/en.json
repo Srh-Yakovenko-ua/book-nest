@@ -7670,11 +7670,6 @@
         "back": "Back to publishers",
         "retry": "Try again"
       },
-      "tabs": {
-        "ariaLabel": "Publisher sections",
-        "overview": "Overview",
-        "books": "Books"
-      },
       "kpi": {
         "books": "Books in library",
         "lastAdded": "Last added {date}",
@@ -7688,11 +7683,6 @@
         "noRatedBooks": "No rated books"
       },
       "overview": {
-        "empty": {
-          "title": "No books from this publisher yet",
-          "description": "Add the first book from this publisher to your library.",
-          "cta": "Add book"
-        },
         "sections": {
           "latest": "Latest added book",
           "reading": "Currently reading",
@@ -7701,8 +7691,6 @@
         },
         "regionLabel": "Publisher overview",
         "addedAt": "Added {date}",
-        "seriesPart": "{name} · book {part}",
-        "seriesPartOfTotal": "{name} · book {part} of {total}",
         "progress": "{current} of {total} pages",
         "progressAriaLabel": "Reading progress: {current} of {total}",
         "noPrice": "No price",
@@ -7713,9 +7701,15 @@
         "error": {
           "title": "Couldn't load the overview",
           "retry": "Try again"
+        },
+        "panel": {
+          "trigger": "Publisher overview",
+          "title": "Publisher overview",
+          "subtitle": "Reading, series and the wishlist",
+          "close": "Close overview"
         }
       },
-      "booksTab": {
+      "catalog": {
         "empty": {
           "title": "No books from this publisher yet",
           "description": "Add the first book from this publisher to your library.",
@@ -7789,7 +7783,6 @@
         "deleting": "Deleting…",
         "blockedTitle": "This publisher can't be deleted",
         "blockedDescription": "Books are still linked to “{name}”. Merge it into another publisher, or reassign those books yourself.",
-        "goToBooks": "Go to books",
         "close": "Close",
         "genericError": "Couldn't delete the publisher. Try again.",
         "merge": "Merge into another"

@@ -1,12 +1,7 @@
 import { createLoader } from "nuqs/server";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  publisherBooksUrl,
-  publisherDetailUrlNormalization,
-  publisherDetailUrlParsers,
-  resolvePublisherDetailTab,
-} from "./publisher-detail-url";
+import { publisherDetailUrlNormalization, publisherDetailUrlParsers } from "./publisher-detail-url";
 
 vi.mock("@/i18n/navigation", () => ({}));
 
@@ -16,62 +11,58 @@ function normalize(search: string) {
   return publisherDetailUrlNormalization(loadDetailUrl(search));
 }
 
-describe("resolvePublisherDetailTab", () => {
-  it("maps the books and legacy wishlist tabs to books", () => {
-    expect(resolvePublisherDetailTab("books")).toBe("books");
-    expect(resolvePublisherDetailTab("toBuy")).toBe("books");
-  });
-
-  it("falls back to overview for a missing or unknown tab", () => {
-    expect(resolvePublisherDetailTab(null)).toBe("overview");
-    expect(resolvePublisherDetailTab("overview")).toBe("overview");
-    expect(resolvePublisherDetailTab("stats")).toBe("overview");
-  });
-});
-
 describe("publisherDetailUrlNormalization", () => {
-  it("leaves a clean overview url alone", () => {
+  it("leaves a clean detail url alone", () => {
     expect(normalize("")).toBeNull();
   });
 
-  it("leaves a books url with books params alone", () => {
-    expect(normalize("?q=dune&sort=title_asc&tab=books")).toBeNull();
+  it("keeps catalog params that the archive owns", () => {
+    expect(normalize("?q=dune&sort=title_asc&status=reading&view=list")).toBeNull();
   });
 
-  it("turns the legacy wishlist tab into books filtered to the wishlist", () => {
+  it("drops a legacy books tab without touching the catalog params", () => {
+    expect(normalize("?tab=books&q=dune")).toEqual({ tab: null });
+  });
+
+  it("drops a legacy overview tab", () => {
+    expect(normalize("?tab=overview")).toEqual({ tab: null });
+  });
+
+  it("drops an unknown tab", () => {
+    expect(normalize("?tab=stats")).toEqual({ tab: null });
+  });
+
+  it("turns the legacy wishlist tab into the wishlist owner filter", () => {
     expect(normalize("?tab=toBuy")).toEqual({
       owner: ["want_to_buy"],
       publisher: null,
-      tab: "books",
+      publisherPresence: null,
+      tab: null,
     });
   });
 
-  it("cleans an explicit overview tab", () => {
-    const patch = normalize("?tab=overview");
-    expect(patch?.tab).toBeNull();
-  });
-
-  it("cleans an unknown tab together with any books params", () => {
-    const patch = normalize("?q=dune&tab=stats");
-    expect(patch).toMatchObject({ q: null, tab: null });
-  });
-
-  it("cleans books-only params from the overview url", () => {
-    expect(normalize("?status=reading&view=list")).toMatchObject({
-      status: null,
-      view: null,
-    });
-  });
-
-  it("drops a publisher param from the books url", () => {
+  it("never keeps the fixed publisher as a url param", () => {
+    expect(normalize("?publisher=p-1")).toEqual({ publisher: null, publisherPresence: null });
     expect(normalize("?publisher=p-1&tab=books")).toEqual({
       publisher: null,
+      publisherPresence: null,
+      tab: null,
     });
   });
-});
 
-describe("publisherBooksUrl", () => {
-  it("opens books with every books param reset", () => {
-    expect(publisherBooksUrl()).toMatchObject({ owner: null, q: null, sort: null, tab: "books" });
+  it("strips a publisher presence filter that this page already neutralises", () => {
+    expect(normalize("?publisherPresence=missing")).toEqual({
+      publisher: null,
+      publisherPresence: null,
+    });
+    expect(normalize("?publisherPresence=assigned&tab=overview")).toEqual({
+      publisher: null,
+      publisherPresence: null,
+      tab: null,
+    });
+  });
+
+  it("leaves the default publisher presence alone", () => {
+    expect(normalize("?publisherPresence=all")).toBeNull();
   });
 });
