@@ -9,6 +9,7 @@ import type {
   MediaAssetModel,
 } from "../../../generated/prisma/models.js";
 import type { RosterVisibility } from "../domain/reading-context-window.js";
+import type { SuggestionExclusions } from "../domain/suggestion-exclusions.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
@@ -973,14 +974,32 @@ export class CharactersRepository {
     });
   }
 
+  listSeriesScopedAppearances({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<CharacterScopedAppearanceRow[]> {
+    return this.prisma.bookCharacter.findMany({
+      select: characterScopedAppearanceSelect,
+      where: {
+        book: { ...SOFT_DELETE_SCOPE.active, seriesId },
+        character: { deletedAt: null, userId },
+      },
+    });
+  }
+
   async listSuggestions({
     bookId,
+    exclusions,
     limit,
     search,
     seriesId,
     userId,
   }: {
     bookId: string;
+    exclusions: SuggestionExclusions;
     limit: number;
     search: string | undefined;
     seriesId: Nullable<string>;
@@ -1014,6 +1033,7 @@ export class CharactersRepository {
                 none: { bookId },
                 some: { book: { ...SOFT_DELETE_SCOPE.active, seriesId } },
               },
+              id: { notIn: exclusions.excludedFromSameSeries },
             },
           });
 
@@ -1022,7 +1042,7 @@ export class CharactersRepository {
       return sameSeries;
     }
 
-    const excludeIds = sameSeries.map((row) => row.id);
+    const excludeIds = [...exclusions.excludedEverywhere, ...sameSeries.map((row) => row.id)];
     const others = await this.prisma.character.findMany({
       include: globalSummaryInclude,
       orderBy: [{ name: "asc" }, { createdAt: "asc" }],

@@ -43,7 +43,7 @@ export function DebouncedSearchInput({
   useEffect(() => () => clearTimeout(timerRef.current), [value]);
 
   function commit(next: string) {
-    const normalized = normalizeQuery(next);
+    const normalized = normalizeSearchQuery(next);
     const query = isCommittable(normalized) ? normalized : "";
     if (query === lastSent) return;
     setLastSent(query);
@@ -97,10 +97,10 @@ export function DebouncedSearchInput({
   );
 }
 
-function defaultIsCommittable(value: string): boolean {
-  return value.length === 0 || value.length >= SEARCH_MIN_LENGTH;
+export function normalizeSearchQuery(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
 }
 
-function normalizeQuery(value: string): string {
-  return value.trim().replace(/\s+/g, " ");
+function defaultIsCommittable(value: string): boolean {
+  return value.length === 0 || value.length >= SEARCH_MIN_LENGTH;
 }

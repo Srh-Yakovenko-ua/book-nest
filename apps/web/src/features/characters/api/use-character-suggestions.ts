@@ -1,7 +1,7 @@
-import type { CharacterSuggestionsView } from "@app/shared";
+import type { BookCharacterSummaryQuery, CharacterSuggestionsView } from "@app/shared";
 
 import { CharacterSuggestionsViewSchema } from "@app/shared";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import type { BookCharacterSuggestionsControllerListParams } from "@/shared/api/generated/model";
 
@@ -11,16 +11,24 @@ import { characterKeys } from "./character-keys";
 
 const SUGGESTIONS_MIN_LENGTH = 2;
 
-export function useCharacterSuggestions(bookId: string, query: string) {
-  const trimmed = query.trim();
-  const params: BookCharacterSuggestionsControllerListParams = { q: trimmed };
+type CharacterSuggestionsArgs = {
+  bookId: string;
+  query: string;
+  readingContext: BookCharacterSummaryQuery;
+};
+
+export function useCharacterSuggestions({
+  bookId,
+  query,
+  readingContext,
+}: CharacterSuggestionsArgs) {
+  const params: BookCharacterSuggestionsControllerListParams = { q: query, ...readingContext };
 
   return useQuery({
-    enabled: trimmed.length >= SUGGESTIONS_MIN_LENGTH,
-    placeholderData: keepPreviousData,
-    queryFn: async (): Promise<CharacterSuggestionsView> =>
+    enabled: query.length >= SUGGESTIONS_MIN_LENGTH,
+    queryFn: async ({ signal }): Promise<CharacterSuggestionsView> =>
       CharacterSuggestionsViewSchema.parse(
-        await bookCharacterSuggestionsControllerList(bookId, params),
+        await bookCharacterSuggestionsControllerList(bookId, params, { signal }),
       ),
     queryKey: characterKeys.suggestions(bookId, params),
   });
