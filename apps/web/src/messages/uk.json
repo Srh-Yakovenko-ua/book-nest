@@ -30,15 +30,22 @@
     "loansHistory": "Історія позик",
     "lists": "Списки",
     "notes": "Нотатки",
-    "notesBooks": "Книги",
-    "notesSeries": "Серії",
+    "notesBooks": "Нотатки до книг",
+    "notesSeries": "Нотатки до серій",
     "delivery": "Доставки",
     "dedications": "Присвяти",
     "quotes": "Цитати",
     "publishers": "Видавництва",
     "settings": "Налаштування",
     "loansContacts": "Контакти",
-    "statistics": "Статистика"
+    "statistics": "Статистика",
+    "characters": "Персонажі",
+    "groups": {
+      "books": "Книги",
+      "catalog": "Каталог",
+      "records": "Записи",
+      "tracking": "Облік"
+    }
   },
   "readingQueue": {
     "title": "Черга читання",
@@ -3101,7 +3108,7 @@
       "label": "Розділи доставки",
       "inTransit": "В дорозі",
       "history": "Історія",
-      "statistics": "Статистика"
+      "statistics": "Статистика доставок"
     },
     "history": {
       "metaTitle": "Історія замовлень",

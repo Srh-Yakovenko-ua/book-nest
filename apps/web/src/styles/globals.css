@@ -565,25 +565,12 @@
   );
 }
 
-.sidebar-item-active,
 [data-sidebar="menu-button"][data-active="true"] {
   position: relative;
   background-color: var(--sidebar-accent);
   color: var(--sidebar-active-foreground);
   font-weight: 600;
   box-shadow: 0 2px 8px oklch(0.42 0.11 48.1 / 0.09);
-}
-
-.sidebar-item-active::before,
-[data-sidebar="menu-button"][data-active="true"]::before {
-  content: "";
-  position: absolute;
-  top: 7px;
-  bottom: 7px;
-  left: 0;
-  width: 3px;
-  border-radius: 0 999px 999px 0;
-  background-color: var(--primary);
 }
 
 [data-sidebar="menu-button"]:hover:not([data-active="true"]) {
