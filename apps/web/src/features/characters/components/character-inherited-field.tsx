@@ -17,23 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { CharacterImageField } from "./character-image-field";
-
 type InheritedFieldShellProps = {
   action: ReactNode;
   children: ReactNode;
-  htmlFor?: string;
+  htmlFor: string;
   isInherited: boolean;
   label: string;
-};
-
-type InheritedImageFieldProps = {
-  fallbackText: string;
-  globalPreviewUrl: Nullable<string>;
-  label: string;
-  onChange: (mediaId: null | string) => void;
-  previewUrl: Nullable<string>;
-  value: Nullable<string>;
 };
 
 type InheritedSelectFieldProps<T extends string> = {
@@ -54,32 +43,6 @@ type InheritedTextFieldProps = {
   onChange: (value: null | string) => void;
   value: Nullable<string>;
 };
-
-export function InheritedImageField({
-  fallbackText,
-  globalPreviewUrl,
-  label,
-  onChange,
-  previewUrl,
-  value,
-}: InheritedImageFieldProps) {
-  const t = useTranslations("characters.inheritance");
-  const isInherited = value === null;
-
-  return (
-    <InheritedFieldShell action={null} isInherited={isInherited} label={label}>
-      <CharacterImageField
-        fallbackText={fallbackText}
-        initialPreviewUrl={(isInherited ? globalPreviewUrl : previewUrl) ?? undefined}
-        label={label}
-        onChange={onChange}
-        removeLabel={t("resetImage")}
-        uploadLabel={isInherited ? t("specifyImageForBook") : t("replaceImage")}
-        value={value}
-      />
-    </InheritedFieldShell>
-  );
-}
 
 export function InheritedSelectField<T extends string>({
   globalLabel,
@@ -204,11 +167,8 @@ function InheritedFieldShell({
   const t = useTranslations("characters.inheritance");
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-lg border border-border p-3"
-      data-slot="inherited-field"
-    >
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex flex-col gap-2" data-slot="inherited-field">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <Label htmlFor={isInherited ? undefined : htmlFor}>{label}</Label>
         {action}
       </div>

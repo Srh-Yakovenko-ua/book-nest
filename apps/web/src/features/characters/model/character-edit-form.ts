@@ -1,4 +1,9 @@
-import type { CharacterDetailsView, UpdateBookCharacter, UpdateCharacter } from "@app/shared";
+import type {
+  CharacterDetailsView,
+  Nullable,
+  UpdateBookCharacter,
+  UpdateCharacter,
+} from "@app/shared";
 
 import {
   BOOK_CHARACTER_UNSPECIFIED,
@@ -132,6 +137,17 @@ export function buildCharacterEditSchema(messages: CharacterEditMessages) {
         scope: "book",
       });
     });
+}
+
+export function effectiveCharacterName({
+  displayName,
+  globalName,
+}: {
+  displayName: Nullable<string>;
+  globalName: string;
+}): string {
+  const bookName = displayName === null ? null : textOrNull(displayName);
+  return bookName ?? globalName.trim();
 }
 
 export function emptyBookScopeValues(): CharacterEditValues["book"] {
