@@ -91,6 +91,30 @@ async function createRelationship({
   return res.body.id;
 }
 
+async function createSeriesBooks(
+  token: string,
+): Promise<{ firstBook: string; secondBook: string }> {
+  const first = await authed("post", "/api/books", token).send({
+    authors: [{ name: "George R. R. Martin" }],
+    bookType: "series_part",
+    newSeries: { name: "A Song of Ice and Fire" },
+    ownershipStatus: "owned",
+    partNumber: 1,
+    title: "A Game of Thrones",
+  });
+  expect(first.status).toBe(HttpStatus.CREATED);
+  const second = await authed("post", "/api/books", token).send({
+    authors: [{ name: "George R. R. Martin" }],
+    bookType: "series_part",
+    ownershipStatus: "owned",
+    partNumber: 2,
+    seriesId: first.body.series.id,
+    title: "A Clash of Kings",
+  });
+  expect(second.status).toBe(HttpStatus.CREATED);
+  return { firstBook: first.body.id, secondBook: second.body.id };
+}
+
 async function linkCharacter({
   bookId,
   bookProfile,
@@ -110,8 +134,35 @@ async function linkCharacter({
   expect(res.status).toBe(HttpStatus.CREATED);
 }
 
+async function linkPresenceHiddenCharacter({
+  bookId,
+  firstAppearanceChapter,
+  name,
+  token,
+}: {
+  bookId: string;
+  firstAppearanceChapter?: string;
+  name: string;
+  token: string;
+}): Promise<string> {
+  const characterId = await createCharacter({ name, token });
+  await linkCharacter({
+    bookId,
+    bookProfile: { firstAppearanceChapter, hidePresenceAsSpoiler: true, importance: "central" },
+    characterId,
+    token,
+  });
+  return characterId;
+}
+
 function listedIds(res: request.Response): string[] {
   return res.body.items.map((item: { id: string }) => item.id);
+}
+
+async function suggestedIds(token: string, bookId: string, query = ""): Promise<string[]> {
+  const res = await authed("get", `/api/books/${bookId}/character-suggestions${query}`, token);
+  expect(res.status).toBe(HttpStatus.OK);
+  return res.body.suggestions.map((row: { id: string }) => row.id);
 }
 
 describe("whole-profile hidden characters — global list and reveal", () => {
@@ -230,6 +281,46 @@ describe("whole-profile hidden characters — suggestions and duplicate candidat
     const suggestedIds = res.body.suggestions.map((row: { id: string }) => row.id);
     expect(suggestedIds).toContain(suggestable);
     expect(suggestedIds).not.toContain(hidden);
+  });
+
+  it("never suggests a presence-hidden character the reader cannot have met yet", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { firstBook, secondBook } = await createSeriesBooks(accessToken);
+    const suggestable = await createCharacter({ name: "Robb Stark", token: accessToken });
+    const hiddenInLaterPart = await linkPresenceHiddenCharacter({
+      bookId: secondBook,
+      firstAppearanceChapter: "40",
+      name: "The Traitor",
+      token: accessToken,
+    });
+
+    const gated = await suggestedIds(accessToken, firstBook, `?contextBookId=${firstBook}`);
+    expect(gated).toContain(suggestable);
+    expect(gated).not.toContain(hiddenInLaterPart);
+  });
+
+  it("keeps a presence-hidden character addable to the next part without ranking it as same-series", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { firstBook, secondBook } = await createSeriesBooks(accessToken);
+    const openInFirstPart = await createCharacter({ name: "Robb Stark", token: accessToken });
+    await linkCharacter({
+      bookId: firstBook,
+      bookProfile: { importance: "central" },
+      characterId: openInFirstPart,
+      token: accessToken,
+    });
+    const hiddenInFirstPart = await linkPresenceHiddenCharacter({
+      bookId: firstBook,
+      name: "Arya Stark",
+      token: accessToken,
+    });
+
+    const suggestions = await suggestedIds(accessToken, secondBook);
+    expect(suggestions).toContain(openInFirstPart);
+    expect(suggestions).toContain(hiddenInFirstPart);
+    expect(suggestions.indexOf(openInFirstPart)).toBeLessThan(
+      suggestions.indexOf(hiddenInFirstPart),
+    );
   });
 
   it("omits a hidden-profile character from duplicate candidates", async () => {

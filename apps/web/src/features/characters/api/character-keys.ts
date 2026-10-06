@@ -12,11 +12,23 @@ import type {
 const CHARACTERS_ROOT = "characters";
 const CHARACTER_GROUPS_ROOT = "character-groups";
 
+const BOOK_ROSTER = {
+  finite: "page",
+  infinite: "infinite",
+  root: "book-roster",
+} as const;
+
 export const characterKeys = {
   all: [CHARACTERS_ROOT] as const,
   bookRoster: (bookId: string, params: BookCharactersControllerListParams) =>
-    [CHARACTERS_ROOT, "book-roster", bookId, params] as const,
-  bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, "book-roster", bookId] as const,
+    [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.finite, params] as const,
+  bookRosterFiniteScope: (bookId: string) =>
+    [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.finite] as const,
+  bookRosterInfinite: (bookId: string, params: BookCharactersControllerListParams) =>
+    [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.infinite, params] as const,
+  bookRosterInfiniteScope: (bookId: string) =>
+    [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.infinite] as const,
+  bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId] as const,
   bookSummary: (bookId: string, readingContext: BookCharacterSummaryQuery) =>
     [CHARACTERS_ROOT, "book-summary", bookId, readingContext] as const,
   deletionPreview: (characterId: string) =>

@@ -1,8 +1,11 @@
 "use client";
 
+import type { BookCharacterSummaryQuery } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { normalizeSearchQuery } from "@/components/debounced-search-input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Command,
@@ -13,27 +16,40 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
-import { useCharactersSearch } from "../api/use-characters-search";
+import { BOOK_CHARACTER_LOOKUP, useBookCharacterLookup } from "../api/use-book-characters";
+import { explicitImportance } from "../model/character-options";
+import { rosterDisplayName } from "../model/characters-roster-query";
+
+const PALETTE_PAGE_SIZE = 10;
 
 type CharacterCommandPaletteProps = {
-  contextBookId?: string;
+  bookId: string;
   onOpenChange: (open: boolean) => void;
   onSelect: (characterId: string) => void;
   open: boolean;
+  readingContext: BookCharacterSummaryQuery;
 };
 
 export function CharacterCommandPalette({
-  contextBookId,
+  bookId,
   onOpenChange,
   onSelect,
   open,
+  readingContext,
 }: CharacterCommandPaletteProps) {
   const t = useTranslations("characters.palette");
+  const tImportance = useTranslations("characters.importance");
   const [query, setQuery] = useState("");
-  const search = useCharactersSearch({ contextBookId, query });
 
-  const results = search.data?.items ?? [];
-  const trimmed = query.trim();
+  const normalizedQuery = normalizeSearchQuery(query);
+  const roster = useBookCharacterLookup({
+    bookId,
+    pageSize: PALETTE_PAGE_SIZE,
+    query: normalizedQuery,
+    readingContext,
+  });
+
+  const results = roster.data?.items ?? [];
 
   function handleSelect(characterId: string) {
     onOpenChange(false);
@@ -54,30 +70,36 @@ export function CharacterCommandPalette({
       <Command shouldFilter={false}>
         <CommandInput onValueChange={setQuery} placeholder={t("placeholder")} value={query} />
         <CommandList>
-          {trimmed.length < 2 ? (
+          {normalizedQuery.length < BOOK_CHARACTER_LOOKUP.minQueryLength ? (
             <CommandEmpty>{t("empty")}</CommandEmpty>
-          ) : results.length === 0 && !search.isFetching ? (
+          ) : results.length === 0 && !roster.isFetching ? (
             <CommandEmpty>{t("noResults")}</CommandEmpty>
           ) : null}
 
-          {results.map((candidate) => (
-            <CommandItem
-              key={candidate.id}
-              onSelect={() => handleSelect(candidate.id)}
-              value={candidate.id}
-            >
-              <Avatar className="size-7" size="sm">
-                {candidate.avatar === null ? null : (
-                  <AvatarImage alt={candidate.name} src={candidate.avatar.urls.thumb} />
+          {results.map((candidate) => {
+            const importance = explicitImportance(candidate.importance);
+            const name = rosterDisplayName(candidate);
+            const avatarUrl = (candidate.portrait ?? candidate.avatar)?.urls.thumb ?? null;
+
+            return (
+              <CommandItem
+                key={candidate.id}
+                onSelect={() => handleSelect(candidate.characterId)}
+                value={candidate.id}
+              >
+                <Avatar className="size-7" size="sm">
+                  {avatarUrl === null ? null : <AvatarImage alt={name} src={avatarUrl} />}
+                  <AvatarFallback>{name.trim().charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1 truncate">{name}</span>
+                {importance === null ? null : (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {tImportance(importance)}
+                  </span>
                 )}
-                <AvatarFallback>{candidate.name.trim().charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 truncate">{candidate.name}</span>
-              {candidate.species === null ? null : (
-                <span className="shrink-0 text-xs text-muted-foreground">{candidate.species}</span>
-              )}
-            </CommandItem>
-          ))}
+              </CommandItem>
+            );
+          })}
         </CommandList>
       </Command>
     </CommandDialog>

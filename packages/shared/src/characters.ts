@@ -648,7 +648,7 @@ export type CharacterDuplicateCandidatesQuery = z.infer<
   typeof CharacterDuplicateCandidatesQuerySchema
 >;
 
-export const CharacterSuggestionsQuerySchema = z.object({
+export const CharacterSuggestionsQuerySchema = ReadingContextQuerySchema.extend({
   limit: z.coerce
     .number()
     .int()

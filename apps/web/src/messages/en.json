@@ -7797,19 +7797,12 @@
   },
   "characters": {
     "add": {
-      "back": "Back",
       "cancel": "Cancel",
-      "create": "Create",
-      "createAnyway": "Create a new one anyway",
-      "createNew": "Create new",
+      "createNew": "Create “{name}”",
       "description": "Find an existing character or create a new one.",
-      "descriptionLabel": "A short note about this character in this book",
-      "descriptionPlaceholder": "Who is this? (optional)",
       "inBookTitle": "Already in this book",
       "link": "Add",
       "linkError": "Could not link the character",
-      "linked": "Character linked",
-      "nameLabel": "Name",
       "noMatch": "Nothing found",
       "open": "Open",
       "reusableTitle": "From other books",
@@ -7956,10 +7949,10 @@
       "title": "Delete character entirely"
     },
     "duplicate": {
+      "checkFailed": "We could not check whether this character already exists. Please try again.",
       "createAnyway": "Create anyway",
       "question": "This character may already exist.",
-      "title": "Possible duplicates",
-      "use": "Use this one"
+      "review": "Review"
     },
     "edit": {
       "appearanceNotes": "Appearance in this book",
@@ -8153,6 +8146,7 @@
     "states": {
       "errorDescription": "Couldn't load characters. Please try again.",
       "errorTitle": "Failed to load",
+      "loadMoreError": "Couldn't load more characters",
       "loading": "Loading characters",
       "retry": "Try again"
     },

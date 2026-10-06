@@ -1,19 +1,21 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, CharacterSummaryView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+
 import { UiIcon } from "@/components/icons";
+import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
 import { useBookCharacterSummary } from "../api/use-book-character-summary";
-import { useBookCharacters } from "../api/use-book-characters";
+import { useBookCharactersInfinite } from "../api/use-book-characters-infinite";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
 import { getCharacterDetailsPath } from "../model/character-routes";
 import { toCharacterReadingContext } from "../model/characters-roster-query";
@@ -35,11 +37,12 @@ type BookCharactersTabProps = {
 
 type RosterListProps = {
   bookId: string;
-  characters: ReturnType<typeof useBookCharacters>;
+  characters: ReturnType<typeof useBookCharactersInfinite>;
   hasActiveSearch: boolean;
+  hasError: boolean;
+  items: CharacterSummaryView[];
   onAdd: () => void;
   onClearSearch: () => void;
-  onPageChange: (page: number) => void;
   onUnlink: (characterId: string) => void;
 };
 
@@ -51,7 +54,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 
   const readingContext = toCharacterReadingContext(book);
   const roster = useCharactersRosterQuery(readingContext);
-  const characters = useBookCharacters(bookId, roster.listParams);
+  const characters = useBookCharactersInfinite(bookId, roster.listParams);
   const summary = useBookCharacterSummary(bookId, readingContext);
   const unlinkCharacter = useUnlinkCharacter();
   const router = useRouter();
@@ -60,9 +63,11 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const [unlinkId, setUnlinkId] = useState<null | string>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
+  const rosterItems = (characters.data?.pages ?? []).flatMap((page) => page.items);
+  const hasRosterError = characters.isError && !characters.isFetchNextPageError;
   const isEmptyBook =
-    characters.data !== undefined && characters.data.items.length === 0 && !roster.hasActiveSearch;
-  const showControls = characters.data !== undefined && !characters.isError && !isEmptyBook;
+    characters.data !== undefined && rosterItems.length === 0 && !roster.hasActiveSearch;
+  const showControls = characters.data !== undefined && !hasRosterError && !isEmptyBook;
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -131,9 +136,10 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         bookId={bookId}
         characters={characters}
         hasActiveSearch={roster.hasActiveSearch}
+        hasError={hasRosterError}
+        items={rosterItems}
         onAdd={() => setAddOpen(true)}
         onClearSearch={roster.clearSearch}
-        onPageChange={roster.setPage}
         onUnlink={setUnlinkId}
       />
 
@@ -155,10 +161,11 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
       />
 
       <CharacterCommandPalette
-        contextBookId={bookId}
+        bookId={bookId}
         onOpenChange={setPaletteOpen}
         onSelect={openDetails}
         open={paletteOpen}
+        readingContext={readingContext}
       />
     </div>
   );
@@ -168,14 +175,15 @@ function RosterList({
   bookId,
   characters,
   hasActiveSearch,
+  hasError,
+  items,
   onAdd,
   onClearSearch,
-  onPageChange,
   onUnlink,
 }: RosterListProps) {
   const t = useTranslations("characters.states");
 
-  if (characters.isError) {
+  if (hasError) {
     return (
       <div aria-live="assertive" role="alert">
         <CharactersErrorState onRetry={() => void characters.refetch()} />
@@ -183,7 +191,7 @@ function RosterList({
     );
   }
 
-  if (characters.isPending || characters.data === undefined) {
+  if (characters.isPending) {
     return (
       <div aria-busy className="grid gap-4 md:grid-cols-2" role="status">
         <span className="sr-only">{t("loading")}</span>
@@ -194,18 +202,18 @@ function RosterList({
     );
   }
 
-  if (characters.data.items.length === 0 && !hasActiveSearch) {
+  if (items.length === 0 && !hasActiveSearch) {
     return <CharactersEmptyState onAdd={onAdd} />;
   }
 
-  if (characters.data.items.length === 0) {
+  if (items.length === 0) {
     return <CharactersNoResults onClear={onClearSearch} />;
   }
 
   return (
     <div className="flex flex-col gap-6">
       <ul className="grid gap-4 md:grid-cols-2">
-        {characters.data.items.map((character) => (
+        {items.map((character) => (
           <li className="flex" key={character.id}>
             <CharacterCard
               bookId={bookId}
@@ -216,51 +224,17 @@ function RosterList({
         ))}
       </ul>
 
-      <RosterPagination
-        onPageChange={onPageChange}
-        page={characters.data.page}
-        pagesCount={characters.data.pagesCount}
+      <InfiniteScrollFooter
+        errorLabel={t("loadMoreError")}
+        onLoadMore={() => void characters.fetchNextPage()}
+        state={toLoadMoreState(characters)}
       />
     </div>
   );
 }
 
-function RosterPagination({
-  onPageChange,
-  page,
-  pagesCount,
-}: {
-  onPageChange: (page: number) => void;
-  page: number;
-  pagesCount: number;
-}) {
-  const t = useTranslations("common");
-
-  if (pagesCount <= 1) return null;
-
-  return (
-    <div className="flex items-center justify-center gap-2">
-      <Button
-        aria-label={t("decrement")}
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        size="icon-sm"
-        variant="secondary"
-      >
-        <UiIcon name="chevron-left" size={16} />
-      </Button>
-      <span className="text-sm text-muted-foreground tabular-nums">
-        {page} / {pagesCount}
-      </span>
-      <Button
-        aria-label={t("increment")}
-        disabled={page >= pagesCount}
-        onClick={() => onPageChange(page + 1)}
-        size="icon-sm"
-        variant="secondary"
-      >
-        <UiIcon name="chevron-right" size={16} />
-      </Button>
-    </div>
-  );
+function toLoadMoreState(characters: RosterListProps["characters"]): InfiniteScrollState {
+  if (characters.isFetchNextPageError) return "error";
+  if (characters.isFetchingNextPage) return "loading";
+  return characters.hasNextPage ? "idle" : "none";
 }

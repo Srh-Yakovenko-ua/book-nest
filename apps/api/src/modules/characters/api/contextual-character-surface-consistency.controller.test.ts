@@ -239,6 +239,126 @@ async function serializedSurfaces({
   return JSON.stringify(responses.map((response) => response.body));
 }
 
+async function suggestsCharacter({
+  characterId,
+  contextBookId,
+  readingPosition,
+  targetBookId,
+  token,
+}: {
+  characterId: string;
+  contextBookId: string;
+  readingPosition: string;
+  targetBookId: string;
+  token: string;
+}): Promise<boolean> {
+  const query = `contextBookId=${contextBookId}${
+    readingPosition === "" ? "" : `&${readingPosition}`
+  }`;
+  const res = await authed(
+    "get",
+    `/api/books/${targetBookId}/character-suggestions?${query}`,
+    token,
+  );
+  expect(res.status).toBe(HttpStatus.OK);
+  return res.body.suggestions.some((row: { id: string }) => row.id === characterId);
+}
+
+describe("book character suggestions join the contextual surfaces", () => {
+  it("suggests the subject for a sibling part exactly when the other surfaces reveal it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const subject = await createSubject({
+      name: "Alia Atreides",
+      profile: { firstAppearanceChapter: "40" },
+      token: accessToken,
+    });
+
+    for (const readingPosition of ["contextChapter=5", "contextChapter=40"]) {
+      const reveal = await revealAcrossSurfaces({
+        contextBookId: subject.secondBook,
+        readingPosition,
+        subject,
+        token: accessToken,
+      });
+      const suggested = await suggestsCharacter({
+        characterId: subject.characterId,
+        contextBookId: subject.secondBook,
+        readingPosition,
+        targetBookId: subject.firstBook,
+        token: accessToken,
+      });
+      expect(suggested).toBe(reveal.bookRoster);
+    }
+  });
+
+  it("never suggests a future part's character into an earlier part", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const subject = await createSubject({
+      name: "Alia Atreides",
+      profile: { firstAppearanceChapter: "1" },
+      token: accessToken,
+    });
+
+    const suggested = await suggestsCharacter({
+      characterId: subject.characterId,
+      contextBookId: subject.firstBook,
+      readingPosition: "contextChapter=99",
+      targetBookId: subject.firstBook,
+      token: accessToken,
+    });
+    expect(suggested).toBe(false);
+  });
+
+  it("keeps a presence-hidden subject addable to a sibling part while every reveal surface hides it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const subject = await createSubject({
+      name: "The Traitor",
+      profile: { firstAppearanceChapter: "1", hidePresenceAsSpoiler: true },
+      token: accessToken,
+    });
+
+    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
+      const reveal = await revealAcrossSurfaces({
+        contextBookId: subject.secondBook,
+        readingPosition,
+        subject,
+        token: accessToken,
+      });
+      expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
+
+      const suggested = await suggestsCharacter({
+        characterId: subject.characterId,
+        contextBookId: subject.secondBook,
+        readingPosition,
+        targetBookId: subject.firstBook,
+        token: accessToken,
+      });
+      expect(suggested).toBe(true);
+    }
+  });
+
+  it("never suggests a profile-hidden subject", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const subject = await createSubject({
+      character: { hideProfileAsSpoiler: true },
+      name: "Leto II",
+      profile: { firstAppearanceChapter: "1" },
+      token: accessToken,
+    });
+
+    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
+      const suggested = await suggestsCharacter({
+        characterId: subject.characterId,
+        contextBookId: subject.secondBook,
+        readingPosition,
+        targetBookId: subject.firstBook,
+        token: accessToken,
+      });
+      expect(suggested).toBe(false);
+    }
+  });
+});
+
 describe("contextual character surfaces agree on one visible set", () => {
   it("agrees that an unreached chapter hides every contextual surface", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();

@@ -1,15 +1,19 @@
 "use client";
 
-import type { BookCharacterSummaryQuery, BookView } from "@app/shared";
+import type {
+  BookCharacterSummaryQuery,
+  BookView,
+  CharacterGlobalSummaryView,
+  Nullable,
+} from "@app/shared";
 import type { ReactNode } from "react";
 
-import { CHARACTER_NAME_MAX } from "@app/shared";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
 import { toast } from "sonner";
 
+import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { UiIcon } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,33 +25,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FieldError } from "@/components/ui/field-error";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { applyFieldErrors } from "@/lib/api-errors";
 
-import type { AddCharacterValues } from "../model/add-character-schema";
-
-import { useBookCharacters } from "../api/use-book-characters";
+import { useBookCharacterLookup } from "../api/use-book-characters";
 import { useCharacterSuggestions } from "../api/use-character-suggestions";
 import { useCreateCharacterInBook } from "../api/use-create-character-in-book";
-import { useDuplicateCandidates } from "../api/use-duplicate-candidates";
+import { duplicateCandidatesQueryOptions } from "../api/use-duplicate-candidates";
 import {
-  ADD_CHARACTER_DESCRIPTION_MAX,
-  buildAddCharacterSchema,
-  emptyAddCharacterValues,
   toCreateNewCharacterInBook,
   toLinkExistingCharacterInBook,
 } from "../model/add-character-schema";
 import { rosterDisplayName } from "../model/characters-roster-query";
 import { DuplicateCharacterSuggestion } from "./duplicate-character-suggestion";
 
-const SEARCH_MIN_LENGTH = 2;
-const IN_BOOK_MATCH_LIMIT = 5;
-const SEARCH_DEBOUNCE_MS = 300;
-const DUPLICATE_DEBOUNCE_MS = 350;
+const PICKER = {
+  inBookLimit: 5,
+  skeletonCount: 2,
+  viewport: "h-64 overflow-y-auto pr-1 sm:h-72",
+} as const;
 
 type AddCharacterDialogProps = {
   book: BookView;
@@ -55,6 +50,11 @@ type AddCharacterDialogProps = {
   onOpenDetails: (characterId: string) => void;
   open: boolean;
   readingContext: BookCharacterSummaryQuery;
+};
+
+type DuplicateWarning = {
+  query: string;
+  unmatched: CharacterGlobalSummaryView[];
 };
 
 export function AddCharacterDialog({
@@ -68,14 +68,14 @@ export function AddCharacterDialog({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
 
         {open ? (
-          <AddCharacterFlow
+          <AddCharacterPicker
             book={book}
             onClose={() => onOpenChange(false)}
             onOpenDetails={onOpenDetails}
@@ -87,276 +87,204 @@ export function AddCharacterDialog({
   );
 }
 
-function AddCharacterDraft({
+function AddCharacterPicker({
   book,
-  initialName,
-  onBack,
   onClose,
   onOpenDetails,
+  readingContext,
 }: {
   book: BookView;
-  initialName: string;
-  onBack: () => void;
   onClose: () => void;
   onOpenDetails: (characterId: string) => void;
+  readingContext: BookCharacterSummaryQuery;
 }) {
   const t = useTranslations("characters.add");
-  const tErrors = useTranslations("characters.form.errors");
+  const tDuplicate = useTranslations("characters.duplicate");
+  const tStates = useTranslations("characters.states");
   const tToast = useTranslations("characters.toast");
+
+  const queryClient = useQueryClient();
   const createInBook = useCreateCharacterInBook();
 
-  const form = useForm<AddCharacterValues>({
-    defaultValues: emptyAddCharacterValues(initialName),
-    mode: "onTouched",
-    resolver: zodResolver(
-      buildAddCharacterSchema({
-        nameRequired: tErrors("nameRequired"),
-        nameTooLong: tErrors("nameTooLong", { max: CHARACTER_NAME_MAX }),
-      }),
-    ),
-  });
-
-  const {
-    control,
-    formState: { errors },
-    handleSubmit,
-    register,
-  } = form;
-
-  const name = useWatch({ control, name: "name" }).trim();
-  const candidates = useDebouncedDuplicates({
-    name,
-    ...(book.series === null ? {} : { seriesId: book.series.id }),
-  });
-
-  const onSubmit = handleSubmit(async (values) => {
-    try {
-      const created = await createInBook.mutateAsync({
-        bookId: book.id,
-        input: toCreateNewCharacterInBook(values),
-      });
-      toast.success(tToast("created"));
-      onClose();
-      onOpenDetails(created.id);
-    } catch (error) {
-      if (!applyFieldErrors(form, error)) toast.error(tErrors("generic"));
-    }
-  });
-
-  function linkCandidate(characterId: string) {
-    createInBook.mutate(
-      { bookId: book.id, input: toLinkExistingCharacterInBook(characterId) },
-      {
-        onError: () => toast.error(t("linkError")),
-        onSuccess: () => {
-          toast.success(t("linked"));
-          onClose();
-        },
-      },
-    );
-  }
-
-  return (
-    <form className="flex flex-col gap-4" noValidate onSubmit={onSubmit}>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="add-character-name">{t("nameLabel")}</Label>
-        <Input
-          aria-describedby={errors.name ? "add-character-name-error" : undefined}
-          aria-invalid={errors.name !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="add-character-name"
-          maxLength={CHARACTER_NAME_MAX}
-          {...register("name")}
-        />
-        <FieldError error={errors.name} id="add-character-name-error" />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="add-character-description">{t("descriptionLabel")}</Label>
-        <Textarea
-          id="add-character-description"
-          maxLength={ADD_CHARACTER_DESCRIPTION_MAX}
-          placeholder={t("descriptionPlaceholder")}
-          rows={3}
-          {...register("description")}
-        />
-      </div>
-
-      {candidates.length > 0 ? (
-        <DuplicateCharacterSuggestion
-          candidates={candidates}
-          onCreateAnyway={() => void onSubmit()}
-          onUse={linkCandidate}
-        />
-      ) : null}
-
-      <DialogFooter>
-        <Button onClick={onBack} type="button" variant="secondary">
-          <UiIcon name="chevron-left" size={16} />
-          {t("back")}
-        </Button>
-        <Button disabled={createInBook.isPending} loading={createInBook.isPending} type="submit">
-          {candidates.length > 0 ? t("createAnyway") : t("create")}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
-
-function AddCharacterFlow({
-  book,
-  onClose,
-  onOpenDetails,
-  readingContext,
-}: {
-  book: BookView;
-  onClose: () => void;
-  onOpenDetails: (characterId: string) => void;
-  readingContext: BookCharacterSummaryQuery;
-}) {
   const [query, setQuery] = useState("");
-  const [draftName, setDraftName] = useState<null | string>(null);
+  const [warning, setWarning] = useState<Nullable<DuplicateWarning>>(null);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
-  if (draftName === null) {
-    return (
-      <AddCharacterSearch
-        book={book}
-        onClose={onClose}
-        onCreateNew={() => setDraftName(query.trim())}
-        onOpenDetails={onOpenDetails}
-        onQueryChange={setQuery}
-        query={query}
-        readingContext={readingContext}
-      />
+  const inBook = useBookCharacterLookup({
+    bookId: book.id,
+    pageSize: PICKER.inBookLimit,
+    query,
+    readingContext,
+  });
+  const suggestions = useCharacterSuggestions({ bookId: book.id, query, readingContext });
+
+  const inBookMatches = inBook.data?.items ?? [];
+  const reusable = suggestions.data?.suggestions ?? [];
+  const shownCandidateIds = new Set([
+    ...inBookMatches.map((character) => character.characterId),
+    ...reusable.map((candidate) => candidate.id),
+  ]);
+
+  const isLoading = inBook.isLoading || suggestions.isLoading;
+  const hasLookupError = inBook.isError || suggestions.isError;
+  const hasNoMatch = !isLoading && !hasLookupError && shownCandidateIds.size === 0;
+  const activeWarning = warning !== null && warning.query === query ? warning : null;
+  const isBusy = isCheckingDuplicates || createInBook.isPending;
+
+  function changeQuery(next: string) {
+    setWarning(null);
+    setQuery(next);
+  }
+
+  function openDetails(characterId: string) {
+    onClose();
+    onOpenDetails(characterId);
+  }
+
+  function createCharacter() {
+    createInBook.mutate(
+      { bookId: book.id, input: toCreateNewCharacterInBook(query) },
+      {
+        onError: () => toast.error(tToast("createError")),
+        onSuccess: () => {
+          toast.success(tToast("created"));
+          onClose();
+        },
+      },
     );
   }
 
-  return (
-    <AddCharacterDraft
-      book={book}
-      initialName={draftName}
-      onBack={() => setDraftName(null)}
-      onClose={onClose}
-      onOpenDetails={onOpenDetails}
-    />
-  );
-}
-
-function AddCharacterSearch({
-  book,
-  onClose,
-  onCreateNew,
-  onOpenDetails,
-  onQueryChange,
-  query,
-  readingContext,
-}: {
-  book: BookView;
-  onClose: () => void;
-  onCreateNew: () => void;
-  onOpenDetails: (characterId: string) => void;
-  onQueryChange: (value: string) => void;
-  query: string;
-  readingContext: BookCharacterSummaryQuery;
-}) {
-  const t = useTranslations("characters.add");
-  const createInBook = useCreateCharacterInBook();
-
-  const trimmed = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
-  const isSearching = trimmed.length >= SEARCH_MIN_LENGTH;
-
-  const inBook = useBookCharacters(book.id, {
-    pageNumber: 1,
-    pageSize: IN_BOOK_MATCH_LIMIT,
-    sort: "name",
-    ...readingContext,
-    ...(isSearching ? { search: trimmed } : {}),
-  });
-  const suggestions = useCharacterSuggestions(book.id, trimmed);
-
-  const inBookMatches = isSearching ? (inBook.data?.items ?? []) : [];
-  const reusable = isSearching ? (suggestions.data?.suggestions ?? []) : [];
-  const isLoading = isSearching && (inBook.isFetching || suggestions.isFetching);
-  const hasNoMatch = isSearching && !isLoading && inBookMatches.length + reusable.length === 0;
-
-  function linkExisting(characterId: string) {
+  function linkCharacter(characterId: string) {
     createInBook.mutate(
       { bookId: book.id, input: toLinkExistingCharacterInBook(characterId) },
       {
         onError: () => toast.error(t("linkError")),
         onSuccess: () => {
-          toast.success(t("linked"));
+          toast.success(tToast("created"));
           onClose();
         },
       },
     );
+  }
+
+  async function requestCreate() {
+    setIsCheckingDuplicates(true);
+    try {
+      const { candidates } = await queryClient.fetchQuery({
+        ...duplicateCandidatesQueryOptions({
+          name: query,
+          ...(book.series === null ? {} : { seriesId: book.series.id }),
+        }),
+        staleTime: 0,
+      });
+
+      if (candidates.length === 0) {
+        createCharacter();
+        return;
+      }
+
+      setWarning({
+        query,
+        unmatched: candidates.filter((candidate) => !shownCandidateIds.has(candidate.id)),
+      });
+    } catch {
+      toast.error(tDuplicate("checkFailed"));
+    } finally {
+      setIsCheckingDuplicates(false);
+    }
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Input
-        aria-label={t("searchLabel")}
-        autoComplete="off"
-        className="h-10"
-        onChange={(event) => onQueryChange(event.target.value)}
+      <DebouncedSearchInput
+        clearLabel={t("searchClear")}
+        label={t("searchLabel")}
+        onClear={() => changeQuery("")}
+        onSearch={changeQuery}
         placeholder={t("searchPlaceholder")}
-        type="search"
         value={query}
       />
 
-      {isLoading && inBookMatches.length + reusable.length === 0 ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-14 w-full rounded-lg" />
-          <Skeleton className="h-14 w-full rounded-lg" />
-        </div>
-      ) : null}
+      <div className={PICKER.viewport}>
+        {query === "" ? (
+          <p className="text-sm text-muted-foreground">{t("searchHint")}</p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {isLoading ? (
+              <div aria-busy className="flex flex-col gap-2" role="status">
+                <span className="sr-only">{tStates("loading")}</span>
+                {Array.from({ length: PICKER.skeletonCount }, (_, index) => (
+                  <Skeleton className="h-14 w-full rounded-lg" key={index} />
+                ))}
+              </div>
+            ) : null}
 
-      {inBookMatches.length > 0 ? (
-        <CandidateSection title={t("inBookTitle")}>
-          {inBookMatches.map((character) => (
-            <CandidateRow
-              actionLabel={t("open")}
-              avatarUrl={(character.portrait ?? character.avatar)?.urls.thumb ?? null}
-              key={character.id}
-              name={rosterDisplayName(character)}
-              onAction={() => {
-                onClose();
-                onOpenDetails(character.characterId);
-              }}
-              variant="secondary"
-            />
-          ))}
-        </CandidateSection>
-      ) : null}
+            {hasLookupError ? (
+              <p className="text-sm text-error">{tStates("errorDescription")}</p>
+            ) : null}
 
-      {reusable.length > 0 ? (
-        <CandidateSection title={t("reusableTitle")}>
-          {reusable.map((candidate) => (
-            <CandidateRow
-              actionLabel={t("link")}
-              avatarUrl={candidate.avatar?.urls.thumb ?? null}
-              disabled={createInBook.isPending}
-              hint={candidate.species}
-              key={candidate.id}
-              name={candidate.name}
-              onAction={() => linkExisting(candidate.id)}
-            />
-          ))}
-        </CandidateSection>
-      ) : null}
+            {activeWarning === null ? null : (
+              <DuplicateCharacterSuggestion
+                candidates={activeWarning.unmatched}
+                isCreating={createInBook.isPending}
+                onCreateAnyway={createCharacter}
+                onReview={openDetails}
+              />
+            )}
 
-      {hasNoMatch ? <p className="text-sm text-muted-foreground">{t("noMatch")}</p> : null}
+            {inBookMatches.length > 0 ? (
+              <CandidateSection title={t("inBookTitle")}>
+                {inBookMatches.map((character) => (
+                  <CandidateRow
+                    actionLabel={t("open")}
+                    avatarUrl={(character.portrait ?? character.avatar)?.urls.thumb ?? null}
+                    key={character.id}
+                    name={rosterDisplayName(character)}
+                    onAction={() => openDetails(character.characterId)}
+                    variant="secondary"
+                  />
+                ))}
+              </CandidateSection>
+            ) : null}
 
-      {isSearching ? null : <p className="text-sm text-muted-foreground">{t("searchHint")}</p>}
+            {reusable.length > 0 ? (
+              <CandidateSection title={t("reusableTitle")}>
+                {reusable.map((candidate) => (
+                  <CandidateRow
+                    actionLabel={t("link")}
+                    avatarUrl={candidate.avatar?.urls.thumb ?? null}
+                    disabled={isBusy}
+                    hint={candidate.species}
+                    key={candidate.id}
+                    name={candidate.name}
+                    onAction={() => linkCharacter(candidate.id)}
+                  />
+                ))}
+              </CandidateSection>
+            ) : null}
+
+            {hasNoMatch ? <p className="text-sm text-muted-foreground">{t("noMatch")}</p> : null}
+
+            {activeWarning === null ? (
+              <Button
+                className="w-full justify-start"
+                disabled={isBusy}
+                loading={isCheckingDuplicates}
+                onClick={() => void requestCreate()}
+                type="button"
+                variant="secondary"
+              >
+                <UiIcon name="plus" size={16} />
+                {t("createNew", { name: query })}
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </div>
 
       <DialogFooter>
         <Button onClick={onClose} type="button" variant="secondary">
           {t("cancel")}
-        </Button>
-        <Button onClick={onCreateNew} type="button">
-          <UiIcon name="plus" size={16} />
-          {t("createNew")}
         </Button>
       </DialogFooter>
     </div>
@@ -373,9 +301,9 @@ function CandidateRow({
   variant,
 }: {
   actionLabel: string;
-  avatarUrl: null | string;
+  avatarUrl: Nullable<string>;
   disabled?: boolean;
-  hint?: null | string;
+  hint?: Nullable<string>;
   name: string;
   onAction: () => void;
   variant?: "secondary";
@@ -406,25 +334,4 @@ function CandidateSection({ children, title }: { children: ReactNode; title: str
       <ul className="flex flex-col gap-2">{children}</ul>
     </section>
   );
-}
-
-function useDebouncedDuplicates({ name, seriesId }: { name: string; seriesId?: string }) {
-  const debouncedName = useDebouncedValue(name, DUPLICATE_DEBOUNCE_MS);
-  const duplicates = useDuplicateCandidates({
-    name: debouncedName,
-    ...(seriesId === undefined ? {} : { seriesId }),
-  });
-
-  return debouncedName === name ? (duplicates.data?.candidates ?? []) : [];
-}
-
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [delayMs, value]);
-
-  return debounced;
 }

@@ -19,7 +19,6 @@ export type UseCharactersRosterQueryResult = {
   clearSearch: () => void;
   hasActiveSearch: boolean;
   listParams: BookCharactersControllerListParams;
-  setPage: (value: number) => void;
   setSearch: (value: string) => void;
   setSort: (value: CharactersRosterSort) => void;
   state: CharactersRosterState;
@@ -34,9 +33,8 @@ export function useCharactersRosterQuery(
     clearSearch: () => void setState(CHARACTERS_ROSTER_RESET),
     hasActiveSearch: hasActiveRosterSearch(state),
     listParams: toBookCharactersListParams(state, readingContext),
-    setPage: (characterPage) => void setState({ characterPage }),
-    setSearch: (characterSearch) => void setState({ characterPage: null, characterSearch }),
-    setSort: (characterSort) => void setState({ characterPage: null, characterSort }),
+    setSearch: (characterSearch) => void setState({ characterSearch }),
+    setSort: (characterSort) => void setState({ characterSort }),
     state,
   };
 }

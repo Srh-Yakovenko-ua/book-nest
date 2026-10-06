@@ -1,7 +1,7 @@
 import type { CharacterDuplicateCandidatesView } from "@app/shared";
 
 import { CharacterDuplicateCandidatesViewSchema } from "@app/shared";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { queryOptions } from "@tanstack/react-query";
 
 import type { CharactersControllerDuplicateCandidatesParams } from "@/shared/api/generated/model";
 
@@ -9,26 +9,21 @@ import { charactersControllerDuplicateCandidates } from "@/shared/api/generated/
 
 import { characterKeys } from "./character-keys";
 
-const DUPLICATE_MIN_LENGTH = 2;
-
-type UseDuplicateCandidatesArgs = {
+type DuplicateCandidatesArgs = {
   name: string;
   seriesId?: string;
 };
 
-export function useDuplicateCandidates({ name, seriesId }: UseDuplicateCandidatesArgs) {
-  const trimmed = name.trim();
+export function duplicateCandidatesQueryOptions({ name, seriesId }: DuplicateCandidatesArgs) {
   const params: CharactersControllerDuplicateCandidatesParams = {
-    name: trimmed,
+    name,
     ...(seriesId === undefined ? {} : { seriesId }),
   };
 
-  return useQuery({
-    enabled: trimmed.length >= DUPLICATE_MIN_LENGTH,
-    placeholderData: keepPreviousData,
-    queryFn: async (): Promise<CharacterDuplicateCandidatesView> =>
+  return queryOptions({
+    queryFn: async ({ signal }): Promise<CharacterDuplicateCandidatesView> =>
       CharacterDuplicateCandidatesViewSchema.parse(
-        await charactersControllerDuplicateCandidates(params),
+        await charactersControllerDuplicateCandidates(params, { signal }),
       ),
     queryKey: characterKeys.duplicates(params),
   });
