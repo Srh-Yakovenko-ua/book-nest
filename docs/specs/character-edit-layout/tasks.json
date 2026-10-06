@@ -430,8 +430,8 @@
         "screenshots taken: contextual desktop, contextual 390px mobile, global desktop; each 02 matrix item is checked against them (header parity with Edit Book, sticky 22rem sidebar, section order, no per-field cards, no duplicate portrait label, no hover lift on preview, mobile order, no horizontal scroll, last block above the bar)",
         "the report lists changed files, exact commands with results, and any deviation"
       ],
-      "status": "partial",
-      "statusNote": "Visual matrix done with measurements at 320/390/1440. After the last narrow-viewport edits: pnpm typecheck finished, pnpm lint 0 errors / 8 pre-existing warnings, per-file prettier clean, focused page test 32/32. The final format:check and characters-folder run were stopped by the host for low memory and are pending a re-run."
+      "status": "done",
+      "statusNote": "Visual matrix done with measurements at 320/390/1440 via Storybook and headless Playwright (no app login available). Final run after all edits: pnpm format:check clean, pnpm typecheck 3/3, pnpm lint 0 errors with 8 pre-existing warnings, vitest --project unit src/features/characters 14 files 121/121."
     }
   ],
   "openDecisions": [

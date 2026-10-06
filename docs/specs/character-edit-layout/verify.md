@@ -138,3 +138,12 @@ Accessibility (keyboard plus screen reader):
 23. After reset, focus lands on the upload button.
 
 Non-browser T21 gates still to run: `pnpm --filter @app/shared build` if dist is stale, the focused vitest command, `pnpm --filter @app/web typecheck`, `pnpm lint`, `pnpm format:check`, and the name-only path check (fails today on `model/character-edit-form.ts`, gap 1).
+
+## Resolution after this report
+
+- Gap 1 (`model/character-edit-form.ts`) is resolved by assumption A1 in `tasks.json`: the file only gains the additive `effectiveCharacterName` export, its test has no diff, and the T21 path criterion was amended to match.
+- Gap 2 (portrait alt) is resolved by assumption A2: the portrait image alt is the effective character name (`character-portrait-panel.tsx`).
+- The Storybook story is kept as the T21 visual instrument (assumption A4).
+- The visual pass found two narrow-viewport overflows, fixed under assumption A5 and re-measured with no overflow at 320, 390 and 1440.
+- T11, T14, T16 and T21 are done. The final gates ran after every edit: `pnpm format:check` clean, `pnpm typecheck` 3/3, `pnpm lint` 0 errors with 8 pre-existing warnings, and `vitest --project unit src/features/characters` at 14 files and 121/121.
+- Not covered: a run against the real app with real data (there was no login), and a live keyboard and screen-reader pass. Accessibility was reviewed statically.
