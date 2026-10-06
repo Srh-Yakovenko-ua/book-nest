@@ -103,11 +103,6 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
       {showControls && summary.data !== undefined ? (
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
-            {t("summary.characters", {
-              count: formatNumber(summary.data.totalVisibleCharacters, locale),
-            })}
-          </Badge>
-          <Badge variant="secondary">
             {t("summary.favorites", { count: formatNumber(summary.data.favoritesCount, locale) })}
           </Badge>
           <Badge variant="secondary">

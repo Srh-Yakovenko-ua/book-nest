@@ -66,10 +66,11 @@ describe("CharacterCard roster affordances", () => {
   it("links the card body to the character page in this book context", () => {
     renderCard(makeCharacterSummary({ characterId: "char-9" }));
 
-    expect(screen.getByRole("link", { name: "Відкрити персонажа Ґеральт" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Ґеральт" })).toHaveAttribute(
       "href",
       "/characters/char-9?bookId=book-1",
     );
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
   it("offers only edit and unlink in the overflow menu", async () => {
@@ -83,5 +84,49 @@ describe("CharacterCard roster affordances", () => {
     );
     expect(screen.getByRole("menuitem", { name: "Прибрати з цієї книги" })).toBeInTheDocument();
     expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+  });
+});
+
+describe("CharacterCard favorite and names", () => {
+  it.each([
+    { isFavorite: false, label: "Додати в улюблені", pressed: "false" },
+    { isFavorite: true, label: "Прибрати з улюблених", pressed: "true" },
+  ])(
+    "reports aria-pressed $pressed on the favorite button when isFavorite is $isFavorite",
+    ({ isFavorite, label, pressed }) => {
+      renderCard(makeCharacterSummary({ isFavorite }));
+
+      expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", pressed);
+    },
+  );
+
+  it("shows the global name as a secondary line when the book display name differs", () => {
+    renderCard(makeCharacterSummary({ displayName: "Біловолосий", name: "Ґеральт" }));
+
+    expect(screen.getByRole("heading", { name: "Біловолосий" })).toBeInTheDocument();
+    expect(screen.getAllByText("Ґеральт")).toHaveLength(1);
+    expect(screen.getByText("Ґеральт")).toBeVisible();
+  });
+
+  it.each([
+    { displayName: null, situation: "there is no display name" },
+    { displayName: "Ґеральт", situation: "the display name equals the global name" },
+  ])("shows the name exactly once when $situation", ({ displayName }) => {
+    renderCard(makeCharacterSummary({ displayName, name: "Ґеральт" }));
+
+    expect(screen.getAllByText("Ґеральт")).toHaveLength(1);
+  });
+});
+
+describe("CharacterCard hidden fields", () => {
+  it("shows the hidden-fields badge with the metadata, not beside the action buttons", () => {
+    renderCard(makeCharacterSummary({ hiddenFields: ["description", "status"] }));
+
+    const badge = screen.getByText("Приховані поля: 2");
+
+    expect(screen.getByText("Центральний").parentElement).toContainElement(badge);
+    expect(
+      screen.getByRole("button", { name: "Додати в улюблені" }).parentElement,
+    ).not.toContainElement(badge);
   });
 });

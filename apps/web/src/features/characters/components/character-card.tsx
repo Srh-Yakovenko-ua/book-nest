@@ -24,7 +24,7 @@ import {
   explicitStatus,
 } from "../model/character-options";
 import { getCharacterDetailsPath, getCharacterEditPath } from "../model/character-routes";
-import { rosterDisplayName } from "../model/characters-roster-query";
+import { rosterDisplayName, rosterDistinctGlobalName } from "../model/characters-roster-query";
 
 type CharacterCardProps = {
   bookId: string;
@@ -56,82 +56,76 @@ export function CharacterCard({ bookId, character, onUnlink }: CharacterCardProp
   }
 
   return (
-    <div className="group relative flex w-full">
-      <CharacterCardPrimitive
-        actions={
-          <div className="relative z-20 flex items-center gap-0.5">
-            {hiddenCount > 0 ? (
-              <Badge
-                aria-label={t("hiddenFields", { count: hiddenCount })}
-                className="mr-0.5"
-                variant="warning"
+    <CharacterCardPrimitive
+      actions={
+        <>
+          <Button
+            aria-label={t(character.isFavorite ? "unfavorite" : "favorite")}
+            aria-pressed={character.isFavorite}
+            className={cn(
+              "size-8 rounded-lg border",
+              character.isFavorite
+                ? "border-brand bg-brand text-primary-foreground hover:bg-primary-hover"
+                : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand",
+            )}
+            onClick={onToggleFavorite}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <UiIcon name={character.isFavorite ? "heart-fill" : "heart"} size={18} />
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label={t("menu")}
+                className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
+                size="icon-sm"
+                variant="ghost"
               >
-                <UiIcon name="lock" size={12} />
-                {hiddenCount}
-              </Badge>
-            ) : null}
-
-            <Button
-              aria-label={t(character.isFavorite ? "unfavorite" : "favorite")}
-              aria-pressed={character.isFavorite}
-              className={cn(
-                "size-8 rounded-lg border",
-                character.isFavorite
-                  ? "border-brand bg-brand text-primary-foreground hover:bg-primary-hover"
-                  : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand",
-              )}
-              onClick={onToggleFavorite}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <UiIcon name={character.isFavorite ? "heart-fill" : "heart"} size={18} />
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  aria-label={t("menu")}
-                  className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <UiIcon name="more" size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuItem asChild>
-                  <Link href={getCharacterEditPath({ bookId, characterId: character.characterId })}>
-                    <UiIcon name="edit" size={16} />
-                    {t("edit")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={onUnlink}>
-                  <UiIcon name="link" size={16} />
-                  {t("unlink")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        }
-        avatar={media === null ? undefined : { alt: name, src: media.urls.card }}
-        className="w-full group-hover:-translate-y-0.5 group-hover:shadow-hover"
-        name={name}
-        role={
-          importance === null
-            ? undefined
-            : {
-                label: tImportance(importance),
-                variant: BOOK_CHARACTER_IMPORTANCE.badgeVariant[importance],
-              }
-        }
-        traits={traits.length === 0 ? undefined : traits}
-      />
-
-      <Link
-        aria-label={t("openDetails", { name })}
-        className="absolute inset-0 z-10 cursor-pointer rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        href={getCharacterDetailsPath({ bookId, characterId: character.characterId })}
-      />
-    </div>
+                <UiIcon name="more" size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuItem asChild>
+                <Link href={getCharacterEditPath({ bookId, characterId: character.characterId })}>
+                  <UiIcon name="edit" size={16} />
+                  {t("edit")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onUnlink}>
+                <UiIcon name="link" size={16} />
+                {t("unlink")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      }
+      avatar={media === null ? undefined : { alt: name, src: media.urls.card }}
+      className="w-full"
+      density="compact"
+      href={getCharacterDetailsPath({ bookId, characterId: character.characterId })}
+      linkComponent={Link}
+      meta={
+        hiddenCount > 0 ? (
+          <Badge variant="warning">
+            <UiIcon name="lock" size={12} />
+            <span aria-hidden>{hiddenCount}</span>
+            <span className="sr-only">{t("hiddenFields", { count: hiddenCount })}</span>
+          </Badge>
+        ) : undefined
+      }
+      name={name}
+      role={
+        importance === null
+          ? undefined
+          : {
+              label: tImportance(importance),
+              variant: BOOK_CHARACTER_IMPORTANCE.badgeVariant[importance],
+            }
+      }
+      secondaryName={rosterDistinctGlobalName(character)}
+      traits={traits.length === 0 ? undefined : traits}
+    />
   );
 }

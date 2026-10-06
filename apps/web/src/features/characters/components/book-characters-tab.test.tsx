@@ -522,3 +522,24 @@ describe("BookCharactersTab invalidation", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 });
+
+describe("BookCharactersTab summary strip", () => {
+  it("shows favorites, POV and the hidden warning without a total characters chip", async () => {
+    respondToSummary = () =>
+      jsonResponse(
+        makeBookCharacterSummary({
+          favoritesCount: 1,
+          hasHiddenRecords: true,
+          povCount: 2,
+          totalVisibleCharacters: 3,
+        }),
+      );
+
+    renderTab();
+
+    expect(await screen.findByText("Улюблених: 1")).toBeVisible();
+    expect(screen.getByText("POV: 2")).toBeVisible();
+    expect(screen.getByText("Є приховані записи")).toBeVisible();
+    expect(screen.queryByText(/Персонажів:/)).not.toBeInTheDocument();
+  });
+});

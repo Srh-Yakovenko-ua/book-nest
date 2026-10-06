@@ -39,6 +39,13 @@ export function rosterDisplayName(character: CharacterSummaryView): string {
   return character.displayName ?? character.name;
 }
 
+export function rosterDistinctGlobalName({
+  displayName,
+  name,
+}: CharacterSummaryView): string | undefined {
+  return displayName !== null && displayName !== name ? name : undefined;
+}
+
 export function toBookCharactersListParams(
   state: CharactersRosterState,
   readingContext: BookCharacterSummaryQuery,

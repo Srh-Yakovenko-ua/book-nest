@@ -651,3 +651,15 @@ describe("CharacterEditPage live preview", () => {
     expect(within(previewRegion()).getByText("Ґ")).toBeInTheDocument();
   });
 });
+
+describe("CharacterEditPage preview card", () => {
+  it("renders the preview card without a link or any action button", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    expect(within(previewRegion()).queryByRole("link")).not.toBeInTheDocument();
+    expect(within(previewRegion()).queryByRole("button")).not.toBeInTheDocument();
+  });
+});
