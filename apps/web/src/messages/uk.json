@@ -7860,7 +7860,6 @@
       "favorite": "Додати в улюблені",
       "hiddenFields": "Приховані поля: {count}",
       "menu": "Дії з персонажем",
-      "openDetails": "Відкрити персонажа {name}",
       "pov": "POV",
       "unfavorite": "Прибрати з улюблених",
       "unlink": "Прибрати з цієї книги"
@@ -8173,7 +8172,6 @@
       "unknown": "Невідомо"
     },
     "summary": {
-      "characters": "Персонажів: {count}",
       "favorites": "Улюблених: {count}",
       "hidden": "Є приховані записи",
       "pov": "POV: {count}"

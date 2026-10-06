@@ -7860,7 +7860,6 @@
       "favorite": "Add to favorites",
       "hiddenFields": "Hidden fields: {count}",
       "menu": "Character actions",
-      "openDetails": "Open character {name}",
       "pov": "POV",
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
@@ -8173,7 +8172,6 @@
       "unknown": "Unknown"
     },
     "summary": {
-      "characters": "Characters: {count}",
       "favorites": "Favorites: {count}",
       "hidden": "Some records are hidden",
       "pov": "POV: {count}"
