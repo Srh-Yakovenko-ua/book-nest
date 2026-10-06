@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import type { MediaView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -403,5 +404,250 @@ describe("CharacterEditPage spoilers", () => {
 
     expect(screen.getAllByRole("switch")).toHaveLength(9);
     expect(screen.queryByRole("switch", { name: "Перша поява" })).not.toBeInTheDocument();
+  });
+});
+
+function previewRegion(): HTMLElement {
+  return screen.getByRole("region", { name: "Попередній перегляд" });
+}
+
+describe("CharacterEditPage layout by mode", () => {
+  it("lays out the six book sections in reading order", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    const sectionTitles = [
+      "У цій книзі",
+      "Роль у розповіді",
+      "Про персонажа",
+      "Лише для цієї книги",
+      "Інші імена",
+      "Спойлери",
+    ];
+    const renderedTitles = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent ?? "")
+      .filter((title) => sectionTitles.includes(title));
+
+    expect(renderedTitles).toEqual(sectionTitles);
+  });
+
+  it("renders only the shared sections without a book context", async () => {
+    renderEdit("");
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("heading", { level: 2, name: "Про персонажа" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Інші імена" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "У цій книзі" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Роль у розповіді" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Лише для цієї книги" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Спойлери" })).not.toBeInTheDocument();
+  });
+
+  it("shows the book portrait panel next to the preview in a book context", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("region", { name: "Зображення в цій книзі" })).toBeInTheDocument();
+    expect(previewRegion()).toBeInTheDocument();
+  });
+
+  it("shows the preview but no portrait panel or upload control without a book context", async () => {
+    renderEdit("");
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(previewRegion()).toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Зображення в цій книзі" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /зображення/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/зображення/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage live preview", () => {
+  const uploadedPortrait: MediaView = {
+    contentType: "image/png",
+    createdAt: "2026-06-27T00:00:00.000Z",
+    height: 512,
+    id: "media-portrait-1",
+    kind: "avatar",
+    name: "portrait.png",
+    sizeBytes: 2048,
+    urls: {
+      card: "https://media.dev.book-nest.net/portrait-card.webp",
+      full: "https://media.dev.book-nest.net/portrait-full.webp",
+      thumb: "https://media.dev.book-nest.net/portrait-thumb.webp",
+    },
+    width: 512,
+  };
+
+  class LoadedImage extends EventTarget {
+    complete = true;
+    crossOrigin: null | string = null;
+    naturalWidth = 1;
+    referrerPolicy = "";
+    src = "";
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal("Image", LoadedImage);
+    const pageFetch = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "POST" && String(input).includes("/api/media")) {
+        return Promise.resolve(jsonResponse(uploadedPortrait, 201));
+      }
+      return pageFetch?.(input, init);
+    });
+  });
+
+  async function uploadPortrait() {
+    const portraitPanel = screen.getByRole("region", { name: "Зображення в цій книзі" });
+    await userEvent.upload(
+      within(portraitPanel).getByLabelText("Вибрати зображення для цієї книги"),
+      new File(["portrait-bytes"], "portrait.png", { type: "image/png" }),
+    );
+    await within(portraitPanel).findByRole("button", {
+      name: "Використовувати основне зображення",
+    });
+  }
+
+  it("shows the global name while the display name is inherited", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+
+  it("follows the global name as it is typed, before saving", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+
+    expect(
+      within(previewRegion()).getByRole("heading", { name: "Ґеральт із Рівії" }),
+    ).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("shows the book display name once it is overridden", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(
+      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    );
+    const input = within(displayName).getByRole("textbox");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Біловолосий");
+
+    expect(
+      within(previewRegion()).getByRole("heading", { name: "Біловолосий" }),
+    ).toBeInTheDocument();
+    expect(
+      within(previewRegion()).queryByRole("heading", { name: "Ґеральт" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("falls back to the global name while the overridden display name is blank", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(
+      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    );
+    const input = within(displayName).getByRole("textbox");
+    await userEvent.clear(input);
+    await userEvent.type(input, "   ");
+
+    expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+  });
+
+  it("returns to the global name when the display name is reset", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(
+      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    );
+    const input = within(displayName).getByRole("textbox");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Біловолосий");
+    await userEvent.click(
+      within(displayName).getByRole("button", { name: "Використовувати основне значення" }),
+    );
+
+    expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    expect(
+      within(previewRegion()).queryByRole("heading", { name: "Біловолосий" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the book importance as the role and the book status as a trait", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(previewRegion()).getByText("Центральний")).toBeInTheDocument();
+    expect(within(previewRegion()).getByText("Живий")).toBeInTheDocument();
+  });
+
+  it("adds the POV trait once the character becomes a point of view", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(within(previewRegion()).queryByText("POV")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("switch", { name: "POV-персонаж" }));
+
+    expect(within(previewRegion()).getByText("POV")).toBeInTheDocument();
+  });
+
+  it("shows no book role or trait without a book context", async () => {
+    renderEdit("");
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    expect(within(previewRegion()).queryByText("Центральний")).not.toBeInTheDocument();
+    expect(within(previewRegion()).queryByText("Живий")).not.toBeInTheDocument();
+  });
+
+  it("shows an uploaded portrait in the preview before saving", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
+
+    await uploadPortrait();
+
+    expect(within(previewRegion()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+    expect(patchCount()).toBe(0);
+  });
+
+  it("returns the preview to the initial fallback when the portrait is reset", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadPortrait();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Використовувати основне зображення" }),
+    );
+
+    expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(previewRegion()).getByText("Ґ")).toBeInTheDocument();
   });
 });

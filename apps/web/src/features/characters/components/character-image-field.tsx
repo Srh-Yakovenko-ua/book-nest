@@ -1,8 +1,10 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB } from "@app/shared";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
@@ -15,28 +17,35 @@ import {
   useUploadMedia,
 } from "@/features/media";
 
+export type CharacterImageUpload = {
+  mediaId: string;
+  previewUrl: string;
+};
+
 type CharacterImageFieldProps = {
+  alt: string;
   fallbackText: string;
-  initialPreviewUrl?: string;
-  label: string;
-  onChange: (mediaId: null | string) => void;
+  onReset: () => void;
+  onUpload: (upload: CharacterImageUpload) => void;
+  previewUrl: Nullable<string>;
   removeLabel: string;
   uploadLabel: string;
-  value: null | string;
+  value: Nullable<string>;
 };
 
 export function CharacterImageField({
+  alt,
   fallbackText,
-  initialPreviewUrl,
-  label,
-  onChange,
+  onReset,
+  onUpload,
+  previewUrl,
   removeLabel,
   uploadLabel,
   value,
 }: CharacterImageFieldProps) {
   const t = useTranslations("books.cover");
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(initialPreviewUrl);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
   const uploadMedia = useUploadMedia();
 
   async function pickFile(file: File | undefined) {
@@ -63,66 +72,62 @@ export function CharacterImageField({
       { file: normalized, kind: "avatar" },
       {
         onError: () => toast.error(t("errors.type")),
-        onSuccess: (media) => {
-          setPreviewUrl(media.urls.card);
-          onChange(media.id);
-        },
+        onSuccess: (media) => onUpload({ mediaId: media.id, previewUrl: media.urls.card }),
       },
     );
   }
 
-  function removeImage() {
-    setPreviewUrl(undefined);
-    onChange(null);
-  }
-
-  const hasImage = value !== null && previewUrl !== undefined;
+  const canRemove = value !== null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-foreground">{label}</span>
-      <div className="flex items-center gap-4">
-        <Avatar
-          className="size-16 bg-gradient-to-br from-accent-border to-primary text-primary-foreground"
-          size="lg"
-        >
-          {previewUrl === undefined ? null : <AvatarImage alt={label} src={previewUrl} />}
-          <AvatarFallback className="bg-transparent font-heading text-2xl font-bold text-primary-foreground">
-            {fallbackText.trim().charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+    <div className="flex flex-col gap-4">
+      <Avatar className="size-20 bg-gradient-to-br from-accent-border to-primary text-primary-foreground">
+        {previewUrl === null ? null : <AvatarImage alt={alt} src={previewUrl} />}
+        <AvatarFallback className="bg-transparent font-heading text-3xl font-bold text-primary-foreground">
+          {fallbackText.trim().charAt(0).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
 
-        <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
+        <Button
+          className="h-auto min-h-7 w-full py-1 text-center whitespace-normal"
+          disabled={uploadMedia.isPending}
+          loading={uploadMedia.isPending}
+          onClick={() => inputRef.current?.click()}
+          ref={uploadButtonRef}
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          <UiIcon name="upload" size={16} />
+          {uploadLabel}
+        </Button>
+        {canRemove ? (
           <Button
-            disabled={uploadMedia.isPending}
-            loading={uploadMedia.isPending}
-            onClick={() => inputRef.current?.click()}
+            className="h-auto min-h-7 w-full py-1 text-center whitespace-normal"
+            onClick={() => {
+              onReset();
+              uploadButtonRef.current?.focus();
+            }}
             size="sm"
             type="button"
-            variant="secondary"
+            variant="ghost"
           >
-            <UiIcon name="upload" size={16} />
-            {uploadLabel}
+            <UiIcon name="trash" size={16} />
+            {removeLabel}
           </Button>
-          {hasImage ? (
-            <Button onClick={removeImage} size="sm" type="button" variant="ghost">
-              <UiIcon name="trash" size={16} />
-              {removeLabel}
-            </Button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
 
       <input
         accept={ACCEPT_ATTR}
         aria-label={uploadLabel}
-        className="sr-only"
+        className="hidden"
         onChange={(event) => {
           void pickFile(event.target.files?.[0]);
           event.target.value = "";
         }}
         ref={inputRef}
-        tabIndex={-1}
         type="file"
       />
     </div>
