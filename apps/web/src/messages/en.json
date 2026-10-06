@@ -30,15 +30,22 @@
     "loansHistory": "Loan history",
     "lists": "Lists",
     "notes": "Notes",
-    "notesBooks": "Books",
-    "notesSeries": "Series",
+    "notesBooks": "Book notes",
+    "notesSeries": "Series notes",
     "delivery": "Deliveries",
     "dedications": "Dedications",
     "quotes": "Quotes",
     "publishers": "Publishers",
     "settings": "Settings",
     "loansContacts": "Contacts",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "characters": "Characters",
+    "groups": {
+      "books": "Books",
+      "catalog": "Catalog",
+      "records": "Records",
+      "tracking": "Tracking"
+    }
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -3101,7 +3108,7 @@
       "label": "Delivery sections",
       "inTransit": "In transit",
       "history": "History",
-      "statistics": "Statistics"
+      "statistics": "Delivery statistics"
     },
     "history": {
       "metaTitle": "Order history",
