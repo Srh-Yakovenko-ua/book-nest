@@ -1,0 +1,821 @@
+{
+  "spec": "docs/specs/character-edit-layout/spec/00-FINAL-PRODUCT-CONTRACT.md",
+  "specFiles": [
+    "docs/specs/character-edit-layout/spec/00-FINAL-PRODUCT-CONTRACT.md",
+    "docs/specs/character-edit-layout/spec/01-IMPLEMENTATION-MAP.md",
+    "docs/specs/character-edit-layout/spec/02-TESTS-AND-ACCEPTANCE.md",
+    "docs/specs/character-edit-layout/spec/03-CURRENT-DEV-ANCHORS.md",
+    "docs/specs/character-edit-layout/spec/CLAUDE-CODE-PROMPT.md"
+  ],
+  "audit": "docs/specs/character-edit-layout/audit.md",
+  "baseCommit": "472072ad",
+  "generatedAt": "2026-10-05T17:34:17Z",
+  "scope": {
+    "included": [
+      "00 §1 page shell and header",
+      "00 §2 desktop composition, section order, sidebar per mode",
+      "00 §3 mobile order with single-instance blocks",
+      "00 §4 Character-local section shell and Book-style action bar",
+      "00 §5 ActionRow for boolean rows",
+      "00 §6.1-6.6 section contracts",
+      "00 §7 portrait panel and minimal CharacterImageField API change",
+      "00 §8 live Character preview",
+      "00 §9-10 preservation of route semantics and behaviour (as doneWhen guards)",
+      "01 Phase 0-2 file ownership, InheritedImageField fate, i18n, focused tests",
+      "02 preserved guarantees, focused redesign coverage, final gates, manual acceptance matrix"
+    ],
+    "excluded": [
+      "Global avatar editing: 00 §7 'Do not add global-avatar editing'",
+      "Any missing-context branch or route/context semantics change, and tests for it: 00 §9, 02 'Do NOT add tests for new missing-context behavior'",
+      "Book Form, Books FormSection, Timeline and any shared FormSection/FormActionBar abstraction: 00 §4, 01 Phase 1 and anti-overengineering checklist",
+      "Backend, API, domain model, codegen, new dependencies: 00 §10, 01 checklist",
+      "apps/web/src/features/characters/model/character-edit-form.ts and its test: 01 'Files normally NOT to edit', 02 'should remain essentially unchanged'",
+      "apps/web/src/components/ui/character-card.tsx and action-row.tsx: 00 §8 'without changing the primitive globally'; CLAUDE.md §7 marks components/ui/ do-not-edit (audit C22)",
+      "Character Details, Add Character and catalog refactors: 00 §10",
+      "Removing the pre-existing DiscardConfirmDialog import from @/features/books: pre-existing (audit C63), unrelated cleanup is out of scope per CLAUDE-CODE-PROMPT",
+      "Snapshot tests, Tailwind class assertions, pixel/22rem assertions, decorative icon counts: 02 'Test style'",
+      "What's-new/changelog entry and Storybook stories: not requested by any spec file"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add the missing Character Edit copy keys in uk and en",
+      "specRef": "00 §1, §4, §6, §7, §8, §10 'No hardcoded new Ukrainian UI strings'; 01 Phase 2",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "characters.edit (flat namespace, uk.json:7964) gains keys for: book scope badge (uk 'Ця книга', en 'This book'), global scope badge (uk 'Усі книги', en 'All books'), first-appearance heading (uk 'Перша поява', en 'First appearance'), portrait-inherited explanation that the main image is used, preview title (uk 'Попередній перегляд', en 'Preview')",
+        "if D3 resolves to showing a count, a count key with an ICU {count} param is added to characters.spoilers in both locales",
+        "the same key paths exist in uk.json and en.json for every added key",
+        "no existing key is renamed or removed (tests read characters.edit.*, characters.inheritance.*, characters.spoilers.*, characters.aliases.* strings)",
+        "portrait actions reuse characters.inheritance.specifyImageForBook / replaceImage / resetImage; nav.allBooks and books.preview.eyebrow are not referenced from Character code",
+        "both files still parse as JSON and pass prettier"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Match the route page shell and header to Edit Book",
+      "specRef": "00 §1; 01 'Route page ownership'; 03 'Current Edit Book reference'",
+      "layer": "web",
+      "files": ["apps/web/src/app/[locale]/(app)/characters/[characterId]/edit/page.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "<main> class is 'mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12'",
+        "<header> classes equal books/[id]/edit/page.tsx:23 (motion-safe animate-in, duration-500, fill-mode-both, fade-in, slide-in-from-bottom-1, mb-8 md:mb-10)",
+        "next/image renders '/illustrations/pen.png' with alt=\"\", aria-hidden, className 'h-auto w-14 shrink-0 select-none', width 860, height 809, unoptimized, inside 'flex items-center gap-3' together with the H1",
+        "H1 uses 'font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink' and renders characters.edit.title only (no character name)",
+        "subtitle paragraph adds md:text-base and still renders characters.edit.subtitle",
+        "generateMetadata is unchanged in the diff",
+        "no import from @/features/books and no new package in apps/web/package.json"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Upgrade the Character-local EditSection to Book FormSection visual tokens with a scope-badge slot",
+      "specRef": "00 §4 'Character section shell'; 01 'character-edit-sections.tsx ownership'; 03 'Book FormSection visual anchors'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the section shell stays private to character-edit-sections.tsx (not exported via features/characters/index.ts, no new file under components/ or a shared folder)",
+        "the <section> carries 'rounded-xl border border-border bg-card p-5 md:p-6 shadow-detail-block' (plus flex column gap and text-card-foreground as in form-section.tsx:32)",
+        "the header has a 36px tile 'size-9 rounded-md bg-accent text-accent-foreground' holding a UiIcon of size 18 that stays aria-hidden (no title/aria-label)",
+        "title renders as h2 with Book heading styling (form-section.tsx:43); description is optional; an optional right-side action slot exists",
+        "icon prop is typed UiIconName and each of the six sections passes one",
+        "scope badges render through Badge in the action slot using the T1 keys: 'Ця книга' on 6.1, 6.2, 6.4, 6.6; 'Усі книги' on 6.3; no badge on 6.5",
+        "no import from @/features/books; features/books/components/form-section.tsx and features/timeline/** have no diff"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Turn inherited fields into compact rows without per-field cards",
+      "specRef": "00 §6.4 Presentation; 01 'character-inherited-field.tsx ownership'; 03 'Current inherited fields are individually wrapped'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-inherited-field.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "InheritedFieldShell root no longer has 'rounded-lg border border-border p-3' (character-inherited-field.tsx:208) and still carries data-slot=\"inherited-field\"",
+        "label, InheritanceAction button, inherited read-only value and the usingGlobal / bookOnly indicator all render inside the data-slot root, so character-edit-page.test.tsx:212-259 pass without selector changes",
+        "Label htmlFor is still bound only while the field is overridden",
+        "InheritanceAction and every onChange call (override prefill from global, reset to null) have no behavioural diff",
+        "separators between rows are not rendered by the field itself"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Recompose section 6.1 'У цій книзі'",
+      "specRef": "00 §6.1",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T1", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "title characters.edit.bookSection, book scope badge, existing bookSectionHint description",
+        "importance and status Selects sit in one 'grid gap-4 sm:grid-cols-2'",
+        "custom status Input renders directly after that grid, full width, only while status === BOOK_CHARACTER_STATUS.custom",
+        "roles render full width through the unchanged CharacterRolePicker",
+        "textareas appear in DOM order: #character-book-description, #character-appearance-notes, #character-personal-impression (today appearance notes is last, character-edit-sections.tsx:237-251)",
+        "no nested bordered card inside the section and no completion badge/indicator",
+        "registered RHF field names are unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Recompose section 6.2 'Роль у розповіді' with an ActionRow POV switch",
+      "specRef": "00 §5, §6.2",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T1", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "POV renders as ActionRow from @/components/ui/action-row with title characters.edit.pov and trailing={(labelId) => <Switch aria-labelledby={labelId} checked onCheckedChange />}",
+        "ActionRow gets no onClick (non-interactive div), so the switch is not nested in a button",
+        "getByRole('switch', { name: 'POV-персонаж' }) resolves (test character-edit-page.test.tsx:336)",
+        "narrator Select renders immediately after the POV row only while book.isPovCharacter is true, keeping isClearable/onClear -> null and clearLabel (character-edit-sections.tsx:289-301)",
+        "a lightweight internal heading (h3 or smaller, not a nested card) using the T1 first-appearance key precedes chapter/page",
+        "chapter and page Inputs sit in 'grid gap-4 sm:grid-cols-2'; page keeps inputMode=numeric and the #character-first-page-error FieldError",
+        "first-appearance note stays a full-width Input",
+        "no ActionList wrapper; no new POV helper copy is invented (ActionRow subtitle left unset unless D2 says otherwise)",
+        "a decorative Separator may divide the POV block from the first-appearance block"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Recompose section 6.3 'Про персонажа'",
+      "specRef": "00 §6.3",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T1", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "title characters.edit.globalSection, global scope badge, existing globalSectionHint description",
+        "name Input full width with required marker and #character-name-error FieldError",
+        "entity kind + gender in one 'grid gap-4 sm:grid-cols-2'; custom gender full width only while gender === GENDER_CUSTOM",
+        "species + pronouns in one 'grid gap-4 sm:grid-cols-2'",
+        "global attitude full width, still clearable to ''",
+        "neutral description Textarea full width",
+        "no warning box or nested scope card",
+        "section renders in both modes (test character-edit-page.test.tsx:201 'Про персонажа' heading)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Reduce section 6.4 'Лише для цієї книги' to display name, species and attitude overrides",
+      "specRef": "00 §6.4; 01 'character-edit-sections.tsx ownership'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T1", "T3", "T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "title characters.edit.inheritanceSection, book scope badge, existing inheritanceSectionHint description",
+        "rows in order: displayName (InheritedTextField), speciesOverride (InheritedTextField), attitude (InheritedSelectField), separated by decorative Separator",
+        "no Controller for book.portraitMediaId remains in character-edit-sections.tsx",
+        "MaskedOr still wraps displayName and speciesOverride; masked fields render the CharacterSpoilerField placeholder exactly as before",
+        "InheritedTextField / InheritedSelectField props and onChange wiring are unchanged",
+        "the section no longer takes globalAvatarUrl / portraitUrl props"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "Compose section 6.5 'Інші імена' as one section with a separator between scopes",
+      "specRef": "00 §6.5",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/features/characters/components/character-alias-group.tsx"
+      ],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "one section titled characters.aliases.sectionTitle with no scope badge",
+        "global CharacterAliasGroup, then a decorative Separator, then the book CharacterAliasGroup only when a book context exists (no separator in global mode)",
+        "CharacterAliasGroup props and behaviour (add, remove, type, spoiler, advanced, validation errors) are unchanged; character-alias-group.tsx has no diff, or only a composition-level change",
+        "group DOM keeps heading.parentElement.parentElement === group (test helper character-edit-page.test.tsx:263-268)",
+        "global and book aliases still save into their own payloads (test :270) and alias validation still fires (test :308)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Recompose section 6.6 'Спойлери' with ActionRow rows and an activeCount disclosure",
+      "specRef": "00 §5, §6.6",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T1", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "title characters.spoilers.sectionTitle, book scope badge",
+        "first row is an ActionRow titled characters.spoilers.hidePresence with a trailing Switch wired via aria-labelledby; getByRole('switch', { name: 'Приховати сам факт появи персонажа' }) resolves",
+        "hidePresenceHint stays fully readable, presented per D2",
+        "the granular block is a disclosure per D3 whose trigger shows activeCount when > 0; with activeCount 0 the trigger is still found by getByRole('button', { name: 'Налаштувати, що саме приховати' }) (test :375)",
+        "initial open state is still activeCount > 0",
+        "expanded flags render the 7 SPOILER_FIELDS entries as ActionRow + Separator rows, no per-flag border/card; each switch is named by its label (e.g. 'Моє враження')",
+        "no granular switch has a disabled prop tied to hidePresenceAsSpoiler",
+        "SPOILER_FIELDS is unchanged and no switch is added for POV or first appearance (test :404 still counts 9)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Give CharacterImageField the minimal API for an external label and a parent-visible preview",
+      "specRef": "00 §7 'A minimal CharacterImageField API adjustment'; 01 'character-image-field.tsx ownership'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-image-field.tsx"],
+      "dependsOn": [],
+      "blockedBy": ["D5"],
+      "mandatory": true,
+      "doneWhen": [
+        "size check, normalizeImageFile, ACCEPTED_IMAGE_TYPES check and the useUploadMedia mutate call (character-image-field.tsx:42-72) keep their logic; the only change in that path is notifying the parent on success",
+        "the internal visible label (<span>{label}</span>, :83) can be suppressed when the panel supplies the label; the avatar image keeps a meaningful alt",
+        "the parent learns the uploaded preview URL on upload success and learns about a reset",
+        "after reset the avatar shows the effective global avatar URL when one exists, otherwise the initial-letter fallback (fixes audit C40)",
+        "useUploadMedia is still called exactly once in this component; no new mutation, query or server state anywhere"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "Create the book-context portrait panel",
+      "specRef": "00 §7; 01 'character-portrait-panel.tsx'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-portrait-panel.tsx"],
+      "dependsOn": ["T1", "T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "component lives in features/characters/components and is rendered only in book context",
+        "panel title is characters.edit.portrait and appears once (no duplicate visible portrait label)",
+        "bound to book.portraitMediaId through the existing RHF control (Controller/useWatch), no extra form state",
+        "inherited state (portraitMediaId === null): shows the global avatar or the initial fallback, the T1 'main image is used' explanation, and an action labelled characters.inheritance.specifyImageForBook",
+        "override state: shows the transient upload URL or else the saved book portrait, a replace action (replaceImage) and a reset action (resetImage) that sets portraitMediaId to null",
+        "when 'portrait' is in the appearance's hiddenFields the panel renders the CharacterSpoilerField hidden placeholder and no upload controls, preserving MaskedOr (character-edit-sections.tsx:100)",
+        "no save mutation and no upload logic of its own; CharacterImageField is the only upload path",
+        "no global-avatar editing control"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "Remove InheritedImageField once the portrait panel replaces it",
+      "specRef": "01 'If InheritedImageField becomes unused … remove it only if truly dead'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-inherited-field.tsx"],
+      "dependsOn": ["T8", "T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "grep 'InheritedImageField' under apps/web/src returns no match",
+        "InheritedImageFieldProps type and the CharacterImageField import are gone from character-inherited-field.tsx",
+        "InheritedTextField / InheritedSelectField exports remain"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "Create the live Character preview on the shared CharacterCard primitive",
+      "specRef": "00 §8; 01 'character-edit-preview.tsx'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-preview.tsx"],
+      "dependsOn": ["T1"],
+      "blockedBy": ["D4", "D5"],
+      "mandatory": true,
+      "doneWhen": [
+        "renders CharacterCard from @/components/ui/character-card; components/ui/character-card.tsx has no diff",
+        "does not import features/characters/components/character-card.tsx; passes no actions and no bookTitle (bookTitle renders hardcoded Ukrainian, ui/character-card.tsx:71); no Link, favorite, menu or unlink",
+        "hover lift/shadow neutralized through a local className override, verified in the browser (no translate/shadow change on hover)",
+        "values come from useWatch on the existing form control; no new useForm and no useState copy of domain values",
+        "contextual name = effective display name per D4, else global.name; global name edits update it immediately",
+        "contextual image: global avatar when book.portraitMediaId === null; otherwise transient upload URL, else saved appearance portrait URL; no URL leaves the initial fallback",
+        "contextual role badge = tImportance(explicitImportance(book.importance)) with BOOK_CHARACTER_IMPORTANCE.badgeVariant, omitted when unspecified",
+        "contextual traits = [characters.card.pov if isPovCharacter, then tStatus(explicitStatus(book.status)) if explicit], same order as features/characters/components/character-card.tsx:46-49",
+        "global mode shows only global name and global avatar (no badge, no traits)",
+        "wrapped in a labelled region with an h2 using the T1 preview-title key; contains no focusable element"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "Lay out the page as a two-column grid with single-instance blocks and per-mode sidebar",
+      "specRef": "00 §2, §3, §9; 01 'character-edit-page.tsx ownership'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.tsx"],
+      "dependsOn": ["T5", "T6", "T7", "T8", "T9", "T10", "T12", "T14"],
+      "blockedBy": ["D1"],
+      "mandatory": true,
+      "doneWhen": [
+        "<form> class is 'grid gap-6 pb-24 sm:pb-0 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start'",
+        "main column is 'flex flex-col gap-6'; book context renders sections in order 6.1, 6.2, 6.3, 6.4, 6.5, 6.6; global mode renders only 6.3 and 6.5",
+        "at lg the sidebar is one 'flex flex-col gap-6' wrapper with 'lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))]'; book context: portrait panel then preview; global: preview only",
+        "the file contains exactly one CharacterPortraitPanel element and one CharacterEditPreview element; mobile order Header -> Portrait -> sections -> Preview is achieved by DOM/order/display classes per D1, not duplicate rendering",
+        "no empty book-context shell renders in global mode",
+        "transient portrait preview URL lives in one useState here and is passed to panel and preview",
+        "contextBookId derivation (character-edit-page.tsx:68-76) and save/dirty/cancel logic (:99-181) have no behavioural diff",
+        "no detailed field markup moved into this file; no new missing-context branch"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "Rebuild the action bar on the Book Form responsive pattern",
+      "specRef": "00 §3 'final content reachable', §4 'Action bar'; 03 action bar anchors",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.tsx"],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "bar classes match book-form.tsx:1038: fixed inset-x-0 bottom-0 z-30, bg-background/80, px-5 pt-3, safe-bottom, backdrop-blur-xl backdrop-saturate-150, sm:sticky sm:inset-x-auto sm:z-10 sm:-mx-1 sm:justify-end sm:rounded-t-xl sm:px-4 sm:py-3",
+        "Cancel and Save both carry 'h-11 flex-1 sm:h-10 sm:flex-none'",
+        "Save keeps disabled={isSaving || !isDirty}, loading, check icon and characters.edit.save; Cancel keeps cancel() and characters.edit.cancel; DiscardConfirmDialog wiring unchanged",
+        "bar sits in the main column as in Book Form so on sm+ it sticks to the bottom of the form column",
+        "with the form's pb-24 the last mobile block (preview) scrolls fully above the fixed bar (checked at 390px)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "Make the loading skeleton layout-aware and keep the error branch",
+      "specRef": "01 'layout-aware skeleton/error branch'; 03 'skeleton: two generic full-width cards'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.tsx"],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "pending state renders the same two-column grid (main column of stacked section skeletons + 22rem sidebar skeleton), mirroring edit-book-form.tsx:25-36",
+        "skeleton keeps aria-busy and a status semantic; any accessible label uses a translation key, not a literal",
+        "error branch keeps role=alert, CharactersErrorState and retry via details.refetch"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "title": "Test the render/mode contract",
+      "specRef": "02 'Render/mode contract'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "contextual: the six section headings appear in DOM order У цій книзі, Роль у розповіді, Про персонажа, Лише для цієї книги, Інші імена, Спойлери (filtering the h2 list to those six names)",
+        "global (renderEdit('')): Про персонажа and Інші імена render; У цій книзі, Роль у розповіді, Лише для цієї книги, Спойлери do not",
+        "contextual: portrait panel and preview region are present",
+        "global: preview region present, no portrait panel and no upload control",
+        "no snapshot, class-string or pixel assertion"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "title": "Test the live preview",
+      "specRef": "02 'Live preview'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T14", "T15"],
+      "mandatory": true,
+      "doneWhen": [
+        "queries are scoped with within(previewRegion)",
+        "inherited display name: preview shows the global name 'Ґеральт'",
+        "typing into the global name updates the preview before save",
+        "overriding the display name updates the preview; resetting it returns the preview to the global name",
+        "fixture importance/status (central, active) appear as badge/trait; toggling POV adds the POV trait",
+        "uploading a PNG through the portrait panel (fetch mock for POST /api/media) changes the preview image before save; resetting returns it to the global avatar or fallback"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "title": "Keep every existing Character Edit guarantee green",
+      "specRef": "02 'Preserve current behavioral guarantees', 'Settings/accessibility', 'Dirty/action contract', 'Test style'",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-page.test.tsx",
+        "apps/web/src/features/characters/model/character-edit-form.test.ts"
+      ],
+      "dependsOn": ["T4", "T5", "T6", "T7", "T8", "T9", "T10", "T15", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "all 17 pre-existing tests in character-edit-page.test.tsx still exist and pass; any edit is selector-only with the same expectation",
+        "character-edit-form.test.ts has no diff",
+        "POV, hide-presence and granular switch tests (:330, :365, :380, :398) pass through the ActionRow wiring, covering 02 Settings/accessibility",
+        "clean-save-disabled (:113) and discard (:180) tests pass, covering 02 Dirty/action contract"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "title": "Run the final gates and the manual acceptance matrix",
+      "specRef": "02 'Manual acceptance matrix', 'Command strategy'; CLAUDE-CODE-PROMPT report format",
+      "layer": "web",
+      "files": [],
+      "dependsOn": ["T1", "T2", "T13", "T16", "T17", "T18", "T19", "T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/shared build was run first if packages/shared/dist may be stale",
+        "pnpm --filter @app/web exec vitest --project unit run src/features/characters/components/character-edit-page.test.tsx src/features/characters/model/character-edit-form.test.ts is green",
+        "pnpm --filter @app/web typecheck is green",
+        "pnpm lint is green (the web package has no lint script; root eslint is the gate)",
+        "pnpm format:check is green",
+        "git diff --name-only shows nothing under apps/api, packages, features/books, features/timeline, components/ui, package.json or pnpm-lock.yaml; model/character-edit-form.test.ts has no diff and model/character-edit-form.ts only gains the additive effectiveCharacterName export (A1)",
+        "screenshots taken: contextual desktop, contextual 390px mobile, global desktop; each 02 matrix item is checked against them (header parity with Edit Book, sticky 22rem sidebar, section order, no per-field cards, no duplicate portrait label, no hover lift on preview, mobile order, no horizontal scroll, last block above the bar)",
+        "the report lists changed files, exact commands with results, and any deviation"
+      ],
+      "status": "partial",
+      "statusNote": "Visual matrix done with measurements at 320/390/1440. After the last narrow-viewport edits: pnpm typecheck finished, pnpm lint 0 errors / 8 pre-existing warnings, per-file prettier clean, focused page test 32/32. The final format:check and characters-folder run were stopped by the host for low memory and are pending a re-run."
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Which DOM order should the single-instance Portrait, main column and Preview use, given that mobile shows Portrait first but desktop keeps them in one sticky sidebar?",
+      "specSays": "00 §3: one instance per block, solved with DOM/layout/order classes. 00 §2: one sticky sidebar with Portrait then Preview. 02 Accessibility: logical keyboard order.",
+      "options": [
+        "A. DOM = [sidebar wrapper (Portrait, Preview), main]. The wrapper is 'contents' below lg and 'flex flex-col gap-6 sticky' at lg, with explicit grid placement (sidebar col 2, main col 1, both row 1). Preview is pushed after main on mobile with order classes. Mobile focus order equals visual order because Preview has nothing focusable; on desktop focus starts at the Portrait before the form.",
+        "B. DOM = [main, sidebar] as in Book Form, with Portrait pulled up via order-first on mobile. Desktop order matches Book, but on mobile the Portrait upload buttons are shown first and focused last, after the fixed action bar.",
+        "C. DOM = [Portrait, main, Preview] with per-item grid placement. Order is natural everywhere, but Portrait and Preview can no longer share one sticky wrapper."
+      ],
+      "codebaseCost": "B is closest to book-form.tsx:795-1082. A adds one 'contents lg:flex' wrapper plus order and placement classes. C makes the sticky sidebar fragile.",
+      "recommendation": "A. It is the only option that keeps a single instance, one sticky sidebar, and focus order that matches the visual order on mobile. Use a div for the wrapper, because display:contents drops landmark semantics in some browsers, and give the Preview its own labelled region.",
+      "specRef": "00 §2, §3; 02 Accessibility",
+      "blocks": ["T15", "T18"],
+      "answer": "Option A (the recommendation).",
+      "answeredBy": "orchestrator, 2026-10-05: implementation-level fork inside the spec contract; CLAUDE-CODE-PROMPT forbids re-asking product questions the package settles, and each recommendation follows 00."
+    },
+    {
+      "id": "D2",
+      "question": "ActionRow truncates both title and subtitle to one line (action-row.tsx:145, :149). How should the long hide-presence hint (uk.json:8145, about 130 characters) be shown?",
+      "specSays": "00 §5: preferred pattern is title + subtitle/helper + trailing switch. 00 §6.6: hide-presence uses ActionRow. Truncation is not addressed.",
+      "options": [
+        "A. Pass the hint as subtitle and accept a one-line ellipsis, which cuts it off on mobile and on most desktop widths.",
+        "B. ActionRow with title only, and the existing hint as a <p> directly under the row, linked to the Switch with aria-describedby.",
+        "C. Keep the subtitle and undo the truncation locally with descendant selectors in className, which couples Character code to ActionRow internals.",
+        "D. Add a wrapping option to components/ui/action-row.tsx. This edits a shared primitive in the folder CLAUDE.md §7 marks do-not-edit and goes outside the Character-only diff."
+      ],
+      "codebaseCost": "B needs no primitive change and no new copy; C and D touch or depend on ActionRow internals.",
+      "recommendation": "B. The full copy stays visible, ActionRow stays untouched, and 00 §5 only calls the subtitle pattern 'preferred'. Short labels like POV and the granular flags need no subtitle.",
+      "specRef": "00 §5, §6.6",
+      "blocks": ["T10"],
+      "answer": "Option B (the recommendation).",
+      "answeredBy": "orchestrator, 2026-10-05: implementation-level fork inside the spec contract; CLAUDE-CODE-PROMPT forbids re-asking product questions the package settles, and each recommendation follows 00."
+    },
+    {
+      "id": "D3",
+      "question": "The spec says the granular spoiler flags 'remain collapsible' and the disclosure uses activeCount. Today the disclosure only expands and the count is never shown (character-edit-sections.tsx:350-396). What should the disclosure do?",
+      "specSays": "00 §6.6: 'granular flags remain collapsible', 'use current activeCount in disclosure UI'.",
+      "options": [
+        "A. Keep the expand-only link button and add an activeCount badge to it. There is still no way to collapse.",
+        "B. A two-way disclosure: a Button with aria-expanded, or the existing components/ui/collapsible.tsx. It opens and closes, starts open when activeCount > 0, and shows an activeCount badge when the count is above 0."
+      ],
+      "copy": "Showing the count needs copy: either a new characters.spoilers key with {count}, or a cross-namespace reuse of characters.card.hiddenFields 'Приховані поля: {count}' (uk.json:7861).",
+      "codebaseCost": "Both are local to character-edit-sections.tsx. B also adds a collapse path that test :375 does not cover.",
+      "recommendation": "B, with a new characters.spoilers count key. Keep the trigger's accessible name equal to 'Налаштувати, що саме приховати' when the count is 0, so test :375 holds, and expose the count as text when it is above 0.",
+      "specRef": "00 §6.6",
+      "blocks": ["T1", "T10"],
+      "answer": "Option B (the recommendation).",
+      "answeredBy": "orchestrator, 2026-10-05: implementation-level fork inside the spec contract; CLAUDE-CODE-PROMPT forbids re-asking product questions the package settles, and each recommendation follows 00."
+    },
+    {
+      "id": "D4",
+      "question": "What should the preview show as the name when the book display-name override exists but is blank?",
+      "specSays": "00 §8: name = book.displayName ?? global.name. Taken literally, a blank override shows an empty name and an empty avatar initial.",
+      "codeSays": "toBookUpdate maps a blank override to null, meaning inherit (character-edit-form.ts:193, test character-edit-form.test.ts:52-58). The saved character will therefore show the global name.",
+      "options": [
+        "A. Literal formula: a blank override renders an empty name.",
+        "B. Treat a trimmed-empty override as inherited and show global.name, mirroring what Save will store."
+      ],
+      "recommendation": "B. The preview should predict the saved result, and the trim rule already exists in the model.",
+      "specRef": "00 §8",
+      "blocks": ["T14", "T19"],
+      "answer": "Option B (the recommendation).",
+      "answeredBy": "orchestrator, 2026-10-05: implementation-level fork inside the spec contract; CLAUDE-CODE-PROMPT forbids re-asking product questions the package settles, and each recommendation follows 00."
+    },
+    {
+      "id": "D5",
+      "question": "Who owns the portrait preview URL once the page needs it for the live preview?",
+      "specSays": "00 §7 allows a minimal CharacterImageField change to expose transient preview changes and to restore the global preview after reset. 01 puts the transient portrait preview state in character-edit-page.tsx. Neither says whether the field keeps its own copy.",
+      "options": [
+        "A. Keep the internal previewUrl state, add an onPreviewChange callback and a fallback-URL prop for reset. The same URL then lives in both the field and the page.",
+        "B. Make the field's preview controlled: it receives the effective URL from the panel and reports upload success and reset. The page's transient state is the only source."
+      ],
+      "codebaseCost": "After T13 the portrait panel is the only consumer (audit C38), so B breaks no other caller. B also fixes the reset-to-initial bug (audit C40) by construction.",
+      "recommendation": "B. It keeps one source of truth (code-principles §5) and is still a minimal prop change.",
+      "specRef": "00 §7; 01 'character-image-field.tsx ownership'",
+      "blocks": ["T11", "T12", "T14"],
+      "answer": "Option B (the recommendation).",
+      "answeredBy": "orchestrator, 2026-10-05: implementation-level fork inside the spec contract; CLAUDE-CODE-PROMPT forbids re-asking product questions the package settles, and each recommendation follows 00."
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Edit Book shell max-w-7xl + px-5 pt-8 pb-16 md:px-8 lg:px-12",
+      "specRef": "03, 00 §1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/books/[id]/edit/page.tsx:22"
+    },
+    {
+      "claim": "Edit Book header animated",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/books/[id]/edit/page.tsx:23"
+    },
+    {
+      "claim": "Header reuses /illustrations/pen.png via Image",
+      "specRef": "03, 00 §1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/books/[id]/edit/page.tsx:25-33"
+    },
+    {
+      "claim": "H1 clamp(1.875rem,4vw,2.75rem)",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/books/[id]/edit/page.tsx:34"
+    },
+    {
+      "claim": "Book Form grid class",
+      "specRef": "03, 00 §2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/book-form.tsx:790"
+    },
+    {
+      "claim": "Sidebar flex flex-col gap-6, lg:sticky with shell-header offset",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/book-form.tsx:1060"
+    },
+    {
+      "claim": "Action bar fixed/safe-bottom/blur/sm:sticky, full-width mobile buttons",
+      "specRef": "03, 00 §4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/book-form.tsx:1038-1056 (bar inside main column)"
+    },
+    {
+      "claim": "Books FormSection exists with rounded-xl border bg-card p-5 md:p-6 shadow-detail-block, 36px tile, title/description/action",
+      "specRef": "03, 00 §4",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/form-section.tsx:32, :38, :36-54"
+    },
+    {
+      "claim": "Timeline has timeline-form-section.tsx",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/timeline/components/timeline-form-section.tsx:24"
+    },
+    {
+      "claim": "No universal shared FormSection",
+      "specRef": "03, 00 §4",
+      "verdict": "CONFIRMED",
+      "evidence": "only books/form-section.tsx and timeline/timeline-form-section.tsx exist"
+    },
+    {
+      "claim": "ActionRow supports title/subtitle/leading icon/trailing/trailing(labelId)",
+      "specRef": "03, 00 §5",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/action-row.tsx:51-60, :145, :157"
+    },
+    {
+      "claim": "ActionRow has focus/interaction styling",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "action-row.tsx:18, :75, :87-96 (only when onClick is passed)"
+    },
+    {
+      "claim": "ActionRow title/subtitle wrap freely (implied by helper usage)",
+      "specRef": "00 §5",
+      "verdict": "FALSE",
+      "evidence": "action-row.tsx:145, :149 use truncate; see D2"
+    },
+    {
+      "claim": "ActionList, Separator, Badge, UiIcon exist",
+      "specRef": "03, CLAUDE-CODE-PROMPT",
+      "verdict": "CONFIRMED",
+      "evidence": "components/ui/action-list.tsx; separator.tsx:6; badge.tsx:30; components/icons/ui-icon.tsx:137"
+    },
+    {
+      "claim": "components/ui is vendored shadcn (CLAUDE.md §7) incl. action-row/character-card",
+      "specRef": "brief",
+      "verdict": "FALSE",
+      "evidence": "both added as project primitives in 947799e0; plan edits neither"
+    },
+    {
+      "claim": "Character Edit route shell max-w-4xl, smaller heading",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/app/[locale]/(app)/characters/[characterId]/edit/page.tsx:21, :23"
+    },
+    {
+      "claim": "Stable translated H1 'Редагування персонажа' without name",
+      "specRef": "00 §1",
+      "verdict": "ALREADY DONE",
+      "evidence": "characters/[characterId]/edit/page.tsx:24; apps/web/src/messages/uk.json:8007"
+    },
+    {
+      "claim": "Form single-column flex flex-col gap-6",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/characters/components/character-edit-page.tsx:184"
+    },
+    {
+      "claim": "Section order Main -> Narrative -> Inheritance -> Global -> Aliases -> Spoilers",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.tsx:185-220"
+    },
+    {
+      "claim": "Character-local sticky action bar",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.tsx:222-230"
+    },
+    {
+      "claim": "Skeleton is two generic full-width cards",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.tsx:245-252"
+    },
+    {
+      "claim": "Missing appearance for a provided bookId falls back to global-style editing",
+      "specRef": "03, 00 §9",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.tsx:68-76; character-edit-form.ts:242-244"
+    },
+    {
+      "claim": "EditSection is Character-local",
+      "specRef": "00 §4, 01",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:587-605"
+    },
+    {
+      "claim": "InheritedTextField/InheritedSelectField/InheritedImageField exist, used only in character-edit-sections.tsx",
+      "specRef": "03, 00 §6.4",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-field.tsx:130, :84, :58; usages character-edit-sections.tsx:89, :122, :137, :105"
+    },
+    {
+      "claim": "Inherited fields wrapped in bordered rounded cards",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-field.tsx:208"
+    },
+    {
+      "claim": "data-slot=\"inherited-field\"",
+      "specRef": "00 §6.4, 02",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-field.tsx:209; character-edit-page.test.tsx:206"
+    },
+    {
+      "claim": "Image composition duplicates labels",
+      "specRef": "03, 00 §7",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-field.tsx:212 + character-image-field.tsx:83"
+    },
+    {
+      "claim": "CharacterImageField upload mutation, type/size validation, normalization",
+      "specRef": "00 §7",
+      "verdict": "CONFIRMED",
+      "evidence": "character-image-field.tsx:40, :42-72"
+    },
+    {
+      "claim": "Reset restores the effective global preview",
+      "specRef": "00 §7 (implied current gap)",
+      "verdict": "FALSE",
+      "evidence": "character-image-field.tsx:39, :74-77 reset shows the initial letter, not the global avatar"
+    },
+    {
+      "claim": "CharacterAliasGroup add/remove/type/spoiler/advanced/validation",
+      "specRef": "00 §6.5",
+      "verdict": "CONFIRMED",
+      "evidence": "character-alias-group.tsx:35-162"
+    },
+    {
+      "claim": "CharacterRolePicker exists",
+      "specRef": "00 §6.1",
+      "verdict": "CONFIRMED",
+      "evidence": "character-role-picker.tsx:28"
+    },
+    {
+      "claim": "CharacterEditValues holds all required fields",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-form.ts:44-76, :82-97"
+    },
+    {
+      "claim": "ui/character-card.tsx provides avatar/name/role badge/traits with hover lift/shadow",
+      "specRef": "03, 00 §8",
+      "verdict": "CONFIRMED",
+      "evidence": "components/ui/character-card.tsx:8-16, :37, :43-90"
+    },
+    {
+      "claim": "Roster card uses explicitImportance/explicitStatus/badgeVariant/POV+status traits",
+      "specRef": "03, 00 §8",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/components/character-card.tsx:42-49, :119-127; model/character-options.ts:27-34, :64-72"
+    },
+    {
+      "claim": "Granular spoilers collapsible with activeCount in disclosure",
+      "specRef": "00 §6.6",
+      "verdict": "FALSE",
+      "evidence": "character-edit-sections.tsx:350-351, :369-396 expand-only, count never displayed; see D3"
+    },
+    {
+      "claim": "Granular spoilers not disabled when hide-presence is on",
+      "specRef": "00 §6.6",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:372-384; character-edit-page.test.tsx:380-396"
+    },
+    {
+      "claim": "No spoiler flag for POV or first appearance",
+      "specRef": "00 §6.6",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:49-57; character-edit-page.test.tsx:404"
+    },
+    {
+      "claim": "character-edit-page.test.tsx covers dirty/save scopes, retry, discard, global mode, inheritance, aliases, POV/narrator, first appearance, spoilers",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.test.tsx:113-406"
+    },
+    {
+      "claim": "character-edit-form.test.ts covers inheritance payloads, masked fields, dirty, first appearance, POV, global mapping",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-form.test.ts:27-173"
+    },
+    {
+      "claim": "Section titles exist in characters.* namespaces",
+      "specRef": "00 §2",
+      "verdict": "ALREADY DONE",
+      "evidence": "uk.json:7969, :7992, :7985, :7988, :7836, :8149"
+    },
+    {
+      "claim": "Scope badge, preview title, first-appearance heading, 'main image is used' copy exist",
+      "specRef": "00 §6, §7, §8",
+      "verdict": "FALSE",
+      "evidence": "absent from characters.*; nearest: nav.allBooks uk.json:22, books.preview.eyebrow :1440, characters.page.firstAppearance :8083"
+    },
+    {
+      "claim": "Portrait action copy exists",
+      "specRef": "00 §7",
+      "verdict": "ALREADY DONE",
+      "evidence": "uk.json:8053 specifyImageForBook, :8049 replaceImage, :8050 resetImage"
+    },
+    {
+      "claim": "Web lint script exists",
+      "specRef": "02 'web lint'",
+      "verdict": "FALSE",
+      "evidence": "apps/web/package.json scripts have no lint; root package.json lint = 'eslint .'"
+    },
+    {
+      "claim": "No Character -> Books component dependency",
+      "specRef": "01 checklist",
+      "verdict": "FALSE",
+      "evidence": "character-edit-page.tsx:17 imports DiscardConfirmDialog from @/features/books (pre-existing; read the rule as 'no new one')"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A1",
+      "topic": "model/character-edit-form.ts gains one additive export",
+      "decision": "Keep effectiveCharacterName in model/character-edit-form.ts next to textOrNull, so the blank-override-means-inherit rule has one source shared by the save mapping, the preview and the portrait panel. No existing function or its behavior changes, and character-edit-form.test.ts has no diff. This reads 02 \"should remain essentially unchanged\" as satisfied by an additive pure helper.",
+      "reason": "code-reviewer flagged the duplicated rule; CLAUDE.md §8.7 DRY the knowledge",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A2",
+      "topic": "Portrait panel image alt",
+      "decision": "alt is the effective character name (meaningful, per T11), not an empty string or the panel title.",
+      "reason": "accessibility-auditor: the panel title as alt repeats the h2 and is wrong in the inherited state; T11 requires a meaningful alt",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A3",
+      "topic": "Scope badge icon",
+      "decision": "Scope badges carry a small decorative icon (book / globe) before the label. Cosmetic, aria-hidden, accepted.",
+      "reason": "spec-auditor VERIFY drift; no contract conflict",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A4",
+      "topic": "Storybook story added",
+      "decision": "character-edit-page.stories.tsx (BookContext, Global) is kept as the T21 visual instrument for 320/390/1440 checks without a login. Storybook stories were listed under scope.excluded as not requested; the user decides whether it ships.",
+      "reason": "no credentials for the app; 390px needs headless Playwright plus Storybook",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A5",
+      "topic": "Narrow-viewport fixes from the T21 visual pass",
+      "decision": "Spoiler disclosure trigger wraps (h-auto, whitespace-normal); form grid gets grid-cols-[minmax(0,1fr)] below lg; image-field buttons wrap; inherited-field header row wraps. Measured: no overflow at 320, 390, 1440.",
+      "reason": "design-engineer measured a 12px horizontal scroll at 390 and cards overrunning main padding at 320",
+      "recordedBy": "orchestrator"
+    }
+  ]
+}
