@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
-import { expect, waitFor } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 
 import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
 import { CharacterEditPage } from "./character-edit-page";
@@ -191,6 +191,22 @@ export const BookContext: Story = {
     await expect(canvas.getByRole("region", { name: "Зображення в цій книзі" })).toBeVisible();
     await expect(canvas.getByRole("region", { name: "Попередній перегляд" })).toBeVisible();
     await expect(canvas.getByText("Приховано: 2")).toBeVisible();
+  },
+};
+
+export const BookContextWithoutImage: Story = {
+  beforeEach: () => {
+    mockFetch({ ...character, avatar: null });
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
+    });
+    const portraitPanel = within(canvas.getByRole("region", { name: "Зображення в цій книзі" }));
+    await expect(
+      portraitPanel.getByRole("button", { name: /Перетягніть зображення сюди/ }),
+    ).toBeVisible();
   },
 };
 
