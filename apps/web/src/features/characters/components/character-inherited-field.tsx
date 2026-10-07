@@ -2,11 +2,13 @@
 
 import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
+import type { FieldError } from "react-hook-form";
 
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { FieldError as FieldErrorText } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,23 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { CharacterImageField } from "./character-image-field";
-
 type InheritedFieldShellProps = {
   action: ReactNode;
   children: ReactNode;
-  htmlFor?: string;
+  htmlFor: string;
   isInherited: boolean;
-  label: string;
-};
-
-type InheritedImageFieldProps = {
-  fallbackText: string;
-  globalPreviewUrl: Nullable<string>;
-  label: string;
-  onChange: (mediaId: null | string) => void;
-  previewUrl: Nullable<string>;
-  value: Nullable<string>;
+  label: ReactNode;
 };
 
 type InheritedSelectFieldProps<T extends string> = {
@@ -48,38 +39,15 @@ type InheritedSelectFieldProps<T extends string> = {
 };
 
 type InheritedTextFieldProps = {
+  error: FieldError | undefined;
   globalValue: Nullable<string>;
   id: string;
   label: string;
+  maxLength: number;
   onChange: (value: null | string) => void;
+  placeholder: string;
   value: Nullable<string>;
 };
-
-export function InheritedImageField({
-  fallbackText,
-  globalPreviewUrl,
-  label,
-  onChange,
-  previewUrl,
-  value,
-}: InheritedImageFieldProps) {
-  const t = useTranslations("characters.inheritance");
-  const isInherited = value === null;
-
-  return (
-    <InheritedFieldShell action={null} isInherited={isInherited} label={label}>
-      <CharacterImageField
-        fallbackText={fallbackText}
-        initialPreviewUrl={(isInherited ? globalPreviewUrl : previewUrl) ?? undefined}
-        label={label}
-        onChange={onChange}
-        removeLabel={t("resetImage")}
-        uploadLabel={isInherited ? t("specifyImageForBook") : t("replaceImage")}
-        value={value}
-      />
-    </InheritedFieldShell>
-  );
-}
 
 export function InheritedSelectField<T extends string>({
   globalLabel,
@@ -128,13 +96,18 @@ export function InheritedSelectField<T extends string>({
 }
 
 export function InheritedTextField({
+  error,
   globalValue,
   id,
   label,
+  maxLength,
   onChange,
+  placeholder,
   value,
 }: InheritedTextFieldProps) {
+  const t = useTranslations("characters.edit");
   const isInherited = value === null;
+  const errorId = `${id}-error`;
 
   return (
     <InheritedFieldShell
@@ -148,17 +121,29 @@ export function InheritedTextField({
       }
       htmlFor={id}
       isInherited={isInherited}
-      label={label}
+      label={
+        <>
+          {label} <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
+        </>
+      }
     >
       {isInherited ? (
         <InheritedTextPreview value={globalValue} />
       ) : (
-        <Input
-          className="h-10"
-          id={id}
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        />
+        <>
+          <Input
+            aria-describedby={error ? errorId : undefined}
+            aria-invalid={error !== undefined}
+            autoComplete="off"
+            className="h-10"
+            id={id}
+            maxLength={maxLength}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            value={value}
+          />
+          <FieldErrorText error={error} id={errorId} />
+        </>
       )}
     </InheritedFieldShell>
   );
@@ -204,11 +189,8 @@ function InheritedFieldShell({
   const t = useTranslations("characters.inheritance");
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-lg border border-border p-3"
-      data-slot="inherited-field"
-    >
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex flex-col gap-2" data-slot="inherited-field">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <Label htmlFor={isInherited ? undefined : htmlFor}>{label}</Label>
         {action}
       </div>

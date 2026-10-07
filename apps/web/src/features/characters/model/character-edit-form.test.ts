@@ -162,6 +162,27 @@ describe("first appearance", () => {
   });
 });
 
+describe("toBookUpdate roles", () => {
+  it("keeps the custom text only for custom roles and numbers the roles in their order", () => {
+    const values = toCharacterEditValues(character, "book-1");
+
+    const payload = toBookUpdate({
+      ...values.book,
+      roles: [
+        { customRole: "Залишок старого тексту", isSpoiler: false, roleType: "antagonist" },
+        { customRole: "  Наставник  ", isSpoiler: true, roleType: "custom" },
+        { customRole: "", isSpoiler: false, roleType: "protagonist" },
+      ],
+    });
+
+    expect(payload.roles).toEqual([
+      { customRole: null, isSpoiler: false, position: 0, roleType: "antagonist" },
+      { customRole: "Наставник", isSpoiler: true, position: 1, roleType: "custom" },
+      { customRole: null, isSpoiler: false, position: 2, roleType: "protagonist" },
+    ]);
+  });
+});
+
 describe("point of view", () => {
   it("clears the narrator type once the character stops being a point of view", () => {
     const values = toCharacterEditValues(character, "book-1");

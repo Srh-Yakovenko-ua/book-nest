@@ -2,6 +2,7 @@
 
 import type { FieldError } from "react-hook-form";
 
+import { CHARACTER_TEXT_MAX } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -101,10 +102,13 @@ function AliasRowEditor({
     <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
       <div className="flex items-center gap-2">
         <Input
+          aria-describedby={error ? `${id}-error` : undefined}
           aria-invalid={error !== undefined}
           aria-label={t("name")}
+          autoComplete="off"
           className="h-10"
           id={id}
+          maxLength={CHARACTER_TEXT_MAX.name}
           onChange={(event) => onChange({ name: event.target.value })}
           placeholder={t("namePlaceholder")}
           value={row.name}
