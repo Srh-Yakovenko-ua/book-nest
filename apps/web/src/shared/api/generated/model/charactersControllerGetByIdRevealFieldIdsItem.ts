@@ -10,11 +10,13 @@ export type CharactersControllerGetByIdRevealFieldIdsItem =
   (typeof CharactersControllerGetByIdRevealFieldIdsItem)[keyof typeof CharactersControllerGetByIdRevealFieldIdsItem];
 
 export const CharactersControllerGetByIdRevealFieldIdsItem = {
+  aliases: "aliases",
   appearanceNotes: "appearanceNotes",
   description: "description",
   displayName: "displayName",
   personalImpression: "personalImpression",
   portrait: "portrait",
+  roles: "roles",
   speciesOverride: "speciesOverride",
   status: "status",
 } as const;

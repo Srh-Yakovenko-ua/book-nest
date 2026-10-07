@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import type { BookCharacterView, CharacterDetailsView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -42,6 +43,7 @@ const character = makeCharacterDetails({
 const fetchMock = vi.fn();
 
 let bookPatchStatus: number;
+let servedCharacter: CharacterDetailsView;
 
 function bookPatchBody() {
   return patchBody((url) => url.includes("/api/books/"));
@@ -83,22 +85,23 @@ function renderEdit(search = "bookId=book-1") {
 
 beforeEach(() => {
   bookPatchStatus = 200;
+  servedCharacter = character;
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "GET" && url.includes("/api/characters/char-1")) {
-      return Promise.resolve(jsonResponse(character));
+      return Promise.resolve(jsonResponse(servedCharacter));
     }
     if (method === "PATCH" && url.includes("/api/books/")) {
       return Promise.resolve(
         bookPatchStatus === 200
-          ? jsonResponse(character)
+          ? jsonResponse(servedCharacter)
           : jsonResponse({ message: "boom" }, bookPatchStatus),
       );
     }
-    if (method === "PATCH") return Promise.resolve(jsonResponse(character));
+    if (method === "PATCH") return Promise.resolve(jsonResponse(servedCharacter));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -403,5 +406,131 @@ describe("CharacterEditPage spoilers", () => {
 
     expect(screen.getAllByRole("switch")).toHaveLength(9);
     expect(screen.queryByRole("switch", { name: "Перша поява" })).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage spoiler collections round trip", () => {
+  const roles: BookCharacterView["roles"] = [
+    { customRole: null, id: "role-plain", isSpoiler: false, position: 0, roleType: "protagonist" },
+    {
+      customRole: null,
+      id: "role-spoiler",
+      isSpoiler: true,
+      position: 1,
+      roleType: "love_interest",
+    },
+  ];
+
+  const aliases: CharacterDetailsView["aliases"] = [
+    {
+      bookId: null,
+      id: "alias-global",
+      isSpoiler: true,
+      name: "Білий Вовк",
+      position: 0,
+      type: "title",
+    },
+    {
+      bookId: "book-1",
+      id: "alias-book",
+      isSpoiler: true,
+      name: "Різник із Блавікену",
+      position: 0,
+      type: "title",
+    },
+  ];
+
+  function serveWithHiddenFields({
+    appearanceHiddenFields,
+    characterHiddenFields,
+  }: {
+    appearanceHiddenFields: string[];
+    characterHiddenFields: string[];
+  }) {
+    const isRolesMasked = appearanceHiddenFields.includes("roles");
+    const isAliasesMasked = characterHiddenFields.includes("aliases");
+
+    servedCharacter = makeCharacterDetails({
+      aliases: isAliasesMasked ? [] : aliases,
+      appearances: [
+        makeBookCharacterView({
+          bookId: "book-1",
+          description: "Опис у книзі",
+          hiddenFields: appearanceHiddenFields,
+          importance: "central",
+          roles: isRolesMasked ? [] : roles,
+          speciesOverride: "Мутант",
+          status: "active",
+        }),
+      ],
+      gender: "male",
+      hiddenFields: characterHiddenFields,
+      name: "Ґеральт",
+      species: "Відьмак",
+    });
+  }
+
+  it("sends the revealed spoiler role back untouched when another book field changes", async () => {
+    serveWithHiddenFields({ appearanceHiddenFields: [], characterHiddenFields: [] });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: "Дані в цій книзі" }), " ще трохи");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("roles", [
+      { customRole: null, isSpoiler: false, position: 0, roleType: "protagonist" },
+      { customRole: null, isSpoiler: true, position: 1, roleType: "love_interest" },
+    ]);
+  });
+
+  it("sends the revealed spoiler alias of the book back untouched when another book field changes", async () => {
+    serveWithHiddenFields({ appearanceHiddenFields: [], characterHiddenFields: [] });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: "Дані в цій книзі" }), " ще трохи");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("aliases", [
+      { isSpoiler: true, name: "Різник із Блавікену", position: 0, type: "title" },
+    ]);
+  });
+
+  it("sends no roles and no aliases for the book while the server masks them", async () => {
+    serveWithHiddenFields({
+      appearanceHiddenFields: ["roles"],
+      characterHiddenFields: ["aliases"],
+    });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: "Дані в цій книзі" }), " ще трохи");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    const body = bookPatchBody();
+    expect(body).not.toHaveProperty("roles");
+    expect(body).not.toHaveProperty("aliases");
+    expect(body).toHaveProperty("description", "Опис у книзі ще трохи");
+  });
+
+  it("sends no aliases for the character while the server masks them", async () => {
+    serveWithHiddenFields({
+      appearanceHiddenFields: ["roles"],
+      characterHiddenFields: ["aliases"],
+    });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    const body = globalPatchBody();
+    expect(body).not.toHaveProperty("aliases");
+    expect(body).toHaveProperty("name", "Ґеральт із Рівії");
   });
 });

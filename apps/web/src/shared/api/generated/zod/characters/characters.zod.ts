@@ -2748,11 +2748,13 @@ export const CharactersControllerGetByIdQueryParams = zod.object({
   revealFieldIds: zod
     .array(
       zod.enum([
+        "aliases",
         "appearanceNotes",
         "description",
         "displayName",
         "personalImpression",
         "portrait",
+        "roles",
         "speciesOverride",
         "status",
       ]),

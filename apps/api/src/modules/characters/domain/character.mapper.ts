@@ -234,14 +234,21 @@ export function toCharacterDetailsView({
   appearances,
   avatar,
   character,
+  characterHiddenFields = [],
   forms,
 }: {
   appearances: BookCharacterView[];
   avatar: Nullable<MediaView>;
   character: CharacterSource;
+  characterHiddenFields?: readonly string[];
   forms: CharacterFormView[];
 }): CharacterDetailsView {
-  const hiddenFields = [...new Set(appearances.flatMap((appearance) => appearance.hiddenFields))];
+  const hiddenFields = [
+    ...new Set([
+      ...characterHiddenFields,
+      ...appearances.flatMap((appearance) => appearance.hiddenFields),
+    ]),
+  ];
   hiddenFields.sort((left, right) => left.localeCompare(right));
 
   return {
@@ -429,6 +436,10 @@ export function toMaskedBookCharacterView({
     appearance.personalImpressionIsSpoiler,
   );
   const showPortrait = isVisible("portrait", appearance.portraitIsSpoiler);
+  const showSpoilerRoles = isVisible(
+    "roles",
+    appearance.roles.some((role) => role.isSpoiler),
+  );
   const showSpeciesOverride = isVisible("speciesOverride", appearance.speciesOverrideIsSpoiler);
   const showStatus = isVisible("status", appearance.statusIsSpoiler);
 
@@ -462,7 +473,10 @@ export function toMaskedBookCharacterView({
     personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
     portrait: showPortrait ? portrait : null,
     portraitIsSpoiler: appearance.portraitIsSpoiler,
-    roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
+    roles: (showSpoilerRoles
+      ? appearance.roles
+      : appearance.roles.filter((role) => !role.isSpoiler)
+    ).map((role) => toRoleView(role)),
     sortOrder: appearance.sortOrder,
     speciesOverride: showSpeciesOverride ? emptyToNull(appearance.speciesOverride) : null,
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,

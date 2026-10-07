@@ -56,11 +56,13 @@ export class CharacterViewMapper {
 
   toMaskedDetailsView({
     aliases,
+    hasHiddenAliases,
     revealedFields,
     row,
     visibleAppearances,
   }: {
     aliases: CharacterDetailsRow["aliases"];
+    hasHiddenAliases: boolean;
     revealedFields: ReadonlySet<CharacterRevealFieldKey>;
     row: CharacterDetailsRow;
     visibleAppearances: CharacterDetailsRow["bookAppearances"];
@@ -71,6 +73,7 @@ export class CharacterViewMapper {
       ),
       avatar: this.mediaViewOf(row.avatarMedia),
       character: { ...row, aliases },
+      characterHiddenFields: hasHiddenAliases ? ["aliases"] : [],
       forms: row.forms.filter((form) => !form.isSpoiler).map((form) => this.mapForm(form)),
     });
   }
