@@ -41,6 +41,7 @@ export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProp
   const listOpen = open && !atLimit;
   const query = normalizeName(search);
   const customName = search.trim();
+  const placeholder = atLimit ? t("atMax") : t("placeholder");
   const selectedTypes = new Set(value.map((role) => role.roleType));
   const standardRoles = BOOK_CHARACTER_ROLE.options
     .filter((roleType) => roleType !== BOOK_CHARACTER_ROLE.custom)
@@ -131,36 +132,47 @@ export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProp
                 onToggleSpoiler={() => toggleSpoilerAt(index)}
               />
             ))}
-            <CommandPrimitive.Input
-              aria-describedby={`${hintId} ${countId}`}
+            <div
               className={cn(
-                "h-7 min-w-[90px] flex-1 border-0 bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-muted-foreground read-only:cursor-not-allowed",
+                "relative h-7 max-w-full min-w-fit flex-1 text-[0.9375rem]",
                 atLimit && "basis-full",
               )}
-              maxLength={limits.customNameMaxLength}
-              onClick={() => setOpen(true)}
-              onFocus={() => setOpen(true)}
-              onKeyDown={handleKeyDown}
-              onValueChange={(next) => {
-                setSearch(next);
-                setOpen(true);
-              }}
-              placeholder={atLimit ? t("atMax") : t("placeholder")}
-              readOnly={atLimit}
-              ref={inputRef}
-              value={search}
-            />
-            {atLimit ? null : (
-              <UiIcon
+            >
+              <span
                 aria-hidden
-                className={cn(
-                  "pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-transform",
-                  listOpen && "rotate-180",
-                )}
-                name="chevron-down"
-                size={16}
+                className="invisible block h-7 overflow-hidden"
+                data-slot="placeholder-sizer"
+              >
+                {placeholder}
+              </span>
+              <CommandPrimitive.Input
+                aria-describedby={`${hintId} ${countId}`}
+                className="absolute inset-0 w-full border-0 bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-muted-foreground read-only:cursor-not-allowed"
+                maxLength={limits.customNameMaxLength}
+                onClick={() => setOpen(true)}
+                onFocus={() => setOpen(true)}
+                onKeyDown={handleKeyDown}
+                onValueChange={(next) => {
+                  setSearch(next);
+                  setOpen(true);
+                }}
+                placeholder={placeholder}
+                readOnly={atLimit}
+                ref={inputRef}
+                value={search}
               />
-            )}
+              {atLimit ? null : (
+                <UiIcon
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 text-muted-foreground transition-transform",
+                    listOpen && "rotate-180",
+                  )}
+                  name="chevron-down"
+                  size={16}
+                />
+              )}
+            </div>
           </div>
         </PopoverAnchor>
         <PopoverContent

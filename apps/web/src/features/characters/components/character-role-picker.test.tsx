@@ -580,6 +580,22 @@ describe("CharacterRolePicker limit", () => {
   });
 });
 
+describe("CharacterRolePicker placeholder", () => {
+  it("mirrors the placeholder in a sizer kept out of the accessibility tree, so the field can wrap instead of clipping it", () => {
+    renderWithProviders(
+      <CharacterRolePicker onChange={vi.fn()} value={[standardRole("protagonist")]} />,
+    );
+
+    expect(screen.getByText("Оберіть роль або введіть свою…")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(rolesCombobox()).toHaveAccessibleDescription(
+      "Стандартні ролі зі списку або власні через Enter, до 5 штук. 1/5",
+    );
+  });
+});
+
 describe("CharacterRolePicker announcements", () => {
   it("politely announces the added role with the new count", async () => {
     renderWithProviders(<RolePickerWithState initialRoles={[standardRole("protagonist")]} />);
