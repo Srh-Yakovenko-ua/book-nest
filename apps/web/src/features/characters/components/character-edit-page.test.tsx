@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import type { MediaView } from "@app/shared";
+import type { CharacterDetailsView, MediaView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -43,6 +43,7 @@ const character = makeCharacterDetails({
 const fetchMock = vi.fn();
 
 let bookPatchStatus: number;
+let servedCharacter: CharacterDetailsView;
 
 function bookPatchBody() {
   return patchBody((url) => url.includes("/api/books/"));
@@ -84,13 +85,14 @@ function renderEdit(search = "bookId=book-1") {
 
 beforeEach(() => {
   bookPatchStatus = 200;
+  servedCharacter = character;
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "GET" && url.includes("/api/characters/char-1")) {
-      return Promise.resolve(jsonResponse(character));
+      return Promise.resolve(jsonResponse(servedCharacter));
     }
     if (method === "PATCH" && url.includes("/api/books/")) {
       return Promise.resolve(
@@ -135,7 +137,7 @@ describe("CharacterEditPage scope orchestration", () => {
     renderEdit();
 
     await screen.findByDisplayValue("Опис у книзі");
-    await userEvent.type(screen.getByRole("textbox", { name: "Дані в цій книзі" }), " ще трохи");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -148,7 +150,7 @@ describe("CharacterEditPage scope orchestration", () => {
 
     await screen.findByDisplayValue("Ґеральт");
     await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
-    await userEvent.type(screen.getByRole("textbox", { name: "Дані в цій книзі" }), " ще трохи");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -161,11 +163,11 @@ describe("CharacterEditPage scope orchestration", () => {
 
     await screen.findByDisplayValue("Ґеральт");
     await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
-    await userEvent.type(screen.getByRole("textbox", { name: "Дані в цій книзі" }), " ще трохи");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(patchCount()).toBe(2));
-    expect(screen.getByRole("textbox", { name: "Дані в цій книзі" })).toHaveValue(
+    expect(screen.getByRole("textbox", { name: /^Дані в цій книзі/ })).toHaveValue(
       "Опис у книзі ще трохи",
     );
     expect(push).not.toHaveBeenCalled();
@@ -343,7 +345,7 @@ describe("CharacterEditPage narrative metadata", () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(screen.getByRole("textbox", { name: "Сторінка" }), "сорок");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Сторінка/ }), "сорок");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     expect(await screen.findByText("Вкажіть номер сторінки числом")).toBeInTheDocument();
@@ -354,7 +356,7 @@ describe("CharacterEditPage narrative metadata", () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(screen.getByRole("textbox", { name: "Розділ" }), "Пролог");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Розділ/ }), "Пролог");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -661,5 +663,193 @@ describe("CharacterEditPage preview card", () => {
     expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
     expect(within(previewRegion()).queryByRole("link")).not.toBeInTheDocument();
     expect(within(previewRegion()).queryByRole("button")).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage field requirements", () => {
+  it("marks the name as required for assistive technology", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("textbox", { name: "Ім’я" })).toHaveAttribute("aria-required", "true");
+  });
+
+  it("refuses an emptied name and links the error to the field", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const name = screen.getByRole("textbox", { name: "Ім’я" });
+    expect(name).toHaveAttribute("aria-invalid", "false");
+
+    await userEvent.clear(name);
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    expect(await screen.findByText("Вкажіть ім'я")).toBeInTheDocument();
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(name).toHaveAccessibleDescription("Вкажіть ім'я");
+    expect(patchCount()).toBe(0);
+  });
+
+  it("marks the optional text fields as optional in their accessible names", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "Коротко про персонажа (необов’язково)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the optional marker off the required name and the selects", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("textbox", { name: "Ім’я" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Важливість" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Гендер" })).toBeInTheDocument();
+  });
+
+  it("suggests an example in each text field", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("textbox", { name: "Ім’я" })).toHaveAttribute(
+      "placeholder",
+      "Наприклад, Ґеральт із Рівії",
+    );
+    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toHaveAttribute(
+      "placeholder",
+      "Наприклад, ельф",
+    );
+    expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
+      "placeholder",
+      "Наприклад, він/його",
+    );
+    expect(
+      screen.getByRole("textbox", { name: "Коротко про персонажа (необов’язково)" }),
+    ).toHaveAttribute("placeholder", "Хто цей персонаж поза межами окремої книги…");
+  });
+
+  it("caps each text field at its own length", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getByRole("textbox", { name: "Ім’я" })).toHaveAttribute("maxlength", "200");
+    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toHaveAttribute(
+      "maxlength",
+      "120",
+    );
+    expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
+      "maxlength",
+      "60",
+    );
+    expect(
+      screen.getByRole("textbox", { name: "Коротко про персонажа (необов’язково)" }),
+    ).toHaveAttribute("maxlength", "5000");
+  });
+
+  it("describes a long-text field with a live character count", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const description = screen.getByRole("textbox", { name: "Дані в цій книзі (необов’язково)" });
+    expect(description).toHaveAccessibleDescription("12/5000");
+
+    await userEvent.type(description, " ще трохи");
+
+    expect(description).toHaveAccessibleDescription("21/5000");
+  });
+
+  it("names the roles picker once, with a visible caption that is neither a label nor announced", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(screen.getAllByRole("combobox", { name: "Ролі" })).toHaveLength(1);
+    expect(screen.getByText("Ролі", { ignore: "label, script, style" })).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  });
+});
+
+describe("CharacterEditPage text over the limit", () => {
+  async function saveAfterRenamingTheCharacter() {
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: "Ім’я" }), " із Рівії");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+  }
+
+  it("refuses a saved global description longer than 5000 characters", async () => {
+    servedCharacter = { ...character, neutralDescription: "а".repeat(5001) };
+    renderEdit();
+
+    await saveAfterRenamingTheCharacter();
+
+    expect(await screen.findByText("Текст задовгий (макс. 5000)")).toBeInTheDocument();
+    const description = screen.getByRole("textbox", {
+      name: "Коротко про персонажа (необов’язково)",
+    });
+    expect(description).toHaveAttribute("aria-invalid", "true");
+    expect(description).toHaveAccessibleDescription(/^Текст задовгий \(макс\. 5000\)/);
+    expect(patchCount()).toBe(0);
+  });
+
+  it("refuses a saved species longer than 120 characters", async () => {
+    servedCharacter = { ...character, species: "е".repeat(121) };
+    renderEdit();
+
+    await saveAfterRenamingTheCharacter();
+
+    expect(await screen.findByText("Текст задовгий (макс. 120)")).toBeInTheDocument();
+    const species = screen.getByRole("textbox", { name: "Вид (необов’язково)" });
+    expect(species).toHaveAttribute("aria-invalid", "true");
+    expect(species).toHaveAccessibleDescription("Текст задовгий (макс. 120)");
+    expect(patchCount()).toBe(0);
+  });
+
+  it("shows the error inside an overridden book field that is too long", async () => {
+    servedCharacter = {
+      ...character,
+      appearances: character.appearances.map((appearance) => ({
+        ...appearance,
+        speciesOverride: "м".repeat(201),
+      })),
+    };
+    renderEdit();
+
+    await saveAfterRenamingTheCharacter();
+
+    const speciesInBook = inheritedField("Вид у цій книзі");
+    expect(
+      await within(speciesInBook).findByText("Текст задовгий (макс. 200)"),
+    ).toBeInTheDocument();
+    const input = within(speciesInBook).getByRole("textbox");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("Текст задовгий (макс. 200)");
+    expect(patchCount()).toBe(0);
+  });
+});
+
+describe("CharacterEditPage custom gender", () => {
+  it("requires the custom gender once it is chosen and sends nothing without it", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(screen.getByRole("combobox", { name: "Гендер" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Свій варіант" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    expect(await screen.findByText("Вкажіть свій гендер")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Свій варіант" })).toHaveAccessibleDescription(
+      "Вкажіть свій гендер",
+    );
+    expect(patchCount()).toBe(0);
   });
 });

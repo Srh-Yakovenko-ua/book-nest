@@ -2,7 +2,7 @@
 
 import type { BookCharacterView, CharacterDetailsView, Nullable } from "@app/shared";
 
-import { CHARACTER_NAME_MAX } from "@app/shared";
+import { CHARACTER_TEXT_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
@@ -12,7 +12,6 @@ import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/field-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DiscardConfirmDialog } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
@@ -115,7 +114,8 @@ function CharacterEditForm({
         customGenderRequired: tErrors("customGenderRequired"),
         firstAppearancePageInvalid: t("firstAppearancePageInvalid"),
         nameRequired: tErrors("nameRequired"),
-        nameTooLong: tErrors("nameTooLong", { max: CHARACTER_NAME_MAX }),
+        nameTooLong: tErrors("nameTooLong", { max: CHARACTER_TEXT_MAX.name }),
+        textTooLong: (max) => tErrors("textTooLong", { max }),
       }),
     ),
   });
@@ -216,30 +216,21 @@ function CharacterEditForm({
 
       <div className="flex min-w-0 flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:col-start-1 lg:row-start-1">
         {contextBookId === null ? null : (
-          <BookCharacterMainSection control={control} register={register} />
+          <BookCharacterMainSection control={control} errors={errors} register={register} />
         )}
 
         {contextBookId === null ? null : (
-          <BookCharacterNarrativeSection
+          <BookCharacterNarrativeSection control={control} errors={errors} register={register} />
+        )}
+
+        <CharacterGlobalSection control={control} errors={errors} register={register} />
+
+        {contextBookId === null ? null : (
+          <BookCharacterInheritanceSection
             control={control}
-            pageError={
-              <FieldError
-                error={errors.book?.firstAppearancePage}
-                id="character-first-page-error"
-              />
-            }
-            register={register}
+            errors={errors}
+            maskedFields={maskedFields}
           />
-        )}
-
-        <CharacterGlobalSection
-          control={control}
-          nameError={<FieldError error={errors.global?.name} id="character-name-error" />}
-          register={register}
-        />
-
-        {contextBookId === null ? null : (
-          <BookCharacterInheritanceSection control={control} maskedFields={maskedFields} />
         )}
 
         <CharacterAliasesSection
