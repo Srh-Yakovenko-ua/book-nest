@@ -3,13 +3,7 @@ import type { CharacterRevealFieldKey } from "@app/shared";
 import { CharacterRevealFieldKeySchema } from "@app/shared";
 
 export const ALL_REVEAL_FIELD_KEYS: CharacterRevealFieldKey[] = [
-  "appearanceNotes",
-  "description",
-  "displayName",
-  "personalImpression",
-  "portrait",
-  "speciesOverride",
-  "status",
+  ...CharacterRevealFieldKeySchema.options,
 ];
 
 export function addRevealKey(

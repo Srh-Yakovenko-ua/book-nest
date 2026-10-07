@@ -1,4 +1,5 @@
 import type {
+  BookCharacterView,
   CharacterDetailsView,
   Nullable,
   UpdateBookCharacter,
@@ -157,7 +158,10 @@ export function isScopeDirty({
   scope: CharacterEditScope;
 }): boolean {
   if (scope === "global") {
-    return !isSamePayload(toGlobalUpdate(baseline.global), toGlobalUpdate(current.global));
+    return !isSamePayload(
+      toGlobalUpdate(baseline.global, maskedFields),
+      toGlobalUpdate(current.global, maskedFields),
+    );
   }
   return !isSamePayload(
     toBookUpdate(baseline.book, maskedFields),
@@ -165,21 +169,40 @@ export function isScopeDirty({
   );
 }
 
+export function maskedEditFields({
+  appearance,
+  character,
+}: {
+  appearance: BookCharacterView | undefined;
+  character: CharacterDetailsView;
+}): string[] {
+  return [
+    ...(appearance?.hiddenFields ?? []),
+    ...(character.hiddenFields.includes("aliases") ? ["aliases"] : []),
+  ];
+}
+
 export function toBookUpdate(
   values: CharacterEditValues["book"],
   maskedFields: readonly string[] = [],
 ): UpdateBookCharacter {
-  const inherited = {
+  const maskable = {
+    aliases: toAliasPayload(values.aliases),
     attitude: values.attitude,
     displayName: values.displayName === null ? null : textOrNull(values.displayName),
     portraitMediaId: values.portraitMediaId,
+    roles: values.roles.map((role, index) => ({
+      customRole: role.roleType === BOOK_CHARACTER_ROLE.custom ? textOrNull(role.customRole) : null,
+      isSpoiler: role.isSpoiler,
+      position: index,
+      roleType: role.roleType,
+    })),
     speciesOverride: values.speciesOverride === null ? null : textOrNull(values.speciesOverride),
   };
 
   const page = parseFirstAppearancePage(values.firstAppearancePage);
 
   return {
-    aliases: toAliasPayload(values.aliases),
     appearanceNotes: textOrNull(values.appearanceNotes),
     appearanceNotesIsSpoiler: values.appearanceNotesIsSpoiler,
     description: textOrNull(values.description),
@@ -195,18 +218,12 @@ export function toBookUpdate(
     personalImpression: textOrNull(values.personalImpression),
     personalImpressionIsSpoiler: values.personalImpressionIsSpoiler,
     portraitIsSpoiler: values.portraitIsSpoiler,
-    roles: values.roles.map((role, index) => ({
-      customRole: role.roleType === BOOK_CHARACTER_ROLE.custom ? textOrNull(role.customRole) : null,
-      isSpoiler: role.isSpoiler,
-      position: index,
-      roleType: role.roleType,
-    })),
     speciesOverrideIsSpoiler: values.speciesOverrideIsSpoiler,
     status: values.status,
     statusCustomText:
       values.status === BOOK_CHARACTER_STATUS.custom ? textOrNull(values.statusCustomText) : null,
     statusIsSpoiler: values.statusIsSpoiler,
-    ...withoutMasked(inherited, maskedFields),
+    ...withoutMasked(maskable, maskedFields),
   };
 }
 
@@ -269,9 +286,11 @@ export function toCharacterEditValues(
   };
 }
 
-export function toGlobalUpdate(values: CharacterEditValues["global"]): UpdateCharacter {
+export function toGlobalUpdate(
+  values: CharacterEditValues["global"],
+  maskedFields: readonly string[] = [],
+): UpdateCharacter {
   return {
-    aliases: toAliasPayload(values.aliases),
     customGender: values.gender === "custom" ? textOrNull(values.customGender) : null,
     entityKind: values.entityKind,
     gender: values.gender,
@@ -280,6 +299,7 @@ export function toGlobalUpdate(values: CharacterEditValues["global"]): UpdateCha
     neutralDescription: textOrNull(values.neutralDescription),
     pronouns: textOrNull(values.pronouns),
     species: textOrNull(values.species),
+    ...withoutMasked({ aliases: toAliasPayload(values.aliases) }, maskedFields),
   };
 }
 

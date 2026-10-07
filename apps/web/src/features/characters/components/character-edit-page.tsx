@@ -26,6 +26,7 @@ import { useUpdateCharacter } from "../api/use-update-character";
 import {
   buildCharacterEditSchema,
   isScopeDirty,
+  maskedEditFields,
   toBookUpdate,
   toCharacterEditValues,
   toGlobalUpdate,
@@ -129,8 +130,13 @@ function CharacterEditForm({
 
   const current = useWatch({ control });
   const currentValues = current as CharacterEditValues;
-  const maskedFields = appearance?.hiddenFields ?? [];
-  const globalDirty = isScopeDirty({ baseline, current: currentValues, scope: "global" });
+  const maskedFields = maskedEditFields({ appearance, character });
+  const globalDirty = isScopeDirty({
+    baseline,
+    current: currentValues,
+    maskedFields,
+    scope: "global",
+  });
   const bookDirty =
     contextBookId !== null &&
     isScopeDirty({ baseline, current: currentValues, maskedFields, scope: "book" });
@@ -168,7 +174,7 @@ function CharacterEditForm({
       if (globalDirty) {
         await updateCharacter.mutateAsync({
           characterId: character.id,
-          input: toGlobalUpdate(values.global),
+          input: toGlobalUpdate(values.global, maskedFields),
         });
         setBaseline((previous) => ({ ...previous, global: values.global }));
         savedGlobal = true;

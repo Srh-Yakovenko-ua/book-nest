@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import type { CharacterEditValues } from "./character-edit-form";
+
 import {
   emptyBookScopeValues,
   isScopeDirty,
+  maskedEditFields,
   toBookUpdate,
   toCharacterEditValues,
   toGlobalUpdate,
@@ -190,5 +193,181 @@ describe("point of view", () => {
       isPovCharacter: false,
       narratorType: null,
     });
+  });
+});
+
+const spoilerCharacter = makeCharacterDetails({
+  aliases: [
+    {
+      bookId: null,
+      id: "alias-global-plain",
+      isSpoiler: false,
+      name: "Ґвинблейд",
+      position: 0,
+      type: "nickname",
+    },
+    {
+      bookId: null,
+      id: "alias-global-spoiler",
+      isSpoiler: true,
+      name: "Білий Вовк",
+      position: 1,
+      type: "title",
+    },
+    {
+      bookId: "book-1",
+      id: "alias-book-spoiler",
+      isSpoiler: true,
+      name: "Різник із Блавікену",
+      position: 0,
+      type: "title",
+    },
+  ],
+  appearances: [
+    makeBookCharacterView({
+      bookId: "book-1",
+      roles: [
+        {
+          customRole: null,
+          id: "role-plain",
+          isSpoiler: false,
+          position: 0,
+          roleType: "protagonist",
+        },
+        {
+          customRole: null,
+          id: "role-spoiler",
+          isSpoiler: true,
+          position: 1,
+          roleType: "love_interest",
+        },
+      ],
+      speciesOverride: "Мутант",
+    }),
+  ],
+  name: "Ґеральт",
+});
+
+describe("toCharacterEditValues spoiler collections", () => {
+  it("keeps the spoiler flag of each book role as the server reported it", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+
+    expect(values.book.roles).toEqual([
+      { customRole: "", isSpoiler: false, roleType: "protagonist" },
+      { customRole: "", isSpoiler: true, roleType: "love_interest" },
+    ]);
+  });
+
+  it("keeps the spoiler flag of a global alias", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+
+    expect(values.global.aliases).toEqual([
+      { isSpoiler: false, name: "Ґвинблейд", type: "nickname" },
+      { isSpoiler: true, name: "Білий Вовк", type: "title" },
+    ]);
+  });
+
+  it("keeps the spoiler flag of an alias that belongs to the context book", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+
+    expect(values.book.aliases).toEqual([
+      { isSpoiler: true, name: "Різник із Блавікену", type: "title" },
+    ]);
+  });
+});
+
+describe("toBookUpdate masked collections", () => {
+  it("omits the roles key entirely so a save cannot delete a role it was not shown", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+    const payload = toBookUpdate(values.book, ["roles"]);
+
+    expect(payload).not.toHaveProperty("roles");
+    expect(payload).toHaveProperty("speciesOverride", "Мутант");
+    expect(payload).toHaveProperty("aliases", [
+      { isSpoiler: true, name: "Різник із Блавікену", position: 0, type: "title" },
+    ]);
+  });
+
+  it("omits the aliases key entirely so a save cannot delete an alias it was not shown", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+    const payload = toBookUpdate(values.book, ["aliases"]);
+
+    expect(payload).not.toHaveProperty("aliases");
+    expect(payload).toHaveProperty("roles", [
+      { customRole: null, isSpoiler: false, position: 0, roleType: "protagonist" },
+      { customRole: null, isSpoiler: true, position: 1, roleType: "love_interest" },
+    ]);
+  });
+
+  it("sends both collections while nothing is masked", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+    const payload = toBookUpdate(values.book);
+
+    expect(payload).toHaveProperty("roles");
+    expect(payload).toHaveProperty("aliases");
+  });
+});
+
+describe("toGlobalUpdate masked aliases", () => {
+  it("omits the aliases key when the character hides its aliases", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+
+    expect(toGlobalUpdate(values.global, ["aliases"])).not.toHaveProperty("aliases");
+  });
+
+  it("sends the aliases when nothing is masked", () => {
+    const values = toCharacterEditValues(spoilerCharacter, "book-1");
+
+    expect(toGlobalUpdate(values.global)).toHaveProperty("aliases", [
+      { isSpoiler: false, name: "Ґвинблейд", position: 0, type: "nickname" },
+      { isSpoiler: true, name: "Білий Вовк", position: 1, type: "title" },
+    ]);
+  });
+});
+
+describe("isScopeDirty with masked aliases", () => {
+  it("stays clean in the global scope when only a masked alias differs", () => {
+    const baseline = toCharacterEditValues(spoilerCharacter, "book-1");
+    const current: CharacterEditValues = {
+      ...baseline,
+      global: {
+        ...baseline.global,
+        aliases: [{ isSpoiler: false, name: "Мисливець на монстрів", type: "other" }],
+      },
+    };
+
+    expect(isScopeDirty({ baseline, current, maskedFields: ["aliases"], scope: "global" })).toBe(
+      false,
+    );
+    expect(isScopeDirty({ baseline, current, scope: "global" })).toBe(true);
+  });
+});
+
+describe("maskedEditFields", () => {
+  it("adds aliases to the appearance hidden fields when the character hides its aliases", () => {
+    expect(
+      maskedEditFields({
+        appearance: makeBookCharacterView({ hiddenFields: ["roles"] }),
+        character: makeCharacterDetails({ hiddenFields: ["aliases"] }),
+      }),
+    ).toEqual(["roles", "aliases"]);
+  });
+
+  it("leaves aliases out while the character does not hide them", () => {
+    expect(
+      maskedEditFields({
+        appearance: makeBookCharacterView({ hiddenFields: ["displayName"] }),
+        character: makeCharacterDetails({ hiddenFields: [] }),
+      }),
+    ).toEqual(["displayName"]);
+  });
+
+  it("masks the aliases of a character read without a book context", () => {
+    expect(
+      maskedEditFields({
+        appearance: undefined,
+        character: makeCharacterDetails({ hiddenFields: ["aliases"] }),
+      }),
+    ).toEqual(["aliases"]);
   });
 });

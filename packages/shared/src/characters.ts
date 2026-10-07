@@ -683,11 +683,13 @@ export const SeriesCharacterProfileQuerySchema = ReadingContextQuerySchema.exten
 export type SeriesCharacterProfileQuery = z.infer<typeof SeriesCharacterProfileQuerySchema>;
 
 export const CharacterRevealFieldKeySchema = z.enum([
+  "aliases",
   "appearanceNotes",
   "description",
   "displayName",
   "personalImpression",
   "portrait",
+  "roles",
   "speciesOverride",
   "status",
 ]);
