@@ -11,7 +11,7 @@ import {
   BookCharacterNarratorTypeSchema,
   BookCharacterRoleTypeSchema,
   BookCharacterStatusSchema,
-  CHARACTER_NAME_MAX,
+  CHARACTER_TEXT_MAX,
   CharacterAliasTypeSchema,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
@@ -22,7 +22,7 @@ import { z } from "zod";
 import type { CharacterAliasRow } from "./character-aliases";
 
 import { findAliasConflicts, toAliasPayload, toAliasRows } from "./character-aliases";
-import { BOOK_CHARACTER_STATUS } from "./character-options";
+import { BOOK_CHARACTER_ROLE, BOOK_CHARACTER_STATUS } from "./character-options";
 
 export type CharacterEditMessages = {
   aliasDuplicate: string;
@@ -32,73 +32,38 @@ export type CharacterEditMessages = {
   firstAppearancePageInvalid: string;
   nameRequired: string;
   nameTooLong: string;
+  textTooLong: (max: number) => string;
 };
 
 export type CharacterEditScope = "book" | "global";
 
 export type CharacterEditValues = z.infer<ReturnType<typeof buildCharacterEditSchema>>;
 
+type CappedText = (max: number) => z.ZodString;
+
 const attitudeOrNone = z.union([CharacterAttitudeSchema, z.literal("")]);
 
-const AliasRowSchema = z.object({
-  isSpoiler: z.boolean(),
-  name: z.string(),
-  type: CharacterAliasTypeSchema,
-});
-
-const BookScopeSchema = z.object({
-  aliases: z.array(AliasRowSchema),
-  appearanceNotes: z.string(),
-  appearanceNotesIsSpoiler: z.boolean(),
-  attitude: CharacterAttitudeSchema.nullable(),
-  description: z.string(),
-  descriptionIsSpoiler: z.boolean(),
-  displayName: z.string().nullable(),
-  displayNameIsSpoiler: z.boolean(),
-  firstAppearanceChapter: z.string(),
-  firstAppearanceNote: z.string(),
-  firstAppearancePage: z.string(),
-  hidePresenceAsSpoiler: z.boolean(),
-  importance: BookCharacterImportanceSchema,
-  isPovCharacter: z.boolean(),
-  narratorType: BookCharacterNarratorTypeSchema.nullable(),
-  personalImpression: z.string(),
-  personalImpressionIsSpoiler: z.boolean(),
-  portraitIsSpoiler: z.boolean(),
-  portraitMediaId: z.string().nullable(),
-  roles: z.array(
-    z.object({
-      customRole: z.string(),
-      isSpoiler: z.boolean(),
-      roleType: BookCharacterRoleTypeSchema,
-    }),
-  ),
-  speciesOverride: z.string().nullable(),
-  speciesOverrideIsSpoiler: z.boolean(),
-  status: BookCharacterStatusSchema,
-  statusCustomText: z.string(),
-  statusIsSpoiler: z.boolean(),
-});
-
 export function buildCharacterEditSchema(messages: CharacterEditMessages) {
+  const cappedText: CappedText = (max) => z.string().max(max, { error: messages.textTooLong(max) });
+
   return z
     .object({
-      book: BookScopeSchema,
+      book: bookScopeSchema(cappedText),
       global: z
         .object({
-          aliases: z.array(AliasRowSchema),
+          aliases: z.array(aliasRowSchema(cappedText)),
           attitude: attitudeOrNone,
-          customGender: z.string(),
+          customGender: cappedText(CHARACTER_TEXT_MAX.customGender),
           entityKind: CharacterEntityKindSchema,
           gender: CharacterGenderSchema,
           name: z
             .string()
             .trim()
             .min(1, { error: messages.nameRequired })
-            .max(CHARACTER_NAME_MAX, { error: messages.nameTooLong }),
-          neutralDescription: z.string(),
-          pronouns: z.string(),
-          species: z.string(),
+            .max(CHARACTER_TEXT_MAX.name, { error: messages.nameTooLong }),
+          neutralDescription: cappedText(CHARACTER_TEXT_MAX.longText),
+          pronouns: cappedText(CHARACTER_TEXT_MAX.pronouns),
+          species: cappedText(CHARACTER_TEXT_MAX.species),
         })
         .superRefine((value, ctx) => {
           if (value.gender === "custom" && value.customGender.trim().length === 0) {
@@ -231,7 +196,7 @@ export function toBookUpdate(
     personalImpressionIsSpoiler: values.personalImpressionIsSpoiler,
     portraitIsSpoiler: values.portraitIsSpoiler,
     roles: values.roles.map((role, index) => ({
-      customRole: role.roleType === "custom" ? textOrNull(role.customRole) : null,
+      customRole: role.roleType === BOOK_CHARACTER_ROLE.custom ? textOrNull(role.customRole) : null,
       isSpoiler: role.isSpoiler,
       position: index,
       roleType: role.roleType,
@@ -350,6 +315,50 @@ function addAliasIssues({
       path: [scope, "aliases", index, "name"],
     });
   }
+}
+
+function aliasRowSchema(cappedText: CappedText) {
+  return z.object({
+    isSpoiler: z.boolean(),
+    name: cappedText(CHARACTER_TEXT_MAX.name),
+    type: CharacterAliasTypeSchema,
+  });
+}
+
+function bookScopeSchema(cappedText: CappedText) {
+  return z.object({
+    aliases: z.array(aliasRowSchema(cappedText)),
+    appearanceNotes: cappedText(CHARACTER_TEXT_MAX.longText),
+    appearanceNotesIsSpoiler: z.boolean(),
+    attitude: CharacterAttitudeSchema.nullable(),
+    description: cappedText(CHARACTER_TEXT_MAX.longText),
+    descriptionIsSpoiler: z.boolean(),
+    displayName: cappedText(CHARACTER_TEXT_MAX.shortText).nullable(),
+    displayNameIsSpoiler: z.boolean(),
+    firstAppearanceChapter: cappedText(CHARACTER_TEXT_MAX.shortText),
+    firstAppearanceNote: cappedText(CHARACTER_TEXT_MAX.shortText),
+    firstAppearancePage: z.string(),
+    hidePresenceAsSpoiler: z.boolean(),
+    importance: BookCharacterImportanceSchema,
+    isPovCharacter: z.boolean(),
+    narratorType: BookCharacterNarratorTypeSchema.nullable(),
+    personalImpression: cappedText(CHARACTER_TEXT_MAX.longText),
+    personalImpressionIsSpoiler: z.boolean(),
+    portraitIsSpoiler: z.boolean(),
+    portraitMediaId: z.string().nullable(),
+    roles: z.array(
+      z.object({
+        customRole: z.string(),
+        isSpoiler: z.boolean(),
+        roleType: BookCharacterRoleTypeSchema,
+      }),
+    ),
+    speciesOverride: cappedText(CHARACTER_TEXT_MAX.shortText).nullable(),
+    speciesOverrideIsSpoiler: z.boolean(),
+    status: BookCharacterStatusSchema,
+    statusCustomText: cappedText(CHARACTER_TEXT_MAX.shortText),
+    statusIsSpoiler: z.boolean(),
+  });
 }
 
 function isSamePayload(left: unknown, right: unknown): boolean {

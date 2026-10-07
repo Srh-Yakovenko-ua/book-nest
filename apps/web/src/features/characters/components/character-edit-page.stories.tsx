@@ -1,4 +1,4 @@
-import type { CharacterDetailsView, MediaView } from "@app/shared";
+import type { BookCharacterView, CharacterDetailsView, MediaView } from "@app/shared";
 import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactNode } from "react";
 
@@ -77,6 +77,13 @@ const character = makeCharacterDetails({
   pronouns: "він / його",
   species: "Відьмак",
 });
+
+function characterWithRoles(roles: BookCharacterView["roles"]): CharacterDetailsView {
+  return {
+    ...character,
+    appearances: character.appearances.map((appearance) => ({ ...appearance, roles })),
+  };
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -185,6 +192,58 @@ export const BookContext: Story = {
     await expect(canvas.getByRole("region", { name: "Попередній перегляд" })).toBeVisible();
     await expect(canvas.getByText("Приховано: 2")).toBeVisible();
   },
+};
+
+export const RoleChips: Story = {
+  beforeEach: () => {
+    mockFetch(
+      characterWithRoles([
+        { customRole: null, id: "role-1", isSpoiler: false, position: 0, roleType: "protagonist" },
+        { customRole: null, id: "role-2", isSpoiler: true, position: 1, roleType: "love_interest" },
+        {
+          customRole: "Наставник Цірі",
+          id: "role-3",
+          isSpoiler: false,
+          position: 2,
+          roleType: "custom",
+        },
+      ]),
+    );
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+};
+
+export const RoleChipsAtLimit: Story = {
+  beforeEach: () => {
+    mockFetch(
+      characterWithRoles([
+        { customRole: null, id: "role-1", isSpoiler: false, position: 0, roleType: "protagonist" },
+        {
+          customRole: null,
+          id: "role-2",
+          isSpoiler: false,
+          position: 1,
+          roleType: "deuteragonist",
+        },
+        { customRole: null, id: "role-3", isSpoiler: true, position: 2, roleType: "antagonist" },
+        {
+          customRole: null,
+          id: "role-4",
+          isSpoiler: false,
+          position: 3,
+          roleType: "love_interest",
+        },
+        {
+          customRole: "Відьмак із Рівії",
+          id: "role-5",
+          isSpoiler: false,
+          position: 4,
+          roleType: "custom",
+        },
+      ]),
+    );
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
 };
 
 export const Global: Story = {

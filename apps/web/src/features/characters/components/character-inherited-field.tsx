@@ -2,11 +2,13 @@
 
 import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
+import type { FieldError } from "react-hook-form";
 
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { FieldError as FieldErrorText } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,7 +24,7 @@ type InheritedFieldShellProps = {
   children: ReactNode;
   htmlFor: string;
   isInherited: boolean;
-  label: string;
+  label: ReactNode;
 };
 
 type InheritedSelectFieldProps<T extends string> = {
@@ -37,10 +39,13 @@ type InheritedSelectFieldProps<T extends string> = {
 };
 
 type InheritedTextFieldProps = {
+  error: FieldError | undefined;
   globalValue: Nullable<string>;
   id: string;
   label: string;
+  maxLength: number;
   onChange: (value: null | string) => void;
+  placeholder: string;
   value: Nullable<string>;
 };
 
@@ -91,13 +96,18 @@ export function InheritedSelectField<T extends string>({
 }
 
 export function InheritedTextField({
+  error,
   globalValue,
   id,
   label,
+  maxLength,
   onChange,
+  placeholder,
   value,
 }: InheritedTextFieldProps) {
+  const t = useTranslations("characters.edit");
   const isInherited = value === null;
+  const errorId = `${id}-error`;
 
   return (
     <InheritedFieldShell
@@ -111,17 +121,29 @@ export function InheritedTextField({
       }
       htmlFor={id}
       isInherited={isInherited}
-      label={label}
+      label={
+        <>
+          {label} <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
+        </>
+      }
     >
       {isInherited ? (
         <InheritedTextPreview value={globalValue} />
       ) : (
-        <Input
-          className="h-10"
-          id={id}
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        />
+        <>
+          <Input
+            aria-describedby={error ? errorId : undefined}
+            aria-invalid={error !== undefined}
+            autoComplete="off"
+            className="h-10"
+            id={id}
+            maxLength={maxLength}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            value={value}
+          />
+          <FieldErrorText error={error} id={errorId} />
+        </>
       )}
     </InheritedFieldShell>
   );

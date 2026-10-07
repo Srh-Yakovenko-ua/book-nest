@@ -10,12 +10,15 @@ import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TagViewSchema } from "./tags.js";
 
-export const CHARACTER_NAME_MAX = 200;
-const CHARACTER_SHORT_TEXT_MAX = 200;
-const CHARACTER_SPECIES_MAX = 120;
-const CHARACTER_GENDER_CUSTOM_MAX = 60;
-const CHARACTER_PRONOUNS_MAX = 60;
-const CHARACTER_LONG_TEXT_MAX = 5000;
+export const CHARACTER_TEXT_MAX = {
+  customGender: 60,
+  longText: 5000,
+  name: 200,
+  pronouns: 60,
+  shortText: 200,
+  species: 120,
+} as const;
+
 const CHARACTER_SEARCH_MAX = 100;
 const CHARACTER_ALIASES_MAX = 30;
 const CHARACTER_ROLES_MAX = 20;
@@ -163,13 +166,13 @@ const optionalNonNegativeInt4 = () =>
 const CharacterAliasInputSchema = z.object({
   bookId: z.string().uuid().nullish(),
   isSpoiler: z.boolean().default(false),
-  name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
+  name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name),
   position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
   type: CharacterAliasTypeSchema.default("nickname"),
 });
 
 const BookCharacterRoleInputSchema = z.object({
-  customRole: optionalText(CHARACTER_SHORT_TEXT_MAX),
+  customRole: optionalText(CHARACTER_TEXT_MAX.shortText),
   isSpoiler: z.boolean().default(false),
   position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
   roleType: BookCharacterRoleTypeSchema,
@@ -179,16 +182,16 @@ export const CharacterInputSchema = z
   .object({
     aliases: z.array(CharacterAliasInputSchema).max(CHARACTER_ALIASES_MAX).default([]),
     avatarMediaId: z.string().uuid().nullish(),
-    customGender: optionalText(CHARACTER_GENDER_CUSTOM_MAX),
+    customGender: optionalText(CHARACTER_TEXT_MAX.customGender),
     entityKind: CharacterEntityKindSchema.default("individual"),
     gender: CharacterGenderSchema.default("unknown"),
     globalAttitude: CharacterAttitudeSchema.nullish(),
     hideProfileAsSpoiler: z.boolean().default(false),
     isFavorite: z.boolean().default(false),
-    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
-    neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
-    pronouns: optionalText(CHARACTER_PRONOUNS_MAX),
-    species: optionalText(CHARACTER_SPECIES_MAX),
+    name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name),
+    neutralDescription: optionalText(CHARACTER_TEXT_MAX.longText),
+    pronouns: optionalText(CHARACTER_TEXT_MAX.pronouns),
+    species: optionalText(CHARACTER_TEXT_MAX.species),
   })
   .superRefine((value, ctx) => {
     if (value.gender === "custom" && (value.customGender ?? "").trim().length === 0) {
@@ -203,31 +206,31 @@ export const CharacterInputSchema = z
 export type CharacterInput = z.infer<typeof CharacterInputSchema>;
 
 export const BookCharacterProfileInputSchema = z.object({
-  appearanceNotes: optionalText(CHARACTER_LONG_TEXT_MAX),
+  appearanceNotes: optionalText(CHARACTER_TEXT_MAX.longText),
   appearanceNotesIsSpoiler: z.boolean().default(false),
   attitude: CharacterAttitudeSchema.nullish(),
-  description: optionalText(CHARACTER_LONG_TEXT_MAX),
+  description: optionalText(CHARACTER_TEXT_MAX.longText),
   descriptionIsSpoiler: z.boolean().default(false),
-  displayName: optionalText(CHARACTER_SHORT_TEXT_MAX),
+  displayName: optionalText(CHARACTER_TEXT_MAX.shortText),
   displayNameIsSpoiler: z.boolean().default(false),
   firstAppearanceAudioSeconds: optionalNonNegativeInt4(),
-  firstAppearanceChapter: optionalText(CHARACTER_SHORT_TEXT_MAX),
-  firstAppearanceNote: optionalText(CHARACTER_SHORT_TEXT_MAX),
+  firstAppearanceChapter: optionalText(CHARACTER_TEXT_MAX.shortText),
+  firstAppearanceNote: optionalText(CHARACTER_TEXT_MAX.shortText),
   firstAppearancePage: optionalInt4(),
   hidePresenceAsSpoiler: z.boolean().default(false),
   importance: BookCharacterImportanceSchema.default(BOOK_CHARACTER_UNSPECIFIED.importance),
   isPovCharacter: z.boolean().default(false),
   narratorType: BookCharacterNarratorTypeSchema.nullish(),
-  personalImpression: optionalText(CHARACTER_LONG_TEXT_MAX),
+  personalImpression: optionalText(CHARACTER_TEXT_MAX.longText),
   personalImpressionIsSpoiler: z.boolean().default(false),
   portraitIsSpoiler: z.boolean().default(false),
   portraitMediaId: z.string().uuid().nullish(),
   roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).default([]),
   sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
-  speciesOverride: optionalText(CHARACTER_SHORT_TEXT_MAX),
+  speciesOverride: optionalText(CHARACTER_TEXT_MAX.shortText),
   speciesOverrideIsSpoiler: z.boolean().default(false),
   status: BookCharacterStatusSchema.default(BOOK_CHARACTER_UNSPECIFIED.status),
-  statusCustomText: optionalText(CHARACTER_SHORT_TEXT_MAX),
+  statusCustomText: optionalText(CHARACTER_TEXT_MAX.shortText),
   statusIsSpoiler: z.boolean().default(false),
 });
 
@@ -263,7 +266,7 @@ export type CreateCharacterInBook = z.infer<typeof CreateCharacterInBookSchema>;
 const CharacterAliasReplaceInputSchema = z
   .object({
     isSpoiler: z.boolean().default(false),
-    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
+    name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name),
     position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
     type: CharacterAliasTypeSchema.default("nickname"),
   })
@@ -273,16 +276,16 @@ export const UpdateCharacterSchema = z
   .object({
     aliases: z.array(CharacterAliasReplaceInputSchema).max(CHARACTER_ALIASES_MAX).optional(),
     avatarMediaId: z.string().uuid().nullish(),
-    customGender: optionalText(CHARACTER_GENDER_CUSTOM_MAX),
+    customGender: optionalText(CHARACTER_TEXT_MAX.customGender),
     entityKind: CharacterEntityKindSchema.optional(),
     gender: CharacterGenderSchema.optional(),
     globalAttitude: CharacterAttitudeSchema.nullish(),
     hideProfileAsSpoiler: z.boolean().optional(),
     isFavorite: z.boolean().optional(),
-    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
-    neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
-    pronouns: optionalText(CHARACTER_PRONOUNS_MAX),
-    species: optionalText(CHARACTER_SPECIES_MAX),
+    name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name).optional(),
+    neutralDescription: optionalText(CHARACTER_TEXT_MAX.longText),
+    pronouns: optionalText(CHARACTER_TEXT_MAX.pronouns),
+    species: optionalText(CHARACTER_TEXT_MAX.species),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -300,31 +303,31 @@ export type UpdateCharacter = z.infer<typeof UpdateCharacterSchema>;
 export const UpdateBookCharacterSchema = z
   .object({
     aliases: z.array(CharacterAliasReplaceInputSchema).max(CHARACTER_ALIASES_MAX).optional(),
-    appearanceNotes: optionalText(CHARACTER_LONG_TEXT_MAX),
+    appearanceNotes: optionalText(CHARACTER_TEXT_MAX.longText),
     appearanceNotesIsSpoiler: z.boolean().optional(),
     attitude: CharacterAttitudeSchema.nullish(),
-    description: optionalText(CHARACTER_LONG_TEXT_MAX),
+    description: optionalText(CHARACTER_TEXT_MAX.longText),
     descriptionIsSpoiler: z.boolean().optional(),
-    displayName: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    displayName: optionalText(CHARACTER_TEXT_MAX.shortText),
     displayNameIsSpoiler: z.boolean().optional(),
     firstAppearanceAudioSeconds: optionalNonNegativeInt4(),
-    firstAppearanceChapter: optionalText(CHARACTER_SHORT_TEXT_MAX),
-    firstAppearanceNote: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    firstAppearanceChapter: optionalText(CHARACTER_TEXT_MAX.shortText),
+    firstAppearanceNote: optionalText(CHARACTER_TEXT_MAX.shortText),
     firstAppearancePage: optionalInt4(),
     hidePresenceAsSpoiler: z.boolean().optional(),
     importance: BookCharacterImportanceSchema.optional(),
     isPovCharacter: z.boolean().optional(),
     narratorType: BookCharacterNarratorTypeSchema.nullish(),
-    personalImpression: optionalText(CHARACTER_LONG_TEXT_MAX),
+    personalImpression: optionalText(CHARACTER_TEXT_MAX.longText),
     personalImpressionIsSpoiler: z.boolean().optional(),
     portraitIsSpoiler: z.boolean().optional(),
     portraitMediaId: z.string().uuid().nullish(),
     roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).optional(),
     sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
-    speciesOverride: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    speciesOverride: optionalText(CHARACTER_TEXT_MAX.shortText),
     speciesOverrideIsSpoiler: z.boolean().optional(),
     status: BookCharacterStatusSchema.optional(),
-    statusCustomText: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    statusCustomText: optionalText(CHARACTER_TEXT_MAX.shortText),
     statusIsSpoiler: z.boolean().optional(),
     tagIds: z.array(z.string().uuid()).max(CHARACTER_TAGS_MAX).optional(),
   })
@@ -334,10 +337,10 @@ export type UpdateBookCharacter = z.infer<typeof UpdateBookCharacterSchema>;
 
 export const CreateCharacterFormSchema = z
   .object({
-    description: optionalText(CHARACTER_LONG_TEXT_MAX),
+    description: optionalText(CHARACTER_TEXT_MAX.longText),
     formType: CharacterFormTypeSchema.default("other"),
     isSpoiler: z.boolean().default(false),
-    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
+    name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name),
     portraitMediaId: z.string().uuid().nullish(),
     position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
   })
@@ -347,10 +350,10 @@ export type CreateCharacterForm = z.infer<typeof CreateCharacterFormSchema>;
 
 export const UpdateCharacterFormSchema = z
   .object({
-    description: optionalText(CHARACTER_LONG_TEXT_MAX),
+    description: optionalText(CHARACTER_TEXT_MAX.longText),
     formType: CharacterFormTypeSchema.optional(),
     isSpoiler: z.boolean().optional(),
-    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
+    name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name).optional(),
     portraitMediaId: z.string().uuid().nullish(),
     position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
   })
@@ -605,7 +608,7 @@ export const CharactersListQuerySchema = z.object({
   role: queryStringArray(BookCharacterRoleTypeSchema),
   seriesId: z.string().uuid().optional(),
   sort: CharacterListSortSchema.default("name"),
-  species: queryStringArray(z.string().trim().min(1).max(CHARACTER_SPECIES_MAX)),
+  species: queryStringArray(z.string().trim().min(1).max(CHARACTER_TEXT_MAX.species)),
   tagId: queryStringArray(z.string().uuid()),
 });
 
@@ -638,9 +641,9 @@ export const CharacterOverviewViewSchema = z.object({
 export type CharacterOverviewView = z.infer<typeof CharacterOverviewViewSchema>;
 
 export const CharacterDuplicateCandidatesQuerySchema = z.object({
-  aliases: queryStringArray(z.string().trim().min(1).max(CHARACTER_NAME_MAX)),
+  aliases: queryStringArray(z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name)),
   characterId: z.string().uuid().optional(),
-  name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
+  name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name).optional(),
   seriesId: z.string().uuid().optional(),
 });
 

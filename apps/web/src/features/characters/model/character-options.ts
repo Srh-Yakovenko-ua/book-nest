@@ -11,7 +11,7 @@ import type {
 } from "@app/shared";
 import type { VariantProps } from "class-variance-authority";
 
-import { BOOK_CHARACTER_UNSPECIFIED } from "@app/shared";
+import { BOOK_CHARACTER_UNSPECIFIED, CHARACTER_TEXT_MAX } from "@app/shared";
 
 import { badgeVariants } from "@/components/ui/badge";
 
@@ -71,16 +71,27 @@ export function explicitStatus(status: Nullable<BookCharacterStatus>): Nullable<
   return status === null || status === BOOK_CHARACTER_UNSPECIFIED.status ? null : status;
 }
 
-export const ROLE_TYPE_OPTIONS = [
-  "protagonist",
-  "deuteragonist",
-  "antagonist",
-  "love_interest",
-  "supporting",
-  "episodic",
-  "mentioned",
-  "custom",
-] as const satisfies readonly BookCharacterRoleType[];
+export const BOOK_CHARACTER_ROLE = {
+  custom: "custom",
+  limits: {
+    customNameMaxLength: CHARACTER_TEXT_MAX.shortText,
+    perBook: 5,
+  },
+  options: [
+    "protagonist",
+    "deuteragonist",
+    "antagonist",
+    "love_interest",
+    "supporting",
+    "episodic",
+    "mentioned",
+    "custom",
+  ],
+} as const satisfies {
+  custom: BookCharacterRoleType;
+  limits: { customNameMaxLength: number; perBook: number };
+  options: readonly BookCharacterRoleType[];
+};
 
 export const GENDER_OPTIONS = [
   "female",
@@ -126,4 +137,3 @@ export const NARRATOR_TYPE_OPTIONS = [
 ] as const satisfies readonly BookCharacterNarratorType[];
 
 export const GENDER_CUSTOM = "custom" satisfies CharacterGender;
-export const ROLE_TYPE_CUSTOM = "custom" satisfies BookCharacterRoleType;
