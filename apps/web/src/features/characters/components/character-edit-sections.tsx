@@ -3,10 +3,10 @@
 import type { ReactNode } from "react";
 import type { Control, FieldError, FieldErrors, UseFormRegister } from "react-hook-form";
 
-import { CHARACTER_TEXT_MAX } from "@app/shared";
+import { BOOK_CHARACTER_UNSPECIFIED, CHARACTER_TEXT_MAX } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { Fragment, useId } from "react";
-import { Controller, useWatch } from "react-hook-form";
+import { Controller, useController, useWatch } from "react-hook-form";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { ActionRow } from "@/components/ui/action-row";
@@ -39,6 +39,7 @@ import {
   NARRATOR_TYPE_OPTIONS,
 } from "../model/character-options";
 import { CharacterAliasGroup } from "./character-alias-group";
+import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
 import { InheritedSelectField, InheritedTextField } from "./character-inherited-field";
 import { CharacterLongTextField } from "./character-long-text-field";
 import { CharacterRolePicker } from "./character-role-picker";
@@ -173,7 +174,9 @@ export function BookCharacterMainSection({
   const tStatus = useTranslations("characters.status");
   const tRoles = useTranslations("characters.form");
 
-  const status = useWatch({ control, name: "book.status" });
+  const status = useController({ control, name: "book.status" });
+  const statusCustomText = useController({ control, name: "book.statusCustomText" });
+  const statusError = errors.book?.statusCustomText;
 
   return (
     <EditSection
@@ -207,60 +210,32 @@ export function BookCharacterMainSection({
           )}
         />
 
-        <Controller
-          control={control}
-          name="book.status"
-          render={({ field }) => (
-            <LabeledField htmlFor="character-status" label={t("status")}>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger className="w-full data-[size=default]:h-10" id="character-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BOOK_CHARACTER_STATUS.options.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {tStatus(option)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </LabeledField>
-          )}
-        />
+        <div className="flex flex-col gap-2">
+          <PickerCaption label={t("status")} />
+          <CharacterCreatableSingleSelect
+            clearTo={BOOK_CHARACTER_UNSPECIFIED.status}
+            customText={statusCustomText.field.value}
+            describedBy={statusError ? "character-status-error" : undefined}
+            invalid={statusError !== undefined}
+            label={t("status")}
+            maxLength={CHARACTER_TEXT_MAX.shortText}
+            onBlur={statusCustomText.field.onBlur}
+            onChange={(choice) => {
+              status.field.onChange(choice.option);
+              statusCustomText.field.onChange(choice.customText);
+            }}
+            optionLabel={(option) => tStatus(option)}
+            options={BOOK_CHARACTER_STATUS.options}
+            ref={(element) => statusCustomText.field.ref(element)}
+            sentinel={BOOK_CHARACTER_STATUS.custom}
+            value={status.field.value}
+          />
+          <FieldErrorText error={statusError} id="character-status-error" />
+        </div>
       </div>
 
-      {status === BOOK_CHARACTER_STATUS.custom ? (
-        <LabeledField
-          htmlFor="character-status-custom"
-          label={t("statusCustom")}
-          requirement="optional"
-        >
-          <Input
-            aria-describedby={
-              errors.book?.statusCustomText ? "character-status-custom-error" : undefined
-            }
-            aria-invalid={errors.book?.statusCustomText !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="character-status-custom"
-            maxLength={CHARACTER_TEXT_MAX.shortText}
-            placeholder={t("statusCustomPlaceholder")}
-            {...register("book.statusCustomText")}
-          />
-          <FieldErrorText
-            error={errors.book?.statusCustomText}
-            id="character-status-custom-error"
-          />
-        </LabeledField>
-      ) : null}
-
       <div className="flex flex-col gap-2">
-        <span
-          aria-hidden
-          className="flex items-center gap-2 text-sm leading-none font-medium select-none"
-        >
-          {tRoles("roles")}
-        </span>
+        <PickerCaption label={tRoles("roles")} />
         <Controller
           control={control}
           name="book.roles"
@@ -630,7 +605,9 @@ export function CharacterGlobalSection({
   const tAttitude = useTranslations("characters.attitude");
   const tCommon = useTranslations("common");
 
-  const gender = useWatch({ control, name: "global.gender" });
+  const gender = useController({ control, name: "global.gender" });
+  const customGender = useController({ control, name: "global.customGender" });
+  const genderError = errors.global?.customGender;
 
   return (
     <EditSection
@@ -679,50 +656,29 @@ export function CharacterGlobalSection({
           )}
         />
 
-        <Controller
-          control={control}
-          name="global.gender"
-          render={({ field }) => (
-            <LabeledField htmlFor="character-gender" label={t("gender")}>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger className="w-full data-[size=default]:h-10" id="character-gender">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENDER_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {tGender(option)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </LabeledField>
-          )}
-        />
-      </div>
-
-      {gender === GENDER_CUSTOM ? (
-        <LabeledField
-          htmlFor="character-custom-gender"
-          label={t("customGender")}
-          requirement="required"
-        >
-          <Input
-            aria-describedby={
-              errors.global?.customGender ? "character-custom-gender-error" : undefined
-            }
-            aria-invalid={errors.global?.customGender !== undefined}
-            aria-required="true"
-            autoComplete="off"
-            className="h-10"
-            id="character-custom-gender"
+        <div className="flex flex-col gap-2">
+          <PickerCaption label={t("gender")} />
+          <CharacterCreatableSingleSelect
+            clearTo="unknown"
+            customText={customGender.field.value}
+            describedBy={genderError ? "character-gender-error" : undefined}
+            invalid={genderError !== undefined}
+            label={t("gender")}
             maxLength={CHARACTER_TEXT_MAX.customGender}
-            placeholder={t("customGenderPlaceholder")}
-            {...register("global.customGender")}
+            onBlur={customGender.field.onBlur}
+            onChange={(choice) => {
+              gender.field.onChange(choice.option);
+              customGender.field.onChange(choice.customText);
+            }}
+            optionLabel={(option) => tGender(option)}
+            options={GENDER_OPTIONS}
+            ref={(element) => customGender.field.ref(element)}
+            sentinel={GENDER_CUSTOM}
+            value={gender.field.value}
           />
-          <FieldErrorText error={errors.global?.customGender} id="character-custom-gender-error" />
-        </LabeledField>
-      ) : null}
+          <FieldErrorText error={genderError} id="character-gender-error" />
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <LabeledField htmlFor="character-species" label={t("species")} requirement="optional">
@@ -909,6 +865,17 @@ function MaskedOr({
     <CharacterSpoilerField hidden label={label}>
       {null}
     </CharacterSpoilerField>
+  );
+}
+
+function PickerCaption({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden
+      className="flex items-center gap-2 text-sm leading-none font-medium select-none"
+    >
+      {label}
+    </span>
   );
 }
 

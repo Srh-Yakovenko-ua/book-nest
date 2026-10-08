@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom/vitest";
-import type { BookCharacterView, CharacterDetailsView, MediaView } from "@app/shared";
+import type {
+  BookCharacterStatus,
+  BookCharacterView,
+  CharacterDetailsView,
+  MediaView,
+  Nullable,
+} from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -84,6 +90,7 @@ function renderEdit(search = "bookId=book-1") {
 }
 
 beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn();
   bookPatchStatus = 200;
   servedCharacter = character;
 
@@ -1061,20 +1068,258 @@ describe("CharacterEditPage text over the limit", () => {
   });
 });
 
-describe("CharacterEditPage custom gender", () => {
-  it("requires the custom gender once it is chosen and sends nothing without it", async () => {
+describe("CharacterEditPage status", () => {
+  function servedWithBookStatus(
+    status: BookCharacterStatus,
+    statusCustomText: Nullable<string>,
+  ): CharacterDetailsView {
+    return {
+      ...character,
+      appearances: character.appearances.map((appearance) => ({
+        ...appearance,
+        status,
+        statusCustomText,
+      })),
+    };
+  }
+
+  function statusCombobox(): HTMLElement {
+    return screen.getByRole("combobox", { name: "Статус" });
+  }
+
+  it("sends a picked standard status with no custom text in the book update only", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.click(screen.getByRole("combobox", { name: "Гендер" }));
-    await userEvent.click(await screen.findByRole("option", { name: "Свій варіант" }));
+    await userEvent.click(statusCombobox());
+    await userEvent.click(await screen.findByRole("option", { name: "Мертвий" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({ status: "dead", statusCustomText: null });
+    expect(globalPatchBody()).toBeUndefined();
+  });
+
+  it("sends a created custom status with its text", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({ status: "other", statusCustomText: "У полоні" });
+  });
+
+  it("shows an existing custom status as its text", async () => {
+    servedCharacter = servedWithBookStatus("other", "Зник безвісти");
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(statusCombobox()).toHaveValue("Зник безвісти");
+    expect(screen.queryByDisplayValue("Інше")).not.toBeInTheDocument();
+  });
+
+  it("sends a standard status without the old custom text once a custom status is replaced", async () => {
+    servedCharacter = servedWithBookStatus("other", "Зник безвісти");
+    renderEdit();
+
+    await screen.findByDisplayValue("Зник безвісти");
+    await userEvent.click(statusCombobox());
+    await userEvent.click(await screen.findByRole("option", { name: "Живий" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({ status: "active", statusCustomText: null });
+  });
+
+  it("offers the matching standard status instead of a create option for its name typed in lower case", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(statusCombobox(), "живий");
+
+    expect(await screen.findByRole("option", { name: "Живий" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+  });
+
+  it("does not save the form when Enter creates a custom status", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+
+    expect(statusCombobox()).toHaveValue("У полоні");
+    expect(patchCount()).toBe(0);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("has no separate custom status field", async () => {
+    servedCharacter = servedWithBookStatus("other", "Зник безвісти");
+    renderEdit();
+
+    await screen.findByDisplayValue("Зник безвісти");
+
+    expect(screen.queryByRole("textbox", { name: /Свій статус/ })).not.toBeInTheDocument();
+  });
+
+  it("shows a legacy custom status without text as «Інше»", async () => {
+    servedCharacter = servedWithBookStatus("other", null);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(statusCombobox()).toHaveValue("Інше");
+  });
+
+  it("keeps a legacy custom status without text when an unrelated book field is saved", async () => {
+    servedCharacter = servedWithBookStatus("other", null);
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({
+      description: "Опис у книзі ще трохи",
+      status: "other",
+      statusCustomText: null,
+    });
+  });
+
+  it("shows a created custom status in the preview instead of «Інше»", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+
+    expect(within(previewRegion()).getByText("У полоні")).toBeInTheDocument();
+    expect(within(previewRegion()).queryByText("Інше")).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage gender", () => {
+  const customGenderCharacter: CharacterDetailsView = {
+    ...character,
+    customGender: "Гендерфлюїдна",
+    gender: "custom",
+  };
+
+  function genderCombobox(): HTMLElement {
+    return screen.getByRole("combobox", { name: "Гендер" });
+  }
+
+  it("sends a created custom gender with its text in the global update only", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(genderCombobox(), "Гендерфлюїдна{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toMatchObject({ customGender: "Гендерфлюїдна", gender: "custom" });
+    expect(bookPatchBody()).toBeUndefined();
+  });
+
+  it("shows an existing custom gender as its text", async () => {
+    servedCharacter = customGenderCharacter;
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(genderCombobox()).toHaveValue("Гендерфлюїдна");
+    expect(screen.queryByDisplayValue("Свій варіант")).not.toBeInTheDocument();
+  });
+
+  it("sends a standard gender without the old custom text once a custom gender is replaced", async () => {
+    servedCharacter = customGenderCharacter;
+    renderEdit();
+
+    await screen.findByDisplayValue("Гендерфлюїдна");
+    await userEvent.click(genderCombobox());
+    await userEvent.click(await screen.findByRole("option", { name: "Жіноча" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toMatchObject({ customGender: null, gender: "female" });
+  });
+
+  it("offers no custom sentinel in the open gender list", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(genderCombobox());
+
+    expect(await screen.findByRole("option", { name: "Жіноча" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Свій варіант" })).not.toBeInTheDocument();
+  });
+
+  it("has no separate custom gender field", async () => {
+    servedCharacter = customGenderCharacter;
+    renderEdit();
+
+    await screen.findByDisplayValue("Гендерфлюїдна");
+
+    expect(screen.queryByRole("textbox", { name: "Свій варіант" })).not.toBeInTheDocument();
+  });
+
+  it("requires the text of a custom gender, describes the gender combobox with the error and sends nothing", async () => {
+    servedCharacter = { ...character, customGender: null, gender: "custom" };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: "Ім’я" }), " із Рівії");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     expect(await screen.findByText("Вкажіть свій гендер")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Свій варіант" })).toHaveAccessibleDescription(
-      "Вкажіть свій гендер",
-    );
+    expect(genderCombobox()).toHaveAccessibleDescription("Вкажіть свій гендер");
     expect(patchCount()).toBe(0);
+  });
+
+  describe("with a legacy custom gender that has no text", () => {
+    async function saveAfterRenaming() {
+      servedCharacter = { ...character, customGender: null, gender: "custom" };
+      renderEdit();
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(screen.getByRole("textbox", { name: "Ім’я" }), " із Рівії");
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+    }
+
+    it("focuses the gender combobox on save and sends nothing", async () => {
+      await saveAfterRenaming();
+
+      await waitFor(() => expect(genderCombobox()).toHaveFocus());
+      expect(patchCount()).toBe(0);
+    });
+
+    it("clears the error once a custom gender text is created", async () => {
+      await saveAfterRenaming();
+      expect(await screen.findByText("Вкажіть свій гендер")).toBeInTheDocument();
+      expect(genderCombobox()).toHaveAttribute("aria-invalid", "true");
+
+      await userEvent.type(genderCombobox(), "Гендерфлюїдна{Enter}");
+
+      await waitFor(() =>
+        expect(screen.queryByText("Вкажіть свій гендер")).not.toBeInTheDocument(),
+      );
+      expect(genderCombobox()).not.toHaveAttribute("aria-invalid", "true");
+    });
+
+    it("clears the error once a standard gender is picked", async () => {
+      await saveAfterRenaming();
+      expect(await screen.findByText("Вкажіть свій гендер")).toBeInTheDocument();
+      expect(genderCombobox()).toHaveAttribute("aria-invalid", "true");
+
+      await userEvent.click(genderCombobox());
+      await userEvent.click(await screen.findByRole("option", { name: "Жіноча" }));
+
+      await waitFor(() =>
+        expect(screen.queryByText("Вкажіть свій гендер")).not.toBeInTheDocument(),
+      );
+      expect(genderCombobox()).not.toHaveAttribute("aria-invalid", "true");
+    });
   });
 });
 
