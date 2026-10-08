@@ -20,11 +20,14 @@ export type CustomLabelUsageRow = {
 export class CharacterCustomLabelsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findCustomLabelUsage({ userId }: { userId: string }): Promise<CustomLabelUsage> {
+  async findCustomLabelUsage(
+    { userId }: { userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<CustomLabelUsage> {
     const appearanceScope = spoilerSafeAppearanceScope(userId);
 
     const [roleGroups, statusGroups] = await Promise.all([
-      this.prisma.bookCharacterRole.groupBy({
+      client.bookCharacterRole.groupBy({
         _count: { _all: true },
         by: ["customRole"],
         where: {
@@ -34,7 +37,7 @@ export class CharacterCustomLabelsRepository {
           roleType: BookCharacterRoleTypeSchema.enum.custom,
         },
       }),
-      this.prisma.bookCharacter.groupBy({
+      client.bookCharacter.groupBy({
         _count: { _all: true },
         by: ["statusCustomText"],
         where: {

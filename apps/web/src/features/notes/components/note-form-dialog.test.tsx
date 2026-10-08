@@ -336,6 +336,25 @@ describe("NoteFormDialog book page limit", () => {
     expect(writes()).toHaveLength(0);
   });
 
+  it("drops the page error once a book without that limit is picked", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    await pickBook(/Дюна/);
+    await waitFor(() => expect(screen.getByLabelText(NAMES.page)).toHaveAttribute("max", "300"));
+    await userEvent.type(screen.getByLabelText(NAMES.page), "400");
+    await userEvent.tab();
+    expect(await screen.findByText("У книзі лише 300 сторінок.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: NAMES.change }));
+    await pickBook(/Чарівник Земномор/);
+    await waitFor(() => expect(bookDetailRequests()).toContain("/api/books/book-2"));
+
+    await waitFor(() =>
+      expect(screen.queryByText("У книзі лише 300 сторінок.")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText(NAMES.page)).toHaveAttribute("aria-invalid", "false");
+  });
+
   it("keeps the technical limit when the book has no page count", async () => {
     renderDialog({ entityType: "book", mode: "pick" });
 

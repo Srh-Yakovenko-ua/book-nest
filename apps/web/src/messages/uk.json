@@ -12,6 +12,9 @@
     "discardChanges": {
       "cancel": "Продовжити редагування",
       "confirm": "Так, вийти"
+    },
+    "chapterCombobox": {
+      "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}"
     }
   },
   "nav": {
@@ -7940,7 +7943,8 @@
     },
     "creatableSelect": {
       "create": "Створити «{name}»",
-      "placeholder": "Оберіть зі списку або введіть свій…"
+      "placeholder": "Оберіть зі списку або введіть свій…",
+      "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}"
     },
     "delete": {
       "aliases": "Імена: {count}",
@@ -8147,7 +8151,8 @@
       "placeholder": "Оберіть роль або введіть свою…",
       "remove": "Прибрати роль «{role}»",
       "suggestionsHeading": "Стандартні ролі",
-      "toggleSpoiler": "Позначити «{role}» як спойлер"
+      "toggleSpoiler": "Позначити «{role}» як спойлер",
+      "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}"
     },
     "roleType": {
       "antagonist": "Антагоніст",

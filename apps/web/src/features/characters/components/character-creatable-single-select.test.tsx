@@ -514,19 +514,18 @@ describe("CharacterCreatableSingleSelect your statuses", () => {
     await userEvent.click(statusCombobox());
 
     const group = await screen.findByRole("group", { name: "Ваші статуси" });
-    expect(
-      within(group)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
-    ).toEqual(["У полоні3"]);
-    expect(screen.getAllByRole("option").at(-1)).toHaveAccessibleName("У полоні 3");
+    expect(within(group).getByRole("option")).toHaveAccessibleName("У полоні використано 3 рази");
+    expect(screen.getAllByRole("option").at(-1)).toBe(within(group).getByRole("option"));
+    expect(within(group).getByText("3")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("commits a clicked status of yours as the custom status with its text", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "active" }, USED_STATUSES);
 
     await userEvent.click(statusCombobox());
-    await userEvent.click(await screen.findByRole("option", { name: "У полоні 3" }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: "У полоні використано 3 рази" }),
+    );
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith({
       customText: "У полоні",
@@ -540,10 +539,9 @@ describe("CharacterCreatableSingleSelect your statuses", () => {
 
     await userEvent.type(statusCombobox(), "  у ПОЛОНІ ");
 
-    expect(await screen.findByRole("option", { name: "У полоні 3" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(
+      await screen.findByRole("option", { name: "У полоні використано 3 рази" }),
+    ).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
 
     await userEvent.keyboard("{Enter}");
@@ -562,7 +560,10 @@ describe("CharacterCreatableSingleSelect your statuses", () => {
 
     await userEvent.click(statusCombobox());
 
-    const highlighted = await screen.findByRole("option", { name: "У полоні 3", selected: true });
+    const highlighted = await screen.findByRole("option", {
+      name: "У полоні використано 3 рази",
+      selected: true,
+    });
     expect(statusCombobox()).toHaveAttribute("aria-activedescendant", highlighted.id);
   });
 
@@ -573,7 +574,9 @@ describe("CharacterCreatableSingleSelect your statuses", () => {
     await screen.findByRole("listbox");
     await userEvent.keyboard("{ArrowDown}");
 
-    expect(screen.getByRole("option", { selected: true })).toHaveAccessibleName("У полоні 3");
+    expect(screen.getByRole("option", { selected: true })).toHaveAccessibleName(
+      "У полоні використано 3 рази",
+    );
   });
 });
 

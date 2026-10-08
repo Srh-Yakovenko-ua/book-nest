@@ -30,7 +30,14 @@ const UNCOUNTED_BOOK = makeBookView({
   title: "Діти Дюни",
 });
 
-const LIBRARY = [PICKED_BOOK, UNCOUNTED_BOOK];
+const LONGER_BOOK = makeBookView({
+  authors: [{ id: "author-1", name: "Френк Герберт" }],
+  id: "longer-book",
+  pagesCount: 500,
+  title: "Дюна",
+});
+
+const LIBRARY = [PICKED_BOOK, UNCOUNTED_BOOK, LONGER_BOOK];
 
 const QUOTE = makeQuote();
 const QUOTE_BOOK: BookSelectOption = {
@@ -199,6 +206,23 @@ describe("QuoteDialog create mode with the book picker", () => {
 
     await waitFor(() => expect(writeRequests()).toHaveLength(1));
     expect(postedBody()).toMatchObject({ page: 300 });
+  });
+
+  it("drops the page error once a longer book is picked", async () => {
+    renderCreate();
+    await pickBook();
+    await waitFor(() => expect(pageInput()).toHaveAttribute("max", "300"));
+
+    await userEvent.type(pageInput(), "400");
+    await userEvent.tab();
+    expect(await within(dialog()).findByText("У книзі лише 300 сторінок")).toBeInTheDocument();
+
+    await userEvent.click(within(dialog()).getByRole("button", { name: "Змінити" }));
+    await userEvent.click(await screen.findByRole("radio", { name: "Дюна Френк Герберт" }));
+    await waitFor(() => expect(pageInput()).toHaveAttribute("max", "500"));
+
+    expect(within(dialog()).queryByText("У книзі лише 300 сторінок")).not.toBeInTheDocument();
+    expect(pageInput()).toHaveAttribute("aria-invalid", "false");
   });
 
   it("keeps the technical page limit when the picked book has no page count", async () => {

@@ -233,9 +233,13 @@ export function CharacterRolePicker({ customRoles, onChange, value }: CharacterR
                     value={`custom-role::${label}`}
                   >
                     <span className="min-w-0 flex-1 truncate">{label}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    <span
+                      aria-hidden
+                      className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                    >
                       {count}
                     </span>
+                    <span className="sr-only">{t("usageCount", { count })}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>

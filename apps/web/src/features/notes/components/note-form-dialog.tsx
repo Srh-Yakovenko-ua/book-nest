@@ -5,7 +5,7 @@ import type { NoteEntityType, NoteView } from "@app/shared";
 import { NOTE_INPUT_LIMITS } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -89,8 +89,11 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
   const {
     control,
     formState: { errors, isSubmitting },
+    getFieldState,
+    getValues,
     handleSubmit,
     register,
+    trigger,
   } = useForm<NoteFormInput, unknown, NoteFormValues>({
     defaultValues: noteFormDefaults({
       entity: target.mode === "pick" ? null : target.entity,
@@ -117,6 +120,11 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
     textEmpty: tErrors("textEmpty"),
     textTooLong: tErrors("textTooLong", { max: NOTE_INPUT_LIMITS.textMax }),
   };
+
+  useEffect(() => {
+    if (!getFieldState("page").isTouched && getValues("page") === undefined) return;
+    void trigger("page");
+  }, [getFieldState, getValues, pageCeiling.max, trigger]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {

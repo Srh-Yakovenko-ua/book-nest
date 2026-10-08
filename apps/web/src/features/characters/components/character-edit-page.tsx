@@ -6,7 +6,7 @@ import { CHARACTER_INT4_MAX, CHARACTER_TEXT_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -130,9 +130,22 @@ function CharacterEditForm({
   const {
     control,
     formState: { errors },
+    getFieldState,
+    getValues,
     handleSubmit,
     register,
+    trigger,
   } = form;
+
+  useEffect(() => {
+    if (
+      !getFieldState("book.firstAppearancePage").isTouched &&
+      getValues("book.firstAppearancePage") === null
+    ) {
+      return;
+    }
+    void trigger("book.firstAppearancePage");
+  }, [getFieldState, getValues, pageCeiling.max, trigger]);
 
   const current = useWatch({ control });
   const currentValues = current as CharacterEditValues;

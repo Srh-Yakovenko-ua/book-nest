@@ -322,6 +322,8 @@ function CreatableOption({
   onHighlight: () => void;
   onPick: () => void;
 }) {
+  const t = useTranslations("characters.creatableSelect");
+
   return (
     <button
       aria-selected={active}
@@ -336,7 +338,12 @@ function CreatableOption({
       {entry.kind === "create" ? <UiIcon className="text-primary" name="plus" size={16} /> : null}
       <span className="min-w-0 flex-1 truncate">{entry.text}</span>
       {entry.kind === "suggestion" ? (
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{entry.count}</span>
+        <>
+          <span aria-hidden className="shrink-0 text-xs text-muted-foreground tabular-nums">
+            {entry.count}
+          </span>
+          <span className="sr-only">{t("usageCount", { count: entry.count })}</span>
+        </>
       ) : null}
       {committed ? <UiIcon className="shrink-0" name="check" size={16} /> : null}
     </button>
