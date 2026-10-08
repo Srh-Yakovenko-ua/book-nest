@@ -12,6 +12,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
 
 import { UiIcon } from "@/components/icons";
@@ -40,8 +41,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useBookPagesCount } from "@/features/books/api/use-book";
 import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
 import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
+import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import {
   BookSelectOptionSchema,
   toBookSelectOption,
@@ -58,7 +61,6 @@ type QuoteDialogProps = (
   | { book: BookSelectOption; mode: "edit"; quote: QuoteView }
   | { mode: "createWithBookPicker" }
 ) & {
-  maxPage?: number;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
@@ -77,6 +79,7 @@ type QuoteMessages = {
   bookRequired: string;
   chapterMax: string;
   commentMax: string;
+  pageExceedsBook: string;
   pageMax: string;
   pageMin: string;
   pageWhole: string;
@@ -91,7 +94,7 @@ const QUOTE_COMMENT_MAX = 500;
 const QUOTE_PAGE_MIN = 1;
 
 export function QuoteDialog(props: QuoteDialogProps) {
-  const { maxPage, onOpenChange, open } = props;
+  const { onOpenChange, open } = props;
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
@@ -121,7 +124,6 @@ export function QuoteDialog(props: QuoteDialogProps) {
           <>
             <QuoteForm
               book={book}
-              maxPage={maxPage}
               onCancel={() => handleOpenChange(false)}
               onDirtyChange={setDirty}
               onDone={close}
@@ -157,7 +159,7 @@ function buildPayload(values: QuoteFormValues) {
   } satisfies CreateQuoteInput & UpdateQuoteInput;
 }
 
-function buildSchema(messages: QuoteMessages, pageMax: number) {
+function buildSchema(messages: QuoteMessages, pageCeiling: BookPageCeiling) {
   const isBlank = (value: string) => value.trim().length === 0;
 
   return z.object({
@@ -180,7 +182,9 @@ function buildSchema(messages: QuoteMessages, pageMax: number) {
       .refine((value) => isBlank(value) || Number(value) >= QUOTE_PAGE_MIN, {
         message: messages.pageMin,
       })
-      .refine((value) => isBlank(value) || Number(value) <= pageMax, { message: messages.pageMax }),
+      .refine((value) => isBlank(value) || Number(value) <= pageCeiling.max, {
+        message: pageCeiling.source === "book" ? messages.pageExceedsBook : messages.pageMax,
+      }),
     text: z
       .string()
       .refine((value) => !isBlank(value), { message: messages.textRequired })
@@ -273,14 +277,12 @@ function QuoteBookField({
 
 function QuoteForm({
   book,
-  maxPage,
   onCancel,
   onDirtyChange,
   onDone,
   quote,
 }: {
   book: Nullable<BookSelectOption>;
-  maxPage?: number;
   onCancel: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onDone: () => void;
@@ -295,7 +297,6 @@ function QuoteForm({
 
   const isEdit = quote !== undefined;
   const pending = isEdit ? updateQuote.isPending : createQuote.isPending;
-  const pageMax = maxPage ?? QUOTE_PAGE_MAX;
 
   const {
     control,
@@ -305,22 +306,24 @@ function QuoteForm({
   } = useForm<QuoteFormValues>({
     defaultValues: toDefaults(book, quote),
     mode: "onTouched",
-    resolver: zodResolver(
-      buildSchema(
-        {
-          bookRequired: tErrors("bookRequired"),
-          chapterMax: tErrors("chapterMax", { max: QUOTE_CHAPTER_MAX }),
-          commentMax: tErrors("commentMax", { max: QUOTE_COMMENT_MAX }),
-          pageMax: tErrors("pageMax", { max: pageMax }),
-          pageMin: tErrors("pageMin"),
-          pageWhole: tErrors("pageWhole"),
-          textMax: tErrors("textMax", { max: QUOTE_TEXT_MAX }),
-          textRequired: tErrors("textRequired"),
-        },
-        pageMax,
-      ),
-    ),
+    resolver: (values, context, options) =>
+      zodResolver(buildSchema(messages, pageCeiling))(values, context, options),
   });
+
+  const selectedBook = useWatch({ control, name: "book" });
+  const pagesCount = useBookPagesCount(selectedBook?.id ?? null);
+  const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: QUOTE_PAGE_MAX });
+  const messages: QuoteMessages = {
+    bookRequired: tErrors("bookRequired"),
+    chapterMax: tErrors("chapterMax", { max: QUOTE_CHAPTER_MAX }),
+    commentMax: tErrors("commentMax", { max: QUOTE_COMMENT_MAX }),
+    pageExceedsBook: tErrors("pageExceedsBook", { max: pageCeiling.max }),
+    pageMax: tErrors("pageMax", { max: pageCeiling.max }),
+    pageMin: tErrors("pageMin"),
+    pageWhole: tErrors("pageWhole"),
+    textMax: tErrors("textMax", { max: QUOTE_TEXT_MAX }),
+    textRequired: tErrors("textRequired"),
+  };
 
   useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange]);
 
@@ -438,7 +441,7 @@ function QuoteForm({
             className="h-10"
             id="quote-page"
             inputMode="numeric"
-            max={pageMax}
+            max={pageCeiling.max}
             min={QUOTE_PAGE_MIN}
             onKeyDown={blockNegativeNumberKeys}
             onPaste={blockNegativeNumberPaste}

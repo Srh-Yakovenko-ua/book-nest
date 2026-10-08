@@ -7,6 +7,8 @@ import Image from "next/image";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { expect, waitFor, within } from "storybook/test";
 
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
+
 import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
 import { CharacterEditPage } from "./character-edit-page";
 
@@ -21,7 +23,23 @@ const STORY = {
     "Інші імена",
     "Спойлери",
   ],
+  chapters: [
+    { chapter: "Голос розуму", count: 5 },
+    { chapter: "Межа можливого", count: 3 },
+    { chapter: "Пролог", count: 1 },
+  ],
   characterId: "char-1",
+  customLabels: {
+    roles: [
+      { count: 4, label: "Наставник Цірі" },
+      { count: 2, label: "Мисливець на чудовиськ" },
+    ],
+    statuses: [
+      { count: 3, label: "У дорозі" },
+      { count: 1, label: "Поранений" },
+    ],
+  },
+  pagesCount: 384,
 } as const;
 
 const globalAvatar: MediaView = {
@@ -97,6 +115,14 @@ function mockFetch(details: CharacterDetailsView) {
     const path = typeof input === "string" ? input : input.toString();
     if (path.includes(`/api/characters/${details.id}`))
       return Promise.resolve(jsonResponse(200, details));
+    if (path.includes(`/api/books/${STORY.bookId}/chapters`))
+      return Promise.resolve(jsonResponse(200, { chapters: STORY.chapters }));
+    if (path.endsWith("/api/character-custom-labels"))
+      return Promise.resolve(jsonResponse(200, STORY.customLabels));
+    if (path.endsWith(`/api/books/${STORY.bookId}`))
+      return Promise.resolve(
+        jsonResponse(200, makeBookView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),
+      );
     return Promise.resolve(jsonResponse(200, {}));
   }) as typeof fetch;
 }

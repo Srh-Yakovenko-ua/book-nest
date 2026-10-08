@@ -2,7 +2,12 @@
 
 import type { KeyboardEvent, RefCallback } from "react";
 
-import { normalizeName, type Nullable, type ValueOf } from "@app/shared";
+import {
+  type CharacterCustomLabelUsageView,
+  normalizeName,
+  type Nullable,
+  type ValueOf,
+} from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 
@@ -23,16 +28,25 @@ type CharacterCreatableSingleSelectProps<Option extends string, Sentinel extends
   options: readonly Option[];
   ref?: RefCallback<HTMLInputElement>;
   sentinel: Sentinel;
+  suggestions?: CustomSuggestions;
   value: Option;
 };
 
 type CreatableChoice<Option extends string, Sentinel extends Option> =
   { customText: ""; option: Exclude<Option, Sentinel> } | { customText: string; option: Sentinel };
 
-type ListEntry<Option extends string, Sentinel extends Option> = {
-  choice: CreatableChoice<Option, Sentinel>;
+type CustomSuggestions = {
+  heading: string;
+  labels: readonly CharacterCustomLabelUsageView[];
+};
+
+type EntryDisplay = ({ count: number; kind: "suggestion" } | { kind: "create" | "standard" }) & {
   id: string;
   text: string;
+};
+
+type ListEntry<Option extends string, Sentinel extends Option> = EntryDisplay & {
+  choice: CreatableChoice<Option, Sentinel>;
 };
 
 const HIGHLIGHT_STEP = { ArrowDown: 1, ArrowUp: -1 } as const;
@@ -50,11 +64,13 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
   options,
   ref,
   sentinel,
+  suggestions,
   value,
 }: CharacterCreatableSingleSelectProps<Option, Sentinel>) {
   const t = useTranslations("characters.creatableSelect");
   const tCommon = useTranslations("common");
   const listboxId = useId();
+  const suggestionsHeadingId = `${listboxId}-suggestions-heading`;
   const anchorRef = useRef<Nullable<HTMLDivElement>>(null);
   const inputRef = useRef<Nullable<HTMLInputElement>>(null);
   const [open, setOpen] = useState(false);
@@ -72,26 +88,52 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
     .map((option, index): ListEntry<Option, Sentinel> => ({
       choice: { customText: "", option },
       id: `${listboxId}-option-${index}`,
+      kind: "standard",
       text: optionLabel(option),
+    }));
+  const standardNames = new Set(standardEntries.map(({ text }) => normalizeName(text)));
+  const suggestionEntries = (suggestions?.labels ?? [])
+    .filter(({ label }) => !standardNames.has(normalizeName(label)))
+    .map(({ count, label }, index): ListEntry<Option, Sentinel> => ({
+      choice: { customText: label, option: sentinel },
+      count,
+      id: `${listboxId}-suggestion-${index}`,
+      kind: "suggestion",
+      text: label,
     }));
   const createEntry: ListEntry<Option, Sentinel> = {
     choice: { customText: customName, option: sentinel },
     id: `${listboxId}-create`,
+    kind: "create",
     text: t("create", { name: customName }),
   };
-  const matchingEntries = standardEntries.filter(({ text }) => normalizeName(text).includes(query));
-  const exactEntry = matchingEntries.find(({ text }) => normalizeName(text) === query);
+  const matchingStandard = standardEntries.filter(matchesQuery);
+  const matchingSuggestions = suggestionEntries.filter(matchesQuery);
+  const exactEntry = [...matchingStandard, ...matchingSuggestions].find(
+    ({ text }) => normalizeName(text) === query,
+  );
   const canCreate = customName.length > 0 && exactEntry === undefined;
-  const entries = canCreate ? [...matchingEntries, createEntry] : matchingEntries;
-  const defaultEntry =
-    search === null
-      ? entries.find((entry) => entry.choice.option === value)
-      : (exactEntry ?? entries[0]);
+  const entries = [
+    ...matchingStandard,
+    ...matchingSuggestions,
+    ...(canCreate ? [createEntry] : []),
+  ];
+  const defaultEntry = search === null ? entries.find(isCommitted) : (exactEntry ?? entries[0]);
   const activeEntry = entries.find((entry) => entry.id === highlightedId) ?? defaultEntry;
   const showClear = value !== clearTo || typedText.length > 0;
 
   function isStandard(option: Option): option is Exclude<Option, Sentinel> {
     return option !== sentinel;
+  }
+
+  function matchesQuery({ text }: ListEntry<Option, Sentinel>) {
+    return normalizeName(text).includes(query);
+  }
+
+  function isCommitted(entry: ListEntry<Option, Sentinel>) {
+    if (entry.kind === "create") return false;
+    if (entry.kind === "standard") return entry.choice.option === value;
+    return value === sentinel && normalizeName(entry.text) === normalizeName(committedCustomText);
   }
 
   function changeOpen(next: boolean) {
@@ -221,29 +263,82 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
           role="listbox"
           tabIndex={-1}
         >
-          {entries.map((entry) => (
-            <button
-              aria-selected={entry === activeEntry}
-              className="relative flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden select-none aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:ring-1 aria-selected:ring-ring"
-              id={entry.id}
+          {matchingStandard.map((entry) => (
+            <CreatableOption
+              active={entry === activeEntry}
+              committed={isCommitted(entry)}
+              entry={entry}
               key={entry.id}
-              onClick={() => commit(entry.choice)}
-              onPointerMove={() => setHighlightedId(entry.id)}
-              role="option"
-              tabIndex={-1}
-              type="button"
-            >
-              {entry === createEntry ? (
-                <UiIcon className="text-primary" name="plus" size={16} />
-              ) : null}
-              <span className="min-w-0 truncate">{entry.text}</span>
-              {entry !== createEntry && entry.choice.option === value ? (
-                <UiIcon className="ml-auto" name="check" size={16} />
-              ) : null}
-            </button>
+              onHighlight={() => setHighlightedId(entry.id)}
+              onPick={() => commit(entry.choice)}
+            />
           ))}
+          {suggestions === undefined || matchingSuggestions.length === 0 ? null : (
+            <div aria-labelledby={suggestionsHeadingId} role="group">
+              <div
+                aria-hidden
+                className="px-2 py-1.5 text-xs font-medium text-muted-foreground"
+                id={suggestionsHeadingId}
+              >
+                {suggestions.heading}
+              </div>
+              {matchingSuggestions.map((entry) => (
+                <CreatableOption
+                  active={entry === activeEntry}
+                  committed={isCommitted(entry)}
+                  entry={entry}
+                  key={entry.id}
+                  onHighlight={() => setHighlightedId(entry.id)}
+                  onPick={() => commit(entry.choice)}
+                />
+              ))}
+            </div>
+          )}
+          {canCreate ? (
+            <CreatableOption
+              active={createEntry === activeEntry}
+              committed={isCommitted(createEntry)}
+              entry={createEntry}
+              onHighlight={() => setHighlightedId(createEntry.id)}
+              onPick={() => commit(createEntry.choice)}
+            />
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function CreatableOption({
+  active,
+  committed,
+  entry,
+  onHighlight,
+  onPick,
+}: {
+  active: boolean;
+  committed: boolean;
+  entry: EntryDisplay;
+  onHighlight: () => void;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      aria-selected={active}
+      className="relative flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden select-none aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:ring-1 aria-selected:ring-ring"
+      id={entry.id}
+      onClick={onPick}
+      onPointerMove={onHighlight}
+      role="option"
+      tabIndex={-1}
+      type="button"
+    >
+      {entry.kind === "create" ? <UiIcon className="text-primary" name="plus" size={16} /> : null}
+      <span className="min-w-0 flex-1 truncate">{entry.text}</span>
+      {entry.kind === "suggestion" ? (
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{entry.count}</span>
+      ) : null}
+      {committed ? <UiIcon className="shrink-0" name="check" size={16} /> : null}
+    </button>
   );
 }

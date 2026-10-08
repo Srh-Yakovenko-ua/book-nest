@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Fragment, useId } from "react";
 import { Controller, useController, useWatch } from "react-hook-form";
 
+import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { ActionRow } from "@/components/ui/action-row";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +26,15 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { useBookChapters } from "@/features/books/api/use-book-chapters";
+import {
+  blockNegativeNumberKeys,
+  blockNegativeNumberPaste,
+} from "@/lib/block-negative-number-keys";
 
 import type { CharacterEditScope, CharacterEditValues } from "../model/character-edit-form";
 
+import { useCharacterCustomLabels } from "../api/use-character-custom-labels";
 import { isBookFieldMasked } from "../model/character-inheritance";
 import {
   ATTITUDE_OPTIONS,
@@ -128,7 +135,7 @@ export function BookCharacterInheritanceSection({
                 globalValue={textOrNull(globalSpecies)}
                 id="character-species-override"
                 label={t("speciesInBook")}
-                maxLength={CHARACTER_TEXT_MAX.shortText}
+                maxLength={CHARACTER_TEXT_MAX.species}
                 onChange={field.onChange}
                 placeholder={t("speciesInBookPlaceholder")}
                 value={field.value}
@@ -177,6 +184,7 @@ export function BookCharacterMainSection({
   const status = useController({ control, name: "book.status" });
   const statusCustomText = useController({ control, name: "book.statusCustomText" });
   const statusError = errors.book?.statusCustomText;
+  const customLabels = useCharacterCustomLabels();
 
   return (
     <EditSection
@@ -228,6 +236,10 @@ export function BookCharacterMainSection({
             options={BOOK_CHARACTER_STATUS.options}
             ref={(element) => statusCustomText.field.ref(element)}
             sentinel={BOOK_CHARACTER_STATUS.custom}
+            suggestions={{
+              heading: t("customStatusesHeading"),
+              labels: customLabels.data?.statuses ?? [],
+            }}
             value={status.field.value}
           />
           <FieldErrorText error={statusError} id="character-status-error" />
@@ -240,7 +252,11 @@ export function BookCharacterMainSection({
           control={control}
           name="book.roles"
           render={({ field }) => (
-            <CharacterRolePicker onChange={field.onChange} value={field.value} />
+            <CharacterRolePicker
+              customRoles={customLabels.data?.roles ?? []}
+              onChange={field.onChange}
+              value={field.value}
+            />
           )}
         />
       </div>
@@ -297,18 +313,25 @@ export function BookCharacterMainSection({
 }
 
 export function BookCharacterNarrativeSection({
+  bookId,
   control,
   errors,
+  pageMax,
   register,
 }: {
+  bookId: string;
   control: EditControl;
   errors: EditErrors;
+  pageMax: number;
   register: EditRegister;
 }) {
   const t = useTranslations("characters.edit");
   const tNarrator = useTranslations("characters.narratorType");
 
   const isPov = useWatch({ control, name: "book.isPovCharacter" });
+  const firstAppearanceNote = useWatch({ control, name: "book.firstAppearanceNote" });
+  const chaptersQuery = useBookChapters(bookId, { enabled: true });
+  const firstNoteError = errors.book?.firstAppearanceNote;
 
   return (
     <EditSection
@@ -380,17 +403,25 @@ export function BookCharacterNarrativeSection({
             label={t("firstAppearanceChapter")}
             requirement="optional"
           >
-            <Input
-              aria-describedby={
-                errors.book?.firstAppearanceChapter ? "character-first-chapter-error" : undefined
-              }
-              aria-invalid={errors.book?.firstAppearanceChapter !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="character-first-chapter"
-              maxLength={CHARACTER_TEXT_MAX.shortText}
-              placeholder={t("firstAppearanceChapterPlaceholder")}
-              {...register("book.firstAppearanceChapter")}
+            <Controller
+              control={control}
+              name="book.firstAppearanceChapter"
+              render={({ field }) => (
+                <ChapterCombobox
+                  describedBy={
+                    errors.book?.firstAppearanceChapter
+                      ? "character-first-chapter-error"
+                      : undefined
+                  }
+                  id="character-first-chapter"
+                  invalid={errors.book?.firstAppearanceChapter !== undefined}
+                  maxLength={CHARACTER_TEXT_MAX.shortText}
+                  onChange={field.onChange}
+                  options={chaptersQuery.data?.chapters ?? []}
+                  placeholder={t("firstAppearanceChapterPlaceholder")}
+                  value={field.value}
+                />
+              )}
             />
             <FieldErrorText
               error={errors.book?.firstAppearanceChapter}
@@ -403,17 +434,34 @@ export function BookCharacterNarrativeSection({
             label={t("firstAppearancePage")}
             requirement="optional"
           >
-            <Input
-              aria-describedby={
-                errors.book?.firstAppearancePage ? "character-first-page-error" : undefined
-              }
-              aria-invalid={errors.book?.firstAppearancePage !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="character-first-page"
-              inputMode="numeric"
-              placeholder={t("firstAppearancePagePlaceholder")}
-              {...register("book.firstAppearancePage")}
+            <Controller
+              control={control}
+              name="book.firstAppearancePage"
+              render={({ field }) => (
+                <Input
+                  aria-describedby={
+                    errors.book?.firstAppearancePage ? "character-first-page-error" : undefined
+                  }
+                  aria-invalid={errors.book?.firstAppearancePage !== undefined}
+                  autoComplete="off"
+                  className="h-10"
+                  id="character-first-page"
+                  inputMode="numeric"
+                  max={pageMax}
+                  min={1}
+                  onBlur={field.onBlur}
+                  onChange={(event) =>
+                    field.onChange(event.target.value === "" ? null : Number(event.target.value))
+                  }
+                  onKeyDown={blockNegativeNumberKeys}
+                  onPaste={blockNegativeNumberPaste}
+                  placeholder={t("firstAppearancePagePlaceholder")}
+                  ref={field.ref}
+                  step={1}
+                  type="number"
+                  value={field.value ?? ""}
+                />
+              )}
             />
             <FieldErrorText
               error={errors.book?.firstAppearancePage}
@@ -429,9 +477,11 @@ export function BookCharacterNarrativeSection({
         >
           <Input
             aria-describedby={
-              errors.book?.firstAppearanceNote ? "character-first-note-error" : undefined
+              firstNoteError === undefined
+                ? "character-first-note-counter"
+                : "character-first-note-error character-first-note-counter"
             }
-            aria-invalid={errors.book?.firstAppearanceNote !== undefined}
+            aria-invalid={firstNoteError !== undefined}
             autoComplete="off"
             className="h-10"
             id="character-first-note"
@@ -439,10 +489,15 @@ export function BookCharacterNarrativeSection({
             placeholder={t("firstAppearanceNotePlaceholder")}
             {...register("book.firstAppearanceNote")}
           />
-          <FieldErrorText
-            error={errors.book?.firstAppearanceNote}
-            id="character-first-note-error"
-          />
+          <div className="flex items-center justify-between gap-2">
+            <FieldErrorText error={firstNoteError} id="character-first-note-error" />
+            <span
+              className="ml-auto text-xs text-muted-foreground tabular-nums"
+              id="character-first-note-counter"
+            >
+              {firstAppearanceNote.length}/{CHARACTER_TEXT_MAX.shortText}
+            </span>
+          </div>
         </LabeledField>
       </div>
     </EditSection>

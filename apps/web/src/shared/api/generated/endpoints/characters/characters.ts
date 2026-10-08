@@ -24,6 +24,7 @@ import type {
   BookCharacterSummaryViewDto,
   BookCharactersControllerListParams,
   CharacterBundleDto,
+  CharacterCustomLabelsViewDto,
   CharacterDeletionPreviewDto,
   CharacterDeletionResultDto,
   CharacterDetailsViewDto,
@@ -2546,6 +2547,174 @@ export function useCharacterMergeControllerMerge<
     mergeCharacterInputDto,
     options,
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type characterCustomLabelsControllerListResponse200 = {
+  data: CharacterCustomLabelsViewDto;
+  status: 200;
+};
+
+export type characterCustomLabelsControllerListResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type characterCustomLabelsControllerListResponseSuccess =
+  characterCustomLabelsControllerListResponse200 & {
+    headers: Headers;
+  };
+export type characterCustomLabelsControllerListResponseError =
+  characterCustomLabelsControllerListResponse401 & {
+    headers: Headers;
+  };
+
+export type characterCustomLabelsControllerListResponse =
+  | characterCustomLabelsControllerListResponseSuccess
+  | characterCustomLabelsControllerListResponseError;
+
+export const getCharacterCustomLabelsControllerListUrl = () => {
+  return `/api/character-custom-labels`;
+};
+
+/**
+ * @summary List the custom character roles and statuses the user has already typed
+ */
+export const characterCustomLabelsControllerList = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<characterCustomLabelsControllerListResponse> => {
+  return customInstance<characterCustomLabelsControllerListResponse>(
+    getCharacterCustomLabelsControllerListUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCharacterCustomLabelsControllerListQueryKey = () => {
+  return [`/api/character-custom-labels`] as const;
+};
+
+export const getCharacterCustomLabelsControllerListQueryOptions = <
+  TData = Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof characterCustomLabelsControllerList>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCharacterCustomLabelsControllerListQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof characterCustomLabelsControllerList>>> = ({
+    signal,
+  }) => characterCustomLabelsControllerList({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CharacterCustomLabelsControllerListQueryResult = NonNullable<
+  Awaited<ReturnType<typeof characterCustomLabelsControllerList>>
+>;
+export type CharacterCustomLabelsControllerListQueryError = void;
+
+export function useCharacterCustomLabelsControllerList<
+  TData = Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterCustomLabelsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterCustomLabelsControllerList<
+  TData = Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof characterCustomLabelsControllerList>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useCharacterCustomLabelsControllerList<
+  TData = Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the custom character roles and statuses the user has already typed
+ */
+
+export function useCharacterCustomLabelsControllerList<
+  TData = Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof characterCustomLabelsControllerList>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getCharacterCustomLabelsControllerListQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -14,18 +14,17 @@ import { QuoteMeta } from "./quote-meta";
 import { QuoteSpoilerBadge } from "./quote-spoiler-badge";
 
 type BookQuoteCardProps = {
-  maxPage?: number;
   quote: QuoteView;
 };
 
-export function BookQuoteCard({ maxPage, quote }: BookQuoteCardProps) {
+export function BookQuoteCard({ quote }: BookQuoteCardProps) {
   const fullView = useQuoteFullView();
 
   return (
     <article className={cn(QUOTE_CARD_SHELL.base, QUOTE_CARD_SHELL.interactive)}>
       <div className="flex items-start gap-2">
         {quote.isSpoiler ? <QuoteSpoilerBadge /> : null}
-        <QuoteActions className="ml-auto" maxPage={maxPage} quote={quote} />
+        <QuoteActions className="ml-auto" quote={quote} />
       </div>
 
       <QuoteBody onExpand={fullView.openFrom} quote={quote} />

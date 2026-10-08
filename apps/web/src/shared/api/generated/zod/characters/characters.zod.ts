@@ -66,7 +66,7 @@ export const characterPortabilityControllerExportBundleResponseCharactersItemApp
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMin = 0;
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMax = 2147483647;
 
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax = 200;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax = 120;
 
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemStatusCustomTextMax = 200;
 
@@ -846,7 +846,7 @@ export const characterPortabilityControllerImportBundleBodyCharactersItemAppeara
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMin = 0;
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMax = 2147483647;
 
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideMax = 200;
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideMax = 120;
 
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemStatusCustomTextMax = 200;
 
@@ -1793,7 +1793,7 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileRolesMax = 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMin = 0;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMax = 2147483647;
 
-export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideMax = 200;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideMax = 120;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIsSpoilerDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault = `not_specified`;
@@ -4129,6 +4129,44 @@ export const CharacterMergeControllerMergeResponse = zod.object({
 });
 
 /**
+ * @summary List the custom character roles and statuses the user has already typed
+ */
+export const characterCustomLabelsControllerListResponseRolesItemCountMin = 0;
+export const characterCustomLabelsControllerListResponseRolesItemCountMax = 9007199254740991;
+
+export const characterCustomLabelsControllerListResponseRolesMax = 50;
+
+export const characterCustomLabelsControllerListResponseStatusesItemCountMin = 0;
+export const characterCustomLabelsControllerListResponseStatusesItemCountMax = 9007199254740991;
+
+export const characterCustomLabelsControllerListResponseStatusesMax = 50;
+
+export const CharacterCustomLabelsControllerListResponse = zod.object({
+  roles: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(characterCustomLabelsControllerListResponseRolesItemCountMin)
+          .max(characterCustomLabelsControllerListResponseRolesItemCountMax),
+        label: zod.string(),
+      }),
+    )
+    .max(characterCustomLabelsControllerListResponseRolesMax),
+  statuses: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(characterCustomLabelsControllerListResponseStatusesItemCountMin)
+          .max(characterCustomLabelsControllerListResponseStatusesItemCountMax),
+        label: zod.string(),
+      }),
+    )
+    .max(characterCustomLabelsControllerListResponseStatusesMax),
+});
+
+/**
  * @summary List the current user's characters for a book
  */
 export const BookCharactersControllerListParams = zod.object({
@@ -4331,7 +4369,7 @@ export const bookCharactersControllerCreateBodyOneBookProfileRolesMax = 20;
 export const bookCharactersControllerCreateBodyOneBookProfileSortOrderMin = 0;
 export const bookCharactersControllerCreateBodyOneBookProfileSortOrderMax = 2147483647;
 
-export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideMax = 200;
+export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideMax = 120;
 
 export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfileStatusDefault = `not_specified`;
@@ -4382,7 +4420,7 @@ export const bookCharactersControllerCreateBodyTwoBookProfileRolesMax = 20;
 export const bookCharactersControllerCreateBodyTwoBookProfileSortOrderMin = 0;
 export const bookCharactersControllerCreateBodyTwoBookProfileSortOrderMax = 2147483647;
 
-export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideMax = 200;
+export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideMax = 120;
 
 export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusDefault = `not_specified`;
@@ -5414,7 +5452,7 @@ export const bookCharactersControllerUpdateInBookBodyRolesMax = 20;
 export const bookCharactersControllerUpdateInBookBodySortOrderMin = 0;
 export const bookCharactersControllerUpdateInBookBodySortOrderMax = 2147483647;
 
-export const bookCharactersControllerUpdateInBookBodySpeciesOverrideMax = 200;
+export const bookCharactersControllerUpdateInBookBodySpeciesOverrideMax = 120;
 
 export const bookCharactersControllerUpdateInBookBodyStatusCustomTextMax = 200;
 

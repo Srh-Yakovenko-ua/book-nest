@@ -7,7 +7,7 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import enMessages from "@/messages/en.json";
-import { render, renderWithProviders, screen, userEvent } from "@/test-utils";
+import { render, renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import { BOOK_CHARACTER_STATUS, GENDER_CUSTOM, GENDER_OPTIONS } from "../model/character-options";
 import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
@@ -17,6 +17,16 @@ type GenderChoice = { customText: string; option: (typeof GENDER_OPTIONS)[number
 type StatusChoice = { customText: string; option: StatusOption };
 
 type StatusOption = (typeof BOOK_CHARACTER_STATUS.options)[number];
+
+type StatusSuggestions = { heading: string; labels: { count: number; label: string }[] };
+
+const USED_STATUSES: StatusSuggestions = {
+  heading: "Ваші статуси",
+  labels: [
+    { count: 3, label: "У полоні" },
+    { count: 1, label: "живий" },
+  ],
+};
 
 function EnglishGenderSelect({ onChange }: { onChange: (choice: GenderChoice) => void }) {
   const tGender = useTranslations("characters.gender");
@@ -47,9 +57,11 @@ function setupEnglishGenderSelect() {
   return onChange;
 }
 
-function setupStatusSelect(initial: StatusChoice) {
+function setupStatusSelect(initial: StatusChoice, suggestions?: StatusSuggestions) {
   const onChange = vi.fn<(choice: StatusChoice) => void>();
-  renderWithProviders(<StatusSelect initial={initial} onChange={onChange} />);
+  renderWithProviders(
+    <StatusSelect initial={initial} onChange={onChange} suggestions={suggestions} />,
+  );
   return onChange;
 }
 
@@ -64,6 +76,7 @@ function StatusSelect({
   invalid = false,
   onBlur,
   onChange,
+  suggestions,
 }: {
   describedBy?: string;
   initial: StatusChoice;
@@ -71,6 +84,7 @@ function StatusSelect({
   invalid?: boolean;
   onBlur?: () => void;
   onChange: (choice: StatusChoice) => void;
+  suggestions?: StatusSuggestions;
 }) {
   const tStatus = useTranslations("characters.status");
   const [choice, setChoice] = useState(initial);
@@ -91,6 +105,7 @@ function StatusSelect({
       options={BOOK_CHARACTER_STATUS.options}
       ref={inputRef}
       sentinel={BOOK_CHARACTER_STATUS.custom}
+      suggestions={suggestions}
       value={choice.option}
     />
   );
@@ -489,6 +504,76 @@ describe("CharacterCreatableSingleSelect opening", () => {
     await userEvent.keyboard("{ArrowUp}");
 
     expect(screen.getByRole("option", { selected: true })).toHaveTextContent("Перевтілений");
+  });
+});
+
+describe("CharacterCreatableSingleSelect your statuses", () => {
+  it("lists your statuses with counts in a named group after the standard ones, without one that repeats a standard status", async () => {
+    setupStatusSelect({ customText: "", option: "active" }, USED_STATUSES);
+
+    await userEvent.click(statusCombobox());
+
+    const group = await screen.findByRole("group", { name: "Ваші статуси" });
+    expect(
+      within(group)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["У полоні3"]);
+    expect(screen.getAllByRole("option").at(-1)).toHaveAccessibleName("У полоні 3");
+  });
+
+  it("commits a clicked status of yours as the custom status with its text", async () => {
+    const onChange = setupStatusSelect({ customText: "", option: "active" }, USED_STATUSES);
+
+    await userEvent.click(statusCombobox());
+    await userEvent.click(await screen.findByRole("option", { name: "У полоні 3" }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({
+      customText: "У полоні",
+      option: BOOK_CHARACTER_STATUS.custom,
+    });
+    expect(statusCombobox()).toHaveValue("У полоні");
+  });
+
+  it("offers your status instead of a create option when typed in another case with stray spaces", async () => {
+    const onChange = setupStatusSelect({ customText: "", option: "active" }, USED_STATUSES);
+
+    await userEvent.type(statusCombobox(), "  у ПОЛОНІ ");
+
+    expect(await screen.findByRole("option", { name: "У полоні 3" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({
+      customText: "У полоні",
+      option: BOOK_CHARACTER_STATUS.custom,
+    });
+  });
+
+  it("highlights the committed status of yours when the list opens", async () => {
+    setupStatusSelect(
+      { customText: "у полоні", option: BOOK_CHARACTER_STATUS.custom },
+      USED_STATUSES,
+    );
+
+    await userEvent.click(statusCombobox());
+
+    const highlighted = await screen.findByRole("option", { name: "У полоні 3", selected: true });
+    expect(statusCombobox()).toHaveAttribute("aria-activedescendant", highlighted.id);
+  });
+
+  it("moves the highlight from the last standard status into your statuses with ArrowDown", async () => {
+    setupStatusSelect({ customText: "", option: "transformed" }, USED_STATUSES);
+
+    await userEvent.click(statusCombobox());
+    await screen.findByRole("listbox");
+    await userEvent.keyboard("{ArrowDown}");
+
+    expect(screen.getByRole("option", { selected: true })).toHaveAccessibleName("У полоні 3");
   });
 });
 

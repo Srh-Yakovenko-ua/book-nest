@@ -23,7 +23,7 @@ export class BookChaptersRepository {
     { bookId }: { bookId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<BookChapterUsageRow[]> {
-    const [noteGroups, quoteGroups, timelineEventGroups] = await Promise.all([
+    const [noteGroups, quoteGroups, timelineEventGroups, characterGroups] = await Promise.all([
       client.note.groupBy({
         _count: { _all: true },
         by: ["chapter"],
@@ -39,9 +39,28 @@ export class BookChaptersRepository {
         by: ["chapter"],
         where: { bookId, chapter: { not: null } },
       }),
+      client.bookCharacter.groupBy({
+        _count: { _all: true },
+        by: ["firstAppearanceChapter"],
+        where: {
+          bookId,
+          character: SOFT_DELETE_SCOPE.active,
+          firstAppearanceChapter: { not: null },
+        },
+      }),
     ]);
 
-    return toUsageRows([...noteGroups, ...quoteGroups, ...timelineEventGroups]);
+    const firstAppearanceGroups = characterGroups.map((group) => ({
+      _count: group._count,
+      chapter: group.firstAppearanceChapter,
+    }));
+
+    return toUsageRows([
+      ...noteGroups,
+      ...quoteGroups,
+      ...timelineEventGroups,
+      ...firstAppearanceGroups,
+    ]);
   }
 }
 

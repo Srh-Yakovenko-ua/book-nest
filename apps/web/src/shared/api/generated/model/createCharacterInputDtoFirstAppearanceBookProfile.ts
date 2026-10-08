@@ -80,7 +80,7 @@ export type CreateCharacterInputDtoFirstAppearanceBookProfile = {
    */
   sortOrder?: number | null;
   /**
-   * @maxLength 200
+   * @maxLength 120
    * @nullable
    */
   speciesOverride?: string | null;

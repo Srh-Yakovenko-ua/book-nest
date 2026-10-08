@@ -20,6 +20,8 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
+import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
+
 import type { CharacterAliasRow } from "./character-aliases";
 
 import { findAliasConflicts, toAliasPayload, toAliasRows } from "./character-aliases";
@@ -30,6 +32,7 @@ export type CharacterEditMessages = {
   aliasReservedBook: string;
   aliasReservedGlobal: string;
   customGenderRequired: string;
+  firstAppearancePageExceedsBook: string;
   firstAppearancePageInvalid: string;
   nameRequired: string;
   nameTooLong: string;
@@ -42,14 +45,19 @@ export type CharacterEditValues = z.infer<ReturnType<typeof buildCharacterEditSc
 
 type CappedText = (max: number) => z.ZodString;
 
+type FirstAppearancePageSchema = ReturnType<typeof firstAppearancePageSchema>;
+
 const attitudeOrNone = z.union([CharacterAttitudeSchema, z.literal("")]);
 
-export function buildCharacterEditSchema(messages: CharacterEditMessages) {
+export function buildCharacterEditSchema(
+  messages: CharacterEditMessages,
+  pageCeiling: BookPageCeiling,
+) {
   const cappedText: CappedText = (max) => z.string().max(max, { error: messages.textTooLong(max) });
 
   return z
     .object({
-      book: bookScopeSchema(cappedText),
+      book: bookScopeSchema(cappedText, firstAppearancePageSchema(messages, pageCeiling)),
       global: z
         .object({
           aliases: z.array(aliasRowSchema(cappedText)),
@@ -77,14 +85,6 @@ export function buildCharacterEditSchema(messages: CharacterEditMessages) {
         }),
     })
     .superRefine((value, ctx) => {
-      if (parseFirstAppearancePage(value.book.firstAppearancePage) === "invalid") {
-        ctx.addIssue({
-          code: "custom",
-          message: messages.firstAppearancePageInvalid,
-          path: ["book", "firstAppearancePage"],
-        });
-      }
-
       addAliasIssues({
         aliases: value.global.aliases,
         ctx,
@@ -128,7 +128,7 @@ export function emptyBookScopeValues(): CharacterEditValues["book"] {
     displayNameIsSpoiler: false,
     firstAppearanceChapter: "",
     firstAppearanceNote: "",
-    firstAppearancePage: "",
+    firstAppearancePage: null,
     hidePresenceAsSpoiler: false,
     importance: BOOK_CHARACTER_UNSPECIFIED.importance,
     isPovCharacter: false,
@@ -200,8 +200,6 @@ export function toBookUpdate(
     speciesOverride: values.speciesOverride === null ? null : textOrNull(values.speciesOverride),
   };
 
-  const page = parseFirstAppearancePage(values.firstAppearancePage);
-
   return {
     appearanceNotes: textOrNull(values.appearanceNotes),
     appearanceNotesIsSpoiler: values.appearanceNotesIsSpoiler,
@@ -210,7 +208,7 @@ export function toBookUpdate(
     displayNameIsSpoiler: values.displayNameIsSpoiler,
     firstAppearanceChapter: textOrNull(values.firstAppearanceChapter),
     firstAppearanceNote: textOrNull(values.firstAppearanceNote),
-    firstAppearancePage: page === "invalid" ? null : page,
+    firstAppearancePage: values.firstAppearancePage,
     hidePresenceAsSpoiler: values.hidePresenceAsSpoiler,
     importance: values.importance,
     isPovCharacter: values.isPovCharacter,
@@ -251,8 +249,7 @@ export function toCharacterEditValues(
             displayNameIsSpoiler: appearance.displayNameIsSpoiler,
             firstAppearanceChapter: appearance.firstAppearanceChapter ?? "",
             firstAppearanceNote: appearance.firstAppearanceNote ?? "",
-            firstAppearancePage:
-              appearance.firstAppearancePage === null ? "" : String(appearance.firstAppearancePage),
+            firstAppearancePage: appearance.firstAppearancePage,
             hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
             importance: appearance.importance,
             isPovCharacter: appearance.isPovCharacter,
@@ -345,7 +342,7 @@ function aliasRowSchema(cappedText: CappedText) {
   });
 }
 
-function bookScopeSchema(cappedText: CappedText) {
+function bookScopeSchema(cappedText: CappedText, firstAppearancePage: FirstAppearancePageSchema) {
   return z.object({
     aliases: z.array(aliasRowSchema(cappedText)),
     appearanceNotes: cappedText(CHARACTER_TEXT_MAX.longText),
@@ -357,7 +354,7 @@ function bookScopeSchema(cappedText: CappedText) {
     displayNameIsSpoiler: z.boolean(),
     firstAppearanceChapter: cappedText(CHARACTER_TEXT_MAX.shortText),
     firstAppearanceNote: cappedText(CHARACTER_TEXT_MAX.shortText),
-    firstAppearancePage: z.string(),
+    firstAppearancePage,
     hidePresenceAsSpoiler: z.boolean(),
     importance: BookCharacterImportanceSchema,
     isPovCharacter: z.boolean(),
@@ -373,12 +370,26 @@ function bookScopeSchema(cappedText: CappedText) {
         roleType: BookCharacterRoleTypeSchema,
       }),
     ),
-    speciesOverride: cappedText(CHARACTER_TEXT_MAX.shortText).nullable(),
+    speciesOverride: cappedText(CHARACTER_TEXT_MAX.species).nullable(),
     speciesOverrideIsSpoiler: z.boolean(),
     status: BookCharacterStatusSchema,
     statusCustomText: cappedText(CHARACTER_TEXT_MAX.shortText),
     statusIsSpoiler: z.boolean(),
   });
+}
+
+function firstAppearancePageSchema(messages: CharacterEditMessages, pageCeiling: BookPageCeiling) {
+  const ceilingMessage =
+    pageCeiling.source === "book"
+      ? messages.firstAppearancePageExceedsBook
+      : messages.firstAppearancePageInvalid;
+
+  return z
+    .number({ error: messages.firstAppearancePageInvalid })
+    .int({ error: messages.firstAppearancePageInvalid })
+    .positive({ error: messages.firstAppearancePageInvalid })
+    .max(pageCeiling.max, { error: ceilingMessage })
+    .nullable();
 }
 
 function isSamePayload(left: unknown, right: unknown): boolean {
@@ -387,14 +398,6 @@ function isSamePayload(left: unknown, right: unknown): boolean {
 
 function maskedKeyOf(payloadKey: string): string {
   return payloadKey === "portraitMediaId" ? "portrait" : payloadKey;
-}
-
-function parseFirstAppearancePage(value: string): "invalid" | null | number {
-  const trimmed = value.trim();
-  if (trimmed === "") return null;
-  if (!/^\d+$/.test(trimmed)) return "invalid";
-  const parsed = Number(trimmed);
-  return parsed > 0 ? parsed : "invalid";
 }
 
 function textOrNull(value: string): null | string {

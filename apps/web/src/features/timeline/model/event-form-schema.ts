@@ -13,6 +13,8 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
+import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+
 export const EVENT_TITLE_MAX = 150;
 export const EVENT_SUMMARY_MAX = 300;
 export const EVENT_DESCRIPTION_MAX = 5000;
@@ -48,8 +50,9 @@ type EventFormDefaultsOptions = {
 };
 
 export function buildEventFormSchema({ messages, pagesCount }: BuildEventFormSchemaOptions) {
-  const pageCeiling = pagesCount === null || pagesCount < 1 ? TIMELINE_EVENT_PAGE_MAX : pagesCount;
-  const pageMessage = pagesCount === null ? messages.pageNotPositive : messages.pageExceedsBook;
+  const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: TIMELINE_EVENT_PAGE_MAX });
+  const pageMessage =
+    pageCeiling.source === "book" ? messages.pageExceedsBook : messages.pageNotPositive;
 
   return z.object({
     chapter: z.string().trim().max(EVENT_CHAPTER_MAX, { error: messages.chapterTooLong }),
@@ -65,7 +68,7 @@ export function buildEventFormSchema({ messages, pagesCount }: BuildEventFormSch
       .number()
       .int()
       .positive({ error: messages.pageNotPositive })
-      .max(pageCeiling, { error: pageMessage })
+      .max(pageCeiling.max, { error: pageMessage })
       .optional(),
     personalNote: z
       .string()

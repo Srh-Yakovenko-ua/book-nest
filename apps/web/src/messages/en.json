@@ -6280,6 +6280,7 @@
       "textEmpty": "Enter the note text.",
       "textTooLong": "A note cannot be longer than {max} characters.",
       "pageNotPositive": "The page number must be greater than 0.",
+      "pageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}.",
       "chapterTooLong": "The chapter name is too long.",
       "customCategoryTooLong": "The custom category cannot be longer than {max} characters.",
       "entityRequired": {
@@ -6886,6 +6887,7 @@
         "pageWhole": "The page must be a whole number",
         "pageMin": "The page must be greater than 0",
         "pageMax": "The page must be at most {max}",
+        "pageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}",
         "generic": "Could not save the quote"
       }
     },
@@ -7975,6 +7977,7 @@
       "bookSectionHint": "These values apply to this book only.",
       "cancel": "Cancel",
       "clearNarratorType": "Clear",
+      "customStatusesHeading": "Your statuses",
       "discardDescription": "Unsaved changes will be lost.",
       "discardTitle": "Discard changes?",
       "displayName": "Name in this book",
@@ -7986,6 +7989,7 @@
       "firstAppearanceNote": "Note about the first appearance",
       "firstAppearanceNotePlaceholder": "For example, mentioned in a letter",
       "firstAppearancePage": "Page",
+      "firstAppearancePageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}",
       "firstAppearancePageInvalid": "Enter the page as a number",
       "firstAppearancePagePlaceholder": "For example, 42",
       "gender": "Gender",
@@ -8137,6 +8141,7 @@
       "count": "{count}/{max}",
       "create": "Create “{name}”",
       "createHeading": "Create new",
+      "customHeading": "Your roles",
       "hint": "Standard roles from the list or your own via Enter, up to {max}.",
       "listLabel": "Role options",
       "placeholder": "Pick a role or type your own…",

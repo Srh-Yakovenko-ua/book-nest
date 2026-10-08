@@ -6,6 +6,7 @@ import type { ComponentProps } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeQuote, stubTextMetrics } from "../../model/quotes.fixtures";
@@ -75,6 +76,9 @@ beforeEach(() => {
     }
     if (url.includes("/api/books/book-1/quotes/quote-1") && method === "DELETE") {
       return Promise.resolve(new Response(null, { status: 204 }));
+    }
+    if (url === "/api/books/book-1" && method === "GET") {
+      return Promise.resolve(jsonResponse(makeBookView({ id: "book-1", pagesCount: 300 })));
     }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -328,6 +332,23 @@ describe("QuoteArchiveCard actions menu", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: "Редагувати" }));
 
     expect(await screen.findByRole("dialog", { name: "Редагувати цитату" })).toBeInTheDocument();
+  });
+
+  it("caps the edited page at the book's page count", async () => {
+    renderCard({ page: 87 });
+
+    await openMenu();
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Редагувати" }));
+    const dialog = await screen.findByRole("dialog", { name: "Редагувати цитату" });
+    const page = within(dialog).getByLabelText("Сторінка");
+    await waitFor(() => expect(page).toHaveAttribute("max", "300"));
+
+    await userEvent.clear(page);
+    await userEvent.type(page, "301");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти зміни" }));
+
+    expect(await within(dialog).findByText("У книзі лише 300 сторінок")).toBeInTheDocument();
+    expect(quoteCall("PATCH")).toBeUndefined();
   });
 
   it("asks for confirmation before deleting", async () => {

@@ -28,10 +28,12 @@ export function BookNoteLinkedEntity({ book }: { book: NoteBookPreview }) {
 export function BookNoteLocationFields({
   control,
   errors,
+  pageMax,
   register,
 }: {
   control: NoteFormControl;
   errors: NoteFormErrors;
+  pageMax: number;
   register: NoteFormRegister;
 }) {
   const t = useTranslations("notes.form");
@@ -72,6 +74,7 @@ export function BookNoteLocationFields({
               className="h-10"
               id={NOTE_FORM_FIELD_IDS.page}
               inputMode="numeric"
+              max={pageMax}
               min={1}
               onBlur={field.onBlur}
               onChange={(event) =>

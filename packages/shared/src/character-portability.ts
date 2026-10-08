@@ -106,7 +106,7 @@ const BundleAppearanceSchema = z
     portraitMediaId: externalRef().nullable(),
     roles: z.array(BundleRoleSchema).max(CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX),
     sortOrder: nullableNonNegativeInt,
-    speciesOverride: nullableText(BUNDLE_SHORT_TEXT_MAX),
+    speciesOverride: nullableText(BUNDLE_SPECIES_MAX),
     speciesOverrideIsSpoiler: z.boolean(),
     status: BookCharacterStatusSchema,
     statusCustomText: nullableText(BUNDLE_SHORT_TEXT_MAX),

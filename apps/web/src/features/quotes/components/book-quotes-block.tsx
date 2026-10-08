@@ -65,7 +65,6 @@ export function BookQuotesBlock({ book }: { book: BookView }) {
 
       <QuoteDialog
         book={toBookSelectOption(book)}
-        maxPage={book.pagesCount ?? undefined}
         mode="create"
         onOpenChange={setAddOpen}
         open={addOpen}
@@ -134,7 +133,7 @@ function BookQuotesList({
       <ul className="flex flex-col gap-3">
         {latestQuotes.map((quote) => (
           <li key={quote.id}>
-            <BookQuoteCard maxPage={book.pagesCount ?? undefined} quote={quote} />
+            <BookQuoteCard quote={quote} />
           </li>
         ))}
       </ul>

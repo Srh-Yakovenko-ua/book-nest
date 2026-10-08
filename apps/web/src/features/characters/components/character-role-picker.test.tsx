@@ -16,7 +16,7 @@ function customRole(name: string, isSpoiler = false): RoleRow {
 
 function RolePickerWithState({ initialRoles }: { initialRoles: RoleRow[] }) {
   const [roles, setRoles] = useState(initialRoles);
-  return <CharacterRolePicker onChange={setRoles} value={roles} />;
+  return <CharacterRolePicker customRoles={[]} onChange={setRoles} value={roles} />;
 }
 
 function rolesCombobox() {
@@ -43,6 +43,7 @@ describe("CharacterRolePicker chips", () => {
   it("renders a chip per role in value order, naming standard roles by type and custom roles by their text", () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[
           standardRole("antagonist"),
@@ -62,6 +63,7 @@ describe("CharacterRolePicker chips", () => {
   it("reports each chip's spoiler state as the pressed state of its spoiler toggle", () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[standardRole("protagonist", true), customRole("Друг дитинства")]}
       />,
@@ -79,6 +81,7 @@ describe("CharacterRolePicker chips", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[
           standardRole("protagonist", true),
@@ -101,7 +104,11 @@ describe("CharacterRolePicker chips", () => {
 
   it("keeps the role list closed when a spoiler toggle is clicked", async () => {
     renderWithProviders(
-      <CharacterRolePicker onChange={vi.fn()} value={[standardRole("protagonist")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[standardRole("protagonist")]}
+      />,
     );
 
     await userEvent.click(
@@ -115,6 +122,7 @@ describe("CharacterRolePicker chips", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[
           standardRole("protagonist"),
@@ -135,6 +143,7 @@ describe("CharacterRolePicker chips", () => {
   it("moves focus to the roles combobox after a role is removed", async () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[standardRole("protagonist"), standardRole("antagonist")]}
       />,
@@ -149,6 +158,7 @@ describe("CharacterRolePicker chips", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[standardRole("antagonist"), standardRole("protagonist")]}
       />,
@@ -166,6 +176,7 @@ describe("CharacterRolePicker chip keyboard", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[standardRole("protagonist"), standardRole("antagonist")]}
       />,
@@ -188,6 +199,7 @@ describe("CharacterRolePicker chip keyboard", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[standardRole("protagonist", true), standardRole("antagonist")]}
       />,
@@ -213,6 +225,7 @@ describe("CharacterRolePicker chip keyboard", () => {
   it("keeps the highlighted role on ArrowDown on a chip's remove button while the role list is open", async () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[standardRole("protagonist"), standardRole("antagonist")]}
       />,
@@ -237,6 +250,7 @@ describe("CharacterRolePicker chip keyboard", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[standardRole("protagonist"), standardRole("antagonist")]}
       />,
@@ -259,6 +273,7 @@ describe("CharacterRolePicker chip keyboard", () => {
     const onChange = vi.fn();
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={onChange}
         value={[standardRole("protagonist"), standardRole("antagonist")]}
       />,
@@ -278,6 +293,7 @@ describe("CharacterRolePicker role list", () => {
   it("offers the standard roles not yet chosen, without custom, narrator or point-of-view options", async () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[standardRole("protagonist"), customRole("Друг дитинства")]}
       />,
@@ -301,7 +317,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("opens the role list when the combobox receives keyboard focus", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.tab();
 
@@ -310,7 +326,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("names the open role list", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.click(rolesCombobox());
 
@@ -318,7 +334,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("moves the caret to the start on Home without moving the highlighted role", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.type(rolesCombobox(), "агон{ArrowDown}");
     expect(await screen.findByRole("option", { name: "Девтерагоніст" })).toHaveAttribute(
@@ -335,7 +351,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("moves the caret to the end on End without moving the highlighted role", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.type(rolesCombobox(), "агон{ArrowLeft}{ArrowLeft}");
     expect(await screen.findByRole("option", { name: "Протагоніст" })).toHaveAttribute(
@@ -352,7 +368,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("narrows the standard roles to those containing the typed text anywhere in the name", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.type(rolesCombobox(), "агон");
 
@@ -365,7 +381,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("lists standard matches above the offer to create the typed text as a new role", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.type(rolesCombobox(), "епіз");
 
@@ -379,7 +395,11 @@ describe("CharacterRolePicker role list", () => {
   it("picks the first standard match on Enter rather than creating a custom role", async () => {
     const onChange = vi.fn();
     renderWithProviders(
-      <CharacterRolePicker onChange={onChange} value={[standardRole("protagonist")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={onChange}
+        value={[standardRole("protagonist")]}
+      />,
     );
 
     await userEvent.type(rolesCombobox(), "епіз{Enter}");
@@ -393,7 +413,11 @@ describe("CharacterRolePicker role list", () => {
   it("appends typed text with no standard match as a trimmed custom role on Enter", async () => {
     const onChange = vi.fn();
     renderWithProviders(
-      <CharacterRolePicker onChange={onChange} value={[standardRole("protagonist")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={onChange}
+        value={[standardRole("protagonist")]}
+      />,
     );
 
     await userEvent.type(rolesCombobox(), "  Друг дитинства  {Enter}");
@@ -405,7 +429,7 @@ describe("CharacterRolePicker role list", () => {
   });
 
   it("does not offer to create a role that equals a standard role name ignoring case and spaces", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={[]} />);
+    renderWithProviders(<CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />);
 
     await userEvent.type(rolesCombobox(), "  АНТАГОНІСТ ");
 
@@ -415,7 +439,11 @@ describe("CharacterRolePicker role list", () => {
 
   it("reports a custom role typed in another case as already added under its stored name, without offering to create it", async () => {
     renderWithProviders(
-      <CharacterRolePicker onChange={vi.fn()} value={[customRole("Друг дитинства")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[customRole("Друг дитинства")]}
+      />,
     );
 
     await userEvent.type(rolesCombobox(), "друг ДИТИНСТВА");
@@ -427,7 +455,11 @@ describe("CharacterRolePicker role list", () => {
   it("appends the role highlighted with ArrowDown on Enter", async () => {
     const onChange = vi.fn();
     renderWithProviders(
-      <CharacterRolePicker onChange={onChange} value={[standardRole("protagonist")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={onChange}
+        value={[standardRole("protagonist")]}
+      />,
     );
 
     await userEvent.click(rolesCombobox());
@@ -446,7 +478,11 @@ describe("CharacterRolePicker role list", () => {
 
   it("offers no option and reports the role as already added when the only matching standard role is already chosen", async () => {
     renderWithProviders(
-      <CharacterRolePicker onChange={vi.fn()} value={[standardRole("episodic")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[standardRole("episodic")]}
+      />,
     );
 
     await userEvent.type(rolesCombobox(), "Епізодична");
@@ -457,7 +493,11 @@ describe("CharacterRolePicker role list", () => {
 
   it("reports a chosen standard role as already added when its name is typed in another case with stray spaces", async () => {
     renderWithProviders(
-      <CharacterRolePicker onChange={vi.fn()} value={[standardRole("protagonist")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[standardRole("protagonist")]}
+      />,
     );
 
     await userEvent.type(rolesCombobox(), "  ПРОТАГОНІСТ ");
@@ -469,13 +509,96 @@ describe("CharacterRolePicker role list", () => {
     const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
     renderWithProviders(
       <form onSubmit={onSubmit}>
-        <CharacterRolePicker onChange={vi.fn()} value={[]} />
+        <CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={[]} />
       </form>,
     );
 
     await userEvent.type(rolesCombobox(), "Друг дитинства{Enter}");
 
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("CharacterRolePicker your roles", () => {
+  const usedRoles = [
+    { count: 4, label: "Наставник" },
+    { count: 2, label: "Друг дитинства" },
+    { count: 1, label: "антагоніст" },
+  ];
+
+  it("lists your roles with their counts, without one that repeats a standard role", async () => {
+    renderWithProviders(
+      <CharacterRolePicker customRoles={usedRoles} onChange={vi.fn()} value={[]} />,
+    );
+
+    await userEvent.click(rolesCombobox());
+
+    const group = await screen.findByRole("group", { name: "Ваші ролі" });
+    expect(within(group).getByRole("option", { name: "Наставник 4" })).toBeInTheDocument();
+    expect(within(group).getByRole("option", { name: "Друг дитинства 2" })).toBeInTheDocument();
+    expect(within(group).getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("places your matching roles between the standard matches and the create offer", async () => {
+    renderWithProviders(
+      <CharacterRolePicker customRoles={usedRoles} onChange={vi.fn()} value={[]} />,
+    );
+
+    await userEvent.type(rolesCombobox(), "дру");
+
+    expect(await screen.findByRole("group", { name: "Ваші ролі" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Другорядна",
+      "Друг дитинства2",
+      "Створити «дру»",
+    ]);
+  });
+
+  it("hides your role once it is chosen, whatever its case", async () => {
+    renderWithProviders(
+      <CharacterRolePicker
+        customRoles={usedRoles}
+        onChange={vi.fn()}
+        value={[customRole("наставник")]}
+      />,
+    );
+
+    await userEvent.click(rolesCombobox());
+
+    const group = await screen.findByRole("group", { name: "Ваші ролі" });
+    expect(
+      within(group)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Друг дитинства2"]);
+  });
+
+  it("adds a clicked role of yours as a custom role under its stored spelling", async () => {
+    const onChange = vi.fn();
+    renderWithProviders(
+      <CharacterRolePicker customRoles={usedRoles} onChange={onChange} value={[]} />,
+    );
+
+    await userEvent.click(rolesCombobox());
+    await userEvent.click(await screen.findByRole("option", { name: "Наставник 4" }));
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([customRole("Наставник")]);
+  });
+
+  it("offers your role instead of creating it again when typed in another case with stray spaces", async () => {
+    const onChange = vi.fn();
+    renderWithProviders(
+      <CharacterRolePicker customRoles={usedRoles} onChange={onChange} value={[]} />,
+    );
+
+    await userEvent.type(rolesCombobox(), "  наСТАВник ");
+
+    expect(await screen.findByRole("option", { name: "Наставник 4" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([customRole("Наставник")]);
   });
 });
 
@@ -517,14 +640,18 @@ describe("CharacterRolePicker limit", () => {
   ];
 
   it("makes the combobox read-only with a limit placeholder at five roles", () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={fiveRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={fiveRoles} />,
+    );
 
     expect(rolesCombobox()).toHaveAttribute("readonly");
     expect(rolesCombobox()).toHaveAttribute("placeholder", "Ліміт вичерпано — видаліть зайві ролі");
   });
 
   it("keeps the role list closed at five roles when typing or pressing ArrowDown", async () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={fiveRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={fiveRoles} />,
+    );
 
     await userEvent.type(rolesCombobox(), "Епіз");
     await userEvent.keyboard("{ArrowDown}");
@@ -534,7 +661,9 @@ describe("CharacterRolePicker limit", () => {
 
   it("still removes the last role on Backspace at five roles", async () => {
     const onChange = vi.fn();
-    renderWithProviders(<CharacterRolePicker onChange={onChange} value={fiveRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={onChange} value={fiveRoles} />,
+    );
 
     await userEvent.click(rolesCombobox());
     await userEvent.keyboard("{Backspace}");
@@ -550,6 +679,7 @@ describe("CharacterRolePicker limit", () => {
   it("describes the combobox with the hint and the role counter", () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[standardRole("protagonist"), customRole("Друг дитинства")]}
       />,
@@ -561,7 +691,9 @@ describe("CharacterRolePicker limit", () => {
   });
 
   it("adds the limit notice to the combobox description at five roles", () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={fiveRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={fiveRoles} />,
+    );
 
     expect(rolesCombobox()).toHaveAccessibleDescription(/Ліміт вичерпано — видаліть зайві ролі/);
   });
@@ -569,6 +701,7 @@ describe("CharacterRolePicker limit", () => {
   it("keeps the role counter out of live announcements", () => {
     renderWithProviders(
       <CharacterRolePicker
+        customRoles={[]}
         onChange={vi.fn()}
         value={[standardRole("protagonist"), customRole("Друг дитинства")]}
       />,
@@ -583,7 +716,11 @@ describe("CharacterRolePicker limit", () => {
 describe("CharacterRolePicker placeholder", () => {
   it("mirrors the placeholder in a sizer kept out of the accessibility tree, so the field can wrap instead of clipping it", () => {
     renderWithProviders(
-      <CharacterRolePicker onChange={vi.fn()} value={[standardRole("protagonist")]} />,
+      <CharacterRolePicker
+        customRoles={[]}
+        onChange={vi.fn()}
+        value={[standardRole("protagonist")]}
+      />,
     );
 
     expect(screen.getByText("Оберіть роль або введіть свою…")).toHaveAttribute(
@@ -653,7 +790,9 @@ describe("CharacterRolePicker with legacy roles over the limit", () => {
   ];
 
   it("renders all seven chips and a 7/5 counter", () => {
-    renderWithProviders(<CharacterRolePicker onChange={vi.fn()} value={sevenRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={vi.fn()} value={sevenRoles} />,
+    );
 
     expect(screen.getAllByRole("button", { name: /^Прибрати роль/ })).toHaveLength(7);
     expect(screen.getByText("7/5")).toBeInTheDocument();
@@ -661,7 +800,9 @@ describe("CharacterRolePicker with legacy roles over the limit", () => {
 
   it("removes a role from an over-limit list", async () => {
     const onChange = vi.fn();
-    renderWithProviders(<CharacterRolePicker onChange={onChange} value={sevenRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={onChange} value={sevenRoles} />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Прибрати роль «Друг дитинства»" }));
 
@@ -677,7 +818,9 @@ describe("CharacterRolePicker with legacy roles over the limit", () => {
 
   it("toggles a spoiler in an over-limit list", async () => {
     const onChange = vi.fn();
-    renderWithProviders(<CharacterRolePicker onChange={onChange} value={sevenRoles} />);
+    renderWithProviders(
+      <CharacterRolePicker customRoles={[]} onChange={onChange} value={sevenRoles} />,
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Позначити «Наставник» як спойлер" }));
 
