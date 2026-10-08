@@ -15,6 +15,7 @@ import type { CharacterEditValues } from "../model/character-edit-form";
 import { effectiveCharacterName } from "../model/character-edit-form";
 import {
   BOOK_CHARACTER_IMPORTANCE,
+  BOOK_CHARACTER_STATUS,
   explicitImportance,
   explicitStatus,
 } from "../model/character-options";
@@ -35,13 +36,22 @@ export function CharacterEditPreview({ control, imageUrl }: CharacterEditPreview
   const displayName = useWatch({ control, name: "book.displayName" });
   const importance = explicitImportance(useWatch({ control, name: "book.importance" }));
   const status = explicitStatus(useWatch({ control, name: "book.status" }));
+  const statusCustomText = useWatch({ control, name: "book.statusCustomText" });
   const isPovCharacter = useWatch({ control, name: "book.isPovCharacter" });
 
   const name = effectiveCharacterName({ displayName, globalName });
+  const statusTrait = describeStatus();
   const traits = [
     ...(isPovCharacter ? [tCard("pov")] : []),
-    ...(status === null ? [] : [tStatus(status)]),
+    ...(statusTrait === null ? [] : [statusTrait]),
   ];
+
+  function describeStatus(): Nullable<string> {
+    if (status === null) return null;
+    const customStatus = statusCustomText.trim();
+    if (status === BOOK_CHARACTER_STATUS.custom && customStatus.length > 0) return customStatus;
+    return tStatus(status);
+  }
 
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-3">

@@ -7936,6 +7936,10 @@
       },
       "viewLabel": "Вигляд"
     },
+    "creatableSelect": {
+      "create": "Створити «{name}»",
+      "placeholder": "Оберіть зі списку або введіть свій…"
+    },
     "delete": {
       "aliases": "Імена: {count}",
       "appearances": "Появи в книгах: {count}",
@@ -7971,8 +7975,6 @@
       "bookSectionHint": "Ці значення стосуються лише цієї книги.",
       "cancel": "Скасувати",
       "clearNarratorType": "Очистити",
-      "customGender": "Свій варіант",
-      "customGenderPlaceholder": "Наприклад, гендерфлюїдна",
       "discardDescription": "Незбережені зміни буде втрачено.",
       "discardTitle": "Відхилити зміни?",
       "displayName": "Ім’я в цій книзі",
@@ -8020,8 +8022,6 @@
       "speciesInBookPlaceholder": "Наприклад, вампір",
       "speciesPlaceholder": "Наприклад, ельф",
       "status": "Статус",
-      "statusCustom": "Свій статус",
-      "statusCustomPlaceholder": "Наприклад, зник безвісти",
       "subtitle": "Дані книги та загальні дані зберігаються окремо.",
       "title": "Редагування персонажа"
     },

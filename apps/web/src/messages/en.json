@@ -7936,6 +7936,10 @@
       },
       "viewLabel": "View"
     },
+    "creatableSelect": {
+      "create": "Create “{name}”",
+      "placeholder": "Pick from the list or type your own…"
+    },
     "delete": {
       "aliases": "Names: {count}",
       "appearances": "Book appearances: {count}",
@@ -7971,8 +7975,6 @@
       "bookSectionHint": "These values apply to this book only.",
       "cancel": "Cancel",
       "clearNarratorType": "Clear",
-      "customGender": "Custom value",
-      "customGenderPlaceholder": "For example, genderfluid",
       "discardDescription": "Unsaved changes will be lost.",
       "discardTitle": "Discard changes?",
       "displayName": "Name in this book",
@@ -8020,8 +8022,6 @@
       "speciesInBookPlaceholder": "For example, vampire",
       "speciesPlaceholder": "For example, elf",
       "status": "Status",
-      "statusCustom": "Custom status",
-      "statusCustomPlaceholder": "For example, missing",
       "subtitle": "Book details and shared details are saved separately.",
       "title": "Edit character"
     },
