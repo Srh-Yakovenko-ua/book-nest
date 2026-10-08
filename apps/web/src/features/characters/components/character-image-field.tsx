@@ -4,12 +4,15 @@ import type { Nullable } from "@app/shared";
 
 import { MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB } from "@app/shared";
 import { useTranslations } from "next-intl";
-import { useRef } from "react";
+import Image from "next/image";
+import { useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Upload } from "@/components/ui/upload";
 import {
   ACCEPT_ATTR,
   ACCEPTED_IMAGE_TYPES,
@@ -44,9 +47,14 @@ export function CharacterImageField({
   value,
 }: CharacterImageFieldProps) {
   const t = useTranslations("books.cover");
+  const tEdit = useTranslations("characters.edit");
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const uploadButtonRef = useRef<HTMLButtonElement>(null);
   const uploadMedia = useUploadMedia();
+
+  useEffect(() => {
+    if (uploadMedia.isError) focusFirstButtonUnlessFocusIsElsewhere(containerRef.current);
+  }, [uploadMedia.isError]);
 
   async function pickFile(file: File | undefined) {
     if (file === undefined) return;
@@ -72,17 +80,82 @@ export function CharacterImageField({
       { file: normalized, kind: "avatar" },
       {
         onError: () => toast.error(t("errors.type")),
-        onSuccess: (media) => onUpload({ mediaId: media.id, previewUrl: media.urls.card }),
+        onSuccess: (media) =>
+          commitThenFocusFirstButton(() =>
+            onUpload({ mediaId: media.id, previewUrl: media.urls.card }),
+          ),
       },
     );
   }
 
-  const canRemove = value !== null;
+  function commitThenFocusFirstButton(commit: () => void) {
+    flushSync(commit);
+    focusFirstButtonUnlessFocusIsElsewhere(containerRef.current);
+  }
+
+  const resetButton =
+    value === null ? null : (
+      <Button
+        className="h-auto min-h-7 w-full py-1 text-center whitespace-normal"
+        disabled={uploadMedia.isPending}
+        onClick={() => commitThenFocusFirstButton(onReset)}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <UiIcon name="trash" size={16} />
+        {removeLabel}
+      </Button>
+    );
+
+  if (previewUrl === null) {
+    return (
+      <div className="flex flex-col gap-4" ref={containerRef}>
+        <div>
+          <Upload
+            accept={ACCEPT_ATTR}
+            browseLabel={uploadLabel}
+            className="[&_[data-slot=button]]:h-auto [&_[data-slot=button]]:min-h-11 [&_[data-slot=button]]:py-2 [&_[data-slot=button]]:text-center [&_[data-slot=button]]:whitespace-normal"
+            disabled={uploadMedia.isPending}
+            files={[]}
+            hint={
+              <>
+                <p>{t("upload.formats", { max: MEDIA_MAX_UPLOAD_MB })}</p>
+                <p>{t("upload.paste")}</p>
+              </>
+            }
+            media={
+              <Image
+                alt=""
+                aria-hidden
+                className="h-auto w-44 select-none"
+                height={500}
+                sizes="176px"
+                src="/illustrations/avatar-upload.png"
+                width={500}
+              />
+            }
+            onFilesChange={(files) => void pickFile(files[0])}
+            title={t("upload.title")}
+          />
+          <div role="status">
+            {uploadMedia.isPending ? (
+              <p className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in">
+                <UiIcon className="motion-safe:animate-spin" name="refresh" size={16} />
+                {tEdit("portraitUploading")}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        {resetButton}
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" ref={containerRef}>
       <Avatar className="size-20 bg-gradient-to-br from-accent-border to-primary text-primary-foreground">
-        {previewUrl === null ? null : <AvatarImage alt={alt} src={previewUrl} />}
+        <AvatarImage alt={alt} src={previewUrl} />
         <AvatarFallback className="bg-transparent font-heading text-3xl font-bold text-primary-foreground">
           {fallbackText.trim().charAt(0).toUpperCase()}
         </AvatarFallback>
@@ -94,7 +167,6 @@ export function CharacterImageField({
           disabled={uploadMedia.isPending}
           loading={uploadMedia.isPending}
           onClick={() => inputRef.current?.click()}
-          ref={uploadButtonRef}
           size="sm"
           type="button"
           variant="secondary"
@@ -102,21 +174,7 @@ export function CharacterImageField({
           <UiIcon name="upload" size={16} />
           {uploadLabel}
         </Button>
-        {canRemove ? (
-          <Button
-            className="h-auto min-h-7 w-full py-1 text-center whitespace-normal"
-            onClick={() => {
-              onReset();
-              uploadButtonRef.current?.focus();
-            }}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            <UiIcon name="trash" size={16} />
-            {removeLabel}
-          </Button>
-        ) : null}
+        {resetButton}
       </div>
 
       <input
@@ -132,4 +190,12 @@ export function CharacterImageField({
       />
     </div>
   );
+}
+
+function focusFirstButtonUnlessFocusIsElsewhere(container: Nullable<HTMLElement>) {
+  if (container === null) return;
+  const focused = document.activeElement;
+  const focusIsElsewhere = focused !== document.body && !container.contains(focused);
+  if (focusIsElsewhere) return;
+  container.querySelector<HTMLElement>("button:not([tabindex='-1']):not(:disabled)")?.focus();
 }

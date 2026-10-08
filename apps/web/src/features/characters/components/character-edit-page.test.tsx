@@ -471,53 +471,62 @@ describe("CharacterEditPage layout by mode", () => {
   });
 });
 
+const uploadedPortrait: MediaView = {
+  contentType: "image/png",
+  createdAt: "2026-06-27T00:00:00.000Z",
+  height: 512,
+  id: "media-portrait-1",
+  kind: "avatar",
+  name: "portrait.png",
+  sizeBytes: 2048,
+  urls: {
+    card: "https://media.dev.book-nest.net/portrait-card.webp",
+    full: "https://media.dev.book-nest.net/portrait-full.webp",
+    thumb: "https://media.dev.book-nest.net/portrait-thumb.webp",
+  },
+  width: 512,
+};
+
+class LoadedImage extends EventTarget {
+  complete = true;
+  crossOrigin: null | string = null;
+  naturalWidth = 1;
+  referrerPolicy = "";
+  src = "";
+}
+
+async function choosePortraitFile(fileInputLabel = "Перетягніть зображення сюди") {
+  await userEvent.upload(
+    within(portraitPanel()).getByLabelText(fileInputLabel),
+    new File(["portrait-bytes"], "portrait.png", { type: "image/png" }),
+  );
+}
+
+function portraitPanel(): HTMLElement {
+  return screen.getByRole("region", { name: "Зображення в цій книзі" });
+}
+
+function serveMediaUpload(respond: () => Promise<Response>) {
+  const pageFetch = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method === "POST" && String(input).includes("/api/media")) return respond();
+    return pageFetch?.(input, init);
+  });
+}
+
+async function uploadPortrait(fileInputLabel?: string) {
+  await choosePortraitFile(fileInputLabel);
+  await within(portraitPanel()).findByRole("button", {
+    name: "Використовувати основне зображення",
+  });
+}
+
 describe("CharacterEditPage live preview", () => {
-  const uploadedPortrait: MediaView = {
-    contentType: "image/png",
-    createdAt: "2026-06-27T00:00:00.000Z",
-    height: 512,
-    id: "media-portrait-1",
-    kind: "avatar",
-    name: "portrait.png",
-    sizeBytes: 2048,
-    urls: {
-      card: "https://media.dev.book-nest.net/portrait-card.webp",
-      full: "https://media.dev.book-nest.net/portrait-full.webp",
-      thumb: "https://media.dev.book-nest.net/portrait-thumb.webp",
-    },
-    width: 512,
-  };
-
-  class LoadedImage extends EventTarget {
-    complete = true;
-    crossOrigin: null | string = null;
-    naturalWidth = 1;
-    referrerPolicy = "";
-    src = "";
-  }
-
   beforeEach(() => {
     vi.stubGlobal("Image", LoadedImage);
-    const pageFetch = fetchMock.getMockImplementation();
-    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-      const method = (init?.method ?? "GET").toUpperCase();
-      if (method === "POST" && String(input).includes("/api/media")) {
-        return Promise.resolve(jsonResponse(uploadedPortrait, 201));
-      }
-      return pageFetch?.(input, init);
-    });
+    serveMediaUpload(() => Promise.resolve(jsonResponse(uploadedPortrait, 201)));
   });
-
-  async function uploadPortrait() {
-    const portraitPanel = screen.getByRole("region", { name: "Зображення в цій книзі" });
-    await userEvent.upload(
-      within(portraitPanel).getByLabelText("Вибрати зображення для цієї книги"),
-      new File(["portrait-bytes"], "portrait.png", { type: "image/png" }),
-    );
-    await within(portraitPanel).findByRole("button", {
-      name: "Використовувати основне зображення",
-    });
-  }
 
   it("shows the global name while the display name is inherited", async () => {
     renderEdit();
@@ -651,6 +660,221 @@ describe("CharacterEditPage live preview", () => {
 
     expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
     expect(within(previewRegion()).getByText("Ґ")).toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage book portrait field", () => {
+  const globalAvatar: MediaView = {
+    ...uploadedPortrait,
+    id: "media-avatar-1",
+    name: "avatar.png",
+    urls: {
+      card: "https://media.dev.book-nest.net/avatar-card.webp",
+      full: "https://media.dev.book-nest.net/avatar-full.webp",
+      thumb: "https://media.dev.book-nest.net/avatar-thumb.webp",
+    },
+  };
+
+  beforeEach(() => {
+    vi.stubGlobal("Image", LoadedImage);
+    serveMediaUpload(() => Promise.resolve(jsonResponse(uploadedPortrait, 201)));
+  });
+
+  function dropzone(): HTMLElement {
+    return within(portraitPanel()).getByRole("button", { name: /Перетягніть зображення сюди/ });
+  }
+
+  function holdPortraitUpload(response = jsonResponse(uploadedPortrait, 201)): () => void {
+    let respond: (response: Response) => void = () => undefined;
+    serveMediaUpload(
+      () =>
+        new Promise<Response>((resolve) => {
+          respond = resolve;
+        }),
+    );
+    return () => respond(response);
+  }
+
+  it("offers a dropzone instead of an avatar when the character has no image at all", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(dropzone()).getByText("Перетягніть зображення сюди")).toBeInTheDocument();
+    expect(within(dropzone()).getByText("Вибрати зображення для цієї книги")).toBeInTheDocument();
+    expect(within(portraitPanel()).queryByText("Ґ")).not.toBeInTheDocument();
+    expect(
+      within(portraitPanel()).queryByRole("button", { name: "Вибрати зображення для цієї книги" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the dropzone illustration out of the accessibility tree", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(portraitPanel()).queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("shows the inherited global avatar and an upload button instead of the dropzone", async () => {
+    servedCharacter = { ...character, avatar: globalAvatar };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(await within(portraitPanel()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      globalAvatar.urls.card,
+    );
+    expect(
+      within(portraitPanel()).getByRole("button", { name: "Вибрати зображення для цієї книги" }),
+    ).toBeInTheDocument();
+    expect(
+      within(portraitPanel()).queryByText("Перетягніть зображення сюди"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("announces the upload and locks the dropzone while the image is uploading", async () => {
+    holdPortraitUpload();
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await choosePortraitFile();
+
+    await waitFor(() =>
+      expect(within(portraitPanel()).getByRole("status")).toHaveTextContent(
+        "Завантажуємо зображення…",
+      ),
+    );
+    expect(dropzone()).toBeDisabled();
+  });
+
+  it("keeps the status region mounted and empty until the upload starts", async () => {
+    holdPortraitUpload();
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const status = within(portraitPanel()).getByRole("status");
+    expect(status).toBeEmptyDOMElement();
+
+    await choosePortraitFile();
+
+    await waitFor(() => expect(status).toHaveTextContent("Завантажуємо зображення…"));
+  });
+
+  it("drops the upload status and shows the image once the upload finishes", async () => {
+    const finishUpload = holdPortraitUpload();
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await choosePortraitFile();
+    await within(portraitPanel()).findByText("Завантажуємо зображення…");
+    finishUpload();
+
+    expect(await within(portraitPanel()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+    expect(within(portraitPanel()).queryByText("Завантажуємо зображення…")).not.toBeInTheDocument();
+  });
+
+  it("leaves focus on the field the user moved to while the upload was running", async () => {
+    const finishUpload = holdPortraitUpload();
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await choosePortraitFile();
+    await within(portraitPanel()).findByText("Завантажуємо зображення…");
+    const nameField = screen.getByRole("textbox", { name: "Ім’я" });
+    await userEvent.click(nameField);
+    finishUpload();
+
+    await within(portraitPanel()).findByRole("button", { name: "Замінити зображення" });
+    expect(nameField).toHaveFocus();
+  });
+
+  it("returns focus to the re-enabled dropzone when the upload fails", async () => {
+    const failUpload = holdPortraitUpload(jsonResponse({ message: "boom" }, 500));
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await choosePortraitFile();
+    await waitFor(() => expect(dropzone()).toBeDisabled());
+    failUpload();
+
+    await waitFor(() => expect(dropzone()).toHaveFocus());
+    expect(dropzone()).toBeEnabled();
+  });
+
+  it("moves focus to the replace button once the upload finishes", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadPortrait();
+
+    expect(
+      within(portraitPanel()).getByRole("button", { name: "Замінити зображення" }),
+    ).toHaveFocus();
+  });
+
+  it("locks the reset button while a replacement upload is in flight", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadPortrait();
+    holdPortraitUpload();
+    await choosePortraitFile("Замінити зображення");
+
+    await waitFor(() =>
+      expect(
+        within(portraitPanel()).getByRole("button", {
+          name: "Використовувати основне зображення",
+        }),
+      ).toBeDisabled(),
+    );
+  });
+
+  it("brings back the dropzone with focus when the portrait is reset and no global avatar exists", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadPortrait();
+    await userEvent.click(
+      within(portraitPanel()).getByRole("button", { name: "Використовувати основне зображення" }),
+    );
+
+    expect(dropzone()).toHaveFocus();
+  });
+
+  it("shows the inherited global avatar again when the portrait is reset", async () => {
+    servedCharacter = { ...character, avatar: globalAvatar };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadPortrait("Вибрати зображення для цієї книги");
+    await userEvent.click(
+      within(portraitPanel()).getByRole("button", { name: "Використовувати основне зображення" }),
+    );
+
+    expect(within(portraitPanel()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      globalAvatar.urls.card,
+    );
+  });
+
+  it("moves focus to the upload button when the portrait is reset over a global avatar", async () => {
+    servedCharacter = { ...character, avatar: globalAvatar };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadPortrait("Вибрати зображення для цієї книги");
+    await userEvent.click(
+      within(portraitPanel()).getByRole("button", { name: "Використовувати основне зображення" }),
+    );
+
+    expect(
+      within(portraitPanel()).getByRole("button", { name: "Вибрати зображення для цієї книги" }),
+    ).toHaveFocus();
   });
 });
 
