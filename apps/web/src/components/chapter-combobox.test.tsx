@@ -17,9 +17,9 @@ const CHAPTERS: BookChapterUsageView[] = [
 const CHAPTER_MAX = 100;
 
 const OPTION_NAMES = {
-  chapterOne: "Розділ 1 7",
-  chapterTwelve: "Розділ 12 3",
-  prologue: "Пролог 2",
+  chapterOne: "Розділ 1 використано 7 разів",
+  chapterTwelve: "Розділ 12 використано 3 рази",
+  prologue: "Пролог використано 2 рази",
 };
 
 function Harness({
@@ -85,6 +85,7 @@ describe("ChapterCombobox", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("option", { name: OPTION_NAMES.chapterTwelve })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: OPTION_NAMES.prologue })).toBeInTheDocument();
+    expect(screen.getByText("7")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("filters case-insensitively on any part of the chapter", async () => {

@@ -301,8 +301,11 @@ function QuoteForm({
   const {
     control,
     formState: { errors, isDirty },
+    getFieldState,
+    getValues,
     handleSubmit,
     register,
+    trigger,
   } = useForm<QuoteFormValues>({
     defaultValues: toDefaults(book, quote),
     mode: "onTouched",
@@ -326,6 +329,11 @@ function QuoteForm({
   };
 
   useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!getFieldState("page").isTouched && getValues("page") === "") return;
+    void trigger("page");
+  }, [getFieldState, getValues, pageCeiling.max, trigger]);
 
   const text = useWatch({ control, name: "text" });
   const comment = useWatch({ control, name: "comment" });

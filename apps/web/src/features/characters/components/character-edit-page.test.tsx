@@ -51,6 +51,7 @@ const character = makeCharacterDetails({
 
 const fetchMock = vi.fn();
 
+let bookDetailGate: Promise<void>;
 let bookPatchStatus: number;
 let servedChapters: BookChapterUsageView[];
 let servedCharacter: CharacterDetailsView;
@@ -113,6 +114,7 @@ function renderEdit(search = "bookId=book-1") {
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
+  bookDetailGate = Promise.resolve();
   bookPatchStatus = 200;
   servedChapters = [];
   servedCharacter = character;
@@ -133,7 +135,7 @@ beforeEach(() => {
       return Promise.resolve(jsonResponse(servedCustomLabels));
     }
     if (method === "GET" && url.endsWith("/api/books/book-1")) {
-      return Promise.resolve(
+      return bookDetailGate.then(() =>
         jsonResponse(makeBookView({ id: "book-1", pagesCount: servedPagesCount })),
       );
     }
@@ -423,6 +425,24 @@ describe("CharacterEditPage narrative metadata", () => {
     expect(patchCount()).toBe(0);
   });
 
+  it("flags a page typed before the book's page count arrived", async () => {
+    let releaseBookDetail: () => void = () => undefined;
+    bookDetailGate = new Promise((resolve) => {
+      releaseBookDetail = resolve;
+    });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(firstAppearancePageField(), "400");
+    await userEvent.tab();
+    expect(screen.queryByText("У книзі лише 300 сторінок")).not.toBeInTheDocument();
+
+    releaseBookDetail();
+
+    expect(await screen.findByText("У книзі лише 300 сторінок")).toBeInTheDocument();
+    expect(firstAppearancePageField()).toHaveAttribute("max", "300");
+  });
+
   it("sends the last page of the book as a number", async () => {
     renderEdit();
 
@@ -488,10 +508,12 @@ describe("CharacterEditPage narrative metadata", () => {
     const chapterField = await screen.findByRole("combobox", { name: /^Розділ/ });
     await userEvent.click(chapterField);
 
-    expect(await screen.findByRole("option", { name: "Голос розуму 4" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: "Голос розуму використано 4 рази" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole("option")).toHaveLength(2);
 
-    await userEvent.click(screen.getByRole("option", { name: "Пролог 2" }));
+    await userEvent.click(screen.getByRole("option", { name: "Пролог використано 2 рази" }));
     expect(chapterField).toHaveValue("Пролог");
 
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
@@ -1341,7 +1363,9 @@ describe("CharacterEditPage status", () => {
     await screen.findByDisplayValue("Ґеральт");
     await userEvent.click(statusCombobox());
     const yourStatuses = await screen.findByRole("group", { name: "Ваші статуси" });
-    await userEvent.click(within(yourStatuses).getByRole("option", { name: "У полоні 2" }));
+    await userEvent.click(
+      within(yourStatuses).getByRole("option", { name: "У полоні використано 2 рази" }),
+    );
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -1374,7 +1398,9 @@ describe("CharacterEditPage your roles", () => {
     await screen.findByDisplayValue("Ґеральт");
     await userEvent.click(rolesCombobox());
     const yourRoles = await screen.findByRole("group", { name: "Ваші ролі" });
-    await userEvent.click(within(yourRoles).getByRole("option", { name: "Наставник Цірі 3" }));
+    await userEvent.click(
+      within(yourRoles).getByRole("option", { name: "Наставник Цірі використано 3 рази" }),
+    );
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -1390,7 +1416,9 @@ describe("CharacterEditPage your roles", () => {
     await waitFor(() => expect(customLabelRequests()).toHaveLength(1));
     await userEvent.type(rolesCombobox(), "  наставник   ЦІРІ ");
 
-    expect(await screen.findByRole("option", { name: "Наставник Цірі 3" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: "Наставник Цірі використано 3 рази" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
   });
 });

@@ -189,7 +189,9 @@ describe("EventFormDialog create", () => {
 
     await toggleSection(/Місце в книзі/);
     await userEvent.type(screen.getByLabelText("Розділ"), "розділ 1");
-    await userEvent.click(await screen.findByRole("option", { name: "Розділ 1 7" }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Розділ 1 використано 7 разів" }),
+    );
 
     expect(screen.getByLabelText("Розділ")).toHaveValue("Розділ 1");
   });

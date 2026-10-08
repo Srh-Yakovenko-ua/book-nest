@@ -534,9 +534,14 @@ describe("CharacterRolePicker your roles", () => {
     await userEvent.click(rolesCombobox());
 
     const group = await screen.findByRole("group", { name: "Ваші ролі" });
-    expect(within(group).getByRole("option", { name: "Наставник 4" })).toBeInTheDocument();
-    expect(within(group).getByRole("option", { name: "Друг дитинства 2" })).toBeInTheDocument();
+    expect(
+      within(group).getByRole("option", { name: "Наставник використано 4 рази" }),
+    ).toBeInTheDocument();
+    expect(
+      within(group).getByRole("option", { name: "Друг дитинства використано 2 рази" }),
+    ).toBeInTheDocument();
     expect(within(group).getAllByRole("option")).toHaveLength(2);
+    expect(within(group).getByText("4")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("places your matching roles between the standard matches and the create offer", async () => {
@@ -547,10 +552,10 @@ describe("CharacterRolePicker your roles", () => {
     await userEvent.type(rolesCombobox(), "дру");
 
     expect(await screen.findByRole("group", { name: "Ваші ролі" })).toBeInTheDocument();
-    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
-      "Другорядна",
-      "Друг дитинства2",
-      "Створити «дру»",
+    expect(screen.getAllByRole("option")).toEqual([
+      screen.getByRole("option", { name: "Другорядна" }),
+      screen.getByRole("option", { name: "Друг дитинства використано 2 рази" }),
+      screen.getByRole("option", { name: "Створити «дру»" }),
     ]);
   });
 
@@ -566,11 +571,9 @@ describe("CharacterRolePicker your roles", () => {
     await userEvent.click(rolesCombobox());
 
     const group = await screen.findByRole("group", { name: "Ваші ролі" });
-    expect(
-      within(group)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
-    ).toEqual(["Друг дитинства2"]);
+    expect(within(group).getByRole("option")).toHaveAccessibleName(
+      "Друг дитинства використано 2 рази",
+    );
   });
 
   it("adds a clicked role of yours as a custom role under its stored spelling", async () => {
@@ -580,7 +583,9 @@ describe("CharacterRolePicker your roles", () => {
     );
 
     await userEvent.click(rolesCombobox());
-    await userEvent.click(await screen.findByRole("option", { name: "Наставник 4" }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Наставник використано 4 рази" }),
+    );
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith([customRole("Наставник")]);
   });
@@ -593,7 +598,9 @@ describe("CharacterRolePicker your roles", () => {
 
     await userEvent.type(rolesCombobox(), "  наСТАВник ");
 
-    expect(await screen.findByRole("option", { name: "Наставник 4" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: "Наставник використано 4 рази" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
 
     await userEvent.keyboard("{Enter}");

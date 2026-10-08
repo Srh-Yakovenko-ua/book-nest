@@ -12,6 +12,9 @@
     "discardChanges": {
       "cancel": "Keep editing",
       "confirm": "Yes, leave"
+    },
+    "chapterCombobox": {
+      "usageCount": "used {count, plural, one {# time} other {# times}}"
     }
   },
   "nav": {
@@ -7940,7 +7943,8 @@
     },
     "creatableSelect": {
       "create": "Create “{name}”",
-      "placeholder": "Pick from the list or type your own…"
+      "placeholder": "Pick from the list or type your own…",
+      "usageCount": "used {count, plural, one {# time} other {# times}}"
     },
     "delete": {
       "aliases": "Names: {count}",
@@ -8147,7 +8151,8 @@
       "placeholder": "Pick a role or type your own…",
       "remove": "Remove role “{role}”",
       "suggestionsHeading": "Standard roles",
-      "toggleSpoiler": "Mark “{role}” as a spoiler"
+      "toggleSpoiler": "Mark “{role}” as a spoiler",
+      "usageCount": "used {count, plural, one {# time} other {# times}}"
     },
     "roleType": {
       "antagonist": "Antagonist",

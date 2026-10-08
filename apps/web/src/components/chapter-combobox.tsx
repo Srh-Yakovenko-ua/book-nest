@@ -4,6 +4,7 @@ import type { BookChapterUsageView } from "@app/shared";
 import type { KeyboardEvent } from "react";
 
 import { Command as CommandPrimitive } from "cmdk";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 import { CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -37,6 +38,7 @@ export function ChapterCombobox({
   placeholder,
   value,
 }: ChapterComboboxProps) {
+  const t = useTranslations("common.chapterCombobox");
   const [open, setOpen] = useState(false);
   const [highlightArmed, setHighlightArmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -121,9 +123,10 @@ export function ChapterCombobox({
                   value={option.chapter}
                 >
                   <span className="min-w-0 flex-1 truncate">{option.chapter}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  <span aria-hidden className="shrink-0 text-xs text-muted-foreground tabular-nums">
                     {option.count}
                   </span>
+                  <span className="sr-only">{t("usageCount", { count: option.count })}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

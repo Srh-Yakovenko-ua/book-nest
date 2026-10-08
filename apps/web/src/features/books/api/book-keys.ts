@@ -1,5 +1,7 @@
 import type { QueryKey } from "@tanstack/react-query";
 
+import { hashKey } from "@tanstack/react-query";
+
 import type { BooksControllerQuickCountsParams } from "@/shared/api/generated/model";
 
 export const BOOKS_ROOT = "/api/books";
@@ -12,6 +14,11 @@ export const bookKeys = {
     [BOOKS_ROOT, "quick-counts", params] as const,
   root: [BOOKS_ROOT] as const,
 };
+
+export function matchesAnyBookChapters({ queryKey }: { queryKey: QueryKey }): boolean {
+  const [, , bookId] = queryKey;
+  return typeof bookId === "string" && hashKey(queryKey) === hashKey(bookKeys.chapters(bookId));
+}
 
 export function matchesBooksExceptDetail(id: string) {
   return (query: { queryKey: QueryKey }) =>
