@@ -31,6 +31,7 @@ export const characterKeys = {
   bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId] as const,
   bookSummary: (bookId: string, readingContext: BookCharacterSummaryQuery) =>
     [CHARACTERS_ROOT, "book-summary", bookId, readingContext] as const,
+  customLabels: () => [CHARACTERS_ROOT, "custom-labels"] as const,
   deletionPreview: (characterId: string) =>
     [CHARACTERS_ROOT, "deletion-preview", characterId] as const,
   details: (characterId: string, params: CharactersControllerGetByIdParams) =>

@@ -65,6 +65,30 @@ async function createBook(userId: string): Promise<string> {
   return book.id;
 }
 
+async function createBookCharacter(
+  bookId: string,
+  characterId: string,
+  firstAppearanceChapter: null | string,
+): Promise<void> {
+  await prisma.bookCharacter.create({ data: { bookId, characterId, firstAppearanceChapter } });
+}
+
+async function createCharacter(
+  userId: string,
+  options: { deleted?: boolean } = {},
+): Promise<string> {
+  const name = `Character ${randomUUID()}`;
+  const character = await prisma.character.create({
+    data: {
+      name,
+      normalizedName: name.toLowerCase(),
+      ...trashStamps(options.deleted === true),
+      userId,
+    },
+  });
+  return character.id;
+}
+
 async function createNote(
   userId: string,
   bookId: string,
@@ -244,5 +268,62 @@ describe("GET /api/books/:bookId/chapters", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.chapters).toEqual<ChapterUsageResult[]>([{ chapter: "Розділ 1", count: 1 }]);
+  });
+
+  it("suggests the first-appearance chapter of a book character", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(userId);
+    await createBookCharacter(bookId, await createCharacter(userId), "Розділ 2");
+    await createBookCharacter(bookId, await createCharacter(userId), null);
+
+    const res = await getChapters(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.chapters).toEqual<ChapterUsageResult[]>([{ chapter: "Розділ 2", count: 1 }]);
+  });
+
+  it("merges first-appearance chapters with note and quote chapters of a different case", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(userId);
+    await createNote(userId, bookId, "Розділ 3");
+    await createQuote(userId, bookId, "розділ 3");
+    await createBookCharacter(bookId, await createCharacter(userId), "РОЗДІЛ 3");
+    await createBookCharacter(bookId, await createCharacter(userId), "Розділ 3");
+    await createBookCharacter(bookId, await createCharacter(userId), "Пролог");
+
+    const res = await getChapters(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.chapters).toEqual<ChapterUsageResult[]>([
+      { chapter: "Розділ 3", count: 4 },
+      { chapter: "Пролог", count: 1 },
+    ]);
+  });
+
+  it("ignores first-appearance chapters a character has in another book", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(userId);
+    const otherBookId = await createBook(userId);
+    const sharedCharacterId = await createCharacter(userId);
+    await createBookCharacter(bookId, sharedCharacterId, "Розділ 1");
+    await createBookCharacter(otherBookId, sharedCharacterId, "Розділ 7");
+    await createBookCharacter(otherBookId, await createCharacter(userId), "Розділ 8");
+
+    const res = await getChapters(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.chapters).toEqual<ChapterUsageResult[]>([{ chapter: "Розділ 1", count: 1 }]);
+  });
+
+  it("excludes first-appearance chapters of trashed characters", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(userId);
+    await createBookCharacter(bookId, await createCharacter(userId, { deleted: true }), "Розділ 5");
+    await createBookCharacter(bookId, await createCharacter(userId), "Розділ 6");
+
+    const res = await getChapters(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.chapters).toEqual<ChapterUsageResult[]>([{ chapter: "Розділ 6", count: 1 }]);
   });
 });

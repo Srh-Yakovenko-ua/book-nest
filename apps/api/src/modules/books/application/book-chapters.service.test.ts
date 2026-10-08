@@ -88,14 +88,15 @@ describe("BookChaptersService.getChapters", () => {
     expect(result).toEqual({ chapters: [{ chapter: "Розділ 9", count: 10 }] });
   });
 
-  it("sums the same chapter across notes, quotes and timeline events", async () => {
+  it("sums the same chapter across notes, quotes, timeline events and character appearances", async () => {
     const result = await getChapters([
       { chapter: "Розділ 4", count: 2 },
       { chapter: "розділ 4", count: 3 },
       { chapter: "Розділ 4", count: 4 },
+      { chapter: "РОЗДІЛ 4", count: 1 },
     ]);
 
-    expect(result).toEqual({ chapters: [{ chapter: "Розділ 4", count: 9 }] });
+    expect(result).toEqual({ chapters: [{ chapter: "Розділ 4", count: 10 }] });
   });
 
   it("drops chapters that are empty or whitespace only", async () => {

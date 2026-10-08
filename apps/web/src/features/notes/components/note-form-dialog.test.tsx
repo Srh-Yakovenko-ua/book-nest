@@ -60,11 +60,13 @@ const LIBRARY: { books: BookView[]; series: SeriesView[] } = {
     makeBookView({
       authors: [{ id: "author-1", name: "Френк Герберт" }],
       id: "book-1",
+      pagesCount: 300,
       title: "Дюна",
     }),
     makeBookView({
       authors: [{ id: "author-2", name: "Урсула Ле Гуїн" }],
       id: "book-2",
+      pagesCount: null,
       title: "Чарівник Земномор'я",
     }),
   ],
@@ -85,6 +87,12 @@ const LIBRARY: { books: BookView[]; series: SeriesView[] } = {
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 let respondToWrite: (call: WriteCall) => Promise<Response>;
+
+function bookDetailRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => /^\/api\/books\/[^/?]+$/.test(url));
+}
 
 function bookEntity(note: NoteView): NoteEntityRef {
   if (note.book === null) throw new Error("book note without book");
@@ -184,6 +192,8 @@ beforeEach(() => {
       return Promise.resolve(page(LIBRARY.books));
     if (method === "GET" && url.startsWith("/api/series?"))
       return Promise.resolve(page(LIBRARY.series));
+    const book = LIBRARY.books.find(({ id }) => url === `/api/books/${id}`);
+    if (method === "GET" && book !== undefined) return Promise.resolve(jsonResponse(book));
     if (method !== "GET") {
       const body =
         init?.body === undefined ? {} : (JSON.parse(String(init.body)) as Record<string, unknown>);
@@ -291,6 +301,52 @@ describe("NoteFormDialog book create", () => {
 
     expect(await screen.findByText("Введіть текст нотатки.")).toBeInTheDocument();
     expect(writes()).toHaveLength(0);
+  });
+});
+
+describe("NoteFormDialog book page limit", () => {
+  it("rejects a page beyond the picked book and accepts its last page", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    await pickBook(/Дюна/);
+    await waitFor(() => expect(screen.getByLabelText(NAMES.page)).toHaveAttribute("max", "300"));
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await userEvent.type(screen.getByLabelText(NAMES.page), "301");
+    await submit(NAMES.submitCreate);
+
+    expect(await screen.findByText("У книзі лише 300 сторінок.")).toBeInTheDocument();
+    expect(writes()).toHaveLength(0);
+
+    await userEvent.clear(screen.getByLabelText(NAMES.page));
+    await userEvent.type(screen.getByLabelText(NAMES.page), "300");
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ page: 300 });
+  });
+
+  it("flags a saved page beyond the book when the note is edited", async () => {
+    const note = makeBookNote({ page: 301 });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    await waitFor(() => expect(screen.getByLabelText(NAMES.page)).toHaveAttribute("max", "300"));
+    await submit(NAMES.submitEdit);
+
+    expect(await screen.findByText("У книзі лише 300 сторінок.")).toBeInTheDocument();
+    expect(writes()).toHaveLength(0);
+  });
+
+  it("keeps the technical limit when the book has no page count", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+
+    await pickBook(/Чарівник Земномор/);
+    await waitFor(() => expect(bookDetailRequests()).toEqual(["/api/books/book-2"]));
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await userEvent.type(screen.getByLabelText(NAMES.page), "5000");
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ page: 5000 });
   });
 });
 

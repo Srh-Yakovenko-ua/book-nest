@@ -67,6 +67,7 @@ beforeEach(() => {
     const url = String(input);
     const method = String(init?.method ?? "GET").toUpperCase();
     if (method === "GET" && url === "/api/books/book-1/notes") return respondToNotesList();
+    if (method === "GET" && url === "/api/books/book-1") return Promise.resolve(jsonResponse(BOOK));
     if (method === "PATCH" && url === "/api/notes/note-1") {
       const body = JSON.parse(String(init?.body)) as Partial<NoteView>;
       return Promise.resolve(jsonResponse(makeBookNote(body)));

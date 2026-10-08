@@ -6,7 +6,7 @@ import { NOTE_INPUT_LIMITS } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useBookPagesCount } from "@/features/books/api/use-book";
+import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 
 import type { NoteEntityRef } from "../model/note-entity";
-import type { NoteFormInput, NoteFormValues } from "../model/note-form-schema";
+import type { NoteFormInput, NoteFormMessages, NoteFormValues } from "../model/note-form-schema";
 
 import { useCreateNote } from "../api/use-create-note";
 import { useUpdateNote } from "../api/use-update-note";
@@ -95,19 +97,26 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
       note,
     }),
     mode: "onTouched",
-    resolver: zodResolver(
-      buildNoteFormSchema({
-        chapterTooLong: tErrors("chapterTooLong"),
-        customCategoryTooLong: tErrors("customCategoryTooLong", {
-          max: NOTE_INPUT_LIMITS.customCategoryMax,
-        }),
-        entityRequired: tErrors(`entityRequired.${entityType}`),
-        pageNotPositive: tErrors("pageNotPositive"),
-        textEmpty: tErrors("textEmpty"),
-        textTooLong: tErrors("textTooLong", { max: NOTE_INPUT_LIMITS.textMax }),
-      }),
-    ),
+    resolver: (values, context, options) =>
+      zodResolver(buildNoteFormSchema(messages, pageCeiling))(values, context, options),
   });
+
+  const selectedEntity = useWatch({ control, name: "entity" });
+  const pagesCount = useBookPagesCount(
+    selectedEntity?.type === "book" ? selectedEntity.book.id : null,
+  );
+  const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: NOTE_INPUT_LIMITS.pageMax });
+  const messages: NoteFormMessages = {
+    chapterTooLong: tErrors("chapterTooLong"),
+    customCategoryTooLong: tErrors("customCategoryTooLong", {
+      max: NOTE_INPUT_LIMITS.customCategoryMax,
+    }),
+    entityRequired: tErrors(`entityRequired.${entityType}`),
+    pageExceedsBook: tErrors("pageExceedsBook", { max: pageCeiling.max }),
+    pageNotPositive: tErrors("pageNotPositive"),
+    textEmpty: tErrors("textEmpty"),
+    textTooLong: tErrors("textTooLong", { max: NOTE_INPUT_LIMITS.textMax }),
+  };
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -143,6 +152,7 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
           entityType={entityType}
           errors={errors}
           note={note}
+          pageMax={pageCeiling.max}
           register={register}
         />
         <NoteFlagFields control={control} />

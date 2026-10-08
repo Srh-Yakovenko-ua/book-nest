@@ -6280,6 +6280,7 @@
       "textEmpty": "Введіть текст нотатки.",
       "textTooLong": "Нотатка не може бути довшою за {max} символів.",
       "pageNotPositive": "Номер сторінки має бути більшим за 0.",
+      "pageExceedsBook": "У книзі лише {max, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}.",
       "chapterTooLong": "Назва розділу занадто довга.",
       "customCategoryTooLong": "Назва власної категорії не може бути довшою за {max} символів.",
       "entityRequired": {
@@ -6886,6 +6887,7 @@
         "pageWhole": "Сторінка має бути цілим числом",
         "pageMin": "Сторінка має бути більшою за 0",
         "pageMax": "Сторінка має бути не більшою за {max}",
+        "pageExceedsBook": "У книзі лише {max, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
         "generic": "Не вдалося зберегти цитату"
       }
     },
@@ -7975,6 +7977,7 @@
       "bookSectionHint": "Ці значення стосуються лише цієї книги.",
       "cancel": "Скасувати",
       "clearNarratorType": "Очистити",
+      "customStatusesHeading": "Ваші статуси",
       "discardDescription": "Незбережені зміни буде втрачено.",
       "discardTitle": "Відхилити зміни?",
       "displayName": "Ім’я в цій книзі",
@@ -7986,6 +7989,7 @@
       "firstAppearanceNote": "Нотатка про першу появу",
       "firstAppearanceNotePlaceholder": "Наприклад, згадується в листі",
       "firstAppearancePage": "Сторінка",
+      "firstAppearancePageExceedsBook": "У книзі лише {max, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
       "firstAppearancePageInvalid": "Вкажіть номер сторінки числом",
       "firstAppearancePagePlaceholder": "Наприклад, 42",
       "gender": "Гендер",
@@ -8137,6 +8141,7 @@
       "count": "{count}/{max}",
       "create": "Створити «{name}»",
       "createHeading": "Створити нову",
+      "customHeading": "Ваші ролі",
       "hint": "Стандартні ролі зі списку або власні через Enter, до {max} штук.",
       "listLabel": "Варіанти ролей",
       "placeholder": "Оберіть роль або введіть свою…",

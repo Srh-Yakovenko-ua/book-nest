@@ -35,6 +35,7 @@ type NoteLocationSlotProps = {
   entityType: NoteEntityType;
   errors: NoteFormErrors;
   note: NoteView | undefined;
+  pageMax: number;
   register: NoteFormRegister;
 };
 
@@ -74,11 +75,19 @@ export function NoteLocationSlot({
   entityType,
   errors,
   note,
+  pageMax,
   register,
 }: NoteLocationSlotProps) {
   switch (entityType) {
     case "book":
-      return <BookNoteLocationFields control={control} errors={errors} register={register} />;
+      return (
+        <BookNoteLocationFields
+          control={control}
+          errors={errors}
+          pageMax={pageMax}
+          register={register}
+        />
+      );
     case "series":
       return note === undefined ? null : (
         <SeriesNoteSavedLocationField control={control} location={note} />

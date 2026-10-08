@@ -2,7 +2,7 @@
 
 import type { KeyboardEvent, PointerEvent } from "react";
 
-import { normalizeName, type Nullable } from "@app/shared";
+import { type CharacterCustomLabelUsageView, normalizeName, type Nullable } from "@app/shared";
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
@@ -18,13 +18,17 @@ import { BOOK_CHARACTER_ROLE } from "../model/character-options";
 import { CharacterRoleChip } from "./character-role-chip";
 
 type CharacterRolePickerProps = {
+  customRoles: readonly CharacterCustomLabelUsageView[];
   onChange: (roles: RoleRow[]) => void;
   value: RoleRow[];
 };
 
 type RoleRow = CharacterEditValues["book"]["roles"][number];
 
-export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProps) {
+const ROLE_ITEM_CLASS_NAME =
+  "cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[selected=true]:ring-1 data-[selected=true]:ring-ring [&>svg:last-child]:hidden";
+
+export function CharacterRolePicker({ customRoles, onChange, value }: CharacterRolePickerProps) {
   const t = useTranslations("characters.rolePicker");
   const tForm = useTranslations("characters.form");
   const tRole = useTranslations("characters.roleType");
@@ -49,12 +53,19 @@ export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProp
   const suggestions = standardRoles.filter(
     ({ label, roleType }) => !selectedTypes.has(roleType) && normalizeName(label).includes(query),
   );
+  const standardNames = new Set(standardRoles.map(({ label }) => normalizeName(label)));
+  const selectedNames = new Set(value.map((role) => normalizeName(labelOf(role))));
+  const customSuggestions = customRoles.filter(({ label }) => {
+    const name = normalizeName(label);
+    return !standardNames.has(name) && !selectedNames.has(name) && name.includes(query);
+  });
   const alreadyAddedRole =
     query.length > 0 ? value.find((role) => normalizeName(labelOf(role)) === query) : undefined;
   const canCreateCustom =
     customName.length > 0 &&
     alreadyAddedRole === undefined &&
-    standardRoles.every(({ label }) => normalizeName(label) !== query);
+    !standardNames.has(query) &&
+    customRoles.every(({ label }) => normalizeName(label) !== query);
 
   function labelOf(role: RoleRow) {
     const name = role.customRole.trim();
@@ -196,7 +207,7 @@ export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProp
               <CommandGroup heading={t("suggestionsHeading")}>
                 {suggestions.map(({ label, roleType }) => (
                   <CommandItem
-                    className="cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[selected=true]:ring-1 data-[selected=true]:ring-ring [&>svg:last-child]:hidden"
+                    className={ROLE_ITEM_CLASS_NAME}
                     key={roleType}
                     onSelect={() => add({ customRole: "", isSpoiler: false, roleType })}
                     value={roleType}
@@ -206,10 +217,33 @@ export function CharacterRolePicker({ onChange, value }: CharacterRolePickerProp
                 ))}
               </CommandGroup>
             ) : null}
+            {customSuggestions.length > 0 ? (
+              <CommandGroup heading={t("customHeading")}>
+                {customSuggestions.map(({ count, label }) => (
+                  <CommandItem
+                    className={ROLE_ITEM_CLASS_NAME}
+                    key={label}
+                    onSelect={() =>
+                      add({
+                        customRole: label,
+                        isSpoiler: false,
+                        roleType: BOOK_CHARACTER_ROLE.custom,
+                      })
+                    }
+                    value={`custom-role::${label}`}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{label}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {count}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ) : null}
             {canCreateCustom ? (
               <CommandGroup heading={t("createHeading")}>
                 <CommandItem
-                  className="cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[selected=true]:ring-1 data-[selected=true]:ring-ring [&>svg:last-child]:hidden"
+                  className={ROLE_ITEM_CLASS_NAME}
                   onSelect={() =>
                     add({
                       customRole: customName,

@@ -83,3 +83,12 @@ describe("characterKeys roster families", () => {
     expect(matchedKeys(client, characterKeys.bookRosterInfiniteScope("other-book"))).toEqual([]);
   });
 });
+
+describe("characterKeys.customLabels", () => {
+  it("sits inside the character scope a saved book character invalidates", () => {
+    const client = new QueryClient();
+    client.setQueryData(characterKeys.customLabels(), { roles: [], statuses: [] });
+
+    expect(matchedKeys(client, characterKeys.all)).toEqual([characterKeys.customLabels()]);
+  });
+});

@@ -19,8 +19,18 @@ vi.mock("sonner", () => ({
 const PICKED_BOOK = makeBookView({
   authors: [{ id: "author-1", name: "Френк Герберт" }],
   id: "picked-book",
+  pagesCount: 300,
   title: "Месія Дюни",
 });
+
+const UNCOUNTED_BOOK = makeBookView({
+  authors: [{ id: "author-1", name: "Френк Герберт" }],
+  id: "uncounted-book",
+  pagesCount: null,
+  title: "Діти Дюни",
+});
+
+const LIBRARY = [PICKED_BOOK, UNCOUNTED_BOOK];
 
 const QUOTE = makeQuote();
 const QUOTE_BOOK: BookSelectOption = {
@@ -31,6 +41,12 @@ const QUOTE_BOOK: BookSelectOption = {
 };
 
 const fetchMock = vi.fn();
+
+function bookDetailRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => /^\/api\/books\/[^/?]+$/.test(url));
+}
 
 function booksPage(items: BookView[]): Response {
   return jsonResponse({
@@ -52,6 +68,18 @@ function jsonResponse(body: unknown): Response {
   });
 }
 
+function pageInput(): HTMLElement {
+  return screen.getByLabelText("Сторінка");
+}
+
+function postedBody(): unknown {
+  const post = fetchMock.mock.calls.find(
+    ([, init]) => String((init as RequestInit | undefined)?.method).toUpperCase() === "POST",
+  );
+  if (post === undefined) throw new Error("no POST request was sent");
+  return JSON.parse(String((post[1] as RequestInit).body));
+}
+
 function submitButton(name: string): HTMLElement {
   return screen.getByRole("button", { name });
 }
@@ -71,7 +99,9 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "POST" || method === "PATCH") return Promise.resolve(jsonResponse(QUOTE));
-    if (url.startsWith("/api/books?")) return Promise.resolve(booksPage([PICKED_BOOK]));
+    if (url.startsWith("/api/books?")) return Promise.resolve(booksPage(LIBRARY));
+    const book = LIBRARY.find(({ id }) => url === `/api/books/${id}`);
+    if (book !== undefined) return Promise.resolve(jsonResponse(book));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -149,6 +179,49 @@ describe("QuoteDialog create mode with the book picker", () => {
     await pickBook();
 
     expect(within(dialog()).getAllByText("Месія Дюни")).toHaveLength(1);
+  });
+
+  it("rejects a page beyond the picked book and accepts its last page", async () => {
+    renderCreate();
+    await pickBook();
+    await waitFor(() => expect(pageInput()).toHaveAttribute("max", "300"));
+
+    await userEvent.type(screen.getByLabelText(/Текст цитати/), "Страх — убивця розуму.");
+    await userEvent.type(pageInput(), "301");
+    await userEvent.click(submitButton("Зберегти цитату"));
+
+    expect(await within(dialog()).findByText("У книзі лише 300 сторінок")).toBeInTheDocument();
+    expect(writeRequests()).toHaveLength(0);
+
+    await userEvent.clear(pageInput());
+    await userEvent.type(pageInput(), "300");
+    await userEvent.click(submitButton("Зберегти цитату"));
+
+    await waitFor(() => expect(writeRequests()).toHaveLength(1));
+    expect(postedBody()).toMatchObject({ page: 300 });
+  });
+
+  it("keeps the technical page limit when the picked book has no page count", async () => {
+    renderCreate();
+    await userEvent.click(await screen.findByRole("radio", { name: "Діти Дюни Френк Герберт" }));
+    await waitFor(() => expect(bookDetailRequests()).toEqual(["/api/books/uncounted-book"]));
+
+    await userEvent.type(screen.getByLabelText(/Текст цитати/), "Страх — убивця розуму.");
+    await userEvent.type(pageInput(), "10001");
+    await userEvent.click(submitButton("Зберегти цитату"));
+
+    expect(
+      await within(dialog()).findByText(/^Сторінка має бути не більшою за 10\s?000$/),
+    ).toBeInTheDocument();
+    expect(pageInput()).toHaveAttribute("max", "10000");
+    expect(writeRequests()).toHaveLength(0);
+
+    await userEvent.clear(pageInput());
+    await userEvent.type(pageInput(), "10000");
+    await userEvent.click(submitButton("Зберегти цитату"));
+
+    await waitFor(() => expect(writeRequests()).toHaveLength(1));
+    expect(postedBody()).toMatchObject({ page: 10000 });
   });
 
   it("renders the picker inline, without opening a second dialog", async () => {

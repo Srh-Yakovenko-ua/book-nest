@@ -2,7 +2,7 @@
 
 import type { BookCharacterView, CharacterDetailsView, Nullable } from "@app/shared";
 
-import { CHARACTER_TEXT_MAX } from "@app/shared";
+import { CHARACTER_INT4_MAX, CHARACTER_TEXT_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
@@ -14,10 +14,12 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DiscardConfirmDialog } from "@/features/books";
+import { useBookPagesCount } from "@/features/books/api/use-book";
+import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
 
-import type { CharacterEditValues } from "../model/character-edit-form";
+import type { CharacterEditMessages, CharacterEditValues } from "../model/character-edit-form";
 import type { CharacterImageUpload } from "./character-image-field";
 
 import { useCharacterDetails } from "../api/use-character-details";
@@ -104,21 +106,25 @@ function CharacterEditForm({
   const [discardOpen, setDiscardOpen] = useState(false);
   const [uploadedPortrait, setUploadedPortrait] = useState<Nullable<CharacterImageUpload>>(null);
 
+  const pagesCount = useBookPagesCount(contextBookId);
+  const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: CHARACTER_INT4_MAX });
+  const messages: CharacterEditMessages = {
+    aliasDuplicate: tAliases("errorDuplicate"),
+    aliasReservedBook: tAliases("errorSameAsDisplayName"),
+    aliasReservedGlobal: tAliases("errorSameAsName"),
+    customGenderRequired: tErrors("customGenderRequired"),
+    firstAppearancePageExceedsBook: t("firstAppearancePageExceedsBook", { max: pageCeiling.max }),
+    firstAppearancePageInvalid: t("firstAppearancePageInvalid"),
+    nameRequired: tErrors("nameRequired"),
+    nameTooLong: tErrors("nameTooLong", { max: CHARACTER_TEXT_MAX.name }),
+    textTooLong: (max) => tErrors("textTooLong", { max }),
+  };
+
   const form = useForm<CharacterEditValues>({
     defaultValues: initialValues,
     mode: "onTouched",
-    resolver: zodResolver(
-      buildCharacterEditSchema({
-        aliasDuplicate: tAliases("errorDuplicate"),
-        aliasReservedBook: tAliases("errorSameAsDisplayName"),
-        aliasReservedGlobal: tAliases("errorSameAsName"),
-        customGenderRequired: tErrors("customGenderRequired"),
-        firstAppearancePageInvalid: t("firstAppearancePageInvalid"),
-        nameRequired: tErrors("nameRequired"),
-        nameTooLong: tErrors("nameTooLong", { max: CHARACTER_TEXT_MAX.name }),
-        textTooLong: (max) => tErrors("textTooLong", { max }),
-      }),
-    ),
+    resolver: (values, context, options) =>
+      zodResolver(buildCharacterEditSchema(messages, pageCeiling))(values, context, options),
   });
 
   const {
@@ -226,7 +232,13 @@ function CharacterEditForm({
         )}
 
         {contextBookId === null ? null : (
-          <BookCharacterNarrativeSection control={control} errors={errors} register={register} />
+          <BookCharacterNarrativeSection
+            bookId={contextBookId}
+            control={control}
+            errors={errors}
+            pageMax={pageCeiling.max}
+            register={register}
+          />
         )}
 
         <CharacterGlobalSection control={control} errors={errors} register={register} />

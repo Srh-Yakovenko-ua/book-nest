@@ -6,7 +6,7 @@ import {
   readingPositionQueryFields,
   requireContextBookForReadingPosition,
 } from "./common.js";
-import { queryStringArray } from "./internal.js";
+import { CountSchema, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TagViewSchema } from "./tags.js";
 
@@ -30,6 +30,11 @@ export const CHARACTER_INT4_MAX = 2147483647;
 export const CHARACTER_SUGGESTIONS_LIMIT_DEFAULT = 10;
 export const CHARACTER_SUGGESTIONS_LIMIT_MAX = 50;
 export const CHARACTER_DUPLICATE_CANDIDATES_MAX = 20;
+
+export const CHARACTER_CUSTOM_LABELS_MAX = {
+  roles: 50,
+  statuses: 50,
+} as const;
 
 export const CHARACTER_ERROR_CODES = {
   alreadyLinkedToBook: "character_already_linked_to_book",
@@ -227,7 +232,7 @@ export const BookCharacterProfileInputSchema = z.object({
   portraitMediaId: z.string().uuid().nullish(),
   roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).default([]),
   sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
-  speciesOverride: optionalText(CHARACTER_TEXT_MAX.shortText),
+  speciesOverride: optionalText(CHARACTER_TEXT_MAX.species),
   speciesOverrideIsSpoiler: z.boolean().default(false),
   status: BookCharacterStatusSchema.default(BOOK_CHARACTER_UNSPECIFIED.status),
   statusCustomText: optionalText(CHARACTER_TEXT_MAX.shortText),
@@ -324,7 +329,7 @@ export const UpdateBookCharacterSchema = z
     portraitMediaId: z.string().uuid().nullish(),
     roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).optional(),
     sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
-    speciesOverride: optionalText(CHARACTER_TEXT_MAX.shortText),
+    speciesOverride: optionalText(CHARACTER_TEXT_MAX.species),
     speciesOverrideIsSpoiler: z.boolean().optional(),
     status: BookCharacterStatusSchema.optional(),
     statusCustomText: optionalText(CHARACTER_TEXT_MAX.shortText),
@@ -639,6 +644,20 @@ export const CharacterOverviewViewSchema = z.object({
 });
 
 export type CharacterOverviewView = z.infer<typeof CharacterOverviewViewSchema>;
+
+export const CharacterCustomLabelUsageViewSchema = z.object({
+  count: CountSchema,
+  label: z.string(),
+});
+
+export type CharacterCustomLabelUsageView = z.infer<typeof CharacterCustomLabelUsageViewSchema>;
+
+export const CharacterCustomLabelsViewSchema = z.object({
+  roles: z.array(CharacterCustomLabelUsageViewSchema).max(CHARACTER_CUSTOM_LABELS_MAX.roles),
+  statuses: z.array(CharacterCustomLabelUsageViewSchema).max(CHARACTER_CUSTOM_LABELS_MAX.statuses),
+});
+
+export type CharacterCustomLabelsView = z.infer<typeof CharacterCustomLabelsViewSchema>;
 
 export const CharacterDuplicateCandidatesQuerySchema = z.object({
   aliases: queryStringArray(z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name)),

@@ -1,7 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import type {
+  BookChapterUsageView,
   BookCharacterStatus,
   BookCharacterView,
+  CharacterCustomLabelsView,
   CharacterDetailsView,
   MediaView,
   Nullable,
@@ -11,6 +13,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
@@ -49,10 +52,29 @@ const character = makeCharacterDetails({
 const fetchMock = vi.fn();
 
 let bookPatchStatus: number;
+let servedChapters: BookChapterUsageView[];
 let servedCharacter: CharacterDetailsView;
+let servedCustomLabels: CharacterCustomLabelsView;
+let servedPagesCount: Nullable<number>;
+
+function bookDetailRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([url]) => String(url))
+    .filter((url) => url.endsWith("/api/books/book-1"));
+}
 
 function bookPatchBody() {
   return patchBody((url) => url.includes("/api/books/"));
+}
+
+function customLabelRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([url]) => String(url))
+    .filter((url) => url.endsWith("/api/character-custom-labels"));
+}
+
+function firstAppearancePageField(): HTMLElement {
+  return screen.getByRole("spinbutton", { name: /^Сторінка/ });
 }
 
 function globalPatchBody() {
@@ -92,7 +114,10 @@ function renderEdit(search = "bookId=book-1") {
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
   bookPatchStatus = 200;
+  servedChapters = [];
   servedCharacter = character;
+  servedCustomLabels = { roles: [], statuses: [] };
+  servedPagesCount = 300;
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
@@ -100,6 +125,17 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "GET" && url.includes("/api/characters/char-1")) {
       return Promise.resolve(jsonResponse(servedCharacter));
+    }
+    if (method === "GET" && url.includes("/api/books/book-1/chapters")) {
+      return Promise.resolve(jsonResponse({ chapters: servedChapters }));
+    }
+    if (method === "GET" && url.endsWith("/api/character-custom-labels")) {
+      return Promise.resolve(jsonResponse(servedCustomLabels));
+    }
+    if (method === "GET" && url.endsWith("/api/books/book-1")) {
+      return Promise.resolve(
+        jsonResponse(makeBookView({ id: "book-1", pagesCount: servedPagesCount })),
+      );
     }
     if (method === "PATCH" && url.includes("/api/books/")) {
       return Promise.resolve(
@@ -209,6 +245,14 @@ describe("CharacterEditPage without a book context", () => {
 
     expect(screen.queryByRole("heading", { name: "У цій книзі" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Про персонажа" })).toBeInTheDocument();
+  });
+
+  it("asks for no custom roles or statuses, since no book section needs them", async () => {
+    renderEdit("");
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(customLabelRequests()).toEqual([]);
   });
 });
 
@@ -348,15 +392,79 @@ describe("CharacterEditPage narrative metadata", () => {
     expect(await screen.findByText("Тип наратора")).toBeInTheDocument();
   });
 
-  it("refuses a page that is not a number and sends nothing", async () => {
+  it("lets no minus sign, exponent or letters into the page", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(screen.getByRole("textbox", { name: /^Сторінка/ }), "сорок");
+    await userEvent.type(firstAppearancePageField(), "-5");
+    expect(firstAppearancePageField()).toHaveValue(5);
+
+    await userEvent.clear(firstAppearancePageField());
+    await userEvent.type(firstAppearancePageField(), "1e3");
+    expect(firstAppearancePageField()).toHaveValue(13);
+
+    await userEvent.clear(firstAppearancePageField());
+    await userEvent.type(firstAppearancePageField(), "сорок");
+    expect(firstAppearancePageField()).toHaveValue(null);
+
+    await userEvent.paste("-7");
+    expect(firstAppearancePageField()).toHaveValue(null);
+  });
+
+  it("refuses a page beyond the book and sends nothing", async () => {
+    renderEdit();
+
+    await waitFor(() => expect(firstAppearancePageField()).toHaveAttribute("max", "300"));
+    await userEvent.type(firstAppearancePageField(), "301");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    expect(await screen.findByText("У книзі лише 300 сторінок")).toBeInTheDocument();
+    expect(firstAppearancePageField()).toHaveAccessibleDescription("У книзі лише 300 сторінок");
+    expect(patchCount()).toBe(0);
+  });
+
+  it("sends the last page of the book as a number", async () => {
+    renderEdit();
+
+    await waitFor(() => expect(firstAppearancePageField()).toHaveAttribute("max", "300"));
+    await userEvent.type(firstAppearancePageField(), "300");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("firstAppearancePage", 300);
+  });
+
+  it("keeps only the technical page limit when the book has no page count", async () => {
+    servedPagesCount = null;
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await waitFor(() => expect(bookDetailRequests()).toEqual(["/api/books/book-1"]));
+    expect(firstAppearancePageField()).toHaveAttribute("max", "2147483647");
+
+    await userEvent.type(firstAppearancePageField(), "2147483648");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     expect(await screen.findByText("Вкажіть номер сторінки числом")).toBeInTheDocument();
     expect(patchCount()).toBe(0);
+
+    await userEvent.clear(firstAppearancePageField());
+    await userEvent.type(firstAppearancePageField(), "5000");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("firstAppearancePage", 5000);
+  });
+
+  it("counts the characters of the first appearance note as they are typed", async () => {
+    renderEdit();
+
+    const note = await screen.findByRole("textbox", { name: /^Нотатка про першу появу/ });
+    expect(note).toHaveAccessibleDescription("0/200");
+
+    await userEvent.type(note, "У листі");
+
+    expect(note).toHaveAccessibleDescription("7/200");
   });
 
   it("keeps a non-numeric chapter exactly as typed", async () => {
@@ -364,6 +472,28 @@ describe("CharacterEditPage narrative metadata", () => {
 
     await screen.findByDisplayValue("Ґеральт");
     await userEvent.type(screen.getByRole("textbox", { name: /^Розділ/ }), "Пролог");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("firstAppearanceChapter", "Пролог");
+  });
+
+  it("lists the chapters the book already uses on focus and saves the picked one", async () => {
+    servedChapters = [
+      { chapter: "Голос розуму", count: 4 },
+      { chapter: "Пролог", count: 2 },
+    ];
+    renderEdit();
+
+    const chapterField = await screen.findByRole("combobox", { name: /^Розділ/ });
+    await userEvent.click(chapterField);
+
+    expect(await screen.findByRole("option", { name: "Голос розуму 4" })).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole("option", { name: "Пролог 2" }));
+    expect(chapterField).toHaveValue("Пролог");
+
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -1050,7 +1180,7 @@ describe("CharacterEditPage text over the limit", () => {
       ...character,
       appearances: character.appearances.map((appearance) => ({
         ...appearance,
-        speciesOverride: "м".repeat(201),
+        speciesOverride: "м".repeat(121),
       })),
     };
     renderEdit();
@@ -1059,12 +1189,27 @@ describe("CharacterEditPage text over the limit", () => {
 
     const speciesInBook = inheritedField("Вид у цій книзі");
     expect(
-      await within(speciesInBook).findByText("Текст задовгий (макс. 200)"),
+      await within(speciesInBook).findByText("Текст задовгий (макс. 120)"),
     ).toBeInTheDocument();
     const input = within(speciesInBook).getByRole("textbox");
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input).toHaveAccessibleDescription("Текст задовгий (макс. 200)");
+    expect(input).toHaveAccessibleDescription("Текст задовгий (макс. 120)");
     expect(patchCount()).toBe(0);
+  });
+
+  it("caps the species in this book at the same 120 characters as the shared species", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Мутант");
+
+    expect(within(inheritedField("Вид у цій книзі")).getByRole("textbox")).toHaveAttribute(
+      "maxlength",
+      "120",
+    );
+    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toHaveAttribute(
+      "maxlength",
+      "120",
+    );
   });
 });
 
@@ -1189,6 +1334,20 @@ describe("CharacterEditPage status", () => {
     });
   });
 
+  it("offers your statuses with counts and sends a picked one as the custom status with its text", async () => {
+    servedCustomLabels = { roles: [], statuses: [{ count: 2, label: "У полоні" }] };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(statusCombobox());
+    const yourStatuses = await screen.findByRole("group", { name: "Ваші статуси" });
+    await userEvent.click(within(yourStatuses).getByRole("option", { name: "У полоні 2" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({ status: "other", statusCustomText: "У полоні" });
+  });
+
   it("shows a created custom status in the preview instead of «Інше»", async () => {
     renderEdit();
 
@@ -1197,6 +1356,42 @@ describe("CharacterEditPage status", () => {
 
     expect(within(previewRegion()).getByText("У полоні")).toBeInTheDocument();
     expect(within(previewRegion()).queryByText("Інше")).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage your roles", () => {
+  function rolesCombobox(): HTMLElement {
+    return screen.getByRole("combobox", { name: "Ролі" });
+  }
+
+  beforeEach(() => {
+    servedCustomLabels = { roles: [{ count: 3, label: "Наставник Цірі" }], statuses: [] };
+  });
+
+  it("offers your roles with counts and sends a picked one as a custom role", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(rolesCombobox());
+    const yourRoles = await screen.findByRole("group", { name: "Ваші ролі" });
+    await userEvent.click(within(yourRoles).getByRole("option", { name: "Наставник Цірі 3" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({
+      roles: [{ customRole: "Наставник Цірі", isSpoiler: false, position: 0, roleType: "custom" }],
+    });
+  });
+
+  it("offers your role instead of creating it again when typed in another case with stray spaces", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await waitFor(() => expect(customLabelRequests()).toHaveLength(1));
+    await userEvent.type(rolesCombobox(), "  наставник   ЦІРІ ");
+
+    expect(await screen.findByRole("option", { name: "Наставник Цірі 3" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
   });
 });
 
@@ -1254,6 +1449,22 @@ describe("CharacterEditPage gender", () => {
 
     expect(await screen.findByRole("option", { name: "Жіноча" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Свій варіант" })).not.toBeInTheDocument();
+  });
+
+  it("keeps your statuses and roles out of the gender list", async () => {
+    servedCustomLabels = {
+      roles: [{ count: 3, label: "Наставник Цірі" }],
+      statuses: [{ count: 2, label: "У полоні" }],
+    };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await waitFor(() => expect(customLabelRequests()).toHaveLength(1));
+    await userEvent.click(genderCombobox());
+
+    const genders = await screen.findByRole("listbox", { name: "Гендер" });
+    expect(within(genders).queryByRole("group")).not.toBeInTheDocument();
+    expect(within(genders).queryByRole("option", { name: /У полоні|Наставник/ })).toBeNull();
   });
 
   it("has no separate custom gender field", async () => {

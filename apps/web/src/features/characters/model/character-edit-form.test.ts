@@ -135,16 +135,13 @@ describe("first appearance", () => {
     });
   });
 
-  it("accepts a positive page and rejects anything else", () => {
+  it("sends the page as a number and an empty page as null", () => {
     const values = toCharacterEditValues(character, "book-1");
 
-    expect(toBookUpdate({ ...values.book, firstAppearancePage: "47" })).toMatchObject({
+    expect(toBookUpdate({ ...values.book, firstAppearancePage: 47 })).toMatchObject({
       firstAppearancePage: 47,
     });
-    expect(toBookUpdate({ ...values.book, firstAppearancePage: "0" })).toMatchObject({
-      firstAppearancePage: null,
-    });
-    expect(toBookUpdate({ ...values.book, firstAppearancePage: "сорок" })).toMatchObject({
+    expect(toBookUpdate({ ...values.book, firstAppearancePage: null })).toMatchObject({
       firstAppearancePage: null,
     });
   });
