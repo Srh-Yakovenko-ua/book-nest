@@ -7,7 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
-import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
+import {
+  makeBookCharacterView,
+  makeCharacterDetails,
+  SPECIES_REFS,
+} from "../model/characters.fixtures";
 import { CharacterDetailsPage } from "./character-details-page";
 
 const push = vi.fn();
@@ -101,6 +105,17 @@ describe("CharacterDetailsPage global mode", () => {
     expect(
       fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/books/")),
     ).toHaveLength(0);
+  });
+
+  it("names the species by its label in the current locale", async () => {
+    respondToDetails = () => jsonResponse(makeCharacterDetails({ species: SPECIES_REFS.witcher }));
+    renderPage();
+
+    await screen.findByRole("heading", { level: 1, name: "Ґеральт" });
+
+    expect(screen.getByText("Відьмак")).toBeInTheDocument();
+    expect(screen.queryByText("Witcher")).not.toBeInTheDocument();
+    expect(screen.queryByText("witcher")).not.toBeInTheDocument();
   });
 });
 

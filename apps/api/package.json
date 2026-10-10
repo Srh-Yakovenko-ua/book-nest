@@ -16,6 +16,7 @@
     "seed:delivery-services": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-delivery-services.ts",
     "seed:genres": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-genres.ts",
     "seed:publishers": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-publishers.ts",
+    "seed:species": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-species.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",

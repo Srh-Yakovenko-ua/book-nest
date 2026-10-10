@@ -48,7 +48,7 @@ export function buildBookCharacterData({
       roleType: role.roleType,
     })),
     sortOrder: profile.sortOrder ?? null,
-    speciesOverride: emptyToNull(profile.speciesOverride),
+    speciesOverrideId: profile.speciesOverrideId,
     speciesOverrideIsSpoiler: profile.speciesOverrideIsSpoiler,
     status: profile.status,
     statusCustomText: emptyToNull(profile.statusCustomText),
@@ -94,8 +94,8 @@ export function buildBookCharacterUpdateData(input: UpdateBookCharacter): Update
   if (input.appearanceNotesIsSpoiler !== undefined) {
     data.appearanceNotesIsSpoiler = input.appearanceNotesIsSpoiler;
   }
-  if (input.speciesOverride !== undefined) {
-    data.speciesOverride = emptyToNull(input.speciesOverride);
+  if (input.speciesOverrideId !== undefined) {
+    data.speciesOverrideId = input.speciesOverrideId;
   }
   if (input.speciesOverrideIsSpoiler !== undefined) {
     data.speciesOverrideIsSpoiler = input.speciesOverrideIsSpoiler;

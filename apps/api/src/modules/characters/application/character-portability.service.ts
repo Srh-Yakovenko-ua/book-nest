@@ -11,8 +11,11 @@ import {
   TransactionRunner,
 } from "../../../core/database/transaction-runner.js";
 import { ValidationError } from "../../../core/exceptions/errors.js";
+import { SpeciesService } from "../../species/index.js";
 import {
   classifyBundleParseError,
+  importDraftSpeciesRefs,
+  linkImportDraftSpecies,
   planCharacterImport,
   serializeCharacterBundle,
 } from "../domain/character-portability.js";
@@ -22,6 +25,7 @@ import { CharacterPortabilityRepository } from "../infrastructure/character-port
 export class CharacterPortabilityService {
   constructor(
     private readonly portabilityRepository: CharacterPortabilityRepository,
+    private readonly speciesService: SpeciesService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -54,18 +58,24 @@ export class CharacterPortabilityService {
   }): Promise<CharacterImportResultView> {
     const bundle = this.parseBundle(payload);
     const owned = await this.resolveOwnedRefs({ bundle, userId });
-    const plan = planCharacterImport({
+    const draft = planCharacterImport({
       bundle,
       newId: randomUUID,
       now: new Date(),
       owned,
       userId,
     });
-    await this.transactionRunner.run(
-      (tx) => this.portabilityRepository.insertGraph(plan, tx),
-      HEAVY_TRANSACTION_OPTIONS,
-    );
-    return { created: plan.created, formatVersion: bundle.formatVersion, skipped: plan.skipped };
+    await this.transactionRunner.run(async (tx) => {
+      const resolveSpeciesId = await this.speciesService.resolvePortableRefs(
+        { refs: importDraftSpeciesRefs(draft), userId },
+        tx,
+      );
+      await this.portabilityRepository.insertGraph(
+        linkImportDraftSpecies({ draft, resolveSpeciesId }),
+        tx,
+      );
+    }, HEAVY_TRANSACTION_OPTIONS);
+    return { created: draft.created, formatVersion: bundle.formatVersion, skipped: draft.skipped };
   }
 
   private parseBundle(payload: unknown): CharacterBundle {

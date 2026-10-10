@@ -73,10 +73,9 @@ export type CharactersControllerListParams = {
   sort?: CharactersControllerListSort;
   /**
    * @maxItems 100
-   * @items.minLength 1
-   * @items.maxLength 120
+   * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
-  species?: string[];
+  speciesId?: string[];
   /**
    * @maxItems 100
    * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$

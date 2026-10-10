@@ -47,6 +47,7 @@ export * from "./realtime.js";
 export * from "./series-order-check.js";
 export * from "./series-reading-order.js";
 export * from "./series.js";
+export * from "./species.js";
 export * from "./tags.js";
 export * from "./taxonomy.js";
 export * from "./timeline.js";

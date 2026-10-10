@@ -8027,8 +8027,8 @@
       "scopeGlobal": "All books",
       "species": "Species",
       "speciesInBook": "Species in this book",
-      "speciesInBookPlaceholder": "For example, vampire",
-      "speciesPlaceholder": "For example, elf",
+      "speciesInBookPlaceholder": "Search, e.g. “vampire”",
+      "speciesPlaceholder": "Search, e.g. “elf”",
       "status": "Status",
       "subtitle": "Book details and shared details are saved separately.",
       "title": "Edit character"
@@ -8237,6 +8237,98 @@
       "description": "The character will be removed from this book. The global profile and data in other books remain.",
       "title": "Remove from this book",
       "unlinking": "Removing…"
+    }
+  },
+  "species": {
+    "errors": {
+      "duplicate": "A species with this name already exists.",
+      "forbidden": "Built-in species can’t be changed.",
+      "generic": "Something went wrong. Try again.",
+      "inUse": "This species is still in use.",
+      "mergeConflict": "The data changed during the merge. Try again.",
+      "mergeInvalidTarget": "You can’t merge into this species. Pick another one.",
+      "mergeSelf": "A species can’t be merged into itself.",
+      "notFound": "Species not found. It may have been deleted already."
+    },
+    "manage": {
+      "delete": "Delete",
+      "deleteAction": "Delete “{name}”",
+      "deletePanel": {
+        "back": "Back",
+        "checking": "Checking where this species is used…",
+        "confirm": "Delete",
+        "inUse": "“{name}” is still in use, so it can’t be deleted.",
+        "mergeInstead": "Merge into another species",
+        "nextAction": "Merge it into another species — its characters and books will move there. Or change the species of those characters first.",
+        "previewFailed": "Couldn’t check where this species is used.",
+        "retry": "Retry",
+        "unused": "“{name}” isn’t used anywhere. Delete it permanently?"
+      },
+      "description": "Rename, merge or delete the species you created. Built-in species can’t be changed.",
+      "empty": "You haven’t created any species yet. New ones appear here as soon as you create them in the Species field.",
+      "listLabel": "Your species",
+      "loadFailed": "Couldn’t load your species.",
+      "loading": "Loading your species…",
+      "merge": "Merge",
+      "mergeAction": "Merge “{name}”",
+      "mergePanel": {
+        "back": "Back",
+        "confirm": "Merge",
+        "confirmLabel": "Review before merging",
+        "confirmNote": "“{source}” will be deleted and all its characters and books will move to “{target}”. Spoiler flags are kept. This can’t be undone.",
+        "next": "Next",
+        "sourceLabel": "Species to merge",
+        "targetHint": "Characters and books with this species move to the one you pick, and this species is deleted.",
+        "targetLabel": "Merge into",
+        "targetPlaceholder": "Find a species…"
+      },
+      "open": "Manage your own species",
+      "rename": "Rename",
+      "renameAction": "Rename “{name}”",
+      "renamePanel": {
+        "back": "Back",
+        "duplicate": "“{name}” already exists. You can merge into it instead of renaming.",
+        "duplicateUnknown": "A species with this name already exists.",
+        "invalid": "Enter a name up to {max, plural, one {# character} other {# characters}}.",
+        "label": "New name for “{name}”",
+        "mergeIntoExisting": "Merge into it",
+        "save": "Save",
+        "similar": "Similar species: {names}. Make sure this really is a different one."
+      },
+      "retry": "Retry",
+      "title": "Manage your own species",
+      "toast": {
+        "deleted": "Species “{name}” deleted",
+        "merged": "Merged into “{name}”: {characters, plural, one {# character} other {# characters}}, {bookOverrides, plural, one {# book} other {# books}} moved",
+        "renamed": "Species renamed to “{name}”"
+      }
+    },
+    "picker": {
+      "clear": "Clear species",
+      "create": "Create species “{name}”",
+      "createAnyway": "Create “{name}” anyway",
+      "creating": "Creating “{name}”…",
+      "exactHeading": "This species already exists",
+      "notices": {
+        "conflict": "This species already exists. Pick the existing one.",
+        "createFailed": "Couldn’t create the species. Try again.",
+        "empty": "No such species yet.",
+        "loadFailed": "Couldn’t load species.",
+        "loading": "Searching…",
+        "tooShort": "Type at least {min, plural, one {# character} other {# characters}} to search."
+      },
+      "otherGroup": "Other",
+      "ownGroup": "Your species",
+      "resultsCount": "{count, plural, one {# result} other {# results}} found",
+      "retry": "Retry",
+      "retryOnEnter": "Press Enter to try again.",
+      "selectExisting": "Select existing: {name}",
+      "similarHeading": "Similar species",
+      "similarHint": "This may be the same species. Pick an existing one or create a new one."
+    },
+    "usage": {
+      "summary": "Characters: {characters}{trashed, plural, =0 {} other { (# in trash)}} · Books: {bookOverrides}",
+      "unused": "Not used anywhere"
     }
   },
   "notifications": {

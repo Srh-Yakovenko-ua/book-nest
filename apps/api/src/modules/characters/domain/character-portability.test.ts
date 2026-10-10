@@ -15,6 +15,8 @@ import type { CharacterExportSource, OwnedLibraryRefs } from "./character-portab
 
 import {
   classifyBundleParseError,
+  importDraftSpeciesRefs,
+  linkImportDraftSpecies,
   planCharacterImport,
   serializeCharacterBundle,
 } from "./character-portability.js";
@@ -333,6 +335,138 @@ describe("planCharacterImport", () => {
     expect(plan.skipped.unlinkedMedia).toBe(0);
     expect(plan.skipped.unlinkedSeries).toBe(0);
     expect(plan.skipped.tagsMissing).toBe(0);
+  });
+});
+
+describe("portable species references", () => {
+  const SYSTEM_ELF_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const OWN_SPECIES_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+  it("keeps the character ref and the refs of owned, first-per-book appearances only", () => {
+    const bundle = makeBundle({
+      characters: [
+        makeCharacter({
+          appearances: [
+            makeAppearance({ speciesOverride: "Sylvan", speciesOverrideKey: null }),
+            makeAppearance({ speciesOverride: "Duplicate" }),
+            makeAppearance({ bookId: BOOK_MISSING, speciesOverride: "Unlinked" }),
+          ],
+          species: "Elf",
+          speciesKey: "elf",
+        }),
+        makeCharacter({ id: CHAR_B, species: "Legacy text" }),
+      ],
+    });
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: new Date(),
+      owned,
+      userId: USER_ID,
+    });
+
+    expect(importDraftSpeciesRefs(draft)).toEqual([
+      { key: "elf", name: "Elf" },
+      { key: null, name: "Legacy text" },
+      { key: null, name: "Sylvan" },
+    ]);
+  });
+
+  it("writes the resolved species ids and keeps the override spoiler flag", () => {
+    const resolvedIds = new Map([
+      ["elf", SYSTEM_ELF_ID],
+      ["Sylvan", OWN_SPECIES_ID],
+    ]);
+    const bundle = makeBundle({
+      characters: [
+        makeCharacter({
+          appearances: [
+            makeAppearance({ speciesOverride: "Sylvan", speciesOverrideIsSpoiler: true }),
+          ],
+          species: "Elf",
+          speciesKey: "elf",
+        }),
+      ],
+    });
+
+    const draft = planCharacterImport({
+      bundle,
+      newId: idFactory(),
+      now: new Date(),
+      owned,
+      userId: USER_ID,
+    });
+    const plan = linkImportDraftSpecies({
+      draft,
+      resolveSpeciesId: (ref) => resolvedIds.get(ref.key ?? ref.name ?? "") ?? null,
+    });
+
+    expect(plan.characters[0]?.speciesId).toBe(SYSTEM_ELF_ID);
+    expect(plan.characters[0]).not.toHaveProperty("speciesRef");
+    expect(plan.bookCharacters[0]).not.toHaveProperty("speciesOverrideRef");
+    expect(plan.bookCharacters[0]).toMatchObject({
+      speciesOverrideId: OWN_SPECIES_ID,
+      speciesOverrideIsSpoiler: true,
+    });
+  });
+
+  it("exports a system species as key plus name and a custom one as name only", () => {
+    const source: CharacterExportSource = {
+      characters: [
+        {
+          aliases: [],
+          archivedAt: null,
+          avatarMediaId: null,
+          bookAppearances: [
+            {
+              ...makeAppearance(),
+              roles: [],
+              speciesOverride: { key: null, name: "Sylvan" },
+              speciesOverrideIsSpoiler: true,
+            },
+          ],
+          customGender: null,
+          entityKind: "individual",
+          forms: [],
+          gender: "unknown",
+          globalAttitude: null,
+          hideProfileAsSpoiler: false,
+          id: CHAR_A,
+          isFavorite: false,
+          name: "Legolas",
+          neutralDescription: null,
+          pronouns: null,
+          species: { key: "elf", name: "Elf" },
+          tags: [],
+        },
+      ],
+      groups: [],
+      relationships: [],
+      theories: [],
+    };
+
+    const bundle = serializeCharacterBundle({ exportedAt: new Date(), source });
+
+    expect(bundle.characters[0]).toMatchObject({ species: "Elf", speciesKey: "elf" });
+    expect(bundle.characters[0]?.appearances[0]).toMatchObject({
+      speciesOverride: "Sylvan",
+      speciesOverrideIsSpoiler: true,
+      speciesOverrideKey: null,
+    });
+    expect(CharacterBundleSchema.safeParse(bundle).success).toBe(true);
+  });
+
+  it("still parses a version 1 bundle that carries species text without keys", () => {
+    const legacyCharacter = makeCharacter({
+      appearances: [makeAppearance({ speciesOverride: "Fremen" })],
+      species: "Human",
+    });
+
+    expect(legacyCharacter).not.toHaveProperty("speciesKey");
+    expect(
+      CharacterBundleSchema.safeParse(makeBundle({ characters: [legacyCharacter] })).success,
+    ).toBe(true);
   });
 });
 

@@ -59,6 +59,7 @@ model User {
   quotes                      Quote[]
   notes                       Note[]
   characters                  Character[]
+  customSpecies               Species[]
   characterGroups             CharacterGroup[]
   characterTheories           CharacterTheory[]
   characterRelationships      CharacterRelationship[]
@@ -1041,7 +1042,8 @@ model Character {
   name                  String
   normalizedName        String                     @map("normalized_name")
   entityKind            String                     @default("individual") @map("entity_kind")
-  species               String?
+  legacySpecies         String?                    @map("species")
+  speciesId             String?                    @map("species_id") @db.Uuid
   gender                String                     @default("unknown")
   customGender          String?                    @map("custom_gender")
   pronouns              String?
@@ -1057,6 +1059,7 @@ model Character {
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
   user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   avatarMedia           MediaAsset?                @relation(fields: [avatarMediaId], references: [id], onDelete: NoAction)
+  species               Species?                   @relation(fields: [speciesId], references: [id], onDelete: Restrict)
   aliases               CharacterAlias[]
   bookAppearances       BookCharacter[]
   forms                 CharacterForm[]
@@ -1072,6 +1075,7 @@ model Character {
   @@index([userId, deletedAt])
   @@index([purgeAt])
   @@index([avatarMediaId])
+  @@index([speciesId])
   @@map("characters")
 }
 
@@ -1128,7 +1132,7 @@ model BookCharacter {
   description                 String?
   personalImpression          String?             @map("personal_impression")
   appearanceNotes             String?             @map("appearance_notes")
-  speciesOverride             String?             @map("species_override")
+  legacySpeciesOverride       String?             @map("species_override")
   portraitMediaId             String?             @map("portrait_media_id") @db.Uuid
   attitude                    String?
   firstAppearanceChapter      String?             @map("first_appearance_chapter")
@@ -1145,12 +1149,14 @@ model BookCharacter {
   personalImpressionIsSpoiler Boolean             @default(false) @map("personal_impression_is_spoiler")
   appearanceNotesIsSpoiler    Boolean             @default(false) @map("appearance_notes_is_spoiler")
   speciesOverrideIsSpoiler    Boolean             @default(false) @map("species_override_is_spoiler")
+  speciesOverrideId           String?             @map("species_override_id") @db.Uuid
   portraitIsSpoiler           Boolean             @default(false) @map("portrait_is_spoiler")
   createdAt                   DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   book                        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
   character                   Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
   portraitMedia               MediaAsset?         @relation(fields: [portraitMediaId], references: [id], onDelete: NoAction)
+  speciesOverride             Species?            @relation(fields: [speciesOverrideId], references: [id], onDelete: Restrict)
   roles                       BookCharacterRole[]
 
   @@unique([bookId, characterId])
@@ -1159,7 +1165,45 @@ model BookCharacter {
   @@index([bookId, importance])
   @@index([bookId, importanceRank])
   @@index([portraitMediaId])
+  @@index([speciesOverrideId])
   @@map("book_characters")
+}
+
+enum SpeciesNameKind {
+  label
+  alias
+
+  @@map("species_name_kind")
+}
+
+model Species {
+  id                     String          @id @default(uuid()) @db.Uuid
+  key                    String?
+  userId                 String?         @map("user_id") @db.Uuid
+  name                   String
+  normalizedName         String          @map("normalized_name")
+  categoryKey            String?         @map("category_key")
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  user                   User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  names                  SpeciesName[]
+  characters             Character[]
+  bookCharacterOverrides BookCharacter[]
+
+  @@map("species")
+}
+
+model SpeciesName {
+  id             String          @id @default(uuid()) @db.Uuid
+  speciesId      String          @map("species_id") @db.Uuid
+  locale         String
+  name           String
+  normalizedName String          @unique @map("normalized_name")
+  kind           SpeciesNameKind
+  species        Species         @relation(fields: [speciesId], references: [id], onDelete: Cascade)
+
+  @@index([speciesId])
+  @@map("species_names")
 }
 
 model BookCharacterRole {

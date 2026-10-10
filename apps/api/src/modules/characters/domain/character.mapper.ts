@@ -27,7 +27,10 @@ import {
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 
+import type { SpeciesRefSource } from "../../species/index.js";
+
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
+import { toSpeciesRefView } from "../../species/index.js";
 import { emptyToNull } from "./character-fields.js";
 
 export type CharacterAliasSource = {
@@ -59,7 +62,7 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   personalImpression: Nullable<string>;
   roles: CharacterRoleSource[];
   sortOrder: Nullable<number>;
-  speciesOverride: Nullable<string>;
+  speciesOverride: Nullable<SpeciesRefSource>;
   status: string;
   statusCustomText: Nullable<string>;
   updatedAt: Date;
@@ -99,7 +102,7 @@ export type CharacterSource = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<SpeciesRefSource>;
   updatedAt: Date;
 };
 
@@ -115,7 +118,7 @@ export type GlobalSummaryCharacterSource = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<SpeciesRefSource>;
   tags: { tag: TagViewSource }[];
 };
 
@@ -141,7 +144,7 @@ export type SeriesProfileCharacterSource = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<SpeciesRefSource>;
 };
 
 export type SpoilerFlags = {
@@ -221,7 +224,7 @@ export function toBookCharacterView({
     portraitIsSpoiler: appearance.portraitIsSpoiler,
     roles: appearance.roles.map((role) => toRoleView(role)),
     sortOrder: appearance.sortOrder,
-    speciesOverride: emptyToNull(appearance.speciesOverride),
+    speciesOverride: toSpeciesRefView(appearance.speciesOverride),
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
     status: BookCharacterStatusSchema.parse(appearance.status),
     statusCustomText: emptyToNull(appearance.statusCustomText),
@@ -272,7 +275,7 @@ export function toCharacterDetailsView({
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    species: toSpeciesRefView(character.species),
     updatedAt: character.updatedAt.toISOString(),
   };
 }
@@ -324,7 +327,7 @@ export function toCharacterGlobalSummaryView({
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    species: toSpeciesRefView(character.species),
     tags: character.tags.map((link) => toTagView(link.tag)),
   };
 }
@@ -377,7 +380,7 @@ export function toCharacterSeriesProfileView({
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    species: toSpeciesRefView(character.species),
   };
 }
 
@@ -478,7 +481,7 @@ export function toMaskedBookCharacterView({
       : appearance.roles.filter((role) => !role.isSpoiler)
     ).map((role) => toRoleView(role)),
     sortOrder: appearance.sortOrder,
-    speciesOverride: showSpeciesOverride ? emptyToNull(appearance.speciesOverride) : null,
+    speciesOverride: showSpeciesOverride ? toSpeciesRefView(appearance.speciesOverride) : null,
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
     status: showStatus ? BookCharacterStatusSchema.parse(appearance.status) : null,
     statusCustomText: showStatus ? emptyToNull(appearance.statusCustomText) : null,

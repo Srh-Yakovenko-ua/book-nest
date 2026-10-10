@@ -87,6 +87,12 @@ export type CharacterImportBundleDtoCharactersItemAppearancesItem = {
    */
   speciesOverride: string | null;
   speciesOverrideIsSpoiler: boolean;
+  /**
+   * @minLength 1
+   * @maxLength 60
+   * @nullable
+   */
+  speciesOverrideKey?: string | null;
   status: CharacterImportBundleDtoCharactersItemAppearancesItemStatus;
   /**
    * @maxLength 200

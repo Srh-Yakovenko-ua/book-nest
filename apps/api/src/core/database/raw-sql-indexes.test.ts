@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { createTestApp } from "../../test/create-test-app.js";
-import { isForeignKeyConstraintError } from "../prisma-errors.js";
+import { isForeignKeyConstraintError, isUniqueConstraintErrorOn } from "../prisma-errors.js";
 import { PrismaService } from "./prisma.service.js";
 
 const IndexRowSchema = z.object({ indexdef: z.string(), indexname: z.string() });
@@ -19,7 +19,11 @@ const ForeignKeyRowSchema = DeleteActionRowSchema.extend({
   table: z.string(),
 });
 
+const SpeciesForeignKeyRowSchema = DeleteActionRowSchema.extend({ constraint: z.string() });
+
 const NO_ACTION = "a";
+
+const SPECIES_SHAPE_CHECK = "species_system_or_custom_check";
 const RESTRICT = "r";
 
 const MEDIA_REFERENCE_COUNT = 4;
@@ -48,6 +52,14 @@ const RAW_SQL_INDEXES = [
   { name: "reading_goals_active_list_idx", requires: "archived_at IS NULL" },
   { name: "book_budgets_active_currency_idx", requires: "valid_to_month IS NULL" },
   { name: "book_reading_cycles_active_book_idx", requires: "state = 'active'" },
+  { name: "species_system_key_key", requires: "user_id IS NULL" },
+  { name: "species_system_normalized_name_key", requires: "user_id IS NULL" },
+  { name: "species_user_id_normalized_name_key", requires: "user_id IS NOT NULL" },
+] as const;
+
+const SPECIES_REFERENCE_CONSTRAINTS = [
+  "characters_species_id_fkey",
+  "book_characters_species_override_id_fkey",
 ] as const;
 
 let app: INestApplication;
@@ -55,6 +67,7 @@ let indexes: Map<string, string>;
 let constraints: Set<string>;
 let mediaReferenceActions: Map<string, string>;
 let bookPublisherDeleteAction: string;
+let speciesReferenceActions: Map<string, string>;
 
 beforeAll(async () => {
   app = await createTestApp([]);
@@ -100,6 +113,17 @@ beforeAll(async () => {
   bookPublisherDeleteAction = z
     .tuple([DeleteActionRowSchema])
     .parse(publisherForeignKeyRows)[0].onDelete;
+  const speciesForeignKeyRows = await prisma.$queryRaw`
+    SELECT conname AS "constraint", confdeltype::text AS "onDelete"
+    FROM pg_constraint
+    WHERE confrelid = 'species'::regclass AND contype = 'f'
+  `;
+  speciesReferenceActions = new Map(
+    z
+      .array(SpeciesForeignKeyRowSchema)
+      .parse(speciesForeignKeyRows)
+      .map((row) => [row.constraint, row.onDelete]),
+  );
 });
 
 afterAll(async () => {
@@ -126,6 +150,16 @@ describe("indexes that live only in hand-written migration SQL", () => {
       expect(indexes.get(name)).toContain("UNIQUE");
     }
   });
+
+  it("keeps the three species uniques partial so a NULL owner cannot slip past them", () => {
+    for (const name of [
+      "species_system_key_key",
+      "species_system_normalized_name_key",
+      "species_user_id_normalized_name_key",
+    ]) {
+      expect(indexes.get(name)).toContain("UNIQUE");
+    }
+  });
 });
 
 describe("check constraints that live only in hand-written migration SQL", () => {
@@ -147,6 +181,13 @@ describe("check constraints that live only in hand-written migration SQL", () =>
     expect(
       constraints.has("notifications_entity_pair_check"),
       "notifications lost the constraint that keeps entity_type and entity_id paired",
+    ).toBe(true);
+  });
+
+  it("keeps a species either system (key and category) or custom (owner only)", () => {
+    expect(
+      constraints.has("species_system_or_custom_check"),
+      "species lost the constraint that stops a custom row from carrying a system key",
     ).toBe(true);
   });
 });
@@ -304,3 +345,311 @@ describe("a publisher cannot be deleted out from under a book", () => {
     await expect(prisma.book.count({ where: { userId } })).resolves.toBe(0);
   });
 });
+
+describe("a species cannot be deleted out from under a character", () => {
+  it.each(SPECIES_REFERENCE_CONSTRAINTS)("keeps %s ON DELETE RESTRICT", (constraint) => {
+    expect(
+      speciesReferenceActions.get(constraint),
+      "a species deletion must never silently clear a character's species",
+    ).toBe(RESTRICT);
+  });
+
+  it("refuses to delete a custom species that a character and a book override still use", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = randomUUID();
+    const speciesId = randomUUID();
+
+    await prisma.user.create({
+      data: {
+        email: `species-restrict-${userId}@example.test`,
+        id: userId,
+        name: "Species restrict probe",
+        passwordHash: "x",
+      },
+    });
+    await prisma.species.create({
+      data: { id: speciesId, name: "Скельник", normalizedName: "скельник", userId },
+    });
+    const character = await prisma.character.create({
+      data: { name: "Probe", normalizedName: "probe", speciesId, userId },
+    });
+    const book = await prisma.book.create({ data: { title: "Species probe", userId } });
+    await prisma.bookCharacter.create({
+      data: { bookId: book.id, characterId: character.id, speciesOverrideId: speciesId },
+    });
+
+    const rejection = await prisma.species
+      .delete({ where: { id: speciesId } })
+      .then(() => null)
+      .catch((error: unknown) => error);
+
+    expect(isForeignKeyConstraintError(rejection)).toBe(true);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("refuses to delete a custom species that only a character uses", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = await createProbeUser("species-character-only");
+    const speciesId = randomUUID();
+    await prisma.species.create({
+      data: { id: speciesId, name: "Скельник", normalizedName: "скельник", userId },
+    });
+    await prisma.character.create({
+      data: { name: "Probe", normalizedName: "probe", speciesId, userId },
+    });
+
+    const rejection = await rejectionOf(prisma.species.delete({ where: { id: speciesId } }));
+
+    expect(isForeignKeyConstraintError(rejection)).toBe(true);
+    await expect(prisma.species.count({ where: { id: speciesId } })).resolves.toBe(1);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("refuses to delete a custom species that only a book override uses", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = await createProbeUser("species-override-only");
+    const speciesId = randomUUID();
+    await prisma.species.create({
+      data: { id: speciesId, name: "Скельник", normalizedName: "скельник", userId },
+    });
+    const character = await prisma.character.create({
+      data: { name: "Probe", normalizedName: "probe", userId },
+    });
+    const book = await prisma.book.create({ data: { title: "Species probe", userId } });
+    await prisma.bookCharacter.create({
+      data: { bookId: book.id, characterId: character.id, speciesOverrideId: speciesId },
+    });
+
+    const rejection = await rejectionOf(prisma.species.delete({ where: { id: speciesId } }));
+
+    expect(isForeignKeyConstraintError(rejection)).toBe(true);
+    await expect(prisma.species.count({ where: { id: speciesId } })).resolves.toBe(1);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("still lets an account be deleted while its characters use its own custom species", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = randomUUID();
+    const speciesId = randomUUID();
+
+    await prisma.user.create({
+      data: {
+        email: `species-cleanup-${userId}@example.test`,
+        id: userId,
+        name: "Species cleanup probe",
+        passwordHash: "x",
+      },
+    });
+    await prisma.species.create({
+      data: { id: speciesId, name: "Скельник", normalizedName: "скельник", userId },
+    });
+    const character = await prisma.character.create({
+      data: { name: "Probe", normalizedName: "probe", speciesId, userId },
+    });
+    const trashedAt = new Date("2026-05-01T10:00:00.000Z");
+    await prisma.character.create({
+      data: {
+        deletedAt: trashedAt,
+        name: "Trashed probe",
+        normalizedName: "trashed probe",
+        purgeAt: trashedAt,
+        speciesId,
+        userId,
+      },
+    });
+    const book = await prisma.book.create({ data: { title: "Species probe", userId } });
+    await prisma.bookCharacter.create({
+      data: { bookId: book.id, characterId: character.id, speciesOverrideId: speciesId },
+    });
+
+    await expect(prisma.user.delete({ where: { id: userId } })).resolves.toMatchObject({
+      id: userId,
+    });
+    await expect(prisma.species.count({ where: { userId } })).resolves.toBe(0);
+    await expect(prisma.character.count({ where: { userId } })).resolves.toBe(0);
+  });
+});
+
+describe("species rows are either system or custom, never a mix", () => {
+  it("accepts a system row with a key and a category and a custom row with neither", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = await createProbeUser("species-shape");
+    const probe = systemSpeciesProbe();
+
+    await expect(prisma.species.create({ data: probe })).resolves.toMatchObject({
+      key: probe.key,
+      userId: null,
+    });
+    await expect(
+      prisma.species.create({ data: { name: "Probe", normalizedName: "probe", userId } }),
+    ).resolves.toMatchObject({ key: null, userId });
+
+    await prisma.species.deleteMany({ where: { key: probe.key } });
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("rejects a custom species that carries a system key", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = await createProbeUser("species-custom-key");
+
+    const rejection = await rejectionOf(
+      prisma.species.create({
+        data: { key: `probe_${randomUUID()}`, name: "Probe", normalizedName: "probe", userId },
+      }),
+    );
+
+    expect(describeRejection(rejection)).toContain(SPECIES_SHAPE_CHECK);
+    await expect(prisma.species.count({ where: { userId } })).resolves.toBe(0);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("rejects a custom species that carries a category", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = await createProbeUser("species-custom-category");
+
+    const rejection = await rejectionOf(
+      prisma.species.create({
+        data: { categoryKey: "elven", name: "Probe", normalizedName: "probe", userId },
+      }),
+    );
+
+    expect(describeRejection(rejection)).toContain(SPECIES_SHAPE_CHECK);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("rejects a system species without a key", async () => {
+    const prisma = app.get(PrismaService);
+    const probe = systemSpeciesProbe();
+
+    const rejection = await rejectionOf(prisma.species.create({ data: { ...probe, key: null } }));
+
+    expect(describeRejection(rejection)).toContain(SPECIES_SHAPE_CHECK);
+    await expect(
+      prisma.species.count({ where: { normalizedName: probe.normalizedName } }),
+    ).resolves.toBe(0);
+  });
+
+  it("rejects a system species without a category", async () => {
+    const prisma = app.get(PrismaService);
+    const probe = systemSpeciesProbe();
+
+    const rejection = await rejectionOf(
+      prisma.species.create({ data: { ...probe, categoryKey: null } }),
+    );
+
+    expect(describeRejection(rejection)).toContain(SPECIES_SHAPE_CHECK);
+    await expect(prisma.species.count({ where: { key: probe.key } })).resolves.toBe(0);
+  });
+});
+
+describe("species uniques hold even though system rows have a NULL owner", () => {
+  it("rejects a second system species with the same key", async () => {
+    const prisma = app.get(PrismaService);
+    const first = systemSpeciesProbe();
+    await prisma.species.create({ data: first });
+
+    const rejection = await rejectionOf(
+      prisma.species.create({
+        data: { ...systemSpeciesProbe(), key: first.key },
+      }),
+    );
+
+    expect(isUniqueConstraintErrorOn(rejection, "species_system_key_key")).toBe(true);
+    await expect(prisma.species.count({ where: { key: first.key } })).resolves.toBe(1);
+
+    await prisma.species.deleteMany({ where: { key: first.key } });
+  });
+
+  it("rejects a second system species with the same normalized name", async () => {
+    const prisma = app.get(PrismaService);
+    const first = systemSpeciesProbe();
+    const second = { ...systemSpeciesProbe(), normalizedName: first.normalizedName };
+    await prisma.species.create({ data: first });
+
+    const rejection = await rejectionOf(prisma.species.create({ data: second }));
+
+    expect(isUniqueConstraintErrorOn(rejection, "species_system_normalized_name_key")).toBe(true);
+
+    await prisma.species.deleteMany({ where: { key: { in: [first.key, second.key] } } });
+  });
+
+  it("rejects a second custom species with the same normalized name under one owner", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = await createProbeUser("species-own-duplicate");
+    await prisma.species.create({
+      data: { name: "Скельник", normalizedName: "скельник", userId },
+    });
+
+    const rejection = await rejectionOf(
+      prisma.species.create({ data: { name: "СКЕЛЬНИК", normalizedName: "скельник", userId } }),
+    );
+
+    expect(isUniqueConstraintErrorOn(rejection, "species_user_id_normalized_name_key")).toBe(true);
+
+    await prisma.user.delete({ where: { id: userId } });
+  });
+
+  it("lets two owners and the system tier each hold the same normalized name", async () => {
+    const prisma = app.get(PrismaService);
+    const firstOwner = await createProbeUser("species-owner-one");
+    const secondOwner = await createProbeUser("species-owner-two");
+    const system = systemSpeciesProbe();
+    await prisma.species.create({ data: system });
+
+    await prisma.species.create({
+      data: { name: "Probe", normalizedName: system.normalizedName, userId: firstOwner },
+    });
+    await prisma.species.create({
+      data: { name: "Probe", normalizedName: system.normalizedName, userId: secondOwner },
+    });
+
+    await expect(
+      prisma.species.count({ where: { normalizedName: system.normalizedName } }),
+    ).resolves.toBe(3);
+
+    await prisma.species.deleteMany({ where: { key: system.key } });
+    await prisma.user.deleteMany({ where: { id: { in: [firstOwner, secondOwner] } } });
+  });
+});
+
+async function createProbeUser(label: string): Promise<string> {
+  const prisma = app.get(PrismaService);
+  const userId = randomUUID();
+  await prisma.user.create({
+    data: {
+      email: `${label}-${userId}@example.test`,
+      id: userId,
+      name: "Species probe",
+      passwordHash: "x",
+    },
+  });
+  return userId;
+}
+
+function describeRejection(rejection: unknown): string {
+  return rejection instanceof Error ? rejection.message : String(rejection);
+}
+
+function rejectionOf(operation: Promise<unknown>): Promise<unknown> {
+  return operation.then(() => null).catch((error: unknown) => error);
+}
+
+function systemSpeciesProbe(): {
+  categoryKey: string;
+  key: string;
+  name: string;
+  normalizedName: string;
+} {
+  const suffix = randomUUID();
+  return {
+    categoryKey: "elven",
+    key: `probe_${suffix}`,
+    name: `Probe ${suffix}`,
+    normalizedName: `probe ${suffix}`,
+  };
+}
