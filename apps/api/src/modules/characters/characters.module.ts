@@ -4,6 +4,7 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/index.js";
 import { BooksModule } from "../books/index.js";
 import { MediaModule } from "../media/index.js";
+import { SpeciesModule } from "../species/index.js";
 import { TagsModule } from "../tags/index.js";
 import { BookCharacterGraphController } from "./api/book-character-graph.controller.js";
 import { BookCharacterRelationshipsController } from "./api/book-character-relationships.controller.js";
@@ -82,6 +83,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     AuthModule,
     BooksModule,
     MediaModule,
+    SpeciesModule,
     TagsModule,
     BullModule.registerQueue({ name: CHARACTER_PURGE_QUEUE_NAME }),
   ],

@@ -1,0 +1,1021 @@
+{
+  "spec": "docs/1_booknest-species-refactor-claude-code-v2/00-START-HERE.md",
+  "specFiles": [
+    "docs/1_booknest-species-refactor-claude-code-v2/00-START-HERE.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/01-PRODUCT-CONTRACT.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/02-REPO-REUSE-AUDIT.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/03-BACKEND-AND-MIGRATION.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/04-FRONTEND-UX.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/05-INTEGRATIONS.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/06-ACCEPTANCE.md",
+    "docs/1_booknest-species-refactor-claude-code-v2/07-SPECIES-CATALOG-114.json"
+  ],
+  "baseCommit": "dbbcee00",
+  "generatedAt": "2026-10-09T11:11:18Z",
+  "scope": {
+    "included": [
+      "01 Scope / Selection and creating / Maintenance / Migration promise",
+      "03 Data model, API (6 endpoint groups), merge+delete rules, migration steps 1-3 (expand, backfill, switch), focused coverage list",
+      "04 picker + own-species management dialog",
+      "05 consumer sweep (views, book appearances, list filter, portability, character merge, caches, fixtures)",
+      "06 acceptance matrix as doneWhen evidence",
+      "07 JSON fixture as sole source of system keys/labels/categories"
+    ],
+    "excluded": [
+      "03 step 4 Cleanup (drop characters.species / book_characters.species_override): spec says separate later reviewed migration after verified parity",
+      "Multi-species, taxonomy hierarchy, species lore fields, species page, sidebar entry, manual category input (01 Scope, 04: explicit non-goals)",
+      "Entity kind, gender, character aliases, tags, unrelated forms (05: explicit 'do not change')",
+      "07-SPECIES-CATALOG-114.csv: derivative of the JSON; naive split diverges on 16 quoted rows; 00 names the JSON as the sole source"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Species Zod contract in @app/shared",
+      "specRef": "03 API 1-6 + error codes; 01 Selection; 04 limits",
+      "layer": "shared",
+      "files": ["packages/shared/src/species.ts", "packages/shared/src/index.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "SPECIES_ERROR_CODES = { duplicate: 'species_duplicate', notFound: 'species_not_found', forbidden: 'species_forbidden', inUse: 'species_in_use', mergeSelf: 'species_merge_self', mergeInvalidTarget: 'species_merge_invalid_target', mergeConflict: 'species_merge_conflict' } (lower_snake like CHARACTER_MERGE_ERROR_CODES, characters.ts:50)",
+        "one grouped const (code-principles 3.10) holds minQueryLength 2, debounceMs 300, searchLimit 10, popular count within 8..12, name max 120",
+        "schemas exist for: search query {q?: trimmed, max-capped; locale: CatalogLocaleSchema.default('uk')}, species view {id, key: nullable, isCustom, name (locale-resolved), categoryKey nullable, category label per D10}, duplicate-candidates query {name, locale, excludeSpeciesId?} + candidate {id, isCustom, name, matchedName nullable, matchKind enum exact|alias|similar}, create {name}, rename {name} .strict(), deletion preview (shape per D11), merge input {targetSpeciesId: uuid}, merge result {targetSpeciesId, movedCharacterCount, movedBookOverrideCount}",
+        "species.ts is re-exported from packages/shared/src/index.ts",
+        "no Nullable written as `T | null` by hand"
+      ],
+      "status": "done",
+      "notes": "Assumption recorded during implementation: the shapes follow the product contract (01/03) with these naming differences from this doneWhen: species view uses isOwn instead of isCustom and category {key, name} instead of categoryKey; candidates return {exact, similar[]} (exact covers canonical names and registered aliases, similar is advisory) instead of per-candidate matchKind/matchedName; the candidates query has no excludeSpeciesId, the rename panel drops the species itself on the client; merge input is {targetId} and the result is {target, reassigned{characters, bookOverrides}}; the popular keys and own-recent limit live in the API constant SPECIES_QUERY_TUNING, the shared SPECIES_SEARCH holds the client-visible limits."
+    },
+    {
+      "id": "T2",
+      "title": "Switch character contracts from species text to species IDs",
+      "specRef": "03 Data model (speciesId / speciesOverrideId); 05 compatibility window; D2, D3",
+      "layer": "shared",
+      "files": ["packages/shared/src/characters.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "CharacterInputSchema (characters.ts:186-199) and UpdateCharacterSchema (:280-293) carry speciesId: uuid nullish instead of species text",
+        "BookCharacterProfileInputSchema (:213-236) and UpdateBookCharacterSchema (:308-333) carry speciesOverrideId: uuid nullish; speciesOverrideIsSpoiler unchanged",
+        "BookCharacterViewSchema (:453-482), CharacterDetailsViewSchema (:512-530), CharacterSeriesProfileViewSchema (:573-587), CharacterGlobalSummaryViewSchema (:741-755) expose the ID + label fields chosen in D2, with nullability preserved",
+        "CharactersListQuerySchema.species (:616) changed per D3",
+        "CharacterRevealFieldKeySchema still contains 'speciesOverride' (:712), so reveal/hidden-field semantics are unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Portable species reference in the character bundle",
+      "specRef": "03 'importing/exporting portable text'; 05 bullet 2; D5",
+      "layer": "shared",
+      "files": ["packages/shared/src/character-portability.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "BundleCharacterSchema (:151) and BundleAppearanceSchema (:109-110) carry a system key field plus a name fallback per D5; no bundle field holds a species UUID",
+        "a formatVersion 1 bundle produced by current dev (species/speciesOverride text only) still parses (literal at :27/:307 kept, or a v1|v2 union per D5)",
+        "speciesOverrideIsSpoiler stays required boolean"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Prisma models Species + SpeciesName and nullable FKs",
+      "specRef": "03 Data model and naming",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "model Species: id uuid PK, key String? (set for system), userId String? uuid FK users ON DELETE CASCADE, name, normalizedName, categoryKey String?, createdAt, updatedAt, snake_case @map/@@map('species')",
+        "model SpeciesName: id, speciesId FK ON DELETE CASCADE, locale, name, normalizedName, a kind/flag distinguishing canonical translation from searchable alias, @@unique([speciesId, locale, normalizedName]), @@index([normalizedName])",
+        "no category table or category label columns (03: no duplicated category metadata)",
+        "Character.speciesId String? @map('species_id') @db.Uuid with relation onDelete: Restrict and @@index([speciesId]); legacy `species String?` (schema.prisma:1044) kept",
+        "BookCharacter.speciesOverrideId String? @map('species_override_id') with relation onDelete: Restrict and @@index([speciesOverrideId]); legacy speciesOverride (:1131) and speciesOverrideIsSpoiler (:1147) kept",
+        "relation field names do not collide with the retained legacy scalars `species` / `speciesOverride`"
+      ],
+      "status": "done",
+      "notes": "Assumption recorded during implementation: species_names.normalized_name is globally unique instead of @@unique([speciesId, locale, normalizedName]) + @@index([normalizedName]). It is stricter and makes an exact alias match resolve to exactly one system species, which the backfill and import rely on."
+    },
+    {
+      "id": "T5",
+      "title": "Runtime copy of the 114-record fixture + fixture integrity test",
+      "specRef": "00 Goal; 06 Fixture row",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/scripts/data/species-catalog.json",
+        "apps/api/src/modules/species/domain/species-catalog-fixture.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the JSON in apps/api is byte-identical to docs/1_booknest-species-refactor-claude-code-v2/07-SPECIES-CATALOG-114.json items+categories (location follows the src/scripts/data/book-genres.json precedent unless D6 says otherwise)",
+        "test asserts: items.length === 114 === count; 114 unique keys; every nameUk/nameEn non-empty; the 228 normalized labels are pairwise distinct; per-category counts equal categories[].count and sum to 114; 15 categories"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Expand migration: tables, partial uniques, collation, FKs, deterministic system seed",
+      "specRef": "03 Migration step 1; 03 'partial unique indexes'; 06 Fixture idempotent seed; D6",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/migrations/<ts>_species_catalog_expand/migration.sql"],
+      "dependsOn": ["T4", "T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "created via `pnpm --filter @app/api db:migrate --name species_catalog_expand`, reviewed by migration-reviewer, every DROP INDEX line in the generated SQL inspected and none removes the 13 existing raw-SQL indexes",
+        "partial unique on species(key) WHERE user_id IS NULL",
+        "partial unique on species(normalized_name) WHERE user_id IS NULL",
+        "partial unique on species(user_id, normalized_name) WHERE user_id IS NOT NULL",
+        "species.name and species_names.name use COLLATE \"uk-UA-x-icu\" (deterministic), matching the catalog-name convention in collated-columns.test.ts:18-39",
+        "FKs characters.species_id and book_characters.species_override_id are ON DELETE RESTRICT",
+        "inserts exactly 114 system species rows (user_id NULL, key, category_key) and 228 canonical species_names rows (uk + en) with ON CONFLICT DO NOTHING so a re-run is a no-op",
+        "no column is dropped or renamed"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "DB invariant tests + CLAUDE.md index list for the new raw SQL",
+      "specRef": "03 focused coverage 'null-owner index'; CLAUDE.md §6 raw-SQL-index trap",
+      "layer": "test",
+      "files": [
+        "apps/api/src/core/database/raw-sql-indexes.test.ts",
+        "apps/api/src/core/database/collated-columns.test.ts",
+        "CLAUDE.md"
+      ],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "RAW_SQL_INDEXES (raw-sql-indexes.test.ts:37-51) lists each new species partial unique with its 'user_id IS NULL' / 'user_id IS NOT NULL' predicate",
+        "a test proves a species referenced by a character or a book override cannot be deleted (RESTRICT), mirroring raw-sql-indexes.test.ts:206-252",
+        "a test proves deleting a user whose own characters reference their own custom species succeeds in one statement, mirroring raw-sql-indexes.test.ts:257",
+        "collated-columns.test.ts columns list includes species.name and species_names.name",
+        "CLAUDE.md §6 count and list of raw-SQL indexes updated to include the species partial uniques"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Idempotent TS seeder for system species + test helper after truncate",
+      "specRef": "03 'Keep seed idempotent/upsert by stable semantic key'; 06 Fixture",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/scripts/seed-species.ts",
+        "apps/api/package.json",
+        "apps/api/src/test/<species seed helper>.ts"
+      ],
+      "dependsOn": ["T5", "T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "seed upserts by key (never deleteMany+createMany like seed-genres.ts:36-37, because system rows are FK targets)",
+        "labels for existing keys are updated from the JSON; system rows not in the JSON are not deleted",
+        "package.json has seed:species alongside seed:genres (package.json:14-18 pattern)",
+        "a test helper inserts the 114 rows for integration tests, because truncateAllTables (src/test/truncate.ts:5-14) wipes migration-seeded rows",
+        "an integration test runs the seeder twice and asserts 114 species + 228 canonical names, unchanged IDs on the second run",
+        "a test asserts the expand migration.sql contains exactly the 114 fixture keys (guards SQL/JSON drift)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "Backfill migration: legacy text to species FKs, no fuzzy",
+      "specRef": "01 Migration promise; 03 Migration step 2 + 3 parity; 06 Migration row; D4, D7",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/migrations/<ts>_species_catalog_backfill/migration.sql"],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "separate migration file after the expand migration; legacy columns untouched",
+        "normalization in SQL mirrors the TS normalizer chosen in D4 (precedent: 20260815090000_add_loan_contacts/migration.sql:60-95)",
+        "nonblank Character.species and BookCharacter.species_override equal to a system UK/EN canonical label (or a curated alias, per D1) after normalization map to that system species",
+        "every other nonblank value creates at most one private species per (character owner, normalized text); BookCharacter overrides use the character's user_id",
+        "the custom species name is the original text of a deterministic source row (e.g. earliest created_at, then id)",
+        "blank/whitespace-only/NULL legacy values leave the FK NULL",
+        "species_override_is_spoiler is not written by the migration",
+        "the migration ends with a DO block that RAISEs EXCEPTION if any nonblank legacy value has a NULL FK, or any book_characters row's book.user_id differs from character.user_id while it has an override, so a partial backfill cannot commit",
+        "a RAISE NOTICE (or an equivalent read-only reconciliation query kept beside the migration) reports systemMatched / customCreated / blankSkipped for characters and overrides separately"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Backfill tests on odd input",
+      "specRef": "03 focused coverage 'legacy backfill odd casing/Unicode/apostrophes/NULL and unknown data'",
+      "layer": "test",
+      "files": ["apps/api/src/modules/species/infrastructure/species-backfill.test.ts"],
+      "dependsOn": ["T9", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "test executes the backfill SQL against seeded legacy rows and asserts: 'ЛЮДИНА', '  human ', 'Відьмак' map to system human/witcher; 'Ельф-маг' twice for user A gives one private species; same text for user B gives a separate private species; NULL, '' and '   ' stay NULL",
+        "apostrophe/Unicode variants (e.g. U+0027 vs U+2019 vs U+02BC) behave exactly as D4 decides, asserted both ways",
+        "an override equal to a nonexistent system label becomes a private species of the character owner, and its spoiler flag is unchanged",
+        "re-running the backfill is a no-op (no second private species, no FK changes)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Species normalization + matching domain",
+      "specRef": "01 'Exact normalized matches ... approximate suggestions advisory'; 03 alias ambiguity; D1, D4, D8",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/species/domain/species-name-matching.ts",
+        "apps/api/src/modules/species/domain/species-name-matching.test.ts",
+        "packages/shared/src/species.ts"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "one normalizer function is used by create, rename, duplicate check, import and the backfill mirror (D4); global normalizeName (common.ts:116) is not changed",
+        "similarity scoring returns advisory candidates only and never merges or selects: test proves 'Ельф' vs 'Темний ельф', 'fairy' vs 'fae', 'werewolf' vs 'werecreature' yield matchKind 'similar', not exact",
+        "label resolution: requested locale label, else the other canonical label, else Species.name; custom species return the entered name in both locales (no translation)",
+        "no import from modules/publishers/domain (cross-module reach); generic helpers copied or extracted per D8"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "SpeciesRepository (only Prisma touchpoint)",
+      "specRef": "03 API + Merge and delete; CLAUDE.md §5.3",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/species/infrastructure/species.repository.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "every read filters with visibleToUser(userId) (core/database/two-tier-visibility.ts:1) or an explicit userId owner filter; no method returns rows of another user's custom species",
+        "every method takes trailing client: Prisma.TransactionClient = this.prisma",
+        "search returns at most the limit passed in and loads names in the same query (no per-row name lookups)",
+        "exact-match lookup checks Species.normalizedName and SpeciesName.normalizedName (canonical + alias) of visible rows (publishers.repository.ts:419-433 pattern)",
+        "usage count returns character count and book-override count, both scoped to the owner",
+        "reassign updates characters.species_id and book_characters.species_override_id from source to target scoped by userId, never touching species_override_is_spoiler",
+        "returns model rows/primitives only, no ViewModel"
+      ],
+      "status": "done",
+      "notes": "Assumption recorded during implementation: searchVisible returns every visible match (LIKE-escaped) and the service ranks in memory and cuts to SPECIES_SEARCH.maxResults, because the exact/prefix/word-prefix ranking cannot be expressed in the Prisma query. Lock helpers take a mandatory transaction client on purpose."
+    },
+    {
+      "id": "T13",
+      "title": "SpeciesService: search, candidates, create, rename",
+      "specRef": "03 API 1-4; 01 Selection + Maintenance; 06 Duplicates/Scope; D9, D10",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/species/application/species.service.ts",
+        "apps/api/src/core/database/advisory-lock.ts"
+      ],
+      "dependsOn": ["T11", "T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "ADVISORY_LOCK_CLASS gains a species entry with an unused id (advisory-lock.ts:3-18, next free 15); create/rename/delete/merge take acquireAdvisoryLock({classId: species, key: userId}) inside TransactionRunner.run",
+        "search with q length < 2 returns the popular list (D9) of 8-12 items; with q >= 2 returns <= 10 visible matches with locale labels",
+        "create: an exact normalized match against any visible canonical/alias label throws ConflictError code species_duplicate with details listing only visible species IDs; fuzzy-only matches do not block; the check repeats inside the locked transaction; a P2002 maps to species_duplicate (rethrowUniqueConstraintAs, prisma-errors.ts:65)",
+        "rename: own only; system source -> species_forbidden; foreign or missing -> species_not_found with an identical response; same duplicate semantics as create, excluding itself; system labels never written",
+        "duplicateCandidates returns exact/alias/similar candidates drawn only from system + caller's rows",
+        "no PrismaService injection; no req/res"
+      ],
+      "status": "done",
+      "notes": "Assumption recorded during implementation: candidate similarity runs the edit-distance check for at most 200 eligible names per request (closest length first) and skips similar matching for queries whose normalized form exceeds 120 code points, bounding CPU per request."
+    },
+    {
+      "id": "T14",
+      "title": "SpeciesService: deletion preview, guarded delete, merge",
+      "specRef": "03 Merge and delete; 01 Maintenance; 06 Maintenance; D11",
+      "layer": "application",
+      "files": ["apps/api/src/modules/species/application/species.service.ts"],
+      "dependsOn": ["T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "deletion preview counts global (Character.speciesId) and book-scoped (BookCharacter.speciesOverrideId) usage, including archived/trashed rows per D11",
+        "delete recounts under the lock inside the transaction and throws ConflictError species_in_use with the counts when > 0; FK violation (isForeignKeyConstraintError, prisma-errors.ts:18) also maps to species_in_use",
+        "merge: source === target -> species_merge_self; source system -> species_forbidden; source foreign/missing -> species_not_found; target not visible (foreign or missing, same response) -> species_merge_invalid_target",
+        "merge reassigns both FK columns and deletes the source in one TransactionRunner.run; returns moved counts; spoiler flags and all other character/book_character columns unchanged",
+        "a concurrent delete/merge that leaves source or target gone mid-transaction, or a P2003/P2002 during reassignment, maps to species_merge_conflict instead of 500"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "Species controller, DTOs, module wiring",
+      "specRef": "03 API; CLAUDE.md §6 steps 6-8",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/species/api/species.controller.ts",
+        "apps/api/src/modules/species/api/input-dto/*.ts",
+        "apps/api/src/modules/species/api/view-dto/*.ts",
+        "apps/api/src/modules/species/species.module.ts",
+        "apps/api/src/modules/species/index.ts",
+        "apps/api/src/app.module.ts"
+      ],
+      "dependsOn": ["T13", "T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Controller('api/species') with guarded routes only for: search/list, duplicate-candidates, create, rename, deletion-preview, delete, merge (no other endpoints, no library/overview pages)",
+        "every body/query parsed with createZodDto over T1 schemas; full @Api* Swagger including 403/404/409 responses",
+        "SpeciesModule exports SpeciesService via index.ts and is registered in app.module.ts (publishers precedent: app.module.ts:30/53)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "Species module tests (service + controller)",
+      "specRef": "03 Focused coverage; 06 Scope, Duplicates, Maintenance",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/species/application/species.service.test.ts",
+        "apps/api/src/modules/species/api/species.controller*.test.ts"
+      ],
+      "dependsOn": ["T15", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "user A sees system + A only and user B sees system + B only on search, candidates, preview, rename, delete, merge; probing B's species ID as A returns the same status+code as a random UUID",
+        "uk/en labels: locale=en returns nameEn for system rows, custom rows return the entered name in both locales",
+        "exact canonical collision (uk and en label) returns 409 species_duplicate with visible IDs only; fuzzy candidate does not block create",
+        "two concurrent creates of the same name by one user yield one row and one 409 (Promise.all)",
+        "delete blocked with counts when used by a global field and when used only by a book override; delete succeeds at zero",
+        "merge moves both FK columns, keeps speciesOverrideIsSpoiler true/false values, rejects self, system source, foreign target"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "Character write path takes species IDs with visibility checks",
+      "specRef": "03 'authorization checks ensure user's own or system species'; 06 Forms",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-write.ts",
+        "apps/api/src/modules/characters/domain/book-character-write.ts",
+        "apps/api/src/modules/characters/infrastructure/characters.repository.ts",
+        "apps/api/src/modules/characters/application/character-access.asserter.ts",
+        "apps/api/src/modules/characters/application/characters.service.ts",
+        "apps/api/src/modules/characters/application/book-characters.service.ts",
+        "apps/api/src/modules/characters/characters.module.ts"
+      ],
+      "dependsOn": ["T2", "T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "character-write.ts:43,63-64 and book-character-write.ts:51-52,97-101 write speciesId / speciesOverrideId; null clears; undefined leaves unchanged",
+        "repository data types (characters.repository.ts:217-218, 237, 329-330, 348) carry the ID fields",
+        "createGlobalCharacter, updateGlobal, createInBook (both modes), updateBook assert the species ID is visible to the user via SpeciesService before writing; a foreign or missing ID returns species_not_found",
+        "an FK violation from a species deleted concurrently maps to species_not_found, not 500",
+        "legacy species/species_override text columns are handled per D7"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "title": "Character read path: species include, labels, spoiler masking",
+      "specRef": "05 bullets 1, 3, 4; 01 spoiler preservation; D2",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/characters/infrastructure/characters.repository.ts",
+        "apps/api/src/modules/characters/domain/character.mapper.ts",
+        "apps/api/src/modules/characters/application/character-details.assembler.ts"
+      ],
+      "dependsOn": ["T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "detailsInclude (characters.repository.ts:36-60), globalSummaryInclude (:69-76), seriesProfileInclude (:86-97) and the book-appearance includes load the species relation with names in the same query (no per-character species query)",
+        "toCharacterDetailsView (character.mapper.ts:233), toCharacterGlobalSummaryView (:301), toCharacterSeriesProfileView (:332), toBookCharacterView (:183) emit the D2 fields",
+        "toMaskedBookCharacterView (:411, :443, :481) returns null for every speciesOverride field, ID included, when the field is spoiler-hidden; hiddenFields still contains 'speciesOverride' (:533-534)",
+        "null species renders as null, never empty string"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "title": "Character list species filter",
+      "specRef": "05 'filters'; 06 Integrations 'existing filters'; D3",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/characters/domain/global-character-filter.ts",
+        "apps/api/src/modules/characters/infrastructure/characters.repository.ts",
+        "apps/api/src/modules/characters/api/characters.controller.ts"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "global-character-filter.ts:36, characters.repository.ts:1205-1206 and the @ApiQuery at characters.controller.ts:99 use the D3 shape",
+        "a foreign species ID in the filter yields an empty page, not an error that reveals existence",
+        "integration test covers filtering by a system and by an own species"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "title": "Portability export/import via system key + name fallback",
+      "specRef": "03 last paragraph; 05 bullet 2; D5",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-portability.ts",
+        "apps/api/src/modules/characters/infrastructure/character-portability.repository.ts",
+        "apps/api/src/modules/characters/application/character-portability.service.ts",
+        "apps/api/src/modules/characters/domain/character-portability.test.ts"
+      ],
+      "dependsOn": ["T3", "T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "export (serializeCharacter :927-945, serializeAppearance :872-900; selects at character-portability.repository.ts:54-55, 86) writes the system key for system species and the name for custom ones; no species UUID in the bundle",
+        "import resolves key -> system species; else name -> exact visible match (same normalizer); else creates an own custom species; resolution and creation run inside the same transaction as insertGraph (character-portability.service.ts:64-67), so a failed import leaves no new species",
+        "a v1 bundle with only text species imports with the same mapping rules",
+        "speciesOverrideIsSpoiler round-trips unchanged; tests cover system key, custom name, unknown key with name fallback"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "title": "Character merge keeps species references",
+      "specRef": "05 'duplication/character merge'",
+      "layer": "test",
+      "files": ["apps/api/src/modules/characters/api/character-merge.controller.test.ts"],
+      "dependsOn": ["T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: after merging characters, moved book_characters rows keep speciesOverrideId and speciesOverrideIsSpoiler (repointing at character-merge.repository.ts:370-371) and the survivor's speciesId is unchanged",
+        "no code change in character-merge.* unless the test fails"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T22",
+      "title": "Update existing BE tests and fixtures that assert species text",
+      "specRef": "05 'test fixtures'",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/characters/api/characters-discovery.controller.test.ts",
+        "apps/api/src/modules/characters/api/series-character-profile.controller.test.ts",
+        "apps/api/src/modules/characters/api/character-spoiler-collections.controller.test.ts",
+        "apps/api/src/modules/characters/domain/character-portability.test.ts"
+      ],
+      "dependsOn": ["T18", "T20"],
+      "mandatory": true,
+      "doneWhen": [
+        "characters-discovery.controller.test.ts:134,148 and series-character-profile.controller.test.ts:132,147 write a speciesId and assert the D2 view fields",
+        "character-spoiler-collections.controller.test.ts:40 still lists 'speciesOverride' as a hidden field",
+        "a test proves a spoiler-hidden override exposes neither label nor ID",
+        "/blast-radius run on the contract change, consumers' tests executed and results recorded"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T23",
+      "title": "Regenerate OpenAPI + Orval client",
+      "specRef": "03 'Swagger/Orval generation'; 04 'no hand editing generated code'",
+      "layer": "contract",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T15", "T19"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm gen:api` output committed; generated diff contains species endpoints and the character field changes; no manual edits in generated/**"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T24",
+      "title": "FE species slice: API wrappers, query keys, invalidation",
+      "specRef": "04 'Integrate ... generated Orval hooks'; 05 cache invalidation",
+      "layer": "api",
+      "files": ["apps/web/src/features/species/api/*.ts", "apps/web/src/features/species/index.ts"],
+      "dependsOn": ["T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "wrappers call only generated endpoints, parse with @app/shared schemas, locale via useLocale + CatalogLocaleSchema.catch('uk') (use-publisher-duplicate-candidates.ts:36-54 pattern)",
+        "species query keys include q and locale, so a late response for an old q never renders for the current q",
+        "create, rename, delete, merge invalidate species keys, characterKeys.all (character-keys.ts:21) and bookKeys used by book character views"
+      ],
+      "status": "done",
+      "notes": "Assumption recorded during implementation: create invalidates only species keys (with refetchType none for the closing picker); rename, delete and merge also invalidate characterKeys.all. A species created a moment ago cannot be referenced by any cached character view yet."
+    },
+    {
+      "id": "T25",
+      "title": "SpeciesPicker combobox",
+      "specRef": "04 bullets 1-3; 01 Selection and creating; 06 UI",
+      "layer": "application",
+      "files": [
+        "apps/web/src/features/species/components/species-picker.tsx",
+        "apps/web/src/features/species/components/species-picker.test.tsx"
+      ],
+      "dependsOn": ["T24"],
+      "mandatory": true,
+      "doneWhen": [
+        "ARIA combobox: role=combobox, aria-expanded, aria-controls, aria-activedescendant, listbox options (character-creatable-single-select.tsx:186-263 pattern); ArrowUp/ArrowDown/Enter/Escape; Enter never submits the form; clear button with label",
+        "empty input shows the popular list; remote search fires 300 ms after the last keystroke and only at >= 2 chars; at most 10 results; grouped by category without a category input",
+        "typed text is never stored as the value; value is a visible species ID or null; no create on blur",
+        "exact match shows 'select existing' instead of create; similar candidates show an explanation and still allow explicit create; create success selects the returned ID",
+        "409 species_duplicate refreshes candidates and offers the returned visible IDs; distinct loading, empty and error states",
+        "tests mock at the fetch boundary and cover debounce timing, stale response discard, exact, similar, 409, keyboard, clear"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T26",
+      "title": "Own-species management dialog",
+      "specRef": "04 bullet 4; 01 Maintenance; 06 Maintenance",
+      "layer": "application",
+      "files": [
+        "apps/web/src/features/species/components/manage-own-species-dialog.tsx",
+        "apps/web/src/features/species/components/manage-own-species-dialog.test.tsx"
+      ],
+      "dependsOn": ["T24"],
+      "mandatory": true,
+      "doneWhen": [
+        "titled 'Керування власними видами' (uk) / en equivalent; opened from the picker, no route, no sidebar entry",
+        "lists only own species; rename uses the same duplicate handling as create",
+        "delete shows preview counts first; in-use delete is disabled or rejected with a message naming the next action (merge or reassign); species_in_use from the server shown, not swallowed",
+        "merge: source is own, target picked from visible species excluding source, confirmation step, success invalidates per T24",
+        "no category field anywhere"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T27",
+      "title": "Global character form uses the picker",
+      "specRef": "04 bullet 1; 06 Forms",
+      "layer": "application",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/features/characters/model/character-edit-form.ts",
+        "apps/web/src/features/characters/model/add-character-schema.ts"
+      ],
+      "dependsOn": ["T25"],
+      "mandatory": true,
+      "doneWhen": [
+        "the <Input id='character-species'> at character-edit-sections.tsx:738-750 is replaced by SpeciesPicker bound through RHF Controller",
+        "character-edit-form.ts:75, 281, 298 use speciesId (nullable uuid) instead of capped text; add-character-schema.ts:45 default is speciesId: null",
+        "select, clear and reload round-trip the ID; untouched field sends no change"
+      ],
+      "status": "done",
+      "notes": "Assumption recorded during implementation: the RHF fields hold the selected species as { id, label } so the inherited book-override preview can show the freshly picked global label; the request payload carries only speciesId / speciesOverrideId and the dirty diff compares IDs only."
+    },
+    {
+      "id": "T28",
+      "title": "Book-scoped override uses the picker, inheritance and spoiler intact",
+      "specRef": "04 bullet 1 'Apply the same to book-scoped override, preserving spoiler controls'; 06 Forms",
+      "layer": "application",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/features/characters/components/character-inherited-field.tsx",
+        "apps/web/src/features/characters/model/character-edit-form.ts",
+        "apps/web/src/features/characters/model/character-inheritance.ts",
+        "apps/web/src/features/characters/model/add-character-schema.ts"
+      ],
+      "dependsOn": ["T25"],
+      "mandatory": true,
+      "doneWhen": [
+        "the InheritedTextField at character-edit-sections.tsx:128-140 becomes a picker-based inherited field: null override shows the global species as inherited, 'use main value' sets speciesOverrideId to null",
+        "book.speciesOverrideIsSpoiler toggle (character-edit-sections.tsx:69) and MaskedOr masking (:913) unchanged",
+        "character-edit-form.ts and add-character-schema.ts use speciesOverrideId (default null); character-inheritance.ts:7 keeps the hiddenFields mask key \"speciesOverride\", and character-edit-form.ts maps the payload key speciesOverrideId to that mask key so a masked override is never sent"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T29",
+      "title": "Display sites show locale-correct species labels",
+      "specRef": "05 bullet 1, 3; 06 Integrations cards/details/scoped view",
+      "layer": "application",
+      "files": [
+        "apps/web/src/features/characters/components/character-details-page.tsx",
+        "apps/web/src/features/characters/components/add-character-dialog.tsx"
+      ],
+      "dependsOn": ["T23"],
+      "mandatory": true,
+      "doneWhen": [
+        "character-details-page.tsx:650-651 (global) and :251-258 (SpoilerText for speciesOverride) render the D2 label for the current locale; null renders nothing as today",
+        "add-character-dialog.tsx:257 duplicate-candidate hint shows the label, never a UUID",
+        "spoiler reveal flow for speciesOverride unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T30",
+      "title": "i18n keys uk/en",
+      "specRef": "04 'uk/en message dictionaries'; 06 UI",
+      "layer": "application",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T25", "T26"],
+      "mandatory": true,
+      "doneWhen": [
+        "every new picker/dialog string exists in both files under the same key path; placeholders characters.edit.speciesPlaceholder / speciesInBookPlaceholder (uk.json:8030-8031) updated or reused, none left orphaned"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T31",
+      "title": "Update FE tests, fixtures, stories",
+      "specRef": "05 'test fixtures'; 06 Forms/UI",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/model/characters.fixtures.ts",
+        "apps/web/src/features/characters/model/character-edit-form.test.ts",
+        "apps/web/src/features/characters/components/character-edit-page.test.tsx",
+        "apps/web/src/features/characters/components/character-edit-page.stories.tsx"
+      ],
+      "dependsOn": ["T27", "T28", "T29"],
+      "mandatory": true,
+      "doneWhen": [
+        "fixtures (characters.fixtures.ts:65-66, 96, 119) carry the D2 fields",
+        "character-edit-form.test.ts:22-86, 242-282 assert speciesId / speciesOverrideId payloads",
+        "character-edit-page.test.tsx:305-314 inheritance test passes with the picker; the 'longer than 120 characters' test at :1187-1188 is removed or rewritten for the ID model",
+        "stories at character-edit-page.stories.tsx:87, 96 render with species refs"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T32",
+      "title": "Own recent entries on empty query",
+      "specRef": "01 'optionally own recent entries'; 04 'popular/own recent values'",
+      "layer": "application",
+      "files": [
+        "apps/api/src/modules/species/application/species.service.ts",
+        "apps/web/src/features/species/components/species-picker.tsx"
+      ],
+      "dependsOn": ["T13", "T25"],
+      "mandatory": false,
+      "doneWhen": [
+        "empty-query response includes up to N of the caller's own custom species ordered by most recent use or creation, listed before or beside popular system values, total still within 8-12"
+      ],
+      "status": "done",
+      "note": "Implemented per D9 answer"
+    },
+    {
+      "id": "T33",
+      "title": "Gates and reconciliation evidence",
+      "specRef": "00 Deliverable; 06 Quality + 'At finish'",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T22", "T31", "T10", "T16", "T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm typecheck, pnpm lint, pnpm format:check run and output captured",
+        "targeted vitest files from T5, T7, T8, T10, T16, T19-T22, T25-T26, T31 run with pass/fail counts",
+        "both migrations applied locally with db:migrate:deploy; reconciliation totals (system matched / custom created / blank) captured from the NOTICE or reconciliation query",
+        "curl of GET /api/species?q=ел&locale=uk and a character details response captured",
+        "summary lists deviations from the spec resolved per openDecisions"
+      ],
+      "status": "done",
+      "note": "typecheck green, lint 0 errors, format:check red only on the untracked source spec md files; API 814 + 80 tests and web 372 tests green; migrate diff shows only the two trigram GIN indexes; local reconciliation: 114 system species, 0 custom, characters 13 blank / 0 unmapped, book_characters 9 blank / 0 unmapped (the dev DB had no species text); curl of GET /api/species?q=ел&locale=uk returned 200 with 10 items, character details 200 with species null"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Where do 'registered/curated aliases' come from? The fixture has no alias field (fields: key, categoryKey, categoryUk, categoryEn, nameUk, nameEn).",
+      "options": [
+        "Ship zero aliases now: SpeciesName supports an alias kind, exact match = canonical UK/EN only, backfill uses canonical labels only",
+        "Curate an alias list now in a separate reviewed JSON",
+        "Let users add aliases to own species (no UI in spec)"
+      ],
+      "codeCost": "Option 1 costs nothing beyond the schema column; 00 says 07 is the sole source of system names",
+      "recommendation": "Option 1. Inventing aliases contradicts 00, and 03 warns ambiguous aliases between peoples must not auto-merge.",
+      "specRef": "01 Selection; 03 Data model + Backfill",
+      "blocks": ["T9", "T11", "T13"],
+      "answer": "Option 1: ship zero aliases. species_names has kind enum (label|alias); exact match = canonical UK/EN labels + any alias rows (none today) + own custom names.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D2",
+      "question": "Field naming during the compatibility window, and how the localized label reaches character views (no character endpoint takes a locale today).",
+      "options": [
+        "Keep species/speciesOverride as string labels resolved by a new locale query param on every character read and mutation endpoint, add speciesId/speciesOverrideId",
+        "Keep species/speciesOverride strings as the uk/canonical label for old readers, add speciesId/speciesOverrideId plus a ref {id, key, isCustom, nameUk, nameEn}; FE picks the label by useLocale",
+        "Replace species/speciesOverride with ref objects (breaking type change)"
+      ],
+      "codeCost": "Option 1 threads locale through about 8 endpoints, FE hooks and cache keys; option 2 needs no new params and keeps current FE display code compiling; only client is apps/web",
+      "recommendation": "Option 2. Inputs switch to speciesId/speciesOverrideId only, legacy text inputs removed (update schemas are .strict(), so a stale text payload gets a 400; create schemas are not strict and would strip it, acceptable because the generated web client is the only caller). The legacy string view fields are removed at cleanup.",
+      "specRef": "05 bullet 1; 01 locale fallback; 04 'Locale-correct labels from API'",
+      "blocks": ["T2", "T18", "T22", "T27", "T28", "T29", "T31"],
+      "answer": "Inputs take speciesId / speciesOverrideId (uuid|null). Views REPLACE the string with species / speciesOverride: Nullable<SpeciesRefView> where SpeciesRefView = { id, key: Nullable<string>, labels: { uk, en } } (custom: both labels = entered name). FE picks labels[locale]. No locale threading through character endpoints. Typed change, Orval regenerates, every consumer updated in the same deploy.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D3",
+      "question": "CharactersListQuerySchema.species (characters.ts:616) filters by exact text. No FE code sends it. What shape after the switch?",
+      "options": [
+        "Replace with speciesId: uuid[]",
+        "Keep text, match against visible labels",
+        "Remove the filter"
+      ],
+      "codeCost": "Option 1 is a one-line where change (characters.repository.ts:1205-1206) and matches the ID model",
+      "recommendation": "Option 1. Foreign IDs yield empty results.",
+      "specRef": "05 filters; 06 Integrations",
+      "blocks": ["T2", "T19"],
+      "answer": "List filter becomes speciesId: uuid[] (replaces species: string[]); a non-visible id simply matches nothing. No FE filter UI exists today.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D4",
+      "question": "Normalization: reuse normalizeName (common.ts:116, collapse spaces + toLowerCase, no NFKC, no apostrophe folding) or a species normalizer that also folds NFKC and apostrophe variants?",
+      "options": [
+        "Reuse normalizeName; SQL mirror is lower(btrim(regexp_replace(x,'\\s+',' ','g'))) as in loan_contacts",
+        "Species normalizer = NFKC + ' U+2019 U+02BC folded + collapse + lower; SQL mirror uses normalize(x, NFKC) + translate()"
+      ],
+      "codeCost": "Option 1 has a proven SQL mirror. Option 2 needs a JS/PG parity test but handles Ukrainian apostrophe variants. Fixture labels contain no apostrophes, so this only affects custom names",
+      "recommendation": "Option 2. 03 explicitly asks for apostrophe/Unicode backfill coverage, and Ukrainian text routinely mixes ' and U+02BC. Do not change global normalizeName.",
+      "specRef": "03 Focused coverage; 01 'Query normalized'",
+      "blocks": ["T9", "T10", "T11"],
+      "answer": "Dedicated species normalizer: NFKC, fold apostrophe variants to U+0027, fold dash variants to -, collapse whitespace, trim, lowercase. SQL mirror in the backfill migration + JS/PG parity test. Global normalizeName untouched.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D5",
+      "question": "Bundle shape: CharacterBundleSchema is .strict() with formatVersion z.literal(1) (character-portability.ts:27, 307).",
+      "options": [
+        "Stay v1, add nullish speciesKey/speciesOverrideKey beside the existing text fields (text = name fallback)",
+        "Bump to v2 and parse v1|v2 union"
+      ],
+      "codeCost": "Option 1 keeps old exports importable with zero version plumbing",
+      "recommendation": "Option 1.",
+      "specRef": "03 last paragraph; 05 bullet 2",
+      "blocks": ["T3", "T20"],
+      "answer": "Bundle stays v1; add nullish speciesKey / speciesOverrideKey next to the text fields; text = canonical/entered name as fallback. Import: key -> system row; else exact visible name match; else create own private species.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D6",
+      "question": "How the 114 system rows reach prod. Deploy runs only `prisma migrate deploy` (apps/api/docker-entrypoint.sh:4); seed:* scripts never run in CI/deploy, and the backfill needs system rows to exist.",
+      "options": [
+        "Inline INSERT ... ON CONFLICT in the expand migration, plus a TS upsert seeder for tests/resync and a test that migration keys equal the JSON",
+        "TS seed script only",
+        "Seed at app boot and backfill in a job"
+      ],
+      "codeCost": "Option 2 would make the backfill classify every legacy value as private. Option 3 has no precedent; SQL backfills do (add_loan_contacts, backfill_store_links_from_purchase_info)",
+      "recommendation": "Option 1.",
+      "specRef": "03 Migration step 1; 01 'writable only through controlled seed/migrations'",
+      "blocks": ["T6", "T8", "T9"],
+      "answer": "Seed inline in the expand migration (INSERT ... ON CONFLICT DO NOTHING), plus a TS upsert seeder used by tests after truncate, plus a test asserting migration SQL keys/labels == JSON fixture.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D7",
+      "question": "Legacy text columns after the switch: freeze them or dual-write the label?",
+      "options": [
+        "Freeze: new code neither reads nor writes characters.species / book_characters.species_override",
+        "Dual-write the canonical name on every write"
+      ],
+      "codeCost": "Dual-write goes stale on species rename/merge anyway and adds a second source of truth; freeze is zero code",
+      "recommendation": "Freeze. Parity is proven inside the backfill migration (T9 DO block), not at cleanup time, because post-switch edits make old text diverge by design. Rollback means roll forward.",
+      "specRef": "03 Migration steps 3-4; 05 compatibility window",
+      "blocks": ["T9", "T17"],
+      "answer": "Freeze legacy columns: new code neither reads nor writes characters.species / book_characters.species_override. Parity proven by a DO block in the backfill migration (raises if any nonblank legacy text lacks its FK). Cleanup migration out of scope.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D8",
+      "question": "How fuzzy candidates are computed.",
+      "options": [
+        "In memory over the visible set (114 system + own customs) with a species-local trigram scorer",
+        "pg_trgm word_similarity query + new GIN index like publishers.repository.ts:443-461"
+      ],
+      "codeCost": "The visible set is small and bounded per user; option 2 adds a raw-SQL index to the strip-trap list",
+      "recommendation": "Option 1. Copy the minimal generic scorer; this is the second use, so per CLAUDE.md §8.7 do not extract from modules/publishers yet.",
+      "specRef": "01 'Approximate suggestions are advisory'; 03 API 2",
+      "blocks": ["T11", "T13"],
+      "answer": "Fuzzy candidates computed in memory over the visible set (114 system + own). No pg_trgm index, no import from modules/publishers.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D9",
+      "question": "Which 8-12 'popular' system values show on an empty query? The fixture has no popularity or order field.",
+      "options": [
+        "Curated const of 10 keys (e.g. human, elf, dwarf, orc, vampire, werewolf, witch, dragon, demon, angel)",
+        "First N in fixture order (all humanoid)",
+        "Ranked by usage across all users",
+        "Ranked by the caller's own usage, topped up from a curated list"
+      ],
+      "codeCost": "Option 1 is a const; option 3 aggregates across tenants",
+      "recommendation": "Option 1, with T32 own recents as the optional addition.",
+      "specRef": "01 Selection; 04 bullet 2",
+      "blocks": ["T13", "T25"],
+      "answer": "Constant of 10 popular system keys; T32 (own recent entries on empty query) is implemented, capped small. Assumption recorded during implementation: own recents are capped at 2 (SPECIES_QUERY_TUNING.ownRecentLimit) so the empty-query list stays within the 8-12 bound of 04 bullet 2.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D10",
+      "question": "Where do localized category labels for grouping come from (no category table per 03)?",
+      "options": [
+        "API returns the category label in the requested locale from the fixture JSON categories[] loaded in code",
+        "FE messages keyed by categoryKey (15 x 2 strings copied into uk/en.json)"
+      ],
+      "codeCost": "Option 1 keeps the fixture as the single source",
+      "recommendation": "Option 1.",
+      "specRef": "03 'Avoid duplicating category metadata'; 04 'useful grouping'",
+      "blocks": ["T1", "T13", "T25"],
+      "answer": "Category labels come from the fixture via the API (localized by the requested locale). No categories table.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    },
+    {
+      "id": "D11",
+      "question": "Deletion preview vs archived/trashed characters and trashed books. The RESTRICT FK blocks delete for any referencing row.",
+      "options": [
+        "Count every referencing row; expose a separate trashed count so the UI can say why delete is blocked",
+        "Count active rows only (delete then fails unexpectedly)"
+      ],
+      "codeCost": "Option 1 is two extra count predicates",
+      "recommendation": "Option 1.",
+      "specRef": "03 Merge and delete; 04 deletion preview",
+      "blocks": ["T1", "T14", "T26"],
+      "answer": "Deletion preview counts all references including archived and trashed characters, with the trashed count reported separately. FK RESTRICT/NO ACTION is the DB backstop.",
+      "answeredBy": "orchestrator default (user asked for end-to-end execution without stopping)"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Publisher model",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:181-204"
+    },
+    {
+      "claim": "PublisherName model",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:206-219"
+    },
+    {
+      "claim": "Character.species free text",
+      "specRef": "02/01",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:1044 (no @map, column 'species')"
+    },
+    {
+      "claim": "BookCharacter.speciesOverride",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:1131"
+    },
+    {
+      "claim": "speciesOverrideIsSpoiler",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:1147"
+    },
+    {
+      "claim": "publishers.service duplicate candidates",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/publishers/application/publishers.service.ts:163-197"
+    },
+    {
+      "claim": "publishers.service merge",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "publishers.service.ts:282-324 (BadRequest same, Forbidden system source via loadOwnedCustom :431-446, NotFound target)"
+    },
+    {
+      "claim": "publishers.service name matching",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "publishers.service.ts:448-463 + modules/publishers/domain/publisher-name-matching.ts:133-208 (publisher-specific wrapper phrases :13-20)"
+    },
+    {
+      "claim": "visibleToUser lives in publishers.repository.ts",
+      "specRef": "02",
+      "verdict": "MOVED",
+      "evidence": "defined apps/api/src/core/database/two-tier-visibility.ts:1; imported publishers.repository.ts:28, used :427, :470, :482, :488"
+    },
+    {
+      "claim": "Publisher choose/create interactions reusable for explicit create",
+      "specRef": "02, 04",
+      "verdict": "FALSE",
+      "evidence": "No POST create route (publishers.controller.ts:88-298). Picker stores {kind:'custom', name} (publisher-autocomplete.tsx:111-115) and the server resolves on book save (publishers.service.ts:341-381). Only search/candidates/cmdk+Popover parts transfer"
+    },
+    {
+      "claim": "Publisher delete has a usage preview",
+      "specRef": "03/04 (implied reuse)",
+      "verdict": "FALSE",
+      "evidence": "publishers.service.ts:138-161 only throws PUBLISHER_HAS_BOOKS; preview precedent is CharacterDeletionPreviewSchema packages/shared/src/characters.ts:406-415"
+    },
+    {
+      "claim": "Publisher @@unique([userId, normalizedName]) enforces system uniqueness",
+      "specRef": "03 NULL owners",
+      "verdict": "FALSE",
+      "evidence": "schema.prisma:201, NULL user_id is distinct; partial-unique precedent delivery_services_global_provider_key_idx (raw-sql-indexes.test.ts:41)"
+    },
+    {
+      "claim": "Existing project locking approach",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/advisory-lock.ts:3-18 registry (max id 14), :27-32 acquireAdvisoryLock"
+    },
+    {
+      "claim": "Service-owned TransactionRunner",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/transaction-runner.ts:23-40 (retries write conflicts x3)"
+    },
+    {
+      "claim": "Error codes like species_duplicate match repo conventions",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "characters family uses lower_snake (characters.ts:39-60); publishers use UPPER (publishers.ts:291-294, 320-322); ConflictError carries code+details (core/exceptions/errors.ts:47-55)"
+    },
+    {
+      "claim": "species_forbidden 'without disclosure'",
+      "specRef": "03",
+      "verdict": "CONFIRMED",
+      "evidence": "ForbiddenError is bodyless (errors.ts:57-62); body emitted only when code set (http-error.filter.ts:69)"
+    },
+    {
+      "claim": "Character list filters by species exist",
+      "specRef": "05",
+      "verdict": "CONFIRMED",
+      "evidence": "characters.ts:616, global-character-filter.ts:36, characters.repository.ts:1205-1206, characters.controller.ts:99; no FE caller"
+    },
+    {
+      "claim": "Search could leak species",
+      "specRef": "05",
+      "verdict": "CONFIRMED (no path)",
+      "evidence": "character q search covers name/aliases/displayName only, characters.repository.ts:1293-1310"
+    },
+    {
+      "claim": "Character merge handles species",
+      "specRef": "05",
+      "verdict": "ALREADY DONE",
+      "evidence": "no species code in character-merge.*; book_characters repointed by row (character-merge.repository.ts:370-371); spoiler count :85. Test only (T21)"
+    },
+    {
+      "claim": "Character views localized by requested locale",
+      "specRef": "01/04/05",
+      "verdict": "FALSE",
+      "evidence": "no locale in any character query schema (grep 'locale' in packages/shared/src/characters.ts and character-*.ts: 0 hits) -> D2"
+    },
+    {
+      "claim": "Curated aliases available for backfill",
+      "specRef": "01/03",
+      "verdict": "FALSE",
+      "evidence": "fixture item fields: key, categoryKey, categoryUk, categoryEn, nameUk, nameEn -> D1"
+    },
+    {
+      "claim": "Fixture: 114 records, unique keys, distinct labels, consistent categories",
+      "specRef": "06",
+      "verdict": "CONFIRMED",
+      "evidence": "node check: items 114, keys 114 unique, 228 labels pairwise distinct after NFKC+lower, 15 categories summing to 114, no apostrophes, max label length 23"
+    },
+    {
+      "claim": "Seeds run on deploy",
+      "specRef": "03 step 1",
+      "verdict": "FALSE",
+      "evidence": "deploy runs only migrate deploy (apps/api/docker-entrypoint.sh:4); seed:* in apps/api/package.json:14-18 are manual -> D6"
+    },
+    {
+      "claim": "Test DB keeps migration-seeded rows",
+      "specRef": "implicit",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/test/truncate.ts:5-14 truncates every public table -> T8 helper"
+    },
+    {
+      "claim": "normalizeName handles Unicode/apostrophes",
+      "specRef": "03 coverage",
+      "verdict": "FALSE",
+      "evidence": "packages/shared/src/common.ts:116-118 = collapseSpaces + toLowerCase -> D4"
+    },
+    {
+      "claim": "SQL backfill mirroring normalizeName has precedent",
+      "specRef": "03 step 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/migrations/20260815090000_add_loan_contacts/migration.sql:60-95"
+    },
+    {
+      "claim": "Catalog name columns carry uk-UA-x-icu collation",
+      "specRef": "convention",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/collated-columns.test.ts:18-39 -> T6/T7"
+    },
+    {
+      "claim": "FK RESTRICT + account cascade works",
+      "specRef": "03 delete",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:260 Book.publisher onDelete Restrict; raw-sql-indexes.test.ts:206-257"
+    },
+    {
+      "claim": "Bundle versioned and strict",
+      "specRef": "05",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/character-portability.ts:27, :307 literal(1), :109-110, :151 text species"
+    },
+    {
+      "claim": "Create input schemas strict",
+      "specRef": "05 'avoid breaking clients silently'",
+      "verdict": "FALSE",
+      "evidence": "CharacterInputSchema characters.ts:186 and BookCharacterProfileInputSchema :213 are not .strict() (would strip a legacy key); Update* are .strict() (:295, :340)"
+    },
+    {
+      "claim": "FE combobox primitives exist",
+      "specRef": "04",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/components/publisher-autocomplete.tsx:5-13, 131-250; apps/web/src/features/characters/components/character-creatable-single-select.tsx:54, 186-263; apps/web/src/hooks/use-debounced-value.ts"
+    },
+    {
+      "claim": "Publisher lookup debounce",
+      "specRef": "04 300 ms",
+      "verdict": "MOVED",
+      "evidence": "PUBLISHER_LOOKUP.debounceMs = 250 (apps/web/src/features/books/api/use-publisher-duplicate-candidates.ts:12-15); species needs its own 300"
+    },
+    {
+      "claim": "FE reads API error code/details",
+      "specRef": "04 409",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/lib/http-client.ts:34-44; precedent book-form.tsx:730"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import type { PaginatedCharacterGlobalSummaryDtoItemsItemAvatar } from "./pagina
 import type { PaginatedCharacterGlobalSummaryDtoItemsItemEntityKind } from "./paginatedCharacterGlobalSummaryDtoItemsItemEntityKind";
 import type { PaginatedCharacterGlobalSummaryDtoItemsItemGender } from "./paginatedCharacterGlobalSummaryDtoItemsItemGender";
 import type { PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude } from "./paginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude";
+import type { PaginatedCharacterGlobalSummaryDtoItemsItemSpecies } from "./paginatedCharacterGlobalSummaryDtoItemsItemSpecies";
 import type { PaginatedCharacterGlobalSummaryDtoItemsItemTagsItem } from "./paginatedCharacterGlobalSummaryDtoItemsItemTagsItem";
 
 export type PaginatedCharacterGlobalSummaryDtoItemsItem = {
@@ -36,6 +37,6 @@ export type PaginatedCharacterGlobalSummaryDtoItemsItem = {
   /** @nullable */
   pronouns: string | null;
   /** @nullable */
-  species: string | null;
+  species: PaginatedCharacterGlobalSummaryDtoItemsItemSpecies;
   tags: PaginatedCharacterGlobalSummaryDtoItemsItemTagsItem[];
 };

@@ -1279,6 +1279,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Спойлери й кольори в хронології",
     version: null,
   },
+  {
+    bodyEn:
+      "A character's Species field is now a search instead of free text. It looks through a shared list of 114 ready-made species, such as human, elf, orc, vampire and dragon, and finds each one by its Ukrainian or English name. Before you type anything, it suggests popular species and the ones you created recently. If nothing fits, create your own species right in the field. Only you can see it, and if a species with the same or a similar name already exists, the field shows it first so you don't end up with a duplicate. In Manage your own species you can rename your species, merge one into another so its characters move over, or delete one that is not used anywhere. Species in this book works the same way, and spoiler hiding still applies to it. The species your characters already had are kept: names that match the list now point to it, and the rest became your own species.",
+    bodyUk:
+      "Поле «Вид» у персонажа тепер працює як пошук, а не як вільний текст. Воно шукає у спільному переліку зі 114 готових видів, як-от людина, ельф, орк, вампір і дракон, і знаходить кожен за українською або англійською назвою. Поки ви нічого не ввели, поле пропонує популярні види та ті, які ви нещодавно створили. Якщо потрібного немає, створіть власний вид просто в полі. Його бачите лише ви, а якщо вид із такою самою чи схожою назвою вже є, поле спершу покаже його, щоб не з’явився дублікат. У вікні «Керування власними видами» свої види можна перейменувати, об’єднати з іншим, і тоді їхні персонажі перейдуть до нього, або видалити вид, який ніде не використовується. Поле «Вид у цій книзі» працює так само, і приховування спойлерів на нього теж діє. Види, які вже були у ваших персонажів, збереглися: назви, що є в переліку, тепер посилаються на нього, а решта стали вашими власними видами.",
+    category: "feature",
+    publishedAt: "2026-10-10T00:00:00.000Z",
+    slug: "character-species-catalog",
+    titleEn: "Species catalog for characters",
+    titleUk: "Каталог видів для персонажів",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

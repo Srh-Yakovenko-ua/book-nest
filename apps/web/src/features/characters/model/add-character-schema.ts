@@ -24,7 +24,7 @@ const BOOK_PROFILE_DEFAULTS = {
   portraitMediaId: null,
   roles: [],
   sortOrder: null,
-  speciesOverride: null,
+  speciesOverrideId: null,
   speciesOverrideIsSpoiler: false,
   status: BOOK_CHARACTER_UNSPECIFIED.status,
   statusCustomText: null,
@@ -42,7 +42,7 @@ const CHARACTER_DEFAULTS = {
   isFavorite: false,
   neutralDescription: null,
   pronouns: null,
-  species: null,
+  speciesId: null,
 } as const satisfies Omit<CharacterInput, "name">;
 
 export function toCreateNewCharacterInBook(name: string): CreateCharacterInBook {

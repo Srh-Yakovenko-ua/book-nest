@@ -16,7 +16,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
-import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
+import {
+  makeBookCharacterView,
+  makeCharacterDetails,
+  SPECIES_REFS,
+} from "../model/characters.fixtures";
 import { CharacterEditPage } from "./character-edit-page";
 
 const push = vi.fn();
@@ -40,13 +44,13 @@ const character = makeCharacterDetails({
       bookId: "book-1",
       description: "Опис у книзі",
       importance: "central",
-      speciesOverride: "Мутант",
+      speciesOverride: SPECIES_REFS.mutant,
       status: "active",
     }),
   ],
   gender: "male",
   name: "Ґеральт",
-  species: "Відьмак",
+  species: SPECIES_REFS.witcher,
 });
 
 const fetchMock = vi.fn();
@@ -311,7 +315,7 @@ describe("CharacterEditPage inheritance", () => {
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
-    expect(bookPatchBody()).toHaveProperty("speciesOverride", null);
+    expect(bookPatchBody()).toHaveProperty("speciesOverrideId", null);
   });
 });
 
@@ -1079,7 +1083,7 @@ describe("CharacterEditPage field requirements", () => {
 
     await screen.findByDisplayValue("Ґеральт");
 
-    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toBeInTheDocument();
     expect(
       screen.getByRole("textbox", { name: "Коротко про персонажа (необов’язково)" }),
@@ -1105,9 +1109,9 @@ describe("CharacterEditPage field requirements", () => {
       "placeholder",
       "Наприклад, Ґеральт із Рівії",
     );
-    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toHaveAttribute(
+    expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toHaveAttribute(
       "placeholder",
-      "Наприклад, ельф",
+      "Пошук, наприклад «ельф»",
     );
     expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
       "placeholder",
@@ -1124,7 +1128,7 @@ describe("CharacterEditPage field requirements", () => {
     await screen.findByDisplayValue("Ґеральт");
 
     expect(screen.getByRole("textbox", { name: "Ім’я" })).toHaveAttribute("maxlength", "200");
-    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toHaveAttribute(
+    expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toHaveAttribute(
       "maxlength",
       "120",
     );
@@ -1184,38 +1188,25 @@ describe("CharacterEditPage text over the limit", () => {
     expect(patchCount()).toBe(0);
   });
 
-  it("refuses a saved species longer than 120 characters", async () => {
-    servedCharacter = { ...character, species: "е".repeat(121) };
-    renderEdit();
-
-    await saveAfterRenamingTheCharacter();
-
-    expect(await screen.findByText("Текст задовгий (макс. 120)")).toBeInTheDocument();
-    const species = screen.getByRole("textbox", { name: "Вид (необов’язково)" });
-    expect(species).toHaveAttribute("aria-invalid", "true");
-    expect(species).toHaveAccessibleDescription("Текст задовгий (макс. 120)");
-    expect(patchCount()).toBe(0);
-  });
-
   it("shows the error inside an overridden book field that is too long", async () => {
     servedCharacter = {
       ...character,
       appearances: character.appearances.map((appearance) => ({
         ...appearance,
-        speciesOverride: "м".repeat(121),
+        displayName: "м".repeat(201),
       })),
     };
     renderEdit();
 
     await saveAfterRenamingTheCharacter();
 
-    const speciesInBook = inheritedField("Вид у цій книзі");
+    const displayNameInBook = inheritedField("Ім’я в цій книзі");
     expect(
-      await within(speciesInBook).findByText("Текст задовгий (макс. 120)"),
+      await within(displayNameInBook).findByText("Текст задовгий (макс. 200)"),
     ).toBeInTheDocument();
-    const input = within(speciesInBook).getByRole("textbox");
+    const input = within(displayNameInBook).getByRole("textbox");
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input).toHaveAccessibleDescription("Текст задовгий (макс. 120)");
+    expect(input).toHaveAccessibleDescription("Текст задовгий (макс. 200)");
     expect(patchCount()).toBe(0);
   });
 
@@ -1224,11 +1215,11 @@ describe("CharacterEditPage text over the limit", () => {
 
     await screen.findByDisplayValue("Мутант");
 
-    expect(within(inheritedField("Вид у цій книзі")).getByRole("textbox")).toHaveAttribute(
+    expect(within(inheritedField("Вид у цій книзі")).getByRole("combobox")).toHaveAttribute(
       "maxlength",
       "120",
     );
-    expect(screen.getByRole("textbox", { name: "Вид (необов’язково)" })).toHaveAttribute(
+    expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toHaveAttribute(
       "maxlength",
       "120",
     );
@@ -1612,14 +1603,14 @@ describe("CharacterEditPage spoiler collections round trip", () => {
           hiddenFields: appearanceHiddenFields,
           importance: "central",
           roles: isRolesMasked ? [] : roles,
-          speciesOverride: "Мутант",
+          speciesOverride: SPECIES_REFS.mutant,
           status: "active",
         }),
       ],
       gender: "male",
       hiddenFields: characterHiddenFields,
       name: "Ґеральт",
-      species: "Відьмак",
+      species: SPECIES_REFS.witcher,
     });
   }
 

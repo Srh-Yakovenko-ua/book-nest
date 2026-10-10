@@ -27,6 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useBookChapters } from "@/features/books/api/use-book-chapters";
+import { ManageOwnSpeciesButton, type OwnSpeciesChange, SpeciesPicker } from "@/features/species";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -48,6 +49,7 @@ import {
 import { CharacterAliasGroup } from "./character-alias-group";
 import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
 import { InheritedSelectField, InheritedTextField } from "./character-inherited-field";
+import { InheritedSpeciesField } from "./character-inherited-species-field";
 import { CharacterLongTextField } from "./character-long-text-field";
 import { CharacterRolePicker } from "./character-role-picker";
 import { CharacterSpoilerField } from "./character-spoiler-field";
@@ -83,10 +85,12 @@ export function BookCharacterInheritanceSection({
   control,
   errors,
   maskedFields,
+  onSpeciesChange,
 }: {
   control: EditControl;
   errors: EditErrors;
   maskedFields: readonly string[];
+  onSpeciesChange: (change: OwnSpeciesChange) => void;
 }) {
   const t = useTranslations("characters.edit");
   const tInheritance = useTranslations("characters.inheritance");
@@ -130,14 +134,15 @@ export function BookCharacterInheritanceSection({
             control={control}
             name="book.speciesOverride"
             render={({ field }) => (
-              <InheritedTextField
-                error={errors.book?.speciesOverride}
-                globalValue={textOrNull(globalSpecies)}
+              <InheritedSpeciesField
+                globalValue={globalSpecies}
                 id="character-species-override"
                 label={t("speciesInBook")}
-                maxLength={CHARACTER_TEXT_MAX.species}
+                onBlur={field.onBlur}
                 onChange={field.onChange}
+                onSpeciesChange={onSpeciesChange}
                 placeholder={t("speciesInBookPlaceholder")}
+                ref={field.ref}
                 value={field.value}
               />
             )}
@@ -648,10 +653,12 @@ export function CharacterAliasesSection({
 export function CharacterGlobalSection({
   control,
   errors,
+  onSpeciesChange,
   register,
 }: {
   control: EditControl;
   errors: EditErrors;
+  onSpeciesChange: (change: OwnSpeciesChange) => void;
   register: EditRegister;
 }) {
   const t = useTranslations("characters.edit");
@@ -737,17 +744,24 @@ export function CharacterGlobalSection({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <LabeledField htmlFor="character-species" label={t("species")} requirement="optional">
-          <Input
-            aria-describedby={errors.global?.species ? "character-species-error" : undefined}
-            aria-invalid={errors.global?.species !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="character-species"
-            maxLength={CHARACTER_TEXT_MAX.species}
-            placeholder={t("speciesPlaceholder")}
-            {...register("global.species")}
+          <Controller
+            control={control}
+            name="global.species"
+            render={({ field }) => (
+              <>
+                <SpeciesPicker
+                  inputId="character-species"
+                  label={t("species")}
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  placeholder={t("speciesPlaceholder")}
+                  ref={field.ref}
+                  value={field.value}
+                />
+                <ManageOwnSpeciesButton onSpeciesChange={onSpeciesChange} />
+              </>
+            )}
           />
-          <FieldErrorText error={errors.global?.species} id="character-species-error" />
         </LabeledField>
 
         <LabeledField htmlFor="character-pronouns" label={t("pronouns")} requirement="optional">

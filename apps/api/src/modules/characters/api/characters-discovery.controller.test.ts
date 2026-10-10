@@ -8,6 +8,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { findSystemSpeciesId, seedSystemSpeciesCatalog } from "../../../test/system-species.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
@@ -123,6 +124,8 @@ async function suggestedIds(token: string, bookId: string, query = ""): Promise<
 describe("global character list", () => {
   it("returns spoiler-safe global summaries with appearance counts", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSystemSpeciesCatalog(app);
+    const humanId = await findSystemSpeciesId({ app, key: "human" });
     const bookId = await createBook(accessToken);
     await createInBook(
       accessToken,
@@ -131,7 +134,7 @@ describe("global character list", () => {
         globalAttitude: "like",
         name: "Paul Atreides",
         neutralDescription: "House heir",
-        species: "human",
+        speciesId: humanId,
       },
       { importance: "central" },
     );
@@ -145,7 +148,7 @@ describe("global character list", () => {
       globalAttitude: "like",
       name: "Paul Atreides",
       neutralDescription: "House heir",
-      species: "human",
+      species: { id: humanId, key: "human", labels: { en: "Human", uk: "Людина" } },
     });
   });
 

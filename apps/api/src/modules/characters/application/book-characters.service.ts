@@ -149,6 +149,10 @@ export class BookCharactersService {
         mediaId: bookCharacterData.portraitMediaId,
         userId,
       });
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: bookCharacterData.speciesOverrideId, userId },
+        tx,
+      );
       await this.insertBookCharacter({ data: bookCharacterData, tx });
 
       return this.detailsAssembler.loadDetails({ bookId, characterId, userId }, tx);
@@ -286,6 +290,10 @@ export class BookCharactersService {
       if (input.tagIds !== undefined) {
         await this.accessAsserter.assertTagsOwned({ tagIds: input.tagIds, userId }, tx);
       }
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: input.speciesOverrideId, userId },
+        tx,
+      );
 
       await this.charactersRepository.updateBookCharacter(
         { bookCharacterId: bookCharacter.id, data: buildBookCharacterUpdateData(input) },
@@ -336,6 +344,10 @@ export class BookCharactersService {
       const characterData = buildCharacterData({ input: input.character, userId });
       await this.accessAsserter.assertMediaOwned({ mediaId: characterData.avatarMediaId, userId });
       await this.accessAsserter.assertAliasBooksOwned({ aliases: input.character.aliases, userId });
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: characterData.speciesId, userId },
+        tx,
+      );
       const created = await this.charactersRepository.createCharacter(characterData, tx);
       return created.id;
     }

@@ -8,6 +8,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { BookAccessService } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
+import { SpeciesService } from "../../species/index.js";
 import { TagsService } from "../../tags/index.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 
@@ -16,6 +17,7 @@ export class CharacterAccessAsserter {
   constructor(
     private readonly bookAccess: BookAccessService,
     private readonly mediaService: MediaService,
+    private readonly speciesService: SpeciesService,
     private readonly tagsService: TagsService,
     private readonly charactersRepository: CharactersRepository,
   ) {}
@@ -129,6 +131,16 @@ export class CharacterAccessAsserter {
     if (!owns) {
       throw new NotFoundError("Series not found", { code: notFoundCode });
     }
+  }
+
+  async assertSpeciesReferenceable(
+    { speciesId, userId }: { speciesId: Nullable<string> | undefined; userId: string },
+    client: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (speciesId === null || speciesId === undefined) {
+      return;
+    }
+    await this.speciesService.assertReferenceable({ speciesId, userId }, client);
   }
 
   async assertTagsOwned(

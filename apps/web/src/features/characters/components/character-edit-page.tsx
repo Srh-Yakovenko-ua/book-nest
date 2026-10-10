@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DiscardConfirmDialog } from "@/features/books";
 import { useBookPagesCount } from "@/features/books/api/use-book";
 import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import { type OwnSpeciesChange, useSpeciesLocale } from "@/features/species";
 import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
 
@@ -32,6 +33,7 @@ import {
   toBookUpdate,
   toCharacterEditValues,
   toGlobalUpdate,
+  withSpeciesChange,
 } from "../model/character-edit-form";
 import { getCharacterDetailsPath } from "../model/character-routes";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
@@ -101,7 +103,12 @@ function CharacterEditForm({
   const updateCharacter = useUpdateCharacter();
   const updateBookCharacter = useUpdateBookCharacter();
 
-  const initialValues = toCharacterEditValues(character, contextBookId ?? undefined);
+  const locale = useSpeciesLocale();
+  const initialValues = toCharacterEditValues({
+    bookId: contextBookId ?? undefined,
+    character,
+    locale,
+  });
   const [baseline, setBaseline] = useState<CharacterEditValues>(initialValues);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [uploadedPortrait, setUploadedPortrait] = useState<Nullable<CharacterImageUpload>>(null);
@@ -134,6 +141,7 @@ function CharacterEditForm({
     getValues,
     handleSubmit,
     register,
+    setValue,
     trigger,
   } = form;
 
@@ -173,6 +181,13 @@ function CharacterEditForm({
     characterId: character.id,
     ...(contextBookId === null ? {} : { bookId: contextBookId }),
   });
+
+  function applySpeciesChange(change: OwnSpeciesChange) {
+    const next = withSpeciesChange(getValues(), change);
+    setValue("global.species", next.global.species);
+    setValue("book.speciesOverride", next.book.speciesOverride);
+    setBaseline((previous) => withSpeciesChange(previous, change));
+  }
 
   function leave() {
     router.push(detailsHref);
@@ -254,13 +269,19 @@ function CharacterEditForm({
           />
         )}
 
-        <CharacterGlobalSection control={control} errors={errors} register={register} />
+        <CharacterGlobalSection
+          control={control}
+          errors={errors}
+          onSpeciesChange={applySpeciesChange}
+          register={register}
+        />
 
         {contextBookId === null ? null : (
           <BookCharacterInheritanceSection
             control={control}
             errors={errors}
             maskedFields={maskedFields}
+            onSpeciesChange={applySpeciesChange}
           />
         )}
 

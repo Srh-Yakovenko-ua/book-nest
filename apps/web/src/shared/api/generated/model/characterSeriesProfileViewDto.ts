@@ -11,6 +11,7 @@ import type { CharacterSeriesProfileViewDtoAvatar } from "./characterSeriesProfi
 import type { CharacterSeriesProfileViewDtoEntityKind } from "./characterSeriesProfileViewDtoEntityKind";
 import type { CharacterSeriesProfileViewDtoGender } from "./characterSeriesProfileViewDtoGender";
 import type { CharacterSeriesProfileViewDtoGlobalAttitude } from "./characterSeriesProfileViewDtoGlobalAttitude";
+import type { CharacterSeriesProfileViewDtoSpecies } from "./characterSeriesProfileViewDtoSpecies";
 
 export interface CharacterSeriesProfileViewDto {
   aliases: CharacterSeriesProfileViewDtoAliasesItem[];
@@ -32,5 +33,5 @@ export interface CharacterSeriesProfileViewDto {
   /** @nullable */
   pronouns: string | null;
   /** @nullable */
-  species: string | null;
+  species: CharacterSeriesProfileViewDtoSpecies;
 }

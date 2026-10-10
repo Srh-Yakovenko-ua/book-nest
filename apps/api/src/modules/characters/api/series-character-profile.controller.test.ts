@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { findSystemSpeciesId, seedSystemSpeciesCatalog } from "../../../test/system-species.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
@@ -124,12 +125,14 @@ async function linkExisting(
 describe("series character profile", () => {
   it("returns the character identity and an appearance timeline ordered by part number", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSystemSpeciesCatalog(app);
+    const humanId = await findSystemSpeciesId({ app, key: "human" });
     const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
     const characterId = await createInBook(
       accessToken,
       firstBook,
-      { gender: "male", name: "Paul Atreides", species: "human" },
+      { gender: "male", name: "Paul Atreides", speciesId: humanId },
       { importance: "central" },
     );
     await linkExisting(accessToken, secondBook, characterId, { importance: "major" });
@@ -144,7 +147,7 @@ describe("series character profile", () => {
       characterId,
       gender: "male",
       name: "Paul Atreides",
-      species: "human",
+      species: { id: humanId, key: "human", labels: { en: "Human", uk: "Людина" } },
     });
     expect(res.body.appearances).toHaveLength(2);
     expect(res.body.appearances[0]).toMatchObject({ bookId: firstBook, partNumber: 1 });

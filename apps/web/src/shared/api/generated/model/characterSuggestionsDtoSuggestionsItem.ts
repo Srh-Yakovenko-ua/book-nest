@@ -9,6 +9,7 @@ import type { CharacterSuggestionsDtoSuggestionsItemAvatar } from "./characterSu
 import type { CharacterSuggestionsDtoSuggestionsItemEntityKind } from "./characterSuggestionsDtoSuggestionsItemEntityKind";
 import type { CharacterSuggestionsDtoSuggestionsItemGender } from "./characterSuggestionsDtoSuggestionsItemGender";
 import type { CharacterSuggestionsDtoSuggestionsItemGlobalAttitude } from "./characterSuggestionsDtoSuggestionsItemGlobalAttitude";
+import type { CharacterSuggestionsDtoSuggestionsItemSpecies } from "./characterSuggestionsDtoSuggestionsItemSpecies";
 import type { CharacterSuggestionsDtoSuggestionsItemTagsItem } from "./characterSuggestionsDtoSuggestionsItemTagsItem";
 
 export type CharacterSuggestionsDtoSuggestionsItem = {
@@ -36,6 +37,6 @@ export type CharacterSuggestionsDtoSuggestionsItem = {
   /** @nullable */
   pronouns: string | null;
   /** @nullable */
-  species: string | null;
+  species: CharacterSuggestionsDtoSuggestionsItemSpecies;
   tags: CharacterSuggestionsDtoSuggestionsItemTagsItem[];
 };
