@@ -231,7 +231,7 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
             autoCorrect="off"
             className={cn(
               "h-10 w-full min-w-0 truncate rounded-lg border border-input bg-field pl-2.5 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-              showClear ? "pr-14" : "pr-8",
+              showClear ? "pr-16" : "pr-8",
             )}
             id={inputId}
             maxLength={maxLength}
@@ -256,7 +256,7 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
           {showClear ? (
             <button
               aria-label={tCommon("clear")}
-              className="absolute top-1/2 right-8 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="absolute top-1/2 right-8 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={clear}
               onMouseDown={(event) => event.preventDefault()}
               tabIndex={-1}

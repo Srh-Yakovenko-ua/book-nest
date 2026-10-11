@@ -161,7 +161,7 @@ function CreateOption({
     <button
       aria-disabled={isCreating}
       aria-selected={active}
-      className="group relative flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden select-none aria-disabled:cursor-progress aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:ring-1 aria-selected:ring-ring"
+      className="group relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-left text-sm outline-hidden select-none aria-disabled:cursor-progress aria-selected:bg-accent aria-selected:text-accent-foreground"
       id={id}
       onClick={onCreate}
       onPointerMove={onHighlight}
@@ -218,7 +218,7 @@ function PickerGroup({
     >
       <div
         aria-hidden
-        className="px-2 pt-2 pb-1 text-xs font-medium text-muted-foreground"
+        className="px-2 py-1.5 text-xs font-medium text-muted-foreground"
         id={headingId}
       >
         {title}
@@ -259,7 +259,7 @@ function PickerOption({ active, children, id, onHighlight, onPick, selected }: P
   return (
     <button
       aria-selected={active}
-      className="relative flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden select-none aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:ring-1 aria-selected:ring-ring"
+      className="relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-left text-sm outline-hidden select-none aria-selected:bg-accent aria-selected:text-accent-foreground"
       id={id}
       onClick={onPick}
       onPointerMove={onHighlight}
@@ -268,7 +268,9 @@ function PickerOption({ active, children, id, onHighlight, onPick, selected }: P
       type="button"
     >
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      {selected ? <UiIcon className="shrink-0" name="check" size={16} /> : null}
+      <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center">
+        {selected ? <UiIcon name="check" size={16} /> : null}
+      </span>
     </button>
   );
 }
