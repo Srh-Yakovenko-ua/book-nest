@@ -10,7 +10,7 @@ import * as zod from "zod";
 /**
  * @summary Search species visible to the current user (system + own)
  */
-export const speciesControllerSearchQueryQMax = 120;
+export const speciesControllerSearchQueryQMax = 60;
 
 export const SpeciesControllerSearchQueryParams = zod.object({
   locale: zod.enum(["en", "uk"]).optional(),

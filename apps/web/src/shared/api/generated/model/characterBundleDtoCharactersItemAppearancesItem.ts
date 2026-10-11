@@ -84,7 +84,7 @@ export type CharacterBundleDtoCharactersItemAppearancesItem = {
    */
   sortOrder: number | null;
   /**
-   * @maxLength 120
+   * @maxLength 60
    * @nullable
    */
   speciesOverride: string | null;

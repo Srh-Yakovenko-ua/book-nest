@@ -1143,7 +1143,7 @@ describe("CharacterEditPage field requirements", () => {
     expect(screen.getByRole("textbox", { name: "Ім’я" })).toHaveAttribute("maxlength", "200");
     expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toHaveAttribute(
       "maxlength",
-      "120",
+      "60",
     );
     expect(screen.getByRole("combobox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
       "maxlength",
@@ -1223,18 +1223,18 @@ describe("CharacterEditPage text over the limit", () => {
     expect(patchCount()).toBe(0);
   });
 
-  it("caps the species in this book at the same 120 characters as the shared species", async () => {
+  it("caps the species in this book at the same length as the shared species", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Мутант");
 
     expect(within(inheritedField("Вид у цій книзі")).getByRole("combobox")).toHaveAttribute(
       "maxlength",
-      "120",
+      "60",
     );
     expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toHaveAttribute(
       "maxlength",
-      "120",
+      "60",
     );
   });
 });
