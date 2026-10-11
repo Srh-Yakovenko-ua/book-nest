@@ -125,7 +125,14 @@ describe("GET /api/species/:speciesId/deletion-preview", () => {
     const res = await api.deletionPreview(speciesId);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ bookOverrides: 0, canDelete: true, characters: 0, trashed: 0 });
+    expect(res.body).toEqual({
+      bookOverrides: 0,
+      canDelete: true,
+      characters: 0,
+      trashed: 0,
+      trashedBookOverrides: 0,
+      trashedCharacters: 0,
+    });
   });
 
   it("counts character and book override usage and forbids deletion", async () => {
@@ -143,7 +150,59 @@ describe("GET /api/species/:speciesId/deletion-preview", () => {
 
     const res = await api.deletionPreview(speciesId);
 
-    expect(res.body).toEqual({ bookOverrides: 1, canDelete: false, characters: 2, trashed: 0 });
+    expect(res.body).toEqual({
+      bookOverrides: 1,
+      canDelete: false,
+      characters: 2,
+      trashed: 0,
+      trashedBookOverrides: 0,
+      trashedCharacters: 0,
+    });
+  });
+
+  it("reports trash-linked references as subsets of the totals without double counting", async () => {
+    const api = await signIn();
+    const speciesId = await createOwn(api, "Зорянин");
+    const liveCharacter = await seedCharacter({
+      name: "Ая",
+      prisma,
+      speciesId,
+      userId: api.userId,
+    });
+    const trashedCharacter = await seedCharacter({
+      deletedAt: TRASHED_AT,
+      name: "Бран",
+      prisma,
+      speciesId,
+      userId: api.userId,
+    });
+    const overrides = [
+      { bookDeletedAt: undefined, characterId: liveCharacter.id },
+      { bookDeletedAt: TRASHED_AT, characterId: liveCharacter.id },
+      { bookDeletedAt: undefined, characterId: trashedCharacter.id },
+      { bookDeletedAt: TRASHED_AT, characterId: trashedCharacter.id },
+    ];
+    for (const override of overrides) {
+      await seedOverride({
+        ...override,
+        prisma,
+        speciesOverrideId: speciesId,
+        speciesOverrideIsSpoiler: false,
+        userId: api.userId,
+      });
+    }
+
+    const res = await api.deletionPreview(speciesId);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      bookOverrides: 4,
+      canDelete: false,
+      characters: 2,
+      trashed: 4,
+      trashedBookOverrides: 3,
+      trashedCharacters: 1,
+    });
   });
 
   it("refuses to preview a system species with 403 species_forbidden", async () => {
@@ -178,7 +237,13 @@ describe("DELETE /api/species/:speciesId", () => {
     expect(res.status).toBe(409);
     expect(res.body).toMatchObject({
       code: "species_in_use",
-      details: { bookOverrides: 0, characters: 1, trashed: 0 },
+      details: {
+        bookOverrides: 0,
+        characters: 1,
+        trashed: 0,
+        trashedBookOverrides: 0,
+        trashedCharacters: 0,
+      },
     });
     await expect(ownNames(api)).resolves.toEqual(["Зорянин"]);
   });
@@ -200,7 +265,13 @@ describe("DELETE /api/species/:speciesId", () => {
     expect(res.status).toBe(409);
     expect(res.body).toMatchObject({
       code: "species_in_use",
-      details: { bookOverrides: 1, characters: 0, trashed: 0 },
+      details: {
+        bookOverrides: 1,
+        characters: 0,
+        trashed: 0,
+        trashedBookOverrides: 0,
+        trashedCharacters: 0,
+      },
     });
   });
 
@@ -220,7 +291,41 @@ describe("DELETE /api/species/:speciesId", () => {
     expect(res.status).toBe(409);
     expect(res.body).toMatchObject({
       code: "species_in_use",
-      details: { bookOverrides: 0, characters: 1, trashed: 1 },
+      details: {
+        bookOverrides: 0,
+        characters: 1,
+        trashed: 1,
+        trashedBookOverrides: 0,
+        trashedCharacters: 1,
+      },
+    });
+  });
+
+  it("refuses with 409 species_in_use while only an override in a trashed book uses the species", async () => {
+    const api = await signIn();
+    const speciesId = await createOwn(api, "Зорянин");
+    const character = await seedCharacter({ name: "Ая", prisma, userId: api.userId });
+    await seedOverride({
+      bookDeletedAt: TRASHED_AT,
+      characterId: character.id,
+      prisma,
+      speciesOverrideId: speciesId,
+      speciesOverrideIsSpoiler: false,
+      userId: api.userId,
+    });
+
+    const res = await api.remove(speciesId);
+
+    expect(res.status).toBe(409);
+    expect(res.body).toMatchObject({
+      code: "species_in_use",
+      details: {
+        bookOverrides: 1,
+        characters: 0,
+        trashed: 1,
+        trashedBookOverrides: 1,
+        trashedCharacters: 0,
+      },
     });
   });
 

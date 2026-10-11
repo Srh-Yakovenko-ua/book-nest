@@ -103,16 +103,21 @@ export class SpeciesRepository {
     };
 
     return new Map(
-      speciesIds.map((speciesId) => [
-        speciesId,
-        {
-          bookOverrides: tally.bookOverrides.get(speciesId) ?? 0,
-          characters: tally.characters.get(speciesId) ?? 0,
-          trashed:
-            (tally.trashedCharacters.get(speciesId) ?? 0) +
-            (tally.trashedBookOverrides.get(speciesId) ?? 0),
-        },
-      ]),
+      speciesIds.map((speciesId) => {
+        const trashedCharacterCount = tally.trashedCharacters.get(speciesId) ?? 0;
+        const trashedBookOverrideCount = tally.trashedBookOverrides.get(speciesId) ?? 0;
+
+        return [
+          speciesId,
+          {
+            bookOverrides: tally.bookOverrides.get(speciesId) ?? 0,
+            characters: tally.characters.get(speciesId) ?? 0,
+            trashed: trashedCharacterCount + trashedBookOverrideCount,
+            trashedBookOverrides: trashedBookOverrideCount,
+            trashedCharacters: trashedCharacterCount,
+          },
+        ];
+      }),
     );
   }
 

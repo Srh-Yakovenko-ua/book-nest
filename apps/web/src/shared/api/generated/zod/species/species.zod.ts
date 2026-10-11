@@ -131,6 +131,12 @@ export const speciesControllerListOwnResponseItemsItemUsageCharactersMax = 90071
 export const speciesControllerListOwnResponseItemsItemUsageTrashedMin = 0;
 export const speciesControllerListOwnResponseItemsItemUsageTrashedMax = 9007199254740991;
 
+export const speciesControllerListOwnResponseItemsItemUsageTrashedBookOverridesMin = 0;
+export const speciesControllerListOwnResponseItemsItemUsageTrashedBookOverridesMax = 9007199254740991;
+
+export const speciesControllerListOwnResponseItemsItemUsageTrashedCharactersMin = 0;
+export const speciesControllerListOwnResponseItemsItemUsageTrashedCharactersMax = 9007199254740991;
+
 export const SpeciesControllerListOwnResponse = zod.object({
   items: zod.array(
     zod.object({
@@ -157,6 +163,14 @@ export const SpeciesControllerListOwnResponse = zod.object({
           .int()
           .min(speciesControllerListOwnResponseItemsItemUsageTrashedMin)
           .max(speciesControllerListOwnResponseItemsItemUsageTrashedMax),
+        trashedBookOverrides: zod
+          .int()
+          .min(speciesControllerListOwnResponseItemsItemUsageTrashedBookOverridesMin)
+          .max(speciesControllerListOwnResponseItemsItemUsageTrashedBookOverridesMax),
+        trashedCharacters: zod
+          .int()
+          .min(speciesControllerListOwnResponseItemsItemUsageTrashedCharactersMin)
+          .max(speciesControllerListOwnResponseItemsItemUsageTrashedCharactersMax),
       }),
     }),
   ),
@@ -178,6 +192,12 @@ export const speciesControllerDeletionPreviewResponseCharactersMax = 90071992547
 export const speciesControllerDeletionPreviewResponseTrashedMin = 0;
 export const speciesControllerDeletionPreviewResponseTrashedMax = 9007199254740991;
 
+export const speciesControllerDeletionPreviewResponseTrashedBookOverridesMin = 0;
+export const speciesControllerDeletionPreviewResponseTrashedBookOverridesMax = 9007199254740991;
+
+export const speciesControllerDeletionPreviewResponseTrashedCharactersMin = 0;
+export const speciesControllerDeletionPreviewResponseTrashedCharactersMax = 9007199254740991;
+
 export const SpeciesControllerDeletionPreviewResponse = zod.object({
   bookOverrides: zod
     .int()
@@ -191,6 +211,14 @@ export const SpeciesControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(speciesControllerDeletionPreviewResponseTrashedMin)
     .max(speciesControllerDeletionPreviewResponseTrashedMax),
+  trashedBookOverrides: zod
+    .int()
+    .min(speciesControllerDeletionPreviewResponseTrashedBookOverridesMin)
+    .max(speciesControllerDeletionPreviewResponseTrashedBookOverridesMax),
+  trashedCharacters: zod
+    .int()
+    .min(speciesControllerDeletionPreviewResponseTrashedCharactersMin)
+    .max(speciesControllerDeletionPreviewResponseTrashedCharactersMax),
   canDelete: zod.boolean(),
 });
 

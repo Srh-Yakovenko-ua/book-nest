@@ -24,6 +24,7 @@ import { useSpeciesCandidates } from "../api/use-species-candidates";
 import { toSpeciesFailure } from "../model/species-failure";
 import { speciesSearchTerm } from "../model/species-search-term";
 import { selectionFromOption } from "../model/species-selection";
+import { ClampedSpeciesName } from "./clamped-species-name";
 import { SpeciesFailureMessage } from "./species-failure-message";
 
 type RenameOwnSpeciesPanelProps = {
@@ -37,6 +38,8 @@ const RENAME_FIELD_IDS = {
   error: "rename-own-species-error",
   input: "rename-own-species",
 } as const;
+
+const SIMILAR_SPECIES_SHOWN = 3;
 
 export function RenameOwnSpeciesPanel({
   onBack,
@@ -107,8 +110,17 @@ export function RenameOwnSpeciesPanel({
         void submitRename(event);
       }}
     >
+      <h3 className="font-heading text-base font-semibold text-foreground">{t("title")}</h3>
+
+      <dl className="flex flex-col gap-1">
+        <dt className="text-xs font-medium text-muted-foreground">{t("currentName")}</dt>
+        <dd className="text-sm font-medium text-foreground">
+          <ClampedSpeciesName name={species.name} />
+        </dd>
+      </dl>
+
       <div className="flex flex-col gap-2">
-        <Label htmlFor={RENAME_FIELD_IDS.input}>{t("label", { name: species.name })}</Label>
+        <Label htmlFor={RENAME_FIELD_IDS.input}>{t("label")}</Label>
         <Input
           aria-describedby={nameError === undefined ? undefined : RENAME_FIELD_IDS.error}
           aria-invalid={nameError !== undefined}
@@ -124,9 +136,16 @@ export function RenameOwnSpeciesPanel({
       <div aria-live="polite" className="flex flex-col gap-2 empty:hidden">
         {exact === null ? null : <DuplicateHint holder={exact} onMergeInto={onMergeInto} />}
         {similar.length === 0 ? null : (
-          <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-            {t("similar", { names: similar.map((option) => option.name).join(", ") })}
-          </p>
+          <div className="flex flex-col gap-1.5 rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+            <p>{t("similar")}</p>
+            <ul className="flex flex-col gap-1">
+              {similar.slice(0, SIMILAR_SPECIES_SHOWN).map((option) => (
+                <li className="font-medium text-foreground" key={option.id}>
+                  <ClampedSpeciesName name={option.name} />
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {failure === null ? null : failure.kind === "duplicate" ? (
           <DuplicateHint holder={failure.holder} onMergeInto={onMergeInto} />
@@ -167,8 +186,8 @@ function DuplicateHint({
 
   return (
     <div className="flex flex-col items-start gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-sm text-foreground sm:flex-row sm:items-center">
-      <span className="flex min-w-0 flex-1 items-start gap-2">
-        <UiIcon className="mt-0.5 text-warning" name="alert-triangle" size={16} />
+      <span className="flex min-w-0 flex-1 items-start gap-2 wrap-anywhere">
+        <UiIcon className="mt-0.5 shrink-0 text-warning" name="alert-triangle" size={16} />
         {holder === null ? t("duplicateUnknown") : t("duplicate", { name: holder.name })}
       </span>
       {holder === null ? null : (

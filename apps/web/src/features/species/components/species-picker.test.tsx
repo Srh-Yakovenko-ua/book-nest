@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import type { Nullable, SpeciesCandidates, SpeciesOptionView } from "@app/shared";
-import type { FormEvent } from "react";
+import type { ComponentProps, FormEvent } from "react";
 
 import { SpeciesNameInputSchema } from "@app/shared";
 import { act, useState } from "react";
@@ -11,6 +11,11 @@ import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-
 import type { SpeciesSelection } from "../model/species-selection";
 
 import { SpeciesPicker } from "./species-picker";
+
+type PickerOptions = Pick<
+  ComponentProps<typeof SpeciesPicker>,
+  "allowCreate" | "disabled" | "excludeId"
+>;
 
 type SentRequest = { body: unknown; method: string; url: URL };
 
@@ -90,7 +95,8 @@ function own(id: string, name: string): SpeciesOptionView {
 function PickerField({
   initial = null,
   onChange,
-}: {
+  ...options
+}: PickerOptions & {
   initial?: Nullable<SpeciesSelection>;
   onChange: (selection: Nullable<SpeciesSelection>) => void;
 }) {
@@ -100,6 +106,7 @@ function PickerField({
     <>
       <label htmlFor="species">Вид</label>
       <SpeciesPicker
+        {...options}
         inputId="species"
         label="Вид"
         onChange={(next) => {
@@ -163,9 +170,9 @@ async function settle(ms: number) {
   });
 }
 
-function setupPicker(initial: Nullable<SpeciesSelection> = null) {
+function setupPicker(initial: Nullable<SpeciesSelection> = null, options: PickerOptions = {}) {
   const onChange = vi.fn<(selection: Nullable<SpeciesSelection>) => void>();
-  renderWithProviders(<PickerField initial={initial} onChange={onChange} />);
+  renderWithProviders(<PickerField initial={initial} onChange={onChange} {...options} />);
   return onChange;
 }
 
@@ -566,5 +573,123 @@ describe("SpeciesPicker states", () => {
 
     await waitFor(() => expect(status).toHaveTextContent("Знайдено 5 видів"));
     expect(screen.getByRole("status")).toBe(status);
+  });
+});
+
+describe("SpeciesPicker without creation", () => {
+  it("offers nothing to create and creates nothing on Enter or click for an unmatched name", async () => {
+    const onChange = setupPicker(null, { allowCreate: false });
+
+    await userEvent.type(combobox(), "Фримен");
+    await waitFor(() => expect(candidateLookups()).toEqual(["Фримен"]));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Такого виду ще немає."),
+    );
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(screen.getByRole("listbox", { name: "Вид" }));
+    await userEvent.click(combobox());
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    expect(createBodies()).toEqual([]);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(combobox()).toHaveValue("Фримен");
+    expect(screen.getByRole("listbox", { name: "Вид" })).toBeInTheDocument();
+  });
+
+  it("lists similar species without the hint to create a new one", async () => {
+    server.candidates = { Ельфійка: { exact: null, similar: [SPECIES.elf, SPECIES.halfElf] } };
+    const onChange = setupPicker(null, { allowCreate: false });
+
+    await userEvent.type(combobox(), "Ельфійка");
+    const similar = await screen.findByRole("group", { name: "Схожі види" });
+
+    expect(similar).not.toHaveAccessibleDescription();
+    expect(screen.queryByRole("option", { name: /створити/i })).not.toBeInTheDocument();
+    await userEvent.click(within(similar).getByRole("option", { name: "Напівельф" }));
+
+    expect(onChange).toHaveBeenCalledWith({ id: SPECIES.halfElf.id, label: "Напівельф" });
+    expect(createBodies()).toEqual([]);
+  });
+
+  it("picks the exact match with Enter", async () => {
+    server.candidates = { Ельф: { exact: SPECIES.elf, similar: [] } };
+    const onChange = setupPicker(null, { allowCreate: false });
+
+    await userEvent.type(combobox(), "Ельф");
+    await screen.findByRole("option", { name: "Обрати наявний: Ельф" });
+    await userEvent.keyboard("{Enter}");
+
+    expect(onChange).toHaveBeenCalledWith({ id: SPECIES.elf.id, label: "Ельф" });
+    expect(createBodies()).toEqual([]);
+  });
+
+  it("still selects system and own species", async () => {
+    const onChange = setupPicker(null, { allowCreate: false });
+
+    await userEvent.type(combobox(), "Дворф");
+    await screen.findByRole("option", { name: "Дворф" });
+    await userEvent.keyboard("{Enter}");
+    expect(onChange).toHaveBeenLastCalledWith({ id: SPECIES.dwarf.id, label: "Дворф" });
+
+    await userEvent.click(combobox());
+    await userEvent.click(await screen.findByRole("option", { name: "Відьмак" }));
+    expect(onChange).toHaveBeenLastCalledWith({ id: SPECIES.witcher.id, label: "Відьмак" });
+    expect(createBodies()).toEqual([]);
+  });
+
+  it("hides the excluded species from the list and from the exact match", async () => {
+    server.candidates = { Відьмак: { exact: SPECIES.witcher, similar: [] } };
+    setupPicker(null, { allowCreate: false, excludeId: SPECIES.witcher.id });
+
+    await userEvent.click(combobox());
+    expect(await screen.findByRole("option", { name: "Людина" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Відьмак" })).not.toBeInTheDocument();
+
+    await userEvent.type(combobox(), "Відьмак", { skipClick: true });
+    await waitFor(() => expect(candidateLookups()).toEqual(["Відьмак"]));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Такого виду ще немає."),
+    );
+
+    expect(screen.queryByRole("option", { name: /Відьмак/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("SpeciesPicker disabled", () => {
+  it("shows the chosen species but lets nothing open, search, change or clear it", async () => {
+    const onChange = setupPicker({ id: SPECIES.human.id, label: "Людина" }, { disabled: true });
+
+    expect(combobox()).toBeDisabled();
+    expect(combobox()).toHaveValue("Людина");
+    expect(screen.queryByRole("button", { name: "Очистити вид" })).not.toBeInTheDocument();
+
+    await userEvent.click(combobox());
+    await userEvent.type(combobox(), "ельф");
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(combobox()).toHaveAttribute("aria-expanded", "false");
+    expect(combobox()).toHaveValue("Людина");
+    expect(onChange).not.toHaveBeenCalled();
+    expect(searchTerms()).toEqual([]);
+  });
+
+  it("closes an open list and drops the typed text once it becomes disabled", async () => {
+    const onChange = vi.fn<(selection: Nullable<SpeciesSelection>) => void>();
+    const { rerender } = renderWithProviders(<PickerField onChange={onChange} />);
+
+    await userEvent.type(combobox(), "ельф");
+    expect(await screen.findByRole("option", { name: "Темний ельф" })).toBeInTheDocument();
+
+    rerender(<PickerField disabled onChange={onChange} />);
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(combobox()).toHaveAttribute("aria-expanded", "false");
+    expect(combobox()).toHaveValue("");
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

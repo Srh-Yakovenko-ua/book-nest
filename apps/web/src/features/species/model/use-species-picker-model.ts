@@ -28,12 +28,18 @@ export type SpeciesPickerSection =
   | { kind: "exact" | "similar"; options: SpeciesOptionView[] };
 
 type SpeciesPickerModelArgs = {
+  allowCreate: boolean;
   excludeId: string | undefined;
   open: boolean;
   typed: string;
 };
 
-export function useSpeciesPickerModel({ excludeId, open, typed }: SpeciesPickerModelArgs) {
+export function useSpeciesPickerModel({
+  allowCreate,
+  excludeId,
+  open,
+  typed,
+}: SpeciesPickerModelArgs) {
   const currentTerm = speciesSearchTerm(typed);
   const debouncedTerm = speciesSearchTerm(useDebouncedValue(typed, SPECIES_SEARCH.debounceMs));
   const term = currentTerm === "" ? "" : debouncedTerm;
@@ -72,7 +78,12 @@ export function useSpeciesPickerModel({ excludeId, open, typed }: SpeciesPickerM
 
   const candidatesKnown = candidates.isSuccess || candidates.isError;
   const create: Nullable<SpeciesCreateOffer> =
-    term !== "" && isSettled && candidatesKnown && exact === null && failure?.kind !== "duplicate"
+    allowCreate &&
+    term !== "" &&
+    isSettled &&
+    candidatesKnown &&
+    exact === null &&
+    failure?.kind !== "duplicate"
       ? { name: term, secondary: similarOptions.length > 0 }
       : null;
 

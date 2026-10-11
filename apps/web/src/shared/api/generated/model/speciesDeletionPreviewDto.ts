@@ -22,5 +22,15 @@ export interface SpeciesDeletionPreviewDto {
    * @maximum 9007199254740991
    */
   trashed: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  trashedBookOverrides: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  trashedCharacters: number;
   canDelete: boolean;
 }
