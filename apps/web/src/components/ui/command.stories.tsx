@@ -59,6 +59,52 @@ export const TypingFilters: Story = {
   },
 };
 
+function SectionedCommand() {
+  return (
+    <Command className="w-80 border border-border shadow-pop">
+      <CommandInput placeholder="Пошук видавництва…" />
+      <CommandList>
+        <CommandEmpty>Нічого не знайдено.</CommandEmpty>
+        <CommandGroup heading="Нещодавні" variant="sectioned">
+          <CommandItem>Видавництво Старого Лева</CommandItem>
+          <CommandItem>А-ба-ба-га-ла-ма-га</CommandItem>
+        </CommandGroup>
+        <CommandGroup heading="Усі видавництва" variant="sectioned">
+          <CommandItem>Віват</CommandItem>
+          <CommandItem>Наш Формат</CommandItem>
+          <CommandItem>Фабула</CommandItem>
+        </CommandGroup>
+        <CommandGroup heading="Створити" variant="sectioned">
+          <CommandItem>Додати «Мачулин»</CommandItem>
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+}
+
+export const Sectioned: Story = {
+  render: () => <SectionedCommand />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("group", { name: "Нещодавні" })).toBeVisible();
+    await expect(canvas.getByRole("group", { name: "Усі видавництва" })).toBeVisible();
+    await expect(canvas.getByRole("group", { name: "Створити" })).toBeVisible();
+  },
+};
+
+export const SectionedFiltering: Story = {
+  render: () => <SectionedCommand />,
+  play: async ({ canvas }) => {
+    const input = canvas.getByPlaceholderText("Пошук видавництва…");
+    await userEvent.click(input);
+    await userEvent.keyboard("фабула");
+
+    await waitFor(() =>
+      expect(canvas.queryByRole("group", { name: "Нещодавні" })).not.toBeInTheDocument(),
+    );
+    await expect(canvas.getByText("Фабула")).toBeVisible();
+  },
+};
+
 function CommandPalette() {
   const [open, setOpen] = useState(false);
   return (

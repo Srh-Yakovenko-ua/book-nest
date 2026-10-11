@@ -176,7 +176,7 @@ export function LoanContactPicker({
                 <CommandEmpty>{t("empty")}</CommandEmpty>
               ) : null}
               {contacts.length > 0 ? (
-                <CommandGroup heading={t("contactsHeading")}>
+                <CommandGroup heading={t("contactsHeading")} variant="sectioned">
                   {contacts.map((contact) => (
                     <LoanContactOption
                       contact={contact}
@@ -193,7 +193,7 @@ export function LoanContactPicker({
                 </div>
               ) : null}
               {showCreateOption ? (
-                <CommandGroup heading={t("createHeading")}>
+                <CommandGroup heading={t("createHeading")} variant="sectioned">
                   <CommandItem
                     className="cursor-pointer"
                     onSelect={() => {

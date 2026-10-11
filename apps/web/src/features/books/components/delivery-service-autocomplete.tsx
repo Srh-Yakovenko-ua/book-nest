@@ -142,7 +142,7 @@ export function DeliveryServiceAutocomplete({
               <CommandEmpty>{t("deliveryService.empty")}</CommandEmpty>
             ) : null}
             {filteredRecent.length > 0 ? (
-              <CommandGroup heading={t("deliveryService.recentHeading")}>
+              <CommandGroup heading={t("deliveryService.recentHeading")} variant="sectioned">
                 {filteredRecent.map((service) => (
                   <DeliveryServiceOption
                     key={service.id}
@@ -153,7 +153,7 @@ export function DeliveryServiceAutocomplete({
               </CommandGroup>
             ) : null}
             {catalogResults.length > 0 ? (
-              <CommandGroup heading={t("deliveryService.resultsHeading")}>
+              <CommandGroup heading={t("deliveryService.resultsHeading")} variant="sectioned">
                 {catalogResults.map((service) => (
                   <DeliveryServiceOption
                     key={service.id}

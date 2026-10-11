@@ -199,18 +199,21 @@ export function SeriesAutocomplete({
             {hasAuthorFilter ? (
               <>
                 {authorSeries.length > 0 ? (
-                  <CommandGroup heading={t("series.authorHeading", { name: selectedAuthorNames })}>
+                  <CommandGroup
+                    heading={t("series.authorHeading", { name: selectedAuthorNames })}
+                    variant="sectioned"
+                  >
                     {authorSeries.map((item) => seriesOption(item, { showAuthors: true }))}
                   </CommandGroup>
                 ) : null}
                 {authorlessSeries.length > 0 ? (
-                  <CommandGroup heading={t("series.noAuthorHeading")}>
+                  <CommandGroup heading={t("series.noAuthorHeading")} variant="sectioned">
                     {authorlessSeries.map((item) => seriesOption(item, { showAuthors: true }))}
                   </CommandGroup>
                 ) : null}
               </>
             ) : series.length > 0 ? (
-              <CommandGroup heading={t("series.yourSeries")}>
+              <CommandGroup heading={t("series.yourSeries")} variant="sectioned">
                 {series.map((item) => seriesOption(item, { showAuthors: true }))}
               </CommandGroup>
             ) : null}
@@ -232,7 +235,7 @@ export function SeriesAutocomplete({
               </CommandGroup>
             ) : null}
             {showCreateOption ? (
-              <CommandGroup heading={t("series.createHeading")}>
+              <CommandGroup heading={t("series.createHeading")} variant="sectioned">
                 <CommandItem className="cursor-pointer" onSelect={requestCreate} value="__create__">
                   <UiIcon className="text-primary" name="plus" size={16} />
                   <span className="min-w-0 truncate">

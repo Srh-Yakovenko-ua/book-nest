@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { sectionedGroupClassNames } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
 import type { SpeciesGroupHeading } from "../model/species-groups";
@@ -214,13 +215,10 @@ function PickerGroup({
     <div
       aria-describedby={hint === null ? undefined : hintId}
       aria-labelledby={headingId}
+      className={sectionedGroupClassNames.group}
       role="group"
     >
-      <div
-        aria-hidden
-        className="px-2 py-1.5 text-xs font-medium text-muted-foreground"
-        id={headingId}
-      >
+      <div aria-hidden className={sectionedGroupClassNames.heading} id={headingId}>
         {title}
       </div>
       {hint === null ? null : (
