@@ -1,5 +1,7 @@
+import type { CharacterBundle } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
+import { CharacterBundleSchema } from "@app/shared";
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
@@ -10,6 +12,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { findSystemSpeciesId, seedSystemSpeciesCatalog } from "../../../test/system-species.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
@@ -406,5 +409,161 @@ describe("character portability — whole-profile hidden characters", () => {
       hideProfileAsSpoiler: true,
       name: "The Ghost",
     });
+  });
+});
+
+describe("character portability — species", () => {
+  async function createOwnSpecies(token: string, name: string): Promise<string> {
+    const res = await authed("post", "/api/species", token).send({ name });
+    expect(res.status).toBe(HttpStatus.CREATED);
+    return res.body.id;
+  }
+
+  async function exportSpeciesBundle(token: string): Promise<CharacterBundle> {
+    return CharacterBundleSchema.parse(await exportBundle(token));
+  }
+
+  async function importBundle(token: string, bundle: CharacterBundle): Promise<void> {
+    const res = await authed("post", "/api/characters/import", token).send(bundle);
+    expect(res.status).toBe(HttpStatus.OK);
+  }
+
+  async function seedElfWithSylvanOverride(token: string): Promise<{
+    bookId: string;
+    characterId: string;
+    elfId: string;
+    sylvanId: string;
+  }> {
+    await seedSystemSpeciesCatalog(app);
+    const elfId = await findSystemSpeciesId({ app, key: "elf" });
+    const sylvanId = await createOwnSpecies(token, "Sylvan");
+    const bookId = await createBook(token, "The Hobbit");
+    const characterId = await createCharacter(token, { name: "Legolas", speciesId: elfId });
+    await linkToBook(token, bookId, characterId, {
+      speciesOverrideId: sylvanId,
+      speciesOverrideIsSpoiler: true,
+    });
+    return { bookId, characterId, elfId, sylvanId };
+  }
+
+  it("exports a system species as key plus name and an own species as name only, never an id", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { elfId, sylvanId } = await seedElfWithSylvanOverride(accessToken);
+
+    const bundle = await exportSpeciesBundle(accessToken);
+
+    expect(bundle.characters[0]).toMatchObject({ species: "Elf", speciesKey: "elf" });
+    expect(bundle.characters[0]?.appearances[0]).toMatchObject({
+      speciesOverride: "Sylvan",
+      speciesOverrideIsSpoiler: true,
+      speciesOverrideKey: null,
+    });
+    const serialized = JSON.stringify(bundle);
+    expect(serialized).not.toContain(elfId);
+    expect(serialized).not.toContain(sylvanId);
+  });
+
+  it("maps a known key to the system species and an exact visible name to the existing species", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { characterId, elfId, sylvanId } = await seedElfWithSylvanOverride(accessToken);
+
+    await importBundle(accessToken, await exportSpeciesBundle(accessToken));
+
+    const imported = await prisma.character.findFirstOrThrow({
+      include: { bookAppearances: true },
+      where: { id: { not: characterId }, userId },
+    });
+    expect(imported.speciesId).toBe(elfId);
+    expect(imported.bookAppearances[0]).toMatchObject({
+      speciesOverrideId: sylvanId,
+      speciesOverrideIsSpoiler: true,
+    });
+    expect(await prisma.species.count({ where: { userId } })).toBe(1);
+  });
+
+  it("falls back to the text for an unknown key or a keyless bundle and creates an own species only for unknown text", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { characterId, elfId } = await seedElfWithSylvanOverride(accessToken);
+    const exported = await exportSpeciesBundle(accessToken);
+    const bundle: CharacterBundle = {
+      ...exported,
+      characters: exported.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) => ({
+          ...appearance,
+          speciesOverride: "Mirkwood kin",
+          speciesOverrideKey: "no-such-species",
+        })),
+        species: "ELF",
+        speciesKey: undefined,
+      })),
+    };
+
+    await importBundle(accessToken, bundle);
+
+    const imported = await prisma.character.findFirstOrThrow({
+      include: { bookAppearances: { include: { speciesOverride: true } } },
+      where: { id: { not: characterId }, userId },
+    });
+    expect(imported.speciesId).toBe(elfId);
+    expect(imported.bookAppearances[0]?.speciesOverride).toMatchObject({
+      key: null,
+      name: "Mirkwood kin",
+      userId,
+    });
+    expect(imported.bookAppearances[0]?.speciesOverrideIsSpoiler).toBe(true);
+    expect(await prisma.species.count({ where: { userId } })).toBe(2);
+  });
+
+  it("round-trips a backfilled species name the create form refuses, so the character keeps its species", async () => {
+    const legacyName = "<b>Dark</b> elf";
+    const exporter = await context.registerVerifyAndLogin();
+    const importer = await context.registerVerifyAndLogin();
+    const backfilled = await prisma.species.create({
+      data: { name: legacyName, normalizedName: "<b>dark</b> elf", userId: exporter.userId },
+    });
+    await createCharacter(exporter.accessToken, { name: "Drizzt", speciesId: backfilled.id });
+    const refused = await authed("post", "/api/species", importer.accessToken).send({
+      name: legacyName,
+    });
+    expect(refused.status).toBe(HttpStatus.BAD_REQUEST);
+
+    const exported = await exportSpeciesBundle(exporter.accessToken);
+    expect(exported.characters[0]).toMatchObject({ species: legacyName, speciesKey: null });
+    await importBundle(importer.accessToken, exported);
+
+    const imported = await prisma.character.findFirstOrThrow({
+      include: { species: true },
+      where: { userId: importer.userId },
+    });
+    expect(imported.species).toMatchObject({
+      key: null,
+      name: legacyName,
+      normalizedName: "<b>dark</b> elf",
+      userId: importer.userId,
+    });
+  });
+
+  it("never creates a species for blank text", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { characterId } = await seedElfWithSylvanOverride(accessToken);
+    const exported = await exportSpeciesBundle(accessToken);
+    const bundle: CharacterBundle = {
+      ...exported,
+      characters: exported.characters.map((character) => ({
+        ...character,
+        appearances: [],
+        species: "",
+        speciesKey: null,
+      })),
+    };
+
+    await importBundle(accessToken, bundle);
+
+    const imported = await prisma.character.findFirstOrThrow({
+      where: { id: { not: characterId }, userId },
+    });
+    expect(imported.speciesId).toBeNull();
+    expect(await prisma.species.count({ where: { userId } })).toBe(1);
   });
 });

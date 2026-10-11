@@ -1,0 +1,1010 @@
+{
+  "version": 2,
+  "count": 114,
+  "categories": [
+    {
+      "key": "humanoid",
+      "nameUk": "Люди та людиноподібні",
+      "nameEn": "Humans & humanoids",
+      "count": 7
+    },
+    {
+      "key": "elven",
+      "nameUk": "Ельфи та споріднені",
+      "nameEn": "Elves & kin",
+      "count": 7
+    },
+    {
+      "key": "smallfolk",
+      "nameUk": "Гноми, гобліни та малі народи",
+      "nameEn": "Dwarves, goblins & smallfolk",
+      "count": 9
+    },
+    {
+      "key": "giants",
+      "nameUk": "Орки, тролі та велетні",
+      "nameEn": "Orcs, trolls & giants",
+      "count": 7
+    },
+    {
+      "key": "fae",
+      "nameUk": "Феї та природні духи",
+      "nameEn": "Fae & nature spirits",
+      "count": 9
+    },
+    {
+      "key": "magic",
+      "nameUk": "Магічні істоти",
+      "nameEn": "Magical beings",
+      "count": 6
+    },
+    {
+      "key": "bloodshifters",
+      "nameUk": "Вампіри та перевертні",
+      "nameEn": "Vampires & shapeshifters",
+      "count": 8
+    },
+    {
+      "key": "undead",
+      "nameUk": "Нежить та привиди",
+      "nameEn": "Undead & ghosts",
+      "count": 10
+    },
+    {
+      "key": "celestial",
+      "nameUk": "Демони та ангели",
+      "nameEn": "Demons & angels",
+      "count": 8
+    },
+    {
+      "key": "mythical",
+      "nameUk": "Дракони та міфічні істоти",
+      "nameEn": "Dragons & mythical creatures",
+      "count": 12
+    },
+    {
+      "key": "aquatic",
+      "nameUk": "Морські істоти",
+      "nameEn": "Aquatic beings",
+      "count": 5
+    },
+    {
+      "key": "animals",
+      "nameUk": "Тварини та звіролюди",
+      "nameEn": "Animals & beastfolk",
+      "count": 8
+    },
+    {
+      "key": "constructs",
+      "nameUk": "Штучні та технологічні істоти",
+      "nameEn": "Constructs & synthetic beings",
+      "count": 7
+    },
+    {
+      "key": "alien",
+      "nameUk": "Позаземні та космічні істоти",
+      "nameEn": "Extraterrestrial & cosmic beings",
+      "count": 5
+    },
+    {
+      "key": "supernatural",
+      "nameUk": "Інші надприродні істоти",
+      "nameEn": "Other supernatural beings",
+      "count": 6
+    }
+  ],
+  "items": [
+    {
+      "key": "human",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Людина",
+      "nameEn": "Human"
+    },
+    {
+      "key": "superhuman",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Надлюдина",
+      "nameEn": "Superhuman"
+    },
+    {
+      "key": "mutant",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Мутант",
+      "nameEn": "Mutant"
+    },
+    {
+      "key": "clone",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Клон",
+      "nameEn": "Clone"
+    },
+    {
+      "key": "half_human",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Напівлюдина",
+      "nameEn": "Half-human"
+    },
+    {
+      "key": "hybrid",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Гібрид",
+      "nameEn": "Hybrid"
+    },
+    {
+      "key": "artificial_human",
+      "categoryKey": "humanoid",
+      "categoryUk": "Люди та людиноподібні",
+      "categoryEn": "Humans & humanoids",
+      "nameUk": "Штучно створена людина",
+      "nameEn": "Artificial human"
+    },
+    {
+      "key": "elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Ельф",
+      "nameEn": "Elf"
+    },
+    {
+      "key": "high_elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Вищий ельф",
+      "nameEn": "High elf"
+    },
+    {
+      "key": "wood_elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Лісовий ельф",
+      "nameEn": "Wood elf"
+    },
+    {
+      "key": "dark_elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Темний ельф",
+      "nameEn": "Dark elf"
+    },
+    {
+      "key": "sea_elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Морський ельф",
+      "nameEn": "Sea elf"
+    },
+    {
+      "key": "ice_elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Крижаний ельф",
+      "nameEn": "Ice elf"
+    },
+    {
+      "key": "half_elf",
+      "categoryKey": "elven",
+      "categoryUk": "Ельфи та споріднені",
+      "categoryEn": "Elves & kin",
+      "nameUk": "Напівельф",
+      "nameEn": "Half-elf"
+    },
+    {
+      "key": "gnome",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Гном",
+      "nameEn": "Gnome"
+    },
+    {
+      "key": "dwarf",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Дворф",
+      "nameEn": "Dwarf"
+    },
+    {
+      "key": "goblin",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Гоблін",
+      "nameEn": "Goblin"
+    },
+    {
+      "key": "hobgoblin",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Хобгоблін",
+      "nameEn": "Hobgoblin"
+    },
+    {
+      "key": "kobold",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Кобольд",
+      "nameEn": "Kobold"
+    },
+    {
+      "key": "gremlin",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Гремлін",
+      "nameEn": "Gremlin"
+    },
+    {
+      "key": "halfling",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Напіврослик",
+      "nameEn": "Halfling"
+    },
+    {
+      "key": "hobbit",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Хоббіт",
+      "nameEn": "Hobbit"
+    },
+    {
+      "key": "leprechaun",
+      "categoryKey": "smallfolk",
+      "categoryUk": "Гноми, гобліни та малі народи",
+      "categoryEn": "Dwarves, goblins & smallfolk",
+      "nameUk": "Лепрекон",
+      "nameEn": "Leprechaun"
+    },
+    {
+      "key": "orc",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Орк",
+      "nameEn": "Orc"
+    },
+    {
+      "key": "half_orc",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Напіворк",
+      "nameEn": "Half-orc"
+    },
+    {
+      "key": "ogre",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Огр",
+      "nameEn": "Ogre"
+    },
+    {
+      "key": "troll",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Троль",
+      "nameEn": "Troll"
+    },
+    {
+      "key": "giant",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Велетень",
+      "nameEn": "Giant"
+    },
+    {
+      "key": "cyclops",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Циклоп",
+      "nameEn": "Cyclops"
+    },
+    {
+      "key": "titan",
+      "categoryKey": "giants",
+      "categoryUk": "Орки, тролі та велетні",
+      "categoryEn": "Orcs, trolls & giants",
+      "nameUk": "Титан",
+      "nameEn": "Titan"
+    },
+    {
+      "key": "fairy",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Фея",
+      "nameEn": "Fairy"
+    },
+    {
+      "key": "fae",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Фейрі",
+      "nameEn": "Fae"
+    },
+    {
+      "key": "pixie",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Піксі",
+      "nameEn": "Pixie"
+    },
+    {
+      "key": "sprite",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Спрайт",
+      "nameEn": "Sprite"
+    },
+    {
+      "key": "nymph",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Німфа",
+      "nameEn": "Nymph"
+    },
+    {
+      "key": "dryad",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Дріада",
+      "nameEn": "Dryad"
+    },
+    {
+      "key": "naiad",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Наяда",
+      "nameEn": "Naiad"
+    },
+    {
+      "key": "sylph",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Сильф",
+      "nameEn": "Sylph"
+    },
+    {
+      "key": "satyr",
+      "categoryKey": "fae",
+      "categoryUk": "Феї та природні духи",
+      "categoryEn": "Fae & nature spirits",
+      "nameUk": "Сатир",
+      "nameEn": "Satyr"
+    },
+    {
+      "key": "witch",
+      "categoryKey": "magic",
+      "categoryUk": "Магічні істоти",
+      "categoryEn": "Magical beings",
+      "nameUk": "Відьма",
+      "nameEn": "Witch"
+    },
+    {
+      "key": "witcher",
+      "categoryKey": "magic",
+      "categoryUk": "Магічні істоти",
+      "categoryEn": "Magical beings",
+      "nameUk": "Відьмак",
+      "nameEn": "Witcher"
+    },
+    {
+      "key": "wizard",
+      "categoryKey": "magic",
+      "categoryUk": "Магічні істоти",
+      "categoryEn": "Magical beings",
+      "nameUk": "Чарівник",
+      "nameEn": "Wizard"
+    },
+    {
+      "key": "sorcerer",
+      "categoryKey": "magic",
+      "categoryUk": "Магічні істоти",
+      "categoryEn": "Magical beings",
+      "nameUk": "Чаклун",
+      "nameEn": "Sorcerer"
+    },
+    {
+      "key": "shaman",
+      "categoryKey": "magic",
+      "categoryUk": "Магічні істоти",
+      "categoryEn": "Magical beings",
+      "nameUk": "Шаман",
+      "nameEn": "Shaman"
+    },
+    {
+      "key": "druid",
+      "categoryKey": "magic",
+      "categoryUk": "Магічні істоти",
+      "categoryEn": "Magical beings",
+      "nameUk": "Друїд",
+      "nameEn": "Druid"
+    },
+    {
+      "key": "vampire",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Вампір",
+      "nameEn": "Vampire"
+    },
+    {
+      "key": "half_vampire",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Напіввампір",
+      "nameEn": "Half-vampire"
+    },
+    {
+      "key": "dhampir",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Дампір",
+      "nameEn": "Dhampir"
+    },
+    {
+      "key": "werecreature",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Перевертень",
+      "nameEn": "Werecreature"
+    },
+    {
+      "key": "werewolf",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Вовкулака",
+      "nameEn": "Werewolf"
+    },
+    {
+      "key": "shapeshifter",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Мінливець",
+      "nameEn": "Shapeshifter"
+    },
+    {
+      "key": "metamorph",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Метаморф",
+      "nameEn": "Metamorph"
+    },
+    {
+      "key": "doppelganger",
+      "categoryKey": "bloodshifters",
+      "categoryUk": "Вампіри та перевертні",
+      "categoryEn": "Vampires & shapeshifters",
+      "nameUk": "Допельгангер",
+      "nameEn": "Doppelganger"
+    },
+    {
+      "key": "ghost",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Привид",
+      "nameEn": "Ghost"
+    },
+    {
+      "key": "apparition",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Примара",
+      "nameEn": "Apparition"
+    },
+    {
+      "key": "poltergeist",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Полтергейст",
+      "nameEn": "Poltergeist"
+    },
+    {
+      "key": "zombie",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Зомбі",
+      "nameEn": "Zombie"
+    },
+    {
+      "key": "skeleton",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Скелет",
+      "nameEn": "Skeleton"
+    },
+    {
+      "key": "mummy",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Мумія",
+      "nameEn": "Mummy"
+    },
+    {
+      "key": "lich",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Ліч",
+      "nameEn": "Lich"
+    },
+    {
+      "key": "revenant",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Ревенант",
+      "nameEn": "Revenant"
+    },
+    {
+      "key": "ghoul",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Упир",
+      "nameEn": "Ghoul"
+    },
+    {
+      "key": "specter",
+      "categoryKey": "undead",
+      "categoryUk": "Нежить та привиди",
+      "categoryEn": "Undead & ghosts",
+      "nameUk": "Спектр",
+      "nameEn": "Specter"
+    },
+    {
+      "key": "demon",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Демон",
+      "nameEn": "Demon"
+    },
+    {
+      "key": "archdemon",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Архідемон",
+      "nameEn": "Archdemon"
+    },
+    {
+      "key": "half_demon",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Напівдемон",
+      "nameEn": "Half-demon"
+    },
+    {
+      "key": "imp",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Імп",
+      "nameEn": "Imp"
+    },
+    {
+      "key": "succubus",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Суккуб",
+      "nameEn": "Succubus"
+    },
+    {
+      "key": "incubus",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Інкуб",
+      "nameEn": "Incubus"
+    },
+    {
+      "key": "angel",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Ангел",
+      "nameEn": "Angel"
+    },
+    {
+      "key": "archangel",
+      "categoryKey": "celestial",
+      "categoryUk": "Демони та ангели",
+      "categoryEn": "Demons & angels",
+      "nameUk": "Архангел",
+      "nameEn": "Archangel"
+    },
+    {
+      "key": "dragon",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Дракон",
+      "nameEn": "Dragon"
+    },
+    {
+      "key": "wyvern",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Виверна",
+      "nameEn": "Wyvern"
+    },
+    {
+      "key": "drake",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Дрейк",
+      "nameEn": "Drake"
+    },
+    {
+      "key": "griffin",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Грифон",
+      "nameEn": "Griffin"
+    },
+    {
+      "key": "phoenix",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Фенікс",
+      "nameEn": "Phoenix"
+    },
+    {
+      "key": "unicorn",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Єдиноріг",
+      "nameEn": "Unicorn"
+    },
+    {
+      "key": "pegasus",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Пегас",
+      "nameEn": "Pegasus"
+    },
+    {
+      "key": "basilisk",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Василіск",
+      "nameEn": "Basilisk"
+    },
+    {
+      "key": "chimera",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Химера",
+      "nameEn": "Chimera"
+    },
+    {
+      "key": "manticore",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Мантикора",
+      "nameEn": "Manticore"
+    },
+    {
+      "key": "centaur",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Кентавр",
+      "nameEn": "Centaur"
+    },
+    {
+      "key": "hydra",
+      "categoryKey": "mythical",
+      "categoryUk": "Дракони та міфічні істоти",
+      "categoryEn": "Dragons & mythical creatures",
+      "nameUk": "Гідра",
+      "nameEn": "Hydra"
+    },
+    {
+      "key": "mermaid",
+      "categoryKey": "aquatic",
+      "categoryUk": "Морські істоти",
+      "categoryEn": "Aquatic beings",
+      "nameUk": "Русалка",
+      "nameEn": "Mermaid"
+    },
+    {
+      "key": "merman",
+      "categoryKey": "aquatic",
+      "categoryUk": "Морські істоти",
+      "categoryEn": "Aquatic beings",
+      "nameUk": "Русал",
+      "nameEn": "Merman"
+    },
+    {
+      "key": "siren",
+      "categoryKey": "aquatic",
+      "categoryUk": "Морські істоти",
+      "categoryEn": "Aquatic beings",
+      "nameUk": "Сирена",
+      "nameEn": "Siren"
+    },
+    {
+      "key": "triton",
+      "categoryKey": "aquatic",
+      "categoryUk": "Морські істоти",
+      "categoryEn": "Aquatic beings",
+      "nameUk": "Тритон",
+      "nameEn": "Triton"
+    },
+    {
+      "key": "selkie",
+      "categoryKey": "aquatic",
+      "categoryUk": "Морські істоти",
+      "categoryEn": "Aquatic beings",
+      "nameUk": "Селкі",
+      "nameEn": "Selkie"
+    },
+    {
+      "key": "animal",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Тварина",
+      "nameEn": "Animal"
+    },
+    {
+      "key": "sapient_animal",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Розумна тварина",
+      "nameEn": "Sapient animal"
+    },
+    {
+      "key": "magical_animal",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Магічна тварина",
+      "nameEn": "Magical animal"
+    },
+    {
+      "key": "familiar",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Фамільяр",
+      "nameEn": "Familiar"
+    },
+    {
+      "key": "beastfolk",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Звіролюдина",
+      "nameEn": "Beastfolk"
+    },
+    {
+      "key": "catfolk",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Котолюдина",
+      "nameEn": "Catfolk"
+    },
+    {
+      "key": "wolfkin",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Вовколюдина",
+      "nameEn": "Wolfkin"
+    },
+    {
+      "key": "lizardfolk",
+      "categoryKey": "animals",
+      "categoryUk": "Тварини та звіролюди",
+      "categoryEn": "Animals & beastfolk",
+      "nameUk": "Ящіролюдина",
+      "nameEn": "Lizardfolk"
+    },
+    {
+      "key": "golem",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Голем",
+      "nameEn": "Golem"
+    },
+    {
+      "key": "automaton",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Автоматон",
+      "nameEn": "Automaton"
+    },
+    {
+      "key": "homunculus",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Гомункул",
+      "nameEn": "Homunculus"
+    },
+    {
+      "key": "living_doll",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Оживлена лялька",
+      "nameEn": "Living doll"
+    },
+    {
+      "key": "robot",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Робот",
+      "nameEn": "Robot"
+    },
+    {
+      "key": "android",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Андроїд",
+      "nameEn": "Android"
+    },
+    {
+      "key": "cyborg",
+      "categoryKey": "constructs",
+      "categoryUk": "Штучні та технологічні істоти",
+      "categoryEn": "Constructs & synthetic beings",
+      "nameUk": "Кіборг",
+      "nameEn": "Cyborg"
+    },
+    {
+      "key": "alien",
+      "categoryKey": "alien",
+      "categoryUk": "Позаземні та космічні істоти",
+      "categoryEn": "Extraterrestrial & cosmic beings",
+      "nameUk": "Іншопланетянин",
+      "nameEn": "Alien"
+    },
+    {
+      "key": "cosmic_being",
+      "categoryKey": "alien",
+      "categoryUk": "Позаземні та космічні істоти",
+      "categoryEn": "Extraterrestrial & cosmic beings",
+      "nameUk": "Космічна істота",
+      "nameEn": "Cosmic being"
+    },
+    {
+      "key": "energy_lifeform",
+      "categoryKey": "alien",
+      "categoryUk": "Позаземні та космічні істоти",
+      "categoryEn": "Extraterrestrial & cosmic beings",
+      "nameUk": "Енергетична форма життя",
+      "nameEn": "Energy lifeform"
+    },
+    {
+      "key": "symbiote",
+      "categoryKey": "alien",
+      "categoryUk": "Позаземні та космічні істоти",
+      "categoryEn": "Extraterrestrial & cosmic beings",
+      "nameUk": "Симбіонт",
+      "nameEn": "Symbiote"
+    },
+    {
+      "key": "hive_organism",
+      "categoryKey": "alien",
+      "categoryUk": "Позаземні та космічні істоти",
+      "categoryEn": "Extraterrestrial & cosmic beings",
+      "nameUk": "Колективний організм",
+      "nameEn": "Hive organism"
+    },
+    {
+      "key": "elemental",
+      "categoryKey": "supernatural",
+      "categoryUk": "Інші надприродні істоти",
+      "categoryEn": "Other supernatural beings",
+      "nameUk": "Елементаль",
+      "nameEn": "Elemental"
+    },
+    {
+      "key": "djinn",
+      "categoryKey": "supernatural",
+      "categoryUk": "Інші надприродні істоти",
+      "categoryEn": "Other supernatural beings",
+      "nameUk": "Джин",
+      "nameEn": "Djinn"
+    },
+    {
+      "key": "ifrit",
+      "categoryKey": "supernatural",
+      "categoryUk": "Інші надприродні істоти",
+      "categoryEn": "Other supernatural beings",
+      "nameUk": "Іфрит",
+      "nameEn": "Ifrit"
+    },
+    {
+      "key": "nature_spirit",
+      "categoryKey": "supernatural",
+      "categoryUk": "Інші надприродні істоти",
+      "categoryEn": "Other supernatural beings",
+      "nameUk": "Дух природи",
+      "nameEn": "Nature spirit"
+    },
+    {
+      "key": "monster",
+      "categoryKey": "supernatural",
+      "categoryUk": "Інші надприродні істоти",
+      "categoryEn": "Other supernatural beings",
+      "nameUk": "Монстр",
+      "nameEn": "Monster"
+    },
+    {
+      "key": "otherworldly_being",
+      "categoryKey": "supernatural",
+      "categoryUk": "Інші надприродні істоти",
+      "categoryEn": "Other supernatural beings",
+      "nameUk": "Потойбічна істота",
+      "nameEn": "Otherworldly being"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import type {
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { PORTABLE_SPECIES_ARGS } from "../../species/index.js";
 import { bookCharacterImportanceRank } from "../domain/character-importance-order.js";
 
 const aliasSelect = {
@@ -51,7 +52,7 @@ const appearanceSelect = {
   portraitMediaId: true,
   roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }], select: roleSelect },
   sortOrder: true,
-  speciesOverride: true,
+  speciesOverride: PORTABLE_SPECIES_ARGS,
   speciesOverrideIsSpoiler: true,
   status: true,
   statusCustomText: true,
@@ -83,7 +84,7 @@ const characterSelect = {
   name: true,
   neutralDescription: true,
   pronouns: true,
-  species: true,
+  species: PORTABLE_SPECIES_ARGS,
   tags: { orderBy: [{ tagId: "asc" }], select: { tagId: true } },
 } satisfies Prisma.CharacterSelect;
 

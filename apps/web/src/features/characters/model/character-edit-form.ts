@@ -1,5 +1,6 @@
 import type {
   BookCharacterView,
+  CatalogLocale,
   CharacterDetailsView,
   Nullable,
   UpdateBookCharacter,
@@ -21,6 +22,13 @@ import {
 import { z } from "zod";
 
 import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import type { OwnSpeciesChange } from "@/features/species";
+
+import {
+  applyOwnSpeciesChange,
+  selectionFromRef,
+  SpeciesSelectionSchema,
+} from "@/features/species";
 
 import type { CharacterAliasRow } from "./character-aliases";
 
@@ -49,6 +57,11 @@ type FirstAppearancePageSchema = ReturnType<typeof firstAppearancePageSchema>;
 
 const attitudeOrNone = z.union([CharacterAttitudeSchema, z.literal("")]);
 
+const MASKED_KEY_BY_PAYLOAD_KEY = {
+  portraitMediaId: "portrait",
+  speciesOverrideId: "speciesOverride",
+} as const satisfies Partial<Record<keyof UpdateBookCharacter, string>>;
+
 export function buildCharacterEditSchema(
   messages: CharacterEditMessages,
   pageCeiling: BookPageCeiling,
@@ -72,7 +85,7 @@ export function buildCharacterEditSchema(
             .max(CHARACTER_TEXT_MAX.name, { error: messages.nameTooLong }),
           neutralDescription: cappedText(CHARACTER_TEXT_MAX.longText),
           pronouns: cappedText(CHARACTER_TEXT_MAX.pronouns),
-          species: cappedText(CHARACTER_TEXT_MAX.species),
+          species: SpeciesSelectionSchema.nullable(),
         })
         .superRefine((value, ctx) => {
           if (value.gender === "custom" && value.customGender.trim().length === 0) {
@@ -197,7 +210,7 @@ export function toBookUpdate(
       position: index,
       roleType: role.roleType,
     })),
-    speciesOverride: values.speciesOverride === null ? null : textOrNull(values.speciesOverride),
+    speciesOverrideId: values.speciesOverride?.id ?? null,
   };
 
   return {
@@ -225,10 +238,15 @@ export function toBookUpdate(
   };
 }
 
-export function toCharacterEditValues(
-  character: CharacterDetailsView,
-  bookId: string | undefined,
-): CharacterEditValues {
+export function toCharacterEditValues({
+  bookId,
+  character,
+  locale,
+}: {
+  bookId: string | undefined;
+  character: CharacterDetailsView;
+  locale: CatalogLocale;
+}): CharacterEditValues {
   const appearance =
     bookId === undefined
       ? undefined
@@ -263,7 +281,7 @@ export function toCharacterEditValues(
               isSpoiler: role.isSpoiler,
               roleType: role.roleType,
             })),
-            speciesOverride: appearance.speciesOverride,
+            speciesOverride: selectionFromRef(appearance.speciesOverride, locale),
             speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
             status: appearance.status ?? BOOK_CHARACTER_UNSPECIFIED.status,
             statusCustomText: appearance.statusCustomText ?? "",
@@ -278,7 +296,7 @@ export function toCharacterEditValues(
       name: character.name,
       neutralDescription: character.neutralDescription ?? "",
       pronouns: character.pronouns ?? "",
-      species: character.species ?? "",
+      species: selectionFromRef(character.species, locale),
     },
   };
 }
@@ -295,8 +313,21 @@ export function toGlobalUpdate(
     name: values.name.trim(),
     neutralDescription: textOrNull(values.neutralDescription),
     pronouns: textOrNull(values.pronouns),
-    species: textOrNull(values.species),
+    speciesId: values.species?.id ?? null,
     ...withoutMasked({ aliases: toAliasPayload(values.aliases) }, maskedFields),
+  };
+}
+
+export function withSpeciesChange(
+  values: CharacterEditValues,
+  change: OwnSpeciesChange,
+): CharacterEditValues {
+  return {
+    book: {
+      ...values.book,
+      speciesOverride: applyOwnSpeciesChange(values.book.speciesOverride, change),
+    },
+    global: { ...values.global, species: applyOwnSpeciesChange(values.global.species, change) },
   };
 }
 
@@ -370,7 +401,7 @@ function bookScopeSchema(cappedText: CappedText, firstAppearancePage: FirstAppea
         roleType: BookCharacterRoleTypeSchema,
       }),
     ),
-    speciesOverride: cappedText(CHARACTER_TEXT_MAX.species).nullable(),
+    speciesOverride: SpeciesSelectionSchema.nullable(),
     speciesOverrideIsSpoiler: z.boolean(),
     status: BookCharacterStatusSchema,
     statusCustomText: cappedText(CHARACTER_TEXT_MAX.shortText),
@@ -392,12 +423,18 @@ function firstAppearancePageSchema(messages: CharacterEditMessages, pageCeiling:
     .nullable();
 }
 
+function hasRenamedMaskKey(
+  payloadKey: string,
+): payloadKey is keyof typeof MASKED_KEY_BY_PAYLOAD_KEY {
+  return Object.hasOwn(MASKED_KEY_BY_PAYLOAD_KEY, payloadKey);
+}
+
 function isSamePayload(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function maskedKeyOf(payloadKey: string): string {
-  return payloadKey === "portraitMediaId" ? "portrait" : payloadKey;
+  return hasRenamedMaskKey(payloadKey) ? MASKED_KEY_BY_PAYLOAD_KEY[payloadKey] : payloadKey;
 }
 
 function textOrNull(value: string): null | string {

@@ -12,6 +12,7 @@ import type { CharacterDetailsViewDtoEntityKind } from "./characterDetailsViewDt
 import type { CharacterDetailsViewDtoFormsItem } from "./characterDetailsViewDtoFormsItem";
 import type { CharacterDetailsViewDtoGender } from "./characterDetailsViewDtoGender";
 import type { CharacterDetailsViewDtoGlobalAttitude } from "./characterDetailsViewDtoGlobalAttitude";
+import type { CharacterDetailsViewDtoSpecies } from "./characterDetailsViewDtoSpecies";
 
 export interface CharacterDetailsViewDto {
   aliases: CharacterDetailsViewDtoAliasesItem[];
@@ -38,6 +39,6 @@ export interface CharacterDetailsViewDto {
   /** @nullable */
   pronouns: string | null;
   /** @nullable */
-  species: string | null;
+  species: CharacterDetailsViewDtoSpecies;
   updatedAt: string;
 }

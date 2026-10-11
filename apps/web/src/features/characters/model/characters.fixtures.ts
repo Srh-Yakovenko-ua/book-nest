@@ -6,7 +6,21 @@ import type {
   CharacterDetailsView,
   CharacterGlobalSummaryView,
   CharacterSummaryView,
+  SpeciesRefView,
 } from "@app/shared";
+
+export const SPECIES_REFS = {
+  mutant: {
+    id: "5b6f3c1e-8d2a-4c7e-9f10-2a3b4c5d6e7f",
+    key: null,
+    labels: { en: "Мутант", uk: "Мутант" },
+  },
+  witcher: {
+    id: "0c9d8e7f-6a5b-4c3d-8e2f-1a0b9c8d7e6f",
+    key: "witcher",
+    labels: { en: "Witcher", uk: "Відьмак" },
+  },
+} as const satisfies Record<string, SpeciesRefView>;
 
 type CharacterSummaryPage = {
   items: CharacterSummaryView[];

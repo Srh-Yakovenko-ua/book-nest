@@ -8,6 +8,7 @@ import {
 } from "./common.js";
 import { CountSchema, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
+import { SpeciesRefViewSchema } from "./species.js";
 import { TagViewSchema } from "./tags.js";
 
 export const CHARACTER_TEXT_MAX = {
@@ -16,7 +17,6 @@ export const CHARACTER_TEXT_MAX = {
   name: 200,
   pronouns: 60,
   shortText: 200,
-  species: 120,
 } as const;
 
 const CHARACTER_SEARCH_MAX = 100;
@@ -196,7 +196,7 @@ export const CharacterInputSchema = z
     name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name),
     neutralDescription: optionalText(CHARACTER_TEXT_MAX.longText),
     pronouns: optionalText(CHARACTER_TEXT_MAX.pronouns),
-    species: optionalText(CHARACTER_TEXT_MAX.species),
+    speciesId: z.string().uuid().nullable().default(null),
   })
   .superRefine((value, ctx) => {
     if (value.gender === "custom" && (value.customGender ?? "").trim().length === 0) {
@@ -232,7 +232,7 @@ export const BookCharacterProfileInputSchema = z.object({
   portraitMediaId: z.string().uuid().nullish(),
   roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).default([]),
   sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
-  speciesOverride: optionalText(CHARACTER_TEXT_MAX.species),
+  speciesOverrideId: z.string().uuid().nullable().default(null),
   speciesOverrideIsSpoiler: z.boolean().default(false),
   status: BookCharacterStatusSchema.default(BOOK_CHARACTER_UNSPECIFIED.status),
   statusCustomText: optionalText(CHARACTER_TEXT_MAX.shortText),
@@ -290,7 +290,7 @@ export const UpdateCharacterSchema = z
     name: z.string().trim().min(1).max(CHARACTER_TEXT_MAX.name).optional(),
     neutralDescription: optionalText(CHARACTER_TEXT_MAX.longText),
     pronouns: optionalText(CHARACTER_TEXT_MAX.pronouns),
-    species: optionalText(CHARACTER_TEXT_MAX.species),
+    speciesId: z.string().uuid().nullable().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -329,7 +329,7 @@ export const UpdateBookCharacterSchema = z
     portraitMediaId: z.string().uuid().nullish(),
     roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).optional(),
     sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
-    speciesOverride: optionalText(CHARACTER_TEXT_MAX.species),
+    speciesOverrideId: z.string().uuid().nullable().optional(),
     speciesOverrideIsSpoiler: z.boolean().optional(),
     status: BookCharacterStatusSchema.optional(),
     statusCustomText: optionalText(CHARACTER_TEXT_MAX.shortText),
@@ -478,7 +478,7 @@ export const BookCharacterViewSchema = z.object({
   portraitIsSpoiler: z.boolean(),
   roles: z.array(BookCharacterRoleViewSchema),
   sortOrder: z.number().int().nullable(),
-  speciesOverride: z.string().nullable(),
+  speciesOverride: SpeciesRefViewSchema.nullable(),
   speciesOverrideIsSpoiler: z.boolean(),
   status: BookCharacterStatusSchema.nullable(),
   statusCustomText: z.string().nullable(),
@@ -527,7 +527,7 @@ export const CharacterDetailsViewSchema = z.object({
   name: z.string(),
   neutralDescription: z.string().nullable(),
   pronouns: z.string().nullable(),
-  species: z.string().nullable(),
+  species: SpeciesRefViewSchema.nullable(),
   updatedAt: z.string(),
 });
 
@@ -584,7 +584,7 @@ export const CharacterSeriesProfileViewSchema = z.object({
   name: z.string(),
   neutralDescription: z.string().nullable(),
   pronouns: z.string().nullable(),
-  species: z.string().nullable(),
+  species: SpeciesRefViewSchema.nullable(),
 });
 
 export type CharacterSeriesProfileView = z.infer<typeof CharacterSeriesProfileViewSchema>;
@@ -613,7 +613,7 @@ export const CharactersListQuerySchema = z.object({
   role: queryStringArray(BookCharacterRoleTypeSchema),
   seriesId: z.string().uuid().optional(),
   sort: CharacterListSortSchema.default("name"),
-  species: queryStringArray(z.string().trim().min(1).max(CHARACTER_TEXT_MAX.species)),
+  speciesId: queryStringArray(z.string().uuid()),
   tagId: queryStringArray(z.string().uuid()),
 });
 
@@ -752,7 +752,7 @@ export const CharacterGlobalSummaryViewSchema = z.object({
   name: z.string(),
   neutralDescription: z.string().nullable(),
   pronouns: z.string().nullable(),
-  species: z.string().nullable(),
+  species: SpeciesRefViewSchema.nullable(),
   tags: z.array(TagViewSchema),
 });
 

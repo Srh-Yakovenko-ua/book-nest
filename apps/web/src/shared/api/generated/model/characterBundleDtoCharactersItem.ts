@@ -59,6 +59,12 @@ export type CharacterBundleDtoCharactersItem = {
    */
   species: string | null;
   /**
+   * @minLength 1
+   * @maxLength 60
+   * @nullable
+   */
+  speciesKey?: string | null;
+  /**
    * @maxItems 15
    * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */

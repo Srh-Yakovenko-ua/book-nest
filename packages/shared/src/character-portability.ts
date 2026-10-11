@@ -23,12 +23,13 @@ import {
   CharacterFormTypeSchema,
   CharacterGenderSchema,
 } from "./characters.js";
+import { SPECIES_SEARCH } from "./species.js";
 
 export const CHARACTER_BUNDLE_FORMAT_VERSION = 1;
 
 const BUNDLE_NAME_MAX = 200;
 const BUNDLE_SHORT_TEXT_MAX = 200;
-const BUNDLE_SPECIES_MAX = 120;
+const BUNDLE_SPECIES_KEY_MAX = 60;
 const BUNDLE_GENDER_CUSTOM_MAX = 60;
 const BUNDLE_PRONOUNS_MAX = 60;
 const BUNDLE_LONG_TEXT_MAX = 5000;
@@ -58,6 +59,7 @@ const positionInt = z.number().int().min(0).max(CHARACTER_INT4_MAX);
 const nullablePositiveInt = z.number().int().positive().max(CHARACTER_INT4_MAX).nullable();
 const nullableNonNegativeInt = z.number().int().min(0).max(CHARACTER_INT4_MAX).nullable();
 const externalRef = () => z.uuid();
+const speciesKeyRef = () => z.string().trim().min(1).max(BUNDLE_SPECIES_KEY_MAX).nullish();
 
 const BundleAliasSchema = z
   .object({
@@ -106,8 +108,9 @@ const BundleAppearanceSchema = z
     portraitMediaId: externalRef().nullable(),
     roles: z.array(BundleRoleSchema).max(CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX),
     sortOrder: nullableNonNegativeInt,
-    speciesOverride: nullableText(BUNDLE_SPECIES_MAX),
+    speciesOverride: nullableText(SPECIES_SEARCH.nameMax),
     speciesOverrideIsSpoiler: z.boolean(),
+    speciesOverrideKey: speciesKeyRef(),
     status: BookCharacterStatusSchema,
     statusCustomText: nullableText(BUNDLE_SHORT_TEXT_MAX),
     statusIsSpoiler: z.boolean(),
@@ -148,7 +151,8 @@ const BundleCharacterSchema = z
     name: z.string().trim().min(1).max(BUNDLE_NAME_MAX),
     neutralDescription: nullableText(BUNDLE_LONG_TEXT_MAX),
     pronouns: nullableText(BUNDLE_PRONOUNS_MAX),
-    species: nullableText(BUNDLE_SPECIES_MAX),
+    species: nullableText(SPECIES_SEARCH.nameMax),
+    speciesKey: speciesKeyRef(),
     tagIds: z.array(externalRef()).max(CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX),
   })
   .strict()

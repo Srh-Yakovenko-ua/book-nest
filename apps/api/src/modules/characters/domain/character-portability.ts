@@ -27,6 +27,13 @@ import {
   RelationshipTypeSchema,
 } from "@app/shared";
 
+import type {
+  PortableSpeciesRef,
+  PortableSpeciesResolver,
+  PortableSpeciesSource,
+} from "../../species/index.js";
+
+import { toPortableSpeciesRef } from "../../species/index.js";
 import { emptyToNull } from "./character-fields.js";
 import {
   buildRelationshipLockKey,
@@ -38,6 +45,11 @@ export type CharacterExportSource = {
   groups: ExportGroupRow[];
   relationships: ExportRelationshipRow[];
   theories: ExportTheoryRow[];
+};
+
+export type CharacterImportDraft = Omit<CharacterImportPlan, "bookCharacters" | "characters"> & {
+  bookCharacters: DraftBookCharacterRow[];
+  characters: DraftCharacterRow[];
 };
 
 export type CharacterImportPlan = {
@@ -87,7 +99,7 @@ export type ExportAppearanceRow = {
   portraitMediaId: Nullable<string>;
   roles: ExportRoleRow[];
   sortOrder: Nullable<number>;
-  speciesOverride: Nullable<string>;
+  speciesOverride: Nullable<PortableSpeciesSource>;
   speciesOverrideIsSpoiler: boolean;
   status: string;
   statusCustomText: Nullable<string>;
@@ -126,7 +138,7 @@ export type ExportCharacterRow = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<PortableSpeciesSource>;
   tags: { tagId: string }[];
 };
 
@@ -221,7 +233,7 @@ export type ImportBookCharacterRow = {
   portraitIsSpoiler: boolean;
   portraitMediaId: Nullable<string>;
   sortOrder: Nullable<number>;
-  speciesOverride: Nullable<string>;
+  speciesOverrideId: Nullable<string>;
   speciesOverrideIsSpoiler: boolean;
   status: string;
   statusCustomText: Nullable<string>;
@@ -260,7 +272,7 @@ export type ImportCharacterRow = {
   neutralDescription: Nullable<string>;
   normalizedName: string;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  speciesId: Nullable<string>;
   userId: string;
 };
 
@@ -344,11 +356,46 @@ export type OwnedLibraryRefs = {
   tagIds: Set<string>;
 };
 
+type DraftBookCharacterRow = Omit<ImportBookCharacterRow, "speciesOverrideId"> & {
+  speciesOverrideRef: PortableSpeciesRef;
+};
+
+type DraftCharacterRow = Omit<ImportCharacterRow, "speciesId"> & {
+  speciesRef: PortableSpeciesRef;
+};
+
 export function classifyBundleParseError(error: ZodError): "invalid" | "tooLarge" {
   const hasCollectionOverflow = error.issues.some(
     (issue) => issue.code === "too_big" && "origin" in issue && issue.origin === "array",
   );
   return hasCollectionOverflow ? "tooLarge" : "invalid";
+}
+
+export function importDraftSpeciesRefs(draft: CharacterImportDraft): PortableSpeciesRef[] {
+  return [
+    ...draft.characters.map((character) => character.speciesRef),
+    ...draft.bookCharacters.map((bookCharacter) => bookCharacter.speciesOverrideRef),
+  ];
+}
+
+export function linkImportDraftSpecies({
+  draft,
+  resolveSpeciesId,
+}: {
+  draft: CharacterImportDraft;
+  resolveSpeciesId: PortableSpeciesResolver;
+}): CharacterImportPlan {
+  return {
+    ...draft,
+    bookCharacters: draft.bookCharacters.map(({ speciesOverrideRef, ...bookCharacter }) => ({
+      ...bookCharacter,
+      speciesOverrideId: resolveSpeciesId(speciesOverrideRef),
+    })),
+    characters: draft.characters.map(({ speciesRef, ...character }) => ({
+      ...character,
+      speciesId: resolveSpeciesId(speciesRef),
+    })),
+  };
 }
 
 export function planCharacterImport({
@@ -363,7 +410,7 @@ export function planCharacterImport({
   now: Date;
   owned: OwnedLibraryRefs;
   userId: string;
-}): CharacterImportPlan {
+}): CharacterImportDraft {
   const created = emptyCreatedCounts();
   const skipped = emptySkippedCounts();
   const characterIdMap = new Map<string, string>();
@@ -371,7 +418,7 @@ export function planCharacterImport({
     characterIdMap.set(character.id, newId());
   }
 
-  const plan: CharacterImportPlan = {
+  const plan: CharacterImportDraft = {
     aliases: [],
     bookCharacters: [],
     bookStates: [],
@@ -392,7 +439,15 @@ export function planCharacterImport({
     if (freshCharacterId === undefined) {
       continue;
     }
-    planCharacter({ character, freshCharacterId, newId, now, owned, plan, userId });
+    planCharacter({
+      character,
+      freshCharacterId,
+      newId,
+      now,
+      owned,
+      plan,
+      userId,
+    });
   }
 
   for (const group of bundle.groups) {
@@ -434,6 +489,16 @@ export function serializeCharacterBundle({
     relationships: source.relationships.map(serializeRelationship),
     theories: source.theories.map(serializeTheory),
   };
+}
+
+function appearanceSpeciesRef(
+  appearance: CharacterBundle["characters"][number]["appearances"][number],
+): PortableSpeciesRef {
+  return { key: appearance.speciesOverrideKey ?? null, name: appearance.speciesOverride };
+}
+
+function characterSpeciesRef(character: CharacterBundle["characters"][number]): PortableSpeciesRef {
+  return { key: character.speciesKey ?? null, name: character.species };
 }
 
 function emptyCreatedCounts(): CharacterImportCreated {
@@ -480,7 +545,7 @@ function planCharacter({
   newId: () => string;
   now: Date;
   owned: OwnedLibraryRefs;
-  plan: CharacterImportPlan;
+  plan: CharacterImportDraft;
   userId: string;
 }): void {
   const avatarMediaId = resolveOptionalOwned({
@@ -504,7 +569,7 @@ function planCharacter({
     neutralDescription: emptyToNull(character.neutralDescription),
     normalizedName: normalizeName(character.name),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    speciesRef: characterSpeciesRef(character),
     userId,
   });
   plan.created.characters += 1;
@@ -617,8 +682,8 @@ function planCharacter({
       portraitIsSpoiler: appearance.portraitIsSpoiler,
       portraitMediaId: portraitMediaId.value,
       sortOrder: appearance.sortOrder,
-      speciesOverride: emptyToNull(appearance.speciesOverride),
       speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
+      speciesOverrideRef: appearanceSpeciesRef(appearance),
       status: appearance.status,
       statusCustomText: emptyToNull(appearance.statusCustomText),
       statusIsSpoiler: appearance.statusIsSpoiler,
@@ -658,7 +723,7 @@ function planGroup({
   group: CharacterBundle["groups"][number];
   newId: () => string;
   owned: OwnedLibraryRefs;
-  plan: CharacterImportPlan;
+  plan: CharacterImportDraft;
   userId: string;
 }): void {
   const seriesId = resolveOptionalOwned({ id: group.seriesId, owned: owned.seriesIds });
@@ -719,7 +784,7 @@ function planRelationship({
   characterIdMap: Map<string, string>;
   newId: () => string;
   owned: OwnedLibraryRefs;
-  plan: CharacterImportPlan;
+  plan: CharacterImportDraft;
   relationship: CharacterBundle["relationships"][number];
   seenRelationshipKeys: Set<string>;
   userId: string;
@@ -815,7 +880,7 @@ function planTheory({
   characterIdMap: Map<string, string>;
   newId: () => string;
   owned: OwnedLibraryRefs;
-  plan: CharacterImportPlan;
+  plan: CharacterImportDraft;
   theory: CharacterBundle["theories"][number];
   userId: string;
 }): void {
@@ -872,6 +937,7 @@ function serializeAlias(
 function serializeAppearance(
   row: ExportAppearanceRow,
 ): CharacterBundle["characters"][number]["appearances"][number] {
+  const speciesOverrideRef = toPortableSpeciesRef(row.speciesOverride);
   return {
     appearanceNotes: row.appearanceNotes,
     appearanceNotesIsSpoiler: row.appearanceNotesIsSpoiler,
@@ -896,8 +962,9 @@ function serializeAppearance(
     portraitMediaId: row.portraitMediaId,
     roles: row.roles.map(serializeRole),
     sortOrder: row.sortOrder,
-    speciesOverride: row.speciesOverride,
+    speciesOverride: speciesOverrideRef.name,
     speciesOverrideIsSpoiler: row.speciesOverrideIsSpoiler,
+    speciesOverrideKey: speciesOverrideRef.key,
     status: BookCharacterStatusSchema.parse(row.status),
     statusCustomText: row.statusCustomText,
     statusIsSpoiler: row.statusIsSpoiler,
@@ -925,6 +992,7 @@ function serializeBookState(
 }
 
 function serializeCharacter(row: ExportCharacterRow): CharacterBundle["characters"][number] {
+  const speciesRef = toPortableSpeciesRef(row.species);
   return {
     aliases: row.aliases.map(serializeAlias),
     appearances: row.bookAppearances.map(serializeAppearance),
@@ -942,7 +1010,8 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     name: row.name,
     neutralDescription: row.neutralDescription,
     pronouns: row.pronouns,
-    species: row.species,
+    species: speciesRef.name,
+    speciesKey: speciesRef.key,
     tagIds: row.tags.map((tag) => tag.tagId),
   };
 }

@@ -9,7 +9,11 @@ import { expect, waitFor, within } from "storybook/test";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 
-import { makeBookCharacterView, makeCharacterDetails } from "../model/characters.fixtures";
+import {
+  makeBookCharacterView,
+  makeCharacterDetails,
+  SPECIES_REFS,
+} from "../model/characters.fixtures";
 import { CharacterEditPage } from "./character-edit-page";
 
 const STORY = {
@@ -40,6 +44,31 @@ const STORY = {
     ],
   },
   pagesCount: 384,
+  species: {
+    items: [
+      {
+        category: { key: "humanoid", name: "Люди та людиноподібні" },
+        id: "00000000-0000-4000-8000-000000000001",
+        isOwn: false,
+        key: "human",
+        name: "Людина",
+      },
+      {
+        category: { key: "humanoid", name: "Люди та людиноподібні" },
+        id: SPECIES_REFS.witcher.id,
+        isOwn: false,
+        key: SPECIES_REFS.witcher.key,
+        name: SPECIES_REFS.witcher.labels.uk,
+      },
+      {
+        category: null,
+        id: SPECIES_REFS.mutant.id,
+        isOwn: true,
+        key: null,
+        name: SPECIES_REFS.mutant.labels.uk,
+      },
+    ],
+  },
 } as const;
 
 const globalAvatar: MediaView = {
@@ -84,7 +113,7 @@ const character = makeCharacterDetails({
       isPovCharacter: true,
       personalImpression: "Стриманий, втомлений, але чесний до кінця.",
       personalImpressionIsSpoiler: true,
-      speciesOverride: "Мутант",
+      speciesOverride: SPECIES_REFS.mutant,
       status: "active",
     }),
   ],
@@ -93,7 +122,7 @@ const character = makeCharacterDetails({
   name: "Ґеральт",
   neutralDescription: "Мисливець на чудовиськ із Рівії, вихованець Каер Морхена.",
   pronouns: "він / його",
-  species: "Відьмак",
+  species: SPECIES_REFS.witcher,
 });
 
 function characterWithRoles(roles: BookCharacterView["roles"]): CharacterDetailsView {
@@ -119,6 +148,10 @@ function mockFetch(details: CharacterDetailsView) {
       return Promise.resolve(jsonResponse(200, { chapters: STORY.chapters }));
     if (path.endsWith("/api/character-custom-labels"))
       return Promise.resolve(jsonResponse(200, STORY.customLabels));
+    if (path.includes("/api/species/candidates"))
+      return Promise.resolve(jsonResponse(200, { exact: null, similar: [] }));
+    if (path.includes("/api/species/own")) return Promise.resolve(jsonResponse(200, { items: [] }));
+    if (path.includes("/api/species")) return Promise.resolve(jsonResponse(200, STORY.species));
     if (path.endsWith(`/api/books/${STORY.bookId}`))
       return Promise.resolve(
         jsonResponse(200, makeBookView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),

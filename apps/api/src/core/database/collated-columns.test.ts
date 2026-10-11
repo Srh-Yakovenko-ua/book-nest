@@ -35,6 +35,8 @@ const UKRAINIAN_COLLATION_INVARIANT = {
     "shipments.delivery_service_name",
     "book_purchase_info.store_name",
     "book_store_links.store_name",
+    "species.name",
+    "species_names.name",
   ],
   name: "uk-UA-x-icu",
 } as const;

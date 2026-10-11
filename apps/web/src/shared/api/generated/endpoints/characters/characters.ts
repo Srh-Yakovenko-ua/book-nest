@@ -676,7 +676,7 @@ export const getCharactersControllerListUrl = (params?: CharactersControllerList
       "groupId",
       "importance",
       "role",
-      "species",
+      "speciesId",
       "tagId",
     ];
 

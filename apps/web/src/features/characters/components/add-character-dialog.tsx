@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSpeciesLabel } from "@/features/species";
 
 import { useBookCharacterLookup } from "../api/use-book-characters";
 import { useCharacterSuggestions } from "../api/use-character-suggestions";
@@ -102,6 +103,7 @@ function AddCharacterPicker({
   const tDuplicate = useTranslations("characters.duplicate");
   const tStates = useTranslations("characters.states");
   const tToast = useTranslations("characters.toast");
+  const speciesLabel = useSpeciesLabel();
 
   const queryClient = useQueryClient();
   const createInBook = useCreateCharacterInBook();
@@ -254,7 +256,7 @@ function AddCharacterPicker({
                     actionLabel={t("link")}
                     avatarUrl={candidate.avatar?.urls.thumb ?? null}
                     disabled={isBusy}
-                    hint={candidate.species}
+                    hint={speciesLabel(candidate.species)}
                     key={candidate.id}
                     name={candidate.name}
                     onAction={() => linkCharacter(candidate.id)}
