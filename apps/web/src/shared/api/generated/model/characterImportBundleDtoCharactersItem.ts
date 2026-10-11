@@ -54,7 +54,7 @@ export type CharacterImportBundleDtoCharactersItem = {
    */
   pronouns: string | null;
   /**
-   * @maxLength 120
+   * @maxLength 60
    * @nullable
    */
   species: string | null;

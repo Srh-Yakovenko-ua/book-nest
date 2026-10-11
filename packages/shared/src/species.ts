@@ -8,7 +8,7 @@ export const SPECIES_SEARCH = {
   debounceMs: 300,
   maxResults: 10,
   minQueryLength: 2,
-  nameMax: 120,
+  nameMax: 60,
 } as const;
 
 export const SPECIES_ERROR_CODES = {

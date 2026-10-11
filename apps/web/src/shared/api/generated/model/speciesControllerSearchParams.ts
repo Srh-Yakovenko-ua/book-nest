@@ -10,7 +10,7 @@ import type { SpeciesControllerSearchLocale } from "./speciesControllerSearchLoc
 export type SpeciesControllerSearchParams = {
   locale?: SpeciesControllerSearchLocale;
   /**
-   * @maxLength 120
+   * @maxLength 60
    */
   q?: string;
 };

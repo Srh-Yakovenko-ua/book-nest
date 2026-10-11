@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import {
   OwnSpeciesListSchema,
+  SPECIES_SEARCH,
   SpeciesCandidatesSchema,
   SpeciesSearchResultSchema,
 } from "@app/shared";
@@ -116,9 +117,9 @@ describe("GET /api/species/candidates over the system catalog", () => {
     CATALOG_PROBE_TIMEOUT_MS,
   );
 
-  it("keeps the exact match but skips similar names for a name that normalizes past 120 characters", async () => {
+  it("keeps the exact match but skips similar names for a name that normalizes past the name limit", async () => {
     const api = await signIn();
-    const expandingName = `${LIGATURE_EXPANDING_TO_18_CHARS.repeat(118)}zz`;
+    const expandingName = `${LIGATURE_EXPANDING_TO_18_CHARS.repeat(SPECIES_SEARCH.nameMax - 2)}zz`;
     const contained = await api.create(LIGATURE_EXPANDING_TO_18_CHARS.normalize("NFKC"));
     const stored = await api.create(expandingName);
 
