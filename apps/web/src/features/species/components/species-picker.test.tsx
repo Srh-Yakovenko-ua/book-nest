@@ -457,6 +457,19 @@ describe("SpeciesPicker value", () => {
     expect(combobox()).toHaveValue("");
   });
 
+  it("leaves the committed label unselected on click, so typing refines it into a search", async () => {
+    setupPicker({ id: SPECIES.elf.id, label: "Ельф" });
+    await userEvent.click(combobox());
+
+    expect(combobox()).toHaveProperty("selectionStart", 4);
+    expect(combobox()).toHaveProperty("selectionEnd", 4);
+
+    await userEvent.type(combobox(), "ійка", { skipClick: true });
+
+    expect(combobox()).toHaveValue("Ельфійка");
+    expect(await screen.findByRole("option", { name: "Створити вид «Ельфійка»" })).toBeVisible();
+  });
+
   it("keeps typed text out of the value and creates nothing when the field loses focus", async () => {
     const onChange = setupPicker();
 

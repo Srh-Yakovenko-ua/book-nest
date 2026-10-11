@@ -175,11 +175,7 @@ export function SpeciesPicker({
               setHighlightedId(null);
               setOpen(true);
             }}
-            onClick={(event) => {
-              if (search === null) event.currentTarget.select();
-              setOpen(true);
-            }}
-            onFocus={(event) => event.currentTarget.select()}
+            onClick={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             ref={(element) => {
@@ -194,7 +190,7 @@ export function SpeciesPicker({
           {showClear ? (
             <button
               aria-label={t("clear")}
-              className="absolute top-1/2 right-8 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="absolute top-1/2 right-8 grid size-6 -translate-y-1/2 cursor-pointer place-items-center rounded-sm text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
               onClick={() => commit(null)}
               onMouseDown={(event) => event.preventDefault()}
               type="button"
