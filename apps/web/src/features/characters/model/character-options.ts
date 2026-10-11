@@ -132,7 +132,6 @@ export const NARRATOR_TYPE_OPTIONS = [
   "first_person",
   "third_person_limited",
   "third_person_omniscient",
-  "unreliable",
   "other",
 ] as const satisfies readonly BookCharacterNarratorType[];
 

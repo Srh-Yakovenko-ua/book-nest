@@ -1,4 +1,4 @@
-import type { CharacterBundle } from "@app/shared";
+import type { BundleAppearance, CharacterBundle } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { CharacterBundleSchema } from "@app/shared";
@@ -565,5 +565,47 @@ describe("character portability — species", () => {
     });
     expect(imported.speciesId).toBeNull();
     expect(await prisma.species.count({ where: { userId } })).toBe(1);
+  });
+});
+
+describe("character portability — unreliable narrator", () => {
+  function toLegacyUnreliableAppearance({
+    isUnreliableNarrator: _isUnreliableNarrator,
+    isUnreliableNarratorSpoiler: _isUnreliableNarratorSpoiler,
+    ...appearance
+  }: BundleAppearance): Record<string, unknown> {
+    return { ...appearance, narratorType: "unreliable" };
+  }
+
+  it("imports a legacy unreliable narrator type as the unreliable flag with no narrator type", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Gone Girl");
+    const characterId = await createCharacter(accessToken, { name: "Amy Dunne" });
+    await linkToBook(accessToken, bookId, characterId, { isPovCharacter: true });
+    const exported = CharacterBundleSchema.parse(await exportBundle(accessToken));
+    const legacyBundle = {
+      ...exported,
+      characters: exported.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map(toLegacyUnreliableAppearance),
+        name: "Legacy Amy",
+      })),
+    };
+
+    const res = await authed("post", "/api/characters/import", accessToken).send(legacyBundle);
+    expect(res.status).toBe(HttpStatus.OK);
+
+    const reexported = CharacterBundleSchema.parse(await exportBundle(accessToken));
+    const legacyCharacter = reexported.characters.find(
+      (character) => character.name === "Legacy Amy",
+    );
+    expect(legacyCharacter?.appearances).toEqual([
+      expect.objectContaining({
+        isPovCharacter: true,
+        isUnreliableNarrator: true,
+        isUnreliableNarratorSpoiler: false,
+        narratorType: null,
+      }),
+    ]);
   });
 });

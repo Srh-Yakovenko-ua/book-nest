@@ -7942,9 +7942,11 @@
       "viewLabel": "View"
     },
     "creatableSelect": {
-      "create": "Create “{name}”",
+      "notSaved": "Not saved",
       "placeholder": "Pick from the list or type your own…",
-      "usageCount": "used {count, plural, one {# time} other {# times}}"
+      "savedWithCharacter": "Saved with the character",
+      "usageCount": "used {count, plural, one {# time} other {# times}}",
+      "useCustom": "Use “{name}”"
     },
     "delete": {
       "aliases": "Names: {count}",
@@ -7986,7 +7988,7 @@
       "discardTitle": "Discard changes?",
       "displayName": "Name in this book",
       "displayNamePlaceholder": "For example, Gwynbleidd",
-      "entityKind": "Kind",
+      "entityKind": "Character type",
       "firstAppearance": "First appearance",
       "firstAppearanceChapter": "Chapter",
       "firstAppearanceChapterPlaceholder": "For example, 3 or Prologue",
@@ -8009,7 +8011,7 @@
       "namePlaceholder": "For example, Geralt of Rivia",
       "narrativeSection": "Role in the story",
       "narrativeSectionHint": "These details apply to this book only.",
-      "narratorType": "Narrator type",
+      "narratorType": "Narration method",
       "narratorTypePlaceholder": "Not specified",
       "optional": "(optional)",
       "partialSuccess": "The shared details were saved, the book details were not. Try again.",
@@ -8018,10 +8020,10 @@
       "portrait": "Image in this book",
       "portraitInherited": "The character's main image is used.",
       "portraitUploading": "Uploading the image…",
-      "pov": "Point-of-view character",
+      "pov": "Point-of-view character (POV)",
+      "povHint": "The reader experiences events through this character’s eyes.",
       "previewTitle": "Preview",
       "pronouns": "Pronouns",
-      "pronounsPlaceholder": "For example, he/him",
       "save": "Save",
       "scopeBook": "This book",
       "scopeGlobal": "All books",
@@ -8031,7 +8033,10 @@
       "speciesPlaceholder": "Search, e.g. “elf”",
       "status": "Status",
       "subtitle": "Book details and shared details are saved separately.",
-      "title": "Edit character"
+      "title": "Edit character",
+      "unreliableNarrator": "Unreliable narrator",
+      "unreliableNarratorHint": "The narrator may conceal, distort, or misperceive events.",
+      "unreliableNarratorSpoiler": "Mark as spoiler"
     },
     "empty": {
       "add": "Add character",
@@ -8082,11 +8087,16 @@
       "usingGlobal": "Using the main value"
     },
     "narratorType": {
-      "first_person": "First person",
+      "first_person": "First person (“I”)",
       "other": "Other",
-      "third_person_limited": "Third person (limited)",
-      "third_person_omniscient": "Third person (omniscient)",
-      "unreliable": "Unreliable"
+      "third_person_limited": "Third person (limited perspective)",
+      "third_person_omniscient": "Third person (omniscient narrator)"
+    },
+    "narratorTypeDescription": {
+      "first_person": "The character tells the story themselves.",
+      "other": "Another narration method.",
+      "third_person_limited": "The narration stays with one character’s perception.",
+      "third_person_omniscient": "The narrator knows thoughts and events beyond any single character’s perspective."
     },
     "noResults": {
       "clear": "Clear search",
@@ -8116,7 +8126,7 @@
       "hiddenRoles": "Hidden roles: {count}",
       "managementSection": "Manage character",
       "metaTitle": "Character",
-      "narratorType": "Narrator type",
+      "narratorType": "Narration method",
       "openGlobalProfile": "Open the global profile",
       "personalImpression": "My impression",
       "pov": "POV",
@@ -8128,7 +8138,9 @@
       "status": "Status",
       "unavailableDescription": "It is either not in this book, or you have not read far enough yet.",
       "unavailableTitle": "This character is unavailable in this book",
-      "unlinkDescription": "The character stays in your library and in other books."
+      "unlinkDescription": "The character stays in your library and in other books.",
+      "unreliableNarrator": "Unreliable narrator",
+      "unreliableNarratorYes": "Yes"
     },
     "palette": {
       "empty": "Start typing a character name",
@@ -8136,6 +8148,14 @@
       "noResults": "Nothing found",
       "placeholder": "Search characters…",
       "title": "Search characters"
+    },
+    "pronouns": {
+      "any": "Any pronouns",
+      "he": "he/him",
+      "it": "it/its",
+      "she": "she/her",
+      "they": "they/them",
+      "unknown": "Unknown"
     },
     "rolePicker": {
       "alreadyAdded": "“{name}” is already added",
@@ -8146,12 +8166,20 @@
       "create": "Create “{name}”",
       "createHeading": "Create new",
       "customHeading": "Your roles",
-      "hint": "Standard roles from the list or your own via Enter, up to {max}.",
+      "hint": {
+        "limit": "Up to {max} roles. Add your own with Enter.",
+        "spoiler": "The eye toggles hiding a role as a spoiler."
+      },
       "listLabel": "Role options",
       "placeholder": "Pick a role or type your own…",
       "remove": "Remove role “{role}”",
+      "spoilerToggle": {
+        "mark": "Mark role as spoiler",
+        "markRole": "Mark role “{role}” as spoiler",
+        "unmark": "Remove spoiler mark",
+        "unmarkRole": "Remove spoiler mark from role “{role}”"
+      },
       "suggestionsHeading": "Standard roles",
-      "toggleSpoiler": "Mark “{role}” as a spoiler",
       "usageCount": "used {count, plural, one {# time} other {# times}}"
     },
     "roleType": {

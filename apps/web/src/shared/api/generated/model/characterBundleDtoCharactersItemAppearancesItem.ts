@@ -59,6 +59,8 @@ export type CharacterBundleDtoCharactersItemAppearancesItem = {
   hidePresenceAsSpoiler: boolean;
   importance: CharacterBundleDtoCharactersItemAppearancesItemImportance;
   isPovCharacter: boolean;
+  isUnreliableNarrator?: boolean;
+  isUnreliableNarratorSpoiler?: boolean;
   /** @nullable */
   narratorType: CharacterBundleDtoCharactersItemAppearancesItemNarratorType;
   /**

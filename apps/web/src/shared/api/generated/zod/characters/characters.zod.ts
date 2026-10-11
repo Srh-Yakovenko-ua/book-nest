@@ -50,6 +50,8 @@ export const characterPortabilityControllerExportBundleResponseCharactersItemApp
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
 
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPersonalImpressionMax = 5000;
 
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPortraitMediaIdRegExp =
@@ -320,12 +322,21 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 "not_specified",
               ]),
               isPovCharacter: zod.boolean(),
+              isUnreliableNarrator: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                ),
+              isUnreliableNarratorSpoiler: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                ),
               narratorType: zod
                 .union([
                   zod.literal("first_person"),
                   zod.literal("third_person_limited"),
                   zod.literal("third_person_omniscient"),
-                  zod.literal("unreliable"),
                   zod.literal("other"),
                   zod.literal(null),
                 ])
@@ -846,6 +857,8 @@ export const characterPortabilityControllerImportBundleBodyCharactersItemAppeara
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
 
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPersonalImpressionMax = 5000;
 
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPortraitMediaIdRegExp =
@@ -1113,12 +1126,21 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 "not_specified",
               ]),
               isPovCharacter: zod.boolean(),
+              isUnreliableNarrator: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                ),
+              isUnreliableNarratorSpoiler: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                ),
               narratorType: zod
                 .union([
                   zod.literal("first_person"),
                   zod.literal("third_person_limited"),
                   zod.literal("third_person_omniscient"),
-                  zod.literal("unreliable"),
                   zod.literal("other"),
                   zod.literal(null),
                 ])
@@ -1807,6 +1829,8 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileFirstAppear
 export const charactersControllerCreateBodyFirstAppearanceBookProfileHidePresenceAsSpoilerDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileIsPovCharacterDefault = false;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorDefault = false;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorSpoilerDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfilePersonalImpressionMax = 5000;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfilePersonalImpressionIsSpoilerDefault = false;
@@ -1992,12 +2016,21 @@ export const CharactersControllerCreateBody = zod.object({
         isPovCharacter: zod
           .boolean()
           .default(charactersControllerCreateBodyFirstAppearanceBookProfileIsPovCharacterDefault),
+        isUnreliableNarrator: zod
+          .boolean()
+          .default(
+            charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorDefault,
+          ),
+        isUnreliableNarratorSpoiler: zod
+          .boolean()
+          .default(
+            charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorSpoilerDefault,
+          ),
         narratorType: zod
           .union([
             zod.literal("first_person"),
             zod.literal("third_person_limited"),
             zod.literal("third_person_omniscient"),
-            zod.literal("unreliable"),
             zod.literal("other"),
             zod.literal(null),
           ])
@@ -2216,12 +2249,13 @@ export const CharactersControllerCreateResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -2858,6 +2892,7 @@ export const CharactersControllerGetByIdQueryParams = zod.object({
         "roles",
         "speciesOverride",
         "status",
+        "unreliableNarrator",
       ]),
     )
     .max(charactersControllerGetByIdQueryRevealFieldIdsMax)
@@ -2997,12 +3032,13 @@ export const CharactersControllerGetByIdResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -3403,12 +3439,13 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -3820,12 +3857,13 @@ export const CharactersControllerRestoreResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -4535,6 +4573,8 @@ export const bookCharactersControllerCreateBodyOneBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyOneBookProfileHidePresenceAsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileIsPovCharacterDefault = false;
+export const bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorDefault = false;
+export const bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfilePersonalImpressionMax = 5000;
 
 export const bookCharactersControllerCreateBodyOneBookProfilePersonalImpressionIsSpoilerDefault = false;
@@ -4588,6 +4628,8 @@ export const bookCharactersControllerCreateBodyTwoBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyTwoBookProfileHidePresenceAsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileIsPovCharacterDefault = false;
+export const bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorDefault = false;
+export const bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfilePersonalImpressionMax = 5000;
 
 export const bookCharactersControllerCreateBodyTwoBookProfilePersonalImpressionIsSpoilerDefault = false;
@@ -4712,12 +4754,19 @@ export const BookCharactersControllerCreateBody = zod.union([
       isPovCharacter: zod
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileIsPovCharacterDefault),
+      isUnreliableNarrator: zod
+        .boolean()
+        .default(bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorDefault),
+      isUnreliableNarratorSpoiler: zod
+        .boolean()
+        .default(
+          bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorSpoilerDefault,
+        ),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -4856,12 +4905,19 @@ export const BookCharactersControllerCreateBody = zod.union([
       isPovCharacter: zod
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileIsPovCharacterDefault),
+      isUnreliableNarrator: zod
+        .boolean()
+        .default(bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorDefault),
+      isUnreliableNarratorSpoiler: zod
+        .boolean()
+        .default(
+          bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorSpoilerDefault,
+        ),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -5155,12 +5211,13 @@ export const BookCharactersControllerCreateResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -5477,12 +5534,13 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -5788,12 +5846,13 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
     .optional(),
   isPovCharacter: zod.boolean().optional(),
+  isUnreliableNarrator: zod.boolean().optional(),
+  isUnreliableNarratorSpoiler: zod.boolean().optional(),
   narratorType: zod
     .union([
       zod.literal("first_person"),
       zod.literal("third_person_limited"),
       zod.literal("third_person_omniscient"),
-      zod.literal("unreliable"),
       zod.literal("other"),
       zod.literal(null),
     ])
@@ -6004,12 +6063,13 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])

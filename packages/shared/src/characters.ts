@@ -142,7 +142,6 @@ export const BookCharacterNarratorTypeSchema = z.enum([
   "first_person",
   "third_person_limited",
   "third_person_omniscient",
-  "unreliable",
   "other",
 ]);
 
@@ -225,6 +224,8 @@ export const BookCharacterProfileInputSchema = z.object({
   hidePresenceAsSpoiler: z.boolean().default(false),
   importance: BookCharacterImportanceSchema.default(BOOK_CHARACTER_UNSPECIFIED.importance),
   isPovCharacter: z.boolean().default(false),
+  isUnreliableNarrator: z.boolean().default(false),
+  isUnreliableNarratorSpoiler: z.boolean().default(false),
   narratorType: BookCharacterNarratorTypeSchema.nullish(),
   personalImpression: optionalText(CHARACTER_TEXT_MAX.longText),
   personalImpressionIsSpoiler: z.boolean().default(false),
@@ -322,6 +323,8 @@ export const UpdateBookCharacterSchema = z
     hidePresenceAsSpoiler: z.boolean().optional(),
     importance: BookCharacterImportanceSchema.optional(),
     isPovCharacter: z.boolean().optional(),
+    isUnreliableNarrator: z.boolean().optional(),
+    isUnreliableNarratorSpoiler: z.boolean().optional(),
     narratorType: BookCharacterNarratorTypeSchema.nullish(),
     personalImpression: optionalText(CHARACTER_TEXT_MAX.longText),
     personalImpressionIsSpoiler: z.boolean().optional(),
@@ -471,6 +474,8 @@ export const BookCharacterViewSchema = z.object({
   id: z.string(),
   importance: BookCharacterImportanceSchema,
   isPovCharacter: z.boolean(),
+  isUnreliableNarrator: z.boolean().nullable(),
+  isUnreliableNarratorSpoiler: z.boolean(),
   narratorType: BookCharacterNarratorTypeSchema.nullable(),
   personalImpression: z.string().nullable(),
   personalImpressionIsSpoiler: z.boolean(),
@@ -711,6 +716,7 @@ export const CharacterRevealFieldKeySchema = z.enum([
   "roles",
   "speciesOverride",
   "status",
+  "unreliableNarrator",
 ]);
 
 export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySchema>;

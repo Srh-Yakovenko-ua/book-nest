@@ -46,11 +46,13 @@ import {
   GENDER_OPTIONS,
   NARRATOR_TYPE_OPTIONS,
 } from "../model/character-options";
+import { isFieldHidden } from "../model/character-spoiler";
 import { CharacterAliasGroup } from "./character-alias-group";
 import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
 import { InheritedSelectField, InheritedTextField } from "./character-inherited-field";
 import { InheritedSpeciesField } from "./character-inherited-species-field";
 import { CharacterLongTextField } from "./character-long-text-field";
+import { CharacterPronounsSelect } from "./character-pronouns-select";
 import { CharacterRolePicker } from "./character-role-picker";
 import { CharacterSpoilerField } from "./character-spoiler-field";
 
@@ -228,6 +230,7 @@ export function BookCharacterMainSection({
           <CharacterCreatableSingleSelect
             clearTo={BOOK_CHARACTER_UNSPECIFIED.status}
             customText={statusCustomText.field.value}
+            customTextSaved={!statusCustomText.fieldState.isDirty}
             describedBy={statusError ? "character-status-error" : undefined}
             invalid={statusError !== undefined}
             label={t("status")}
@@ -321,19 +324,27 @@ export function BookCharacterNarrativeSection({
   bookId,
   control,
   errors,
+  maskedFields,
   pageMax,
   register,
 }: {
   bookId: string;
   control: EditControl;
   errors: EditErrors;
+  maskedFields: readonly string[];
   pageMax: number;
   register: EditRegister;
 }) {
   const t = useTranslations("characters.edit");
   const tNarrator = useTranslations("characters.narratorType");
+  const tNarratorDescription = useTranslations("characters.narratorTypeDescription");
+  const povHintId = useId();
+  const narratorDescriptionId = useId();
+  const unreliableHintId = useId();
 
   const isPov = useWatch({ control, name: "book.isPovCharacter" });
+  const isUnreliableNarrator = useWatch({ control, name: "book.isUnreliableNarrator" });
+  const unreliableNarratorMasked = isFieldHidden(maskedFields, "unreliableNarrator");
   const firstAppearanceNote = useWatch({ control, name: "book.firstAppearanceNote" });
   const chaptersQuery = useBookChapters(bookId, { enabled: true });
   const firstNoteError = errors.book?.firstAppearanceNote;
@@ -350,50 +361,117 @@ export function BookCharacterNarrativeSection({
           control={control}
           name="book.isPovCharacter"
           render={({ field }) => (
-            <ActionRow
-              className="px-0 py-1"
-              title={t("pov")}
-              trailing={(labelId) => (
-                <Switch
-                  aria-labelledby={labelId}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
+            <div className="flex flex-col gap-1">
+              <ActionRow
+                className="px-0 py-1 [&_span]:whitespace-normal"
+                title={t("pov")}
+                trailing={(labelId) => (
+                  <Switch
+                    aria-describedby={povHintId}
+                    aria-labelledby={labelId}
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <p className="text-sm text-muted-foreground" id={povHintId}>
+                {t("povHint")}
+              </p>
+            </div>
           )}
         />
 
         {isPov ? (
-          <Controller
-            control={control}
-            name="book.narratorType"
-            render={({ field }) => (
-              <LabeledField htmlFor="character-narrator-type" label={t("narratorType")}>
-                <Select
-                  onValueChange={(next) => field.onChange(toNarratorType(next))}
-                  value={field.value ?? ""}
-                >
-                  <SelectTrigger
-                    className="w-full data-[size=default]:h-10"
-                    clearLabel={t("clearNarratorType")}
-                    id="character-narrator-type"
-                    isClearable={field.value !== null}
-                    onClear={() => field.onChange(null)}
+          <>
+            <Controller
+              control={control}
+              name="book.narratorType"
+              render={({ field }) => (
+                <LabeledField htmlFor="character-narrator-type" label={t("narratorType")}>
+                  <Select
+                    onValueChange={(next) => field.onChange(toNarratorType(next))}
+                    value={field.value ?? ""}
                   >
-                    <SelectValue placeholder={t("narratorTypePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {NARRATOR_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {tNarrator(option)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </LabeledField>
+                    <SelectTrigger
+                      aria-describedby={field.value === null ? undefined : narratorDescriptionId}
+                      className="w-full data-[size=default]:h-10"
+                      clearLabel={t("clearNarratorType")}
+                      id="character-narrator-type"
+                      isClearable={field.value !== null}
+                      onClear={() => field.onChange(null)}
+                    >
+                      <SelectValue placeholder={t("narratorTypePlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NARRATOR_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {tNarrator(option)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.value === null ? null : (
+                    <p className="text-sm text-muted-foreground" id={narratorDescriptionId}>
+                      {tNarratorDescription(field.value)}
+                    </p>
+                  )}
+                </LabeledField>
+              )}
+            />
+
+            {unreliableNarratorMasked ? (
+              <CharacterSpoilerField hidden label={t("unreliableNarrator")}>
+                {null}
+              </CharacterSpoilerField>
+            ) : (
+              <div
+                aria-label={t("unreliableNarrator")}
+                className="flex flex-col gap-1"
+                role="group"
+              >
+                <Controller
+                  control={control}
+                  name="book.isUnreliableNarrator"
+                  render={({ field }) => (
+                    <ActionRow
+                      className="px-0 py-1 [&_span]:whitespace-normal"
+                      title={t("unreliableNarrator")}
+                      trailing={(labelId) => (
+                        <Switch
+                          aria-describedby={unreliableHintId}
+                          aria-labelledby={labelId}
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
+                    />
+                  )}
+                />
+                <p className="text-sm text-muted-foreground" id={unreliableHintId}>
+                  {t("unreliableNarratorHint")}
+                </p>
+                {isUnreliableNarrator ? (
+                  <Controller
+                    control={control}
+                    name="book.isUnreliableNarratorSpoiler"
+                    render={({ field }) => (
+                      <ActionRow
+                        className="py-1 pr-0 pl-4 [&_span]:whitespace-normal"
+                        title={t("unreliableNarratorSpoiler")}
+                        trailing={(labelId) => (
+                          <Switch
+                            aria-labelledby={labelId}
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
+                      />
+                    )}
+                  />
+                ) : null}
+              </div>
             )}
-          />
+          </>
         ) : null}
       </div>
 
@@ -670,6 +748,8 @@ export function CharacterGlobalSection({
   const gender = useController({ control, name: "global.gender" });
   const customGender = useController({ control, name: "global.customGender" });
   const genderError = errors.global?.customGender;
+  const pronouns = useController({ control, name: "global.pronouns" });
+  const pronounsError = errors.global?.pronouns;
 
   return (
     <EditSection
@@ -723,6 +803,7 @@ export function CharacterGlobalSection({
           <CharacterCreatableSingleSelect
             clearTo="unknown"
             customText={customGender.field.value}
+            customTextSaved={!customGender.fieldState.isDirty}
             describedBy={genderError ? "character-gender-error" : undefined}
             invalid={genderError !== undefined}
             label={t("gender")}
@@ -765,17 +846,18 @@ export function CharacterGlobalSection({
         </LabeledField>
 
         <LabeledField htmlFor="character-pronouns" label={t("pronouns")} requirement="optional">
-          <Input
-            aria-describedby={errors.global?.pronouns ? "character-pronouns-error" : undefined}
-            aria-invalid={errors.global?.pronouns !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="character-pronouns"
-            maxLength={CHARACTER_TEXT_MAX.pronouns}
-            placeholder={t("pronounsPlaceholder")}
-            {...register("global.pronouns")}
+          <CharacterPronounsSelect
+            describedBy={pronounsError ? "character-pronouns-error" : undefined}
+            inputId="character-pronouns"
+            invalid={pronounsError !== undefined}
+            label={t("pronouns")}
+            onBlur={pronouns.field.onBlur}
+            onChange={pronouns.field.onChange}
+            ref={(element) => pronouns.field.ref(element)}
+            saved={!pronouns.fieldState.isDirty}
+            value={pronouns.field.value}
           />
-          <FieldErrorText error={errors.global?.pronouns} id="character-pronouns-error" />
+          <FieldErrorText error={pronounsError} id="character-pronouns-error" />
         </LabeledField>
       </div>
 

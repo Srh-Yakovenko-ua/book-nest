@@ -56,6 +56,8 @@ function makeAppearance(overrides: Partial<BundleAppearance> = {}): BundleAppear
     hidePresenceAsSpoiler: false,
     importance: "supporting",
     isPovCharacter: false,
+    isUnreliableNarrator: false,
+    isUnreliableNarratorSpoiler: false,
     narratorType: null,
     personalImpression: null,
     personalImpressionIsSpoiler: false,

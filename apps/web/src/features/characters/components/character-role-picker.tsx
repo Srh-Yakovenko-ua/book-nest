@@ -267,7 +267,8 @@ export function CharacterRolePicker({ customRoles, onChange, value }: CharacterR
       </Popover>
       <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground">
         <p id={hintId}>
-          {t("hint", { max: limits.perBook })}
+          <span className="block">{t("hint.limit", { max: limits.perBook })}</span>{" "}
+          <span className="block">{t("hint.spoiler")}</span>
           {atLimit ? <span className="sr-only"> {t("atMax")}</span> : null}
         </p>
         <span className="shrink-0 tabular-nums" id={countId}>

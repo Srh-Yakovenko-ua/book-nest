@@ -52,6 +52,9 @@ export type CharacterDetailsViewDtoAppearancesItem = {
   importance: CharacterDetailsViewDtoAppearancesItemImportance;
   isPovCharacter: boolean;
   /** @nullable */
+  isUnreliableNarrator: boolean | null;
+  isUnreliableNarratorSpoiler: boolean;
+  /** @nullable */
   narratorType: CharacterDetailsViewDtoAppearancesItemNarratorType;
   /** @nullable */
   personalImpression: string | null;

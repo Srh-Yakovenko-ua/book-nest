@@ -80,6 +80,7 @@ export class CharacterMergeRepository {
               { descriptionIsSpoiler: true },
               { displayNameIsSpoiler: true },
               { hidePresenceAsSpoiler: true },
+              { isUnreliableNarratorSpoiler: true },
               { personalImpressionIsSpoiler: true },
               { portraitIsSpoiler: true },
               { speciesOverrideIsSpoiler: true },

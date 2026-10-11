@@ -8,6 +8,7 @@ import {
   emptyBookScopeValues,
   isScopeDirty,
   maskedEditFields,
+  toBookPatch,
   toBookUpdate,
   toCharacterEditValues,
   toGlobalUpdate,
@@ -208,13 +209,102 @@ describe("toBookUpdate roles", () => {
 describe("point of view", () => {
   it("clears the narrator type once the character stops being a point of view", () => {
     const values = toCharacterEditValues({ bookId: "book-1", character, locale: "uk" });
-    const pov = { ...values.book, isPovCharacter: true, narratorType: "unreliable" } as const;
+    const pov = { ...values.book, isPovCharacter: true, narratorType: "first_person" } as const;
 
-    expect(toBookUpdate(pov)).toMatchObject({ isPovCharacter: true, narratorType: "unreliable" });
+    expect(toBookUpdate(pov)).toMatchObject({ isPovCharacter: true, narratorType: "first_person" });
     expect(toBookUpdate({ ...pov, isPovCharacter: false })).toMatchObject({
       isPovCharacter: false,
       narratorType: null,
     });
+  });
+
+  it("leaves the point-of-view group out of a patch that does not change it, so a legacy unreliable narrator without POV keeps its flag", () => {
+    const legacy = toCharacterEditValues({
+      bookId: "book-1",
+      character: makeCharacterDetails({
+        appearances: [
+          makeBookCharacterView({
+            bookId: "book-1",
+            isPovCharacter: false,
+            isUnreliableNarrator: true,
+          }),
+        ],
+      }),
+      locale: "uk",
+    });
+
+    const patch = toBookPatch({
+      baseline: legacy.book,
+      current: { ...legacy.book, firstAppearanceChapter: "Розділ 3" },
+      maskedFields: [],
+    });
+
+    expect(patch).toMatchObject({ firstAppearanceChapter: "Розділ 3" });
+    expect(patch).not.toHaveProperty("isPovCharacter");
+    expect(patch).not.toHaveProperty("narratorType");
+    expect(patch).not.toHaveProperty("isUnreliableNarrator");
+    expect(patch).not.toHaveProperty("isUnreliableNarratorSpoiler");
+  });
+
+  it("sends a cleared narration and reliability once the point of view is turned off", () => {
+    const narrator = toCharacterEditValues({
+      bookId: "book-1",
+      character: makeCharacterDetails({
+        appearances: [
+          makeBookCharacterView({
+            bookId: "book-1",
+            isPovCharacter: true,
+            isUnreliableNarrator: true,
+            isUnreliableNarratorSpoiler: true,
+            narratorType: "first_person",
+          }),
+        ],
+      }),
+      locale: "uk",
+    });
+
+    expect(
+      toBookPatch({
+        baseline: narrator.book,
+        current: { ...narrator.book, isPovCharacter: false },
+        maskedFields: [],
+      }),
+    ).toMatchObject({
+      isPovCharacter: false,
+      isUnreliableNarrator: false,
+      isUnreliableNarratorSpoiler: false,
+      narratorType: null,
+    });
+  });
+
+  it("never sends the unreliable narrator flags while the server masks them", () => {
+    const appearance = makeBookCharacterView({
+      bookId: "book-1",
+      hiddenFields: ["unreliableNarrator"],
+      isPovCharacter: true,
+      isUnreliableNarrator: null,
+      isUnreliableNarratorSpoiler: true,
+      narratorType: "first_person",
+    });
+    const masked = toCharacterEditValues({
+      bookId: "book-1",
+      character: makeCharacterDetails({ appearances: [appearance] }),
+      locale: "uk",
+    });
+
+    const patch = toBookPatch({
+      baseline: masked.book,
+      current: {
+        ...masked.book,
+        isUnreliableNarrator: true,
+        narratorType: "third_person_limited",
+      },
+      maskedFields: maskedEditFields({ appearance, character: makeCharacterDetails() }),
+    });
+
+    expect(patch).toMatchObject({ isPovCharacter: true, narratorType: "third_person_limited" });
+    expect(patch).not.toHaveProperty("isUnreliableNarrator");
+    expect(patch).not.toHaveProperty("isUnreliableNarratorSpoiler");
   });
 });
 

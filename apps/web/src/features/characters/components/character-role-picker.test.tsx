@@ -70,10 +70,27 @@ describe("CharacterRolePicker chips", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "Позначити «Протагоніст» як спойлер" }),
+      screen.getByRole("button", { name: "Прибрати позначку спойлера з ролі «Протагоніст»" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("button", { name: "Позначити «Друг дитинства» як спойлер" }),
+      screen.getByRole("button", { name: "Позначити роль «Друг дитинства» як спойлер" }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("renames the spoiler toggle after its new state and flips its pressed state on each click", async () => {
+    renderWithProviders(<RolePickerWithState initialRoles={[standardRole("protagonist")]} />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Позначити роль «Протагоніст» як спойлер" }),
+    );
+    const unmark = screen.getByRole("button", {
+      name: "Прибрати позначку спойлера з ролі «Протагоніст»",
+    });
+    expect(unmark).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(unmark);
+
+    expect(
+      screen.getByRole("button", { name: "Позначити роль «Протагоніст» як спойлер" }),
     ).toHaveAttribute("aria-pressed", "false");
   });
 
@@ -92,7 +109,7 @@ describe("CharacterRolePicker chips", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Позначити «Антагоніст» як спойлер" }),
+      screen.getByRole("button", { name: "Позначити роль «Антагоніст» як спойлер" }),
     );
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith([
@@ -112,7 +129,7 @@ describe("CharacterRolePicker chips", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Позначити «Протагоніст» як спойлер" }),
+      screen.getByRole("button", { name: "Позначити роль «Протагоніст» як спойлер" }),
     );
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -212,7 +229,9 @@ describe("CharacterRolePicker chip keyboard", () => {
     );
     await userEvent.tab({ shift: true });
     await userEvent.tab({ shift: true });
-    expect(screen.getByRole("button", { name: "Позначити «Антагоніст» як спойлер" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: "Позначити роль «Антагоніст» як спойлер" }),
+    ).toHaveFocus();
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     await userEvent.keyboard("{Enter}");
 
@@ -258,7 +277,7 @@ describe("CharacterRolePicker chip keyboard", () => {
 
     await userEvent.tab();
     expect(
-      screen.getByRole("button", { name: "Позначити «Протагоніст» як спойлер" }),
+      screen.getByRole("button", { name: "Позначити роль «Протагоніст» як спойлер" }),
     ).toHaveFocus();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     await userEvent.keyboard("{Enter}");
@@ -693,7 +712,7 @@ describe("CharacterRolePicker limit", () => {
     );
 
     expect(rolesCombobox()).toHaveAccessibleDescription(
-      "Стандартні ролі зі списку або власні через Enter, до 5 штук. 2/5",
+      "До 5 ролей. Власні — через Enter. Око перемикає приховування ролі як спойлера. 2/5",
     );
   });
 
@@ -735,7 +754,7 @@ describe("CharacterRolePicker placeholder", () => {
       "true",
     );
     expect(rolesCombobox()).toHaveAccessibleDescription(
-      "Стандартні ролі зі списку або власні через Enter, до 5 штук. 1/5",
+      "До 5 ролей. Власні — через Enter. Око перемикає приховування ролі як спойлера. 1/5",
     );
   });
 });
@@ -829,7 +848,9 @@ describe("CharacterRolePicker with legacy roles over the limit", () => {
       <CharacterRolePicker customRoles={[]} onChange={onChange} value={sevenRoles} />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Позначити «Наставник» як спойлер" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Позначити роль «Наставник» як спойлер" }),
+    );
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith([
       standardRole("protagonist"),

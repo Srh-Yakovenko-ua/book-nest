@@ -1,6 +1,10 @@
 import type { CharacterBundle, CharacterExportQuery, CharacterImportResultView } from "@app/shared";
 
-import { CHARACTER_IMPORT_ERROR_CODES, CharacterBundleSchema } from "@app/shared";
+import {
+  CHARACTER_IMPORT_ERROR_CODES,
+  CharacterBundleSchema,
+  upgradeLegacyCharacterBundle,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 
@@ -79,7 +83,7 @@ export class CharacterPortabilityService {
   }
 
   private parseBundle(payload: unknown): CharacterBundle {
-    const result = CharacterBundleSchema.safeParse(payload);
+    const result = CharacterBundleSchema.safeParse(upgradeLegacyCharacterBundle(payload));
     if (result.success) {
       return result.data;
     }

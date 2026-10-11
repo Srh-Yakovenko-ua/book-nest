@@ -45,6 +45,8 @@ const appearanceSelect = {
   hidePresenceAsSpoiler: true,
   importance: true,
   isPovCharacter: true,
+  isUnreliableNarrator: true,
+  isUnreliableNarratorSpoiler: true,
   narratorType: true,
   personalImpression: true,
   personalImpressionIsSpoiler: true,
