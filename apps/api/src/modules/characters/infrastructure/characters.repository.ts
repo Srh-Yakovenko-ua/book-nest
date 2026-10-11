@@ -212,6 +212,8 @@ export type CreateBookCharacterData = {
   hidePresenceAsSpoiler: boolean;
   importance: string;
   isPovCharacter: boolean;
+  isUnreliableNarrator: boolean;
+  isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
   personalImpressionIsSpoiler: boolean;
@@ -325,6 +327,8 @@ export type UpdateBookCharacterData = {
   hidePresenceAsSpoiler?: boolean;
   importance?: string;
   isPovCharacter?: boolean;
+  isUnreliableNarrator?: boolean;
+  isUnreliableNarratorSpoiler?: boolean;
   narratorType?: Nullable<string>;
   personalImpression?: Nullable<string>;
   personalImpressionIsSpoiler?: boolean;
@@ -1343,6 +1347,7 @@ function buildHasSpoilerContentWhere({
               { descriptionIsSpoiler: true },
               { displayNameIsSpoiler: true },
               { hidePresenceAsSpoiler: true },
+              { isUnreliableNarratorSpoiler: true },
               { personalImpressionIsSpoiler: true },
               { portraitIsSpoiler: true },
               { speciesOverrideIsSpoiler: true },

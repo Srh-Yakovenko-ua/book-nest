@@ -19,4 +19,5 @@ export const CharactersControllerGetByIdRevealFieldIdsItem = {
   roles: "roles",
   speciesOverride: "speciesOverride",
   status: "status",
+  unreliableNarrator: "unreliableNarrator",
 } as const;

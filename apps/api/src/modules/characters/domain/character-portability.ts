@@ -92,6 +92,8 @@ export type ExportAppearanceRow = {
   hidePresenceAsSpoiler: boolean;
   importance: string;
   isPovCharacter: boolean;
+  isUnreliableNarrator: boolean;
+  isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
   personalImpressionIsSpoiler: boolean;
@@ -227,6 +229,8 @@ export type ImportBookCharacterRow = {
   id: string;
   importance: string;
   isPovCharacter: boolean;
+  isUnreliableNarrator: boolean;
+  isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
   personalImpressionIsSpoiler: boolean;
@@ -676,6 +680,8 @@ function planCharacter({
       id: bookCharacterId,
       importance: appearance.importance,
       isPovCharacter: appearance.isPovCharacter,
+      isUnreliableNarrator: appearance.isUnreliableNarrator,
+      isUnreliableNarratorSpoiler: appearance.isUnreliableNarratorSpoiler,
       narratorType: appearance.narratorType,
       personalImpression: emptyToNull(appearance.personalImpression),
       personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
@@ -954,6 +960,8 @@ function serializeAppearance(
     hidePresenceAsSpoiler: row.hidePresenceAsSpoiler,
     importance: BookCharacterImportanceSchema.parse(row.importance),
     isPovCharacter: row.isPovCharacter,
+    isUnreliableNarrator: row.isUnreliableNarrator,
+    isUnreliableNarratorSpoiler: row.isUnreliableNarratorSpoiler,
     narratorType:
       row.narratorType === null ? null : BookCharacterNarratorTypeSchema.parse(row.narratorType),
     personalImpression: row.personalImpression,

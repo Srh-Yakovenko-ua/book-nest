@@ -56,14 +56,11 @@ export type CreateCharacterInBookDto =
         importance?:
           "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
+        isUnreliableNarrator?: boolean;
+        isUnreliableNarratorSpoiler?: boolean;
         /** @nullable */
         narratorType?:
-          | "first_person"
-          | "third_person_limited"
-          | "third_person_omniscient"
-          | "unreliable"
-          | "other"
-          | null;
+          "first_person" | "third_person_limited" | "third_person_omniscient" | "other" | null;
         /**
          * @maxLength 5000
          * @nullable
@@ -173,14 +170,11 @@ export type CreateCharacterInBookDto =
         importance?:
           "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
+        isUnreliableNarrator?: boolean;
+        isUnreliableNarratorSpoiler?: boolean;
         /** @nullable */
         narratorType?:
-          | "first_person"
-          | "third_person_limited"
-          | "third_person_omniscient"
-          | "unreliable"
-          | "other"
-          | null;
+          "first_person" | "third_person_limited" | "third_person_omniscient" | "other" | null;
         /**
          * @maxLength 5000
          * @nullable

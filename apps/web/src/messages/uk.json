@@ -7942,9 +7942,11 @@
       "viewLabel": "Вигляд"
     },
     "creatableSelect": {
-      "create": "Створити «{name}»",
+      "notSaved": "Не збережено",
       "placeholder": "Оберіть зі списку або введіть свій…",
-      "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}"
+      "savedWithCharacter": "Збережеться разом із персонажем",
+      "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}",
+      "useCustom": "Використати «{name}»"
     },
     "delete": {
       "aliases": "Імена: {count}",
@@ -7986,7 +7988,7 @@
       "discardTitle": "Відхилити зміни?",
       "displayName": "Ім’я в цій книзі",
       "displayNamePlaceholder": "Наприклад, Ґвинблейд",
-      "entityKind": "Вид запису",
+      "entityKind": "Тип персонажа",
       "firstAppearance": "Перша поява",
       "firstAppearanceChapter": "Розділ",
       "firstAppearanceChapterPlaceholder": "Наприклад, 3 або Пролог",
@@ -8009,7 +8011,7 @@
       "namePlaceholder": "Наприклад, Ґеральт із Рівії",
       "narrativeSection": "Роль у розповіді",
       "narrativeSectionHint": "Ці дані стосуються лише цієї книги.",
-      "narratorType": "Тип наратора",
+      "narratorType": "Спосіб оповіді",
       "narratorTypePlaceholder": "Не вказано",
       "optional": "(необов’язково)",
       "partialSuccess": "Загальні дані збережено, дані книги — ні. Спробуйте ще раз.",
@@ -8018,10 +8020,10 @@
       "portrait": "Зображення в цій книзі",
       "portraitInherited": "Використовується основне зображення персонажа.",
       "portraitUploading": "Завантажуємо зображення…",
-      "pov": "POV-персонаж",
+      "pov": "Персонаж із власною перспективою (POV)",
+      "povHint": "Читач сприймає події через погляд цього персонажа.",
       "previewTitle": "Попередній перегляд",
       "pronouns": "Займенники",
-      "pronounsPlaceholder": "Наприклад, він/його",
       "save": "Зберегти",
       "scopeBook": "Ця книга",
       "scopeGlobal": "Усі книги",
@@ -8031,7 +8033,10 @@
       "speciesPlaceholder": "Пошук, наприклад «ельф»",
       "status": "Статус",
       "subtitle": "Дані книги та загальні дані зберігаються окремо.",
-      "title": "Редагування персонажа"
+      "title": "Редагування персонажа",
+      "unreliableNarrator": "Ненадійний оповідач",
+      "unreliableNarratorHint": "Оповідач може приховувати, спотворювати або неправильно сприймати події.",
+      "unreliableNarratorSpoiler": "Позначити як спойлер"
     },
     "empty": {
       "add": "Додати персонажа",
@@ -8082,11 +8087,16 @@
       "usingGlobal": "Використовується основне значення"
     },
     "narratorType": {
-      "first_person": "Від першої особи",
+      "first_person": "Від першої особи («я»)",
       "other": "Інше",
-      "third_person_limited": "Від третьої (обмежений)",
-      "third_person_omniscient": "Від третьої (всезнаючий)",
-      "unreliable": "Ненадійний"
+      "third_person_limited": "Від третьої особи (обмежена перспектива)",
+      "third_person_omniscient": "Від третьої особи (всезнаючий оповідач)"
+    },
+    "narratorTypeDescription": {
+      "first_person": "Персонаж сам розповідає історію.",
+      "other": "Інший спосіб оповіді.",
+      "third_person_limited": "Оповідь зосереджена на сприйнятті одного персонажа.",
+      "third_person_omniscient": "Оповідач знає думки та події поза перспективою одного персонажа."
     },
     "noResults": {
       "clear": "Очистити пошук",
@@ -8116,7 +8126,7 @@
       "hiddenRoles": "Приховані ролі: {count}",
       "managementSection": "Керування персонажем",
       "metaTitle": "Персонаж",
-      "narratorType": "Тип наратора",
+      "narratorType": "Спосіб оповіді",
       "openGlobalProfile": "Відкрити загальний профіль",
       "personalImpression": "Моє враження",
       "pov": "POV",
@@ -8128,7 +8138,9 @@
       "status": "Статус",
       "unavailableDescription": "Або його ще немає в цій книзі, або ви ще не дочитали до його появи.",
       "unavailableTitle": "Персонаж недоступний у цій книзі",
-      "unlinkDescription": "Персонаж залишиться у вашій бібліотеці та в інших книгах."
+      "unlinkDescription": "Персонаж залишиться у вашій бібліотеці та в інших книгах.",
+      "unreliableNarrator": "Ненадійний оповідач",
+      "unreliableNarratorYes": "Так"
     },
     "palette": {
       "empty": "Почніть вводити ім'я персонажа",
@@ -8136,6 +8148,14 @@
       "noResults": "Нічого не знайдено",
       "placeholder": "Пошук персонажів…",
       "title": "Пошук персонажів"
+    },
+    "pronouns": {
+      "any": "Будь-які",
+      "he": "він/його",
+      "it": "воно/його",
+      "she": "вона/її",
+      "they": "вони/їх",
+      "unknown": "Невідомо"
     },
     "rolePicker": {
       "alreadyAdded": "Роль «{name}» уже додано",
@@ -8146,12 +8166,20 @@
       "create": "Створити «{name}»",
       "createHeading": "Створити нову",
       "customHeading": "Ваші ролі",
-      "hint": "Стандартні ролі зі списку або власні через Enter, до {max} штук.",
+      "hint": {
+        "limit": "До {max} ролей. Власні — через Enter.",
+        "spoiler": "Око перемикає приховування ролі як спойлера."
+      },
       "listLabel": "Варіанти ролей",
       "placeholder": "Оберіть роль або введіть свою…",
       "remove": "Прибрати роль «{role}»",
+      "spoilerToggle": {
+        "mark": "Позначити роль як спойлер",
+        "markRole": "Позначити роль «{role}» як спойлер",
+        "unmark": "Прибрати позначку спойлера",
+        "unmarkRole": "Прибрати позначку спойлера з ролі «{role}»"
+      },
       "suggestionsHeading": "Стандартні ролі",
-      "toggleSpoiler": "Позначити «{role}» як спойлер",
       "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}"
     },
     "roleType": {

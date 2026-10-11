@@ -17,6 +17,8 @@ const BOOK_PROFILE_DEFAULTS = {
   hidePresenceAsSpoiler: false,
   importance: BOOK_CHARACTER_UNSPECIFIED.importance,
   isPovCharacter: false,
+  isUnreliableNarrator: false,
+  isUnreliableNarratorSpoiler: false,
   narratorType: null,
   personalImpression: null,
   personalImpressionIsSpoiler: false,

@@ -60,6 +60,8 @@ export interface UpdateBookCharacterInputDto {
   hidePresenceAsSpoiler?: boolean;
   importance?: UpdateBookCharacterInputDtoImportance;
   isPovCharacter?: boolean;
+  isUnreliableNarrator?: boolean;
+  isUnreliableNarratorSpoiler?: boolean;
   /** @nullable */
   narratorType?: UpdateBookCharacterInputDtoNarratorType;
   /**

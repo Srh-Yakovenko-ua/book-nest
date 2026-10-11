@@ -57,7 +57,14 @@ type FirstAppearancePageSchema = ReturnType<typeof firstAppearancePageSchema>;
 
 const attitudeOrNone = z.union([CharacterAttitudeSchema, z.literal("")]);
 
+type PovUpdate = Pick<
+  UpdateBookCharacter,
+  "isPovCharacter" | "isUnreliableNarrator" | "isUnreliableNarratorSpoiler" | "narratorType"
+>;
+
 const MASKED_KEY_BY_PAYLOAD_KEY = {
+  isUnreliableNarrator: "unreliableNarrator",
+  isUnreliableNarratorSpoiler: "unreliableNarrator",
   portraitMediaId: "portrait",
   speciesOverrideId: "speciesOverride",
 } as const satisfies Partial<Record<keyof UpdateBookCharacter, string>>;
@@ -145,6 +152,8 @@ export function emptyBookScopeValues(): CharacterEditValues["book"] {
     hidePresenceAsSpoiler: false,
     importance: BOOK_CHARACTER_UNSPECIFIED.importance,
     isPovCharacter: false,
+    isUnreliableNarrator: false,
+    isUnreliableNarratorSpoiler: false,
     narratorType: null,
     personalImpression: "",
     personalImpressionIsSpoiler: false,
@@ -195,47 +204,25 @@ export function maskedEditFields({
   ];
 }
 
+export function toBookPatch({
+  baseline,
+  current,
+  maskedFields,
+}: {
+  baseline: CharacterEditValues["book"];
+  current: CharacterEditValues["book"];
+  maskedFields: readonly string[];
+}): UpdateBookCharacter {
+  const pov = toPovUpdate(current, maskedFields);
+  const povChanged = !isSamePayload(toPovUpdate(baseline, maskedFields), pov);
+  return { ...toBookProfileUpdate(current, maskedFields), ...(povChanged ? pov : {}) };
+}
+
 export function toBookUpdate(
   values: CharacterEditValues["book"],
   maskedFields: readonly string[] = [],
 ): UpdateBookCharacter {
-  const maskable = {
-    aliases: toAliasPayload(values.aliases),
-    attitude: values.attitude,
-    displayName: values.displayName === null ? null : textOrNull(values.displayName),
-    portraitMediaId: values.portraitMediaId,
-    roles: values.roles.map((role, index) => ({
-      customRole: role.roleType === BOOK_CHARACTER_ROLE.custom ? textOrNull(role.customRole) : null,
-      isSpoiler: role.isSpoiler,
-      position: index,
-      roleType: role.roleType,
-    })),
-    speciesOverrideId: values.speciesOverride?.id ?? null,
-  };
-
-  return {
-    appearanceNotes: textOrNull(values.appearanceNotes),
-    appearanceNotesIsSpoiler: values.appearanceNotesIsSpoiler,
-    description: textOrNull(values.description),
-    descriptionIsSpoiler: values.descriptionIsSpoiler,
-    displayNameIsSpoiler: values.displayNameIsSpoiler,
-    firstAppearanceChapter: textOrNull(values.firstAppearanceChapter),
-    firstAppearanceNote: textOrNull(values.firstAppearanceNote),
-    firstAppearancePage: values.firstAppearancePage,
-    hidePresenceAsSpoiler: values.hidePresenceAsSpoiler,
-    importance: values.importance,
-    isPovCharacter: values.isPovCharacter,
-    narratorType: values.isPovCharacter ? values.narratorType : null,
-    personalImpression: textOrNull(values.personalImpression),
-    personalImpressionIsSpoiler: values.personalImpressionIsSpoiler,
-    portraitIsSpoiler: values.portraitIsSpoiler,
-    speciesOverrideIsSpoiler: values.speciesOverrideIsSpoiler,
-    status: values.status,
-    statusCustomText:
-      values.status === BOOK_CHARACTER_STATUS.custom ? textOrNull(values.statusCustomText) : null,
-    statusIsSpoiler: values.statusIsSpoiler,
-    ...withoutMasked(maskable, maskedFields),
-  };
+  return { ...toBookProfileUpdate(values, maskedFields), ...toPovUpdate(values, maskedFields) };
 }
 
 export function toCharacterEditValues({
@@ -271,6 +258,8 @@ export function toCharacterEditValues({
             hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
             importance: appearance.importance,
             isPovCharacter: appearance.isPovCharacter,
+            isUnreliableNarrator: appearance.isUnreliableNarrator ?? false,
+            isUnreliableNarratorSpoiler: appearance.isUnreliableNarratorSpoiler,
             narratorType: appearance.narratorType,
             personalImpression: appearance.personalImpression ?? "",
             personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
@@ -389,6 +378,8 @@ function bookScopeSchema(cappedText: CappedText, firstAppearancePage: FirstAppea
     hidePresenceAsSpoiler: z.boolean(),
     importance: BookCharacterImportanceSchema,
     isPovCharacter: z.boolean(),
+    isUnreliableNarrator: z.boolean(),
+    isUnreliableNarratorSpoiler: z.boolean(),
     narratorType: BookCharacterNarratorTypeSchema.nullable(),
     personalImpression: cappedText(CHARACTER_TEXT_MAX.longText),
     personalImpressionIsSpoiler: z.boolean(),
@@ -440,6 +431,65 @@ function maskedKeyOf(payloadKey: string): string {
 function textOrNull(value: string): null | string {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function toBookProfileUpdate(
+  values: CharacterEditValues["book"],
+  maskedFields: readonly string[],
+): Omit<UpdateBookCharacter, keyof PovUpdate> {
+  const maskable = {
+    aliases: toAliasPayload(values.aliases),
+    attitude: values.attitude,
+    displayName: values.displayName === null ? null : textOrNull(values.displayName),
+    portraitMediaId: values.portraitMediaId,
+    roles: values.roles.map((role, index) => ({
+      customRole: role.roleType === BOOK_CHARACTER_ROLE.custom ? textOrNull(role.customRole) : null,
+      isSpoiler: role.isSpoiler,
+      position: index,
+      roleType: role.roleType,
+    })),
+    speciesOverrideId: values.speciesOverride?.id ?? null,
+  };
+
+  return {
+    appearanceNotes: textOrNull(values.appearanceNotes),
+    appearanceNotesIsSpoiler: values.appearanceNotesIsSpoiler,
+    description: textOrNull(values.description),
+    descriptionIsSpoiler: values.descriptionIsSpoiler,
+    displayNameIsSpoiler: values.displayNameIsSpoiler,
+    firstAppearanceChapter: textOrNull(values.firstAppearanceChapter),
+    firstAppearanceNote: textOrNull(values.firstAppearanceNote),
+    firstAppearancePage: values.firstAppearancePage,
+    hidePresenceAsSpoiler: values.hidePresenceAsSpoiler,
+    importance: values.importance,
+    personalImpression: textOrNull(values.personalImpression),
+    personalImpressionIsSpoiler: values.personalImpressionIsSpoiler,
+    portraitIsSpoiler: values.portraitIsSpoiler,
+    speciesOverrideIsSpoiler: values.speciesOverrideIsSpoiler,
+    status: values.status,
+    statusCustomText:
+      values.status === BOOK_CHARACTER_STATUS.custom ? textOrNull(values.statusCustomText) : null,
+    statusIsSpoiler: values.statusIsSpoiler,
+    ...withoutMasked(maskable, maskedFields),
+  };
+}
+
+function toPovUpdate(
+  values: CharacterEditValues["book"],
+  maskedFields: readonly string[],
+): PovUpdate {
+  const isUnreliableNarrator = values.isPovCharacter && values.isUnreliableNarrator;
+  return {
+    isPovCharacter: values.isPovCharacter,
+    narratorType: values.isPovCharacter ? values.narratorType : null,
+    ...withoutMasked(
+      {
+        isUnreliableNarrator,
+        isUnreliableNarratorSpoiler: isUnreliableNarrator && values.isUnreliableNarratorSpoiler,
+      },
+      maskedFields,
+    ),
+  };
 }
 
 function withoutMasked<T extends Record<string, unknown>>(

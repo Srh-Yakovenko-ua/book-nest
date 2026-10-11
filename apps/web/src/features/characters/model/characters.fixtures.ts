@@ -69,6 +69,8 @@ export function makeBookCharacterView(
     id: "book-char-1",
     importance: "central",
     isPovCharacter: false,
+    isUnreliableNarrator: false,
+    isUnreliableNarratorSpoiler: false,
     narratorType: null,
     personalImpression: null,
     personalImpressionIsSpoiler: false,

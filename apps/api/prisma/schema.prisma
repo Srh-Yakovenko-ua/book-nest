@@ -1141,6 +1141,8 @@ model BookCharacter {
   firstAppearanceNote         String?             @map("first_appearance_note")
   isPovCharacter              Boolean             @default(false) @map("is_pov_character")
   narratorType                String?             @map("narrator_type")
+  isUnreliableNarrator        Boolean             @default(false) @map("is_unreliable_narrator")
+  isUnreliableNarratorSpoiler Boolean             @default(false) @map("is_unreliable_narrator_spoiler")
   sortOrder                   Int?                @map("sort_order")
   hidePresenceAsSpoiler       Boolean             @default(false) @map("hide_presence_as_spoiler")
   displayNameIsSpoiler        Boolean             @default(false) @map("display_name_is_spoiler")

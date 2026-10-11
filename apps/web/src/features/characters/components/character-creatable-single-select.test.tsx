@@ -34,6 +34,7 @@ function EnglishGenderSelect({ onChange }: { onChange: (choice: GenderChoice) =>
     <CharacterCreatableSingleSelect
       clearTo="unknown"
       customText=""
+      customTextSaved
       describedBy={undefined}
       invalid={false}
       label="Gender"
@@ -92,6 +93,7 @@ function StatusSelect({
     <CharacterCreatableSingleSelect
       clearTo={BOOK_CHARACTER_UNSPECIFIED.status}
       customText={choice.customText}
+      customTextSaved={choice.customText === initial.customText}
       describedBy={describedBy}
       invalid={invalid}
       label="Статус"
@@ -109,6 +111,11 @@ function StatusSelect({
       value={choice.option}
     />
   );
+}
+
+async function typeOver(combobox: HTMLElement, text: string) {
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, text);
 }
 
 beforeEach(() => {
@@ -136,38 +143,40 @@ describe("CharacterCreatableSingleSelect options", () => {
   it("narrows the standard statuses to those containing the typed text", async () => {
     setupStatusSelect({ customText: "", option: "active" });
 
-    await userEvent.type(statusCombobox(), "мер");
+    await typeOver(statusCombobox(), "мер");
 
-    expect((await screen.findAllByRole("option")).map((option) => option.textContent)).toEqual([
-      "Мертвий",
-      "Створити «мер»",
-    ]);
+    const options = await screen.findAllByRole("option");
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveAccessibleName("Мертвий");
+    expect(options[1]).toHaveAccessibleName("Використати «мер»");
   });
 
-  it("offers to create the typed text, trimmed, when it matches no standard status", async () => {
+  it("offers to use the typed text, trimmed, as saved together with the character when it matches no standard status", async () => {
     setupStatusSelect({ customText: "", option: "not_specified" });
 
-    await userEvent.type(statusCombobox(), "  У полоні ");
+    await typeOver(statusCombobox(), "  У полоні ");
 
-    expect(await screen.findByRole("option", { name: "Створити «У полоні»" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: "Використати «У полоні»" }),
+    ).toHaveAccessibleDescription("Збережеться разом із персонажем");
   });
 
-  it("offers the matching standard status instead of a create option when the text differs only in case and spaces", async () => {
+  it("offers the matching standard status instead of a use-custom option when the text differs only in case and spaces", async () => {
     setupStatusSelect({ customText: "", option: "not_specified" });
 
-    await userEvent.type(statusCombobox(), "  ЖИВИЙ ");
+    await typeOver(statusCombobox(), "  ЖИВИЙ ");
 
     expect(await screen.findByRole("option", { name: "Живий" })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Використати/ })).not.toBeInTheDocument();
   });
 
-  it("offers no create option for whitespace-only text", async () => {
+  it("offers no use-custom option for whitespace-only text", async () => {
     setupStatusSelect({ customText: "", option: "active" });
 
-    await userEvent.type(statusCombobox(), "   ");
+    await typeOver(statusCombobox(), "   ");
 
     expect(await screen.findAllByRole("option")).toHaveLength(6);
-    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Використати/ })).not.toBeInTheDocument();
   });
 
   it("names the combobox and its list by the label", async () => {
@@ -193,7 +202,7 @@ describe("CharacterCreatableSingleSelect committing", () => {
   it("commits the trimmed typed text under the sentinel on Enter", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "not_specified" });
 
-    await userEvent.type(statusCombobox(), "  У полоні {Enter}");
+    await typeOver(statusCombobox(), "  У полоні {Enter}");
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ customText: "У полоні", option: "other" });
   });
@@ -201,19 +210,44 @@ describe("CharacterCreatableSingleSelect committing", () => {
   it("commits the matching standard status with empty custom text on Enter", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "not_specified" });
 
-    await userEvent.type(statusCombobox(), "  ЖИВИЙ {Enter}");
+    await typeOver(statusCombobox(), "  ЖИВИЙ {Enter}");
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ customText: "", option: "active" });
   });
 
-  it("replaces a standard status with a created custom one", async () => {
+  it("replaces a standard status with a custom one", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "active" });
 
-    await userEvent.type(statusCombobox(), "У полоні");
-    await userEvent.click(await screen.findByRole("option", { name: "Створити «У полоні»" }));
+    await typeOver(statusCombobox(), "У полоні");
+    await userEvent.click(await screen.findByRole("option", { name: "Використати «У полоні»" }));
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ customText: "У полоні", option: "other" });
     expect(statusCombobox()).toHaveValue("У полоні");
+  });
+
+  it("shows a chosen custom status as the current option marked not saved when the list reopens", async () => {
+    setupStatusSelect({ customText: "", option: "active" });
+
+    await typeOver(statusCombobox(), "У полоні");
+    await userEvent.click(await screen.findByRole("option", { name: "Використати «У полоні»" }));
+    await userEvent.click(statusCombobox());
+
+    expect(
+      await screen.findByRole("option", { name: "У полоні", selected: true }),
+    ).toHaveAccessibleDescription("Не збережено");
+    expect(screen.queryByRole("option", { name: /Використати/ })).not.toBeInTheDocument();
+  });
+
+  it("edits a committed custom status at the caret instead of replacing the whole text", async () => {
+    setupStatusSelect({ customText: "Зник безвісти", option: "other" });
+
+    await userEvent.pointer({ keys: "[MouseLeft]", offset: 4, target: statusCombobox() });
+    await userEvent.keyboard("ла");
+
+    expect(statusCombobox()).toHaveValue("Зникла безвісти");
+    expect(
+      await screen.findByRole("option", { name: "Використати «Зникла безвісти»" }),
+    ).toBeInTheDocument();
   });
 
   it("drops the custom text when a custom status is replaced by a standard one", async () => {
@@ -254,7 +288,7 @@ describe("CharacterCreatableSingleSelect committing", () => {
     const onChange = setupEnglishGenderSelect();
     const combobox = screen.getByRole("combobox", { name: "Gender" });
 
-    await userEvent.type(combobox, "male");
+    await typeOver(combobox, "male");
 
     const male = await screen.findByRole("option", { name: "Male" });
     expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
@@ -273,8 +307,8 @@ describe("CharacterCreatableSingleSelect reverting typed text", () => {
   it("closes the list on Escape and returns to the committed label without reporting a change", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "active" });
 
-    await userEvent.type(statusCombobox(), "У полоні");
-    await screen.findByRole("option", { name: "Створити «У полоні»" });
+    await typeOver(statusCombobox(), "У полоні");
+    await screen.findByRole("option", { name: "Використати «У полоні»" });
     await userEvent.keyboard("{Escape}");
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -285,8 +319,8 @@ describe("CharacterCreatableSingleSelect reverting typed text", () => {
   it("closes the list on Tab and returns to the committed label without reporting a change", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "active" });
 
-    await userEvent.type(statusCombobox(), "У полоні");
-    await screen.findByRole("option", { name: "Створити «У полоні»" });
+    await typeOver(statusCombobox(), "У полоні");
+    await screen.findByRole("option", { name: "Використати «У полоні»" });
     await userEvent.tab();
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -320,7 +354,7 @@ describe("CharacterCreatableSingleSelect display value", () => {
 });
 
 describe("CharacterCreatableSingleSelect inside a form", () => {
-  it("does not submit the form when Enter creates a custom status", async () => {
+  it("does not submit the form when Enter uses a custom status", async () => {
     const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault());
     const onChange = vi.fn<(choice: StatusChoice) => void>();
     renderWithProviders(
@@ -330,7 +364,7 @@ describe("CharacterCreatableSingleSelect inside a form", () => {
       </form>,
     );
 
-    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+    await typeOver(statusCombobox(), "У полоні{Enter}");
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ customText: "У полоні", option: "other" });
     expect(onSubmit).not.toHaveBeenCalled();
@@ -346,7 +380,7 @@ describe("CharacterCreatableSingleSelect inside a form", () => {
       </form>,
     );
 
-    await userEvent.type(statusCombobox(), "Мертвий{Enter}");
+    await typeOver(statusCombobox(), "Мертвий{Enter}");
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith({ customText: "", option: "dead" });
     expect(onSubmit).not.toHaveBeenCalled();
@@ -373,7 +407,7 @@ describe("CharacterCreatableSingleSelect clearing", () => {
   it("offers the clear button once text is typed over the unspecified status", async () => {
     setupStatusSelect({ customText: "", option: "not_specified" });
 
-    await userEvent.type(statusCombobox(), "У полоні");
+    await typeOver(statusCombobox(), "У полоні");
 
     expect(screen.getByRole("button", { name: "Очистити" })).toBeInTheDocument();
   });
@@ -465,35 +499,40 @@ describe("CharacterCreatableSingleSelect opening", () => {
     expect(statusCombobox()).toHaveValue("Зниклий");
   });
 
-  it("highlights no option and names no active option for a committed custom status", async () => {
+  it("lists a saved custom status after the standard ones as the active option, without a not-saved mark", async () => {
     setupStatusSelect({ customText: "Зник безвісти", option: "other" });
 
     await userEvent.click(statusCombobox());
 
-    expect(await screen.findAllByRole("option")).toHaveLength(6);
-    expect(screen.queryByRole("option", { selected: true })).not.toBeInTheDocument();
-    expect(statusCombobox()).not.toHaveAttribute("aria-activedescendant");
+    const current = await screen.findByRole("option", { name: "Зник безвісти", selected: true });
+    expect(screen.getAllByRole("option")).toHaveLength(7);
+    expect(screen.getAllByRole("option").at(-1)).toBe(current);
+    expect(current).not.toHaveAccessibleDescription();
+    expect(statusCombobox()).toHaveAttribute("aria-activedescendant", current.id);
   });
 
-  it("ignores Enter while a committed custom status has no highlighted option", async () => {
+  it("keeps a committed custom status when Enter follows the opening", async () => {
     const onChange = setupStatusSelect({ customText: "Зник безвісти", option: "other" });
 
     await userEvent.click(statusCombobox());
     await screen.findByRole("listbox");
     await userEvent.keyboard("{Enter}");
 
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledExactlyOnceWith({
+      customText: "Зник безвісти",
+      option: "other",
+    });
     expect(statusCombobox()).toHaveValue("Зник безвісти");
   });
 
-  it("highlights the first status on ArrowDown from a committed custom status", async () => {
+  it("keeps the highlight on a committed custom status at the end of the list on ArrowDown", async () => {
     setupStatusSelect({ customText: "Зник безвісти", option: "other" });
 
     await userEvent.click(statusCombobox());
     await screen.findByRole("listbox");
     await userEvent.keyboard("{ArrowDown}");
 
-    expect(screen.getByRole("option", { selected: true })).toHaveTextContent("Не вказано");
+    expect(screen.getByRole("option", { selected: true })).toHaveAccessibleName("Зник безвісти");
   });
 
   it("highlights the last status on ArrowUp from a committed custom status", async () => {
@@ -534,15 +573,15 @@ describe("CharacterCreatableSingleSelect your statuses", () => {
     expect(statusCombobox()).toHaveValue("У полоні");
   });
 
-  it("offers your status instead of a create option when typed in another case with stray spaces", async () => {
+  it("offers your status instead of a use-custom option when typed in another case with stray spaces", async () => {
     const onChange = setupStatusSelect({ customText: "", option: "active" }, USED_STATUSES);
 
-    await userEvent.type(statusCombobox(), "  у ПОЛОНІ ");
+    await typeOver(statusCombobox(), "  у ПОЛОНІ ");
 
     expect(
       await screen.findByRole("option", { name: "У полоні використано 3 рази" }),
     ).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Використати/ })).not.toBeInTheDocument();
 
     await userEvent.keyboard("{Enter}");
 

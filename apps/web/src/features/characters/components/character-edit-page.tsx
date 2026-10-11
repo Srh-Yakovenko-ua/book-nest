@@ -30,7 +30,7 @@ import {
   buildCharacterEditSchema,
   isScopeDirty,
   maskedEditFields,
-  toBookUpdate,
+  toBookPatch,
   toCharacterEditValues,
   toGlobalUpdate,
   withSpeciesChange,
@@ -218,7 +218,7 @@ function CharacterEditForm({
         await updateBookCharacter.mutateAsync({
           bookId: contextBookId,
           characterId: character.id,
-          input: toBookUpdate(values.book, maskedFields),
+          input: toBookPatch({ baseline: baseline.book, current: values.book, maskedFields }),
         });
         setBaseline((previous) => ({ ...previous, book: values.book }));
       }
@@ -264,6 +264,7 @@ function CharacterEditForm({
             bookId={contextBookId}
             control={control}
             errors={errors}
+            maskedFields={maskedFields}
             pageMax={pageCeiling.max}
             register={register}
           />

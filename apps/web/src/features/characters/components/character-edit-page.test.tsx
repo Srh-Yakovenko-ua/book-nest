@@ -116,6 +116,11 @@ function renderEdit(search = "bookId=book-1") {
   );
 }
 
+async function typeOver(combobox: HTMLElement, text: string) {
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, text);
+}
+
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
   bookDetailGate = Promise.resolve();
@@ -387,15 +392,19 @@ describe("CharacterEditPage aliases", () => {
 });
 
 describe("CharacterEditPage narrative metadata", () => {
-  it("reveals the narrator control only while the character is a point of view", async () => {
+  it("reveals the narration and unreliable narrator controls only while the character is a point of view", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    expect(screen.queryByText("Тип наратора")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Спосіб оповіді" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Ненадійний оповідач" })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("switch", { name: "POV-персонаж" }));
+    await userEvent.click(
+      screen.getByRole("switch", { name: "Персонаж із власною перспективою (POV)" }),
+    );
 
-    expect(await screen.findByText("Тип наратора")).toBeInTheDocument();
+    expect(await screen.findByRole("combobox", { name: "Спосіб оповіді" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Ненадійний оповідач" })).toBeInTheDocument();
   });
 
   it("lets no minus sign, exponent or letters into the page", async () => {
@@ -782,7 +791,9 @@ describe("CharacterEditPage live preview", () => {
     await screen.findByDisplayValue("Ґеральт");
     expect(within(previewRegion()).queryByText("POV")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("switch", { name: "POV-персонаж" }));
+    await userEvent.click(
+      screen.getByRole("switch", { name: "Персонаж із власною перспективою (POV)" }),
+    );
 
     expect(within(previewRegion()).getByText("POV")).toBeInTheDocument();
   });
@@ -1084,7 +1095,9 @@ describe("CharacterEditPage field requirements", () => {
     await screen.findByDisplayValue("Ґеральт");
 
     expect(screen.getByRole("combobox", { name: "Вид (необов’язково)" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Займенники (необов’язково)" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("textbox", { name: "Коротко про персонажа (необов’язково)" }),
     ).toBeInTheDocument();
@@ -1113,9 +1126,9 @@ describe("CharacterEditPage field requirements", () => {
       "placeholder",
       "Пошук, наприклад «ельф»",
     );
-    expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
+    expect(screen.getByRole("combobox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
       "placeholder",
-      "Наприклад, він/його",
+      "Оберіть зі списку або введіть свій…",
     );
     expect(
       screen.getByRole("textbox", { name: "Коротко про персонажа (необов’язково)" }),
@@ -1132,7 +1145,7 @@ describe("CharacterEditPage field requirements", () => {
       "maxlength",
       "120",
     );
-    expect(screen.getByRole("textbox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
+    expect(screen.getByRole("combobox", { name: "Займенники (необов’язково)" })).toHaveAttribute(
       "maxlength",
       "60",
     );
@@ -1262,7 +1275,7 @@ describe("CharacterEditPage status", () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+    await typeOver(statusCombobox(), "У полоні{Enter}");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
@@ -1292,25 +1305,41 @@ describe("CharacterEditPage status", () => {
     expect(bookPatchBody()).toMatchObject({ status: "active", statusCustomText: null });
   });
 
-  it("offers the matching standard status instead of a create option for its name typed in lower case", async () => {
+  it("offers the matching standard status instead of a use-custom option for its name typed in lower case", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(statusCombobox(), "живий");
+    await typeOver(statusCombobox(), "живий");
 
     expect(await screen.findByRole("option", { name: "Живий" })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Створити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Використати/ })).not.toBeInTheDocument();
   });
 
-  it("does not save the form when Enter creates a custom status", async () => {
+  it("does not save the form when Enter uses a custom status", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+    await typeOver(statusCombobox(), "У полоні{Enter}");
 
     expect(statusCombobox()).toHaveValue("У полоні");
     expect(patchCount()).toBe(0);
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it("keeps a picked custom status local and marked not saved, sending nothing, until the form is saved", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await typeOver(statusCombobox(), "У полоні");
+    await userEvent.click(await screen.findByRole("option", { name: "Використати «У полоні»" }));
+    await userEvent.click(statusCombobox());
+
+    expect(
+      await screen.findByRole("option", { name: "У полоні", selected: true }),
+    ).toHaveAccessibleDescription("Не збережено");
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => (init?.method ?? "GET").toUpperCase() !== "GET"),
+    ).toEqual([]);
   });
 
   it("has no separate custom status field", async () => {
@@ -1367,7 +1396,7 @@ describe("CharacterEditPage status", () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(statusCombobox(), "У полоні{Enter}");
+    await typeOver(statusCombobox(), "У полоні{Enter}");
 
     expect(within(previewRegion()).getByText("У полоні")).toBeInTheDocument();
     expect(within(previewRegion()).queryByText("Інше")).not.toBeInTheDocument();
@@ -1429,7 +1458,7 @@ describe("CharacterEditPage gender", () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.type(genderCombobox(), "Гендерфлюїдна{Enter}");
+    await typeOver(genderCombobox(), "Гендерфлюїдна{Enter}");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(globalPatchBody()).toBeDefined());
@@ -1529,7 +1558,7 @@ describe("CharacterEditPage gender", () => {
       expect(await screen.findByText("Вкажіть свій гендер")).toBeInTheDocument();
       expect(genderCombobox()).toHaveAttribute("aria-invalid", "true");
 
-      await userEvent.type(genderCombobox(), "Гендерфлюїдна{Enter}");
+      await typeOver(genderCombobox(), "Гендерфлюїдна{Enter}");
 
       await waitFor(() =>
         expect(screen.queryByText("Вкажіть свій гендер")).not.toBeInTheDocument(),
@@ -1550,6 +1579,56 @@ describe("CharacterEditPage gender", () => {
       );
       expect(genderCombobox()).not.toHaveAttribute("aria-invalid", "true");
     });
+  });
+});
+
+describe("CharacterEditPage pronouns", () => {
+  function pronounsCombobox(): HTMLElement {
+    return screen.getByRole("combobox", { name: "Займенники (необов’язково)" });
+  }
+
+  it("loads stored pronouns in another language as their preset and saves a newly picked preset as its label", async () => {
+    servedCharacter = { ...character, pronouns: "he/him" };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(pronounsCombobox()).toHaveValue("він/його");
+    await userEvent.click(pronounsCombobox());
+    expect(await screen.findByRole("option", { name: "він/його" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await userEvent.click(screen.getByRole("option", { name: "вона/її" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toMatchObject({ pronouns: "вона/її" });
+  });
+
+  it("saves typed pronouns that match no preset as free text", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(pronounsCombobox(), "  ксе/їх ");
+    await userEvent.click(await screen.findByRole("option", { name: "Використати «ксе/їх»" }));
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toMatchObject({ pronouns: "ксе/їх" });
+    expect(pronounsCombobox()).toHaveValue("ксе/їх");
+  });
+
+  it("shows legacy pronouns as they are and sends them unchanged when another field is saved", async () => {
+    servedCharacter = { ...character, pronouns: "Він (у другій книзі — вона)" };
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(pronounsCombobox()).toHaveValue("Він (у другій книзі — вона)");
+    await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toMatchObject({ pronouns: "Він (у другій книзі — вона)" });
   });
 });
 

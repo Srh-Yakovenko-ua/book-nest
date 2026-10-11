@@ -15,10 +15,14 @@ import { UiIcon } from "@/components/icons";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+import { CharacterCreatableOption, type CreatableEntryDisplay } from "./character-creatable-option";
+
 type CharacterCreatableSingleSelectProps<Option extends string, Sentinel extends Option> = {
   clearTo: Exclude<Option, Sentinel>;
   customText: string;
+  customTextSaved: boolean;
   describedBy: string | undefined;
+  inputId?: string;
   invalid: boolean;
   label: string;
   maxLength: number;
@@ -40,12 +44,7 @@ type CustomSuggestions = {
   labels: readonly CharacterCustomLabelUsageView[];
 };
 
-type EntryDisplay = ({ count: number; kind: "suggestion" } | { kind: "create" | "standard" }) & {
-  id: string;
-  text: string;
-};
-
-type ListEntry<Option extends string, Sentinel extends Option> = EntryDisplay & {
+type ListEntry<Option extends string, Sentinel extends Option> = CreatableEntryDisplay & {
   choice: CreatableChoice<Option, Sentinel>;
 };
 
@@ -54,7 +53,9 @@ const HIGHLIGHT_STEP = { ArrowDown: 1, ArrowUp: -1 } as const;
 export function CharacterCreatableSingleSelect<Option extends string, Sentinel extends Option>({
   clearTo,
   customText,
+  customTextSaved,
   describedBy,
+  inputId,
   invalid,
   label,
   maxLength,
@@ -101,25 +102,43 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
       kind: "suggestion",
       text: label,
     }));
-  const createEntry: ListEntry<Option, Sentinel> = {
+  const listedNames = new Set(
+    [...standardEntries, ...suggestionEntries].map(({ text }) => normalizeName(text)),
+  );
+  const currentEntries: ListEntry<Option, Sentinel>[] =
+    value === sentinel &&
+    committedCustomText.length > 0 &&
+    !listedNames.has(normalizeName(committedCustomText))
+      ? [
+          {
+            choice: { customText: committedCustomText, option: sentinel },
+            id: `${listboxId}-current`,
+            kind: "current",
+            saved: customTextSaved,
+            text: committedCustomText,
+          },
+        ]
+      : [];
+  const useCustomEntry: ListEntry<Option, Sentinel> = {
     choice: { customText: customName, option: sentinel },
-    id: `${listboxId}-create`,
-    kind: "create",
-    text: t("create", { name: customName }),
+    id: `${listboxId}-use-custom`,
+    kind: "useCustom",
+    text: t("useCustom", { name: customName }),
   };
   const matchingStandard = standardEntries.filter(matchesQuery);
+  const matchingCurrent = currentEntries.filter(matchesQuery);
   const matchingSuggestions = suggestionEntries.filter(matchesQuery);
-  const exactEntry = [...matchingStandard, ...matchingSuggestions].find(
+  const exactEntry = [...matchingStandard, ...matchingCurrent, ...matchingSuggestions].find(
     ({ text }) => normalizeName(text) === query,
   );
-  const canCreate = customName.length > 0 && exactEntry === undefined;
+  const canUseCustom = customName.length > 0 && exactEntry === undefined;
   const entries = [
     ...matchingStandard,
+    ...matchingCurrent,
     ...matchingSuggestions,
-    ...(canCreate ? [createEntry] : []),
+    ...(canUseCustom ? [useCustomEntry] : []),
   ];
-  const defaultEntry = search === null ? entries.find(isCommitted) : (exactEntry ?? entries[0]);
-  const activeEntry = entries.find((entry) => entry.id === highlightedId) ?? defaultEntry;
+  const activeEntry = entries.find((entry) => entry.id === highlightedId) ?? defaultEntry();
   const showClear = value !== clearTo || typedText.length > 0;
 
   function isStandard(option: Option): option is Exclude<Option, Sentinel> {
@@ -130,10 +149,16 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
     return normalizeName(text).includes(query);
   }
 
-  function isCommitted(entry: ListEntry<Option, Sentinel>) {
-    if (entry.kind === "create") return false;
-    if (entry.kind === "standard") return entry.choice.option === value;
-    return value === sentinel && normalizeName(entry.text) === normalizeName(committedCustomText);
+  function isCommitted({ choice }: ListEntry<Option, Sentinel>) {
+    if (choice.option !== value) return false;
+    if (choice.option !== sentinel) return true;
+    return normalizeName(choice.customText) === normalizeName(committedCustomText);
+  }
+
+  function defaultEntry() {
+    if (search === null) return entries.find(isCommitted);
+    if (customName.length === 0) return undefined;
+    return exactEntry ?? entries[0];
   }
 
   function changeOpen(next: boolean) {
@@ -149,6 +174,10 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
     inputRef.current?.focus();
   }
 
+  function clear() {
+    commit({ customText: "", option: clearTo });
+  }
+
   function entryAfterActive(step: ValueOf<typeof HIGHLIGHT_STEP>) {
     if (activeEntry === undefined) return step > 0 ? entries[0] : entries.at(-1);
     return entries[entries.indexOf(activeEntry) + step];
@@ -161,6 +190,14 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
     document.getElementById(next.id)?.scrollIntoView({ block: "nearest" });
   }
 
+  function commitActive() {
+    if (activeEntry !== undefined) {
+      commit(activeEntry.choice);
+      return;
+    }
+    if (search !== null) clear();
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (event.key === "Tab") {
@@ -169,7 +206,7 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      if (open && activeEntry !== undefined) commit(activeEntry.choice);
+      if (open) commitActive();
       return;
     }
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
@@ -189,13 +226,14 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
             aria-describedby={describedBy}
             aria-expanded={open}
             aria-invalid={invalid}
-            aria-label={label}
+            aria-label={inputId === undefined ? label : undefined}
             autoComplete="off"
             autoCorrect="off"
             className={cn(
               "h-10 w-full min-w-0 truncate rounded-lg border border-input bg-field pl-2.5 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
               showClear ? "pr-14" : "pr-8",
             )}
+            id={inputId}
             maxLength={maxLength}
             onBlur={onBlur}
             onChange={(event) => {
@@ -203,11 +241,7 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
               setHighlightedId(null);
               setOpen(true);
             }}
-            onClick={(event) => {
-              if (search === null) event.currentTarget.select();
-              setOpen(true);
-            }}
-            onFocus={(event) => event.currentTarget.select()}
+            onClick={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={t("placeholder")}
             ref={(element) => {
@@ -223,7 +257,7 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
             <button
               aria-label={tCommon("clear")}
               className="absolute top-1/2 right-8 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={() => commit({ customText: "", option: clearTo })}
+              onClick={clear}
               onMouseDown={(event) => event.preventDefault()}
               tabIndex={-1}
               type="button"
@@ -263,8 +297,8 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
           role="listbox"
           tabIndex={-1}
         >
-          {matchingStandard.map((entry) => (
-            <CreatableOption
+          {[...matchingStandard, ...matchingCurrent].map((entry) => (
+            <CharacterCreatableOption
               active={entry === activeEntry}
               committed={isCommitted(entry)}
               entry={entry}
@@ -283,7 +317,7 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
                 {suggestions.heading}
               </div>
               {matchingSuggestions.map((entry) => (
-                <CreatableOption
+                <CharacterCreatableOption
                   active={entry === activeEntry}
                   committed={isCommitted(entry)}
                   entry={entry}
@@ -294,58 +328,17 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
               ))}
             </div>
           )}
-          {canCreate ? (
-            <CreatableOption
-              active={createEntry === activeEntry}
-              committed={isCommitted(createEntry)}
-              entry={createEntry}
-              onHighlight={() => setHighlightedId(createEntry.id)}
-              onPick={() => commit(createEntry.choice)}
+          {canUseCustom ? (
+            <CharacterCreatableOption
+              active={useCustomEntry === activeEntry}
+              committed={isCommitted(useCustomEntry)}
+              entry={useCustomEntry}
+              onHighlight={() => setHighlightedId(useCustomEntry.id)}
+              onPick={() => commit(useCustomEntry.choice)}
             />
           ) : null}
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-function CreatableOption({
-  active,
-  committed,
-  entry,
-  onHighlight,
-  onPick,
-}: {
-  active: boolean;
-  committed: boolean;
-  entry: EntryDisplay;
-  onHighlight: () => void;
-  onPick: () => void;
-}) {
-  const t = useTranslations("characters.creatableSelect");
-
-  return (
-    <button
-      aria-selected={active}
-      className="relative flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-hidden select-none aria-selected:bg-accent aria-selected:text-accent-foreground aria-selected:ring-1 aria-selected:ring-ring"
-      id={entry.id}
-      onClick={onPick}
-      onPointerMove={onHighlight}
-      role="option"
-      tabIndex={-1}
-      type="button"
-    >
-      {entry.kind === "create" ? <UiIcon className="text-primary" name="plus" size={16} /> : null}
-      <span className="min-w-0 flex-1 truncate">{entry.text}</span>
-      {entry.kind === "suggestion" ? (
-        <>
-          <span aria-hidden className="shrink-0 text-xs text-muted-foreground tabular-nums">
-            {entry.count}
-          </span>
-          <span className="sr-only">{t("usageCount", { count: entry.count })}</span>
-        </>
-      ) : null}
-      {committed ? <UiIcon className="shrink-0" name="check" size={16} /> : null}
-    </button>
   );
 }

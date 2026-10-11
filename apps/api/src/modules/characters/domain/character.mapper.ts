@@ -58,6 +58,8 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   id: string;
   importance: string;
   isPovCharacter: boolean;
+  isUnreliableNarrator: boolean;
+  isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
   roles: CharacterRoleSource[];
@@ -214,6 +216,8 @@ export function toBookCharacterView({
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isPovCharacter: appearance.isPovCharacter,
+    isUnreliableNarrator: appearance.isUnreliableNarrator,
+    isUnreliableNarratorSpoiler: appearance.isUnreliableNarratorSpoiler,
     narratorType:
       appearance.narratorType === null
         ? null
@@ -445,6 +449,10 @@ export function toMaskedBookCharacterView({
   );
   const showSpeciesOverride = isVisible("speciesOverride", appearance.speciesOverrideIsSpoiler);
   const showStatus = isVisible("status", appearance.statusIsSpoiler);
+  const showUnreliableNarrator = isVisible(
+    "unreliableNarrator",
+    appearance.isUnreliableNarratorSpoiler,
+  );
 
   return {
     appearanceNotes: showAppearanceNotes ? emptyToNull(appearance.appearanceNotes) : null,
@@ -468,6 +476,8 @@ export function toMaskedBookCharacterView({
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isPovCharacter: appearance.isPovCharacter,
+    isUnreliableNarrator: showUnreliableNarrator ? appearance.isUnreliableNarrator : null,
+    isUnreliableNarratorSpoiler: appearance.isUnreliableNarratorSpoiler,
     narratorType:
       appearance.narratorType === null
         ? null
@@ -516,7 +526,9 @@ function comparePartNumberAscNullsLast(left: Nullable<number>, right: Nullable<n
   return left - right;
 }
 
-function computeHiddenFields(flags: SpoilerFlags): string[] {
+function computeHiddenFields(
+  flags: Pick<CharacterAppearanceSource, "isUnreliableNarratorSpoiler"> & SpoilerFlags,
+): string[] {
   const hidden: string[] = [];
   if (flags.appearanceNotesIsSpoiler) {
     hidden.push("appearanceNotes");
@@ -538,6 +550,9 @@ function computeHiddenFields(flags: SpoilerFlags): string[] {
   }
   if (flags.statusIsSpoiler) {
     hidden.push("status");
+  }
+  if (flags.isUnreliableNarratorSpoiler) {
+    hidden.push("unreliableNarrator");
   }
   return hidden;
 }

@@ -264,6 +264,16 @@ function BookContextSection({
           <Field label={t("narratorType")}>{tNarrator(appearance.narratorType)}</Field>
         </dl>
       ) : null}
+      {appearance.isPovCharacter ? (
+        <SpoilerText
+          appearance={appearance}
+          field="unreliableNarrator"
+          label={t("unreliableNarrator")}
+          onReveal={onReveal}
+          revealing={revealing}
+          value={appearance.isUnreliableNarrator === true ? t("unreliableNarratorYes") : null}
+        />
+      ) : null}
 
       <FirstAppearance appearance={appearance} />
 

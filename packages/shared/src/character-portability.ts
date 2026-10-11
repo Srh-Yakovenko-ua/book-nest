@@ -101,6 +101,8 @@ const BundleAppearanceSchema = z
     hidePresenceAsSpoiler: z.boolean(),
     importance: BookCharacterImportanceSchema,
     isPovCharacter: z.boolean(),
+    isUnreliableNarrator: z.boolean().default(false),
+    isUnreliableNarratorSpoiler: z.boolean().default(false),
     narratorType: BookCharacterNarratorTypeSchema.nullable(),
     personalImpression: nullableText(BUNDLE_LONG_TEXT_MAX),
     personalImpressionIsSpoiler: z.boolean(),
@@ -366,6 +368,42 @@ export const CharacterBundleSchema = z
   });
 
 export type CharacterBundle = z.infer<typeof CharacterBundleSchema>;
+
+const LEGACY_UNRELIABLE_NARRATOR_TYPE = "unreliable";
+
+const LegacyUnreliableNarratorAppearanceSchema = z
+  .looseObject({ narratorType: z.literal(LEGACY_UNRELIABLE_NARRATOR_TYPE) })
+  .transform((appearance) => ({
+    ...appearance,
+    isUnreliableNarrator: true,
+    isUnreliableNarratorSpoiler: false,
+    narratorType: null,
+  }));
+
+const BundleAppearancesShapeSchema = z.looseObject({
+  characters: z.array(z.looseObject({ appearances: z.array(z.unknown()) })),
+});
+
+export function upgradeLegacyCharacterBundle(payload: unknown): unknown {
+  const shape = BundleAppearancesShapeSchema.safeParse(payload);
+  if (!shape.success) {
+    return payload;
+  }
+  return {
+    ...shape.data,
+    characters: shape.data.characters.map((character) => ({
+      ...character,
+      appearances: character.appearances.map((appearance) =>
+        upgradeLegacyBundleAppearance(appearance),
+      ),
+    })),
+  };
+}
+
+function upgradeLegacyBundleAppearance(appearance: unknown): unknown {
+  const legacy = LegacyUnreliableNarratorAppearanceSchema.safeParse(appearance);
+  return legacy.success ? legacy.data : appearance;
+}
 
 export const CharacterExportQuerySchema = z.object({
   includeArchived: z
