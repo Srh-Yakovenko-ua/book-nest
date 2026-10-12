@@ -36,6 +36,7 @@ import {
 import type { CharacterEditScope, CharacterEditValues } from "../model/character-edit-form";
 
 import { useCharacterCustomLabels } from "../api/use-character-custom-labels";
+import { effectiveCharacterName } from "../model/character-edit-form";
 import { isBookFieldMasked } from "../model/character-inheritance";
 import {
   ATTITUDE_OPTIONS,
@@ -687,6 +688,8 @@ export function CharacterAliasesSection({
   hasBookScope: boolean;
 }) {
   const t = useTranslations("characters.aliases");
+  const globalName = useWatch({ control, name: "global.name" });
+  const bookDisplayName = useWatch({ control, name: "book.displayName" });
 
   return (
     <EditSection description={t("sectionHint")} icon="tag" title={t("sectionTitle")}>
@@ -695,11 +698,10 @@ export function CharacterAliasesSection({
         name="global.aliases"
         render={({ field }) => (
           <CharacterAliasGroup
-            description={t("globalHint")}
             errors={aliasNameErrors(errors.global?.aliases, field.value.length)}
-            idPrefix="character-alias-global"
             onChange={field.onChange}
-            title={t("globalTitle")}
+            reservedName={globalName}
+            scope="global"
             value={field.value}
           />
         )}
@@ -713,11 +715,13 @@ export function CharacterAliasesSection({
             name="book.aliases"
             render={({ field }) => (
               <CharacterAliasGroup
-                description={t("bookHint")}
                 errors={aliasNameErrors(errors.book?.aliases, field.value.length)}
-                idPrefix="character-alias-book"
                 onChange={field.onChange}
-                title={t("bookTitle")}
+                reservedName={effectiveCharacterName({
+                  displayName: bookDisplayName,
+                  globalName,
+                })}
+                scope="book"
                 value={field.value}
               />
             )}
