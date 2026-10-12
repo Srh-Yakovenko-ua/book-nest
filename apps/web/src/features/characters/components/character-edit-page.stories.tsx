@@ -151,6 +151,16 @@ function mockFetch(details: CharacterDetailsView) {
     if (path.includes("/api/species/candidates"))
       return Promise.resolve(jsonResponse(200, { exact: null, similar: [] }));
     if (path.includes("/api/species/own")) return Promise.resolve(jsonResponse(200, { items: [] }));
+    if (path.includes("/api/species/browse"))
+      return Promise.resolve(
+        jsonResponse(200, {
+          ...STORY.species,
+          page: 1,
+          pagesCount: 1,
+          pageSize: STORY.species.items.length,
+          totalCount: STORY.species.items.length,
+        }),
+      );
     if (path.includes("/api/species")) return Promise.resolve(jsonResponse(200, STORY.species));
     if (path.endsWith(`/api/books/${STORY.bookId}`))
       return Promise.resolve(

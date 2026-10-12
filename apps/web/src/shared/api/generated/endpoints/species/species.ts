@@ -21,7 +21,9 @@ import type {
 import type {
   MergeSpeciesDto,
   OwnSpeciesListDto,
+  SpeciesBrowsePageDto,
   SpeciesCandidatesDto,
+  SpeciesControllerBrowseParams,
   SpeciesControllerCandidatesParams,
   SpeciesControllerCreateParams,
   SpeciesControllerListOwnParams,
@@ -407,6 +409,179 @@ export function useSpeciesControllerCreate<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getSpeciesControllerCreateQueryOptions(speciesNameDto, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type speciesControllerBrowseResponse200 = {
+  data: SpeciesBrowsePageDto;
+  status: 200;
+};
+
+export type speciesControllerBrowseResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type speciesControllerBrowseResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type speciesControllerBrowseResponseSuccess = speciesControllerBrowseResponse200 & {
+  headers: Headers;
+};
+export type speciesControllerBrowseResponseError = (
+  speciesControllerBrowseResponse400 | speciesControllerBrowseResponse401
+) & {
+  headers: Headers;
+};
+
+export type speciesControllerBrowseResponse =
+  speciesControllerBrowseResponseSuccess | speciesControllerBrowseResponseError;
+
+export const getSpeciesControllerBrowseUrl = (params?: SpeciesControllerBrowseParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/species/browse?${stringifiedParams}`
+    : `/api/species/browse`;
+};
+
+/**
+ * @summary Browse all species visible to the current user page by page
+ */
+export const speciesControllerBrowse = async (
+  params?: SpeciesControllerBrowseParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<speciesControllerBrowseResponse> => {
+  return customInstance<speciesControllerBrowseResponse>(getSpeciesControllerBrowseUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSpeciesControllerBrowseQueryKey = (params?: SpeciesControllerBrowseParams) => {
+  return [`/api/species/browse`, ...(params ? [params] : [])] as const;
+};
+
+export const getSpeciesControllerBrowseQueryOptions = <
+  TData = Awaited<ReturnType<typeof speciesControllerBrowse>>,
+  TError = void,
+>(
+  params?: SpeciesControllerBrowseParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof speciesControllerBrowse>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSpeciesControllerBrowseQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof speciesControllerBrowse>>> = ({
+    signal,
+  }) => speciesControllerBrowse(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof speciesControllerBrowse>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SpeciesControllerBrowseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof speciesControllerBrowse>>
+>;
+export type SpeciesControllerBrowseQueryError = void;
+
+export function useSpeciesControllerBrowse<
+  TData = Awaited<ReturnType<typeof speciesControllerBrowse>>,
+  TError = void,
+>(
+  params: undefined | SpeciesControllerBrowseParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof speciesControllerBrowse>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof speciesControllerBrowse>>,
+          TError,
+          Awaited<ReturnType<typeof speciesControllerBrowse>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSpeciesControllerBrowse<
+  TData = Awaited<ReturnType<typeof speciesControllerBrowse>>,
+  TError = void,
+>(
+  params?: SpeciesControllerBrowseParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof speciesControllerBrowse>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof speciesControllerBrowse>>,
+          TError,
+          Awaited<ReturnType<typeof speciesControllerBrowse>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSpeciesControllerBrowse<
+  TData = Awaited<ReturnType<typeof speciesControllerBrowse>>,
+  TError = void,
+>(
+  params?: SpeciesControllerBrowseParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof speciesControllerBrowse>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Browse all species visible to the current user page by page
+ */
+
+export function useSpeciesControllerBrowse<
+  TData = Awaited<ReturnType<typeof speciesControllerBrowse>>,
+  TError = void,
+>(
+  params?: SpeciesControllerBrowseParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof speciesControllerBrowse>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSpeciesControllerBrowseQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

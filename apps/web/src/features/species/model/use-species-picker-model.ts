@@ -6,13 +6,14 @@ import { SPECIES_SEARCH } from "@app/shared";
 
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
-import type { SpeciesGroup } from "./species-groups";
+import type { SpeciesPickerSection } from "./species-picker-sections";
 
 import { useCreateSpecies } from "../api/use-create-species";
+import { useSpeciesBrowse } from "../api/use-species-browse";
 import { useSpeciesCandidates } from "../api/use-species-candidates";
 import { useSpeciesSearch } from "../api/use-species-search";
 import { toSpeciesFailure } from "./species-failure";
-import { groupSpeciesOptions } from "./species-groups";
+import { browseSections, searchSections } from "./species-picker-sections";
 import { speciesSearchTerm } from "./species-search-term";
 
 export type SpeciesCreateOffer = {
@@ -20,12 +21,13 @@ export type SpeciesCreateOffer = {
   secondary: boolean;
 };
 
+export type SpeciesPickerMore = {
+  load: () => void;
+  status: SpeciesPickerMoreStatus;
+};
+
 export type SpeciesPickerNotice =
   "conflict" | "createFailed" | "empty" | "loadFailed" | "loading" | "tooShort";
-
-export type SpeciesPickerSection =
-  | { group: SpeciesGroup; kind: "group" }
-  | { kind: "exact" | "similar"; options: SpeciesOptionView[] };
 
 type SpeciesPickerModelArgs = {
   allowCreate: boolean;
@@ -33,6 +35,8 @@ type SpeciesPickerModelArgs = {
   open: boolean;
   typed: string;
 };
+
+type SpeciesPickerMoreStatus = "available" | "complete" | "failed" | "loading" | "refreshing";
 
 export function useSpeciesPickerModel({
   allowCreate,
@@ -44,8 +48,10 @@ export function useSpeciesPickerModel({
   const debouncedTerm = speciesSearchTerm(useDebouncedValue(typed, SPECIES_SEARCH.debounceMs));
   const term = currentTerm === "" ? "" : debouncedTerm;
   const isSettled = term === currentTerm;
+  const isBrowsing = term === "";
 
   const search = useSpeciesSearch({ enabled: open, term });
+  const browse = useSpeciesBrowse({ enabled: open && isBrowsing });
   const candidates = useSpeciesCandidates({ enabled: open, name: term });
   const createSpecies = useCreateSpecies();
 
@@ -56,25 +62,27 @@ export function useSpeciesPickerModel({
       : null;
   const conflictHolder = failure?.kind === "duplicate" ? failure.holder : null;
 
-  const exact = term === "" ? null : (conflictHolder ?? candidates.data?.exact ?? null);
+  const exact = isBrowsing ? null : (conflictHolder ?? candidates.data?.exact ?? null);
   const exactOptions = exact !== null && isVisible(exact) ? [exact] : [];
   const similarOptions =
-    term === "" || exact !== null ? [] : (candidates.data?.similar ?? []).filter(isVisible);
-  const pinnedIds = new Set([...exactOptions, ...similarOptions].map((option) => option.id));
-  const results = (search.data ?? [])
-    .filter(isVisible)
-    .filter((option) => !pinnedIds.has(option.id));
+    isBrowsing || exact !== null ? [] : (candidates.data?.similar ?? []).filter(isVisible);
+  const searchResults = (search.data ?? []).filter(isVisible);
+  const catalog = (browse.data?.pages ?? []).flatMap((page) => page.items).filter(isVisible);
 
-  const sections: SpeciesPickerSection[] =
-    !isSettled || search.isPending
-      ? []
-      : [
-          ...(exactOptions.length > 0 ? [{ kind: "exact" as const, options: exactOptions }] : []),
-          ...(similarOptions.length > 0
-            ? [{ kind: "similar" as const, options: similarOptions }]
-            : []),
-          ...groupSpeciesOptions(results).map((group) => ({ group, kind: "group" as const })),
-        ];
+  const browseFailed = isBrowsing && browse.isError && !browse.isFetchNextPageError;
+  const isLoading = !isSettled || search.isPending || (isBrowsing && browse.isPending);
+  const loadedSections: SpeciesPickerSection[] = isBrowsing
+    ? browseSections({ catalog, pinned: searchResults })
+    : searchSections({ exact: exactOptions, results: searchResults, similar: similarOptions });
+  const sections = isLoading ? [] : loadedSections;
+
+  const moreStatus = browseMoreStatus({
+    hasNextPage: browse.hasNextPage,
+    isFetching: browse.isFetching,
+    isFetchingNextPage: browse.isFetchingNextPage,
+    isFetchNextPageError: browse.isFetchNextPageError,
+    isShown: isBrowsing && sections.length > 0,
+  });
 
   const candidatesKnown = candidates.isSuccess || candidates.isError;
   const create: Nullable<SpeciesCreateOffer> =
@@ -90,16 +98,45 @@ export function useSpeciesPickerModel({
   return {
     create,
     createSpecies,
+    more: {
+      load: () => {
+        if (moreStatus === "available" || moreStatus === "failed") void browse.fetchNextPage();
+      },
+      status: moreStatus,
+    } satisfies SpeciesPickerMore,
     notice: pickerNotice({
       failureKind: failure?.kind ?? null,
       hasOptions: sections.length > 0,
-      isLoading: !isSettled || search.isPending,
-      loadFailed: search.isError,
+      isLoading,
+      loadFailed: search.isError || browseFailed,
       typed,
     }),
-    retry: () => void search.refetch(),
+    retry: () => {
+      if (search.isError) void search.refetch();
+      if (browseFailed) void browse.refetch();
+    },
     sections,
   };
+}
+
+function browseMoreStatus({
+  hasNextPage,
+  isFetching,
+  isFetchingNextPage,
+  isFetchNextPageError,
+  isShown,
+}: {
+  hasNextPage: boolean;
+  isFetching: boolean;
+  isFetchingNextPage: boolean;
+  isFetchNextPageError: boolean;
+  isShown: boolean;
+}): SpeciesPickerMoreStatus {
+  if (!isShown || !hasNextPage) return "complete";
+  if (isFetchingNextPage) return "loading";
+  if (isFetching) return "refreshing";
+  if (isFetchNextPageError) return "failed";
+  return "available";
 }
 
 function pickerNotice({

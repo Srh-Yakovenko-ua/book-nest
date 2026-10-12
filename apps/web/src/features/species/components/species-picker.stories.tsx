@@ -7,6 +7,7 @@ import type {
 } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { SPECIES_SEARCH } from "@app/shared";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
@@ -20,6 +21,7 @@ import { ManageOwnSpeciesButton } from "./manage-own-species-button";
 import { SpeciesPicker } from "./species-picker";
 
 type SpeciesMock = {
+  browseFailsFromPage?: number;
   candidates?: Record<string, SpeciesCandidates>;
   createStatus?: 201 | 409;
   own?: OwnSpeciesView[];
@@ -33,7 +35,39 @@ const CATEGORY = {
   humanoid: { key: "humanoid", name: "Люди та людиноподібні" },
   mythical: { key: "mythical", name: "Дракони та міфічні істоти" },
   smallfolk: { key: "smallfolk", name: "Гноми, гобліни та малі народи" },
+  spirits: { key: "spirits", name: "Духи та демони" },
+  undead: { key: "undead", name: "Нежить" },
 } as const;
+
+const CATALOG_EXTRAS = {
+  bloodshifters: ["Вовкулака", "Вурдалак", "Дампір", "Носферату", "Перевертень", "Стрига", "Упир"],
+  elven: [
+    "Високий ельф",
+    "Зоряний ельф",
+    "Лісовий ельф",
+    "Морський ельф",
+    "Сідхе",
+    "Сутінковий ельф",
+  ],
+  humanoid: ["Андроїд", "Велетень", "Кіборг", "Кіклоп", "Клон", "Огр", "Тіфлінг", "Троль"],
+  mythical: [
+    "Василіск",
+    "Гідра",
+    "Грифон",
+    "Єдиноріг",
+    "Кентавр",
+    "Мантикора",
+    "Мінотавр",
+    "Пегас",
+    "Фенікс",
+    "Химера",
+  ],
+  other: ["Голем", "Енергетична істота", "Іншопланетянин", "Розумна машина", "Слизень"],
+  own: ["Ткач долі", "Фримен"],
+  smallfolk: ["Брауні", "Гном", "Гоблін", "Гобіт", "Гремлін", "Домовик", "Кобольд", "Лепрекон"],
+  spirits: ["Ангел", "Біс", "Демон", "Джин", "Елементаль", "Лісовик", "Мавка", "Русалка", "Чорт"],
+  undead: ["Банші", "Гуль", "Зомбі", "Лич", "Мара", "Мумія", "Привид", "Ревенант", "Скелет"],
+} as const satisfies Record<"other" | "own" | keyof typeof CATEGORY, readonly string[]>;
 
 const SPECIES = {
   darkElf: system(
@@ -68,13 +102,62 @@ const POPULAR = [
 
 const CATALOG = Object.values(SPECIES);
 
+const BROWSE_CATALOG = [...CATALOG, ...catalogExtras()].sort(compareBrowseOrder);
+
 const NO_CANDIDATES = { exact: null, similar: [] } as const satisfies SpeciesCandidates;
 
 const STORY = {
+  browseDelayMs: 600,
+  catalogTimeoutMs: 15000,
   label: "Вид",
   placeholder: "Пошук, наприклад «ельф»",
   retryTimeoutMs: 5000,
 } as const;
+
+function browsePage(pageNumber: number, pageSize: number) {
+  const start = (pageNumber - 1) * pageSize;
+  return {
+    items: BROWSE_CATALOG.slice(start, start + pageSize),
+    page: pageNumber,
+    pagesCount: Math.ceil(BROWSE_CATALOG.length / pageSize),
+    pageSize,
+    totalCount: BROWSE_CATALOG.length,
+  };
+}
+
+function browseRank(option: SpeciesOptionView): number {
+  const categoryKeys: string[] = Object.keys(CATEGORY);
+  if (option.isOwn) return 0;
+  if (option.category === null) return categoryKeys.length + 1;
+  return categoryKeys.indexOf(option.category.key) + 1;
+}
+
+function catalogExtras(): SpeciesOptionView[] {
+  const owned = CATALOG_EXTRAS.own.map((name, index) => own(extraId(0, index), name));
+  const categorized = Object.values(CATEGORY).flatMap((category, categoryIndex) =>
+    CATALOG_EXTRAS[category.key].map((name, index) =>
+      system(extraId(categoryIndex + 1, index), `${category.key}_${index}`, name, category),
+    ),
+  );
+  const uncategorized = CATALOG_EXTRAS.other.map((name, index) =>
+    system(extraId(Object.keys(CATEGORY).length + 1, index), `other_${index}`, name, null),
+  );
+  return [...owned, ...categorized, ...uncategorized];
+}
+
+function compareBrowseOrder(left: SpeciesOptionView, right: SpeciesOptionView): number {
+  return browseRank(left) - browseRank(right) || left.name.localeCompare(right.name, "uk");
+}
+
+function delayed(response: Response): Promise<Response> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(response), STORY.browseDelayMs);
+  });
+}
+
+function extraId(groupIndex: number, index: number): string {
+  return `00000000-0000-4000-8000-${String(1000 + groupIndex * 100 + index).padStart(12, "0")}`;
+}
 
 function Harness({
   allowCreate,
@@ -117,6 +200,7 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 function mockSpecies({
+  browseFailsFromPage,
   candidates = {},
   createStatus = 201,
   own: ownSpecies = [],
@@ -154,6 +238,16 @@ function mockSpecies({
       return Promise.resolve(
         jsonResponse(200, candidates[url.searchParams.get("name") ?? ""] ?? NO_CANDIDATES),
       );
+    }
+    if (url.pathname === "/api/species/browse") {
+      const pageNumber = Number(url.searchParams.get("pageNumber") ?? "1");
+      const pageSize = Number(
+        url.searchParams.get("pageSize") ?? String(SPECIES_SEARCH.browsePageSize),
+      );
+      if (browseFailsFromPage !== undefined && pageNumber >= browseFailsFromPage) {
+        return delayed(jsonResponse(500, { message: "Internal server error" }));
+      }
+      return delayed(jsonResponse(200, browsePage(pageNumber, pageSize)));
     }
     if (url.pathname === "/api/species/own") {
       return Promise.resolve(jsonResponse(200, { items: ownSpecies }));
@@ -207,15 +301,81 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const PopularGroupedByCategory: Story = {
+export const PinnedAboveWholeCatalog: Story = {
   play: async ({ canvas }) => {
     const surface = within(document.body);
 
     await userEvent.click(canvas.getByRole("combobox", { name: STORY.label }));
 
-    await waitFor(() => expect(surface.getByText("Люди та людиноподібні")).toBeVisible());
-    await expect(surface.getByText("Ваші види")).toBeInTheDocument();
-    await expect(surface.getByRole("option", { name: "Дракон" })).toBeInTheDocument();
+    const popular = await surface.findByRole(
+      "group",
+      { name: "Популярні" },
+      { timeout: STORY.retryTimeoutMs },
+    );
+    await expect(within(popular).getByRole("option", { name: "Дракон" })).toBeInTheDocument();
+    await expect(
+      within(surface.getByRole("group", { name: "Ваші нещодавні" })).getByRole("option", {
+        name: "Відьмак",
+      }),
+    ).toBeInTheDocument();
+    await expect(
+      within(surface.getByRole("group", { name: "Ваші види" })).queryByRole("option", {
+        name: "Відьмак",
+      }),
+    ).toBeNull();
+    await expect(surface.getByRole("group", { name: "Ельфи та споріднені" })).toBeInTheDocument();
+  },
+  render: () => <Harness />,
+};
+
+export const ScrollLoadsWholeCatalog: Story = {
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("combobox", { name: STORY.label }));
+    const listbox = await surface.findByRole(
+      "listbox",
+      { name: STORY.label },
+      { timeout: STORY.retryTimeoutMs },
+    );
+    await surface.findByRole("group", { name: "Популярні" }, { timeout: STORY.retryTimeoutMs });
+
+    await waitFor(
+      () => {
+        listbox.parentElement?.scrollTo({ top: listbox.scrollHeight });
+        expect(surface.getByRole("option", { name: "Іншопланетянин" })).toBeInTheDocument();
+      },
+      { timeout: STORY.catalogTimeoutMs },
+    );
+  },
+  render: () => <Harness />,
+};
+
+export const LoadMoreError: Story = {
+  beforeEach: () => {
+    mockSpecies({ browseFailsFromPage: 2 });
+  },
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("combobox", { name: STORY.label }));
+    const listbox = await surface.findByRole(
+      "listbox",
+      { name: STORY.label },
+      { timeout: STORY.retryTimeoutMs },
+    );
+    await surface.findByRole("group", { name: "Популярні" }, { timeout: STORY.retryTimeoutMs });
+
+    await waitFor(
+      () => {
+        listbox.parentElement?.scrollTo({ top: listbox.scrollHeight });
+        expect(surface.getByRole("alert")).toHaveTextContent("Не вдалося завантажити ще види.");
+      },
+      { timeout: STORY.catalogTimeoutMs },
+    );
+    await expect(
+      within(surface.getByRole("alert")).getByRole("button", { name: "Повторити" }),
+    ).toBeInTheDocument();
   },
   render: () => <Harness />,
 };

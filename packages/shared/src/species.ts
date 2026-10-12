@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-import { collapseSpaces } from "./common.js";
+import { collapseSpaces, createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { CountSchema, NoHtmlString } from "./internal.js";
 import { CatalogLocaleSchema } from "./taxonomy.js";
 
 export const SPECIES_SEARCH = {
+  browsePageSize: 30,
   debounceMs: 300,
   maxResults: 10,
   minQueryLength: 2,
@@ -75,6 +76,16 @@ export const SpeciesSearchResultSchema = z.object({
 });
 
 export type SpeciesSearchResult = z.infer<typeof SpeciesSearchResultSchema>;
+
+export const SpeciesBrowseQuerySchema = SpeciesLocaleQuerySchema.extend({
+  ...paginationQueryFields({ pageSizeDefault: SPECIES_SEARCH.browsePageSize }),
+});
+
+export type SpeciesBrowseQuery = z.infer<typeof SpeciesBrowseQuerySchema>;
+
+export const SpeciesBrowsePageSchema = createPaginatedSchema(SpeciesOptionViewSchema);
+
+export type SpeciesBrowsePage = z.infer<typeof SpeciesBrowsePageSchema>;
 
 export const SpeciesCandidatesQuerySchema = SpeciesLocaleQuerySchema.extend({
   name: SpeciesNameSchema,
