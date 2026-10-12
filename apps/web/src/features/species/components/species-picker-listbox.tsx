@@ -91,7 +91,7 @@ export function SpeciesPickerListbox({
 
           return (
             <PickerGroup
-              hint={section.kind === "similar" ? t("similarHint") : null}
+              hint={section.kind === "similar" && create !== null ? t("similarHint") : null}
               id={groupId}
               key={key}
               title={

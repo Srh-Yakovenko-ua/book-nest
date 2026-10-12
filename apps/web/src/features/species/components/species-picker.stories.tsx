@@ -76,13 +76,23 @@ const STORY = {
   retryTimeoutMs: 5000,
 } as const;
 
-function Harness({ initial = null }: { initial?: Nullable<SpeciesSelection> }) {
+function Harness({
+  allowCreate,
+  disabled,
+  initial = null,
+}: {
+  allowCreate?: boolean;
+  disabled?: boolean;
+  initial?: Nullable<SpeciesSelection>;
+}) {
   const [value, setValue] = useState<Nullable<SpeciesSelection>>(initial);
 
   return (
     <div className="flex w-80 max-w-full flex-col gap-2">
       <Label htmlFor="story-species">{STORY.label}</Label>
       <SpeciesPicker
+        allowCreate={allowCreate}
+        disabled={disabled}
         inputId="story-species"
         label={STORY.label}
         onChange={setValue}
@@ -110,7 +120,14 @@ function mockSpecies({
   candidates = {},
   createStatus = 201,
   own: ownSpecies = [],
-  preview = { bookOverrides: 0, canDelete: true, characters: 0, trashed: 0 },
+  preview = {
+    bookOverrides: 0,
+    canDelete: true,
+    characters: 0,
+    trashed: 0,
+    trashedBookOverrides: 0,
+    trashedCharacters: 0,
+  },
   searchStatus = 200,
 }: SpeciesMock) {
   getQueryClient().clear();
@@ -266,6 +283,40 @@ export const SimilarCandidatesStillAllowCreate: Story = {
   render: () => <Harness />,
 };
 
+export const SelectOnlyOffersNoCreate: Story = {
+  beforeEach: () => {
+    mockSpecies({
+      candidates: { Ельфійка: { exact: null, similar: [SPECIES.elf, SPECIES.halfElf] } },
+    });
+  },
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+    const input = canvas.getByRole("combobox", { name: STORY.label });
+
+    await userEvent.click(input);
+    await userEvent.type(input, "Ельфійка");
+
+    await waitFor(() => expect(surface.getByText("Схожі види")).toBeVisible());
+    await expect(surface.queryByRole("option", { name: /Створити/ })).toBeNull();
+    await userEvent.click(surface.getByRole("option", { name: "Напівельф" }));
+    await waitFor(() =>
+      expect(canvas.getByTestId("selection")).toHaveTextContent(`${SPECIES.halfElf.id}:Напівельф`),
+    );
+  },
+  render: () => <Harness allowCreate={false} />,
+};
+
+export const DisabledWhilePending: Story = {
+  play: async ({ canvas }) => {
+    const input = canvas.getByRole("combobox", { name: STORY.label });
+
+    await expect(input).toBeDisabled();
+    await expect(input).toHaveValue("Людина");
+    await expect(canvas.queryByRole("button", { name: "Очистити вид" })).toBeNull();
+  },
+  render: () => <Harness disabled initial={{ id: SPECIES.human.id, label: "Людина" }} />,
+};
+
 export const CreateSelectsNewSpecies: Story = {
   play: async ({ canvas }) => {
     const surface = within(document.body);
@@ -335,10 +386,35 @@ export const ManageOwnSpecies: Story = {
   beforeEach: () => {
     mockSpecies({
       own: [
-        { ...SPECIES.witcher, usage: { bookOverrides: 1, characters: 3, trashed: 1 } },
-        { ...SPECIES.sandworm, usage: { bookOverrides: 0, characters: 0, trashed: 0 } },
+        {
+          ...SPECIES.witcher,
+          usage: {
+            bookOverrides: 1,
+            characters: 3,
+            trashed: 1,
+            trashedBookOverrides: 0,
+            trashedCharacters: 1,
+          },
+        },
+        {
+          ...SPECIES.sandworm,
+          usage: {
+            bookOverrides: 0,
+            characters: 0,
+            trashed: 0,
+            trashedBookOverrides: 0,
+            trashedCharacters: 0,
+          },
+        },
       ],
-      preview: { bookOverrides: 1, canDelete: false, characters: 3, trashed: 1 },
+      preview: {
+        bookOverrides: 1,
+        canDelete: false,
+        characters: 3,
+        trashed: 1,
+        trashedBookOverrides: 0,
+        trashedCharacters: 1,
+      },
     });
   },
   play: async ({ canvas }) => {
@@ -349,10 +425,11 @@ export const ManageOwnSpecies: Story = {
     const dialog = await surface.findByRole("dialog", { name: "Керування власними видами" });
     await waitFor(() => expect(within(dialog).getByText("Відьмак")).toBeVisible());
     await expect(
-      within(dialog).getByText("Персонажів: 3 (у кошику: 1) · У книгах: 1"),
+      within(dialog).getByText("Персонажів: 3 · Призначень у книгах: 1"),
     ).toBeInTheDocument();
 
-    await userEvent.click(within(dialog).getByRole("button", { name: "Видалити «Відьмак»" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Дії з видом «Відьмак»" }));
+    await userEvent.click(await surface.findByRole("menuitem", { name: "Видалити" }));
 
     await waitFor(() =>
       expect(

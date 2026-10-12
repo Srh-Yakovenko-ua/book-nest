@@ -129,7 +129,18 @@ describe("SpeciesService.deleteOwn when a reference lands after the usage check"
         .fn()
         .mockResolvedValueOnce(new Map())
         .mockResolvedValueOnce(
-          new Map([[SOURCE_ID, { bookOverrides: 2, characters: 1, trashed: 0 }]]),
+          new Map([
+            [
+              SOURCE_ID,
+              {
+                bookOverrides: 2,
+                characters: 1,
+                trashed: 0,
+                trashedBookOverrides: 0,
+                trashedCharacters: 0,
+              },
+            ],
+          ]),
         ),
       deleteCustom: vi.fn().mockRejectedValue(knownRequestError("P2003")),
       findVisibleById: vi.fn().mockResolvedValue(customSpecies()),
@@ -139,7 +150,13 @@ describe("SpeciesService.deleteOwn when a reference lands after the usage check"
       service.deleteOwn({ speciesId: SOURCE_ID, userId: USER_ID }),
     ).rejects.toMatchObject({
       code: "species_in_use",
-      details: { bookOverrides: 2, characters: 1, trashed: 0 },
+      details: {
+        bookOverrides: 2,
+        characters: 1,
+        trashed: 0,
+        trashedBookOverrides: 0,
+        trashedCharacters: 0,
+      },
       status: 409,
     });
   });

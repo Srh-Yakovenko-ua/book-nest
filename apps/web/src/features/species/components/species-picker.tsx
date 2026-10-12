@@ -24,6 +24,8 @@ type SpeciesPickerEntry =
   | { id: string; kind: "option"; option: SpeciesOptionView };
 
 type SpeciesPickerProps = {
+  allowCreate?: boolean;
+  disabled?: boolean;
   excludeId?: string;
   inputId: string;
   label: string;
@@ -39,6 +41,8 @@ const HIGHLIGHT_STEP = { ArrowDown: 1, ArrowUp: -1 } as const;
 const CREATE_ENTRY_KEY = "create";
 
 export function SpeciesPicker({
+  allowCreate = true,
+  disabled = false,
   excludeId,
   inputId,
   label,
@@ -56,8 +60,10 @@ export function SpeciesPicker({
   const [search, setSearch] = useState<Nullable<string>>(null);
   const [highlightedId, setHighlightedId] = useState<Nullable<string>>(null);
 
-  const typed = search ?? "";
-  const model = useSpeciesPickerModel({ excludeId, open, typed });
+  const isOpen = open && !disabled;
+  const activeSearch = disabled ? null : search;
+  const typed = activeSearch ?? "";
+  const model = useSpeciesPickerModel({ allowCreate, excludeId, open: isOpen, typed });
   const isCreating = model.createSpecies.isPending;
 
   const optionEntries = model.sections
@@ -78,9 +84,9 @@ export function SpeciesPicker({
   const entries = createEntry === null ? optionEntries : [...optionEntries, createEntry];
   const firstMatch = typed.trim().length < SPECIES_SEARCH.minQueryLength ? undefined : entries[0];
   const defaultEntry =
-    search === null ? entries.find((entry) => isSelected(entry, value)) : firstMatch;
+    activeSearch === null ? entries.find((entry) => isSelected(entry, value)) : firstMatch;
   const activeEntry = entries.find((entry) => entry.id === highlightedId) ?? defaultEntry;
-  const showClear = value !== null || typed.length > 0;
+  const showClear = !disabled && (value !== null || typed.length > 0);
   const retriesOnEnter = activeEntry === undefined && model.notice === "loadFailed";
 
   function changeOpen(next: boolean) {
@@ -153,20 +159,21 @@ export function SpeciesPicker({
   }
 
   return (
-    <Popover onOpenChange={changeOpen} open={open}>
+    <Popover onOpenChange={changeOpen} open={isOpen}>
       <PopoverAnchor asChild>
         <div className="relative" ref={anchorRef}>
           <input
-            aria-activedescendant={open ? activeEntry?.id : undefined}
+            aria-activedescendant={isOpen ? activeEntry?.id : undefined}
             aria-autocomplete="list"
-            aria-controls={open ? listboxId : undefined}
-            aria-expanded={open}
+            aria-controls={isOpen ? listboxId : undefined}
+            aria-expanded={isOpen}
             autoComplete="off"
             autoCorrect="off"
             className={cn(
-              "h-10 w-full min-w-0 truncate rounded-lg border border-input bg-field pl-2.5 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
+              "h-10 w-full min-w-0 truncate rounded-lg border border-input bg-field pl-2.5 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
               showClear ? "pr-16" : "pr-8",
             )}
+            disabled={disabled}
             id={inputId}
             maxLength={SPECIES_SEARCH.nameMax}
             onBlur={onBlur}
@@ -185,7 +192,7 @@ export function SpeciesPicker({
             role="combobox"
             spellCheck={false}
             type="text"
-            value={search ?? value?.label ?? ""}
+            value={activeSearch ?? value?.label ?? ""}
           />
           {showClear ? (
             <button
@@ -202,13 +209,14 @@ export function SpeciesPicker({
             aria-hidden
             className={cn(
               "pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground transition-transform motion-reduce:transition-none",
-              open && "rotate-180",
+              isOpen && "rotate-180",
+              disabled && "opacity-50",
             )}
             name="chevron-down"
             size={16}
           />
           <span aria-live="polite" className="sr-only" role="status">
-            {open ? (
+            {isOpen ? (
               <PickerAnnouncement
                 notice={model.notice}
                 optionCount={optionEntries.length}

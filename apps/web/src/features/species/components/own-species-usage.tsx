@@ -2,16 +2,33 @@
 
 import type { SpeciesUsage } from "@app/shared";
 
+import { isSpeciesInUse } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 export function OwnSpeciesUsage({ usage }: { usage: SpeciesUsage }) {
   const t = useTranslations("species.usage");
 
-  if (usage.characters === 0 && usage.bookOverrides === 0) return t("unused");
+  if (!isSpeciesInUse(usage)) return t("unused");
 
-  return t("summary", {
+  const summary = t("summary", {
     bookOverrides: usage.bookOverrides,
     characters: usage.characters,
-    trashed: usage.trashed,
   });
+  const trashedParts = [
+    usage.trashedCharacters === 0
+      ? null
+      : t("trashedCharacters", { count: usage.trashedCharacters }),
+    usage.trashedBookOverrides === 0
+      ? null
+      : t("trashedBookOverrides", { count: usage.trashedBookOverrides }),
+  ].filter((part) => part !== null);
+
+  if (trashedParts.length === 0) return summary;
+
+  return (
+    <>
+      <span className="block">{summary}</span>
+      <span className="block">{t("trashed", { parts: trashedParts.join(" · ") })}</span>
+    </>
+  );
 }

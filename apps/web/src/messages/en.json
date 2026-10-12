@@ -8279,55 +8279,64 @@
       "notFound": "Species not found. It may have been deleted already."
     },
     "manage": {
+      "actions": "Actions for “{name}”",
       "delete": "Delete",
-      "deleteAction": "Delete “{name}”",
       "deletePanel": {
         "back": "Back",
+        "cancel": "Cancel",
         "checking": "Checking where this species is used…",
         "confirm": "Delete",
-        "inUse": "“{name}” is still in use, so it can’t be deleted.",
+        "inUse": "This species is in use",
         "mergeInstead": "Merge into another species",
-        "nextAction": "Merge it into another species — its characters and books will move there. Or change the species of those characters first.",
+        "nextAction": "It can’t be deleted. Merge it into another species — its characters and book assignments will move there. Or change the species of those characters first.",
         "previewFailed": "Couldn’t check where this species is used.",
         "retry": "Retry",
         "unused": "“{name}” isn’t used anywhere. Delete it permanently?"
       },
       "description": "Rename, merge or delete the species you created. Built-in species can’t be changed.",
       "empty": "You haven’t created any species yet. New ones appear here as soon as you create them in the Species field.",
+      "filters": {
+        "all": "All",
+        "label": "Filter by usage",
+        "unused": "Not used",
+        "used": "In use"
+      },
       "listLabel": "Your species",
       "loadFailed": "Couldn’t load your species.",
       "loading": "Loading your species…",
       "merge": "Merge",
-      "mergeAction": "Merge “{name}”",
       "mergePanel": {
-        "back": "Back",
+        "cancel": "Cancel",
         "confirm": "Merge",
-        "confirmLabel": "Review before merging",
-        "confirmNote": "“{source}” will be deleted and all its characters and books will move to “{target}”. Spoiler flags are kept. This can’t be undone.",
-        "next": "Next",
+        "previewLabel": "Review before merging",
+        "previewMoves": "Expected to move: {characters, plural, one {# character} other {# characters}} and {bookOverrides, plural, one {# book assignment} other {# book assignments}}. The final counts appear after the merge.",
+        "previewNote": "“{source}” will be deleted. Spoiler flags are kept. This can’t be undone.",
         "sourceLabel": "Species to merge",
-        "targetHint": "Characters and books with this species move to the one you pick, and this species is deleted.",
         "targetLabel": "Merge into",
         "targetPlaceholder": "Find a species…"
       },
+      "noMatches": "Nothing matches these filters.",
       "open": "Manage your own species",
       "rename": "Rename",
-      "renameAction": "Rename “{name}”",
       "renamePanel": {
         "back": "Back",
+        "currentName": "Current name",
         "duplicate": "“{name}” already exists. You can merge into it instead of renaming.",
         "duplicateUnknown": "A species with this name already exists.",
         "invalid": "Enter a name up to {max, plural, one {# character} other {# characters}}.",
-        "label": "New name for “{name}”",
+        "label": "New name",
         "mergeIntoExisting": "Merge into it",
         "save": "Save",
-        "similar": "Similar species: {names}. Make sure this really is a different one."
+        "similar": "Similar species already exist. Make sure this really is a different one:",
+        "title": "Rename species"
       },
       "retry": "Retry",
+      "searchLabel": "Search your species",
+      "searchPlaceholder": "Find a species…",
       "title": "Manage your own species",
       "toast": {
         "deleted": "Species “{name}” deleted",
-        "merged": "Merged into “{name}”: {characters, plural, one {# character} other {# characters}}, {bookOverrides, plural, one {# book} other {# books}} moved",
+        "merged": "Merged into “{name}”: {characters, plural, one {# character} other {# characters}}, {bookOverrides, plural, one {# book assignment} other {# book assignments}} moved",
         "renamed": "Species renamed to “{name}”"
       }
     },
@@ -8355,7 +8364,10 @@
       "similarHint": "This may be the same species. Pick an existing one or create a new one."
     },
     "usage": {
-      "summary": "Characters: {characters}{trashed, plural, =0 {} other { (# in trash)}} · Books: {bookOverrides}",
+      "summary": "Characters: {characters} · Book assignments: {bookOverrides}",
+      "trashed": "Of these, linked to Trash: {parts}",
+      "trashedBookOverrides": "{count, plural, one {# assignment} other {# assignments}}",
+      "trashedCharacters": "{count, plural, one {# character} other {# characters}}",
       "unused": "Not used anywhere"
     }
   },

@@ -31,6 +31,7 @@ type SeedCharacterInput = {
 };
 
 type SeedOverrideInput = {
+  bookDeletedAt?: Date;
   characterId: string;
   legacySpeciesOverride?: Nullable<string>;
   prisma: PrismaService;
@@ -101,6 +102,7 @@ export async function seedCharacter({
 }
 
 export async function seedOverride({
+  bookDeletedAt,
   characterId,
   legacySpeciesOverride = null,
   prisma,
@@ -109,7 +111,7 @@ export async function seedOverride({
   userId,
 }: SeedOverrideInput): Promise<{ id: string }> {
   const book = await prisma.book.create({
-    data: { title: "Override probe", userId },
+    data: { deletedAt: bookDeletedAt, purgeAt: bookDeletedAt, title: "Override probe", userId },
     select: { id: true },
   });
   const bookCharacter = await prisma.bookCharacter.create({

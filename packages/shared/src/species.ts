@@ -93,9 +93,15 @@ export const SpeciesUsageSchema = z.object({
   bookOverrides: CountSchema,
   characters: CountSchema,
   trashed: CountSchema,
+  trashedBookOverrides: CountSchema,
+  trashedCharacters: CountSchema,
 });
 
 export type SpeciesUsage = z.infer<typeof SpeciesUsageSchema>;
+
+export function isSpeciesInUse(usage: SpeciesUsage): boolean {
+  return usage.characters > 0 || usage.bookOverrides > 0;
+}
 
 export const OwnSpeciesViewSchema = SpeciesOptionViewSchema.extend({
   usage: SpeciesUsageSchema,

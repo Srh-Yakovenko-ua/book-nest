@@ -10,29 +10,33 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { focusOnMount } from "@/lib/focus-on-mount";
 
 import type { SpeciesSelection } from "../model/species-selection";
 
 import { useMergeSpecies } from "../api/use-merge-species";
 import { toSpeciesFailure } from "../model/species-failure";
+import { ClampedSpeciesName } from "./clamped-species-name";
 import { OwnSpeciesUsage } from "./own-species-usage";
 import { SpeciesFailureMessage } from "./species-failure-message";
 import { SpeciesPicker } from "./species-picker";
 
 type MergeOwnSpeciesPanelProps = {
+  busy: boolean;
   initialTarget: Nullable<SpeciesSelection>;
   onBack: () => void;
+  onBusyChange: (busy: boolean) => void;
   onMerged: (target: SpeciesOptionView) => void;
   species: OwnSpeciesView;
 };
 
-type MergeStep = "choose" | "confirm";
-
 const MERGE_TARGET_INPUT_ID = "merge-own-species-target";
 
 export function MergeOwnSpeciesPanel({
+  busy,
   initialTarget,
   onBack,
+  onBusyChange,
   onMerged,
   species,
 }: MergeOwnSpeciesPanelProps) {
@@ -40,22 +44,28 @@ export function MergeOwnSpeciesPanel({
   const tToast = useTranslations("species.manage.toast");
   const mergeSpecies = useMergeSpecies();
   const [target, setTarget] = useState<Nullable<SpeciesSelection>>(initialTarget);
-  const [step, setStep] = useState<MergeStep>("choose");
-  const confirmSectionRef = useRef<HTMLElement>(null);
-  const confirmLabelId = useId();
-  const confirmNoteId = useId();
+  const targetInputRef = useRef<Nullable<HTMLInputElement>>(null);
+  const previewLabelId = useId();
+  const previewDetailsId = useId();
 
   useEffect(() => {
-    if (step === "confirm") confirmSectionRef.current?.focus();
-  }, [step]);
+    targetInputRef.current?.focus();
+  }, []);
 
   const failure = mergeSpecies.isError ? toSpeciesFailure(mergeSpecies.error) : null;
 
+  function changeTarget(next: Nullable<SpeciesSelection>) {
+    setTarget(next);
+    mergeSpecies.reset();
+  }
+
   function confirmMerge() {
-    if (target === null) return;
+    if (target === null || busy) return;
+    onBusyChange(true);
     mergeSpecies.mutate(
       { input: { targetId: target.id }, sourceId: species.id },
       {
+        onSettled: () => onBusyChange(false),
         onSuccess: (result) => {
           toast.success(
             tToast("merged", {
@@ -71,97 +81,88 @@ export function MergeOwnSpeciesPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-1 rounded-xl border border-border bg-muted/40 p-3">
+    <div className="flex min-w-0 flex-col gap-4">
+      <section className="flex min-w-0 flex-col gap-1 rounded-xl border border-border bg-muted/40 p-3">
         <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {t("sourceLabel")}
         </span>
-        <span className="text-sm font-medium break-words text-foreground">{species.name}</span>
+        <ClampedSpeciesName className="text-sm font-medium text-foreground" name={species.name} />
         <span className="text-xs text-muted-foreground">
           <OwnSpeciesUsage usage={species.usage} />
         </span>
       </section>
 
-      {step === "choose" ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={MERGE_TARGET_INPUT_ID}>{t("targetLabel")}</Label>
-          <SpeciesPicker
-            excludeId={species.id}
-            inputId={MERGE_TARGET_INPUT_ID}
-            label={t("targetLabel")}
-            onChange={setTarget}
-            placeholder={t("targetPlaceholder")}
-            value={target}
-          />
-          <p className="text-xs text-muted-foreground">{t("targetHint")}</p>
-        </div>
-      ) : (
+      <div className="flex min-w-0 flex-col gap-2">
+        <Label htmlFor={MERGE_TARGET_INPUT_ID}>{t("targetLabel")}</Label>
+        <SpeciesPicker
+          allowCreate={false}
+          disabled={busy}
+          excludeId={species.id}
+          inputId={MERGE_TARGET_INPUT_ID}
+          label={t("targetLabel")}
+          onChange={changeTarget}
+          placeholder={t("targetPlaceholder")}
+          ref={(element) => {
+            targetInputRef.current = element;
+          }}
+          value={target}
+        />
+      </div>
+
+      {target === null ? null : (
         <section
-          aria-describedby={confirmNoteId}
-          aria-labelledby={confirmLabelId}
-          aria-live="polite"
-          className="flex flex-col gap-2 rounded-xl border border-accent-border bg-accent/50 p-3 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          ref={confirmSectionRef}
-          tabIndex={-1}
+          aria-labelledby={previewLabelId}
+          className="flex min-w-0 flex-col gap-2 rounded-xl border border-accent-border bg-accent/50 p-3"
         >
           <span
             className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-            id={confirmLabelId}
+            id={previewLabelId}
           >
-            {t("confirmLabel")}
+            {t("previewLabel")}
           </span>
-          <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
-            <span className="min-w-0 break-words">{species.name}</span>
-            <UiIcon aria-hidden className="shrink-0 text-icon" name="arrow-right" size={16} />
-            <span className="min-w-0 break-words">{target?.label}</span>
+          <p className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-sm font-medium text-foreground">
+            <ClampedSpeciesName name={species.name} />
+            <UiIcon aria-hidden className="text-icon" name="arrow-right" size={16} />
+            <ClampedSpeciesName name={target.label} />
           </p>
-          <p className="text-xs text-muted-foreground" id={confirmNoteId}>
-            {t("confirmNote", { source: species.name, target: target?.label ?? "" })}
-          </p>
+          <div
+            className="flex flex-col gap-1 text-xs wrap-anywhere text-muted-foreground"
+            id={previewDetailsId}
+          >
+            <p>
+              {t("previewMoves", {
+                bookOverrides: species.usage.bookOverrides,
+                characters: species.usage.characters,
+              })}
+            </p>
+            <p>{t("previewNote", { source: species.name })}</p>
+          </div>
         </section>
       )}
 
-      {failure === null ? null : <SpeciesFailureMessage failure={failure} />}
+      {failure === null ? null : (
+        <div
+          className="-m-1 rounded-lg p-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          ref={focusOnMount}
+          tabIndex={-1}
+        >
+          <SpeciesFailureMessage failure={failure} />
+        </div>
+      )}
 
       <DialogFooter>
-        <Button
-          disabled={mergeSpecies.isPending}
-          onClick={() => {
-            if (step === "confirm") {
-              setStep("choose");
-              mergeSpecies.reset();
-              return;
-            }
-            onBack();
-          }}
-          type="button"
-          variant="secondary"
-        >
-          {t("back")}
+        <Button disabled={busy} onClick={onBack} type="button" variant="secondary">
+          {t("cancel")}
         </Button>
-        {step === "choose" ? (
-          <Button
-            disabled={target === null}
-            key="next"
-            onClick={() => setStep("confirm")}
-            type="button"
-          >
-            {t("next")}
-          </Button>
-        ) : (
-          <Button
-            disabled={target === null || mergeSpecies.isPending}
-            key="confirm"
-            loading={mergeSpecies.isPending}
-            onClick={(event) => {
-              if (event.detail > 1) return;
-              confirmMerge();
-            }}
-            type="button"
-          >
-            {t("confirm")}
-          </Button>
-        )}
+        <Button
+          aria-describedby={target === null ? undefined : previewDetailsId}
+          disabled={target === null || busy}
+          loading={busy}
+          onClick={confirmMerge}
+          type="button"
+        >
+          {t("confirm")}
+        </Button>
       </DialogFooter>
     </div>
   );
