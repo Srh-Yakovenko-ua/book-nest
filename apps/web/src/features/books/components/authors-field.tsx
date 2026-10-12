@@ -205,12 +205,12 @@ export function AuthorsField({
             {isLoading ? <CommandEmpty>{t("author.searching")}</CommandEmpty> : null}
             {isEmpty ? <CommandEmpty>{t("author.empty")}</CommandEmpty> : null}
             {recentOptions.length > 0 ? (
-              <CommandGroup heading={t("author.recentHeading")}>
+              <CommandGroup heading={t("author.recentHeading")} variant="sectioned">
                 {recentOptions.map(authorItem)}
               </CommandGroup>
             ) : null}
             {allOptions.length > 0 ? (
-              <CommandGroup heading={t("author.allHeading")}>
+              <CommandGroup heading={t("author.allHeading")} variant="sectioned">
                 {allOptions.map(authorItem)}
               </CommandGroup>
             ) : null}
@@ -220,7 +220,7 @@ export function AuthorsField({
               </div>
             ) : null}
             {draftIsNewAuthor ? (
-              <CommandGroup heading={t("author.createHeading")}>
+              <CommandGroup heading={t("author.createHeading")} variant="sectioned">
                 <CommandItem
                   className="cursor-pointer"
                   onSelect={addCustom}

@@ -194,7 +194,7 @@ export function PublisherAutocomplete({
               <CommandEmpty>{t("publisher.empty")}</CommandEmpty>
             ) : null}
             {existingMatches.length > 0 ? (
-              <CommandGroup heading={t("publisher.existingHeading")}>
+              <CommandGroup heading={t("publisher.existingHeading")} variant="sectioned">
                 {existingMatches.map((match) => (
                   <PublisherOption
                     key={match.id}
@@ -207,7 +207,7 @@ export function PublisherAutocomplete({
               </CommandGroup>
             ) : null}
             {similarMatches.length > 0 ? (
-              <CommandGroup heading={t("publisher.similarHeading")}>
+              <CommandGroup heading={t("publisher.similarHeading")} variant="sectioned">
                 {similarMatches.map((match) => (
                   <PublisherOption
                     key={match.id}
@@ -220,7 +220,7 @@ export function PublisherAutocomplete({
               </CommandGroup>
             ) : null}
             {filteredRecent.length > 0 ? (
-              <CommandGroup heading={t("publisher.recentHeading")}>
+              <CommandGroup heading={t("publisher.recentHeading")} variant="sectioned">
                 {filteredRecent.map((publisher) => (
                   <PublisherOption
                     key={publisher.id}
@@ -231,7 +231,7 @@ export function PublisherAutocomplete({
               </CommandGroup>
             ) : null}
             {catalogResults.length > 0 ? (
-              <CommandGroup heading={t("publisher.allHeading")}>
+              <CommandGroup heading={t("publisher.allHeading")} variant="sectioned">
                 {catalogResults.map((publisher) => (
                   <PublisherOption
                     key={publisher.id}
@@ -252,7 +252,7 @@ export function PublisherAutocomplete({
               </div>
             ) : null}
             {showCustomOption ? (
-              <CommandGroup heading={t("publisher.createHeading")}>
+              <CommandGroup heading={t("publisher.createHeading")} variant="sectioned">
                 <CommandItem
                   className="cursor-pointer"
                   onSelect={pickCustom}

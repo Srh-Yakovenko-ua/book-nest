@@ -204,7 +204,7 @@ export function CharacterRolePicker({ customRoles, onChange, value }: CharacterR
               <CommandEmpty>{t("alreadyAdded", { name: labelOf(alreadyAddedRole) })}</CommandEmpty>
             )}
             {suggestions.length > 0 ? (
-              <CommandGroup heading={t("suggestionsHeading")}>
+              <CommandGroup heading={t("suggestionsHeading")} variant="sectioned">
                 {suggestions.map(({ label, roleType }) => (
                   <CommandItem
                     className={ROLE_ITEM_CLASS_NAME}
@@ -218,7 +218,7 @@ export function CharacterRolePicker({ customRoles, onChange, value }: CharacterR
               </CommandGroup>
             ) : null}
             {customSuggestions.length > 0 ? (
-              <CommandGroup heading={t("customHeading")}>
+              <CommandGroup heading={t("customHeading")} variant="sectioned">
                 {customSuggestions.map(({ count, label }) => (
                   <CommandItem
                     className={ROLE_ITEM_CLASS_NAME}
@@ -245,7 +245,7 @@ export function CharacterRolePicker({ customRoles, onChange, value }: CharacterR
               </CommandGroup>
             ) : null}
             {canCreateCustom ? (
-              <CommandGroup heading={t("createHeading")}>
+              <CommandGroup heading={t("createHeading")} variant="sectioned">
                 <CommandItem
                   className={ROLE_ITEM_CLASS_NAME}
                   onSelect={() =>

@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { sectionedGroupClassNames } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -308,10 +309,14 @@ export function CharacterCreatableSingleSelect<Option extends string, Sentinel e
             />
           ))}
           {suggestions === undefined || matchingSuggestions.length === 0 ? null : (
-            <div aria-labelledby={suggestionsHeadingId} role="group">
+            <div
+              aria-labelledby={suggestionsHeadingId}
+              className={sectionedGroupClassNames.group}
+              role="group"
+            >
               <div
                 aria-hidden
-                className="px-2 py-1.5 text-xs font-medium text-muted-foreground"
+                className={sectionedGroupClassNames.heading}
                 id={suggestionsHeadingId}
               >
                 {suggestions.heading}
