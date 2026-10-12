@@ -82,6 +82,7 @@ export function buildCharacterEditSchema(
         .object({
           aliases: z.array(aliasRowSchema(cappedText)),
           attitude: attitudeOrNone,
+          avatarMediaId: z.string().nullable(),
           customGender: cappedText(CHARACTER_TEXT_MAX.customGender),
           entityKind: CharacterEntityKindSchema,
           gender: CharacterGenderSchema,
@@ -282,6 +283,7 @@ export function toCharacterEditValues({
     global: {
       aliases: toAliasRows({ bookId: null, character }),
       attitude: character.globalAttitude ?? "",
+      avatarMediaId: character.avatar?.id ?? null,
       customGender: character.customGender ?? "",
       entityKind: character.entityKind,
       gender: character.gender,
@@ -298,6 +300,7 @@ export function toGlobalUpdate(
   maskedFields: readonly string[] = [],
 ): UpdateCharacter {
   return {
+    avatarMediaId: values.avatarMediaId,
     customGender: values.gender === "custom" ? textOrNull(values.customGender) : null,
     entityKind: values.entityKind,
     gender: values.gender,

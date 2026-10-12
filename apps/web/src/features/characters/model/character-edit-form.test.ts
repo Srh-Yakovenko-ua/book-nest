@@ -139,6 +139,33 @@ describe("toGlobalUpdate", () => {
     expect(toGlobalUpdate(values.global)).toHaveProperty("speciesId", SPECIES_REFS.witcher.id);
     expect(toGlobalUpdate({ ...values.global, species: null })).toHaveProperty("speciesId", null);
   });
+
+  it("carries the main avatar and sees a changed one as a global change only", () => {
+    const baseline = toCharacterEditValues({
+      bookId: "book-1",
+      character: {
+        ...character,
+        avatar: {
+          contentType: "image/png",
+          createdAt: "2026-06-27T00:00:00.000Z",
+          height: 512,
+          id: "media-avatar-1",
+          kind: "avatar",
+          name: "avatar.png",
+          sizeBytes: 2048,
+          urls: { card: "card.webp", full: "full.webp", thumb: "thumb.webp" },
+          width: 512,
+        },
+      },
+      locale: "uk",
+    });
+    const current = { ...baseline, global: { ...baseline.global, avatarMediaId: null } };
+
+    expect(toGlobalUpdate(baseline.global)).toHaveProperty("avatarMediaId", "media-avatar-1");
+    expect(toGlobalUpdate(current.global)).toHaveProperty("avatarMediaId", null);
+    expect(isScopeDirty({ baseline, current, scope: "global" })).toBe(true);
+    expect(isScopeDirty({ baseline, current, scope: "book" })).toBe(false);
+  });
 });
 
 describe("resolveInherited", () => {

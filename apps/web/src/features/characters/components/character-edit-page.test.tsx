@@ -15,7 +15,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
-import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
+import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
   makeBookCharacterView,
@@ -917,26 +917,26 @@ describe("CharacterEditPage layout by mode", () => {
     expect(screen.queryByRole("heading", { name: "Спойлери" })).not.toBeInTheDocument();
   });
 
-  it("shows the book portrait panel next to the preview in a book context", async () => {
+  it("shows the image panel with the book image choice next to the preview in a book context", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
 
-    expect(screen.getByRole("region", { name: "Зображення в цій книзі" })).toBeInTheDocument();
+    expect(imagesPanel()).toBeInTheDocument();
+    expect(mainAvatarGroup()).toBeInTheDocument();
+    expect(bookImageSource()).toBeInTheDocument();
     expect(previewRegion()).toBeInTheDocument();
   });
 
-  it("shows the preview but no portrait panel or upload control without a book context", async () => {
+  it("shows only the main avatar in the image panel without a book context", async () => {
     renderEdit("");
 
     await screen.findByDisplayValue("Ґеральт");
 
     expect(previewRegion()).toBeInTheDocument();
-    expect(
-      screen.queryByRole("region", { name: "Зображення в цій книзі" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /зображення/i })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/зображення/i)).not.toBeInTheDocument();
+    expect(within(mainAvatarGroup()).getByRole("button", { name: "Додати" })).toBeInTheDocument();
+    expect(within(imagesPanel()).queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(within(imagesPanel()).queryByText("Зображення в цій книзі")).not.toBeInTheDocument();
   });
 });
 
@@ -964,15 +964,37 @@ class LoadedImage extends EventTarget {
   src = "";
 }
 
-async function choosePortraitFile(fileInputLabel = "Перетягніть зображення сюди") {
+function bookImageSource(): HTMLElement {
+  return within(imagesPanel()).getByRole("radiogroup", { name: "Зображення в цій книзі" });
+}
+
+function bookPortraitGroup(): HTMLElement {
+  return within(imagesPanel()).getByRole("group", { name: "Окремий портрет для цієї книги" });
+}
+
+async function chooseImageFile(group: HTMLElement, fileInputLabel = "Додати") {
   await userEvent.upload(
-    within(portraitPanel()).getByLabelText(fileInputLabel),
+    within(group).getByLabelText(fileInputLabel),
     new File(["portrait-bytes"], "portrait.png", { type: "image/png" }),
   );
 }
 
-function portraitPanel(): HTMLElement {
-  return screen.getByRole("region", { name: "Зображення в цій книзі" });
+function imagesPanel(): HTMLElement {
+  return screen.getByRole("region", { name: "Зображення персонажа" });
+}
+
+function mainAvatarGroup(): HTMLElement {
+  return within(imagesPanel()).getByRole("group", { name: "Основний аватар" });
+}
+
+async function selectBookPortrait() {
+  await userEvent.click(
+    within(bookImageSource()).getByRole("radio", { name: "Окремий портрет для цієї книги" }),
+  );
+}
+
+async function selectMainAvatar() {
+  await userEvent.click(within(bookImageSource()).getByRole("radio", { name: "Основний аватар" }));
 }
 
 function serveMediaUpload(respond: () => Promise<Response>) {
@@ -984,11 +1006,10 @@ function serveMediaUpload(respond: () => Promise<Response>) {
   });
 }
 
-async function uploadPortrait(fileInputLabel?: string) {
-  await choosePortraitFile(fileInputLabel);
-  await within(portraitPanel()).findByRole("button", {
-    name: "Використовувати основне зображення",
-  });
+async function uploadBookPortrait() {
+  await selectBookPortrait();
+  await chooseImageFile(bookPortraitGroup());
+  await within(bookPortraitGroup()).findByRole("button", { name: "Замінити" });
 }
 
 describe("CharacterEditPage live preview", () => {
@@ -1111,7 +1132,7 @@ describe("CharacterEditPage live preview", () => {
     await screen.findByDisplayValue("Ґеральт");
     expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
 
-    await uploadPortrait();
+    await uploadBookPortrait();
 
     expect(within(previewRegion()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
       "src",
@@ -1120,232 +1141,662 @@ describe("CharacterEditPage live preview", () => {
     expect(patchCount()).toBe(0);
   });
 
-  it("returns the preview to the initial fallback when the portrait is reset", async () => {
+  it("returns the preview to the initial fallback when the book goes back to the main avatar", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await uploadPortrait();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Використовувати основне зображення" }),
-    );
+    await uploadBookPortrait();
+    await selectMainAvatar();
 
     expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
     expect(within(previewRegion()).getByText("Ґ")).toBeInTheDocument();
   });
+
+  it("follows a new main avatar while the book inherits it", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await chooseImageFile(mainAvatarGroup());
+
+    expect(await within(previewRegion()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+    expect(patchCount()).toBe(0);
+  });
+
+  it("follows a new main avatar without a book context", async () => {
+    renderEdit("");
+
+    await screen.findByDisplayValue("Ґеральт");
+    await chooseImageFile(mainAvatarGroup());
+
+    expect(await within(previewRegion()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+  });
 });
 
-describe("CharacterEditPage book portrait field", () => {
-  const globalAvatar: MediaView = {
-    ...uploadedPortrait,
-    id: "media-avatar-1",
-    name: "avatar.png",
-    urls: {
-      card: "https://media.dev.book-nest.net/avatar-card.webp",
-      full: "https://media.dev.book-nest.net/avatar-full.webp",
-      thumb: "https://media.dev.book-nest.net/avatar-thumb.webp",
-    },
-  };
+const globalAvatar: MediaView = {
+  ...uploadedPortrait,
+  id: "media-avatar-1",
+  name: "avatar.png",
+  urls: {
+    card: "https://media.dev.book-nest.net/avatar-card.webp",
+    full: "https://media.dev.book-nest.net/avatar-full.webp",
+    thumb: "https://media.dev.book-nest.net/avatar-thumb.webp",
+  },
+};
 
+const savedPortrait: MediaView = {
+  ...uploadedPortrait,
+  id: "media-saved-portrait-1",
+  name: "saved-portrait.png",
+  urls: {
+    card: "https://media.dev.book-nest.net/saved-portrait-card.webp",
+    full: "https://media.dev.book-nest.net/saved-portrait-full.webp",
+    thumb: "https://media.dev.book-nest.net/saved-portrait-thumb.webp",
+  },
+};
+
+function bookPatchUrls(): string[] {
+  return fetchMock.mock.calls
+    .filter(
+      ([url, init]) =>
+        (init?.method ?? "GET").toUpperCase() === "PATCH" && String(url).includes("/api/books/"),
+    )
+    .map(([url]) => String(url));
+}
+
+function holdImageUpload(response = jsonResponse(uploadedPortrait, 201)): () => void {
+  let respond: (response: Response) => void = () => undefined;
+  serveMediaUpload(
+    () =>
+      new Promise<Response>((resolve) => {
+        respond = resolve;
+      }),
+  );
+  return () => respond(response);
+}
+
+function imageFile(): File {
+  return new File(["portrait-bytes"], "portrait.png", { type: "image/png" });
+}
+
+function mediaUploadCount(): number {
+  return fetchMock.mock.calls.filter(
+    ([url, init]) =>
+      (init?.method ?? "GET").toUpperCase() === "POST" && String(url).includes("/api/media"),
+  ).length;
+}
+
+function serveCharacterImages({
+  avatar = null,
+  hiddenFields = [],
+  portrait = null,
+}: {
+  avatar?: Nullable<MediaView>;
+  hiddenFields?: string[];
+  portrait?: Nullable<MediaView>;
+}) {
+  servedCharacter = {
+    ...character,
+    appearances: character.appearances.map((appearance) => ({
+      ...appearance,
+      hiddenFields,
+      portrait,
+    })),
+    avatar,
+  };
+}
+
+describe("CharacterEditPage main avatar", () => {
   beforeEach(() => {
     vi.stubGlobal("Image", LoadedImage);
     serveMediaUpload(() => Promise.resolve(jsonResponse(uploadedPortrait, 201)));
   });
 
-  function dropzone(): HTMLElement {
-    return within(portraitPanel()).getByRole("button", { name: /Перетягніть зображення сюди/ });
+  function addButton(): HTMLElement {
+    return within(mainAvatarGroup()).getByRole("button", { name: "Додати" });
   }
 
-  function holdPortraitUpload(response = jsonResponse(uploadedPortrait, 201)): () => void {
-    let respond: (response: Response) => void = () => undefined;
-    serveMediaUpload(
-      () =>
-        new Promise<Response>((resolve) => {
-          respond = resolve;
-        }),
-    );
-    return () => respond(response);
-  }
-
-  it("offers a dropzone instead of an avatar when the character has no image at all", async () => {
+  it("shows the fallback and an add button while the character has no main avatar", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
 
-    expect(within(dropzone()).getByText("Перетягніть зображення сюди")).toBeInTheDocument();
-    expect(within(dropzone()).getByText("Вибрати зображення для цієї книги")).toBeInTheDocument();
-    expect(within(portraitPanel()).queryByText("Ґ")).not.toBeInTheDocument();
+    expect(within(mainAvatarGroup()).getByText("Ґ")).toBeInTheDocument();
+    expect(within(mainAvatarGroup()).queryByRole("img")).not.toBeInTheDocument();
+    expect(addButton()).toBeInTheDocument();
     expect(
-      within(portraitPanel()).queryByRole("button", { name: "Вибрати зображення для цієї книги" }),
+      within(mainAvatarGroup()).queryByRole("button", { name: "Прибрати" }),
     ).not.toBeInTheDocument();
+    expect(within(imagesPanel()).getByText("Основний аватар не додано")).toBeInTheDocument();
   });
 
-  it("keeps the dropzone illustration out of the accessibility tree", async () => {
+  it("offers to replace or remove an existing main avatar", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
 
-    expect(within(portraitPanel()).queryByRole("img")).not.toBeInTheDocument();
-  });
-
-  it("shows the inherited global avatar and an upload button instead of the dropzone", async () => {
-    servedCharacter = { ...character, avatar: globalAvatar };
-    renderEdit();
-
-    await screen.findByDisplayValue("Ґеральт");
-
-    expect(await within(portraitPanel()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+    expect(await within(mainAvatarGroup()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
       "src",
       globalAvatar.urls.card,
     );
-    expect(
-      within(portraitPanel()).getByRole("button", { name: "Вибрати зображення для цієї книги" }),
-    ).toBeInTheDocument();
-    expect(
-      within(portraitPanel()).queryByText("Перетягніть зображення сюди"),
-    ).not.toBeInTheDocument();
+    expect(within(mainAvatarGroup()).getByRole("button", { name: "Замінити" })).toBeInTheDocument();
+    expect(within(mainAvatarGroup()).getByRole("button", { name: "Прибрати" })).toBeInTheDocument();
+    expect(within(imagesPanel()).queryByText("Основний аватар не додано")).not.toBeInTheDocument();
   });
 
-  it("announces the upload and locks the dropzone while the image is uploading", async () => {
-    holdPortraitUpload();
+  it("saves a newly added main avatar through the global update only", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await choosePortraitFile();
+    await chooseImageFile(mainAvatarGroup());
+    await within(mainAvatarGroup()).findByRole("button", { name: "Замінити" });
+    expect(patchCount()).toBe(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toHaveProperty("avatarMediaId", uploadedPortrait.id);
+    expect(bookPatchBody()).toBeUndefined();
+  });
+
+  it("saves a replaced main avatar", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await chooseImageFile(mainAvatarGroup(), "Замінити");
+    expect(await within(mainAvatarGroup()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toHaveProperty("avatarMediaId", uploadedPortrait.id);
+  });
+
+  it("clears the main avatar on save once it is removed and moves focus to the add button", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(within(mainAvatarGroup()).getByRole("button", { name: "Прибрати" }));
+
+    expect(within(mainAvatarGroup()).queryByRole("img")).not.toBeInTheDocument();
+    expect(addButton()).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toHaveProperty("avatarMediaId", null);
+    expect(bookPatchBody()).toBeUndefined();
+  });
+
+  it("saves the main avatar without a book context", async () => {
+    renderEdit("");
+
+    await screen.findByDisplayValue("Ґеральт");
+    await chooseImageFile(mainAvatarGroup());
+    await within(mainAvatarGroup()).findByRole("button", { name: "Замінити" });
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toHaveProperty("avatarMediaId", uploadedPortrait.id);
+    expect(bookPatchBody()).toBeUndefined();
+  });
+
+  it("announces the upload and locks the button while the image is uploading", async () => {
+    holdImageUpload();
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await chooseImageFile(mainAvatarGroup());
 
     await waitFor(() =>
-      expect(within(portraitPanel()).getByRole("status")).toHaveTextContent(
+      expect(within(mainAvatarGroup()).getByRole("status")).toHaveTextContent(
         "Завантажуємо зображення…",
       ),
     );
-    expect(dropzone()).toBeDisabled();
+    expect(addButton()).toBeDisabled();
   });
 
   it("keeps the status region mounted and empty until the upload starts", async () => {
-    holdPortraitUpload();
+    holdImageUpload();
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    const status = within(portraitPanel()).getByRole("status");
+    const status = within(mainAvatarGroup()).getByRole("status");
     expect(status).toBeEmptyDOMElement();
 
-    await choosePortraitFile();
+    await chooseImageFile(mainAvatarGroup());
 
     await waitFor(() => expect(status).toHaveTextContent("Завантажуємо зображення…"));
   });
 
   it("drops the upload status and shows the image once the upload finishes", async () => {
-    const finishUpload = holdPortraitUpload();
+    const finishUpload = holdImageUpload();
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await choosePortraitFile();
-    await within(portraitPanel()).findByText("Завантажуємо зображення…");
+    await chooseImageFile(mainAvatarGroup());
+    await within(mainAvatarGroup()).findByText("Завантажуємо зображення…");
     finishUpload();
 
-    expect(await within(portraitPanel()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+    expect(await within(mainAvatarGroup()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
       "src",
       uploadedPortrait.urls.card,
     );
-    expect(within(portraitPanel()).queryByText("Завантажуємо зображення…")).not.toBeInTheDocument();
+    expect(
+      within(mainAvatarGroup()).queryByText("Завантажуємо зображення…"),
+    ).not.toBeInTheDocument();
   });
 
   it("leaves focus on the field the user moved to while the upload was running", async () => {
-    const finishUpload = holdPortraitUpload();
+    const finishUpload = holdImageUpload();
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await choosePortraitFile();
-    await within(portraitPanel()).findByText("Завантажуємо зображення…");
+    await chooseImageFile(mainAvatarGroup());
+    await within(mainAvatarGroup()).findByText("Завантажуємо зображення…");
     const nameField = screen.getByRole("textbox", { name: "Ім’я" });
     await userEvent.click(nameField);
     finishUpload();
 
-    await within(portraitPanel()).findByRole("button", { name: "Замінити зображення" });
+    await within(mainAvatarGroup()).findByRole("button", { name: "Замінити" });
     expect(nameField).toHaveFocus();
   });
 
-  it("returns focus to the re-enabled dropzone when the upload fails", async () => {
-    const failUpload = holdPortraitUpload(jsonResponse({ message: "boom" }, 500));
+  it("returns focus to the re-enabled button when the upload fails", async () => {
+    const failUpload = holdImageUpload(jsonResponse({ message: "boom" }, 500));
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await choosePortraitFile();
-    await waitFor(() => expect(dropzone()).toBeDisabled());
+    await chooseImageFile(mainAvatarGroup());
+    await waitFor(() => expect(addButton()).toBeDisabled());
     failUpload();
 
-    await waitFor(() => expect(dropzone()).toHaveFocus());
-    expect(dropzone()).toBeEnabled();
+    await waitFor(() => expect(addButton()).toHaveFocus());
+    expect(addButton()).toBeEnabled();
   });
 
   it("moves focus to the replace button once the upload finishes", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await uploadPortrait();
+    await chooseImageFile(mainAvatarGroup());
 
     expect(
-      within(portraitPanel()).getByRole("button", { name: "Замінити зображення" }),
+      await within(mainAvatarGroup()).findByRole("button", { name: "Замінити" }),
     ).toHaveFocus();
   });
 
-  it("locks the reset button while a replacement upload is in flight", async () => {
+  it("locks the remove button while a replacement upload is in flight", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    holdImageUpload();
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await uploadPortrait();
-    holdPortraitUpload();
-    await choosePortraitFile("Замінити зображення");
+    await chooseImageFile(mainAvatarGroup(), "Замінити");
 
     await waitFor(() =>
-      expect(
-        within(portraitPanel()).getByRole("button", {
-          name: "Використовувати основне зображення",
-        }),
-      ).toBeDisabled(),
+      expect(within(mainAvatarGroup()).getByRole("button", { name: "Прибрати" })).toBeDisabled(),
     );
   });
 
-  it("brings back the dropzone with focus when the portrait is reset and no global avatar exists", async () => {
+  it("describes the add button with the clipboard shortcut", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await uploadPortrait();
-    await userEvent.click(
-      within(portraitPanel()).getByRole("button", { name: "Використовувати основне зображення" }),
-    );
 
-    expect(dropzone()).toHaveFocus();
+    expect(addButton()).toHaveAccessibleDescription("або вставте зображення з буфера (Ctrl/Cmd+V)");
   });
 
-  it("shows the inherited global avatar again when the portrait is reset", async () => {
-    servedCharacter = { ...character, avatar: globalAvatar };
+  it("highlights the row while an image is dragged over it and calms down when it leaves", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await uploadPortrait("Вибрати зображення для цієї книги");
-    await userEvent.click(
-      within(portraitPanel()).getByRole("button", { name: "Використовувати основне зображення" }),
-    );
+    fireEvent.dragEnter(addButton(), { dataTransfer: { types: ["Files"] } });
 
-    expect(within(portraitPanel()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+    expect(within(mainAvatarGroup()).getByText("Відпустіть, щоб завантажити")).toBeVisible();
+
+    fireEvent.dragLeave(addButton());
+
+    expect(
+      within(mainAvatarGroup()).queryByText("Відпустіть, щоб завантажити"),
+    ).not.toBeInTheDocument();
+    expect(mediaUploadCount()).toBe(0);
+  });
+
+  it("stays calm while dragged text rather than a file passes over the row", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    fireEvent.dragEnter(addButton(), { dataTransfer: { types: ["text/plain"] } });
+
+    expect(
+      within(mainAvatarGroup()).queryByText("Відпустіть, щоб завантажити"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("explains on hover that removing the main avatar leaves inheriting books with a placeholder", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.hover(within(mainAvatarGroup()).getByRole("button", { name: "Прибрати" }));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Прибрати основний аватар. Книги без окремого портрета використовуватимуть заглушку.",
+    );
+  });
+
+  it("uploads an image dropped onto the main avatar and saves it", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    fireEvent.dragEnter(addButton(), { dataTransfer: { types: ["Files"] } });
+    fireEvent.drop(addButton(), { dataTransfer: { files: [imageFile()] } });
+
+    expect(await within(mainAvatarGroup()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+    expect(
+      within(mainAvatarGroup()).queryByText("Відпустіть, щоб завантажити"),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toHaveProperty("avatarMediaId", uploadedPortrait.id);
+  });
+
+  it("uploads an image pasted while the main avatar block has focus", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    addButton().focus();
+    fireEvent.paste(addButton(), { clipboardData: { files: [imageFile()] } });
+
+    expect(await within(mainAvatarGroup()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+  });
+
+  it("ignores a paste that carries no image", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    fireEvent.paste(addButton(), {
+      clipboardData: { files: [new File(["text"], "notes.txt", { type: "text/plain" })] },
+    });
+
+    expect(mediaUploadCount()).toBe(0);
+    expect(within(mainAvatarGroup()).queryByRole("img")).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterEditPage book image", () => {
+  beforeEach(() => {
+    vi.stubGlobal("Image", LoadedImage);
+    serveMediaUpload(() => Promise.resolve(jsonResponse(uploadedPortrait, 201)));
+  });
+
+  function saveButton(): HTMLElement {
+    return screen.getByRole("button", { name: /Зберегти/ });
+  }
+
+  it("uses the main avatar while the book has no portrait of its own", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(bookImageSource()).getByRole("radio", { name: "Основний аватар" })).toBeChecked();
+    expect(
+      within(imagesPanel()).queryByRole("group", { name: "Окремий портрет для цієї книги" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(bookImageSource()).getByRole("radio", { name: "Основний аватар" }),
+    ).toHaveAccessibleDescription("Основний аватар не додано");
+    expect(within(imagesPanel()).queryByText("Діє тільки для цієї книги")).not.toBeInTheDocument();
+  });
+
+  it("describes only the active source and follows it when the source changes", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const mainOption = within(bookImageSource()).getByRole("radio", { name: "Основний аватар" });
+    const bookOption = within(bookImageSource()).getByRole("radio", {
+      name: "Окремий портрет для цієї книги",
+    });
+
+    expect(mainOption).toHaveAccessibleDescription("Використовується основний аватар");
+    expect(bookOption).not.toHaveAccessibleDescription();
+    expect(within(imagesPanel()).queryByText("Діє тільки для цієї книги")).not.toBeInTheDocument();
+
+    await selectBookPortrait();
+
+    expect(bookOption).toHaveAccessibleDescription("Діє тільки для цієї книги");
+    expect(mainOption).not.toHaveAccessibleDescription();
+    expect(
+      within(imagesPanel()).queryByText("Використовується основний аватар"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("tells the main source that no main avatar is left once it is removed", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(within(mainAvatarGroup()).getByRole("button", { name: "Прибрати" }));
+
+    expect(
+      within(bookImageSource()).getByRole("radio", { name: "Основний аватар" }),
+    ).toHaveAccessibleDescription("Основний аватар не додано");
+    expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("picks the separate image when the book already has its own portrait", async () => {
+    serveCharacterImages({ avatar: globalAvatar, portrait: savedPortrait });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(
+      within(bookImageSource()).getByRole("radio", { name: "Окремий портрет для цієї книги" }),
+    ).toBeChecked();
+    expect(
+      await within(bookPortraitGroup()).findByRole("img", { name: "Ґеральт" }),
+    ).toHaveAttribute("src", savedPortrait.urls.card);
+    expect(
+      within(bookPortraitGroup()).getByRole("button", { name: "Замінити" }),
+    ).toBeInTheDocument();
+    expect(
+      within(bookPortraitGroup()).queryByRole("button", { name: "Прибрати" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the uploader without overriding the main avatar until a file is chosen", async () => {
+    serveCharacterImages({ avatar: globalAvatar });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await selectBookPortrait();
+
+    expect(within(bookPortraitGroup()).getByRole("button", { name: "Додати" })).toBeInTheDocument();
+    expect(within(bookPortraitGroup()).queryByRole("img")).not.toBeInTheDocument();
+    expect(await within(previewRegion()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
       "src",
       globalAvatar.urls.card,
     );
+    expect(saveButton()).toBeDisabled();
   });
 
-  it("moves focus to the upload button when the portrait is reset over a global avatar", async () => {
-    servedCharacter = { ...character, avatar: globalAvatar };
+  it("saves an uploaded book portrait for this book only", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await uploadPortrait("Вибрати зображення для цієї книги");
-    await userEvent.click(
-      within(portraitPanel()).getByRole("button", { name: "Використовувати основне зображення" }),
-    );
+    await uploadBookPortrait();
+    expect(patchCount()).toBe(0);
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("portraitMediaId", uploadedPortrait.id);
+    expect(globalPatchBody()).toBeUndefined();
+    expect(bookPatchUrls()).toEqual([
+      expect.stringContaining("/api/books/book-1/characters/char-1"),
+    ]);
+  });
+
+  it("restores the temporary book portrait after switching back before saving", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadBookPortrait();
+    await selectMainAvatar();
 
     expect(
-      within(portraitPanel()).getByRole("button", { name: "Вибрати зображення для цієї книги" }),
-    ).toHaveFocus();
+      within(imagesPanel()).queryByRole("group", { name: "Окремий портрет для цієї книги" }),
+    ).not.toBeInTheDocument();
+    expect(within(previewRegion()).queryByRole("img")).not.toBeInTheDocument();
+
+    await selectBookPortrait();
+
+    expect(within(bookPortraitGroup()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+    expect(within(previewRegion()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      uploadedPortrait.urls.card,
+    );
+  });
+
+  it("keeps the form clean when a temporary book portrait is dropped before saving", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await uploadBookPortrait();
+    expect(saveButton()).toBeEnabled();
+
+    await selectMainAvatar();
+
+    expect(saveButton()).toBeDisabled();
+  });
+
+  it("resets a saved book portrait to the main avatar on save", async () => {
+    serveCharacterImages({ avatar: globalAvatar, portrait: savedPortrait });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await selectMainAvatar();
+
+    expect(within(previewRegion()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      globalAvatar.urls.card,
+    );
+
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("portraitMediaId", null);
+    expect(globalPatchBody()).toBeUndefined();
+  });
+
+  it("brings back the saved book portrait with nothing left to save", async () => {
+    serveCharacterImages({ portrait: savedPortrait });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await selectMainAvatar();
+    expect(saveButton()).toBeEnabled();
+
+    await selectBookPortrait();
+
+    expect(
+      await within(bookPortraitGroup()).findByRole("img", { name: "Ґеральт" }),
+    ).toHaveAttribute("src", savedPortrait.urls.card);
+    expect(saveButton()).toBeDisabled();
+  });
+
+  it("keeps the book portrait in the preview while the main avatar changes", async () => {
+    serveCharacterImages({ avatar: globalAvatar, portrait: savedPortrait });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(await within(previewRegion()).findByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      savedPortrait.urls.card,
+    );
+
+    await chooseImageFile(mainAvatarGroup(), "Замінити");
+    await within(mainAvatarGroup()).findByRole("img", { name: "Ґеральт" });
+
+    expect(within(previewRegion()).getByRole("img", { name: "Ґеральт" })).toHaveAttribute(
+      "src",
+      savedPortrait.urls.card,
+    );
+  });
+
+  it("keeps a spoiler-masked book portrait hidden and out of the save", async () => {
+    serveCharacterImages({ avatar: globalAvatar, hiddenFields: ["portrait"] });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+
+    expect(within(imagesPanel()).getByText("Приховано (спойлер)")).toBeInTheDocument();
+    expect(within(imagesPanel()).queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(within(mainAvatarGroup()).getByRole("button", { name: "Замінити" })).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).not.toHaveProperty("portraitMediaId");
+  });
+
+  it("uploads a dropped image as the book portrait without touching the main avatar", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await selectBookPortrait();
+    fireEvent.drop(within(bookPortraitGroup()).getByRole("button", { name: "Додати" }), {
+      dataTransfer: { files: [imageFile()] },
+    });
+
+    expect(
+      await within(bookPortraitGroup()).findByRole("img", { name: "Ґеральт" }),
+    ).toHaveAttribute("src", uploadedPortrait.urls.card);
+    expect(within(mainAvatarGroup()).queryByRole("img")).not.toBeInTheDocument();
+
+    await userEvent.click(saveButton());
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("portraitMediaId", uploadedPortrait.id);
+    expect(globalPatchBody()).toBeUndefined();
+  });
+
+  it("pastes into the block that has focus only", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await selectBookPortrait();
+    const bookAddButton = within(bookPortraitGroup()).getByRole("button", { name: "Додати" });
+    bookAddButton.focus();
+    fireEvent.paste(bookAddButton, { clipboardData: { files: [imageFile()] } });
+
+    expect(
+      await within(bookPortraitGroup()).findByRole("img", { name: "Ґеральт" }),
+    ).toHaveAttribute("src", uploadedPortrait.urls.card);
+    expect(within(mainAvatarGroup()).queryByRole("img")).not.toBeInTheDocument();
   });
 });
 

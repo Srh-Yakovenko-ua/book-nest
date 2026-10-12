@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookCharacterView, CharacterDetailsView, Nullable } from "@app/shared";
+import type { BookCharacterView, CharacterDetailsView, MediaView, Nullable } from "@app/shared";
 
 import { CHARACTER_INT4_MAX, CHARACTER_TEXT_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -111,7 +111,7 @@ function CharacterEditForm({
   });
   const [baseline, setBaseline] = useState<CharacterEditValues>(initialValues);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const [uploadedPortrait, setUploadedPortrait] = useState<Nullable<CharacterImageUpload>>(null);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<Record<string, string>>({});
 
   const pagesCount = useBookPagesCount(contextBookId);
   const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: CHARACTER_INT4_MAX });
@@ -169,18 +169,28 @@ function CharacterEditForm({
     isScopeDirty({ baseline, current: currentValues, maskedFields, scope: "book" });
   const isDirty = globalDirty || bookDirty;
   const isSaving = updateCharacter.isPending || updateBookCharacter.isPending;
-  const currentPortraitMediaId = useWatch({ control, name: "book.portraitMediaId" });
-  const bookPortraitUrl =
-    uploadedPortrait?.mediaId === currentPortraitMediaId
-      ? uploadedPortrait.previewUrl
-      : (appearance?.portrait?.urls.card ?? null);
-  const portraitUrl =
-    currentPortraitMediaId === null ? (character.avatar?.urls.card ?? null) : bookPortraitUrl;
+  const avatarMediaId = useWatch({ control, name: "global.avatarMediaId" });
+  const portraitMediaId = useWatch({ control, name: "book.portraitMediaId" });
+  const avatarUrl = resolveImageUrl({
+    mediaId: avatarMediaId,
+    saved: character.avatar,
+    uploadedUrls: uploadedImageUrls,
+  });
+  const portraitUrl = resolveImageUrl({
+    mediaId: portraitMediaId,
+    saved: appearance?.portrait ?? null,
+    uploadedUrls: uploadedImageUrls,
+  });
+  const previewImageUrl = portraitMediaId === null ? avatarUrl : portraitUrl;
 
   const detailsHref = getCharacterDetailsPath({
     characterId: character.id,
     ...(contextBookId === null ? {} : { bookId: contextBookId }),
   });
+
+  function rememberUploadedImage(upload: CharacterImageUpload) {
+    setUploadedImageUrls((previous) => ({ ...previous, [upload.mediaId]: upload.previewUrl }));
+  }
 
   function applySpeciesChange(change: OwnSpeciesChange) {
     const next = withSpeciesChange(getValues(), change);
@@ -238,19 +248,19 @@ function CharacterEditForm({
       onSubmit={onSubmit}
     >
       <div className="contents lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))] lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6">
-        {contextBookId === null ? null : (
-          <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2">
-            <CharacterPortraitPanel
-              control={control}
-              maskedFields={maskedFields}
-              onPortraitUpload={setUploadedPortrait}
-              portraitUrl={portraitUrl}
-            />
-          </div>
-        )}
+        <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2">
+          <CharacterPortraitPanel
+            avatarUrl={avatarUrl}
+            control={control}
+            hasBookScope={contextBookId !== null}
+            maskedFields={maskedFields}
+            onImageUpload={rememberUploadedImage}
+            portraitUrl={portraitUrl}
+          />
+        </div>
 
         <div className="order-last motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:order-none">
-          <CharacterEditPreview control={control} imageUrl={portraitUrl} />
+          <CharacterEditPreview control={control} imageUrl={previewImageUrl} />
         </div>
       </div>
 
@@ -349,4 +359,18 @@ function EditSkeleton() {
       </div>
     </output>
   );
+}
+
+function resolveImageUrl({
+  mediaId,
+  saved,
+  uploadedUrls,
+}: {
+  mediaId: Nullable<string>;
+  saved: Nullable<MediaView>;
+  uploadedUrls: Record<string, string>;
+}): Nullable<string> {
+  if (mediaId === null) return null;
+  if (saved?.id === mediaId) return saved.urls.card;
+  return uploadedUrls[mediaId] ?? null;
 }

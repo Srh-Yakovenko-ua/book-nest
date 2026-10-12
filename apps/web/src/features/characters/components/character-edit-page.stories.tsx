@@ -8,6 +8,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { expect, waitFor, within } from "storybook/test";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { getQueryClient } from "@/lib/query-client";
 
 import {
   makeBookCharacterView,
@@ -223,6 +224,9 @@ function withSearch(search: string): Decorator {
 
 const meta = {
   args: { characterId: STORY.characterId },
+  beforeEach: () => {
+    getQueryClient().clear();
+  },
   component: CharacterEditPage,
   decorators: [
     (Story) => (
@@ -257,7 +261,10 @@ export const BookContext: Story = {
       .map((heading) => heading.textContent ?? "")
       .filter((title) => STORY.bookSectionTitles.some((expected) => expected === title));
     await expect(renderedTitles).toEqual([...STORY.bookSectionTitles]);
-    await expect(canvas.getByRole("region", { name: "Зображення в цій книзі" })).toBeVisible();
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(
+      imagesPanel.getByRole("radiogroup", { name: "Зображення в цій книзі" }),
+    ).toBeVisible();
     await expect(canvas.getByRole("region", { name: "Попередній перегляд" })).toBeVisible();
     await expect(canvas.getByText("Приховано: 2")).toBeVisible();
   },
@@ -272,9 +279,33 @@ export const BookContextWithoutImage: Story = {
     await waitFor(async () => {
       await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
     });
-    const portraitPanel = within(canvas.getByRole("region", { name: "Зображення в цій книзі" }));
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(imagesPanel.getByRole("button", { name: "Додати" })).toBeVisible();
+    await expect(imagesPanel.getByText("Основний аватар не додано")).toBeVisible();
+  },
+};
+
+export const BookContextWithBookPortrait: Story = {
+  beforeEach: () => {
+    mockFetch({
+      ...character,
+      appearances: character.appearances.map((appearance) => ({
+        ...appearance,
+        portrait: { ...globalAvatar, id: "media-portrait-1" },
+      })),
+    });
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
+    });
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
     await expect(
-      portraitPanel.getByRole("button", { name: /Перетягніть зображення сюди/ }),
+      imagesPanel.getByRole("radio", { name: "Окремий портрет для цієї книги" }),
+    ).toBeChecked();
+    await expect(
+      imagesPanel.getByRole("group", { name: "Окремий портрет для цієї книги" }),
     ).toBeVisible();
   },
 };
@@ -344,7 +375,9 @@ export const Global: Story = {
     await expect(canvas.getByRole("heading", { level: 2, name: "Інші імена" })).toBeVisible();
     await expect(canvas.queryByRole("heading", { name: "У цій книзі" })).toBeNull();
     await expect(canvas.queryByRole("heading", { name: "Спойлери" })).toBeNull();
-    await expect(canvas.queryByRole("region", { name: "Зображення в цій книзі" })).toBeNull();
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(imagesPanel.getByRole("group", { name: "Основний аватар" })).toBeVisible();
+    await expect(imagesPanel.queryByRole("radiogroup")).toBeNull();
     await expect(canvas.getByRole("region", { name: "Попередній перегляд" })).toBeVisible();
   },
 };
