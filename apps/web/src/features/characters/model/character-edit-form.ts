@@ -119,7 +119,10 @@ export function buildCharacterEditSchema(
         ctx,
         duplicateMessage: messages.aliasDuplicate,
         reservedMessage: messages.aliasReservedBook,
-        reservedName: value.book.displayName ?? value.global.name,
+        reservedName: effectiveCharacterName({
+          displayName: value.book.displayName,
+          globalName: value.global.name,
+        }),
         scope: "book",
       });
     });

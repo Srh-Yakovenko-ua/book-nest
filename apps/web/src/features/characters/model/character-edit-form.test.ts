@@ -1,10 +1,13 @@
 import type { SpeciesOptionView } from "@app/shared";
 
+import { CHARACTER_ALIASES_MAX } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
+import type { CharacterAliasRow } from "./character-aliases";
 import type { CharacterEditValues } from "./character-edit-form";
 
 import {
+  buildCharacterEditSchema,
   emptyBookScopeValues,
   isScopeDirty,
   maskedEditFields,
@@ -553,5 +556,72 @@ describe("withSpeciesChange", () => {
 
     expect(next.book.speciesOverride).toBeNull();
     expect(next.global.species).toEqual({ id: SPECIES_REFS.witcher.id, label: "Відьмак" });
+  });
+});
+
+describe("buildCharacterEditSchema aliases", () => {
+  const schema = buildCharacterEditSchema(
+    {
+      aliasDuplicate: "duplicate",
+      aliasReservedBook: "reserved-book",
+      aliasReservedGlobal: "reserved-global",
+      customGenderRequired: "custom-gender-required",
+      firstAppearancePageExceedsBook: "page-exceeds-book",
+      firstAppearancePageInvalid: "page-invalid",
+      nameRequired: "name-required",
+      nameTooLong: "name-too-long",
+      textTooLong: (max) => `too-long-${max}`,
+    },
+    { max: 300, source: "book" },
+  );
+  const values = toCharacterEditValues({ bookId: "book-1", character, locale: "uk" });
+
+  function globalAliasIssues(aliases: CharacterAliasRow[]) {
+    const result = schema.safeParse({ ...values, global: { ...values.global, aliases } });
+    if (result.success) return [];
+    return result.error.issues
+      .filter((issue) => issue.path[0] === "global" && issue.path[1] === "aliases")
+      .map((issue) => ({ code: issue.code, message: issue.message, path: issue.path.join(".") }));
+  }
+
+  it("accepts one name under two types but flags a repeat of the same name and type", () => {
+    expect(
+      globalAliasIssues([
+        { isSpoiler: false, name: "Білий Вовк", type: "nickname" },
+        { isSpoiler: false, name: "Білий Вовк", type: "title" },
+        { isSpoiler: false, name: "білий  вовк", type: "nickname" },
+      ]),
+    ).toEqual([{ code: "custom", message: "duplicate", path: "global.aliases.2.name" }]);
+  });
+
+  it("flags an alias that repeats the main name", () => {
+    expect(globalAliasIssues([{ isSpoiler: false, name: "ґеральт", type: "true_name" }])).toEqual([
+      { code: "custom", message: "reserved-global", path: "global.aliases.0.name" },
+    ]);
+  });
+
+  it("leaves the alias cap to the API so a scope already over it can still be saved", () => {
+    const overLimit = Array.from({ length: CHARACTER_ALIASES_MAX + 5 }, (_unused, index) => ({
+      isSpoiler: false,
+      name: `Ім’я ${index}`,
+      type: "other" as const,
+    }));
+
+    expect(globalAliasIssues(overLimit)).toEqual([]);
+  });
+
+  it("reserves the global name for book aliases once the book name override is cleared", () => {
+    const result = schema.safeParse({
+      ...values,
+      book: {
+        ...values.book,
+        aliases: [{ isSpoiler: false, name: "ґеральт", type: "other" }],
+        displayName: "  ",
+      },
+    });
+
+    expect(result.success ? [] : result.error.issues).toEqual([
+      expect.objectContaining({ message: "reserved-book", path: ["book", "aliases", 0, "name"] }),
+    ]);
   });
 });
