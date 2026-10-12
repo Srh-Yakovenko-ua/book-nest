@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   type RenderOptions,
   type RenderResult,
@@ -115,4 +116,4 @@ export function renderWithProviders(
   return { ...result, queryClient: client };
 }
 
-export { cleanup, render, screen, userEvent, waitFor, within };
+export { cleanup, fireEvent, render, screen, userEvent, waitFor, within };
