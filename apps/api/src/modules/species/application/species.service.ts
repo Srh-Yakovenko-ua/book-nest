@@ -2,6 +2,8 @@ import type {
   CatalogLocale,
   Nullable,
   OwnSpeciesList,
+  SpeciesBrowsePage,
+  SpeciesBrowseQuery,
   SpeciesCandidates,
   SpeciesDeletionPreview,
   SpeciesMergeResult,
@@ -31,10 +33,12 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../../core/exceptions/errors.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import {
   isForeignKeyConstraintError,
   isUniqueConstraintError,
 } from "../../../core/prisma-errors.js";
+import { orderSpeciesForBrowse } from "../domain/species-browse.js";
 import { findExactSpeciesMatch, findSimilarSpecies } from "../domain/species-name-matching.js";
 import { normalizeSpeciesName } from "../domain/species-name-normalizer.js";
 import {
@@ -99,6 +103,31 @@ export class SpeciesService {
     if (!visible) {
       throw speciesNotFoundError();
     }
+  }
+
+  async browse({
+    query,
+    userId,
+  }: {
+    query: SpeciesBrowseQuery;
+    userId: string;
+  }): Promise<SpeciesBrowsePage> {
+    const { locale, pageNumber, pageSize } = query;
+    const context = this.viewContext({ locale, userId });
+    const visible = await this.speciesRepository.findAllVisible(userId);
+    const ordered = orderSpeciesForBrowse({
+      categoryOrder: [...context.categoryLabels.keys()],
+      locale,
+      options: visible.map((species) => toSpeciesOptionView({ context, species })),
+    });
+    const { skip, take } = pageSlice({ pageNumber, pageSize });
+
+    return buildPaginator({
+      items: ordered.slice(skip, skip + take),
+      pageNumber,
+      pageSize,
+      totalCount: ordered.length,
+    });
   }
 
   async candidates({ locale, name, userId }: NamedSpeciesInput): Promise<SpeciesCandidates> {

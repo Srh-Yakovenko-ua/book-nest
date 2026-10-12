@@ -8,15 +8,18 @@ import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
 import { sectionedGroupClassNames } from "@/components/ui/command";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { cn } from "@/lib/utils";
 
 import type { SpeciesGroupHeading } from "../model/species-groups";
+import type { SpeciesPickerSection } from "../model/species-picker-sections";
 import type {
   SpeciesCreateOffer,
+  SpeciesPickerMore,
   SpeciesPickerNotice,
-  SpeciesPickerSection,
 } from "../model/use-species-picker-model";
 
+import { sectionOptions } from "../model/species-picker-sections";
 import { useSpeciesPickerNoticeText } from "../model/use-species-picker-notice-text";
 
 type PickerOptionProps = {
@@ -35,6 +38,7 @@ type SpeciesPickerListboxProps = {
   isCreating: boolean;
   label: string;
   listboxId: string;
+  more: SpeciesPickerMore;
   notice: Nullable<SpeciesPickerNotice>;
   onCreate: () => void;
   onHighlight: (entryId: string) => void;
@@ -43,6 +47,13 @@ type SpeciesPickerListboxProps = {
   sections: SpeciesPickerSection[];
   selectedId: Nullable<string>;
 };
+
+const LIST_HEADING = {
+  exact: "exactHeading",
+  popular: "popularHeading",
+  recentOwn: "recentOwnHeading",
+  similar: "similarHeading",
+} as const satisfies Record<Exclude<SpeciesPickerSection["kind"], "group">, string>;
 
 const NOTICE_TONE = {
   conflict: "text-warning",
@@ -64,6 +75,7 @@ export function SpeciesPickerListbox({
   isCreating,
   label,
   listboxId,
+  more,
   notice,
   onCreate,
   onHighlight,
@@ -73,66 +85,77 @@ export function SpeciesPickerListbox({
   selectedId,
 }: SpeciesPickerListboxProps) {
   const t = useTranslations("species.picker");
+  const { onScroll, scrollRef } = useInfiniteScroll({
+    hasNextPage: more.status === "available",
+    isFetchingNextPage: more.status === "loading",
+    itemCount: sections.flatMap(sectionOptions).length,
+    onLoadMore: more.load,
+  });
 
   return (
     <>
       {notice === null ? null : <PickerNotice notice={notice} onRetry={onRetry} />}
       <div
-        aria-busy={notice === "loading"}
-        aria-label={label}
         className="no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto"
-        id={listboxId}
-        role="listbox"
-        tabIndex={-1}
+        onScroll={onScroll}
+        ref={scrollRef}
       >
-        {sections.map((section) => {
-          const key = section.kind === "group" ? section.group.key : section.kind;
-          const groupId = speciesPickerEntryId(listboxId, `group-${key}`);
-          const options = section.kind === "group" ? section.group.options : section.options;
+        <div
+          aria-busy={notice === "loading" || more.status === "loading"}
+          aria-label={label}
+          id={listboxId}
+          role="listbox"
+          tabIndex={-1}
+        >
+          {sections.map((section) => {
+            const key = section.kind === "group" ? section.group.key : section.kind;
+            const groupId = speciesPickerEntryId(listboxId, `group-${key}`);
 
-          return (
-            <PickerGroup
-              hint={section.kind === "similar" && create !== null ? t("similarHint") : null}
-              id={groupId}
-              key={key}
-              title={
-                section.kind === "group" ? (
-                  <GroupHeading heading={section.group.heading} />
-                ) : (
-                  t(section.kind === "exact" ? "exactHeading" : "similarHeading")
-                )
-              }
-            >
-              {options.map((option) => {
-                const id = speciesPickerEntryId(listboxId, option.id);
-                return (
-                  <PickerOption
-                    active={id === activeId}
-                    id={id}
-                    key={option.id}
-                    onHighlight={() => onHighlight(id)}
-                    onPick={() => onPick(option)}
-                    selected={option.id === selectedId}
-                  >
-                    {section.kind === "exact"
-                      ? t("selectExisting", { name: option.name })
-                      : option.name}
-                  </PickerOption>
-                );
-              })}
-            </PickerGroup>
-          );
-        })}
-        {create === null ? null : (
-          <CreateOption
-            active={createId === activeId}
-            create={create}
-            id={createId}
-            isCreating={isCreating}
-            onCreate={onCreate}
-            onHighlight={() => onHighlight(createId)}
-          />
-        )}
+            return (
+              <PickerGroup
+                hint={section.kind === "similar" && create !== null ? t("similarHint") : null}
+                id={groupId}
+                key={key}
+                title={
+                  section.kind === "group" ? (
+                    <GroupHeading heading={section.group.heading} />
+                  ) : (
+                    t(LIST_HEADING[section.kind])
+                  )
+                }
+              >
+                {sectionOptions(section).map((option) => {
+                  const id = speciesPickerEntryId(listboxId, option.id);
+                  return (
+                    <PickerOption
+                      active={id === activeId}
+                      id={id}
+                      key={option.id}
+                      onHighlight={() => onHighlight(id)}
+                      onPick={() => onPick(option)}
+                      selected={option.id === selectedId}
+                    >
+                      {section.kind === "exact"
+                        ? t("selectExisting", { name: option.name })
+                        : option.name}
+                    </PickerOption>
+                  );
+                })}
+              </PickerGroup>
+            );
+          })}
+          {create === null ? null : (
+            <CreateOption
+              active={createId === activeId}
+              create={create}
+              id={createId}
+              isCreating={isCreating}
+              onCreate={onCreate}
+              onHighlight={() => onHighlight(createId)}
+            />
+          )}
+        </div>
+        <LoadMoreRow more={more} />
       </div>
     </>
   );
@@ -195,6 +218,36 @@ function GroupHeading({ heading }: { heading: SpeciesGroupHeading }) {
   const t = useTranslations("species.picker");
   if (heading.kind === "category") return heading.name;
   return heading.kind === "own" ? t("ownGroup") : t("otherGroup");
+}
+
+function LoadMoreRow({ more }: { more: SpeciesPickerMore }) {
+  const t = useTranslations("species.picker");
+
+  if (more.status === "loading") {
+    return (
+      <div className="flex items-center justify-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+        <Loader2 aria-hidden className="size-3.5 animate-spin" />
+        {t("loadingMore")}
+      </div>
+    );
+  }
+  if (more.status !== "failed") return null;
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-error" role="alert">
+      <span className="min-w-0 flex-1">
+        {t("loadMoreFailed")}
+        <span className="sr-only"> {t("loadMoreRetryHint")}</span>
+      </span>
+      <button
+        className="shrink-0 cursor-pointer rounded-sm font-medium text-foreground underline-offset-4 hover:underline"
+        onClick={more.load}
+        tabIndex={-1}
+        type="button"
+      >
+        {t("retry")}
+      </button>
+    </div>
+  );
 }
 
 function PickerGroup({

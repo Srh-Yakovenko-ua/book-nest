@@ -8346,6 +8346,9 @@
       "createAnyway": "Усе одно створити «{name}»",
       "creating": "Створюємо «{name}»…",
       "exactHeading": "Такий вид уже є",
+      "loadingMore": "Завантажуємо ще…",
+      "loadMoreFailed": "Не вдалося завантажити ще види.",
+      "loadMoreRetryHint": "Натисніть ↓ на останньому виді, щоб спробувати ще раз.",
       "notices": {
         "conflict": "Такий вид уже існує. Оберіть наявний варіант.",
         "createFailed": "Не вдалося створити вид. Спробуйте ще раз.",
@@ -8356,6 +8359,8 @@
       },
       "otherGroup": "Інші",
       "ownGroup": "Ваші види",
+      "popularHeading": "Популярні",
+      "recentOwnHeading": "Ваші нещодавні",
       "resultsCount": "{count, plural, one {Знайдено # вид} few {Знайдено # види} many {Знайдено # видів} other {Знайдено # виду}}",
       "retry": "Повторити",
       "retryOnEnter": "Натисніть Enter, щоб спробувати ще раз.",

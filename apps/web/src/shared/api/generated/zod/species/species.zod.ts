@@ -67,6 +67,77 @@ export const SpeciesControllerCreateResponse = zod.object({
 });
 
 /**
+ * @summary Browse all species visible to the current user page by page
+ */
+export const speciesControllerBrowseQueryPageNumberDefault = 1;
+export const speciesControllerBrowseQueryPageNumberMax = 21474836;
+
+export const speciesControllerBrowseQueryPageSizeDefault = 30;
+export const speciesControllerBrowseQueryPageSizeMax = 100;
+
+export const SpeciesControllerBrowseQueryParams = zod.object({
+  locale: zod.enum(["en", "uk"]).optional(),
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(speciesControllerBrowseQueryPageNumberMax)
+    .default(speciesControllerBrowseQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(speciesControllerBrowseQueryPageSizeMax)
+    .default(speciesControllerBrowseQueryPageSizeDefault),
+});
+
+export const speciesControllerBrowseResponseItemsItemIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const speciesControllerBrowseResponsePageMin = -9007199254740991;
+export const speciesControllerBrowseResponsePageMax = 9007199254740991;
+
+export const speciesControllerBrowseResponsePagesCountMin = -9007199254740991;
+export const speciesControllerBrowseResponsePagesCountMax = 9007199254740991;
+
+export const speciesControllerBrowseResponsePageSizeMin = -9007199254740991;
+export const speciesControllerBrowseResponsePageSizeMax = 9007199254740991;
+
+export const speciesControllerBrowseResponseTotalCountMin = -9007199254740991;
+export const speciesControllerBrowseResponseTotalCountMax = 9007199254740991;
+
+export const SpeciesControllerBrowseResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      category: zod
+        .object({
+          key: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      id: zod.uuid().regex(speciesControllerBrowseResponseItemsItemIdRegExp),
+      isOwn: zod.boolean(),
+      key: zod.string().nullable(),
+      name: zod.string(),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(speciesControllerBrowseResponsePageMin)
+    .max(speciesControllerBrowseResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(speciesControllerBrowseResponsePagesCountMin)
+    .max(speciesControllerBrowseResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(speciesControllerBrowseResponsePageSizeMin)
+    .max(speciesControllerBrowseResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(speciesControllerBrowseResponseTotalCountMin)
+    .max(speciesControllerBrowseResponseTotalCountMax),
+});
+
+/**
  * @summary Find visible species that duplicate or resemble a proposed name
  */
 export const SpeciesControllerCandidatesQueryParams = zod.object({

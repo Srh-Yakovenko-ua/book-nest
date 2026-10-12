@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import type { SpeciesSelection } from "../model/species-selection";
 import type { SpeciesCreateOffer, SpeciesPickerNotice } from "../model/use-species-picker-model";
 
+import { sectionOptions } from "../model/species-picker-sections";
+import { speciesSearchTerm } from "../model/species-search-term";
 import { selectionFromOption } from "../model/species-selection";
 import { useSpeciesPickerModel } from "../model/use-species-picker-model";
 import { useSpeciesPickerNoticeText } from "../model/use-species-picker-notice-text";
@@ -67,7 +69,7 @@ export function SpeciesPicker({
   const isCreating = model.createSpecies.isPending;
 
   const optionEntries = model.sections
-    .flatMap((section) => (section.kind === "group" ? section.group.options : section.options))
+    .flatMap(sectionOptions)
     .map((option): SpeciesPickerEntry => ({
       id: speciesPickerEntryId(listboxId, option.id),
       kind: "option",
@@ -82,7 +84,8 @@ export function SpeciesPicker({
           offer: model.create,
         };
   const entries = createEntry === null ? optionEntries : [...optionEntries, createEntry];
-  const firstMatch = typed.trim().length < SPECIES_SEARCH.minQueryLength ? undefined : entries[0];
+  const hasSearchTerm = speciesSearchTerm(typed) !== "";
+  const firstMatch = hasSearchTerm ? entries[0] : undefined;
   const defaultEntry =
     activeSearch === null ? entries.find((entry) => isSelected(entry, value)) : firstMatch;
   const activeEntry = entries.find((entry) => entry.id === highlightedId) ?? defaultEntry;
@@ -130,7 +133,10 @@ export function SpeciesPicker({
 
   function moveHighlight(step: ValueOf<typeof HIGHLIGHT_STEP>) {
     const next = entryAfterActive(step);
-    if (next === undefined) return;
+    if (next === undefined) {
+      if (step > 0) model.more.load();
+      return;
+    }
     setHighlightedId(next.id);
     document.getElementById(next.id)?.scrollIntoView({ block: "nearest" });
   }
@@ -219,7 +225,7 @@ export function SpeciesPicker({
             {isOpen ? (
               <PickerAnnouncement
                 notice={model.notice}
-                optionCount={optionEntries.length}
+                resultCount={hasSearchTerm ? optionEntries.length : 0}
                 retriesOnEnter={retriesOnEnter}
               />
             ) : null}
@@ -247,6 +253,7 @@ export function SpeciesPicker({
           isCreating={isCreating}
           label={label}
           listboxId={listboxId}
+          more={model.more}
           notice={model.notice}
           onCreate={() => {
             if (createEntry !== null) activate(createEntry);
@@ -268,11 +275,11 @@ function isSelected(entry: SpeciesPickerEntry, value: Nullable<SpeciesSelection>
 
 function PickerAnnouncement({
   notice,
-  optionCount,
+  resultCount,
   retriesOnEnter,
 }: {
   notice: Nullable<SpeciesPickerNotice>;
-  optionCount: number;
+  resultCount: number;
   retriesOnEnter: boolean;
 }) {
   const t = useTranslations("species.picker");
@@ -280,7 +287,7 @@ function PickerAnnouncement({
 
   return [
     notice === null ? null : noticeText(notice),
-    optionCount === 0 ? null : t("resultsCount", { count: optionCount }),
+    resultCount === 0 ? null : t("resultsCount", { count: resultCount }),
     retriesOnEnter ? t("retryOnEnter") : null,
   ]
     .filter((part) => part !== null)

@@ -3,9 +3,11 @@ import type { Nullable, SpeciesCandidates, SpeciesOptionView } from "@app/shared
 import type { ComponentProps, FormEvent } from "react";
 
 import { SpeciesNameInputSchema } from "@app/shared";
+import { NextIntlClientProvider } from "next-intl";
 import { act, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import enMessages from "@/messages/en.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import type { SpeciesSelection } from "../model/species-selection";
@@ -20,6 +22,7 @@ type PickerOptions = Pick<
 type SentRequest = { body: unknown; method: string; url: URL };
 
 type SpeciesServer = {
+  browse: (pageNumber: number) => Promise<Response>;
   candidates: Record<string, SpeciesCandidates>;
   create: (name: string) => Promise<Response>;
   search: (query: string) => Promise<Response>;
@@ -33,6 +36,7 @@ const CATEGORY = {
 
 const SPECIES = {
   darkElf: system("00000000-0000-4000-8000-000000000006", "Темний ельф", CATEGORY.elven),
+  dragon: system("00000000-0000-4000-8000-000000000010", "Дракон", null),
   dwarf: system("00000000-0000-4000-8000-000000000003", "Дворф", CATEGORY.smallfolk),
   elf: system("00000000-0000-4000-8000-000000000002", "Ельф", CATEGORY.elven),
   halfElf: system("00000000-0000-4000-8000-000000000007", "Напівельф", CATEGORY.elven),
@@ -44,6 +48,15 @@ const SPECIES = {
 const POPULAR = [SPECIES.human, SPECIES.elf, SPECIES.dwarf, SPECIES.darkElf, SPECIES.witcher];
 
 const CATALOG = Object.values(SPECIES);
+
+const EMPTY_BROWSE_PAGE = { items: [], page: 1, pagesCount: 0, pageSize: 30, totalCount: 0 };
+
+const PAGED_CATALOG: SpeciesOptionView[][] = [
+  [SPECIES.halfElf, SPECIES.sandworm],
+  [SPECIES.dragon],
+];
+
+const LIST_METRICS = { clientHeight: 240, scrollHeight: 1200 } as const;
 
 const CREATED_ID = "00000000-0000-4000-8000-0000000000aa";
 
@@ -57,6 +70,25 @@ function candidateLookups(): Nullable<string>[] {
   return sentRequests()
     .filter((request) => request.url.pathname === "/api/species/candidates")
     .map((request) => request.url.searchParams.get("name"));
+}
+
+function catalogPages(pages: SpeciesOptionView[][]): SpeciesServer["browse"] {
+  return (pageNumber) =>
+    Promise.resolve(
+      jsonResponse({
+        items: pages[pageNumber - 1] ?? [],
+        page: pageNumber,
+        pagesCount: pages.length,
+        pageSize: 30,
+        totalCount: pages.flat().length,
+      }),
+    );
+}
+
+function catalogQueries(): URLSearchParams[] {
+  return sentRequests()
+    .filter((request) => request.url.pathname === "/api/species/browse")
+    .map((request) => request.url.searchParams);
 }
 
 function combobox(): HTMLElement {
@@ -86,6 +118,12 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
     status,
   });
+}
+
+function optionNamesIn(groupName: string): Nullable<string>[] {
+  return within(screen.getByRole("group", { name: groupName }))
+    .getAllByRole("option")
+    .map((option) => option.textContent);
 }
 
 function own(id: string, name: string): SpeciesOptionView {
@@ -120,6 +158,10 @@ function PickerField({
   );
 }
 
+function requestedCatalogPages(): Nullable<string>[] {
+  return catalogQueries().map((query) => query.get("pageNumber"));
+}
+
 function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = new URL(String(input), "http://localhost");
   const method = (init?.method ?? "GET").toUpperCase();
@@ -127,6 +169,9 @@ function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response
   if (method === "POST" && url.pathname === "/api/species") {
     const { name } = SpeciesNameInputSchema.parse(JSON.parse(String(init?.body)));
     return server.create(name);
+  }
+  if (url.pathname === "/api/species/browse") {
+    return server.browse(Number(url.searchParams.get("pageNumber") ?? "1"));
   }
   if (url.pathname === "/api/species/candidates") {
     const name = url.searchParams.get("name") ?? "";
@@ -148,6 +193,18 @@ function respondWithDuplicateOf(holder: SpeciesOptionView): SpeciesServer["creat
         409,
       ),
     );
+}
+
+async function scrollListToBottom() {
+  const wheel = new WheelEvent("wheel", {
+    bubbles: true,
+    cancelable: true,
+    deltaY: LIST_METRICS.scrollHeight - LIST_METRICS.clientHeight,
+  });
+
+  await act(async () => {
+    screen.getByRole("listbox", { name: "Вид" }).dispatchEvent(wheel);
+  });
 }
 
 function searchTerms(): Nullable<string>[] {
@@ -176,6 +233,36 @@ function setupPicker(initial: Nullable<SpeciesSelection> = null, options: Picker
   return onChange;
 }
 
+function stubListMetrics(): () => void {
+  const scroll = { top: 0 };
+  const measured = ["clientHeight", "scrollHeight", "scrollTop"] as const;
+  const originals = measured.map(
+    (name) => [name, Object.getOwnPropertyDescriptor(HTMLElement.prototype, name)] as const,
+  );
+
+  Object.defineProperties(HTMLElement.prototype, {
+    clientHeight: { configurable: true, get: () => LIST_METRICS.clientHeight },
+    scrollHeight: { configurable: true, get: () => LIST_METRICS.scrollHeight },
+    scrollTop: {
+      configurable: true,
+      get: () => scroll.top,
+      set: (next: number) => {
+        scroll.top = next;
+      },
+    },
+  });
+
+  return () => {
+    for (const [name, descriptor] of originals) {
+      if (descriptor === undefined) {
+        Reflect.deleteProperty(HTMLElement.prototype, name);
+        continue;
+      }
+      Object.defineProperty(HTMLElement.prototype, name, descriptor);
+    }
+  };
+}
+
 function system(
   id: string,
   name: string,
@@ -187,6 +274,7 @@ function system(
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
   server = {
+    browse: () => Promise.resolve(jsonResponse(EMPTY_BROWSE_PAGE)),
     candidates: {},
     create: (name) => Promise.resolve(jsonResponse(own(CREATED_ID, name), 201)),
     search: defaultSearch,
@@ -247,9 +335,11 @@ describe("SpeciesPicker results", () => {
   });
 
   it("groups options under their category, gathering a category the server split apart", async () => {
+    server.search = () =>
+      Promise.resolve(jsonResponse({ items: [SPECIES.elf, SPECIES.witcher, SPECIES.darkElf] }));
     setupPicker();
 
-    await userEvent.click(combobox());
+    await userEvent.type(combobox(), "ль");
 
     const elven = await screen.findByRole("group", { name: "Ельфи та споріднені" });
     expect(
@@ -262,6 +352,262 @@ describe("SpeciesPicker results", () => {
         name: "Відьмак",
       }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("SpeciesPicker catalog", () => {
+  it("pins the popular species and your recent ones above the catalog grouped by category", async () => {
+    server.browse = catalogPages([[SPECIES.halfElf, SPECIES.sandworm, SPECIES.dragon]]);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Дракон" });
+
+    expect(screen.getAllByRole("group")).toEqual(
+      ["Популярні", "Ваші нещодавні", "Ельфи та споріднені", "Ваші види", "Інші"].map((name) =>
+        screen.getByRole("group", { name }),
+      ),
+    );
+    expect(optionNamesIn("Популярні")).toEqual(["Людина", "Ельф", "Дворф", "Темний ельф"]);
+    expect(optionNamesIn("Ваші нещодавні")).toEqual(["Відьмак"]);
+  });
+
+  it("lists a pinned species once instead of repeating it in its catalog group", async () => {
+    server.browse = catalogPages([
+      [SPECIES.human, SPECIES.elf, SPECIES.halfElf, SPECIES.witcher, SPECIES.sandworm],
+    ]);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+
+    expect(screen.getAllByRole("option", { name: "Людина" })).toHaveLength(1);
+    expect(optionNamesIn("Ельфи та споріднені")).toEqual(["Напівельф"]);
+    expect(optionNamesIn("Ваші види")).toEqual(["Шаї-Хулуд"]);
+  });
+
+  it("hides the excluded species from the pinned sections and from the catalog", async () => {
+    server.browse = catalogPages([[SPECIES.witcher, SPECIES.sandworm]]);
+    setupPicker(null, { excludeId: SPECIES.witcher.id });
+
+    await userEvent.click(combobox());
+
+    expect(await screen.findByRole("option", { name: "Шаї-Хулуд" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Відьмак" })).not.toBeInTheDocument();
+  });
+
+  it("picks a catalog species below the pinned ones with the arrow keys and Enter", async () => {
+    server.browse = catalogPages([[SPECIES.halfElf, SPECIES.sandworm]]);
+    const onChange = setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Напівельф" });
+    await userEvent.keyboard(`${"{ArrowDown}".repeat(6)}{Enter}`);
+
+    expect(onChange).toHaveBeenCalledWith({ id: SPECIES.halfElf.id, label: "Напівельф" });
+  });
+
+  it("asks for the catalog in the interface language, 30 species a page", async () => {
+    renderWithProviders(
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <PickerField onChange={vi.fn()} />
+      </NextIntlClientProvider>,
+    );
+
+    await userEvent.click(combobox());
+
+    await waitFor(() =>
+      expect(catalogQueries().map((query) => Object.fromEntries(query))).toEqual([
+        { locale: "en", pageNumber: "1", pageSize: "30" },
+      ]),
+    );
+  });
+});
+
+describe("SpeciesPicker catalog paging", () => {
+  beforeEach(() => stubListMetrics());
+
+  it("loads the next catalog page once the list is scrolled to its end", async () => {
+    server.browse = catalogPages(PAGED_CATALOG);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    expect(requestedCatalogPages()).toEqual(["1"]);
+    await scrollListToBottom();
+
+    expect(await screen.findByRole("option", { name: "Дракон" })).toBeInTheDocument();
+    expect(requestedCatalogPages()).toEqual(["1", "2"]);
+  });
+
+  it("stops asking for pages once the last one has arrived", async () => {
+    server.browse = catalogPages(PAGED_CATALOG);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await scrollListToBottom();
+    await screen.findByRole("option", { name: "Дракон" });
+    await scrollListToBottom();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(requestedCatalogPages()).toEqual(["1", "2"]);
+  });
+
+  it("says more species are loading while the next page is on its way", async () => {
+    const pages = catalogPages(PAGED_CATALOG);
+    server.browse = (pageNumber) =>
+      pageNumber === 1 ? pages(pageNumber) : new Promise<Response>(() => undefined);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await scrollListToBottom();
+
+    expect(await screen.findByText("Завантажуємо ще…")).toBeInTheDocument();
+  });
+
+  it("reaches the next page from the keyboard by pressing ArrowDown past the last species", async () => {
+    server.browse = catalogPages(PAGED_CATALOG);
+    const onChange = setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await userEvent.keyboard("{ArrowDown}".repeat(8));
+    await screen.findByRole("option", { name: "Дракон" });
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    expect(onChange).toHaveBeenCalledWith({ id: SPECIES.dragon.id, label: "Дракон" });
+  });
+
+  it("reports a next page that failed to load and does not retry it on its own", async () => {
+    const pages = catalogPages(PAGED_CATALOG);
+    server.browse = (pageNumber) =>
+      pageNumber === 1
+        ? pages(pageNumber)
+        : Promise.resolve(jsonResponse({ message: "Internal server error" }, 500));
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await scrollListToBottom();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Не вдалося завантажити ще види.");
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    expect(requestedCatalogPages()).toEqual(["1", "2"]);
+  });
+
+  it("loads the failed page again on retry and shows its species", async () => {
+    const pages = catalogPages(PAGED_CATALOG);
+    const outcomes = { failuresLeft: 1 };
+    server.browse = (pageNumber) => {
+      if (pageNumber === 1 || outcomes.failuresLeft === 0) return pages(pageNumber);
+      outcomes.failuresLeft -= 1;
+      return Promise.resolve(jsonResponse({ message: "Internal server error" }, 500));
+    };
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await scrollListToBottom();
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: "Повторити" }));
+
+    expect(await screen.findByRole("option", { name: "Дракон" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(requestedCatalogPages()).toEqual(["1", "2", "2"]);
+  });
+
+  it("stops paging through the catalog once a query is typed", async () => {
+    server.browse = catalogPages(PAGED_CATALOG);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await userEvent.type(combobox(), "ельф", { skipClick: true });
+    await screen.findByRole("option", { name: "Створити вид «ельф»" });
+    await scrollListToBottom();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(requestedCatalogPages()).toEqual(["1"]);
+  });
+
+  it("drops the loading-more footer once a query is typed", async () => {
+    const pages = catalogPages(PAGED_CATALOG);
+    server.browse = (pageNumber) =>
+      pageNumber === 1 ? pages(pageNumber) : new Promise<Response>(() => undefined);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await scrollListToBottom();
+    await screen.findByText("Завантажуємо ще…");
+    await userEvent.type(combobox(), "ельф", { skipClick: true });
+    await screen.findByRole("option", { name: "Створити вид «ельф»" });
+
+    expect(screen.queryByText("Завантажуємо ще…")).not.toBeInTheDocument();
+  });
+
+  it("waits for a refresh of the first page before loading the next one", async () => {
+    const freeman = own(CREATED_ID, "Фримен");
+    const stale = catalogPages(PAGED_CATALOG);
+    const fresh = catalogPages([
+      [freeman, SPECIES.halfElf],
+      [SPECIES.sandworm, SPECIES.dragon],
+    ]);
+    const controls: { release?: () => void } = {};
+    const refreshGate = new Promise<void>((resolve) => {
+      controls.release = resolve;
+    });
+    const firstPageLoads = { count: 0 };
+    server.browse = (pageNumber) => {
+      if (pageNumber !== 1) return fresh(pageNumber);
+      firstPageLoads.count += 1;
+      return firstPageLoads.count === 1 ? stale(pageNumber) : refreshGate.then(() => fresh(1));
+    };
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(combobox());
+    await waitFor(() => expect(requestedCatalogPages()).toEqual(["1", "1"]));
+    await scrollListToBottom();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(requestedCatalogPages()).toEqual(["1", "1"]);
+    expect(screen.queryByText("Завантажуємо ще…")).not.toBeInTheDocument();
+
+    controls.release?.();
+
+    expect(await screen.findByRole("option", { name: "Дракон" })).toBeInTheDocument();
+    expect(requestedCatalogPages()).toEqual(["1", "1", "2"]);
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Людина",
+      "Ельф",
+      "Дворф",
+      "Темний ельф",
+      "Відьмак",
+      "Фримен",
+      "Шаї-Хулуд",
+      "Напівельф",
+      "Дракон",
+    ]);
+  });
+
+  it("shows a species once when the next page repeats it", async () => {
+    server.browse = catalogPages([
+      [SPECIES.halfElf, SPECIES.sandworm],
+      [SPECIES.sandworm, SPECIES.dragon],
+    ]);
+    setupPicker();
+
+    await userEvent.click(combobox());
+    await screen.findByRole("option", { name: "Шаї-Хулуд" });
+    await scrollListToBottom();
+    await screen.findByRole("option", { name: "Дракон" });
+
+    expect(screen.getAllByRole("option", { name: "Шаї-Хулуд" })).toHaveLength(1);
   });
 });
 
@@ -569,9 +915,9 @@ describe("SpeciesPicker states", () => {
     const status = screen.getByRole("status");
     expect(status).toBeEmptyDOMElement();
 
-    await userEvent.click(combobox());
+    await userEvent.type(combobox(), "ельф");
 
-    await waitFor(() => expect(status).toHaveTextContent("Знайдено 5 видів"));
+    await waitFor(() => expect(status).toHaveTextContent("Знайдено 3 види"));
     expect(screen.getByRole("status")).toBe(status);
   });
 });

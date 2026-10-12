@@ -8346,6 +8346,9 @@
       "createAnyway": "Create “{name}” anyway",
       "creating": "Creating “{name}”…",
       "exactHeading": "This species already exists",
+      "loadingMore": "Loading more…",
+      "loadMoreFailed": "Couldn’t load more species.",
+      "loadMoreRetryHint": "Press ↓ on the last species to try again.",
       "notices": {
         "conflict": "This species already exists. Pick the existing one.",
         "createFailed": "Couldn’t create the species. Try again.",
@@ -8356,6 +8359,8 @@
       },
       "otherGroup": "Other",
       "ownGroup": "Your species",
+      "popularHeading": "Popular",
+      "recentOwnHeading": "Your recent species",
       "resultsCount": "{count, plural, one {# result} other {# results}} found",
       "retry": "Retry",
       "retryOnEnter": "Press Enter to try again.",

@@ -131,6 +131,8 @@ export function speciesApi({ accessToken, app }: { accessToken: string; app: INe
   const authorization = `Bearer ${accessToken}`;
 
   return {
+    browse: (query: { locale?: CatalogLocale; pageNumber?: number; pageSize?: number }) =>
+      request(server).get("/api/species/browse").query(query).set("Authorization", authorization),
     candidates: (name: string, locale: CatalogLocale = "uk") =>
       request(server)
         .get("/api/species/candidates")

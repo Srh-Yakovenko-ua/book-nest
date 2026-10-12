@@ -1,5 +1,6 @@
 import type {
   OwnSpeciesList,
+  SpeciesBrowsePage,
   SpeciesCandidates,
   SpeciesDeletionPreview,
   SpeciesMergeResult,
@@ -10,6 +11,7 @@ import type {
 import {
   CatalogLocaleSchema,
   MergeSpeciesInputSchema,
+  SpeciesBrowseQuerySchema,
   SpeciesCandidatesQuerySchema,
   SpeciesLocaleQuerySchema,
   SpeciesNameInputSchema,
@@ -53,11 +55,13 @@ import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { SpeciesService } from "../application/species.service.js";
 import { MergeSpeciesDto } from "./input-dto/merge-species.input-dto.js";
+import { SpeciesBrowseQueryDto } from "./input-dto/species-browse-query.input-dto.js";
 import { SpeciesCandidatesQueryDto } from "./input-dto/species-candidates-query.input-dto.js";
 import { SpeciesLocaleQueryDto } from "./input-dto/species-locale-query.input-dto.js";
 import { SpeciesNameDto } from "./input-dto/species-name.input-dto.js";
 import { SpeciesSearchQueryDto } from "./input-dto/species-search-query.input-dto.js";
 import { OwnSpeciesListDto } from "./view-dto/own-species-list.view-dto.js";
+import { SpeciesBrowsePageDto } from "./view-dto/species-browse-page.view-dto.js";
 import { SpeciesCandidatesDto } from "./view-dto/species-candidates.view-dto.js";
 import { SpeciesDeletionPreviewDto } from "./view-dto/species-deletion-preview.view-dto.js";
 import { SpeciesMergeResultDto } from "./view-dto/species-merge-result.view-dto.js";
@@ -88,6 +92,26 @@ export class SpeciesController {
     @Query(new ZodQueryPipe(SpeciesSearchQuerySchema)) query: SpeciesSearchQueryDto,
   ): Promise<SpeciesSearchResult> {
     return this.speciesService.search({ query, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiOkResponse({
+    description:
+      "Paginated catalog of species visible to the current user: own species first, then system species grouped in catalog category order (categories absent from the catalog file after those, by key), each group ordered by name in the requested locale",
+    type: SpeciesBrowsePageDto,
+  })
+  @ApiOperation({ summary: "Browse all species visible to the current user page by page" })
+  @ApiQuery({ name: "pageNumber", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
+  @Get("browse")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  browse(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(SpeciesBrowseQuerySchema)) query: SpeciesBrowseQueryDto,
+  ): Promise<SpeciesBrowsePage> {
+    return this.speciesService.browse({ query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

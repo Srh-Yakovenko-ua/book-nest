@@ -26,7 +26,7 @@ const SPECIES_MATCH_RANK = {
 
 const WORD_SEPARATORS = [" ", "-"] as const;
 
-const SPECIES_NAME_COLLATORS: Record<CatalogLocale, Intl.Collator> = {
+export const SPECIES_NAME_COLLATORS: Record<CatalogLocale, Intl.Collator> = {
   en: new Intl.Collator("en"),
   uk: new Intl.Collator("uk"),
 };

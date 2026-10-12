@@ -179,6 +179,12 @@ function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response
   const speciesId = url.pathname.split("/")[3] ?? "";
 
   if (url.pathname === "/api/species/own") return server.listOwn();
+  if (url.pathname === "/api/species/browse") {
+    const items = [...server.own.map(asOption), HUMAN];
+    return Promise.resolve(
+      jsonResponse({ items, page: 1, pagesCount: 1, pageSize: 30, totalCount: items.length }),
+    );
+  }
   if (url.pathname === "/api/species/candidates") {
     return Promise.resolve(jsonResponse(server.candidates));
   }
