@@ -13,7 +13,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -32,6 +31,7 @@ import { useBookTimelines } from "../api/use-book-timelines";
 import { useReorderTimelines } from "../api/use-reorder-timelines";
 import { useSetDefaultTimeline } from "../api/use-set-default-timeline";
 import { markerStyle } from "../model/color-key";
+import { TruncatedText } from "./truncated-text";
 
 const MANAGE_SKELETON_ROWS = 3;
 
@@ -161,106 +161,109 @@ export function ManageTimelinesDialog({
           <span className="text-sm text-muted-foreground tabular-nums">
             {t("lineCount", { count: orderedTimelines.length })}
           </span>
-          <Button onClick={onCreate} size="sm" type="button" variant="outline">
+          <Button onClick={onCreate} size="sm" type="button">
             <UiIcon name="plus" size={16} />
             {tRoot("newLine")}
           </Button>
         </div>
 
-        <ul className="flex max-h-[60vh] min-h-0 flex-col gap-2 overflow-x-hidden overflow-y-auto px-0.5 py-0.5">
-          {orderedTimelines.map((timeline, index) => (
-            <li
-              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-background p-3"
-              key={timeline.id}
-            >
-              <span
-                aria-hidden
-                className="size-2.5 shrink-0 rounded-full"
-                style={markerStyle(timeline.colorKey)}
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="truncate text-sm font-medium text-foreground">
-                    {timeline.name}
+        <div className="min-h-0 overflow-hidden rounded-lg border border-border">
+          <ul className="flex max-h-[60vh] min-h-0 flex-col divide-y divide-border overflow-x-hidden overflow-y-auto">
+            {orderedTimelines.map((timeline, index) => (
+              <li
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5"
+                key={timeline.id}
+              >
+                <span
+                  aria-hidden
+                  className="size-3 shrink-0 rounded-full"
+                  style={markerStyle(timeline.colorKey)}
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <TruncatedText
+                      className="text-sm font-medium text-foreground"
+                      text={timeline.name}
+                    />
+                    {timeline.isDefault ? (
+                      <Badge className="shrink-0" variant="secondary">
+                        {t("defaultBadge")}
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {t("eventCount", { count: timeline.eventsCount })}
                   </span>
-                  {timeline.isDefault ? (
-                    <Badge className="shrink-0" variant="secondary">
-                      {t("defaultBadge")}
-                    </Badge>
-                  ) : null}
                 </div>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {t("eventCount", { count: timeline.eventsCount })}
-                </span>
-              </div>
 
-              <div className="order-last flex w-full shrink-0 items-center justify-end gap-1 sm:order-none sm:w-auto">
-                <Button
-                  aria-label={t("moveUp", { name: timeline.name })}
-                  className="size-9"
-                  disabled={index === 0 || isBusy}
-                  onClick={() => moveTimeline(index, "up")}
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <UiIcon name="arrow-up" size={16} />
-                </Button>
-                <Button
-                  aria-label={t("moveDown", { name: timeline.name })}
-                  className="size-9"
-                  disabled={index === orderedTimelines.length - 1 || isBusy}
-                  onClick={() => moveTimeline(index, "down")}
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <UiIcon name="arrow-down" size={16} />
-                </Button>
-              </div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <div className="order-last flex w-full shrink-0 items-center justify-end gap-1 sm:order-none sm:w-auto">
                   <Button
-                    aria-label={t("rowMenu", { name: timeline.name })}
-                    className="size-9 shrink-0"
+                    aria-label={t("moveUp", { name: timeline.name })}
+                    className="size-9"
+                    disabled={index === 0 || isBusy}
+                    onClick={() => moveTimeline(index, "up")}
                     size="icon-sm"
                     variant="ghost"
                   >
-                    <UiIcon name="more" size={18} />
+                    <UiIcon name="arrow-up" size={16} />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuItem onSelect={() => onEdit(timeline)}>
-                    <UiIcon name="edit" size={16} />
-                    {t("edit")}
-                  </DropdownMenuItem>
-                  {timeline.isDefault ? null : (
-                    <DropdownMenuItem disabled={isBusy} onSelect={() => makeDefault(timeline)}>
-                      <UiIcon name="star" size={16} />
-                      {t("setDefault")}
+                  <Button
+                    aria-label={t("moveDown", { name: timeline.name })}
+                    className="size-9"
+                    disabled={index === orderedTimelines.length - 1 || isBusy}
+                    onClick={() => moveTimeline(index, "down")}
+                    size="icon-sm"
+                    variant="ghost"
+                  >
+                    <UiIcon name="arrow-down" size={16} />
+                  </Button>
+                </div>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      aria-label={t("rowMenu", { name: timeline.name })}
+                      className="size-9 shrink-0"
+                      size="icon-sm"
+                      variant="ghost"
+                    >
+                      <UiIcon name="more" size={18} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
+                    <DropdownMenuItem onSelect={() => onEdit(timeline)}>
+                      <UiIcon name="edit" size={16} />
+                      {t("edit")}
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  {timeline.isDefault ? (
-                    <>
-                      <DropdownMenuItem disabled variant="destructive">
+                    {timeline.isDefault ? null : (
+                      <DropdownMenuItem disabled={isBusy} onSelect={() => makeDefault(timeline)}>
+                        <UiIcon name="star" size={16} />
+                        {t("setDefault")}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    {timeline.isDefault ? (
+                      <>
+                        <DropdownMenuItem disabled variant="destructive">
+                          <UiIcon name="trash" size={16} />
+                          {t("delete")}
+                        </DropdownMenuItem>
+                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                          {t("deleteDefaultHint")}
+                        </DropdownMenuLabel>
+                      </>
+                    ) : (
+                      <DropdownMenuItem onSelect={() => onDelete(timeline)} variant="destructive">
                         <UiIcon name="trash" size={16} />
                         {t("delete")}
                       </DropdownMenuItem>
-                      <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                        {t("deleteDefaultHint")}
-                      </DropdownMenuLabel>
-                    </>
-                  ) : (
-                    <DropdownMenuItem onSelect={() => onDelete(timeline)} variant="destructive">
-                      <UiIcon name="trash" size={16} />
-                      {t("delete")}
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </li>
-          ))}
-        </ul>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
+            ))}
+          </ul>
+        </div>
       </>
     );
   }
@@ -276,15 +279,10 @@ export function ManageTimelinesDialog({
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
+          <p className="text-xs text-muted-foreground">{t("autoSaveHint")}</p>
         </DialogHeader>
 
         {renderBody()}
-
-        <DialogFooter>
-          <Button onClick={onClose} type="button" variant="secondary">
-            {t("done")}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

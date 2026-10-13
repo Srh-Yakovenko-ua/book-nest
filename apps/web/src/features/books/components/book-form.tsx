@@ -1,6 +1,13 @@
 "use client";
 
-import type { BookFormat, BookView, OwnershipStatus, ReadingStatus, TagColor } from "@app/shared";
+import type {
+  BookFormat,
+  BookView,
+  OwnershipStatus,
+  PublisherDuplicateCandidate,
+  ReadingStatus,
+  TagColor,
+} from "@app/shared";
 
 import {
   BOOK_AUTHORS_REQUIRED_MESSAGE,
@@ -8,9 +15,11 @@ import {
   BOOK_DESCRIPTION_MAX,
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  PUBLISHER_NAME_ERROR_CODES,
   TAG_COLOR_DEFAULT,
 } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -40,6 +49,11 @@ import type { BookFormMode } from "../model/book-form-mode";
 
 import { useCreateBook } from "../api/use-create-book";
 import { useGenres } from "../api/use-genres";
+import {
+  isReliableMatch,
+  PUBLISHER_LOOKUP,
+  publisherDuplicateCandidatesQueryOptions,
+} from "../api/use-publisher-duplicate-candidates";
 import { useSearchedTagColors } from "../api/use-tags-search";
 import { useUpdateBook } from "../api/use-update-book";
 import { readBookFormDraft } from "../model/book-form-draft";
@@ -76,7 +90,7 @@ import {
   resolveSeriesPublisherSuggestion,
   type SeriesPublisherSuggestion,
 } from "../model/series-publisher-suggestion";
-import { AuthorsField } from "./authors-field";
+import { AuthorsField, useAuthorsFieldFocus } from "./authors-field";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
 import { ClassificationSection } from "./classification-section";
@@ -87,7 +101,7 @@ import { FormSection } from "./form-section";
 import { FormatSection } from "./format-section";
 import { LibraryOrganizationSection } from "./library-organization-section";
 import { OwnershipStatusSection } from "./ownership-status-section";
-import { PublisherAutocomplete } from "./publisher-autocomplete";
+import { focusPublisherInput, PublisherAutocomplete } from "./publisher-autocomplete";
 import { ReadingStatusSection } from "./reading-status-section";
 import { useSectionCompletion } from "./use-section-completion";
 
@@ -105,6 +119,9 @@ type PendingDiscard = {
   title: string;
 };
 
+type PublisherSubmitGate =
+  { kind: "blocked" } | { kind: "ready" } | { kind: "resolved"; publisherId: string };
+
 function emptyToNull(value: unknown): null | string {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -112,6 +129,11 @@ function emptyToNull(value: unknown): null | string {
 }
 
 const LOAN_PERSON_FIELD_PATHS = ["loanInfo.loanContactId", "loanInfo.personName"] as const;
+
+const PUBLISHER_FIELD = {
+  errorId: "book-publisher-error",
+  hintId: "book-publisher-hint",
+} as const;
 
 const SERVER_FIELD_PATHS = [
   "title",
@@ -126,6 +148,7 @@ const SERVER_FIELD_PATHS = [
 export function BookForm(props: BookFormProps) {
   const t = useTranslations("books");
   const tDedications = useTranslations("dedications");
+  const tDiscardChanges = useTranslations("common.discardChanges");
   const router = useRouter();
   const searchParams = useSearchParams();
   const focusDedication = searchParams.get("focus") === "dedication";
@@ -196,11 +219,17 @@ export function BookForm(props: BookFormProps) {
       initialSeries?.selection.authors ??
       [],
   );
-  const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
+  const authorsFocus = useAuthorsFieldFocus();
+  const initialPublisherSelection: null | PublisherSelection =
     restoredDraft?.publisherSelection ??
-      initial?.publisherSelection ??
-      initialPublisher ??
-      (initialPublisherSuggestion.kind === "apply" ? initialPublisherSuggestion.publisher : null),
+    initial?.publisherSelection ??
+    initialPublisher ??
+    (initialPublisherSuggestion.kind === "apply" ? initialPublisherSuggestion.publisher : null);
+  const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
+    initialPublisherSelection,
+  );
+  const [publisherQuery, setPublisherQuery] = useState(
+    initialPublisherSelection?.name ?? restoredDraft?.publisherQuery ?? "",
   );
   const [publisherSuggestion, setPublisherSuggestion] = useState<SeriesPublisherSuggestion>(
     initialPublisherSuggestion,
@@ -231,6 +260,7 @@ export function BookForm(props: BookFormProps) {
     source: SeriesGenresSource;
   }>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (coverState.kind !== "selected") return;
@@ -301,6 +331,7 @@ export function BookForm(props: BookFormProps) {
             loanContactSelection,
             locale,
             publisherEdited,
+            publisherQuery,
             publisherSelection,
             seriesSelection,
             values: getValues(),
@@ -320,6 +351,7 @@ export function BookForm(props: BookFormProps) {
     loanContactSelection,
     locale,
     publisherEdited,
+    publisherQuery,
     publisherSelection,
     seriesSelection,
     subscribe,
@@ -349,8 +381,69 @@ export function BookForm(props: BookFormProps) {
   function clearSuggestedPublisher() {
     setPublisherSuggestion({ kind: "none" });
     setPublisherSelection(null);
+    setPublisherQuery("");
     setValue("publisherId", undefined, { shouldDirty: false });
     setValue("publisherName", undefined, { shouldDirty: false });
+  }
+
+  function handlePublisherSelectionChange(selection: null | PublisherSelection) {
+    setPublisherEdited(true);
+    setPublisherSuggestion({ kind: "none" });
+    setPublisherSelection(selection);
+    if (selection === null) {
+      setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
+      setValue("publisherName", undefined, { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+    if (selection.kind === "catalog") {
+      setValue("publisherName", undefined, { shouldDirty: true, shouldValidate: true });
+      setValue("publisherId", selection.id, { shouldDirty: true, shouldValidate: true });
+      return;
+    }
+    setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
+    setValue("publisherName", selection.name, { shouldDirty: true, shouldValidate: true });
+  }
+
+  function blockPublisherSubmit(message: string): PublisherSubmitGate {
+    setError("publisherName", { message });
+    focusPublisherInput();
+    return { kind: "blocked" };
+  }
+
+  async function resolvePublisherBeforeSubmit(): Promise<PublisherSubmitGate> {
+    if (publisherSelection !== null) return { kind: "ready" };
+
+    const typedName = publisherQuery.trim();
+    if (typedName.length === 0) return { kind: "ready" };
+    if (typedName.length < PUBLISHER_LOOKUP.minNameLength) {
+      return blockPublisherSubmit(t("publisher.nameTooShort"));
+    }
+
+    let candidates: PublisherDuplicateCandidate[];
+    try {
+      candidates = await queryClient.fetchQuery({
+        ...publisherDuplicateCandidatesQueryOptions({ locale, name: typedName }),
+        staleTime: 0,
+      });
+    } catch {
+      return blockPublisherSubmit(t("publisher.lookupFailed"));
+    }
+
+    const [firstReliable, secondReliable] = candidates.filter(isReliableMatch);
+    if (secondReliable !== undefined) return blockPublisherSubmit(t("publisher.ambiguous"));
+    if (firstReliable !== undefined) {
+      handlePublisherSelectionChange({
+        id: firstReliable.id,
+        kind: "catalog",
+        name: firstReliable.name,
+      });
+      setPublisherQuery(firstReliable.name);
+      return { kind: "resolved", publisherId: firstReliable.id };
+    }
+    if (candidates.length > 0) {
+      return blockPublisherSubmit(t("publisher.pickOrConfirmCustom", { name: typedName }));
+    }
+    return blockPublisherSubmit(t("publisher.confirmCustom", { name: typedName }));
   }
 
   function syncPublisherSuggestion(selection: null | SeriesSelection) {
@@ -369,6 +462,7 @@ export function BookForm(props: BookFormProps) {
 
     setPublisherSuggestion(suggestion);
     setPublisherSelection(suggestion.publisher);
+    setPublisherQuery(suggestion.publisher.name);
     setValue("publisherId", suggestion.publisher.id, { shouldDirty: false });
     setValue("publisherName", undefined, { shouldDirty: false });
   }
@@ -565,8 +659,15 @@ export function BookForm(props: BookFormProps) {
       return;
     }
 
+    const publisherGate = await resolvePublisherBeforeSubmit();
+    if (publisherGate.kind === "blocked") return;
+
     const payload = buildQueuePriorityPayload(pruneStatusPayload(values));
     payload.authors = authorSelections.map(authorSelectionToReference);
+    if (publisherGate.kind === "resolved") {
+      payload.publisherId = publisherGate.publisherId;
+      payload.publisherName = undefined;
+    }
 
     if (coverState.kind === "selected") {
       try {
@@ -626,6 +727,11 @@ export function BookForm(props: BookFormProps) {
   });
 
   function handleMutationError(error: unknown) {
+    if (error instanceof ApiError && error.code === PUBLISHER_NAME_ERROR_CODES.ambiguousName) {
+      setError("publisherName", { message: t("publisher.ambiguous") });
+      toast.error(t("publisher.ambiguous"));
+      return;
+    }
     if (error instanceof ApiError && error.fieldErrors) {
       for (const fieldError of error.fieldErrors) {
         const conflict = toSeriesPartNumberConflict(fieldError);
@@ -735,7 +841,7 @@ export function BookForm(props: BookFormProps) {
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1">
-              <Label htmlFor="book-author">{t("fields.author")}</Label>
+              <Label {...authorsFocus.labelProps}>{t("fields.author")}</Label>
               <span aria-hidden className="text-destructive">
                 *
               </span>
@@ -746,10 +852,10 @@ export function BookForm(props: BookFormProps) {
               render={() => (
                 <AuthorsField
                   describedBy={authorsErrorMessage === undefined ? undefined : "book-author-error"}
-                  id="book-author"
                   invalid={errors.authors !== undefined}
                   onChange={handleAuthorsChange}
                   value={authorSelections}
+                  {...authorsFocus.fieldProps}
                 />
               )}
             />
@@ -762,7 +868,7 @@ export function BookForm(props: BookFormProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="book-publisher">
+            <Label className="cursor-pointer" onClick={focusPublisherInput}>
               {t("fields.publisher")}{" "}
               <span className="text-xs font-normal text-muted-foreground">
                 {t("fields.optional")}
@@ -771,42 +877,21 @@ export function BookForm(props: BookFormProps) {
             <PublisherAutocomplete
               describedBy={
                 errors.publisherName
-                  ? "book-publisher-hint book-publisher-error"
-                  : "book-publisher-hint"
+                  ? `${PUBLISHER_FIELD.hintId} ${PUBLISHER_FIELD.errorId}`
+                  : PUBLISHER_FIELD.hintId
               }
-              id="book-publisher"
               invalid={errors.publisherName !== undefined}
               label={t("fields.publisher")}
-              onChange={(selection: null | PublisherSelection) => {
-                setPublisherEdited(true);
-                setPublisherSuggestion({ kind: "none" });
-                setPublisherSelection(selection);
-                if (selection === null) {
-                  setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
-                  setValue("publisherName", undefined, { shouldDirty: true, shouldValidate: true });
-                  return;
-                }
-                if (selection.kind === "catalog") {
-                  setValue("publisherName", undefined, { shouldDirty: true, shouldValidate: true });
-                  setValue("publisherId", selection.id, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                  return;
-                }
-                setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
-                setValue("publisherName", selection.name, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              }}
+              onChange={handlePublisherSelectionChange}
+              onQueryChange={setPublisherQuery}
               placeholder={t("fields.publisherPlaceholder")}
+              query={publisherQuery}
               value={publisherSelection}
             />
             <p
               aria-live="polite"
               className="text-xs text-muted-foreground"
-              id="book-publisher-hint"
+              id={PUBLISHER_FIELD.hintId}
             >
               {publisherSuggestion.kind === "apply"
                 ? t("fields.publisherSeriesHint", {
@@ -815,7 +900,7 @@ export function BookForm(props: BookFormProps) {
                   })
                 : t("fields.publisherHint")}
             </p>
-            <FieldError error={errors.publisherName} id="book-publisher-error" />
+            <FieldError error={errors.publisherName} id={PUBLISHER_FIELD.errorId} />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -997,6 +1082,8 @@ export function BookForm(props: BookFormProps) {
       </div>
 
       <DiscardConfirmDialog
+        cancelLabel={t("editConfirm.cancel")}
+        confirmLabel={t("editConfirm.confirm")}
         description={pendingDiscard?.description ?? ""}
         onConfirm={() => {
           pendingDiscard?.apply();
@@ -1010,6 +1097,8 @@ export function BookForm(props: BookFormProps) {
       />
 
       <DiscardConfirmDialog
+        cancelLabel={tDiscardChanges("cancel")}
+        confirmLabel={tDiscardChanges("confirm")}
         description={t("cancelConfirm.description")}
         onConfirm={() => {
           setCancelConfirmOpen(false);

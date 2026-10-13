@@ -66,6 +66,10 @@ export class CharactersService {
     const detailsRow = await this.transactionRunner.run(async (tx) => {
       await this.accessAsserter.assertMediaOwned({ mediaId: characterData.avatarMediaId, userId });
       await this.accessAsserter.assertAliasBooksOwned({ aliases: input.character.aliases, userId });
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: characterData.speciesId, userId },
+        tx,
+      );
       const created = await this.charactersRepository.createCharacter(characterData, tx);
 
       if (input.firstAppearance !== undefined) {
@@ -78,6 +82,10 @@ export class CharactersService {
           mediaId: bookCharacterData.portraitMediaId,
           userId,
         });
+        await this.accessAsserter.assertSpeciesReferenceable(
+          { speciesId: bookCharacterData.speciesOverrideId, userId },
+          tx,
+        );
         await this.bookCharactersService.insertBookCharacter({ data: bookCharacterData, tx });
       }
 
@@ -290,6 +298,10 @@ export class CharactersService {
           userId,
         });
       }
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: input.speciesId, userId },
+        tx,
+      );
 
       await this.charactersRepository.updateCharacter(
         {

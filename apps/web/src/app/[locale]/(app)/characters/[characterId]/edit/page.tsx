@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { CharacterEditPage } from "@/features/characters";
@@ -18,12 +19,25 @@ export default async function EditCharacterPage({ params }: Props) {
   const t = await getTranslations({ locale, namespace: "characters.edit" });
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
-      <header className="mb-8 flex flex-col gap-2">
-        <h1 className="font-heading text-[clamp(1.5rem,3vw,2.25rem)] leading-tight font-semibold text-ink">
-          {t("title")}
-        </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{t("subtitle")}</p>
+    <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
+      <header className="mb-8 flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1 md:mb-10">
+        <div className="flex items-center gap-3">
+          <Image
+            alt=""
+            aria-hidden
+            className="h-auto w-14 shrink-0 select-none"
+            height={809}
+            src="/illustrations/pen.png"
+            unoptimized
+            width={860}
+          />
+          <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
+            {t("title")}
+          </h1>
+        </div>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+          {t("subtitle")}
+        </p>
       </header>
 
       <CharacterEditPage characterId={characterId} />

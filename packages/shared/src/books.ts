@@ -1405,3 +1405,18 @@ export const BookFacetsViewSchema = z.object({
 });
 
 export type BookFacetsView = z.infer<typeof BookFacetsViewSchema>;
+
+export const BOOK_CHAPTER_USAGE_MAX = 200;
+
+export const BookChapterUsageViewSchema = z.object({
+  chapter: z.string(),
+  count: CountSchema,
+});
+
+export type BookChapterUsageView = z.infer<typeof BookChapterUsageViewSchema>;
+
+export const BookChaptersViewSchema = z.object({
+  chapters: z.array(BookChapterUsageViewSchema),
+});
+
+export type BookChaptersView = z.infer<typeof BookChaptersViewSchema>;

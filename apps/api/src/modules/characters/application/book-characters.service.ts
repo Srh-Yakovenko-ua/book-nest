@@ -7,6 +7,7 @@ import type {
   CharacterSuggestionsView,
   CharacterSummaryView,
   CreateCharacterInBook,
+  Nullable,
   Paginator,
   ReadingContextQuery,
   UpdateBookCharacter,
@@ -22,6 +23,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { ReadingContextWindow, RosterVisibility } from "../domain/reading-context-window.js";
+import type { SuggestionExclusions } from "../domain/suggestion-exclusions.js";
 import type { CreateBookCharacterData } from "../infrastructure/characters.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
@@ -42,6 +44,10 @@ import {
   UNGATED_ROSTER_VISIBILITY,
   UNRESTRICTED_READING_CONTEXT_WINDOW,
 } from "../domain/reading-context-window.js";
+import {
+  buildSuggestionExclusions,
+  NO_SUGGESTION_EXCLUSIONS,
+} from "../domain/suggestion-exclusions.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterDetailsAssembler } from "./character-details.assembler.js";
@@ -70,8 +76,15 @@ export class BookCharactersService {
     if (context === null) {
       throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
     }
+    const window = await this.resolveReadingContextWindowFor({ bookId, query, userId });
+    const exclusions = await this.resolveSuggestionExclusions({
+      seriesId: context.seriesId,
+      userId,
+      window,
+    });
     const rows = await this.charactersRepository.listSuggestions({
       bookId,
+      exclusions,
       limit: query.limit,
       search: normalizeSearch(query.q),
       seriesId: context.seriesId,
@@ -136,6 +149,10 @@ export class BookCharactersService {
         mediaId: bookCharacterData.portraitMediaId,
         userId,
       });
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: bookCharacterData.speciesOverrideId, userId },
+        tx,
+      );
       await this.insertBookCharacter({ data: bookCharacterData, tx });
 
       return this.detailsAssembler.loadDetails({ bookId, characterId, userId }, tx);
@@ -273,6 +290,10 @@ export class BookCharactersService {
       if (input.tagIds !== undefined) {
         await this.accessAsserter.assertTagsOwned({ tagIds: input.tagIds, userId }, tx);
       }
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: input.speciesOverrideId, userId },
+        tx,
+      );
 
       await this.charactersRepository.updateBookCharacter(
         { bookCharacterId: bookCharacter.id, data: buildBookCharacterUpdateData(input) },
@@ -323,6 +344,10 @@ export class BookCharactersService {
       const characterData = buildCharacterData({ input: input.character, userId });
       await this.accessAsserter.assertMediaOwned({ mediaId: characterData.avatarMediaId, userId });
       await this.accessAsserter.assertAliasBooksOwned({ aliases: input.character.aliases, userId });
+      await this.accessAsserter.assertSpeciesReferenceable(
+        { speciesId: characterData.speciesId, userId },
+        tx,
+      );
       const created = await this.charactersRepository.createCharacter(characterData, tx);
       return created.id;
     }
@@ -396,5 +421,24 @@ export class BookCharactersService {
       kind: "within_reading_position",
       positionHiddenIds: collectPositionHiddenAppearanceIds({ appearances: candidates, window }),
     };
+  }
+
+  private async resolveSuggestionExclusions({
+    seriesId,
+    userId,
+    window,
+  }: {
+    seriesId: Nullable<string>;
+    userId: string;
+    window: ReadingContextWindow;
+  }): Promise<SuggestionExclusions> {
+    if (seriesId === null) {
+      return NO_SUGGESTION_EXCLUSIONS;
+    }
+    const seriesAppearances = await this.charactersRepository.listSeriesScopedAppearances({
+      seriesId,
+      userId,
+    });
+    return buildSuggestionExclusions({ seriesAppearances, window });
   }
 }

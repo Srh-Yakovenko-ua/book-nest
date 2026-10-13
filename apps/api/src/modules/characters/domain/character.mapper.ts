@@ -27,7 +27,10 @@ import {
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 
+import type { SpeciesRefSource } from "../../species/index.js";
+
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
+import { toSpeciesRefView } from "../../species/index.js";
 import { emptyToNull } from "./character-fields.js";
 
 export type CharacterAliasSource = {
@@ -55,11 +58,13 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   id: string;
   importance: string;
   isPovCharacter: boolean;
+  isUnreliableNarrator: boolean;
+  isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
   roles: CharacterRoleSource[];
   sortOrder: Nullable<number>;
-  speciesOverride: Nullable<string>;
+  speciesOverride: Nullable<SpeciesRefSource>;
   status: string;
   statusCustomText: Nullable<string>;
   updatedAt: Date;
@@ -99,7 +104,7 @@ export type CharacterSource = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<SpeciesRefSource>;
   updatedAt: Date;
 };
 
@@ -115,7 +120,7 @@ export type GlobalSummaryCharacterSource = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<SpeciesRefSource>;
   tags: { tag: TagViewSource }[];
 };
 
@@ -141,7 +146,7 @@ export type SeriesProfileCharacterSource = {
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  species: Nullable<SpeciesRefSource>;
 };
 
 export type SpoilerFlags = {
@@ -211,6 +216,8 @@ export function toBookCharacterView({
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isPovCharacter: appearance.isPovCharacter,
+    isUnreliableNarrator: appearance.isUnreliableNarrator,
+    isUnreliableNarratorSpoiler: appearance.isUnreliableNarratorSpoiler,
     narratorType:
       appearance.narratorType === null
         ? null
@@ -221,7 +228,7 @@ export function toBookCharacterView({
     portraitIsSpoiler: appearance.portraitIsSpoiler,
     roles: appearance.roles.map((role) => toRoleView(role)),
     sortOrder: appearance.sortOrder,
-    speciesOverride: emptyToNull(appearance.speciesOverride),
+    speciesOverride: toSpeciesRefView(appearance.speciesOverride),
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
     status: BookCharacterStatusSchema.parse(appearance.status),
     statusCustomText: emptyToNull(appearance.statusCustomText),
@@ -234,14 +241,21 @@ export function toCharacterDetailsView({
   appearances,
   avatar,
   character,
+  characterHiddenFields = [],
   forms,
 }: {
   appearances: BookCharacterView[];
   avatar: Nullable<MediaView>;
   character: CharacterSource;
+  characterHiddenFields?: readonly string[];
   forms: CharacterFormView[];
 }): CharacterDetailsView {
-  const hiddenFields = [...new Set(appearances.flatMap((appearance) => appearance.hiddenFields))];
+  const hiddenFields = [
+    ...new Set([
+      ...characterHiddenFields,
+      ...appearances.flatMap((appearance) => appearance.hiddenFields),
+    ]),
+  ];
   hiddenFields.sort((left, right) => left.localeCompare(right));
 
   return {
@@ -265,7 +279,7 @@ export function toCharacterDetailsView({
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    species: toSpeciesRefView(character.species),
     updatedAt: character.updatedAt.toISOString(),
   };
 }
@@ -317,7 +331,7 @@ export function toCharacterGlobalSummaryView({
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    species: toSpeciesRefView(character.species),
     tags: character.tags.map((link) => toTagView(link.tag)),
   };
 }
@@ -370,7 +384,7 @@ export function toCharacterSeriesProfileView({
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
-    species: emptyToNull(character.species),
+    species: toSpeciesRefView(character.species),
   };
 }
 
@@ -429,8 +443,16 @@ export function toMaskedBookCharacterView({
     appearance.personalImpressionIsSpoiler,
   );
   const showPortrait = isVisible("portrait", appearance.portraitIsSpoiler);
+  const showSpoilerRoles = isVisible(
+    "roles",
+    appearance.roles.some((role) => role.isSpoiler),
+  );
   const showSpeciesOverride = isVisible("speciesOverride", appearance.speciesOverrideIsSpoiler);
   const showStatus = isVisible("status", appearance.statusIsSpoiler);
+  const showUnreliableNarrator = isVisible(
+    "unreliableNarrator",
+    appearance.isUnreliableNarratorSpoiler,
+  );
 
   return {
     appearanceNotes: showAppearanceNotes ? emptyToNull(appearance.appearanceNotes) : null,
@@ -454,6 +476,8 @@ export function toMaskedBookCharacterView({
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isPovCharacter: appearance.isPovCharacter,
+    isUnreliableNarrator: showUnreliableNarrator ? appearance.isUnreliableNarrator : null,
+    isUnreliableNarratorSpoiler: appearance.isUnreliableNarratorSpoiler,
     narratorType:
       appearance.narratorType === null
         ? null
@@ -462,9 +486,12 @@ export function toMaskedBookCharacterView({
     personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
     portrait: showPortrait ? portrait : null,
     portraitIsSpoiler: appearance.portraitIsSpoiler,
-    roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
+    roles: (showSpoilerRoles
+      ? appearance.roles
+      : appearance.roles.filter((role) => !role.isSpoiler)
+    ).map((role) => toRoleView(role)),
     sortOrder: appearance.sortOrder,
-    speciesOverride: showSpeciesOverride ? emptyToNull(appearance.speciesOverride) : null,
+    speciesOverride: showSpeciesOverride ? toSpeciesRefView(appearance.speciesOverride) : null,
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
     status: showStatus ? BookCharacterStatusSchema.parse(appearance.status) : null,
     statusCustomText: showStatus ? emptyToNull(appearance.statusCustomText) : null,
@@ -499,7 +526,9 @@ function comparePartNumberAscNullsLast(left: Nullable<number>, right: Nullable<n
   return left - right;
 }
 
-function computeHiddenFields(flags: SpoilerFlags): string[] {
+function computeHiddenFields(
+  flags: Pick<CharacterAppearanceSource, "isUnreliableNarratorSpoiler"> & SpoilerFlags,
+): string[] {
   const hidden: string[] = [];
   if (flags.appearanceNotesIsSpoiler) {
     hidden.push("appearanceNotes");
@@ -521,6 +550,9 @@ function computeHiddenFields(flags: SpoilerFlags): string[] {
   }
   if (flags.statusIsSpoiler) {
     hidden.push("status");
+  }
+  if (flags.isUnreliableNarratorSpoiler) {
+    hidden.push("unreliableNarrator");
   }
   return hidden;
 }

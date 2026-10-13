@@ -152,7 +152,8 @@ describe("EventStreamView spoiler guard", () => {
       guardEnabled: true,
     });
 
-    expect(screen.getByText("Подія позначена як спойлер")).toBeInTheDocument();
+    expect(screen.getByText("Подія містить спойлер")).toBeInTheDocument();
+    expect(screen.getByText("Деталі події приховано.")).toBeInTheDocument();
   });
 
   it("reports both reasons for a future manual spoiler", () => {

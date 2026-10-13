@@ -4,9 +4,12 @@ import type { Nullable, TimelineColorKey, TimelineEventSort, TimelineEventView }
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
+import { useLayoutEffect, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { SpoilerGate } from "@/components/spoiler-gate";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 import type { EventCardContextMode } from "./event-card";
@@ -70,16 +73,16 @@ export function EventStreamView({
             showTimelineName={isAllLines}
           />
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/40 px-3 py-2.5">
-            <span className="inline-flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-              <UiIcon name="eye-off" size={15} />
-              {t(GUARD_REASON_LABEL_KEYS[reason])}
-            </span>
-            <Button onClick={() => onRevealEvent(event.id)} size="sm" variant="secondary">
-              <UiIcon name="eye" size={14} />
-              {t("guarded.reveal")}
-            </Button>
-          </div>
+          <SpoilerGate
+            action={
+              <Button className="h-11 sm:h-8" onClick={() => onRevealEvent(event.id)} size="sm">
+                {t("guarded.reveal")}
+              </Button>
+            }
+            description={t("guarded.gateDescription")}
+            title={t(GUARD_REASON_LABEL_KEYS[reason])}
+            variant="compact"
+          />
         )}
       </StreamRow>
     );
@@ -137,16 +140,45 @@ function ChapterHeader({
   chapter: Nullable<string>;
   noChapterLabel: string;
 }) {
+  const [labelNode, setLabelNode] = useState<Nullable<HTMLSpanElement>>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const text = chapter ?? noChapterLabel;
+
+  useLayoutEffect(() => {
+    if (labelNode === null) return;
+
+    const measure = () => setIsTruncated(labelNode.scrollWidth > labelNode.clientWidth);
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(labelNode);
+
+    return () => observer.disconnect();
+  }, [labelNode, text]);
+
+  const label = (
+    <span
+      className={cn(
+        "min-w-0 truncate font-heading text-[15px] leading-snug font-semibold",
+        chapter === null ? "text-muted-foreground" : "text-ink",
+      )}
+      ref={setLabelNode}
+    >
+      {text}
+    </span>
+  );
+
   return (
-    <div className="flex items-center gap-2 pt-3 pb-2 first:pt-0">
-      <span
-        className={cn(
-          "text-xs font-medium",
-          chapter === null ? "text-muted-foreground" : "text-foreground",
-        )}
-      >
-        {chapter ?? noChapterLabel}
-      </span>
+    <div className="flex items-center gap-3 pt-8 pb-3 first:pt-0">
+      {isTruncated ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{label}</TooltipTrigger>
+          <TooltipContent>{text}</TooltipContent>
+        </Tooltip>
+      ) : (
+        label
+      )}
       <span aria-hidden className="h-px flex-1 bg-border" />
     </div>
   );
@@ -184,15 +216,15 @@ function StreamRow({
 }) {
   return (
     <div className="flex gap-3">
-      <div className="flex w-3 flex-col items-center pt-2.5">
+      <div className="flex w-3 flex-col items-center pt-4.5">
         <span
           aria-hidden
-          className="size-2.5 shrink-0 rounded-full ring-4 ring-card"
+          className="size-3 shrink-0 rounded-full ring-4 ring-card"
           style={markerStyle(colorKey)}
         />
-        {hasConnector ? <span aria-hidden className="mt-1 w-px flex-1 bg-border" /> : null}
+        {hasConnector ? <span aria-hidden className="mt-1.5 w-px flex-1 bg-border" /> : null}
       </div>
-      <div className="min-w-0 flex-1 pb-3">{children}</div>
+      <div className="min-w-0 flex-1 pb-4">{children}</div>
     </div>
   );
 }

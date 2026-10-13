@@ -40,7 +40,7 @@ export function buildCharacterData({
     neutralDescription: emptyToNull(input.neutralDescription),
     normalizedName: normalizeName(input.name),
     pronouns: emptyToNull(input.pronouns),
-    species: emptyToNull(input.species),
+    speciesId: input.speciesId,
     userId,
   };
 }
@@ -60,8 +60,8 @@ export function buildCharacterUpdateData({
   if (input.entityKind !== undefined) {
     data.entityKind = input.entityKind;
   }
-  if (input.species !== undefined) {
-    data.species = emptyToNull(input.species);
+  if (input.speciesId !== undefined) {
+    data.speciesId = input.speciesId;
   }
   const effectiveGender = input.gender ?? storedGender;
   if (input.gender !== undefined) {

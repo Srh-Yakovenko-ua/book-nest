@@ -180,7 +180,11 @@ function Multiselect({
             <CommandList ref={scrollRef}>
               <CommandEmpty>{emptyText}</CommandEmpty>
               {groupOptions(options).map((group) => (
-                <CommandGroup heading={group.heading} key={group.key}>
+                <CommandGroup
+                  heading={group.heading}
+                  key={group.key}
+                  variant={group.heading === undefined ? "default" : "sectioned"}
+                >
                   {group.options.map((option) => {
                     const selected = value.includes(option.value);
                     return (

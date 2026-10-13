@@ -96,7 +96,7 @@ export class CharactersController {
   @ApiQuery({ name: "seriesId", required: false })
   @ApiQuery({ name: "role", required: false })
   @ApiQuery({ name: "importance", required: false })
-  @ApiQuery({ name: "species", required: false })
+  @ApiQuery({ name: "speciesId", required: false })
   @ApiQuery({ name: "gender", required: false })
   @ApiQuery({ name: "attitude", required: false })
   @ApiQuery({ name: "groupId", required: false })

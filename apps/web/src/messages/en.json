@@ -8,7 +8,14 @@
     "increment": "Increase",
     "opensInNewTab": "(opens in a new tab)",
     "ratingValueText": "{value} of {max}",
-    "clear": "Clear"
+    "clear": "Clear",
+    "discardChanges": {
+      "cancel": "Keep editing",
+      "confirm": "Yes, leave"
+    },
+    "chapterCombobox": {
+      "usageCount": "used {count, plural, one {# time} other {# times}}"
+    }
   },
   "nav": {
     "home": "Home",
@@ -26,15 +33,22 @@
     "loansHistory": "Loan history",
     "lists": "Lists",
     "notes": "Notes",
-    "notesBooks": "Books",
-    "notesSeries": "Series",
+    "notesBooks": "Book notes",
+    "notesSeries": "Series notes",
     "delivery": "Deliveries",
     "dedications": "Dedications",
     "quotes": "Quotes",
     "publishers": "Publishers",
     "settings": "Settings",
     "loansContacts": "Contacts",
-    "statistics": "Statistics"
+    "statistics": "Statistics",
+    "characters": "Characters",
+    "groups": {
+      "books": "Books",
+      "catalog": "Catalog",
+      "records": "Records",
+      "tracking": "Tracking"
+    }
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -1405,9 +1419,19 @@
       "empty": "No publishers found.",
       "recentHeading": "Recently used",
       "allHeading": "All publishers",
+      "existingHeading": "This publisher already exists",
+      "similarHeading": "Similar publishers",
       "createHeading": "Add custom",
       "customBadge": "custom",
-      "useCustom": "Use “{name}”"
+      "alsoKnownAs": "also known as “{name}”",
+      "useCustom": "Use “{name}”",
+      "useCustomAnyway": "Add “{name}” as custom anyway",
+      "ambiguous": "This name matches several publishers. Pick the right one from the list.",
+      "pickOrConfirmCustom": "Pick a publisher from the list, or confirm that “{name}” is a new publisher.",
+      "confirmCustom": "There is no publisher “{name}” yet. Confirm creating it in the suggestion list.",
+      "nameTooShort": "A publisher name needs at least 2 characters. Finish it or clear the field.",
+      "lookupFailed": "We could not check the publisher. Please try again.",
+      "lookupUnavailable": "We could not check whether this publisher already exists."
     },
     "store": {
       "recentHeading": "Recently used",
@@ -3087,7 +3111,7 @@
       "label": "Delivery sections",
       "inTransit": "In transit",
       "history": "History",
-      "statistics": "Statistics"
+      "statistics": "Delivery statistics"
     },
     "history": {
       "metaTitle": "Order history",
@@ -6259,6 +6283,7 @@
       "textEmpty": "Enter the note text.",
       "textTooLong": "A note cannot be longer than {max} characters.",
       "pageNotPositive": "The page number must be greater than 0.",
+      "pageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}.",
       "chapterTooLong": "The chapter name is too long.",
       "customCategoryTooLong": "The custom category cannot be longer than {max} characters.",
       "entityRequired": {
@@ -6865,6 +6890,7 @@
         "pageWhole": "The page must be a whole number",
         "pageMin": "The page must be greater than 0",
         "pageMax": "The page must be at most {max}",
+        "pageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}",
         "generic": "Could not save the quote"
       }
     },
@@ -6872,7 +6898,7 @@
       "title": "Leave without saving?",
       "description": "Your changes will be lost.",
       "cancel": "Cancel",
-      "confirm": "Leave without saving"
+      "confirm": "Leave"
     },
     "empty": {
       "title": "You have no quotes yet",
@@ -7083,7 +7109,8 @@
   "timeline": {
     "title": "Event timeline",
     "subtitle": "Key story beats in the order the plot unfolds — so you can quickly recall what already happened when you return to the book.",
-    "allLines": "All timelines {count}",
+    "lines": "Lines",
+    "allLines": "All timelines",
     "mainLine": "Main timeline",
     "newLine": "New timeline",
     "manageLines": "Manage timelines",
@@ -7092,9 +7119,8 @@
     "editEvent": "Edit event",
     "viewLabel": "View",
     "view": {
-      "stream": "Timeline view",
-      "list": "List view",
-      "overview": "Overview"
+      "stream": "Timeline",
+      "list": "Table"
     },
     "sort": {
       "label": "Sort",
@@ -7108,8 +7134,9 @@
     "guard": "Spoiler guard",
     "guarded": {
       "reasonFuture": "This event is beyond your current reading position",
-      "reasonManual": "This event is marked as a spoiler",
+      "reasonManual": "This event contains a spoiler",
       "reasonBoth": "This event is hidden",
+      "gateDescription": "The event details are hidden.",
       "reveal": "Show event"
     },
     "positionMarker": "You are here · p. {page}",
@@ -7150,6 +7177,10 @@
       "open": "Open thread",
       "resolved": "Resolved",
       "resolvedBy": "Resolved by"
+    },
+    "card": {
+      "type": "Type: {value}",
+      "importance": "Importance: {value}"
     },
     "form": {
       "titleLabel": "Event title",
@@ -7226,7 +7257,7 @@
     "filters": {
       "title": "Filters",
       "searchLabel": "Search events",
-      "searchPlaceholder": "Search by title",
+      "searchPlaceholder": "Search events…",
       "typeLabel": "Event type",
       "importanceLabel": "Importance",
       "unresolved": "Only open threads",
@@ -7244,12 +7275,9 @@
       "openThreads": "Open threads"
     },
     "list": {
-      "number": "#",
       "event": "Event",
-      "context": "Context",
       "type": "Type",
       "importance": "Importance",
-      "timeline": "Timeline",
       "page": "p. {page}",
       "actions": "Actions"
     },
@@ -7257,7 +7285,6 @@
       "description": "Detailed description",
       "related": "Related events",
       "resolves": "This event resolves",
-      "close": "Close",
       "edit": "Edit",
       "delete": "Delete",
       "context": "Context",
@@ -7297,6 +7324,7 @@
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Optional explanation",
       "markerLabel": "Timeline color",
+      "previewLabel": "Preview",
       "cancel": "Cancel",
       "deleteTitle": "Delete this timeline?",
       "eventCountLine": "This timeline has {count} events.",
@@ -7307,6 +7335,7 @@
       "targetLineLabel": "Where to move events",
       "confirmDelete": "Delete",
       "description": "Create, rename, reorder, and delete the book's timelines.",
+      "autoSaveHint": "Changes are applied automatically.",
       "createDescription": "Create a separate line for a parallel plot, flashbacks, or another perspective.",
       "editDescription": "Update the name, description, or color marker of the line.",
       "optional": "optional",
@@ -7319,7 +7348,6 @@
       "deleteDefaultHint": "Make another timeline the default first.",
       "deleteEmptyDescription": "This timeline will be deleted. This action cannot be undone.",
       "deleteConfirmCheckbox": "I understand the events will be deleted permanently",
-      "done": "Done",
       "lineCount": "{count, plural, one {# timeline} other {# timelines}}",
       "emptyTitle": "No timelines created yet",
       "loading": "Loading timelines",
@@ -7337,6 +7365,10 @@
       "rose": "Dusty rose"
     },
     "overview": {
+      "action": "Timeline overview",
+      "back": "Back to events",
+      "heading": "Timeline overview",
+      "subtitle": "A book-wide summary of your timeline events.",
       "byType": "By event type",
       "byImportance": "By importance",
       "chapterDensity": "Event density by chapter",
@@ -7382,7 +7414,6 @@
     },
     "actions": {
       "menu": "Event actions",
-      "view": "View",
       "edit": "Edit",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -7395,7 +7426,8 @@
     "moveDialog": {
       "title": "Move event",
       "description": "Choose the timeline to move this event to.",
-      "targetLabel": "Timeline",
+      "currentLabel": "Current line",
+      "targetLabel": "Move to",
       "targetPlaceholder": "Choose a line",
       "confirm": "Move",
       "cancel": "Cancel",
@@ -7409,7 +7441,6 @@
       "cancel": "Cancel",
       "deleting": "Deleting…"
     },
-    "linesLabel": "Timelines",
     "activeFilters": {
       "label": "Active filters",
       "remove": "Remove “{label}”",
@@ -7639,7 +7670,8 @@
         "addBook": "Add book",
         "menu": "Publisher actions",
         "edit": "Edit",
-        "delete": "Delete"
+        "delete": "Delete",
+        "merge": "Merge into another"
       },
       "states": {
         "loading": "Loading publisher",
@@ -7649,11 +7681,6 @@
         "errorDescription": "Try refreshing the page or come back a little later.",
         "back": "Back to publishers",
         "retry": "Try again"
-      },
-      "tabs": {
-        "ariaLabel": "Publisher sections",
-        "overview": "Overview",
-        "books": "Books"
       },
       "kpi": {
         "books": "Books in library",
@@ -7668,11 +7695,6 @@
         "noRatedBooks": "No rated books"
       },
       "overview": {
-        "empty": {
-          "title": "No books from this publisher yet",
-          "description": "Add the first book from this publisher to your library.",
-          "cta": "Add book"
-        },
         "sections": {
           "latest": "Latest added book",
           "reading": "Currently reading",
@@ -7681,8 +7703,6 @@
         },
         "regionLabel": "Publisher overview",
         "addedAt": "Added {date}",
-        "seriesPart": "{name} · book {part}",
-        "seriesPartOfTotal": "{name} · book {part} of {total}",
         "progress": "{current} of {total} pages",
         "progressAriaLabel": "Reading progress: {current} of {total}",
         "noPrice": "No price",
@@ -7693,9 +7713,15 @@
         "error": {
           "title": "Couldn't load the overview",
           "retry": "Try again"
+        },
+        "panel": {
+          "trigger": "Publisher overview",
+          "title": "Publisher overview",
+          "subtitle": "Reading, series and the wishlist",
+          "close": "Close overview"
         }
       },
-      "booksTab": {
+      "catalog": {
         "empty": {
           "title": "No books from this publisher yet",
           "description": "Add the first book from this publisher to your library.",
@@ -7725,12 +7751,41 @@
         "submit": "Save",
         "cancel": "Cancel",
         "duplicate": "A publisher with this name already exists",
+        "duplicateSelf": "The publisher “{name}” has the same name. You can merge them into one.",
+        "duplicateSelfAlias": "The publisher “{name}” has the same name, because it is also known as “{matchedName}”. You can merge them into one.",
+        "duplicateTaken": "The publisher “{name}” already uses this name",
+        "duplicateTakenAlias": "The publisher “{name}” already uses this name, because it is also known as “{matchedName}”",
+        "lookupUnavailable": "We could not check whether another publisher already uses this name.",
         "invalidUrl": "Enter a valid link",
         "invalidYear": "Enter a valid year",
         "invalidName": "Name must be at least 2 characters long",
         "genericError": "Couldn't save the changes. Try again.",
         "discardTitle": "Discard changes?",
         "discardDescription": "Your unsaved changes will be lost."
+      },
+      "mergeDialog": {
+        "title": "Merge publisher",
+        "description": "All books move to the publisher you pick, and this custom publisher is then removed.",
+        "sourceLabel": "Merging",
+        "sourceBooks": "{count, plural, one {# book in your library} other {# books in your library}}",
+        "ownBadge": "Custom",
+        "catalogBadge": "Catalog",
+        "searchLabel": "Where to move the books",
+        "searchPlaceholder": "Search publishers",
+        "searching": "Searching…",
+        "empty": "No publishers found",
+        "previewLabel": "After the merge",
+        "previewNote": "Every linked book will be reassigned to “{name}”.",
+        "confirm": "Merge",
+        "merging": "Merging…",
+        "cancel": "Cancel",
+        "errors": {
+          "samePublisher": "A publisher can't be merged into itself. Pick a different one.",
+          "globalSource": "This publisher comes from the shared catalog, so it can't be merged. Only your own publishers can be merged.",
+          "notFound": "One of the publishers is gone. Refresh the page and try again.",
+          "linkedBooks": "Books are still linked to this publisher, so the merge was rolled back. Nothing changed — try again.",
+          "generic": "Couldn't merge the publishers. Try again."
+        }
       },
       "deleteDialog": {
         "title": "Delete publisher?",
@@ -7739,33 +7794,27 @@
         "cancel": "Cancel",
         "deleting": "Deleting…",
         "blockedTitle": "This publisher can't be deleted",
-        "blockedDescription": "Books are still linked to “{name}”. Assign them another publisher or delete them first.",
-        "goToBooks": "Go to books",
+        "blockedDescription": "Books are still linked to “{name}”. Merge it into another publisher, or reassign those books yourself.",
         "close": "Close",
-        "genericError": "Couldn't delete the publisher. Try again."
+        "genericError": "Couldn't delete the publisher. Try again.",
+        "merge": "Merge into another"
       },
       "toast": {
         "updated": "Publisher updated",
         "deleted": "Publisher deleted",
-        "error": "Something went wrong"
+        "error": "Something went wrong",
+        "merged": "Publishers merged. {count, plural, =0 {There were no books to move} one {# book moved} other {# books moved}}"
       }
     }
   },
   "characters": {
     "add": {
-      "back": "Back",
       "cancel": "Cancel",
-      "create": "Create",
-      "createAnyway": "Create a new one anyway",
-      "createNew": "Create new",
+      "createNew": "Create “{name}”",
       "description": "Find an existing character or create a new one.",
-      "descriptionLabel": "A short note about this character in this book",
-      "descriptionPlaceholder": "Who is this? (optional)",
       "inBookTitle": "Already in this book",
       "link": "Add",
       "linkError": "Could not link the character",
-      "linked": "Character linked",
-      "nameLabel": "Name",
       "noMatch": "Nothing found",
       "open": "Open",
       "reusableTitle": "From other books",
@@ -7776,21 +7825,35 @@
       "title": "Add character"
     },
     "aliases": {
-      "add": "Add a name",
-      "advanced": "More options",
+      "addPlaceholder": "Add a name…",
+      "announceAdded": "Name “{name}” added, {count} of {max}",
+      "announceRemoved": "Name “{name}” removed, {count} of {max}",
+      "atMax": "Limit reached — remove a name to add more",
       "bookHint": "These names apply to this book only.",
       "bookTitle": "Other names in this book",
-      "errorDuplicate": "That name is already in the list",
+      "cancel": "Cancel",
+      "confirmAdd": "Add",
+      "confirmEdit": "Done",
+      "counter": "{count} / {max}",
+      "edit": "Edit the name “{name}” ({type})",
+      "errorDuplicate": "That name with this type is already in the list",
+      "errorOnName": "“{name}”: {message}",
       "errorSameAsDisplayName": "That is the character name in this book",
       "errorSameAsName": "That is the main character name",
       "globalHint": "These names apply in every book.",
       "globalTitle": "Alternative names",
       "name": "Alternative name",
-      "namePlaceholder": "For example, the White Wolf",
-      "remove": "Remove the name",
-      "sectionHint": "Empty rows are not saved.",
+      "namePlaceholder": "Name…",
+      "remove": "Remove the name “{name}”",
+      "sectionHint": "Click a name to edit it.",
       "sectionTitle": "Other names",
       "spoiler": "Contains a spoiler",
+      "spoilerToggle": {
+        "mark": "Mark name as spoiler",
+        "markName": "Mark name “{name}” as spoiler",
+        "unmark": "Remove spoiler mark",
+        "unmarkName": "Remove spoiler mark from name “{name}”"
+      },
       "type": "Name type"
     },
     "aliasType": {
@@ -7816,7 +7879,6 @@
       "favorite": "Add to favorites",
       "hiddenFields": "Hidden fields: {count}",
       "menu": "Character actions",
-      "openDetails": "Open character {name}",
       "pov": "POV",
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
@@ -7893,6 +7955,13 @@
       },
       "viewLabel": "View"
     },
+    "creatableSelect": {
+      "notSaved": "Not saved",
+      "placeholder": "Pick from the list or type your own…",
+      "savedWithCharacter": "Saved with the character",
+      "usageCount": "used {count, plural, one {# time} other {# times}}",
+      "useCustom": "Use “{name}”"
+    },
     "delete": {
       "aliases": "Names: {count}",
       "appearances": "Book appearances: {count}",
@@ -7912,55 +7981,88 @@
       "title": "Delete character entirely"
     },
     "duplicate": {
+      "checkFailed": "We could not check whether this character already exists. Please try again.",
       "createAnyway": "Create anyway",
       "question": "This character may already exist.",
-      "title": "Possible duplicates",
-      "use": "Use this one"
+      "review": "Review"
     },
     "edit": {
       "appearanceNotes": "Appearance in this book",
+      "appearanceNotesPlaceholder": "How the character looks in this book…",
       "attitude": "My attitude",
       "attitudePlaceholder": "Not specified",
       "bookDescription": "Details in this book",
+      "bookDescriptionPlaceholder": "Who the character is in this book…",
       "bookSection": "In this book",
       "bookSectionHint": "These values apply to this book only.",
       "cancel": "Cancel",
       "clearNarratorType": "Clear",
-      "customGender": "Custom value",
+      "customStatusesHeading": "Your statuses",
       "discardDescription": "Unsaved changes will be lost.",
       "discardTitle": "Discard changes?",
       "displayName": "Name in this book",
-      "entityKind": "Kind",
+      "displayNamePlaceholder": "For example, Gwynbleidd",
+      "entityKind": "Character type",
+      "firstAppearance": "First appearance",
       "firstAppearanceChapter": "Chapter",
       "firstAppearanceChapterPlaceholder": "For example, 3 or Prologue",
       "firstAppearanceNote": "Note about the first appearance",
+      "firstAppearanceNotePlaceholder": "For example, mentioned in a letter",
       "firstAppearancePage": "Page",
+      "firstAppearancePageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}",
       "firstAppearancePageInvalid": "Enter the page as a number",
+      "firstAppearancePagePlaceholder": "For example, 42",
       "gender": "Gender",
       "globalDescription": "About the character",
+      "globalDescriptionPlaceholder": "Who the character is beyond any single book…",
       "globalSection": "About the character",
       "globalSectionHint": "These values are the same in every book.",
+      "imageAdd": "Add",
+      "imageDropHint": "Drop to upload",
+      "imageRemove": "Remove",
+      "imageReplace": "Replace",
+      "imagesTitle": "Character image",
       "importance": "Importance",
       "inheritanceSection": "This book only",
       "inheritanceSectionHint": "The main value is used by default. Change it when the character differs in this book.",
+      "mainAvatar": "Main avatar",
+      "mainAvatarHint": "Used in the catalog and in books without their own portrait.",
+      "mainAvatarInUse": "The main avatar is used",
+      "mainAvatarMissing": "No main avatar yet",
+      "mainAvatarRemoveHint": "Remove the main avatar. Books without their own portrait will use a placeholder.",
       "metaTitle": "Edit character",
       "name": "Name",
+      "namePlaceholder": "For example, Geralt of Rivia",
       "narrativeSection": "Role in the story",
       "narrativeSectionHint": "These details apply to this book only.",
-      "narratorType": "Narrator type",
+      "narratorType": "Narration method",
       "narratorTypePlaceholder": "Not specified",
+      "optional": "(optional)",
       "partialSuccess": "The shared details were saved, the book details were not. Try again.",
       "personalImpression": "My impression",
+      "personalImpressionPlaceholder": "What you think of this character…",
       "portrait": "Image in this book",
-      "pov": "Point-of-view character",
+      "portraitBookOnlyHint": "Applies to this book only",
+      "portraitUploading": "Uploading the image…",
+      "portraitUseBook": "A separate portrait for this book",
+      "portraitUseMain": "Main avatar",
+      "pov": "Point-of-view character (POV)",
+      "povHint": "The reader experiences events through this character’s eyes.",
+      "previewTitle": "Preview",
       "pronouns": "Pronouns",
       "save": "Save",
+      "scopeBook": "This book",
+      "scopeGlobal": "All books",
       "species": "Species",
       "speciesInBook": "Species in this book",
+      "speciesInBookPlaceholder": "Search, e.g. “vampire”",
+      "speciesPlaceholder": "Search, e.g. “elf”",
       "status": "Status",
-      "statusCustom": "Custom status",
       "subtitle": "Book details and shared details are saved separately.",
-      "title": "Edit character"
+      "title": "Edit character",
+      "unreliableNarrator": "Unreliable narrator",
+      "unreliableNarratorHint": "The narrator may conceal, distort, or misperceive events.",
+      "unreliableNarratorSpoiler": "Mark as spoiler"
     },
     "empty": {
       "add": "Add character",
@@ -7977,7 +8079,8 @@
         "customGenderRequired": "Specify your custom gender",
         "generic": "Couldn't save. Please try again.",
         "nameRequired": "Enter a name",
-        "nameTooLong": "Name is too long (max {max})"
+        "nameTooLong": "Name is too long (max {max})",
+        "textTooLong": "Text is too long (max {max})"
       },
       "roles": "Roles"
     },
@@ -8002,19 +8105,21 @@
       "bookOnly": "This book only",
       "notSpecified": "Not specified",
       "overrideForBook": "Change for this book only",
-      "replaceImage": "Replace the image",
-      "resetImage": "Use the main image",
       "resetToGlobal": "Use the main value",
       "specifyForBook": "Set for this book only",
-      "specifyImageForBook": "Pick an image for this book",
       "usingGlobal": "Using the main value"
     },
     "narratorType": {
-      "first_person": "First person",
+      "first_person": "First person (“I”)",
       "other": "Other",
-      "third_person_limited": "Third person (limited)",
-      "third_person_omniscient": "Third person (omniscient)",
-      "unreliable": "Unreliable"
+      "third_person_limited": "Third person (limited perspective)",
+      "third_person_omniscient": "Third person (omniscient narrator)"
+    },
+    "narratorTypeDescription": {
+      "first_person": "The character tells the story themselves.",
+      "other": "Another narration method.",
+      "third_person_limited": "The narration stays with one character’s perception.",
+      "third_person_omniscient": "The narrator knows thoughts and events beyond any single character’s perspective."
     },
     "noResults": {
       "clear": "Clear search",
@@ -8044,7 +8149,7 @@
       "hiddenRoles": "Hidden roles: {count}",
       "managementSection": "Manage character",
       "metaTitle": "Character",
-      "narratorType": "Narrator type",
+      "narratorType": "Narration method",
       "openGlobalProfile": "Open the global profile",
       "personalImpression": "My impression",
       "pov": "POV",
@@ -8056,7 +8161,9 @@
       "status": "Status",
       "unavailableDescription": "It is either not in this book, or you have not read far enough yet.",
       "unavailableTitle": "This character is unavailable in this book",
-      "unlinkDescription": "The character stays in your library and in other books."
+      "unlinkDescription": "The character stays in your library and in other books.",
+      "unreliableNarrator": "Unreliable narrator",
+      "unreliableNarratorYes": "Yes"
     },
     "palette": {
       "empty": "Start typing a character name",
@@ -8065,12 +8172,38 @@
       "placeholder": "Search characters…",
       "title": "Search characters"
     },
+    "pronouns": {
+      "any": "Any pronouns",
+      "he": "he/him",
+      "it": "it/its",
+      "she": "she/her",
+      "they": "they/them",
+      "unknown": "Unknown"
+    },
     "rolePicker": {
-      "add": "Add role",
-      "customPlaceholder": "Role name",
-      "remove": "Remove role",
-      "roleType": "Role",
-      "spoiler": "Spoiler"
+      "alreadyAdded": "“{name}” is already added",
+      "announceAdded": "Role “{role}” added, {count} of {max} selected",
+      "announceRemoved": "Role “{role}” removed, {count} of {max} selected",
+      "atMax": "Limit reached — remove a role to add more",
+      "count": "{count}/{max}",
+      "create": "Create “{name}”",
+      "createHeading": "Create new",
+      "customHeading": "Your roles",
+      "hint": {
+        "limit": "Up to {max} roles. Add your own with Enter.",
+        "spoiler": "The eye toggles hiding a role as a spoiler."
+      },
+      "listLabel": "Role options",
+      "placeholder": "Pick a role or type your own…",
+      "remove": "Remove role “{role}”",
+      "spoilerToggle": {
+        "mark": "Mark role as spoiler",
+        "markRole": "Mark role “{role}” as spoiler",
+        "unmark": "Remove spoiler mark",
+        "unmarkRole": "Remove spoiler mark from role “{role}”"
+      },
+      "suggestionsHeading": "Standard roles",
+      "usageCount": "used {count, plural, one {# time} other {# times}}"
     },
     "roleType": {
       "antagonist": "Antagonist",
@@ -8092,6 +8225,7 @@
       "revealAria": "Show field: {field}"
     },
     "spoilers": {
+      "activeCount": "Hidden: {count}",
       "appearanceNotes": "Appearance in this book",
       "description": "Details in this book",
       "displayName": "Name in this book",
@@ -8109,6 +8243,7 @@
     "states": {
       "errorDescription": "Couldn't load characters. Please try again.",
       "errorTitle": "Failed to load",
+      "loadMoreError": "Couldn't load more characters",
       "loading": "Loading characters",
       "retry": "Try again"
     },
@@ -8122,7 +8257,6 @@
       "unknown": "Unknown"
     },
     "summary": {
-      "characters": "Characters: {count}",
       "favorites": "Favorites: {count}",
       "hidden": "Some records are hidden",
       "pov": "POV: {count}"
@@ -8154,6 +8288,115 @@
       "description": "The character will be removed from this book. The global profile and data in other books remain.",
       "title": "Remove from this book",
       "unlinking": "Removing…"
+    }
+  },
+  "species": {
+    "errors": {
+      "duplicate": "A species with this name already exists.",
+      "forbidden": "Built-in species can’t be changed.",
+      "generic": "Something went wrong. Try again.",
+      "inUse": "This species is still in use.",
+      "mergeConflict": "The data changed during the merge. Try again.",
+      "mergeInvalidTarget": "You can’t merge into this species. Pick another one.",
+      "mergeSelf": "A species can’t be merged into itself.",
+      "notFound": "Species not found. It may have been deleted already."
+    },
+    "manage": {
+      "actions": "Actions for “{name}”",
+      "delete": "Delete",
+      "deletePanel": {
+        "back": "Back",
+        "cancel": "Cancel",
+        "checking": "Checking where this species is used…",
+        "confirm": "Delete",
+        "inUse": "This species is in use",
+        "mergeInstead": "Merge into another species",
+        "nextAction": "It can’t be deleted. Merge it into another species — its characters and book assignments will move there. Or change the species of those characters first.",
+        "previewFailed": "Couldn’t check where this species is used.",
+        "retry": "Retry",
+        "unused": "“{name}” isn’t used anywhere. Delete it permanently?"
+      },
+      "description": "Rename, merge or delete the species you created. Built-in species can’t be changed.",
+      "empty": "You haven’t created any species yet. New ones appear here as soon as you create them in the Species field.",
+      "filters": {
+        "all": "All",
+        "label": "Filter by usage",
+        "unused": "Not used",
+        "used": "In use"
+      },
+      "listLabel": "Your species",
+      "loadFailed": "Couldn’t load your species.",
+      "loading": "Loading your species…",
+      "merge": "Merge",
+      "mergePanel": {
+        "cancel": "Cancel",
+        "confirm": "Merge",
+        "previewLabel": "Review before merging",
+        "previewMoves": "Expected to move: {characters, plural, one {# character} other {# characters}} and {bookOverrides, plural, one {# book assignment} other {# book assignments}}. The final counts appear after the merge.",
+        "previewNote": "“{source}” will be deleted. Spoiler flags are kept. This can’t be undone.",
+        "sourceLabel": "Species to merge",
+        "targetLabel": "Merge into",
+        "targetPlaceholder": "Find a species…"
+      },
+      "noMatches": "Nothing matches these filters.",
+      "open": "Manage your own species",
+      "rename": "Rename",
+      "renamePanel": {
+        "back": "Back",
+        "currentName": "Current name",
+        "duplicate": "“{name}” already exists. You can merge into it instead of renaming.",
+        "duplicateUnknown": "A species with this name already exists.",
+        "invalid": "Enter a name up to {max, plural, one {# character} other {# characters}}.",
+        "label": "New name",
+        "mergeIntoExisting": "Merge into it",
+        "save": "Save",
+        "similar": "Similar species already exist. Make sure this really is a different one:",
+        "title": "Rename species"
+      },
+      "retry": "Retry",
+      "searchLabel": "Search your species",
+      "searchPlaceholder": "Find a species…",
+      "title": "Manage your own species",
+      "toast": {
+        "deleted": "Species “{name}” deleted",
+        "merged": "Merged into “{name}”: {characters, plural, one {# character} other {# characters}}, {bookOverrides, plural, one {# book assignment} other {# book assignments}} moved",
+        "renamed": "Species renamed to “{name}”"
+      }
+    },
+    "picker": {
+      "clear": "Clear species",
+      "create": "Create species “{name}”",
+      "createAnyway": "Create “{name}” anyway",
+      "creating": "Creating “{name}”…",
+      "exactHeading": "This species already exists",
+      "loadingMore": "Loading more…",
+      "loadMoreFailed": "Couldn’t load more species.",
+      "loadMoreRetryHint": "Press ↓ on the last species to try again.",
+      "notices": {
+        "conflict": "This species already exists. Pick the existing one.",
+        "createFailed": "Couldn’t create the species. Try again.",
+        "empty": "No such species yet.",
+        "loadFailed": "Couldn’t load species.",
+        "loading": "Searching…",
+        "tooShort": "Type at least {min, plural, one {# character} other {# characters}} to search."
+      },
+      "otherGroup": "Other",
+      "ownGroup": "Your species",
+      "popularHeading": "Popular",
+      "recentOwnHeading": "Your recent species",
+      "resultsCount": "{count, plural, one {# result} other {# results}} found",
+      "retry": "Retry",
+      "retryOnEnter": "Press Enter to try again.",
+      "selectExisting": "Select existing: {name}",
+      "similarHeading": "Similar species",
+      "similarHint": "This may be the same species. Pick an existing one or create a new one."
+    },
+    "usage": {
+      "summary": "Characters: {characters} · Book assignments: {bookOverrides}",
+      "trashed": "Of these, linked to Trash: {parts}",
+      "trashedBookOverrides": "{count, plural, one {# assignment} other {# assignments}}",
+      "trashedCharacters": "{count, plural, one {# character} other {# characters}}",
+      "unused": "Not used anywhere"
     }
   },
   "notifications": {

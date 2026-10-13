@@ -24,11 +24,10 @@ import { QuoteDialog } from "../quote-dialog";
 
 type QuoteActionsProps = {
   className?: string;
-  maxPage?: number;
   quote: QuoteView;
 };
 
-export function QuoteActions({ className, maxPage, quote }: QuoteActionsProps) {
+export function QuoteActions({ className, quote }: QuoteActionsProps) {
   const tActions = useTranslations("quotes.actions");
   const tCopy = useTranslations("quotes.copy");
   const tDelete = useTranslations("quotes.delete");
@@ -125,7 +124,6 @@ export function QuoteActions({ className, maxPage, quote }: QuoteActionsProps) {
           id: quote.book.id,
           title: quote.book.title,
         }}
-        maxPage={maxPage}
         mode="edit"
         onOpenChange={setEditOpen}
         open={isEditOpen}

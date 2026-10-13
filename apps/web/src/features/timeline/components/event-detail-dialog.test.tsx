@@ -215,7 +215,11 @@ describe("EventDetailDialog guard", () => {
 
     renderDialog({ guardEnabled: true, onRevealEvent });
 
-    expect(await screen.findByText("Подія позначена як спойлер")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("dialog", { name: "Подія містить спойлер" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Подія містить спойлер")).toHaveLength(2);
+    expect(screen.getByText("Деталі події приховано.")).toBeInTheDocument();
     expect(screen.queryByText("Смерть наставника")).not.toBeInTheDocument();
     expect(screen.queryByText("Небезпечний спойлер")).not.toBeInTheDocument();
 
@@ -242,7 +246,10 @@ describe("EventDetailDialog guard", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /Прихована подія/ }));
 
-    expect(await screen.findByText("Подія позначена як спойлер")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("dialog", { name: "Подія містить спойлер" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Подія містить спойлер")).toHaveLength(2);
     expect(screen.queryByText("Справжня назва")).not.toBeInTheDocument();
   });
 
@@ -254,8 +261,13 @@ describe("EventDetailDialog guard", () => {
     renderDialog({ currentPage: 100, guardEnabled: true });
 
     expect(
-      await screen.findByText("Подія знаходиться далі вашої поточної позиції читання"),
+      await screen.findByRole("dialog", {
+        name: "Подія знаходиться далі вашої поточної позиції читання",
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Подія знаходиться далі вашої поточної позиції читання"),
+    ).toHaveLength(2);
     expect(screen.queryByText("Майбутня подія")).not.toBeInTheDocument();
   });
 });

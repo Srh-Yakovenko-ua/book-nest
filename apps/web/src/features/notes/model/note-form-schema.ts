@@ -13,6 +13,8 @@ import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import { NOTE_INPUT_LIMITS, NoteCategorySchema } from "@app/shared";
 import { z } from "zod";
 
+import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
+
 import { assertNever } from "@/lib/assert-never";
 
 import type { NoteEntityRef } from "./note-entity";
@@ -33,6 +35,7 @@ export type NoteFormMessages = {
   chapterTooLong: string;
   customCategoryTooLong: string;
   entityRequired: string;
+  pageExceedsBook: string;
   pageNotPositive: string;
   textEmpty: string;
   textTooLong: string;
@@ -44,7 +47,10 @@ export type NoteFormValues = z.output<NoteFormSchema>;
 
 type NoteFormSchema = ReturnType<typeof buildNoteFormSchema>;
 
-export function buildNoteFormSchema(messages: NoteFormMessages) {
+export function buildNoteFormSchema(messages: NoteFormMessages, pageCeiling: BookPageCeiling) {
+  const pageMessage =
+    pageCeiling.source === "book" ? messages.pageExceedsBook : messages.pageNotPositive;
+
   return z.object({
     category: NoteCategorySchema.optional(),
     chapter: z
@@ -67,7 +73,7 @@ export function buildNoteFormSchema(messages: NoteFormMessages) {
       .number()
       .int()
       .positive({ error: messages.pageNotPositive })
-      .max(NOTE_INPUT_LIMITS.pageMax, { error: messages.pageNotPositive })
+      .max(pageCeiling.max, { error: pageMessage })
       .optional(),
     text: z
       .string()

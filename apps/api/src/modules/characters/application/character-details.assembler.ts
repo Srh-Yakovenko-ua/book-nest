@@ -93,12 +93,15 @@ export class CharacterDetailsAssembler {
     }
 
     const revealedFields = new Set(revealFieldIds);
-    const aliases = row.aliases.filter(
-      (alias) =>
-        !alias.isSpoiler && (alias.bookId === null || window.allowedBookIds.has(alias.bookId)),
+    const readableAliases = row.aliases.filter(
+      (alias) => alias.bookId === null || window.allowedBookIds.has(alias.bookId),
     );
+    const aliases = revealedFields.has("aliases")
+      ? readableAliases
+      : readableAliases.filter((alias) => !alias.isSpoiler);
     return this.viewMapper.toMaskedDetailsView({
       aliases,
+      hasHiddenAliases: aliases.length !== readableAliases.length,
       revealedFields,
       row,
       visibleAppearances,

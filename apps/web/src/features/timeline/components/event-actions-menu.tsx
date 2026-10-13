@@ -40,7 +40,6 @@ type EventActionsMenuProps = {
   onDelete: () => void;
   onEdit: () => void;
   onMove: () => void;
-  onView: () => void;
   reorderScope: TimelineReorderScope;
 };
 
@@ -60,7 +59,6 @@ export function EventActionsMenu({
   onDelete,
   onEdit,
   onMove,
-  onView,
   reorderScope,
 }: EventActionsMenuProps) {
   const t = useTranslations("timeline.actions");
@@ -104,10 +102,6 @@ export function EventActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onSelect={onView}>
-          <UiIcon name="eye" size={16} />
-          {t("view")}
-        </DropdownMenuItem>
         <DropdownMenuItem onSelect={onEdit}>
           <UiIcon name="edit" size={16} />
           {t("edit")}

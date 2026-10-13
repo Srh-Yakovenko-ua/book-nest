@@ -238,6 +238,50 @@ describe("character details reading-mode masking", () => {
     expect(res.body.hiddenFields).toEqual(["status"]);
   });
 
+  it("redacts a spoiler-flagged unreliable narrator to null in reading mode", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const characterId = await createInBook(
+      accessToken,
+      bookId,
+      { name: "Paul Atreides" },
+      { isPovCharacter: true, isUnreliableNarrator: true, isUnreliableNarratorSpoiler: true },
+    );
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    const entry = res.body.appearances[0];
+    expect(entry.isPovCharacter).toBe(true);
+    expect(entry.isUnreliableNarrator).toBeNull();
+    expect(entry.hiddenFields).toEqual(["unreliableNarrator"]);
+    expect(res.body.hiddenFields).toEqual(["unreliableNarrator"]);
+  });
+
+  it("reveals a spoiler-flagged unreliable narrator named in revealFieldIds", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const characterId = await createInBook(
+      accessToken,
+      bookId,
+      { name: "Paul Atreides" },
+      { isPovCharacter: true, isUnreliableNarrator: true, isUnreliableNarratorSpoiler: true },
+    );
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}&revealFieldIds=unreliableNarrator`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    const entry = res.body.appearances[0];
+    expect(entry.isUnreliableNarrator).toBe(true);
+    expect(entry.hiddenFields).toEqual([]);
+  });
+
   it("returns 404 when the character only appears beyond the reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");

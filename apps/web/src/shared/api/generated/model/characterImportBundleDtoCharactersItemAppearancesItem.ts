@@ -59,6 +59,8 @@ export type CharacterImportBundleDtoCharactersItemAppearancesItem = {
   hidePresenceAsSpoiler: boolean;
   importance: CharacterImportBundleDtoCharactersItemAppearancesItemImportance;
   isPovCharacter: boolean;
+  isUnreliableNarrator?: boolean;
+  isUnreliableNarratorSpoiler?: boolean;
   /** @nullable */
   narratorType: CharacterImportBundleDtoCharactersItemAppearancesItemNarratorType;
   /**
@@ -82,11 +84,17 @@ export type CharacterImportBundleDtoCharactersItemAppearancesItem = {
    */
   sortOrder: number | null;
   /**
-   * @maxLength 200
+   * @maxLength 60
    * @nullable
    */
   speciesOverride: string | null;
   speciesOverrideIsSpoiler: boolean;
+  /**
+   * @minLength 1
+   * @maxLength 60
+   * @nullable
+   */
+  speciesOverrideKey?: string | null;
   status: CharacterImportBundleDtoCharactersItemAppearancesItemStatus;
   /**
    * @maxLength 200

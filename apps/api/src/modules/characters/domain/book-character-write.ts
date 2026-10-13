@@ -10,6 +10,18 @@ import type {
 
 import { emptyToNull } from "./character-fields.js";
 
+type NarrationData = Pick<
+  CreateBookCharacterData,
+  "isPovCharacter" | "isUnreliableNarrator" | "isUnreliableNarratorSpoiler" | "narratorType"
+>;
+
+const POV_OFF_NARRATION: NarrationData = {
+  isPovCharacter: false,
+  isUnreliableNarrator: false,
+  isUnreliableNarratorSpoiler: false,
+  narratorType: null,
+};
+
 export function buildBookCharacterData({
   bookId,
   characterId,
@@ -35,8 +47,7 @@ export function buildBookCharacterData({
     firstAppearancePage: profile.firstAppearancePage ?? null,
     hidePresenceAsSpoiler: profile.hidePresenceAsSpoiler,
     importance: profile.importance,
-    isPovCharacter: profile.isPovCharacter,
-    narratorType: profile.narratorType ?? null,
+    ...buildNarrationCreateData(profile),
     personalImpression: emptyToNull(profile.personalImpression),
     personalImpressionIsSpoiler: profile.personalImpressionIsSpoiler,
     portraitIsSpoiler: profile.portraitIsSpoiler,
@@ -48,7 +59,7 @@ export function buildBookCharacterData({
       roleType: role.roleType,
     })),
     sortOrder: profile.sortOrder ?? null,
-    speciesOverride: emptyToNull(profile.speciesOverride),
+    speciesOverrideId: profile.speciesOverrideId,
     speciesOverrideIsSpoiler: profile.speciesOverrideIsSpoiler,
     status: profile.status,
     statusCustomText: emptyToNull(profile.statusCustomText),
@@ -94,8 +105,8 @@ export function buildBookCharacterUpdateData(input: UpdateBookCharacter): Update
   if (input.appearanceNotesIsSpoiler !== undefined) {
     data.appearanceNotesIsSpoiler = input.appearanceNotesIsSpoiler;
   }
-  if (input.speciesOverride !== undefined) {
-    data.speciesOverride = emptyToNull(input.speciesOverride);
+  if (input.speciesOverrideId !== undefined) {
+    data.speciesOverrideId = input.speciesOverrideId;
   }
   if (input.speciesOverrideIsSpoiler !== undefined) {
     data.speciesOverrideIsSpoiler = input.speciesOverrideIsSpoiler;
@@ -121,19 +132,13 @@ export function buildBookCharacterUpdateData(input: UpdateBookCharacter): Update
   if (input.firstAppearanceNote !== undefined) {
     data.firstAppearanceNote = emptyToNull(input.firstAppearanceNote);
   }
-  if (input.isPovCharacter !== undefined) {
-    data.isPovCharacter = input.isPovCharacter;
-  }
-  if (input.narratorType !== undefined) {
-    data.narratorType = input.narratorType ?? null;
-  }
   if (input.sortOrder !== undefined) {
     data.sortOrder = input.sortOrder ?? null;
   }
   if (input.hidePresenceAsSpoiler !== undefined) {
     data.hidePresenceAsSpoiler = input.hidePresenceAsSpoiler;
   }
-  return data;
+  return { ...data, ...buildNarrationUpdateData(input) };
 }
 
 export function buildReplaceRoles(
@@ -145,6 +150,42 @@ export function buildReplaceRoles(
     position: role.position ?? 0,
     roleType: role.roleType,
   }));
+}
+
+function buildNarrationCreateData(profile: BookCharacterProfileInput): NarrationData {
+  if (!profile.isPovCharacter) {
+    return { ...POV_OFF_NARRATION };
+  }
+  return {
+    isPovCharacter: true,
+    isUnreliableNarrator: profile.isUnreliableNarrator,
+    isUnreliableNarratorSpoiler:
+      profile.isUnreliableNarrator && profile.isUnreliableNarratorSpoiler,
+    narratorType: profile.narratorType ?? null,
+  };
+}
+
+function buildNarrationUpdateData(input: UpdateBookCharacter): Partial<NarrationData> {
+  if (input.isPovCharacter === false) {
+    return { ...POV_OFF_NARRATION };
+  }
+  const data: Partial<NarrationData> = {};
+  if (input.isPovCharacter !== undefined) {
+    data.isPovCharacter = input.isPovCharacter;
+  }
+  if (input.narratorType !== undefined) {
+    data.narratorType = input.narratorType ?? null;
+  }
+  if (input.isUnreliableNarrator === false) {
+    return { ...data, isUnreliableNarrator: false, isUnreliableNarratorSpoiler: false };
+  }
+  if (input.isUnreliableNarrator !== undefined) {
+    data.isUnreliableNarrator = input.isUnreliableNarrator;
+  }
+  if (input.isUnreliableNarratorSpoiler !== undefined) {
+    data.isUnreliableNarratorSpoiler = input.isUnreliableNarratorSpoiler;
+  }
+  return data;
 }
 
 function dedupeRoles(

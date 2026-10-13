@@ -9,6 +9,7 @@ import type { CharacterDuplicateCandidatesDtoCandidatesItemAvatar } from "./char
 import type { CharacterDuplicateCandidatesDtoCandidatesItemEntityKind } from "./characterDuplicateCandidatesDtoCandidatesItemEntityKind";
 import type { CharacterDuplicateCandidatesDtoCandidatesItemGender } from "./characterDuplicateCandidatesDtoCandidatesItemGender";
 import type { CharacterDuplicateCandidatesDtoCandidatesItemGlobalAttitude } from "./characterDuplicateCandidatesDtoCandidatesItemGlobalAttitude";
+import type { CharacterDuplicateCandidatesDtoCandidatesItemSpecies } from "./characterDuplicateCandidatesDtoCandidatesItemSpecies";
 import type { CharacterDuplicateCandidatesDtoCandidatesItemTagsItem } from "./characterDuplicateCandidatesDtoCandidatesItemTagsItem";
 
 export type CharacterDuplicateCandidatesDtoCandidatesItem = {
@@ -36,6 +37,6 @@ export type CharacterDuplicateCandidatesDtoCandidatesItem = {
   /** @nullable */
   pronouns: string | null;
   /** @nullable */
-  species: string | null;
+  species: CharacterDuplicateCandidatesDtoCandidatesItemSpecies;
   tags: CharacterDuplicateCandidatesDtoCandidatesItemTagsItem[];
 };

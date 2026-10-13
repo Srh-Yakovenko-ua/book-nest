@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBook } from "@/features/books";
+import { useSpeciesLabel } from "@/features/species";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import { useCharacterDetails } from "../api/use-character-details";
@@ -185,6 +186,7 @@ function BookContextSection({
   const tNarrator = useTranslations("characters.narratorType");
   const tRole = useTranslations("characters.roleType");
   const tStatus = useTranslations("characters.status");
+  const speciesLabel = useSpeciesLabel();
 
   const visibleRoles = appearance.roles.filter((role) => !role.isSpoiler);
   const hiddenRoleCount = appearance.roles.length - visibleRoles.length;
@@ -254,13 +256,23 @@ function BookContextSection({
         label={t("speciesOverride")}
         onReveal={onReveal}
         revealing={revealing}
-        value={appearance.speciesOverride}
+        value={speciesLabel(appearance.speciesOverride)}
       />
 
       {appearance.isPovCharacter && appearance.narratorType !== null ? (
         <dl>
           <Field label={t("narratorType")}>{tNarrator(appearance.narratorType)}</Field>
         </dl>
+      ) : null}
+      {appearance.isPovCharacter ? (
+        <SpoilerText
+          appearance={appearance}
+          field="unreliableNarrator"
+          label={t("unreliableNarrator")}
+          onReveal={onReveal}
+          revealing={revealing}
+          value={appearance.isUnreliableNarrator === true ? t("unreliableNarratorYes") : null}
+        />
       ) : null}
 
       <FirstAppearance appearance={appearance} />
@@ -636,6 +648,7 @@ function ProfileSection({ character }: { character: CharacterDetailsView }) {
   const tEntity = useTranslations("characters.entityKind");
   const tGender = useTranslations("characters.gender");
   const tAttitude = useTranslations("characters.attitude");
+  const speciesLabel = useSpeciesLabel();
 
   const gender =
     character.gender === "custom"
@@ -648,7 +661,7 @@ function ProfileSection({ character }: { character: CharacterDetailsView }) {
         <Field label={t("entityKind")}>{tEntity(character.entityKind)}</Field>
         <Field label={t("gender")}>{gender}</Field>
         {character.species === null ? null : (
-          <Field label={t("species")}>{character.species}</Field>
+          <Field label={t("species")}>{speciesLabel(character.species)}</Field>
         )}
         {character.pronouns === null ? null : (
           <Field label={t("pronouns")}>{character.pronouns}</Field>

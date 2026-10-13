@@ -20,11 +20,9 @@ type EventListViewProps = {
 };
 
 const LIST_GRID = {
-  allLines:
-    "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_6rem_2.75rem] lg:grid-cols-[2.5rem_minmax(0,1fr)_10rem_8rem_6.5rem_9rem_2.75rem]",
-  base: "gap-3 px-3 md:grid md:items-center",
-  singleLine:
-    "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_6rem_2.75rem] lg:grid-cols-[2.5rem_minmax(0,1fr)_10rem_8rem_6.5rem_2.75rem]",
+  allLines: "md:grid-cols-[1rem_minmax(0,1fr)_8rem_6.5rem_2.75rem]",
+  base: "gap-3 px-3 md:grid md:items-start",
+  singleLine: "md:grid-cols-[minmax(0,1fr)_8rem_6.5rem_2.75rem]",
 } as const;
 
 export function EventListView({
@@ -44,23 +42,21 @@ export function EventListView({
     <div className="overflow-hidden rounded-lg border border-border">
       <div
         className={cn(
-          "hidden border-b border-border bg-secondary/40 py-2 text-xs font-medium text-muted-foreground",
+          "hidden border-b border-border bg-secondary/50 py-2 text-xs font-semibold text-muted-foreground",
           gridTemplate,
         )}
       >
-        <span>{t("number")}</span>
+        {isAllLines ? <span aria-hidden /> : null}
         <span>{t("event")}</span>
-        <span className="hidden lg:block">{t("context")}</span>
         <span>{t("type")}</span>
         <span>{t("importance")}</span>
-        {isAllLines ? <span className="hidden lg:block">{t("timeline")}</span> : null}
         <span>
           <span className="sr-only">{t("actions")}</span>
         </span>
       </div>
 
       <div className="divide-y divide-border">
-        {events.map((event, position) => (
+        {events.map((event) => (
           <EventListRow
             actions={renderActions?.(event)}
             event={event}
@@ -74,7 +70,6 @@ export function EventListView({
             key={event.id}
             onOpen={onOpenEvent}
             onReveal={onRevealEvent}
-            position={position + 1}
           />
         ))}
       </div>

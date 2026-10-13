@@ -94,6 +94,16 @@ export function isAppearanceRevealable({
   if (appearance.hidePresenceAsSpoiler) {
     return false;
   }
+  return isAppearanceWithinReadingWindow({ appearance, window });
+}
+
+export function isAppearanceWithinReadingWindow({
+  appearance,
+  window,
+}: {
+  appearance: ContextualAppearance;
+  window: ReadingContextWindow;
+}): boolean {
   if (window.kind === "unrestricted") {
     return true;
   }

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { PALETTE_SWATCH, PaletteSwatchButton } from "@/components/palette-swatch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 import type { TagsAdvancedFiltersValue } from "../model/use-tag-query";
 
-import { TAG_COLOR_SWATCH, TagColorSelection, TagColorSwatchButton } from "./tag-color-swatch";
+import { TagColorSelection } from "./tag-color-swatch";
 
 type TagsAdvancedFiltersProps = {
   onApply: (filters: TagsAdvancedFiltersValue) => void;
@@ -89,12 +90,12 @@ export function TagsAdvancedFilters({ onApply, value }: TagsAdvancedFiltersProps
 
           <FilterSection title={t("sections.colors")}>
             <div className="flex flex-col gap-2">
-              <ul aria-label={t("sections.colors")} className={TAG_COLOR_SWATCH.grid}>
+              <ul aria-label={t("sections.colors")} className={PALETTE_SWATCH.grid}>
                 {TAG_COLORS.map((color) => {
                   const isSelected = draft.color.includes(color);
                   return (
                     <li key={color}>
-                      <TagColorSwatchButton
+                      <PaletteSwatchButton
                         aria-label={tColor(color)}
                         aria-pressed={isSelected}
                         color={color}

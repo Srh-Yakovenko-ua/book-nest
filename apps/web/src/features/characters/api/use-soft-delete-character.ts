@@ -3,6 +3,7 @@ import type { CharacterDeletionResult } from "@app/shared";
 import { CharacterDeletionResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { matchesAnyBookChapters } from "@/features/books/api/book-keys";
 import { invalidateTagAggregateQueries } from "@/features/tags/api/tags-keys";
 import { charactersControllerSoftDelete } from "@/shared/api/generated/endpoints/characters/characters";
 
@@ -18,6 +19,7 @@ export function useSoftDeleteCharacter() {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+      void queryClient.invalidateQueries({ predicate: matchesAnyBookChapters });
       void invalidateTagAggregateQueries(queryClient);
     },
   });

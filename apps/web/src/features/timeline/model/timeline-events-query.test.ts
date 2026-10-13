@@ -7,6 +7,7 @@ import {
   hasActiveEventFilters,
   LINE_SORT_OPTIONS,
   normalizeSortForMode,
+  sortForModeChange,
   sortOptionsForMode,
   type TimelineEventsFilterState,
   toApiParams,
@@ -66,6 +67,68 @@ describe("normalizeSortForMode", () => {
 
   it("falls back to book order when timeline order is not valid for all lines", () => {
     expect(normalizeSortForMode("timeline_order", true)).toBe("book_order");
+  });
+});
+
+describe("sortForModeChange", () => {
+  it("moves the all-lines default to the single-line default when a line is picked", () => {
+    expect(
+      sortForModeChange({
+        nextTimelineId: "line-1",
+        previousTimelineId: null,
+        sort: "book_order",
+      }),
+    ).toBe("timeline_order");
+  });
+
+  it("moves the single-line default back to the all-lines default", () => {
+    expect(
+      sortForModeChange({
+        nextTimelineId: null,
+        previousTimelineId: "line-1",
+        sort: "timeline_order",
+      }),
+    ).toBe("book_order");
+  });
+
+  it("keeps an explicit choice when leaving a line for all lines", () => {
+    expect(
+      sortForModeChange({
+        nextTimelineId: null,
+        previousTimelineId: "line-1",
+        sort: "importance",
+      }),
+    ).toBe("importance");
+  });
+
+  it("keeps an explicit choice when entering a line from all lines", () => {
+    expect(
+      sortForModeChange({
+        nextTimelineId: "line-1",
+        previousTimelineId: null,
+        sort: "importance",
+      }),
+    ).toBe("importance");
+  });
+
+  it("keeps the internal timeline order while switching between lines", () => {
+    expect(
+      sortForModeChange({
+        nextTimelineId: "line-2",
+        previousTimelineId: "line-1",
+        sort: "timeline_order",
+      }),
+    ).toBe("timeline_order");
+  });
+
+  it("keeps an explicit book order when leaving a line for all lines", () => {
+    expect(
+      sortForModeChange({
+        nextTimelineId: null,
+        previousTimelineId: "line-1",
+        sort: "book_order",
+      }),
+    ).toBe("book_order");
   });
 });
 

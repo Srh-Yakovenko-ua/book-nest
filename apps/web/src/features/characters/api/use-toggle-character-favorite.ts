@@ -1,5 +1,5 @@
 import type { CharacterDetailsView } from "@app/shared";
-import type { QueryKey } from "@tanstack/react-query";
+import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 
 import { CharacterDetailsViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import type { BookCharactersPage } from "./use-book-characters";
 import { characterKeys } from "./character-keys";
 
 type ToggleFavoriteContext = {
+  previousInfinitePages: [QueryKey, InfiniteData<BookCharactersPage> | undefined][];
   previousPages: [QueryKey, BookCharactersPage | undefined][];
 };
 
@@ -21,7 +22,8 @@ type ToggleFavoriteVariables = {
 
 export function useToggleCharacterFavorite(bookId: string) {
   const queryClient = useQueryClient();
-  const rosterScope = { queryKey: characterKeys.bookRosterScope(bookId) };
+  const finiteScope = { queryKey: characterKeys.bookRosterFiniteScope(bookId) };
+  const infiniteScope = { queryKey: characterKeys.bookRosterInfiniteScope(bookId) };
 
   return useMutation({
     mutationFn: async ({
@@ -36,16 +38,31 @@ export function useToggleCharacterFavorite(bookId: string) {
       for (const [queryKey, page] of context.previousPages) {
         queryClient.setQueryData(queryKey, page);
       }
+      for (const [queryKey, pages] of context.previousInfinitePages) {
+        queryClient.setQueryData(queryKey, pages);
+      }
     },
     onMutate: async ({ characterId, isFavorite }): Promise<ToggleFavoriteContext> => {
-      await queryClient.cancelQueries(rosterScope);
-      const previousPages = queryClient.getQueriesData<BookCharactersPage>(rosterScope);
+      await queryClient.cancelQueries({ queryKey: characterKeys.bookRosterScope(bookId) });
 
-      queryClient.setQueriesData<BookCharactersPage>(rosterScope, (page) =>
+      const previousPages = queryClient.getQueriesData<BookCharactersPage>(finiteScope);
+      const previousInfinitePages =
+        queryClient.getQueriesData<InfiniteData<BookCharactersPage>>(infiniteScope);
+
+      queryClient.setQueriesData<BookCharactersPage>(finiteScope, (page) =>
         page === undefined ? page : withFavorite(page, characterId, isFavorite),
       );
 
-      return { previousPages };
+      queryClient.setQueriesData<InfiniteData<BookCharactersPage>>(infiniteScope, (pages) =>
+        pages === undefined
+          ? pages
+          : {
+              ...pages,
+              pages: pages.pages.map((page) => withFavorite(page, characterId, isFavorite)),
+            },
+      );
+
+      return { previousInfinitePages, previousPages };
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: characterKeys.all });

@@ -1,7 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-
 import { UiIcon } from "@/components/icons";
 import {
   AlertDialog,
@@ -16,6 +14,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type DiscardConfirmDialogProps = {
+  cancelLabel: string;
+  confirmLabel: string;
   description: string;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
@@ -24,14 +24,14 @@ type DiscardConfirmDialogProps = {
 };
 
 export function DiscardConfirmDialog({
+  cancelLabel,
+  confirmLabel,
   description,
   onConfirm,
   onOpenChange,
   open,
   title,
 }: DiscardConfirmDialogProps) {
-  const t = useTranslations("books");
-
   return (
     <AlertDialog onOpenChange={onOpenChange} open={open}>
       <AlertDialogContent size="sm">
@@ -43,9 +43,9 @@ export function DiscardConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{t("editConfirm.cancel")}</AlertDialogCancel>
+          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} variant="destructive">
-            {t("editConfirm.confirm")}
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -142,7 +142,10 @@ export function TagsField({ control, errors, tagColorOf }: TagsFieldProps) {
                       </CommandEmpty>
                     ) : null}
                     {suggestions.length > 0 ? (
-                      <CommandGroup heading={t("classification.tagsSuggestions")}>
+                      <CommandGroup
+                        heading={t("classification.tagsSuggestions")}
+                        variant="sectioned"
+                      >
                         {suggestions.map((tag) => (
                           <CommandItem
                             className="cursor-pointer [&>svg:last-child]:hidden"
@@ -156,7 +159,10 @@ export function TagsField({ control, errors, tagColorOf }: TagsFieldProps) {
                       </CommandGroup>
                     ) : null}
                     {draftIsNewTag ? (
-                      <CommandGroup heading={t("classification.tagsCreateHeading")}>
+                      <CommandGroup
+                        heading={t("classification.tagsCreateHeading")}
+                        variant="sectioned"
+                      >
                         <CommandItem
                           className="cursor-pointer"
                           onSelect={() => addTag(trimmedDraft)}

@@ -1,0 +1,383 @@
+import type { BookCharacterView, CharacterDetailsView, MediaView } from "@app/shared";
+import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
+import type { ReactNode } from "react";
+
+import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { expect, waitFor, within } from "storybook/test";
+
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { getQueryClient } from "@/lib/query-client";
+
+import {
+  makeBookCharacterView,
+  makeCharacterDetails,
+  SPECIES_REFS,
+} from "../model/characters.fixtures";
+import { CharacterEditPage } from "./character-edit-page";
+
+const STORY = {
+  avatarUrl: "/auth/cover-login.webp",
+  bookId: "book-1",
+  bookSectionTitles: [
+    "У цій книзі",
+    "Роль у розповіді",
+    "Про персонажа",
+    "Лише для цієї книги",
+    "Інші імена",
+    "Спойлери",
+  ],
+  chapters: [
+    { chapter: "Голос розуму", count: 5 },
+    { chapter: "Межа можливого", count: 3 },
+    { chapter: "Пролог", count: 1 },
+  ],
+  characterId: "char-1",
+  customLabels: {
+    roles: [
+      { count: 4, label: "Наставник Цірі" },
+      { count: 2, label: "Мисливець на чудовиськ" },
+    ],
+    statuses: [
+      { count: 3, label: "У дорозі" },
+      { count: 1, label: "Поранений" },
+    ],
+  },
+  pagesCount: 384,
+  species: {
+    items: [
+      {
+        category: { key: "humanoid", name: "Люди та людиноподібні" },
+        id: "00000000-0000-4000-8000-000000000001",
+        isOwn: false,
+        key: "human",
+        name: "Людина",
+      },
+      {
+        category: { key: "humanoid", name: "Люди та людиноподібні" },
+        id: SPECIES_REFS.witcher.id,
+        isOwn: false,
+        key: SPECIES_REFS.witcher.key,
+        name: SPECIES_REFS.witcher.labels.uk,
+      },
+      {
+        category: null,
+        id: SPECIES_REFS.mutant.id,
+        isOwn: true,
+        key: null,
+        name: SPECIES_REFS.mutant.labels.uk,
+      },
+    ],
+  },
+} as const;
+
+const globalAvatar: MediaView = {
+  contentType: "image/webp",
+  createdAt: "2026-06-27T00:00:00.000Z",
+  height: 1200,
+  id: "media-avatar-1",
+  kind: "avatar",
+  name: "geralt.webp",
+  sizeBytes: 89760,
+  urls: { card: STORY.avatarUrl, full: STORY.avatarUrl, thumb: STORY.avatarUrl },
+  width: 900,
+};
+
+const character = makeCharacterDetails({
+  aliases: [
+    {
+      bookId: null,
+      id: "alias-global-1",
+      isSpoiler: false,
+      name: "Білий Вовк",
+      position: 0,
+      type: "nickname",
+    },
+    {
+      bookId: STORY.bookId,
+      id: "alias-book-1",
+      isSpoiler: false,
+      name: "Різник з Блавікена",
+      position: 0,
+      type: "nickname",
+    },
+  ],
+  appearances: [
+    makeBookCharacterView({
+      bookId: STORY.bookId,
+      description: "Відьмак, який шукає роботу на півночі і щоразу встряє в чужі історії.",
+      descriptionIsSpoiler: true,
+      firstAppearanceChapter: "Голос розуму",
+      firstAppearancePage: 7,
+      importance: "central",
+      isPovCharacter: true,
+      personalImpression: "Стриманий, втомлений, але чесний до кінця.",
+      personalImpressionIsSpoiler: true,
+      speciesOverride: SPECIES_REFS.mutant,
+      status: "active",
+    }),
+  ],
+  avatar: globalAvatar,
+  gender: "male",
+  name: "Ґеральт",
+  neutralDescription: "Мисливець на чудовиськ із Рівії, вихованець Каер Морхена.",
+  pronouns: "він / його",
+  species: SPECIES_REFS.witcher,
+});
+
+function characterWithRoles(roles: BookCharacterView["roles"]): CharacterDetailsView {
+  return {
+    ...character,
+    appearances: character.appearances.map((appearance) => ({ ...appearance, roles })),
+  };
+}
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status,
+  });
+}
+
+function mockFetch(details: CharacterDetailsView) {
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const path = typeof input === "string" ? input : input.toString();
+    if (path.includes(`/api/characters/${details.id}`))
+      return Promise.resolve(jsonResponse(200, details));
+    if (path.includes(`/api/books/${STORY.bookId}/chapters`))
+      return Promise.resolve(jsonResponse(200, { chapters: STORY.chapters }));
+    if (path.endsWith("/api/character-custom-labels"))
+      return Promise.resolve(jsonResponse(200, STORY.customLabels));
+    if (path.includes("/api/species/candidates"))
+      return Promise.resolve(jsonResponse(200, { exact: null, similar: [] }));
+    if (path.includes("/api/species/own")) return Promise.resolve(jsonResponse(200, { items: [] }));
+    if (path.includes("/api/species/browse"))
+      return Promise.resolve(
+        jsonResponse(200, {
+          ...STORY.species,
+          page: 1,
+          pagesCount: 1,
+          pageSize: STORY.species.items.length,
+          totalCount: STORY.species.items.length,
+        }),
+      );
+    if (path.includes("/api/species")) return Promise.resolve(jsonResponse(200, STORY.species));
+    if (path.endsWith(`/api/books/${STORY.bookId}`))
+      return Promise.resolve(
+        jsonResponse(200, makeBookView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),
+      );
+    return Promise.resolve(jsonResponse(200, {}));
+  }) as typeof fetch;
+}
+
+function RouteShell({ children }: { children: ReactNode }) {
+  const t = useTranslations("characters.edit");
+
+  return (
+    <div className="flex min-h-screen bg-background text-foreground">
+      <div
+        aria-hidden
+        className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:block"
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          aria-hidden
+          className="sticky top-0 z-30 h-[var(--shell-header-height)] shrink-0 border-b border-border/50 bg-background/80 backdrop-blur-xl backdrop-saturate-150"
+        />
+        <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
+          <header className="mb-8 flex flex-col gap-2 md:mb-10">
+            <div className="flex items-center gap-3">
+              <Image
+                alt=""
+                aria-hidden
+                className="h-auto w-14 shrink-0 select-none"
+                height={809}
+                src="/illustrations/pen.png"
+                unoptimized
+                width={860}
+              />
+              <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
+                {t("title")}
+              </h1>
+            </div>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
+              {t("subtitle")}
+            </p>
+          </header>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function withSearch(search: string): Decorator {
+  return function SearchParamsDecorator(Story) {
+    return (
+      <NuqsTestingAdapter searchParams={search}>
+        <Story />
+      </NuqsTestingAdapter>
+    );
+  };
+}
+
+const meta = {
+  args: { characterId: STORY.characterId },
+  beforeEach: () => {
+    getQueryClient().clear();
+  },
+  component: CharacterEditPage,
+  decorators: [
+    (Story) => (
+      <RouteShell>
+        <Story />
+      </RouteShell>
+    ),
+  ],
+  parameters: {
+    layout: "fullscreen",
+    nextjs: { appDirectory: true },
+  },
+  tags: ["ai-generated"],
+  title: "Characters/CharacterEditPage",
+} satisfies Meta<typeof CharacterEditPage>;
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+export const BookContext: Story = {
+  beforeEach: () => {
+    mockFetch(character);
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
+    });
+    const renderedTitles = canvas
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent ?? "")
+      .filter((title) => STORY.bookSectionTitles.some((expected) => expected === title));
+    await expect(renderedTitles).toEqual([...STORY.bookSectionTitles]);
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(
+      imagesPanel.getByRole("radiogroup", { name: "Зображення в цій книзі" }),
+    ).toBeVisible();
+    await expect(canvas.getByRole("region", { name: "Попередній перегляд" })).toBeVisible();
+    await expect(canvas.getByText("Приховано: 2")).toBeVisible();
+  },
+};
+
+export const BookContextWithoutImage: Story = {
+  beforeEach: () => {
+    mockFetch({ ...character, avatar: null });
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
+    });
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(imagesPanel.getByRole("button", { name: "Додати" })).toBeVisible();
+    await expect(imagesPanel.getByText("Основний аватар не додано")).toBeVisible();
+  },
+};
+
+export const BookContextWithBookPortrait: Story = {
+  beforeEach: () => {
+    mockFetch({
+      ...character,
+      appearances: character.appearances.map((appearance) => ({
+        ...appearance,
+        portrait: { ...globalAvatar, id: "media-portrait-1" },
+      })),
+    });
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
+    });
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(
+      imagesPanel.getByRole("radio", { name: "Окремий портрет для цієї книги" }),
+    ).toBeChecked();
+    await expect(
+      imagesPanel.getByRole("group", { name: "Окремий портрет для цієї книги" }),
+    ).toBeVisible();
+  },
+};
+
+export const RoleChips: Story = {
+  beforeEach: () => {
+    mockFetch(
+      characterWithRoles([
+        { customRole: null, id: "role-1", isSpoiler: false, position: 0, roleType: "protagonist" },
+        { customRole: null, id: "role-2", isSpoiler: true, position: 1, roleType: "love_interest" },
+        {
+          customRole: "Наставник Цірі",
+          id: "role-3",
+          isSpoiler: false,
+          position: 2,
+          roleType: "custom",
+        },
+      ]),
+    );
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+};
+
+export const RoleChipsAtLimit: Story = {
+  beforeEach: () => {
+    mockFetch(
+      characterWithRoles([
+        { customRole: null, id: "role-1", isSpoiler: false, position: 0, roleType: "protagonist" },
+        {
+          customRole: null,
+          id: "role-2",
+          isSpoiler: false,
+          position: 1,
+          roleType: "deuteragonist",
+        },
+        { customRole: null, id: "role-3", isSpoiler: true, position: 2, roleType: "antagonist" },
+        {
+          customRole: null,
+          id: "role-4",
+          isSpoiler: false,
+          position: 3,
+          roleType: "love_interest",
+        },
+        {
+          customRole: "Відьмак із Рівії",
+          id: "role-5",
+          isSpoiler: false,
+          position: 4,
+          roleType: "custom",
+        },
+      ]),
+    );
+  },
+  decorators: [withSearch(`bookId=${STORY.bookId}`)],
+};
+
+export const Global: Story = {
+  beforeEach: () => {
+    mockFetch(character);
+  },
+  decorators: [withSearch("")],
+  play: async ({ canvas }) => {
+    await waitFor(async () => {
+      await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
+    });
+    await expect(canvas.getByRole("heading", { level: 2, name: "Про персонажа" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { level: 2, name: "Інші імена" })).toBeVisible();
+    await expect(canvas.queryByRole("heading", { name: "У цій книзі" })).toBeNull();
+    await expect(canvas.queryByRole("heading", { name: "Спойлери" })).toBeNull();
+    const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
+    await expect(imagesPanel.getByRole("group", { name: "Основний аватар" })).toBeVisible();
+    await expect(imagesPanel.queryByRole("radiogroup")).toBeNull();
+    await expect(canvas.getByRole("region", { name: "Попередній перегляд" })).toBeVisible();
+  },
+};

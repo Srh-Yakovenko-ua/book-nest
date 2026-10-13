@@ -6,7 +6,9 @@ import type { KeyboardEvent } from "react";
 import { TAG_COLORS } from "@app/shared";
 import { useTranslations } from "next-intl";
 
-import { TAG_COLOR_SWATCH, TagColorSelection, TagColorSwatchButton } from "./tag-color-swatch";
+import { PALETTE_SWATCH, PaletteSwatchButton } from "@/components/palette-swatch";
+
+import { TagColorSelection } from "./tag-color-swatch";
 
 type TagColorPickerProps = {
   labelledBy: string;
@@ -46,11 +48,11 @@ export function TagColorPicker({ labelledBy, onChange, value }: TagColorPickerPr
 
   return (
     <div className="flex flex-col gap-2">
-      <div aria-labelledby={labelledBy} className={TAG_COLOR_SWATCH.grid} role="radiogroup">
+      <div aria-labelledby={labelledBy} className={PALETTE_SWATCH.grid} role="radiogroup">
         {TAG_COLORS.map((color) => {
           const selected = color === value;
           return (
-            <TagColorSwatchButton
+            <PaletteSwatchButton
               aria-checked={selected}
               aria-label={t(color)}
               color={color}

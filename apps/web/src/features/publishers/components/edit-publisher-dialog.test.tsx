@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { LibraryPublisherDetail } from "@app/shared";
+import type { LibraryPublisherDetail, PublisherDuplicateCandidate } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useState } from "react";
@@ -33,6 +33,8 @@ vi.mock("sonner", () => ({
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
+let duplicateCandidates: PublisherDuplicateCandidate[];
+let respondToCandidates: () => Response;
 let respondToUpdate: () => Response;
 
 function EditHarness({ details }: { details: LibraryPublisherDetail }) {
@@ -66,12 +68,17 @@ function renderDialog(details = makePublisherDetail({ isCustom: true, name: "Viv
 }
 
 beforeEach(() => {
+  duplicateCandidates = [];
+  respondToCandidates = () => jsonResponse(duplicateCandidates);
   respondToUpdate = () => jsonResponse(makePublisherDetail({ isCustom: true, name: "Vivat" }));
 
   fetchMock.mockReset();
   fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "PATCH") return Promise.resolve(respondToUpdate());
+    if (String(input).includes("/api/publishers/duplicate-candidates")) {
+      return Promise.resolve(respondToCandidates());
+    }
     return Promise.reject(new Error(`unexpected ${method} ${String(input)}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -109,6 +116,173 @@ describe("EditPublisherDialog", () => {
     expect(await screen.findByText("Видавництво з такою назвою вже існує")).toBeInTheDocument();
   });
 
+  it("names the publisher whose alias already answers to the typed name", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat Books",
+        matchKind: "alias",
+        name: "Видавництво Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Цю назву вже використовує видавництво «Видавництво Vivat», бо воно також відоме як «Vivat Books»",
+    );
+    const candidatesUrl = fetchMock.mock.calls
+      .map(([input]) => String(input))
+      .find((url) => url.includes("/api/publishers/duplicate-candidates"));
+    expect(candidatesUrl).toContain("excludePublisherId=publisher-1");
+  });
+
+  it("offers a merge when the untouched name already collides", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "exact",
+        name: "Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Таку саму назву має видавництво «Vivat». Їх можна обʼєднати в одне.",
+    );
+  });
+
+  it("credits the alias when the untouched name collides through one", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "alias",
+        name: "Видавництво Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Таку саму назву має видавництво «Видавництво Vivat», бо воно також відоме як «Vivat». Їх можна обʼєднати в одне.",
+    );
+  });
+
+  it("switches from the merge wording to the taken wording once a new name is typed", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat",
+        matchKind: "exact",
+        name: "Vivat",
+      },
+    ];
+
+    renderDialog();
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Таку саму назву має видавництво");
+
+    duplicateCandidates = [
+      {
+        id: "publisher-3",
+        isCustom: false,
+        matchedName: "Vivat Books",
+        matchKind: "exact",
+        name: "Vivat Books",
+      },
+    ];
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Цю назву вже використовує видавництво «Vivat Books»",
+      ),
+    );
+  });
+
+  it("names the publisher that holds the typed name outright", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: "Vivat Books",
+        matchKind: "exact",
+        name: "Vivat Books",
+      },
+    ];
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Цю назву вже використовує видавництво «Vivat Books»",
+    );
+    expect(screen.queryByText(/також відоме як/)).not.toBeInTheDocument();
+  });
+
+  it("stays quiet when only a fuzzy match came back", async () => {
+    duplicateCandidates = [
+      {
+        id: "publisher-2",
+        isCustom: false,
+        matchedName: null,
+        matchKind: "strong",
+        name: "Vivat Books",
+      },
+    ];
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls
+          .map(([input]) => String(input))
+          .some((url) => url.includes("/api/publishers/duplicate-candidates")),
+      ).toBe(true),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("admits that the duplicate check failed while a new name is being typed", async () => {
+    respondToCandidates = () => jsonResponse({ message: "lookup down" }, 500);
+
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), " Books");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Не вдалося перевірити, чи таку назву вже хтось використовує.",
+    );
+  });
+
+  it("stays quiet about a failed duplicate check while the name is untouched", async () => {
+    respondToCandidates = () => jsonResponse({ message: "lookup down" }, 500);
+
+    const { queryClient } = renderDialog();
+
+    await waitFor(() =>
+      expect(
+        queryClient
+          .getQueryCache()
+          .getAll()
+          .some((query) => query.state.status === "error"),
+      ).toBe(true),
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("confirms a successful save with a toast", async () => {
     renderDialog();
 
@@ -124,6 +298,8 @@ describe("EditPublisherDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
 
     expect(await screen.findByText("Відхилити зміни?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Так, вийти" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Продовжити редагування" })).toBeInTheDocument();
   });
   it("omits an unchanged legacy country code from the payload", async () => {
     renderDialog(makePublisherDetail({ countryCode: "XX", name: "Vivat" }));
@@ -135,6 +311,30 @@ describe("EditPublisherDialog", () => {
     const body = lastPatchBody();
     expect(body).toMatchObject({ name: "Vivat Plus" });
     expect(body).not.toHaveProperty("countryCode");
+  });
+
+  it("omits an untouched name from the payload", async () => {
+    renderDialog(makePublisherDetail({ countryCode: "UA", isCustom: true, name: "Vivat" }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Очистити країну" }));
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const body = lastPatchBody();
+    expect(body).toMatchObject({ countryCode: null });
+    expect(body).not.toHaveProperty("name");
+  });
+
+  it("omits a name that was edited back to the original", async () => {
+    renderDialog();
+
+    await userEvent.type(screen.getByLabelText("Назва"), "!");
+    await userEvent.clear(screen.getByLabelText("Назва"));
+    await userEvent.type(screen.getByLabelText("Назва"), "Vivat");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(lastPatchBody()).not.toHaveProperty("name");
   });
 
   it("sends a country picked through the searchable select", async () => {

@@ -1,24 +1,27 @@
 "use client";
 
-import type { BookCharacterView, CharacterDetailsView } from "@app/shared";
+import type { BookCharacterView, CharacterDetailsView, MediaView, Nullable } from "@app/shared";
 
-import { CHARACTER_NAME_MAX } from "@app/shared";
+import { CHARACTER_INT4_MAX, CHARACTER_TEXT_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/field-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DiscardConfirmDialog } from "@/features/books";
+import { useBookPagesCount } from "@/features/books/api/use-book";
+import { bookPageCeiling } from "@/features/books/model/book-page-ceiling";
+import { type OwnSpeciesChange, useSpeciesLocale } from "@/features/species";
 import { useRouter } from "@/i18n/navigation";
 import { applyFieldErrors } from "@/lib/api-errors";
 
-import type { CharacterEditValues } from "../model/character-edit-form";
+import type { CharacterEditMessages, CharacterEditValues } from "../model/character-edit-form";
+import type { CharacterImageUpload } from "./character-image-field";
 
 import { useCharacterDetails } from "../api/use-character-details";
 import { useUpdateBookCharacter } from "../api/use-update-book-character";
@@ -26,12 +29,15 @@ import { useUpdateCharacter } from "../api/use-update-character";
 import {
   buildCharacterEditSchema,
   isScopeDirty,
-  toBookUpdate,
+  maskedEditFields,
+  toBookPatch,
   toCharacterEditValues,
   toGlobalUpdate,
+  withSpeciesChange,
 } from "../model/character-edit-form";
 import { getCharacterDetailsPath } from "../model/character-routes";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
+import { CharacterEditPreview } from "./character-edit-preview";
 import {
   BookCharacterInheritanceSection,
   BookCharacterMainSection,
@@ -40,6 +46,7 @@ import {
   CharacterAliasesSection,
   CharacterGlobalSection,
 } from "./character-edit-sections";
+import { CharacterPortraitPanel } from "./character-portrait-panel";
 import { CharactersErrorState } from "./characters-error-state";
 
 type CharacterEditPageProps = {
@@ -91,51 +98,106 @@ function CharacterEditForm({
   const tAliases = useTranslations("characters.aliases");
   const tErrors = useTranslations("characters.form.errors");
   const tToast = useTranslations("characters.toast");
+  const tDiscardChanges = useTranslations("common.discardChanges");
   const router = useRouter();
   const updateCharacter = useUpdateCharacter();
   const updateBookCharacter = useUpdateBookCharacter();
 
-  const initialValues = toCharacterEditValues(character, contextBookId ?? undefined);
+  const locale = useSpeciesLocale();
+  const initialValues = toCharacterEditValues({
+    bookId: contextBookId ?? undefined,
+    character,
+    locale,
+  });
   const [baseline, setBaseline] = useState<CharacterEditValues>(initialValues);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<Record<string, string>>({});
+
+  const pagesCount = useBookPagesCount(contextBookId);
+  const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: CHARACTER_INT4_MAX });
+  const messages: CharacterEditMessages = {
+    aliasDuplicate: tAliases("errorDuplicate"),
+    aliasReservedBook: tAliases("errorSameAsDisplayName"),
+    aliasReservedGlobal: tAliases("errorSameAsName"),
+    customGenderRequired: tErrors("customGenderRequired"),
+    firstAppearancePageExceedsBook: t("firstAppearancePageExceedsBook", { max: pageCeiling.max }),
+    firstAppearancePageInvalid: t("firstAppearancePageInvalid"),
+    nameRequired: tErrors("nameRequired"),
+    nameTooLong: tErrors("nameTooLong", { max: CHARACTER_TEXT_MAX.name }),
+    textTooLong: (max) => tErrors("textTooLong", { max }),
+  };
 
   const form = useForm<CharacterEditValues>({
     defaultValues: initialValues,
     mode: "onTouched",
-    resolver: zodResolver(
-      buildCharacterEditSchema({
-        aliasDuplicate: tAliases("errorDuplicate"),
-        aliasReservedBook: tAliases("errorSameAsDisplayName"),
-        aliasReservedGlobal: tAliases("errorSameAsName"),
-        customGenderRequired: tErrors("customGenderRequired"),
-        firstAppearancePageInvalid: t("firstAppearancePageInvalid"),
-        nameRequired: tErrors("nameRequired"),
-        nameTooLong: tErrors("nameTooLong", { max: CHARACTER_NAME_MAX }),
-      }),
-    ),
+    resolver: (values, context, options) =>
+      zodResolver(buildCharacterEditSchema(messages, pageCeiling))(values, context, options),
   });
 
   const {
     control,
     formState: { errors },
+    getFieldState,
+    getValues,
     handleSubmit,
     register,
+    setValue,
+    trigger,
   } = form;
+
+  useEffect(() => {
+    if (
+      !getFieldState("book.firstAppearancePage").isTouched &&
+      getValues("book.firstAppearancePage") === null
+    ) {
+      return;
+    }
+    void trigger("book.firstAppearancePage");
+  }, [getFieldState, getValues, pageCeiling.max, trigger]);
 
   const current = useWatch({ control });
   const currentValues = current as CharacterEditValues;
-  const maskedFields = appearance?.hiddenFields ?? [];
-  const globalDirty = isScopeDirty({ baseline, current: currentValues, scope: "global" });
+  const maskedFields = maskedEditFields({ appearance, character });
+  const globalDirty = isScopeDirty({
+    baseline,
+    current: currentValues,
+    maskedFields,
+    scope: "global",
+  });
   const bookDirty =
     contextBookId !== null &&
     isScopeDirty({ baseline, current: currentValues, maskedFields, scope: "book" });
   const isDirty = globalDirty || bookDirty;
   const isSaving = updateCharacter.isPending || updateBookCharacter.isPending;
+  const avatarMediaId = useWatch({ control, name: "global.avatarMediaId" });
+  const portraitMediaId = useWatch({ control, name: "book.portraitMediaId" });
+  const avatarUrl = resolveImageUrl({
+    mediaId: avatarMediaId,
+    saved: character.avatar,
+    uploadedUrls: uploadedImageUrls,
+  });
+  const portraitUrl = resolveImageUrl({
+    mediaId: portraitMediaId,
+    saved: appearance?.portrait ?? null,
+    uploadedUrls: uploadedImageUrls,
+  });
+  const previewImageUrl = portraitMediaId === null ? avatarUrl : portraitUrl;
 
   const detailsHref = getCharacterDetailsPath({
     characterId: character.id,
     ...(contextBookId === null ? {} : { bookId: contextBookId }),
   });
+
+  function rememberUploadedImage(upload: CharacterImageUpload) {
+    setUploadedImageUrls((previous) => ({ ...previous, [upload.mediaId]: upload.previewUrl }));
+  }
+
+  function applySpeciesChange(change: OwnSpeciesChange) {
+    const next = withSpeciesChange(getValues(), change);
+    setValue("global.species", next.global.species);
+    setValue("book.speciesOverride", next.book.speciesOverride);
+    setBaseline((previous) => withSpeciesChange(previous, change));
+  }
 
   function leave() {
     router.push(detailsHref);
@@ -156,7 +218,7 @@ function CharacterEditForm({
       if (globalDirty) {
         await updateCharacter.mutateAsync({
           characterId: character.id,
-          input: toGlobalUpdate(values.global),
+          input: toGlobalUpdate(values.global, maskedFields),
         });
         setBaseline((previous) => ({ ...previous, global: values.global }));
         savedGlobal = true;
@@ -166,7 +228,7 @@ function CharacterEditForm({
         await updateBookCharacter.mutateAsync({
           bookId: contextBookId,
           characterId: character.id,
-          input: toBookUpdate(values.book, maskedFields),
+          input: toBookPatch({ baseline: baseline.book, current: values.book, maskedFields }),
         });
         setBaseline((previous) => ({ ...previous, book: values.book }));
       }
@@ -180,55 +242,93 @@ function CharacterEditForm({
   });
 
   return (
-    <form className="flex flex-col gap-6" noValidate onSubmit={onSubmit}>
-      {contextBookId === null ? null : (
-        <BookCharacterMainSection control={control} register={register} />
-      )}
+    <form
+      className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-24 sm:pb-0 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
+      noValidate
+      onSubmit={onSubmit}
+    >
+      <div className="contents lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))] lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6">
+        <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2">
+          <CharacterPortraitPanel
+            avatarUrl={avatarUrl}
+            control={control}
+            hasBookScope={contextBookId !== null}
+            maskedFields={maskedFields}
+            onImageUpload={rememberUploadedImage}
+            portraitUrl={portraitUrl}
+          />
+        </div>
 
-      {contextBookId === null ? null : (
-        <BookCharacterNarrativeSection
+        <div className="order-last motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:order-none">
+          <CharacterEditPreview control={control} imageUrl={previewImageUrl} />
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:col-start-1 lg:row-start-1">
+        {contextBookId === null ? null : (
+          <BookCharacterMainSection control={control} errors={errors} register={register} />
+        )}
+
+        {contextBookId === null ? null : (
+          <BookCharacterNarrativeSection
+            bookId={contextBookId}
+            control={control}
+            errors={errors}
+            maskedFields={maskedFields}
+            pageMax={pageCeiling.max}
+            register={register}
+          />
+        )}
+
+        <CharacterGlobalSection
           control={control}
-          pageError={
-            <FieldError error={errors.book?.firstAppearancePage} id="character-first-page-error" />
-          }
+          errors={errors}
+          onSpeciesChange={applySpeciesChange}
           register={register}
         />
-      )}
 
-      {contextBookId === null ? null : (
-        <BookCharacterInheritanceSection
+        {contextBookId === null ? null : (
+          <BookCharacterInheritanceSection
+            control={control}
+            errors={errors}
+            maskedFields={maskedFields}
+            onSpeciesChange={applySpeciesChange}
+          />
+        )}
+
+        <CharacterAliasesSection
           control={control}
-          globalAvatarUrl={character.avatar?.urls.card ?? null}
-          maskedFields={maskedFields}
-          portraitUrl={appearance?.portrait?.urls.card ?? null}
+          errors={errors}
+          hasBookScope={contextBookId !== null}
         />
-      )}
 
-      <CharacterGlobalSection
-        control={control}
-        nameError={<FieldError error={errors.global?.name} id="character-name-error" />}
-        register={register}
-      />
+        {contextBookId === null ? null : <BookCharacterSpoilerSection control={control} />}
 
-      <CharacterAliasesSection
-        control={control}
-        errors={errors}
-        hasBookScope={contextBookId !== null}
-      />
-
-      {contextBookId === null ? null : <BookCharacterSpoilerSection control={control} />}
-
-      <div className="sticky bottom-0 z-10 -mx-1 flex items-center justify-end gap-3 rounded-t-xl bg-background/80 px-4 py-3 backdrop-blur-xl backdrop-saturate-150">
-        <Button disabled={isSaving} onClick={cancel} type="button" variant="secondary">
-          {t("cancel")}
-        </Button>
-        <Button disabled={isSaving || !isDirty} loading={isSaving} type="submit">
-          <UiIcon name="check" size={16} />
-          {t("save")}
-        </Button>
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-background/80 px-5 pt-3 safe-bottom backdrop-blur-xl backdrop-saturate-150 sm:sticky sm:inset-x-auto sm:z-10 sm:-mx-1 sm:justify-end sm:rounded-t-xl sm:px-4 sm:py-3">
+          <Button
+            className="h-11 flex-1 sm:h-10 sm:flex-none"
+            disabled={isSaving}
+            onClick={cancel}
+            type="button"
+            variant="secondary"
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            className="h-11 flex-1 sm:h-10 sm:flex-none"
+            disabled={isSaving || !isDirty}
+            loading={isSaving}
+            type="submit"
+          >
+            <UiIcon name="check" size={16} />
+            {t("save")}
+          </Button>
+        </div>
       </div>
 
       <DiscardConfirmDialog
+        cancelLabel={tDiscardChanges("cancel")}
+        confirmLabel={tDiscardChanges("confirm")}
         description={t("discardDescription")}
         onConfirm={leave}
         onOpenChange={setDiscardOpen}
@@ -240,10 +340,37 @@ function CharacterEditForm({
 }
 
 function EditSkeleton() {
+  const t = useTranslations("common");
+
   return (
-    <div aria-busy className="flex flex-col gap-6" role="status">
-      <Skeleton className="h-64 w-full rounded-xl" />
-      <Skeleton className="h-80 w-full rounded-xl" />
-    </div>
+    <output
+      aria-busy="true"
+      aria-label={t("loading")}
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
+    >
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-80 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
+      </div>
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-56 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+      </div>
+    </output>
   );
+}
+
+function resolveImageUrl({
+  mediaId,
+  saved,
+  uploadedUrls,
+}: {
+  mediaId: Nullable<string>;
+  saved: Nullable<MediaView>;
+  uploadedUrls: Record<string, string>;
+}): Nullable<string> {
+  if (mediaId === null) return null;
+  if (saved?.id === mediaId) return saved.urls.card;
+  return uploadedUrls[mediaId] ?? null;
 }

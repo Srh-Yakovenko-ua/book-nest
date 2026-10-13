@@ -9,10 +9,12 @@ import type {
   MediaAssetModel,
 } from "../../../generated/prisma/models.js";
 import type { RosterVisibility } from "../domain/reading-context-window.js";
+import type { SuggestionExclusions } from "../domain/suggestion-exclusions.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { SPECIES_REF_ARGS } from "../../species/index.js";
 import { bookCharacterImportanceRank } from "../domain/character-importance-order.js";
 
 const CHARACTER_IMPORTANCE_CENTRAL = "central";
@@ -48,6 +50,7 @@ const detailsInclude = {
       },
       portraitMedia: true,
       roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
+      speciesOverride: SPECIES_REF_ARGS,
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     where: { book: SOFT_DELETE_SCOPE.active },
@@ -56,6 +59,7 @@ const detailsInclude = {
     include: { portraitMedia: true },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }],
   },
+  species: SPECIES_REF_ARGS,
 } satisfies Prisma.CharacterInclude;
 
 const rosterInclude = {
@@ -68,6 +72,7 @@ const rosterInclude = {
 const globalSummaryInclude = {
   _count: { select: { bookAppearances: { where: { book: SOFT_DELETE_SCOPE.active } } } },
   avatarMedia: true,
+  species: SPECIES_REF_ARGS,
   tags: {
     orderBy: [{ tag: { name: "asc" } }, { tag: { normalizedName: "asc" } }],
     select: { tag: { select: { color: true, id: true, name: true } } },
@@ -93,6 +98,7 @@ const seriesProfileInclude = {
     orderBy: [{ createdAt: "asc" }],
     where: { book: SOFT_DELETE_SCOPE.active },
   },
+  species: SPECIES_REF_ARGS,
 } satisfies Prisma.CharacterInclude;
 
 const purgeSelect = {
@@ -206,6 +212,8 @@ export type CreateBookCharacterData = {
   hidePresenceAsSpoiler: boolean;
   importance: string;
   isPovCharacter: boolean;
+  isUnreliableNarrator: boolean;
+  isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
   personalImpressionIsSpoiler: boolean;
@@ -213,7 +221,7 @@ export type CreateBookCharacterData = {
   portraitMediaId: Nullable<string>;
   roles: CreateRoleData[];
   sortOrder: Nullable<number>;
-  speciesOverride: Nullable<string>;
+  speciesOverrideId: Nullable<string>;
   speciesOverrideIsSpoiler: boolean;
   status: string;
   statusCustomText: Nullable<string>;
@@ -233,7 +241,7 @@ export type CreateCharacterData = {
   neutralDescription: Nullable<string>;
   normalizedName: string;
   pronouns: Nullable<string>;
-  species: Nullable<string>;
+  speciesId: Nullable<string>;
   userId: string;
 };
 
@@ -262,7 +270,7 @@ export type GlobalCharacterFilter = {
   roleTypes: string[] | undefined;
   search: string | undefined;
   seriesId: string | undefined;
-  species: string[] | undefined;
+  speciesIds: string[] | undefined;
   tagIds: string[] | undefined;
   userId: string;
 };
@@ -319,13 +327,15 @@ export type UpdateBookCharacterData = {
   hidePresenceAsSpoiler?: boolean;
   importance?: string;
   isPovCharacter?: boolean;
+  isUnreliableNarrator?: boolean;
+  isUnreliableNarratorSpoiler?: boolean;
   narratorType?: Nullable<string>;
   personalImpression?: Nullable<string>;
   personalImpressionIsSpoiler?: boolean;
   portraitIsSpoiler?: boolean;
   portraitMediaId?: Nullable<string>;
   sortOrder?: Nullable<number>;
-  speciesOverride?: Nullable<string>;
+  speciesOverrideId?: Nullable<string>;
   speciesOverrideIsSpoiler?: boolean;
   status?: string;
   statusCustomText?: Nullable<string>;
@@ -344,7 +354,7 @@ export type UpdateCharacterData = {
   neutralDescription?: Nullable<string>;
   normalizedName?: string;
   pronouns?: Nullable<string>;
-  species?: Nullable<string>;
+  speciesId?: Nullable<string>;
 };
 
 type ListRosterInput = RosterFilter & {
@@ -973,14 +983,32 @@ export class CharactersRepository {
     });
   }
 
+  listSeriesScopedAppearances({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<CharacterScopedAppearanceRow[]> {
+    return this.prisma.bookCharacter.findMany({
+      select: characterScopedAppearanceSelect,
+      where: {
+        book: { ...SOFT_DELETE_SCOPE.active, seriesId },
+        character: { deletedAt: null, userId },
+      },
+    });
+  }
+
   async listSuggestions({
     bookId,
+    exclusions,
     limit,
     search,
     seriesId,
     userId,
   }: {
     bookId: string;
+    exclusions: SuggestionExclusions;
     limit: number;
     search: string | undefined;
     seriesId: Nullable<string>;
@@ -1014,6 +1042,7 @@ export class CharactersRepository {
                 none: { bookId },
                 some: { book: { ...SOFT_DELETE_SCOPE.active, seriesId } },
               },
+              id: { notIn: exclusions.excludedFromSameSeries },
             },
           });
 
@@ -1022,7 +1051,7 @@ export class CharactersRepository {
       return sameSeries;
     }
 
-    const excludeIds = sameSeries.map((row) => row.id);
+    const excludeIds = [...exclusions.excludedEverywhere, ...sameSeries.map((row) => row.id)];
     const others = await this.prisma.character.findMany({
       include: globalSummaryInclude,
       orderBy: [{ name: "asc" }, { createdAt: "asc" }],
@@ -1166,7 +1195,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     roleTypes,
     search,
     seriesId,
-    species,
+    speciesIds,
     tagIds,
     userId,
   } = filter;
@@ -1182,8 +1211,8 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
   if (genders !== undefined) {
     where.gender = { in: genders };
   }
-  if (species !== undefined) {
-    where.species = { in: species };
+  if (speciesIds !== undefined) {
+    where.speciesId = { in: speciesIds };
   }
   if (attitudes !== undefined) {
     where.globalAttitude = { in: attitudes };
@@ -1318,6 +1347,7 @@ function buildHasSpoilerContentWhere({
               { descriptionIsSpoiler: true },
               { displayNameIsSpoiler: true },
               { hidePresenceAsSpoiler: true },
+              { isUnreliableNarratorSpoiler: true },
               { personalImpressionIsSpoiler: true },
               { portraitIsSpoiler: true },
               { speciesOverrideIsSpoiler: true },

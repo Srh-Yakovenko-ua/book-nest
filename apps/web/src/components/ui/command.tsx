@@ -70,17 +70,37 @@ function CommandEmpty({
   );
 }
 
+const sectionedGroupClassNames = {
+  group: "[:not([hidden])~&]:mt-2",
+  heading:
+    "mb-1 rounded-md border-l-2 border-primary/50 bg-secondary/60 px-2.5 py-1.5 text-xs font-semibold text-foreground",
+} as const;
+
 function CommandGroup({
   className,
+  heading,
+  variant = "default",
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Group>) {
+}: React.ComponentProps<typeof CommandPrimitive.Group> & { variant?: "default" | "sectioned" }) {
+  const sectioned = variant === "sectioned";
+
   return (
     <CommandPrimitive.Group
       className={cn(
-        "overflow-hidden p-1 text-foreground **:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
+        "overflow-hidden p-1 text-foreground",
+        sectioned
+          ? ["pb-0", sectionedGroupClassNames.group]
+          : "**:[[cmdk-group-heading]]:px-2 **:[[cmdk-group-heading]]:py-1.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:text-muted-foreground",
         className,
       )}
       data-slot="command-group"
+      heading={
+        sectioned && heading ? (
+          <div className={sectionedGroupClassNames.heading}>{heading}</div>
+        ) : (
+          heading
+        )
+      }
       {...props}
     />
   );
@@ -180,4 +200,5 @@ export {
   CommandList,
   CommandSeparator,
   CommandShortcut,
+  sectionedGroupClassNames,
 };

@@ -40,8 +40,8 @@ import { useCharacterGroupOptions } from "../api/use-character-group-options";
 import {
   ATTITUDE_OPTIONS,
   BOOK_CHARACTER_IMPORTANCE,
+  BOOK_CHARACTER_ROLE,
   GENDER_OPTIONS,
-  ROLE_TYPE_OPTIONS,
 } from "../model/character-options";
 
 type CharactersCatalogFiltersProps = {
@@ -122,7 +122,7 @@ export function CharactersCatalogFilters({
               label={t("role")}
               mode="multi"
               onValueChange={(role) => setDraft((current) => ({ ...current, role }))}
-              options={ROLE_TYPE_OPTIONS.map((option) => ({
+              options={BOOK_CHARACTER_ROLE.options.map((option) => ({
                 label: <RoleLabel value={option} />,
                 value: option,
               }))}

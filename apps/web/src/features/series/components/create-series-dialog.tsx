@@ -30,6 +30,7 @@ import {
   BOOK_GENRES_MAX,
   GenresField,
   SeriesStatusChips,
+  useAuthorsFieldFocus,
 } from "@/features/books";
 import {
   blockNegativeNumberKeys,
@@ -73,6 +74,7 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
   const tToast = useTranslations("series.toast");
   const createSeries = useCreateSeries();
   const [authors, setAuthors] = useState<AuthorSelection[]>([]);
+  const authorsFocus = useAuthorsFieldFocus();
   const [serverError, setServerError] = useState<null | string>(null);
 
   const {
@@ -135,15 +137,15 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="new-series-authors">
+        <Label {...authorsFocus.labelProps}>
           {t("authors")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
         </Label>
         <AuthorsField
-          id="new-series-authors"
           invalid={false}
           onChange={setAuthors}
           value={authors}
+          {...authorsFocus.fieldProps}
         />
       </div>
 
