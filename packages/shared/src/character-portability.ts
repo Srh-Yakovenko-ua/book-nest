@@ -23,12 +23,13 @@ import {
   CharacterFormTypeSchema,
   CharacterGenderSchema,
 } from "./characters.js";
+import { SPECIES_SEARCH } from "./species.js";
 
 export const CHARACTER_BUNDLE_FORMAT_VERSION = 1;
 
 const BUNDLE_NAME_MAX = 200;
 const BUNDLE_SHORT_TEXT_MAX = 200;
-const BUNDLE_SPECIES_MAX = 120;
+const BUNDLE_SPECIES_KEY_MAX = 60;
 const BUNDLE_GENDER_CUSTOM_MAX = 60;
 const BUNDLE_PRONOUNS_MAX = 60;
 const BUNDLE_LONG_TEXT_MAX = 5000;
@@ -58,6 +59,7 @@ const positionInt = z.number().int().min(0).max(CHARACTER_INT4_MAX);
 const nullablePositiveInt = z.number().int().positive().max(CHARACTER_INT4_MAX).nullable();
 const nullableNonNegativeInt = z.number().int().min(0).max(CHARACTER_INT4_MAX).nullable();
 const externalRef = () => z.uuid();
+const speciesKeyRef = () => z.string().trim().min(1).max(BUNDLE_SPECIES_KEY_MAX).nullish();
 
 const BundleAliasSchema = z
   .object({
@@ -99,6 +101,8 @@ const BundleAppearanceSchema = z
     hidePresenceAsSpoiler: z.boolean(),
     importance: BookCharacterImportanceSchema,
     isPovCharacter: z.boolean(),
+    isUnreliableNarrator: z.boolean().default(false),
+    isUnreliableNarratorSpoiler: z.boolean().default(false),
     narratorType: BookCharacterNarratorTypeSchema.nullable(),
     personalImpression: nullableText(BUNDLE_LONG_TEXT_MAX),
     personalImpressionIsSpoiler: z.boolean(),
@@ -106,8 +110,9 @@ const BundleAppearanceSchema = z
     portraitMediaId: externalRef().nullable(),
     roles: z.array(BundleRoleSchema).max(CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX),
     sortOrder: nullableNonNegativeInt,
-    speciesOverride: nullableText(BUNDLE_SHORT_TEXT_MAX),
+    speciesOverride: nullableText(SPECIES_SEARCH.nameMax),
     speciesOverrideIsSpoiler: z.boolean(),
+    speciesOverrideKey: speciesKeyRef(),
     status: BookCharacterStatusSchema,
     statusCustomText: nullableText(BUNDLE_SHORT_TEXT_MAX),
     statusIsSpoiler: z.boolean(),
@@ -148,7 +153,8 @@ const BundleCharacterSchema = z
     name: z.string().trim().min(1).max(BUNDLE_NAME_MAX),
     neutralDescription: nullableText(BUNDLE_LONG_TEXT_MAX),
     pronouns: nullableText(BUNDLE_PRONOUNS_MAX),
-    species: nullableText(BUNDLE_SPECIES_MAX),
+    species: nullableText(SPECIES_SEARCH.nameMax),
+    speciesKey: speciesKeyRef(),
     tagIds: z.array(externalRef()).max(CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX),
   })
   .strict()
@@ -362,6 +368,42 @@ export const CharacterBundleSchema = z
   });
 
 export type CharacterBundle = z.infer<typeof CharacterBundleSchema>;
+
+const LEGACY_UNRELIABLE_NARRATOR_TYPE = "unreliable";
+
+const LegacyUnreliableNarratorAppearanceSchema = z
+  .looseObject({ narratorType: z.literal(LEGACY_UNRELIABLE_NARRATOR_TYPE) })
+  .transform((appearance) => ({
+    ...appearance,
+    isUnreliableNarrator: true,
+    isUnreliableNarratorSpoiler: false,
+    narratorType: null,
+  }));
+
+const BundleAppearancesShapeSchema = z.looseObject({
+  characters: z.array(z.looseObject({ appearances: z.array(z.unknown()) })),
+});
+
+export function upgradeLegacyCharacterBundle(payload: unknown): unknown {
+  const shape = BundleAppearancesShapeSchema.safeParse(payload);
+  if (!shape.success) {
+    return payload;
+  }
+  return {
+    ...shape.data,
+    characters: shape.data.characters.map((character) => ({
+      ...character,
+      appearances: character.appearances.map((appearance) =>
+        upgradeLegacyBundleAppearance(appearance),
+      ),
+    })),
+  };
+}
+
+function upgradeLegacyBundleAppearance(appearance: unknown): unknown {
+  const legacy = LegacyUnreliableNarratorAppearanceSchema.safeParse(appearance);
+  return legacy.success ? legacy.data : appearance;
+}
 
 export const CharacterExportQuerySchema = z.object({
   includeArchived: z

@@ -29,21 +29,26 @@ describe("EventListView", () => {
   it("heads the dense grid with the canonical columns", () => {
     renderList();
 
-    expect(screen.getByText("№")).toBeInTheDocument();
     expect(screen.getByText("Подія")).toBeInTheDocument();
-    expect(screen.getByText("Контекст")).toBeInTheDocument();
     expect(screen.getByText("Тип")).toBeInTheDocument();
     expect(screen.getByText("Важливість")).toBeInTheDocument();
-    expect(screen.getByText("Часова лінія")).toBeInTheDocument();
   });
 
-  it("drops the timeline column inside a single line", () => {
+  it("identifies the timeline of every row across all lines", () => {
+    renderList();
+
+    expect(screen.getAllByRole("img", { name: "Основна лінія" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Основна лінія").length).toBeGreaterThan(0);
+  });
+
+  it("drops the timeline identity inside a single line", () => {
     renderList({ isAllLines: false });
 
-    expect(screen.queryByText("Часова лінія")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Основна лінія" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Основна лінія")).not.toBeInTheDocument();
   });
 
-  it("numbers the flattened events in one running sequence", () => {
+  it("renders every flattened event in one running list", () => {
     renderList({
       events: [
         makeTimelineEventView({ id: "a", title: "Перша" }),
@@ -52,11 +57,12 @@ describe("EventListView", () => {
       ],
     });
 
-    expect(screen.getAllByText("3").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("3.").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Перша").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Друга").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Третя").length).toBeGreaterThan(0);
   });
 
-  it("builds the context from chapter, page, location and story time", () => {
+  it("builds the context from chapter, page, story time and location", () => {
     renderList({
       events: [
         makeTimelineEventView({
@@ -69,7 +75,7 @@ describe("EventListView", () => {
     });
 
     expect(
-      screen.getAllByText("Розділ 4 · стор. 128 · Визима · День третій").length,
+      screen.getAllByText("Розділ 4 · стор. 128 · День третій · Визима").length,
     ).toBeGreaterThan(0);
   });
 
@@ -85,7 +91,7 @@ describe("EventListView", () => {
     expect(onOpenEvent).toHaveBeenCalledWith("event-9");
   });
 
-  it("guards a row with its reason and keeps the actions away", () => {
+  it("guards a row with its reason and leaks neither the actions nor the timeline name", () => {
     renderList({
       currentPage: 20,
       events: [makeTimelineEventView({ id: "ahead", pageNumber: 90, title: "Таємне вбивство" })],
@@ -98,7 +104,8 @@ describe("EventListView", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Таємне вбивство")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Дії події" })).not.toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Основна лінія" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Основна лінія")).not.toBeInTheDocument();
   });
 
   it("reveals a guarded row on demand", async () => {
@@ -110,7 +117,7 @@ describe("EventListView", () => {
       onRevealEvent,
     });
 
-    expect(screen.getByText("Подія позначена як спойлер")).toBeInTheDocument();
+    expect(screen.getByText("Подія містить спойлер")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Показати подію" }));
 

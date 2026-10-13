@@ -85,7 +85,7 @@ describe("ManageTimelinesDialog", () => {
     expect(screen.getByRole("status", { name: "Завантаження часових ліній" })).toBeInTheDocument();
   });
 
-  it("offers an inline retry on a load error and keeps Готово usable", async () => {
+  it("offers an inline retry on a load error and keeps the dismiss control usable", async () => {
     let call = 0;
     fetchMock.mockImplementation(() =>
       Promise.resolve(
@@ -100,7 +100,11 @@ describe("ManageTimelinesDialog", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Повторити" }));
     expect(await screen.findByText("Основна лінія")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Готово" }));
+    await userEvent.click(
+      within(screen.getByRole("dialog", { name: "Керування лініями" })).getByRole("button", {
+        name: "Close",
+      }),
+    );
     expect(props.onClose).toHaveBeenCalled();
   });
 
@@ -222,10 +226,11 @@ describe("ManageTimelinesDialog", () => {
     expect(props.onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "line-2" }));
   });
 
-  it("closes on Готово", async () => {
+  it("closes from the dialog dismiss control", async () => {
     const props = mountDialog();
 
-    await userEvent.click(await screen.findByRole("button", { name: "Готово" }));
+    const dialog = await screen.findByRole("dialog", { name: "Керування лініями" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
 
     expect(props.onClose).toHaveBeenCalled();
   });

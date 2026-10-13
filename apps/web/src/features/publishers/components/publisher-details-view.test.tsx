@@ -24,6 +24,41 @@ vi.mock("@/i18n/navigation", () => ({
 
 const fetchMock = vi.fn();
 
+function booksOverview() {
+  return {
+    recentlyAdded: [],
+    summary: {
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total: 0,
+      wantToBuy: 0,
+      wantToRead: 0,
+    },
+    topGenres: [],
+    topTags: [],
+  };
+}
+
+function booksQuickCounts() {
+  return {
+    all: 0,
+    borrowed: 0,
+    favorites: 0,
+    finished: 0,
+    in_transit: 0,
+    reading: 0,
+    series: 0,
+    solo: 0,
+    want_to_buy: 0,
+    want_to_read: 0,
+  };
+}
+
 function emptyBooksPage() {
   return { items: [], page: 1, pagesCount: 1, pageSize: 20, totalCount: 0 };
 }
@@ -39,6 +74,12 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function overviewRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url.includes("/library-overview"));
+}
+
 function renderView(
   details: LibraryPublisherDetail,
   options: { onUrlUpdate?: OnUrlUpdateFunction; searchParams?: string } = {},
@@ -50,8 +91,8 @@ function renderView(
   );
 }
 
-function requestedUrls(): string[] {
-  return fetchMock.mock.calls.map(([input]) => String(input));
+function statCardLabel(label: string) {
+  return screen.getByText(label, { selector: "[data-slot=stat-card] *" });
 }
 
 function trackUrl() {
@@ -67,8 +108,16 @@ beforeEach(() => {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/library-overview")) return Promise.resolve(jsonResponse(emptyOverview()));
+    if (url.includes("/api/books/overview")) return Promise.resolve(jsonResponse(booksOverview()));
+    if (url.includes("/api/books/quick-counts")) {
+      return Promise.resolve(jsonResponse(booksQuickCounts()));
+    }
+    if (url.includes("/api/books/facets")) {
+      return Promise.resolve(jsonResponse({ authors: [], genres: [] }));
+    }
     if (url.includes("/api/books")) return Promise.resolve(jsonResponse(emptyBooksPage()));
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse([]));
+    if (url.includes("/api/publishers")) return Promise.resolve(jsonResponse(emptyBooksPage()));
     return Promise.reject(new Error(`unexpected ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -81,14 +130,24 @@ afterEach(() => {
 
 describe("PublisherDetailsView", () => {
   describe("hero", () => {
-    it("keeps edit and delete in the overflow menu of a custom publisher", async () => {
+    it("keeps edit, merge and delete in the overflow menu of a custom publisher", async () => {
       renderView(makePublisherDetail({ isCustom: true }));
 
       expect(screen.queryByRole("button", { name: "Редагувати" })).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: "Дії з видавництвом" }));
 
       expect(await screen.findByRole("menuitem", { name: "Редагувати" })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: "Обʼєднати з іншим" })).toBeInTheDocument();
       expect(screen.getByRole("menuitem", { name: "Видалити" })).toBeInTheDocument();
+    });
+
+    it("opens the merge dialog from the overflow menu", async () => {
+      renderView(makePublisherDetail({ isCustom: true }));
+
+      await userEvent.click(screen.getByRole("button", { name: "Дії з видавництвом" }));
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Обʼєднати з іншим" }));
+
+      expect(await screen.findByRole("dialog", { name: "Обʼєднати видавництво" })).toBeVisible();
     });
 
     it.each([
@@ -114,6 +173,7 @@ describe("PublisherDetailsView", () => {
       renderView(makePublisherDetail({ isCustom: false }));
 
       expect(screen.queryByRole("button", { name: "Дії з видавництвом" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("menuitem", { name: "Обʼєднати з іншим" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Додати книгу" })).toBeInTheDocument();
     });
 
@@ -171,10 +231,10 @@ describe("PublisherDetailsView", () => {
         }),
       );
 
-      expect(screen.getByText("Книг у бібліотеці")).toBeInTheDocument();
-      expect(screen.getByText("Прочитано")).toBeInTheDocument();
-      expect(screen.getAllByText("У списку бажань")[0]).toBeInTheDocument();
-      expect(screen.getByText("Середній рейтинг")).toBeInTheDocument();
+      expect(statCardLabel("Книг у бібліотеці")).toBeInTheDocument();
+      expect(statCardLabel("Прочитано")).toBeInTheDocument();
+      expect(statCardLabel("У списку бажань")).toBeInTheDocument();
+      expect(statCardLabel("Середній рейтинг")).toBeInTheDocument();
       expect(screen.queryByText("У черзі")).not.toBeInTheDocument();
       expect(screen.getByText(/^Останню додано/)).toBeInTheDocument();
       expect(screen.getByText("33% від усіх книг")).toBeInTheDocument();
@@ -200,79 +260,44 @@ describe("PublisherDetailsView", () => {
     });
   });
 
-  describe("tabs and url", () => {
-    it("renders exactly overview and books tabs in a labelled tab list", () => {
+  describe("catalog and url", () => {
+    it("renders the books catalog directly, without a tab list", async () => {
       renderView(makePublisherDetail());
 
-      expect(screen.getByRole("tablist", { name: "Розділи видавництва" })).toBeInTheDocument();
-      expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Огляд", "Книги"]);
+      expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+      expect(
+        await screen.findByPlaceholderText("Назва книги, автор або серія"),
+      ).toBeInTheDocument();
     });
 
-    it("pushes the default books state when opening books", async () => {
-      const { events, onUrlUpdate } = trackUrl();
-      renderView(makePublisherDetail(), { onUrlUpdate });
-
-      await userEvent.click(screen.getByRole("tab", { name: "Книги" }));
-
-      await waitFor(() => expect(events.length).toBeGreaterThan(0));
-      expect(events.at(-1)?.queryString).toBe("?tab=books");
-      expect(events.at(-1)?.options.history).toBe("push");
-    });
-
-    it("pushes a clean detail url when returning to overview", async () => {
-      const { events, onUrlUpdate } = trackUrl();
-      renderView(makePublisherDetail(), {
-        onUrlUpdate,
-        searchParams: "?tab=books&q=dune&sort=title_asc&view=list",
-      });
-
-      await userEvent.click(screen.getByRole("tab", { name: "Огляд" }));
-
-      await waitFor(() => expect(events.length).toBeGreaterThan(0));
-      expect(events.at(-1)?.queryString).toBe("");
-      expect(events.at(-1)?.options.history).toBe("push");
-    });
-
-    it("replaces the legacy wishlist tab with books filtered to the wishlist", async () => {
+    it("replaces the legacy wishlist tab with the wishlist owner filter", async () => {
       const { events, onUrlUpdate } = trackUrl();
       renderView(makePublisherDetail(), { onUrlUpdate, searchParams: "?tab=toBuy" });
 
       await waitFor(() => expect(events.length).toBeGreaterThan(0));
       const event = events.at(-1);
-      expect(event?.searchParams.get("tab")).toBe("books");
+      expect(event?.searchParams.has("tab")).toBe(false);
       expect(event?.searchParams.get("owner")).toBe("want_to_buy");
       expect(event?.options.history).toBe("replace");
-      expect(screen.getByRole("tab", { name: "Книги" })).toHaveAttribute("aria-selected", "true");
     });
 
-    it("replaces an unknown tab with the clean overview url", async () => {
+    it("replaces a legacy books tab away and keeps the catalog params", async () => {
       const { events, onUrlUpdate } = trackUrl();
-      renderView(makePublisherDetail(), { onUrlUpdate, searchParams: "?tab=stats&q=dune" });
+      renderView(makePublisherDetail(), { onUrlUpdate, searchParams: "?tab=books&q=dune" });
 
       await waitFor(() => expect(events.length).toBeGreaterThan(0));
-      expect(events.at(-1)?.queryString).toBe("");
-      expect(events.at(-1)?.options.history).toBe("replace");
-    });
-
-    it("replaces an overview url carrying books params with the clean one", async () => {
-      const { events, onUrlUpdate } = trackUrl();
-      renderView(makePublisherDetail(), { onUrlUpdate, searchParams: "?status=reading" });
-
-      await waitFor(() => expect(events.length).toBeGreaterThan(0));
-      expect(events.at(-1)?.queryString).toBe("");
+      expect(events.at(-1)?.queryString).toBe("?q=dune");
       expect(events.at(-1)?.options.history).toBe("replace");
     });
 
     it("never keeps the fixed publisher as a books url param", async () => {
       const { events, onUrlUpdate } = trackUrl();
-      renderView(makePublisherDetail(), {
-        onUrlUpdate,
-        searchParams: "?tab=books&publisher=publisher-1",
-      });
+      renderView(makePublisherDetail(), { onUrlUpdate, searchParams: "?publisher=publisher-1" });
 
       await waitFor(() => expect(events.length).toBeGreaterThan(0));
       expect(events.at(-1)?.searchParams.has("publisher")).toBe(false);
-      expect(events.at(-1)?.searchParams.get("tab")).toBe("books");
+      expect(events.at(-1)?.options.history).toBe("replace");
     });
   });
 
@@ -291,11 +316,11 @@ describe("PublisherDetailsView", () => {
         }),
       );
 
-      expect(screen.getByText("Ще немає книг цього видавництва")).toBeInTheDocument();
+      expect(await screen.findByText("Ще немає книг цього видавництва")).toBeInTheDocument();
       expect(
         screen.getByText("Додайте першу книгу цього видавництва до своєї бібліотеки."),
       ).toBeInTheDocument();
-      expect(screen.getAllByRole("tab")).toHaveLength(2);
+      expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
       expect(screen.queryByText(/Останню додано/)).not.toBeInTheDocument();
       expect(screen.queryByText(/від усіх книг/)).not.toBeInTheDocument();
 
@@ -304,7 +329,7 @@ describe("PublisherDetailsView", () => {
       if (emptyStateAddBook !== undefined) await userEvent.click(emptyStateAddBook);
 
       expect(pushMock).toHaveBeenCalledWith("/books/new?publisherId=publisher-7");
-      expect(requestedUrls()).toEqual([]);
+      expect(overviewRequests()).toEqual([]);
     });
   });
 });

@@ -57,6 +57,8 @@ export type CreateCharacterInputDtoFirstAppearanceBookProfile = {
   hidePresenceAsSpoiler?: boolean;
   importance?: CreateCharacterInputDtoFirstAppearanceBookProfileImportance;
   isPovCharacter?: boolean;
+  isUnreliableNarrator?: boolean;
+  isUnreliableNarratorSpoiler?: boolean;
   /** @nullable */
   narratorType?: CreateCharacterInputDtoFirstAppearanceBookProfileNarratorType;
   /**
@@ -80,10 +82,10 @@ export type CreateCharacterInputDtoFirstAppearanceBookProfile = {
    */
   sortOrder?: number | null;
   /**
-   * @maxLength 200
    * @nullable
+   * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
-  speciesOverride?: string | null;
+  speciesOverrideId?: string | null;
   speciesOverrideIsSpoiler?: boolean;
   status?: CreateCharacterInputDtoFirstAppearanceBookProfileStatus;
   /**

@@ -10,6 +10,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { findSystemSpeciesId, seedSystemSpeciesCatalog } from "../../../test/system-species.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
@@ -89,6 +90,12 @@ async function createForm(
   body: Record<string, unknown>,
 ): Promise<string> {
   const res = await authed("post", `/api/characters/${characterId}/forms`, token).send(body);
+  expect(res.status).toBe(HttpStatus.CREATED);
+  return res.body.id;
+}
+
+async function createOwnSpecies(token: string, name: string): Promise<string> {
+  const res = await authed("post", "/api/species", token).send({ name });
   expect(res.status).toBe(HttpStatus.CREATED);
   return res.body.id;
 }
@@ -388,5 +395,88 @@ describe("GET /api/characters/:characterId/merge-preview", () => {
     expect(preview.status).toBe(HttpStatus.OK);
     expect(preview.body.hasHiddenRecords).toBe(true);
     expect(preview.body.counts.appearances).toEqual({ dropped: 0, moved: 1 });
+  });
+});
+
+describe("POST /api/characters/:characterId/merge with species", () => {
+  beforeEach(async () => {
+    await seedSystemSpeciesCatalog(app);
+  });
+
+  it("moves loser appearances with their species override and its spoiler flag intact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const elfId = await findSystemSpeciesId({ app, key: "elf" });
+    const sylvanId = await createOwnSpecies(accessToken, "Sylvan");
+    const spoilerBook = await createBook(accessToken, "Dune Messiah");
+    const openBook = await createBook(accessToken, "Children of Dune");
+    const survivor = await createCharacter(accessToken, { name: "Survivor" });
+    const loser = await createCharacter(accessToken, { name: "Loser" });
+    await linkToBook(accessToken, spoilerBook, loser, {
+      speciesOverrideId: elfId,
+      speciesOverrideIsSpoiler: true,
+    });
+    await linkToBook(accessToken, openBook, loser, { speciesOverrideId: sylvanId });
+
+    const merged = await authed("post", `/api/characters/${survivor}/merge`, accessToken).send({
+      otherId: loser,
+    });
+    expect(merged.status).toBe(HttpStatus.OK);
+    expect(merged.body.counts.appearances).toEqual({ dropped: 0, moved: 2 });
+
+    const details = await authed("get", `/api/characters/${survivor}`, accessToken);
+    expect(details.status).toBe(HttpStatus.OK);
+    expect(details.body.appearances).toHaveLength(2);
+    expect(details.body.appearances).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          bookId: spoilerBook,
+          characterId: survivor,
+          speciesOverride: { id: elfId, key: "elf", labels: { en: "Elf", uk: "Ельф" } },
+          speciesOverrideIsSpoiler: true,
+        }),
+        expect.objectContaining({
+          bookId: openBook,
+          characterId: survivor,
+          speciesOverride: { id: sylvanId, key: null, labels: { en: "Sylvan", uk: "Sylvan" } },
+          speciesOverrideIsSpoiler: false,
+        }),
+      ]),
+    );
+
+    const masked = await authed(
+      "get",
+      `/api/characters/${survivor}?contextBookId=${spoilerBook}`,
+      accessToken,
+    );
+    expect(masked.status).toBe(HttpStatus.OK);
+    expect(masked.body.appearances).toEqual([
+      expect.objectContaining({
+        bookId: spoilerBook,
+        hiddenFields: expect.arrayContaining(["speciesOverride"]),
+        speciesOverride: null,
+        speciesOverrideIsSpoiler: true,
+      }),
+    ]);
+  });
+
+  it("keeps the survivor's own species when the loser carried a different one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const elfId = await findSystemSpeciesId({ app, key: "elf" });
+    const humanId = await findSystemSpeciesId({ app, key: "human" });
+    const survivor = await createCharacter(accessToken, { name: "Survivor", speciesId: elfId });
+    const loser = await createCharacter(accessToken, { name: "Loser", speciesId: humanId });
+
+    const merged = await authed("post", `/api/characters/${survivor}/merge`, accessToken).send({
+      otherId: loser,
+    });
+    expect(merged.status).toBe(HttpStatus.OK);
+
+    const details = await authed("get", `/api/characters/${survivor}`, accessToken);
+    expect(details.status).toBe(HttpStatus.OK);
+    expect(details.body.species).toEqual({
+      id: elfId,
+      key: "elf",
+      labels: { en: "Elf", uk: "Ельф" },
+    });
   });
 });

@@ -183,7 +183,7 @@ export function BookTagsDialog({ bookCount, onConfirm, onOpenChange, open }: Boo
                   <CommandEmpty>{validationError ?? tClass("tagsEmpty")}</CommandEmpty>
                 ) : null}
                 {canCreate ? (
-                  <CommandGroup heading={tClass("tagsCreateHeading")}>
+                  <CommandGroup heading={tClass("tagsCreateHeading")} variant="sectioned">
                     <CommandItem
                       className="cursor-pointer"
                       onSelect={() => commitTag(trimmedDraft)}
@@ -197,7 +197,7 @@ export function BookTagsDialog({ bookCount, onConfirm, onOpenChange, open }: Boo
                   </CommandGroup>
                 ) : null}
                 {suggestions.length > 0 ? (
-                  <CommandGroup heading={tClass("tagsSuggestions")}>
+                  <CommandGroup heading={tClass("tagsSuggestions")} variant="sectioned">
                     {suggestions.map((tag) => (
                       <CommandItem
                         className="cursor-pointer"

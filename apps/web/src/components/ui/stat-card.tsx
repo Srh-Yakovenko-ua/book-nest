@@ -27,11 +27,12 @@ const statCardVariants = cva(
   },
 );
 
-const statCardIconBadge = cva("grid shrink-0 place-items-center rounded-full [&_svg]:size-[26px]", {
+const statCardIconBadge = cva("grid shrink-0 place-items-center rounded-full", {
   variants: {
     size: {
-      default: "size-[54px]",
+      default: "size-[54px] [&_svg]:size-[26px]",
       compact: "size-10 sm:size-11 [&_svg]:size-5",
+      sm: "size-6 [&_svg]:size-3",
     },
     tone: {
       primary: "bg-accent text-primary",
@@ -48,6 +49,8 @@ const statCardIconBadge = cva("grid shrink-0 place-items-center rounded-full [&_
     tone: "primary",
   },
 });
+
+type StatCardIconBadgeSize = VariantProps<typeof statCardIconBadge>["size"];
 
 type StatCardIconTone = "favorite" | "genre" | "info" | "ink" | "primary" | "success" | "tag";
 
@@ -90,6 +93,7 @@ type StatCardProps = Omit<React.ComponentProps<typeof Card>, "children" | "size"
     footer?: React.ReactNode;
     footerClassName?: string;
     icon: UiIconName;
+    iconBadgeSize?: StatCardIconBadgeSize;
     iconSlot?: React.ReactNode;
     iconTone?: StatCardIconTone;
     label: React.ReactNode;
@@ -121,6 +125,7 @@ function StatCard({
   className,
   size = "default",
   icon,
+  iconBadgeSize = size,
   iconSlot,
   label,
   labelOverflow = "truncate",
@@ -142,7 +147,7 @@ function StatCard({
     <div
       className={cn("flex w-full items-center", size === "compact" ? "gap-2.5 sm:gap-3" : "gap-4")}
     >
-      <span className={statCardIconBadge({ size, tone: iconTone })}>
+      <span className={statCardIconBadge({ size: iconBadgeSize, tone: iconTone })}>
         {iconSlot ?? <UiIcon name={icon} />}
       </span>
       <div className="flex min-w-0 flex-col gap-0.5">

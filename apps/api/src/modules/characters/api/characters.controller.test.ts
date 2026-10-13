@@ -690,6 +690,64 @@ describe("book character update", () => {
     const prisma = app.get(PrismaService);
     expect(await prisma.characterTag.count({ where: { characterId } })).toBe(0);
   });
+
+  it("keeps a backfilled unreliable narrator flag on a non-POV character through an unrelated update", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(accessToken, bookId, { name: "Paul Atreides" });
+    const characterId = created.body.id;
+    await app.get(PrismaService).bookCharacter.updateMany({
+      data: { isPovCharacter: false, isUnreliableNarrator: true },
+      where: { bookId, characterId },
+    });
+
+    const patched = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ appearanceNotes: "Narrates from exile" });
+    expect(patched.status).toBe(HttpStatus.OK);
+    expect(patched.body.appearances[0]).toMatchObject({
+      appearanceNotes: "Narrates from exile",
+      isPovCharacter: false,
+      isUnreliableNarrator: true,
+    });
+  });
+
+  it("clears narrator type and unreliable narrator flags when POV is switched off", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(
+      accessToken,
+      bookId,
+      { name: "Paul Atreides" },
+      {
+        isPovCharacter: true,
+        isUnreliableNarrator: true,
+        isUnreliableNarratorSpoiler: true,
+        narratorType: "first_person",
+      },
+    );
+    const characterId = created.body.id;
+    expect(created.body.appearances[0]).toMatchObject({
+      isUnreliableNarrator: true,
+      isUnreliableNarratorSpoiler: true,
+      narratorType: "first_person",
+    });
+
+    const patched = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ isPovCharacter: false });
+    expect(patched.status).toBe(HttpStatus.OK);
+    expect(patched.body.appearances[0]).toMatchObject({
+      isPovCharacter: false,
+      isUnreliableNarrator: false,
+      isUnreliableNarratorSpoiler: false,
+      narratorType: null,
+    });
+  });
 });
 
 describe("book character unlink", () => {

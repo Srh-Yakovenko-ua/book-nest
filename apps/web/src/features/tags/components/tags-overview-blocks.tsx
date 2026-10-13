@@ -8,6 +8,7 @@ import { useId } from "react";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon, type UiIconName } from "@/components/icons";
+import { PALETTE_SWATCH, PaletteSwatchButton } from "@/components/palette-swatch";
 import { cn } from "@/lib/utils";
 
 import {
@@ -18,7 +19,6 @@ import {
   type TagUsageKey,
   tagUsageRows,
 } from "../model/tags-summary";
-import { TAG_COLOR_SWATCH, TagColorSwatchButton } from "./tag-color-swatch";
 
 type TagsAttentionBlockProps = {
   isShowingUnused: boolean;
@@ -113,13 +113,13 @@ export function TagsPaletteBlock({
 
   return (
     <OverviewBlock title={t("sidebar.palette.title")}>
-      <ul className={TAG_COLOR_SWATCH.grid}>
+      <ul className={PALETTE_SWATCH.grid}>
         {tagColorRows(summary, selectedColors).map((row) => {
           const isEmpty = row.count === 0;
           const color = t(`colors.${row.color}`);
           return (
             <li key={row.color}>
-              <TagColorSwatchButton
+              <PaletteSwatchButton
                 aria-label={t("sidebar.palette.swatch", { color, count: row.count })}
                 aria-pressed={row.isSelected}
                 caption={

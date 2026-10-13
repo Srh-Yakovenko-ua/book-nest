@@ -33,7 +33,7 @@ export function toGlobalFilter({
     roleTypes: query.role,
     search: normalizeSearch(query.q),
     seriesId: query.seriesId,
-    species: query.species,
+    speciesIds: query.speciesId,
     tagIds: query.tagId,
     userId,
   };

@@ -3,10 +3,11 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
+import { Label } from "@/components/ui/label";
 import { getQueryClient } from "@/lib/query-client";
 
 import { type AuthorSelection } from "../model/create-book-form";
-import { AuthorsField } from "./authors-field";
+import { AuthorsField, useAuthorsFieldFocus } from "./authors-field";
 
 type AuthorFixture = { id: string; isCustom?: boolean; name: string };
 
@@ -39,12 +40,16 @@ function authorView(item: AuthorFixture) {
 
 function Harness({ initial = [] }: { initial?: AuthorSelection[] }) {
   const [value, setValue] = useState<AuthorSelection[]>(initial);
+  const authorsFocus = useAuthorsFieldFocus();
   return (
     <div className="w-80">
-      <label className="sr-only" htmlFor="authors">
-        Автори
-      </label>
-      <AuthorsField id="authors" invalid={false} onChange={setValue} value={value} />
+      <Label {...authorsFocus.labelProps}>Автори</Label>
+      <AuthorsField
+        invalid={false}
+        onChange={setValue}
+        value={value}
+        {...authorsFocus.fieldProps}
+      />
       <p data-testid="selection">
         {value.length === 0
           ? "none"
@@ -79,7 +84,7 @@ function mockAuthors({
 
 const meta = {
   args: {
-    id: "authors",
+    inputRef: { current: null },
     invalid: false,
     onChange: () => undefined,
     value: [],

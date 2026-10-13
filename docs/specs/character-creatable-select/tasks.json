@@ -1,0 +1,493 @@
+{
+  "spec": "docs/specs/character-creatable-select/spec.md",
+  "specFiles": ["docs/specs/character-creatable-select/spec.md"],
+  "audit": "docs/specs/character-creatable-select/audit.md",
+  "baseCommit": "2083bb79",
+  "generatedAt": "2026-10-07T13:45:31Z",
+  "scope": {
+    "included": [
+      "Що потрібно зробити: a feature-local CharacterCreatableSingleSelect on the CommandPrimitive + Popover + editable input pattern",
+      "Статус: standard statuses without the 'other' sentinel, custom value stored as status='other' + statusCustomText, standard pick clears the text, edit mode shows the stored text, the «Свій статус» field is removed",
+      "Гендер: standard genders without the 'custom' sentinel, custom value stored as gender='custom' + customGender, standard pick clears the text, edit mode shows the stored text, the «Свій варіант» field is removed",
+      "UX: filtering, «+ Створити «{value}»», no create on an exact match, Enter/ArrowUp/ArrowDown/Escape, mouse selection, Enter does not submit, clear, minimal i18n",
+      "Layout: the 'Важливість | Статус' and 'Вид запису | Гендер' rows stay, with no full-width custom inputs below them",
+      "Важливо: no backend/DB/enum/shared/role-picker/spoiler/unrelated changes (as doneWhen guards)",
+      "Тести: all eight listed cases (T3, T5, T7)"
+    ],
+    "excluded": [
+      "Create mode: no character create form has Status or Gender. add-character-dialog is name-only with hardcoded defaults (audit C1)",
+      "Backend API, Prisma/DB, enum values, packages/shared: spec 'Важливо'. Nothing in the plan needs them (audit C31)",
+      "CharacterRolePicker and its tests: spec 'Важливо'",
+      "Spoiler logic (book.statusIsSpoiler in BookCharacterSpoilerSection): spec 'Важливо'. It is not adjacent to the field (audit C18)",
+      "Mapping in model/character-edit-form.ts (toBookUpdate, toGlobalUpdate, toCharacterEditValues, the Zod edit schema): the payload already drops stale custom text (audit C7). customGenderRequired stays as is",
+      "GENDER_OPTIONS and BOOK_CHARACTER_STATUS arrays: GENDER_OPTIONS feeds the catalog gender filter, which needs 'custom' (audit C21). The component filters the sentinel itself",
+      "character-details-page.tsx: already shows the custom text (audit C8)",
+      "A global generic creatable framework, and refactoring StoreAutocomplete / DeliveryServiceAutocomplete / SeriesAutocomplete: spec 'Не створюй великий глобальний generic framework'",
+      "applyFieldErrors server path mismatch (server sends 'customGender', the form path is 'global.customGender'): pre-existing, unrelated (audit C24)",
+      "cmdk Input hardcoding aria-expanded=true: library behaviour shared with the role picker, unrelated",
+      "New Storybook stories: the spec does not ask for them. Visual verification uses the existing CharacterEditPage stories or the dev page (T8)"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Add the minimal i18n keys the picker needs, in uk and en",
+      "specRef": "UX 'використовувати існуючі i18n keys або додати мінімально необхідні'; UX '+ Створити «{value}»'",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "blockedBy": ["D5"],
+      "mandatory": true,
+      "doneWhen": [
+        "uk.json and en.json gain exactly the keys D5 settles and nothing else. Under the D5 recommendation that is characters.creatableSelect.create = «Створити «{name}»» / 'Create “{name}”' and characters.creatableSelect.placeholder (uk + en, genuinely translated)",
+        "no existing key changes its value. characters.rolePicker.* has no diff",
+        "the clear button label reuses common.clear ('Очистити', uk.json:11) unless D5 says otherwise",
+        "`node .claude/scripts/check-i18n-parity.mjs` prints 'locale files in sync'",
+        "`pnpm format:check` is clean for both JSON files"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Create CharacterCreatableSingleSelect in features/characters/components",
+      "specRef": "Що потрібно зробити; Статус; Гендер; UX (all bullets)",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-creatable-single-select.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "blockedBy": ["D1", "D2", "D3", "D4"],
+      "mandatory": true,
+      "doneWhen": [
+        "new file apps/web/src/features/characters/components/character-creatable-single-select.tsx exports CharacterCreatableSingleSelect. It is not re-exported from features/characters/index.ts and imports nothing from features/books or from character-role-picker.tsx",
+        "the component is generic over a string option union. It takes the full option list plus the sentinel option, and removes the sentinel itself, so no caller passes a pre-filtered copy. It also takes a label function, the accessible label, maxLength, invalid, describedBy and the D1 clear target",
+        "onChange can only report a standard pick with empty text, or the sentinel with non-empty trimmed text. A standard option with non-empty text cannot be expressed (a discriminated union or an equivalent shape)",
+        "the component is built on cmdk CommandPrimitive with shouldFilter={false}, plus Popover / PopoverAnchor / PopoverContent and CommandPrimitive.Input. PopoverContent prevents onOpenAutoFocus and ignores outside interactions inside the anchor, as in character-role-picker.tsx:178-189",
+        "the accessible name comes from the CommandPrimitive `label` prop, because cmdk overrides the input's id and aria-labelledby (audit C25). aria-describedby and aria-invalid are passed to CommandPrimitive.Input",
+        "displayed text: for a standard value, its translated label. For the sentinel with non-empty custom text, that text and never the sentinel label. For the sentinel with empty text, the D4 outcome",
+        "opening the list without typing shows every standard option except the sentinel, and does not filter by the currently displayed label",
+        "typing filters standard options by normalizeName(label).includes(normalizeName(typed)), using normalizeName from @app/shared",
+        "a create item (plus icon + the T1 create label with the trimmed text) renders only when the trimmed text is non-empty and the D3 rule finds no standard match. It never renders for whitespace-only input",
+        "Enter commits the highlighted item, which by default is the first standard match ranked above the create item. ArrowDown opens a closed list. ArrowUp/ArrowDown move the highlight. A mouse click on any item commits it and closes the list",
+        "Escape closes the list. Escape, blur and outside click follow D2 for typed-but-uncommitted text",
+        "the component adds no Enter handler that calls stopPropagation or re-dispatches submit, so the cmdk root preventDefault keeps the enclosing form from submitting",
+        "Home and End in the input call event.stopPropagation() so cmdk does not hijack caret movement (precedent character-role-picker.tsx:104)",
+        "the clear button is a type='button' native button with cursor-pointer and an aria-label from T1/common.clear. It reports the D1 clear target with empty custom text, and is not rendered when the value already equals the clear target and no text is typed",
+        "the input box is h-10 with field tokens (border-input, bg-field, focus ring), so it lines up with the sibling SelectTrigger 'w-full data-[size=default]:h-10' in a sm:grid-cols-2 row. It uses no raw colours",
+        "the file has no comments, no `any` and no non-null `!`. Any `as` is limited to what cmdk/Radix types force"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Unit-test CharacterCreatableSingleSelect",
+      "specRef": "Тести: standard selection, custom creation, exact match, edit mode з existing custom value, custom → standard, standard → custom, Enter не submit-ить форму; UX keyboard/mouse/clear",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/components/character-creatable-single-select.test.tsx"
+      ],
+      "dependsOn": ["T2"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the file stubs Element.prototype.scrollIntoView in beforeEach (precedent character-role-picker.test.tsx:38-40) and renders through renderWithProviders (uk messages)",
+        "fixtures use the real status option set (BOOK_CHARACTER_STATUS.options, sentinel 'other') with characters.status labels",
+        "a test asserts the open list has no option «Інше» and has «Не вказано», «Живий», «Зниклий», «Мертвий», «Невідомо», «Перевтілений»",
+        "standard selection: clicking option «Мертвий» calls onChange with 'dead' and empty custom text, and closes the listbox",
+        "custom creation: typing '  У полоні ' shows option «Створити «У полоні»». Enter calls onChange with the sentinel and 'У полоні' (trimmed)",
+        "exact match: typing '  ЖИВИЙ ' shows option «Живий» and no option matching /Створити/. Enter calls onChange with 'active' and empty text",
+        "filtering: typing 'мер' leaves only option «Мертвий» among the standard options",
+        "whitespace-only input renders no create option",
+        "standard → custom: starting from value 'active', creating «У полоні» reports the sentinel + text",
+        "custom → standard: starting from sentinel + 'Зник безвісти', picking «Живий» reports 'active' with empty custom text (the form-state clear the payload cannot prove, audit C7)",
+        "edit mode with an existing custom value: the combobox display value is 'Зник безвісти' and queryByDisplayValue('Інше') is null",
+        "the sentinel with empty text displays the D4 outcome",
+        "keyboard: ArrowDown/ArrowUp move aria-selected='true' between options and Enter commits the highlighted one",
+        "Escape closes the listbox and the D2 outcome holds for typed text (under the recommendation, the display value returns to the committed label and onChange is not called)",
+        "Enter inside <form onSubmit={spy}> never calls the spy, both when Enter creates a custom value and when it picks a standard one",
+        "clear: clicking the clear button reports the D1 target with empty text. The button is absent when the value is already the clear target",
+        "the combobox is named by the `label` prop (getByRole('combobox', { name: <label> }))",
+        "`pnpm --filter @app/web exec vitest run --project unit src/features/characters/components/character-creatable-single-select.test.tsx` is green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Replace the Status select and the «Свій статус» field with the creatable picker",
+      "specRef": "Статус (all); Layout 'Важливість | Статус'; UX",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T2"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "in BookCharacterMainSection the book.status Select (character-edit-sections.tsx:210-229) is replaced by CharacterCreatableSingleSelect over BOOK_CHARACTER_STATUS.options with sentinel BOOK_CHARACTER_STATUS.custom and labels from characters.status",
+        "the importance Select is unchanged, and the importance and status pickers are still the two children of the same 'grid gap-4 sm:grid-cols-2' container",
+        "the conditional `status === BOOK_CHARACTER_STATUS.custom ? <LabeledField htmlFor=\"character-status-custom\" …>` block (:232-255) is gone. Nothing in the file references 'character-status-custom' or registers book.statusCustomText as an Input",
+        "a standard pick sets book.status to the option and book.statusCustomText to ''. Creating sets book.status to 'other' and book.statusCustomText to the trimmed text. Both writes happen in the same change handler",
+        "the visible «Статус» caption is not a <label htmlFor> pointing at a non-existent id. Under the role-picker pattern (:257-263) it is an aria-hidden span, and exactly one combobox is named «Статус»",
+        "errors.book?.statusCustomText renders through FieldErrorText under the picker. The combobox carries aria-invalid and aria-describedby pointing at that error id",
+        "maxLength is CHARACTER_TEXT_MAX.shortText (200), the same cap the removed input had (:246)",
+        "the now-unused `useWatch` for book.status and any unused import are removed. `pnpm lint` reports nothing for the file",
+        "characters.edit.statusCustom and characters.edit.statusCustomPlaceholder are deleted from uk.json and en.json. `rg 'statusCustom\"|statusCustomPlaceholder' apps/web/src --glob '!**/generated/**'` finds no t() call. The parity check passes",
+        "git diff shows no change to SPOILER_FIELDS, BookCharacterSpoilerSection, model/character-edit-form.ts, model/character-options.ts or character-role-picker.tsx"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Cover the Status flow on the edit page",
+      "specRef": "Тести: standard selection; custom creation; exact match; edit mode з existing custom value; custom → standard; standard → custom; Enter не submit-ить; старі окремі поля більше не рендеряться",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T4"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the file stubs Element.prototype.scrollIntoView for the new tests (audit C29)",
+        "standard selection: picking «Мертвий» in combobox «Статус» and saving sends a book PATCH with status 'dead' and statusCustomText null, and no global PATCH",
+        "standard → custom: typing «У полоні» + Enter and saving sends status 'other' and statusCustomText 'У полоні'",
+        "edit mode with an existing custom value: with servedCharacter status 'other' / statusCustomText 'Зник безвісти', combobox «Статус» has display value 'Зник безвісти' and the page has no display value 'Інше'",
+        "custom → standard: from that fixture, picking «Живий» and saving sends status 'active' and statusCustomText null",
+        "exact match: typing 'живий' in «Статус» shows option «Живий» and no option matching /Створити/",
+        "Enter does not submit: after typing «У полоні» + Enter, patchCount() is 0 and router push was not called",
+        "old field gone: queryByRole('textbox', { name: /Свій статус/ }) is null, with the status fixture set to 'other'",
+        "legacy: with servedCharacter status 'other' and statusCustomText null, «Статус» shows the D4 outcome. Saving an unrelated book field sends status 'other' and statusCustomText null",
+        "the pre-existing tests in the file still pass unchanged, except :840-855 (replaced in T7)",
+        "`pnpm --filter @app/web exec vitest run --project unit src/features/characters/components/character-edit-page.test.tsx` is green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Replace the Gender select and the «Свій варіант» field with the creatable picker",
+      "specRef": "Гендер (all); Layout 'Вид запису | Гендер'; UX",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T2"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "in CharacterGlobalSection the global.gender Select (character-edit-sections.tsx:682-701) is replaced by CharacterCreatableSingleSelect over GENDER_OPTIONS with sentinel GENDER_CUSTOM and labels from characters.gender",
+        "the entity-kind Select is unchanged, and entity kind and gender are still the two children of the same 'grid gap-4 sm:grid-cols-2' container",
+        "the conditional `gender === GENDER_CUSTOM ? <LabeledField htmlFor=\"character-custom-gender\" …>` block (:704-725) is gone. Nothing references 'character-custom-gender' or registers global.customGender as an Input",
+        "a standard pick sets global.gender to the option and global.customGender to ''. Creating sets global.gender to 'custom' and global.customGender to the trimmed text",
+        "the visible «Гендер» caption is not a dangling <label htmlFor>. Exactly one combobox is named «Гендер», with no optional marker (character-edit-page.test.tsx:706-714 still passes unchanged)",
+        "errors.global?.customGender (customGenderRequired and textTooLong) renders through FieldErrorText under the picker. The combobox carries aria-invalid and aria-describedby pointing at it",
+        "maxLength is CHARACTER_TEXT_MAX.customGender (60), the same cap the removed input had (:719)",
+        "the now-unused `useWatch` for global.gender and any unused import are removed. `pnpm lint` is clean",
+        "characters.edit.customGender and characters.edit.customGenderPlaceholder are deleted from uk.json and en.json, and no t('customGender') / t('customGenderPlaceholder') call remains. characters.gender.custom and characters.form.errors.customGenderRequired are kept. The parity check passes",
+        "GENDER_OPTIONS (character-options.ts:96-103) and characters-catalog-filters.tsx have no diff"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Cover the Gender flow on the edit page and replace the obsolete custom-gender test",
+      "specRef": "Тести (all eight, gender side); старі окремі поля більше не рендеряться",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T6", "T5"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the test 'requires the custom gender once it is chosen and sends nothing without it' (character-edit-page.test.tsx:840-855) no longer exists. Nothing in the file queries option «Свій варіант» or textbox «Свій варіант» except as an absence assertion",
+        "standard → custom: typing «Гендерфлюїдна» + Enter in combobox «Гендер» and saving sends a global PATCH with gender 'custom' and customGender 'Гендерфлюїдна', and no book PATCH",
+        "edit mode with an existing custom value: with servedCharacter gender 'custom' / customGender 'Гендерфлюїдна', «Гендер» has display value 'Гендерфлюїдна' and no element has display value 'Свій варіант'",
+        "custom → standard: from that fixture, picking «Жіноча» and saving sends gender 'female' and customGender null",
+        "the open «Гендер» list has no option «Свій варіант»",
+        "old field gone: queryByRole('textbox', { name: 'Свій варіант' }) is null, with the gender fixture set to 'custom'",
+        "required error survives: with servedCharacter gender 'custom' and customGender null, editing the name and clicking «Зберегти» shows «Вкажіть свій гендер» as the accessible description of combobox «Гендер», and patchCount() is 0",
+        "`pnpm --filter @app/web exec vitest run --project unit src/features/characters/components/character-edit-page.test.tsx src/features/characters/model/character-edit-form.test.ts` is green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Run the gates and check the two rows visually",
+      "specRef": "CLAUDE.md §9 per-change gates and FE visual check; spec 'Layout'",
+      "layer": "gate",
+      "files": [],
+      "dependsOn": ["T3", "T5", "T7", "T9"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm typecheck`, `pnpm lint` and `pnpm format:check` pass, with output captured",
+        "`node .claude/scripts/check-i18n-parity.mjs` prints 'locale files in sync'",
+        "the vitest commands from T3, T5 and T7 pass in one run, and character-role-picker.test.tsx passes unchanged",
+        "`git diff --name-only 2083bb79..HEAD` lists nothing under packages/, apps/api/, apps/web/src/shared/api/generated/, and does not list character-role-picker.tsx, character-edit-form.ts, character-options.ts or characters-catalog-filters.tsx",
+        "a screenshot at desktop width and at 390px (headless Playwright + Storybook, or dev) shows 'Важливість | Статус' and 'Вид запису | Гендер' as side-by-side rows on sm+, stacked on mobile, with equal control heights and no full-width custom input below either row. The open list and the «Створити «…»» item are visible in at least one shot",
+        "no console errors while opening, filtering, creating and clearing in the browser"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "Show the custom status text in the live preview instead of «Інше»",
+      "specRef": "D6 (user-approved scope expansion)",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-preview.tsx",
+        "apps/web/src/features/characters/components/character-edit-page.test.tsx"
+      ],
+      "dependsOn": ["T4"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "character-edit-preview.tsx renders statusCustomText (trimmed) when status is 'other' and the text is non-empty, otherwise tStatus(status)",
+        "character-edit-page.test.tsx has an assertion that after creating a custom status «У полоні» the preview shows «У полоні» and not «Інше»"
+      ],
+      "status": "done"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "What does «clear» set Status and Gender to? Neither field has a null value.",
+      "specSays": "UX: 'підтримувати clear'. No target named.",
+      "options": [
+        "A. Status clears to 'not_specified' («Не вказано»), gender to 'unknown' («Невідомо»), both with empty custom text. The clear button is hidden while the value already equals that target",
+        "B. Clear only empties the typed search text and never changes the stored value",
+        "C. Clear on Status only. Gender gets no clear button, since it has no 'nothing chosen' value"
+      ],
+      "codebaseCost": "A is what both fields default to for a new character (add-character-schema.ts:29, :39; shared characters.ts:187, :232; character-edit-form.ts:142), and 'not_specified' is already the first status option (character-options.ts:51). Narrator and attitude in the same form clear back to their empty value (character-edit-sections.tsx:376-379, :765). B makes 'clear' a no-op for the stored value, and C makes the two pickers behave differently.",
+      "recommendation": "A. It gives one meaning of clear across the form: back to the value a new character starts with.",
+      "specRef": "UX 'підтримувати clear'",
+      "blocks": ["T2", "T3"],
+      "answer": "A",
+      "answeredBy": "user"
+    },
+    {
+      "id": "D2",
+      "question": "Editing model: what the input shows while a value is selected, how typing starts, and what happens to typed text that was never committed (blur, outside click, Escape).",
+      "specSays": "A creatable single-select with Enter/mouse selection and Escape. Silent on focus, typing and uncommitted text.",
+      "options": [
+        "A. The input shows the committed label. Focus selects all of it, so the first keystroke replaces it, and the list shows every option until the user edits. Typed text is only a search. Only Enter or a click commits. Blur, outside click and Escape restore the committed label",
+        "B. Same as A, but blur commits non-empty typed text as a custom value (free-text behaviour, as in StoreAutocomplete / DeliveryServiceAutocomplete)",
+        "C. The input empties when the list opens and shows the committed label as its placeholder. Uncommitted text is reverted as in A"
+      ],
+      "codebaseCost": "No single-select creatable exists in the repo (audit C10). Store and Delivery are free-text, with input = value (store-autocomplete.tsx:85-88), so B is what they do. SeriesAutocomplete keeps the label in the input and deselects to null on typing (series-autocomplete.tsx:166-170), which is impossible here. A and C cost the same: one local search state plus a revert on close.",
+      "recommendation": "A. Under B, a partial search like 'мер' left by tabbing away silently becomes a custom status. A also matches the spec's Escape bullet, which only makes sense as cancel. It keeps the stored value visible, where C hides it behind a placeholder.",
+      "specRef": "UX bullets: Enter / Escape / mouse selection",
+      "blocks": ["T2", "T3"],
+      "answer": "A",
+      "answeredBy": "user"
+    },
+    {
+      "id": "D3",
+      "question": "When does typed text count as 'the same as a standard option', which hides the create item and lets Enter pick the standard one?",
+      "specSays": "'не показувати create action, якщо введений текст збігається зі стандартним option'",
+      "options": [
+        "A. normalizeName equality (collapse whitespace + lowercase) against the translated label in the current locale, as the role picker does. Typing a sentinel label ('Інше', 'Свій варіант') is not special-cased: it creates a custom value with that text",
+        "B. Exact string equality",
+        "C. A, plus no create item when the text equals the current custom value"
+      ],
+      "codebaseCost": "A is already in the feature (character-role-picker.tsx:42-57, normalizeName at packages/shared/src/common.ts:116), and the role picker test locks the case and space rule (character-role-picker.test.tsx:407-414). B would offer «Створити «живий»» next to «Живий». C adds a branch for an idempotent re-create.",
+      "recommendation": "A. It matches the role picker the spec points at, and the case and space rule already has a test.",
+      "specRef": "UX 'exact match'; Тести 'exact match'",
+      "blocks": ["T2", "T3"],
+      "answer": "A",
+      "answeredBy": "orchestrator (recommended default, stated to user)"
+    },
+    {
+      "id": "D4",
+      "question": "What does the picker show for a sentinel stored without text (status='other' with statusCustomText null; gender='custom' with customGender null)?",
+      "specSays": "Only the case with text: show the text, not «Інше» / «Свій варіант».",
+      "options": [
+        "A. Fall back to the sentinel label («Інше» / «Свій варіант»), the same rule as the details page",
+        "B. Show an empty input with the placeholder"
+      ],
+      "codebaseCost": "For status this is real data. The old UI marked «Свій статус» optional (character-edit-sections.tsx:236), and nothing requires the text (shared characters.ts:233). For gender the backend refuses it (characters.ts:196-204), so it is near-unreachable. A copies character-details-page.tsx:196 and :642. Under B a saved status looks as if no status were stored, while the value stays 'other'.",
+      "recommendation": "A. It keeps edit and details consistent and never hides a stored value.",
+      "specRef": "Статус / Гендер 'edit mode'",
+      "blocks": ["T2", "T3", "T5"],
+      "answer": "A",
+      "answeredBy": "orchestrator (recommended default, stated to user)"
+    },
+    {
+      "id": "D5",
+      "question": "Which i18n keys does the picker use for the create label, the placeholder and clear?",
+      "specSays": "'використовувати існуючі i18n keys або додати мінімально необхідні'; label '+ Створити «{value}»'",
+      "options": [
+        "A. Reuse characters.rolePicker.create («Створити «{name}»», uk.json:8137) and common.clear, and add no placeholder key",
+        "B. Add characters.creatableSelect.create («Створити «{name}»» / 'Create “{name}”') and characters.creatableSelect.placeholder, and reuse common.clear («Очистити», uk.json:11)"
+      ],
+      "codebaseCost": "A adds zero keys, but ties the Status and Gender wording to the role picker's namespace. Under A, a later edit to the role copy changes these fields too. B adds two keys in two files. In both options the four orphaned keys characters.edit.statusCustom, statusCustomPlaceholder, customGender and customGenderPlaceholder are deleted in T4/T6. 'Очистити' already labels two other clear buttons on this page (:376, :765).",
+      "recommendation": "B. Two keys is minimal, and it avoids cross-component coupling of copy. The '+' is the plus icon, as in the role picker, not part of the string.",
+      "specRef": "UX i18n bullet",
+      "blocks": ["T1", "T2"],
+      "answer": "B",
+      "answeredBy": "orchestrator (recommended default, stated to user)"
+    },
+    {
+      "id": "D6",
+      "question": "Should the live preview show the custom status text instead of «Інше»?",
+      "specSays": "Nothing. The spec scopes the work to the two form fields and lists 'unrelated код' under 'не змінювати'.",
+      "options": [
+        "A. Exclude it and leave it as a follow-up. The preview keeps showing «Інше» for every custom status",
+        "B. Include it as task T9: character-edit-preview.tsx shows statusCustomText when status is 'other' and the text is non-empty, otherwise tStatus(status), plus one assertion in character-edit-page.test.tsx"
+      ],
+      "codebaseCost": "The preview renders tStatus(status) (character-edit-preview.tsx:37, :43), while the details page already prefers the text (character-details-page.tsx:192-197). B is about 4 lines plus 1 test. A leaves the preview contradicting the picker beside it right after «У полоні» is created.",
+      "recommendation": "B, flagged as a scope expansion the spec did not ask for. It applies the spec's own 'show the text, not «Інше»' rule to the one other place on the same page that renders this field. If the user wants the diff confined to the two fields, take A.",
+      "specRef": "Статус 'edit mode' (by analogy); Важливо 'unrelated код'",
+      "blocks": [],
+      "answer": "B",
+      "answeredBy": "user"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Status/Gender appear in a character create form",
+      "specRef": "scope line, intro",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/characters/model/add-character-schema.ts:29-30,37-39,48-53 (name-only create with hardcoded defaults)"
+    },
+    {
+      "claim": "Status/Gender appear in the character edit form",
+      "specRef": "scope line, intro",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/characters/components/character-edit-sections.tsx:210-229, 682-701"
+    },
+    {
+      "claim": "Both use a plain Select",
+      "specRef": "intro",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:215-226, 687-698"
+    },
+    {
+      "claim": "Sentinel item «Інше» / «Свій варіант»",
+      "specRef": "intro",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/characters/model/character-options.ts:48-62 (custom: 'other'), 96-103, 139 (GENDER_CUSTOM)"
+    },
+    {
+      "claim": "A separate full-width custom field appears below",
+      "specRef": "intro",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:232-255 (status, optional, max 200), 704-725 (gender, required, max 60)"
+    },
+    {
+      "claim": "status 'other' + statusCustomText",
+      "specRef": "Статус",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/characters.ts:124-132, 233; apps/web/src/features/characters/model/character-edit-form.ts:358-359"
+    },
+    {
+      "claim": "gender 'custom' + customGender",
+      "specRef": "Гендер",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/characters.ts:62-69, 185, 196-204; character-edit-form.ts:56-58, 68-76"
+    },
+    {
+      "claim": "Standard pick → custom text ''",
+      "specRef": "Статус/Гендер 'Для standard'",
+      "verdict": "CONFIRMED",
+      "evidence": "form uses '' (character-edit-form.ts:143, 255, 261). The payload already sends null for non-sentinel values (character-edit-form.ts:205-207, 275): ALREADY DONE at the payload level"
+    },
+    {
+      "claim": "A sentinel-free option list exists",
+      "specRef": "brief",
+      "verdict": "FALSE",
+      "evidence": "character-options.ts:57, 102 include the sentinels. GENDER_OPTIONS also feeds characters-catalog-filters.tsx:139 and must keep 'custom'"
+    },
+    {
+      "claim": "Reference components CharacterRolePicker / StoreAutocomplete / DeliveryServiceAutocomplete",
+      "specRef": "Що потрібно зробити",
+      "verdict": "CONFIRMED",
+      "evidence": "character-role-picker.tsx:27; apps/web/src/features/books/components/store-autocomplete.tsx:24; delivery-service-autocomplete.tsx:36"
+    },
+    {
+      "claim": "The references are creatable single-selects",
+      "specRef": "implicit",
+      "verdict": "FALSE",
+      "evidence": "store-autocomplete.tsx:85-88 and delivery-service-autocomplete.tsx:106-109 are free-text (input = value). character-role-picker.tsx is multi-select"
+    },
+    {
+      "claim": "Enter must not submit the form",
+      "specRef": "UX",
+      "verdict": "ALREADY DONE",
+      "evidence": "cmdk 1.1.1 root onKeyDown preventDefaults Enter/ArrowUp/ArrowDown (node_modules/.pnpm/cmdk@1.1.1…/dist/index.mjs); precedent test character-role-picker.test.tsx:468-479"
+    },
+    {
+      "claim": "Existing create label «Створити «{value}»»",
+      "specRef": "UX",
+      "verdict": "MOVED",
+      "evidence": "characters.rolePicker.create at apps/web/src/messages/uk.json:8137, param {name}; common.clear at uk.json:11"
+    },
+    {
+      "claim": "Layout 'Важливість | Статус'",
+      "specRef": "Layout",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:185-230"
+    },
+    {
+      "claim": "Layout 'Вид запису | Гендер'",
+      "specRef": "Layout",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:657-702"
+    },
+    {
+      "claim": "Spoiler logic is adjacent to the fields",
+      "specRef": "Важливо",
+      "verdict": "CONFIRMED",
+      "evidence": "not adjacent: book.statusIsSpoiler only in SPOILER_FIELDS character-edit-sections.tsx:57, rendered in BookCharacterSpoilerSection :477+"
+    },
+    {
+      "claim": "Status/Gender take part in inheritance/masking",
+      "specRef": "brief",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/features/characters/model/character-inheritance.ts:3-8; character-edit-form.ts:172-177, 209"
+    },
+    {
+      "claim": "Server field errors land on global.customGender",
+      "specRef": "brief",
+      "verdict": "FALSE",
+      "evidence": "apps/web/src/lib/api-errors.ts:12-14 forwards server paths verbatim; apps/api/src/core/exceptions/http-error.filter.ts:88 joins body-root paths"
+    },
+    {
+      "claim": "A visible <Label htmlFor> can label the new input",
+      "specRef": "implicit (Layout keeps labels)",
+      "verdict": "FALSE",
+      "evidence": "cmdk 1.1.1 Input spreads consumer props before id/aria-labelledby (dist/index.mjs); precedent caption character-edit-sections.tsx:257-263, role-picker.tsx:112, test character-edit-page.test.tsx:769-779"
+    },
+    {
+      "claim": "Existing tests referencing the old fields",
+      "specRef": "Тести",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.test.tsx:840-855 must be replaced; :706-714 must stay green; character-edit-form.test.ts:100-108 unaffected; no stories interact with status/gender (character-edit-page.stories.tsx:70, 74)"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A1",
+      "recordedAt": "2026-10-07",
+      "source": "Stage 5 accessibility audit (axe aria-valid-attr-value, critical) + code review",
+      "statement": "CharacterCreatableSingleSelect no longer uses cmdk. cmdk 1.1.1 Command.Input writes aria-expanded=\"true\" after spreading props, and Input/List/Item overwrite any caller id, so inside a Popover the closed combobox pointed aria-controls/aria-activedescendant at ids absent from the DOM and could not expose the item highlighted on open. The component keeps the spec pattern of Popover + editable input + standard options + create option, but renders a native input role=combobox and its own role=listbox with useId ids.",
+      "supersedes": {
+        "T2": [
+          "the component is built on cmdk CommandPrimitive with shouldFilter={false} ... CommandPrimitive.Input",
+          "the accessible name comes from the CommandPrimitive label prop",
+          "the component adds no Enter handler ... cmdk root preventDefault",
+          "Home and End in the input call event.stopPropagation()"
+        ]
+      },
+      "replacementDoneWhen": [
+        "the combobox input has role=combobox, aria-autocomplete=list, aria-label from the label prop, aria-expanded equal to the open state, aria-controls pointing at the listbox id only while open, and aria-activedescendant pointing at the highlighted option id only while open",
+        "opening without typed text highlights the current standard option, and nothing for a committed custom value, so Enter right after opening never changes the value",
+        "Enter calls preventDefault in the input keydown handler, so the enclosing form never submits",
+        "PopoverContent prevents onOpenAutoFocus and ignores outside interactions inside the anchor",
+        "axe reports no combobox or aria-valid-attr-value violation for Статус or Гендер with the list closed or open"
+      ],
+      "userVisible": true
+    }
+  ],
+  "excluded": []
+}

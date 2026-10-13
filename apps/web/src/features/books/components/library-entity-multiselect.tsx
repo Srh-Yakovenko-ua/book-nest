@@ -191,10 +191,14 @@ export function LibraryEntityMultiselect({
             {isLoading ? <CommandEmpty>{searching}</CommandEmpty> : null}
             {isEmpty ? <CommandEmpty>{empty}</CommandEmpty> : null}
             {recentOptions.length > 0 ? (
-              <CommandGroup heading={recentHeading}>{recentOptions.map(entityItem)}</CommandGroup>
+              <CommandGroup heading={recentHeading} variant="sectioned">
+                {recentOptions.map(entityItem)}
+              </CommandGroup>
             ) : null}
             {allOptions.length > 0 ? (
-              <CommandGroup heading={allHeading}>{allOptions.map(entityItem)}</CommandGroup>
+              <CommandGroup heading={allHeading} variant="sectioned">
+                {allOptions.map(entityItem)}
+              </CommandGroup>
             ) : null}
             {isFetchingNextPage ? (
               <div className="px-2 py-1.5 text-center text-xs text-muted-foreground">

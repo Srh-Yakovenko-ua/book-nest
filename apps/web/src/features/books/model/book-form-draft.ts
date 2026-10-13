@@ -16,6 +16,7 @@ type BookFormDraft = {
   loanContactSelection: LoanContactSelection | null;
   locale: string;
   publisherEdited: boolean;
+  publisherQuery: string;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
   values: CreateBookFormValues;
@@ -78,6 +79,7 @@ const draftSchema = z.object({
   loanContactSelection: loanContactSelectionSchema.nullable().default(null),
   locale: z.string(),
   publisherEdited: z.boolean().default(false),
+  publisherQuery: z.string().default(""),
   publisherSelection: publisherSelectionSchema.nullable(),
   seriesSelection: seriesSelectionSchema.nullable(),
   values: z.record(z.string(), z.unknown()),
@@ -108,6 +110,7 @@ function parseBookFormDraft(raw: string): BookFormDraft | null {
     loanContactSelection: parsed.data.loanContactSelection,
     locale: parsed.data.locale,
     publisherEdited: parsed.data.publisherEdited,
+    publisherQuery: parsed.data.publisherQuery,
     publisherSelection: parsed.data.publisherSelection,
     seriesSelection: parsed.data.seriesSelection,
     values: parsed.data.values as CreateBookFormValues,

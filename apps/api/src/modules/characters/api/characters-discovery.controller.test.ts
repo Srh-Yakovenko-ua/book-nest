@@ -8,6 +8,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { findSystemSpeciesId, seedSystemSpeciesCatalog } from "../../../test/system-species.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
@@ -114,9 +115,17 @@ async function createInBook(
   return res.body.id;
 }
 
+async function suggestedIds(token: string, bookId: string, query = ""): Promise<string[]> {
+  const res = await authed("get", `/api/books/${bookId}/character-suggestions${query}`, token);
+  expect(res.status).toBe(HttpStatus.OK);
+  return res.body.suggestions.map((row: { id: string }) => row.id);
+}
+
 describe("global character list", () => {
   it("returns spoiler-safe global summaries with appearance counts", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSystemSpeciesCatalog(app);
+    const humanId = await findSystemSpeciesId({ app, key: "human" });
     const bookId = await createBook(accessToken);
     await createInBook(
       accessToken,
@@ -125,7 +134,7 @@ describe("global character list", () => {
         globalAttitude: "like",
         name: "Paul Atreides",
         neutralDescription: "House heir",
-        species: "human",
+        speciesId: humanId,
       },
       { importance: "central" },
     );
@@ -139,7 +148,7 @@ describe("global character list", () => {
       globalAttitude: "like",
       name: "Paul Atreides",
       neutralDescription: "House heir",
-      species: "human",
+      species: { id: humanId, key: "human", labels: { en: "Human", uk: "Людина" } },
     });
   });
 
@@ -432,6 +441,111 @@ describe("book character suggestions", () => {
       owner.accessToken,
     );
     expect(missing.status).toBe(HttpStatus.NOT_FOUND);
+  });
+
+  it("never suggests a later part's character while an earlier part is the reading context", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const standaloneBook = await createBook(accessToken, { title: "Foundation" });
+    const futureId = await createInBook(accessToken, secondBook, { name: "Alia" });
+    const unrelatedId = await createInBook(accessToken, standaloneBook, { name: "Hari Seldon" });
+
+    const gated = await suggestedIds(accessToken, firstBook, `?contextBookId=${firstBook}`);
+    expect(gated).not.toContain(futureId);
+    expect(gated).toContain(unrelatedId);
+
+    const withoutContext = await suggestedIds(accessToken, firstBook);
+    expect(withoutContext).toContain(futureId);
+    expect(withoutContext).toContain(unrelatedId);
+  });
+
+  it("suggests a same-series character the reader has reached and hides one they have not", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const standaloneBook = await createBook(accessToken, { title: "Foundation" });
+    const unreachedId = await createInBook(
+      accessToken,
+      secondBook,
+      { name: "Alia" },
+      { firstAppearanceChapter: "40" },
+    );
+    const reachedId = await createInBook(
+      accessToken,
+      secondBook,
+      { name: "Chani" },
+      { firstAppearanceChapter: "1" },
+    );
+    const unrelatedId = await createInBook(accessToken, standaloneBook, { name: "Hari Seldon" });
+
+    const gated = await suggestedIds(
+      accessToken,
+      firstBook,
+      `?contextBookId=${secondBook}&contextChapter=5`,
+    );
+    expect(gated).not.toContain(unreachedId);
+    expect(gated).toContain(reachedId);
+    expect(gated).toContain(unrelatedId);
+
+    const fullyRead = await suggestedIds(
+      accessToken,
+      firstBook,
+      `?contextBookId=${secondBook}&contextChapter=40`,
+    );
+    expect(fullyRead).toContain(unreachedId);
+    expect(fullyRead).toContain(reachedId);
+    expect(fullyRead).toContain(unrelatedId);
+  });
+
+  it("still filters by q and caps by limit while a reading context is supplied", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const standaloneBook = await createBook(accessToken, { title: "Foundation" });
+    await createInBook(accessToken, standaloneBook, { name: "Fremen Scout" });
+    await createInBook(accessToken, standaloneBook, { name: "Fremen Warrior" });
+    await createInBook(accessToken, standaloneBook, { name: "Hari Seldon" });
+    await createInBook(
+      accessToken,
+      secondBook,
+      { name: "Fremen Naib" },
+      { firstAppearanceChapter: "40" },
+    );
+
+    const readingContext = `contextBookId=${secondBook}&contextChapter=5`;
+    const filtered = await suggestedIds(accessToken, firstBook, `?${readingContext}&q=fremen`);
+    expect(filtered).toHaveLength(2);
+
+    const capped = await suggestedIds(
+      accessToken,
+      firstBook,
+      `?${readingContext}&q=fremen&limit=1`,
+    );
+    expect(capped).toHaveLength(1);
+  });
+
+  it("returns 404 for a context book the user does not own", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const ownerBook = await createBook(owner.accessToken);
+    const intruderBook = await createBook(intruder.accessToken, { title: "Foundation" });
+
+    const foreignContext = await authed(
+      "get",
+      `/api/books/${ownerBook}/character-suggestions?contextBookId=${intruderBook}`,
+      owner.accessToken,
+    );
+    expect(foreignContext.status).toBe(HttpStatus.NOT_FOUND);
+    expect(foreignContext.body.code).toBe("character_book_not_found");
+
+    const missingContext = await authed(
+      "get",
+      `/api/books/${ownerBook}/character-suggestions?contextBookId=${MISSING_ID}`,
+      owner.accessToken,
+    );
+    expect(missingContext.status).toBe(HttpStatus.NOT_FOUND);
+    expect(missingContext.body.code).toBe("character_book_not_found");
   });
 });
 

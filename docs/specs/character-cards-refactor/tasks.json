@@ -1,0 +1,792 @@
+{
+  "spec": "docs/specs/character-cards-refactor/spec/01-FINAL-PRODUCT-CONTRACT.md",
+  "specFiles": [
+    "docs/specs/character-cards-refactor/spec/00-README-AND-BASELINE.md",
+    "docs/specs/character-cards-refactor/spec/01-FINAL-PRODUCT-CONTRACT.md",
+    "docs/specs/character-cards-refactor/spec/02-INTERACTION-AND-IMPLEMENTATION.md",
+    "docs/specs/character-cards-refactor/spec/03-TESTS-AND-ACCEPTANCE.md",
+    "docs/specs/character-cards-refactor/spec/source-tasks.json"
+  ],
+  "audit": "docs/specs/character-cards-refactor/audit.md",
+  "baseCommit": "e8034f54",
+  "generatedAt": "2026-10-06T12:40:17Z",
+  "scope": {
+    "included": [
+      "00 in-scope list: navigation/action priority, density, long names, overflow tooltip, metadata placement, total chip, regression coverage",
+      "00 'Preserve exactly' list (as doneWhen guards, not as work)",
+      "01 §1 tab structure and summary strip",
+      "01 §2 roster card anatomy and metadata group",
+      "01 §3 display-name semantics and secondary global name",
+      "01 §4 long-name behavior (secondary-name tooltip as optional T9)",
+      "01 §5 density, opt-in on the shared primitive",
+      "01 §6 hover and focus without lift",
+      "01 §7 actions",
+      "01 §8 responsive behavior",
+      "01 §9 non-regression contract (as doneWhen guards)",
+      "02 click matrix, link architecture, primitive constraints, tooltip implementation, accessibility invariants",
+      "03 §1 browser interaction regression, §2 unit coverage, §3 long-name browser coverage, §4 visual acceptance, §5 commands, §6 definition of done, final report",
+      "source-tasks.json T1-T6 (T1 is satisfied by audit.md; mapping in audit.md §3)"
+    ],
+    "excluded": [
+      "Backend, Prisma, @app/shared schemas, the generated API client, codegen and dependencies: 00 'Out of scope', 03 §5 'Do not regenerate API clients', 03 §6",
+      "Making the summary chips interactive filters, and new server quick filters: 01 §1, 00",
+      "A 'Переглянути' menu item: 01 §7",
+      "Adding an unlink or link-off icon: 01 §7 applies only if one exists. UiIcon has only 'link' (audit C28), and adding a sprite symbol would expand scope just for an icon",
+      "Importing or refactoring features/timeline/components/truncated-text.tsx: 02 'Long-name tooltip implementation'",
+      "Character Details and Edit business logic, global catalog UX, relationships, graphs, groups, theories, manual sort: 00 guardrails",
+      "Any change to book-details-view.tsx or to how the tab count is computed: 00 'Preserve exactly … Book Details Characters tab count'",
+      "Wiring the Storybook Vitest project into CI: no spec file asks for it, and it is a CI config change (audit C39). The final report states that CI does not run it",
+      "CharacterCardSkeleton changes: no spec file mentions them, and the skeleton is shared with the global catalog. Pending D6",
+      "The pre-existing hardcoded 'з книги «{bookTitle}»' in ui/character-card.tsx:71: unrelated cleanup (audit C51)"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Give the CharacterCard primitive an optional stretched name link",
+      "specRef": "02 'Recommended link architecture' 1-5, 'Shared CharacterCard primitive'; 01 §7, §9; 00 'Current bug to fix'",
+      "layer": "web",
+      "files": ["apps/web/src/components/ui/character-card.tsx"],
+      "dependsOn": [],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "CharacterCardProps gains optional href: string and an optional linkComponent typed like ui/book-card.tsx:37-41 (ComponentType<{ children?, className?, href: string }>), falling back to 'a'",
+        "with href set, the root article has 'relative' and the name renders as <h3><LinkComp href>{name}</LinkComp></h3>. The link carries 'after:absolute after:inset-0' with the card's corner radius",
+        "with href set, the actions wrapper is positioned with a z-index (relative z-10 or equivalent) so it paints above the link's ::after. No other element in the card has a z-index above auto",
+        "without href, the h3 renders the plain name and the markup matches today's for the same props",
+        "the file imports nothing from @/features/**, @/i18n/**, next/link, next-intl, or any character type or enum from @app/shared (it stays navigation-agnostic and domain-free)",
+        "the file has no stopPropagation or preventDefault"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Replace the hover lift with Book Nest border and shadow, plus focus treatment for the link",
+      "specRef": "01 §6; 02 step 6 and 'Accessibility invariants' (focus tokens); 01 §9",
+      "layer": "web",
+      "files": ["apps/web/src/components/ui/character-card.tsx"],
+      "dependsOn": ["T1"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "no '-translate-y-' utility applies to the roster card in any state (grep over ui/character-card.tsx and features/characters/components/character-card.tsx)",
+        "the roster card's transition list no longer includes transform (transition-[box-shadow,border-color], as in ui/book-card.tsx:18)",
+        "with href set, hover gives hover:border-accent-border and hover:shadow-hover. Keyboard focus on the link gives the root focus-within:border-accent-border focus-within:shadow-hover, and the link gets a visible ring on its ::after using ring-ring with outline-none (publisher-card.tsx:25, :36 tokens)",
+        "hover and focus change only border colour, shadow and ring. Size, padding and margin stay the same, so nothing shifts",
+        "character-edit-preview.tsx has no diff, and the preview card still has no hover effect"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Add an opt-in compact density to the primitive",
+      "specRef": "01 §5; 02 'compact roster styling remains opt-in'; 01 §8",
+      "layer": "web",
+      "files": ["apps/web/src/components/ui/character-card.tsx"],
+      "dependsOn": ["T1"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a density prop is a cva variant with values 'default' and 'compact', defaulting to 'default'. It is not a boolean mode prop (code-principles §2.3, §4.7)",
+        "compact gives card padding around p-4, avatar around size-12 with a proportionally smaller fallback initial, name around text-base or text-[1.0625rem] with leading-tight, and tighter gaps than default",
+        "the default variant keeps today's values: p-5, size-14, text-xl on the fallback and the h3, gap-3.5, mt-1.5 role badge, mt-4 traits row",
+        "neither density sets a fixed height or min-height on the card",
+        "in compact, the name column has min-w-0 and flex-1 and the actions have shrink-0, so the name and metadata never run under the actions at 320px"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Clamp the compact name to two lines with a tooltip only on measured overflow",
+      "specRef": "01 §4; 02 'Long-name tooltip implementation', 'Accessibility invariants'; 03 §3",
+      "layer": "web",
+      "files": ["apps/web/src/components/ui/character-card.tsx"],
+      "dependsOn": ["T1", "T3"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the compact name element has line-clamp-2 and a safe break utility (break-words or wrap-anywhere), so a 200-character unbroken token wraps inside the card",
+        "overflow detection uses the existing useIsTextClamped from @/hooks/use-is-text-clamped (audit C34). The diff adds no new measurement helper and no import from @/features/timeline",
+        "the measured ref sits on the element that owns the clamp overflow",
+        "the tooltip is controlled. It is open only when the name is clamped and either the pointer is over the name text or the link has keyboard focus, and its content is the full name",
+        "the TooltipTrigger is an inner non-interactive element (asChild on a span) that wraps only the name text. It is not the Link, whose ::after covers the card (audit C47), and it is not a <button>, so there are no nested interactive controls",
+        "the React tree keeps its shape when the clamped state toggles: the Tooltip is always rendered and controlled, as in tag-name-capsule.tsx:34. The name node does not remount and nothing moves when the tooltip opens",
+        "the full name stays in the link's DOM text, so the clamp is only visual and the accessible name is complete",
+        "the diff decides visibility from no name.length or character-count rule",
+        "default density renders neither the clamp nor a Tooltip (assumption A4)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Add a secondary-name line to the primitive",
+      "specRef": "01 §2 center column, §3, §4 'Secondary/global name is one muted line and may truncate'",
+      "layer": "web",
+      "files": ["apps/web/src/components/ui/character-card.tsx"],
+      "dependsOn": ["T3"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "an optional secondaryName: string renders as one truncated muted line (text-muted-foreground, smaller than the name) directly below the h3 and outside it, so the heading's accessible name does not change",
+        "nothing renders when secondaryName is undefined",
+        "the line is not positioned and has no pointer handlers, so a click on it reaches the stretched link (unless D8 resolves to B)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Render importance, POV, status and extra metadata as one group in compact density",
+      "specRef": "01 §2 (metadata group and order), §8 'metadata may wrap cleanly'",
+      "layer": "web",
+      "files": ["apps/web/src/components/ui/character-card.tsx"],
+      "dependsOn": ["T3"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "in compact density, the role badge (importance), the traits (POV, then status) and a new optional meta?: ReactNode slot render in that order inside one flex flex-wrap container below the name and secondary line",
+        "the group wraps with gap-x and gap-y and never widens the card at 320px",
+        "in default density, role and traits render as today (badge under the name with mt-1.5, pill row with mt-4), so the edit preview and the UI/CharacterCard stories keep their look",
+        "the metadata container is not positioned, so a click on it navigates through the stretched link"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Move the roster card to the stretched link and delete the overlay and the lift",
+      "specRef": "02 click matrix and 'Recommended link architecture'; 00 'Current bug to fix'; 01 §6, §7",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-card.tsx"],
+      "dependsOn": ["T1", "T2"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the sibling <Link … absolute inset-0 z-10> at character-card.tsx:130-134 is deleted",
+        "the wrapper <div className=\"group relative flex w-full\"> at :59 is deleted, or no longer positions anything or carries group styling",
+        "'group-hover:-translate-y-0.5 group-hover:shadow-hover' at :117 is deleted",
+        "the primitive receives href={getCharacterDetailsPath({ bookId, characterId: character.characterId })} and linkComponent={Link} from @/i18n/navigation",
+        "the actions node's own 'relative z-20' at :62 is gone, and the primitive's actions layer does the stacking",
+        "the link's accessible name follows D2. Under the recommendation, the link has no aria-label and its name equals the visible primary name",
+        "the file has no stopPropagation or preventDefault",
+        "Favorite keeps aria-label favorite/unfavorite and aria-pressed={character.isFavorite}. The ⋮ trigger keeps aria-label characters.card.menu",
+        "the menu keeps exactly two items: Редагувати as a Link to getCharacterEditPath with the 'edit' icon, and Прибрати з цієї книги with onSelect={onUnlink} and the 'link' icon"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Use compact density, the secondary global name and the hidden-fields metadata in the roster card",
+      "specRef": "01 §2, §3, §5; 02 step 3-4",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-card.tsx"],
+      "dependsOn": ["T3", "T4", "T5", "T6", "T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "the roster passes density=\"compact\"",
+        "secondaryName is character.name only when character.displayName !== null and character.displayName !== character.name (assumption A2). Otherwise it is undefined",
+        "the hidden-fields Badge (variant warning, lock icon, count, aria-label from characters.card.hiddenFields) moves from the actions node into the meta slot",
+        "the actions node contains exactly the Favorite button and the ⋮ DropdownMenu",
+        "the primary name is still rosterDisplayName(character), and importance and status still go through explicitImportance and explicitStatus, so unspecified values stay omitted"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Remove the 'Персонажів: N' chip from the roster summary strip",
+      "specRef": "01 §1; 03 §2 summary assertion, §6 'tab count is unchanged'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/book-characters-tab.tsx"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the Badge that renders t(\"summary.characters\", …) at book-characters-tab.tsx:105-109 is deleted",
+        "the Улюблених, POV and hidden-warning Badges keep their order, variants and formatNumber use, and the strip keeps its showControls && summary.data !== undefined guard",
+        "book-details-view.tsx has no diff",
+        "the grid classes at :196 and :215 (grid gap-4 md:grid-cols-2) are unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Delete the message keys this change orphans",
+      "specRef": "consequence of T10 and T7 (no spec line); see D5",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T7", "T10"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "characters.summary.characters (uk.json:8176, en.json:8176) is removed from both locales",
+        "if D2 = A, characters.card.openDetails (uk.json:7863, en.json:7863) is removed from both locales",
+        "no t(\"summary.characters\") or t(\"openDetails\", …) call remains under apps/web/src/features/characters",
+        "no other key is added, renamed or removed. Both files parse and pass prettier",
+        "if D5 = B, this task is closed as not done"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "Update the CharacterCard unit tests",
+      "specRef": "03 §2 'Keep/update character-card.test.tsx'",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-card.test.tsx"],
+      "dependsOn": ["T7", "T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "the existing cases are kept: importance unspecified and explicit, status unspecified and explicit unknown, POV only when true, and a menu of exactly two items where Редагувати has href /characters/char-1/edit?bookId=book-1",
+        "the details-link case finds the link by its D2 name (recommended: getByRole('link', { name: 'Ґеральт' })) and asserts href /characters/char-9?bookId=book-1",
+        "new: the Favorite button has aria-pressed 'false' when isFavorite is false and 'true' when it is true",
+        "new: with displayName 'Біловолосий' and name 'Ґеральт', the heading is 'Біловолосий' and 'Ґеральт' is visible exactly once. With displayName null, or equal to name, the name appears exactly once",
+        "new: with two hiddenFields, an element named 'Приховані поля: 2' is present and is not inside the container that holds the Favorite button",
+        "no Tailwind class assertions and no snapshots",
+        "pnpm --filter @app/web exec vitest run --project unit src/features/characters/components/character-card.test.tsx passes"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "Assert the slimmer summary strip and keep the roster tab suite green",
+      "specRef": "03 §2 'Keep current book-characters-tab.test.tsx behavior green', 'Add/update the summary assertion'; 00 'Preserve exactly'",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/book-characters-tab.test.tsx"],
+      "dependsOn": ["T7", "T10"],
+      "mandatory": true,
+      "doneWhen": [
+        "new test: with a summary of totalVisibleCharacters 3, favoritesCount 1, povCount 2 and hasHiddenRecords true, the texts 'Улюблених: 1', 'POV: 2' and 'Є приховані записи' are visible and no text matches /Персонажів:/",
+        "the existing tests pass without changed expectations: reading context, empty and summary, error and retry, infinite append, last page, next-page retry, search and sort fresh page, the favorite flip and rollback cases, and unlink invalidation. The only allowed edits are locator changes that D2 forces",
+        "pnpm --filter @app/web exec vitest run --project unit src/features/characters/components/book-characters-tab.test.tsx passes"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "Prove the Character Edit preview and the UI/CharacterCard stories still work",
+      "specRef": "00 'Important consumer'; 01 §5, §9; 02 'Shared CharacterCard primitive'; 03 §4 'Shared primitive check', §6",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-page.test.tsx",
+        "apps/web/src/components/ui/character-card.stories.tsx"
+      ],
+      "dependsOn": ["T1", "T2", "T3", "T4", "T5", "T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "character-edit-preview.tsx has no diff",
+        "the preview tests in character-edit-page.test.tsx (:472-572) pass without changes",
+        "a test asserts that the 'Попередній перегляд' region contains no role=link and no role=button",
+        "the UI/CharacterCard stories still render with default density, and the Protagonist play (character-card.stories.tsx:56-62) passes under test:storybook"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "Add a real-browser story for the roster click matrix (see it fail on the unfixed card first)",
+      "specRef": "03 §1 (5 proofs); 02 'Required click matrix'; 00 'JSDOM unit tests are insufficient'",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/book-characters-tab.stories.tsx"],
+      "dependsOn": ["T7"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "the story renders BookCharactersTab with globalThis.fetch mocked for the roster page, the summary and the favorite update, following book-details-actions-menu.stories.tsx:16-18",
+        "clicks use real pointer input as D3 decides. storybook/test userEvent alone does not count (audit C8)",
+        "a click on ⋮ shows the Редагувати menu item and records no navigation",
+        "a click on Favorite flips its aria-pressed and records no navigation",
+        "a click on a card-body point away from the name and the actions records navigation to /characters/<characterId>?bookId=<bookId>",
+        "Редагувати resolves to /characters/<characterId>/edit?bookId=<bookId>, with no details navigation recorded before it",
+        "Прибрати з цієї книги opens the existing UnlinkCharacterDialog and records no navigation",
+        "the ⋮ and Favorite proofs were run against the unfixed character-card.tsx (base e8034f54) and failed, and the failing assertion is quoted in the final report",
+        "pnpm --filter @app/web test:storybook passes"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "Add real-layout browser coverage for long names",
+      "specRef": "03 §3; 01 §4, §8; 03 §4 'one pathological long name no longer creates a giant paired grid row'",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/book-characters-tab.stories.tsx"],
+      "dependsOn": ["T8"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a short one-line name gets no tooltip on hover or focus",
+        "a name that fits exactly two lines gets no tooltip",
+        "a name of three or more lines renders at two line-heights (within 1px), and a tooltip with the full name appears on hover over the name text and on keyboard focus of the link",
+        "hovering the card body outside the name text opens no tooltip",
+        "a 200-character unbroken token leaves the card's scrollWidth no larger than its clientWidth and causes no horizontal overflow in the grid",
+        "resizing the container from wide to narrow turns a fitting name into a clamped one (tooltip available), and narrow to wide turns it back",
+        "changing the name from long to short makes the tooltip unavailable",
+        "with displayName different from name, the global name is visible as the secondary line",
+        "in the two-column grid, the row with the pathological name is no taller than a row whose card has a two-line name and the same metadata",
+        "opening the tooltip leaves the card's bounding rect unchanged",
+        "pnpm --filter @app/web test:storybook passes"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "Visual acceptance at desktop and narrow widths",
+      "specRef": "03 §4; 01 §1, §5, §6, §8",
+      "layer": "web",
+      "files": [],
+      "dependsOn": ["T8", "T10", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "screenshots exist at 1440px, 390px and 320px of the roster (story or running app). Narrow widths use headless Playwright with Storybook",
+        "at md and up the grid has two columns, and cards are visibly denser than spec/reference/current-characters-tab.png",
+        "Favorite and ⋮ sit top-right, and importance, POV, status and hidden fields read as one group",
+        "the card does not move on hover, and hover and focus show the accent border and shadow",
+        "at 320px and 390px the document's scrollWidth equals its clientWidth, and the actions do not cover the name",
+        "a screenshot of the Character Edit preview (CharacterEditPage BookContext story) matches its pre-change look"
+      ],
+      "status": "partial",
+      "statusNote": "Verified in Storybook with headless Chromium at 1440, 390 and 320px (implementer screenshots, a11y audit reflow at 320, perf audit CLS 0). Not checked in the running app: no login available to the session."
+    },
+    {
+      "id": "T18",
+      "title": "Run the final gates, check for forbidden diffs and write the report",
+      "specRef": "03 §5, §6, 'Final Claude Code report'; 00 'Out of scope / guardrails'",
+      "layer": "web",
+      "files": [],
+      "dependsOn": ["T11", "T12", "T13", "T14", "T15", "T16", "T17"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/web typecheck, pnpm lint and pnpm format:check pass",
+        "pnpm --filter @app/web test passes (how it is run follows D7), and pnpm --filter @app/web test:storybook passes",
+        "git diff --name-only e8034f54..HEAD has no path under apps/api/, packages/shared/ or apps/web/src/shared/api/generated/, and no change to any package.json or pnpm-lock.yaml",
+        "git diff has no change in features/characters/api/**, model/characters-roster-query.ts, model/use-characters-roster-query.ts, add-character-dialog.tsx, unlink-character-dialog.tsx, characters-toolbar.tsx or book-details-view.tsx",
+        "the diff adds no stopPropagation",
+        "the final report lists the files changed, the interaction architecture fix, the long-name and tooltip approach, a preview compatibility note, the commands with results (including the T15 red run), and every deviation with its reason, including that CI does not run test:storybook (audit C39)"
+      ],
+      "status": "partial",
+      "statusNote": "Green: pnpm typecheck, eslint and prettier on every changed file, prettier on docs, focused unit (160/160 in src/features/characters), 3 storybook files in parallel 28/28. pnpm lint: 0 errors, 8 warnings, none in changed files. Not done: full VITEST_MAX_WORKERS=2 pnpm --filter @app/web test was killed by the host for low memory; full pnpm --filter @app/web test:storybook not run."
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "What API should ui/character-card.tsx expose for the stretched link, compact density, secondary name and extra metadata, without changing the edit preview?",
+      "specSays": "02: href + linkComponent, a semantic name slot, or an equally small composition API. Stay navigation-agnostic and free of domain knowledge. Keep compact styling opt-in if defaults would alter another consumer. Touch the primitive only if that gives clean composition.",
+      "options": [
+        "A. BookCard-style props. href? + linkComponent? (stretched link, with hover and focus treatment only when href is set), density: 'default' | 'compact' as a cva variant, secondaryName?: string, and meta?: ReactNode appended to the metadata group. The clamp and overflow tooltip live in the primitive and apply only in compact density. The preview passes none of these, so its DOM stays as it is.",
+        "B. Slots. nameSlot?: ReactNode rendered inside the h3, plus a meta slot and the density variant. The feature owns the Link, the clamp hook and the tooltip, and the primitive stays hook-free.",
+        "C. The roster stops using the primitive and renders its own markup in features/characters. The primitive is untouched."
+      ],
+      "codebaseCost": "A mirrors ui/book-card.tsx:37-54, :130, :207-221, which features already use with linkComponent={Link} (list-book-card.tsx:98, series-book-card.tsx:184). B splits the clamp: the h3 that owns the overflow is in the primitive while the measured ref is in the feature, so the ref has to be threaded through or the clamp moved to an inner block. C duplicates the Avatar and initial() markup (ui/character-card.tsx:44-52, :95-97) and leaves two character-card looks that will drift apart.",
+      "recommendation": "A. It follows the precedent the spec names, keeps one card look, and leaves the preview on an untouched default path. Density is a cva variant, not a boolean (code-principles §2.3, §4.7).",
+      "specRef": "02 'Shared CharacterCard primitive', 'Expected change surface'; 01 §5",
+      "blocks": ["T1", "T3", "T4", "T5", "T6"],
+      "answer": "A, answered by the user 2026-10-06. Extend the shared ui/character-card.tsx, never a second parallel card. Props: href?: string, linkComponent? (as in BookCard, for the stretched link), density?: \"default\" | \"compact\" via cva, secondaryName?: string, meta?: ReactNode. Clamp and overflow-only tooltip are centralised in the primitive. meta stays a pure presentation slot: the primitive knows nothing about appearanceCount, tags or other domain data. Follow-up clarification (same day): density=\"compact\" applies ONLY to the Book Details roster. default stays for the Character Edit preview and the existing UI/CharacterCard stories with no visual refactor. The global /characters catalog is NOT moved onto the primitive in this diff (its DOM, grid/list cards, tags/meta and skeletons stay untouched); shape the API so that move is painless later, and record it as a follow-up.",
+      "status": "answered"
+    },
+    {
+      "id": "D2",
+      "question": "Should the new name link keep the overlay's aria-label 'Відкрити персонажа {name}' (character-card.tsx:131)?",
+      "specSays": "02: character navigation stays a real link, and visual clipping never replaces the full accessible character name. The spec does not say what the label text should be.",
+      "options": [
+        "A. No aria-label. The link's name is the full visible name, and the h3's name stays the character name. One assertion changes: character-card.test.tsx:69 becomes getByRole('link', { name: 'Ґеральт' }).",
+        "B. Keep the aria-label on the link. The h3's computed name becomes 'Відкрити персонажа Ґеральт', which breaks 37 heading lookups in book-characters-tab.test.tsx (including cardFor at :62-66) and character-card.test.tsx:33. Screen-reader heading navigation would also read the verb on every card.",
+        "C. An sr-only 'Відкрити персонажа' prefix inside the link. The heading name changes the same way as in B."
+      ],
+      "codebaseCost": "A changes 1 assertion. B and C change 38.",
+      "recommendation": "A. It matches BookCard, BookRow and PublisherCard, where the link's name is the title (ui/book-card.tsx:216-221, publisher-card.tsx:35-40). characters.card.openDetails then has no consumer left (D5).",
+      "specRef": "02 'Accessibility invariants'; 03 §2 'contextual details href correct'",
+      "blocks": ["T7", "T11", "T12"],
+      "answer": "A, adopted as recommended (user did not object). No aria-label on the name link; its accessible name is the full visible name.",
+      "status": "answered"
+    },
+    {
+      "id": "D3",
+      "question": "The original bug exists only while the card is under a real pointer (:hover triggers the transform). storybook/test userEvent produces neither :hover nor hit-testing (audit C8). How should the browser proof click?",
+      "specSays": "03 §1: use the existing browser-capable Storybook/Vitest harness or an equivalent already-supported browser test, and prove five interactions. 00: JSDOM is insufficient.",
+      "options": [
+        "A. A Storybook story with storybook/test userEvent, plus document.elementFromPoint checks at the control centres. Cheap, but it passes on the unfixed code: without :hover there is no transform, so the actions' z-20 wins. It is not a regression test.",
+        "B. A Storybook story whose play function clicks through Vitest's provider-backed userEvent from 'vitest/browser' (Vitest 4.1.10 exports ./browser). A real Playwright pointer produces real :hover, and Playwright's actionability check fails when another element intercepts the click. Unverified: whether a story module that imports 'vitest/browser' still loads in `storybook dev`. That needs a Context7 check, and the import may have to sit in a test-only story file.",
+        "C. A dedicated *.browser.test.tsx run by a new browser project in apps/web/vitest.config.ts (excluded from unit), using 'vitest/browser' page and userEvent. It is a real browser, but it changes the Vitest config and must rebuild what .storybook/preview.tsx already wires: globals.css, next-intl, Query, nuqs, Tooltip and the next/navigation mocks."
+      ],
+      "codebaseCost": "A reuses everything but proves nothing about this bug. B reuses the storybook project (vitest.config.ts:56-68) and the preview providers. C adds a third Vitest project.",
+      "recommendation": "B, with an acceptance gate: the ⋮ and Favorite proofs must be seen failing against the unfixed character-card.tsx before T7 lands. If 'vitest/browser' cannot load in a play function, fall back to C. Add A's elementFromPoint checks in every case, because they are cheap and state the hit-test intent. Render the full BookCharactersTab with globalThis.fetch mocked so Favorite can visibly flip (audit C12). Record navigation with a capture-phase click listener on the story root that calls preventDefault and stores the anchor href, unless Context7 confirms that the mocked router in @storybook/nextjs-vite intercepts next-intl Link clicks.",
+      "specRef": "03 §1, §3; 00 'Current bug to fix'",
+      "blocks": ["T15", "T16"],
+      "answer": "B, answered by the user. Use the existing storybook browser project in apps/web/vitest.config.ts (Playwright/Chromium). No separate vitest.browser config, no new test infrastructure. The regression story/play test must use a real browser pointer (provider-backed userEvent from vitest/browser), reproduce the bug on the old implementation first (red), then pass after the fix. Cover: hover with a real pointer, then click the kebab opens the menu and does not navigate; a click on an ordinary card area navigates to the href; document.elementFromPoint() at the action controls proves the action sits above the stretched link. Never prove this with happy-dom or with storybook/test userEvent alone. After the fix the story also asserts hover/focus cause no physical card shift.",
+      "status": "answered"
+    },
+    {
+      "id": "D4",
+      "question": "Where should the hover lift go away: only for the roster, or in the primitive's default?",
+      "specSays": "01 §6: the roster card has no vertical translate, and removing it is intentional. 01 §5: roster styling is opt-in if a default change would alter another consumer.",
+      "options": [
+        "A. Keep the primitive's default (hover:-translate-y-0.5 with transition on transform), and cancel it from the roster with a hover:translate-y-0 override, as the preview does (character-edit-preview.tsx:57).",
+        "B. Remove the lift from the primitive's base classes, and apply the hover and focus border and shadow only when href is set, like BookCard's interactive variant (ui/book-card.tsx:17-35). The preview has no href and keeps the no-hover look its override already gives it. The UI/CharacterCard stories lose their lift."
+      ],
+      "codebaseCost": "A leaves a translate utility on the roster card and a lift in the primitive that every consumer has to cancel. B changes one class string, and the preview's override becomes redundant but harmless (no edit to the preview).",
+      "recommendation": "B. No Book Nest clickable card lifts (audit C24). The primitive's lift exists only to be cancelled by its one product consumer outside the roster.",
+      "specRef": "01 §5, §6",
+      "blocks": ["T2"],
+      "answer": "B, answered by the user. Remove hover:-translate-y-0.5 (and the transform transition) from the primitive base classes. Keep hover:shadow-hover, hover:border-accent-border where needed, and focus-visible styles for the interactive card. Do not add a compensating hover:translate-y-0 in the roster. Hover behaviour is one for every use of the primitive.",
+      "status": "answered"
+    },
+    {
+      "id": "D5",
+      "question": "After T10, and after T7 under D2 = A, characters.summary.characters (uk/en :8176) and characters.card.openDetails (uk/en :7863) have no consumer. Should they be deleted?",
+      "specSays": "Nothing.",
+      "options": ["A. Delete both keys from uk.json and en.json in this diff.", "B. Keep them."],
+      "codebaseCost": "No tool flags unused message keys (knip covers code, not JSON). A dead key stays forever unless the change that orphans it removes it.",
+      "recommendation": "A.",
+      "specRef": "01 §1; consequence of D2",
+      "blocks": ["T11"],
+      "answer": "A, adopted as recommended. Delete characters.summary.characters and characters.card.openDetails from uk.json and en.json once they have no consumer.",
+      "status": "answered"
+    },
+    {
+      "id": "D6",
+      "question": "Roster cards become denser, but CharacterCardSkeleton stays at p-5 / size-14 (character-card-skeleton.tsx:5, :7) and is shared with the global catalog (characters-catalog-content.tsx:52). Should it change?",
+      "specSays": "Nothing about skeletons. 00 puts global Characters catalog UX out of scope.",
+      "options": [
+        "A. Leave it. The roster's height jumps a little when loading finishes.",
+        "B. Add a compact skeleton variant used only by the roster (book-characters-tab.tsx:199).",
+        "C. Change the shared skeleton, which alters the catalog."
+      ],
+      "codebaseCost": "B is one variant and one call site. C breaks the catalog guard.",
+      "recommendation": "A in this change, because no spec file asks for it. If T17 shows a visible jump, do B as a follow-up.",
+      "specRef": "00 'Out of scope'",
+      "blocks": [],
+      "answer": "A, adopted as recommended. Skeleton untouched (shared with the catalog). If T17 shows a visible jump, record a compact roster skeleton as a follow-up.",
+      "status": "answered"
+    },
+    {
+      "id": "D7",
+      "question": "03 §5 and §6 list `pnpm --filter @app/web test`. CLAUDE.md §9 makes a local full suite opt-in and leaves it to CI (ci.yml:179 runs exactly this command). Should it run locally?",
+      "specSays": "03 §5: finish with the package-level gates.",
+      "options": [
+        "A. Run it locally once at the end with VITEST_MAX_WORKERS=2, treating the spec as the user's explicit request.",
+        "B. Run only the focused files locally and rely on CI after the push."
+      ],
+      "codebaseCost": "The suite is web-only, so it is smaller than the 7-minute run of the whole repo. It catches callers of the primitive that focused runs miss.",
+      "recommendation": "A.",
+      "specRef": "03 §5, §6; CLAUDE.md §9",
+      "blocks": ["T18"],
+      "answer": "A, answered by the user. Focused tests during implementation. Before the final report run VITEST_MAX_WORKERS=2 pnpm --filter @app/web test and pnpm --filter @app/web test:storybook. No API/monorepo suite locally. A pre-existing unrelated failure is not fixed out of scope, only reported.",
+      "status": "answered"
+    },
+    {
+      "id": "D8",
+      "question": "01 §4 allows a tooltip on the truncated secondary name only if the same mechanism naturally supports it. Should it be added?",
+      "specSays": "01 §4: 'Add a tooltip for it only if the same small reusable mechanism naturally supports it; do not add extra complexity solely for the secondary line.'",
+      "codeSays": "The secondary line sits outside the link and under the link's ::after (audit C47). To receive hover it needs relative z-10, and then clicks on that line no longer navigate, which breaks the click-matrix row 'ordinary card body → details'. Moving it inside the link changes the link's accessible name, and the heading's too if it sits inside the h3.",
+      "options": [
+        "A. Skip it.",
+        "B. Lift the line with relative z-10 and accept that clicks on it do not navigate.",
+        "C. Move the line inside the link."
+      ],
+      "recommendation": "A. It does not fit naturally, which is the spec's own condition for adding it.",
+      "specRef": "01 §4; 02 click matrix",
+      "blocks": ["T9"],
+      "answer": "A, adopted as recommended. No tooltip on the secondary global name; T9 moves to excluded.",
+      "status": "answered"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Baseline HEAD e8034f54, last merge #244",
+      "specRef": "00 Baseline",
+      "verdict": "CONFIRMED",
+      "evidence": "git rev-parse HEAD = refs/remotes/origin/dev = e8034f54"
+    },
+    {
+      "claim": "Consumers of ui/character-card.tsx",
+      "specRef": "00 'Important consumer', 02",
+      "verdict": "FINDING",
+      "evidence": "features/characters/components/character-card.tsx:10, character-edit-preview.tsx:11, components/ui/character-card.stories.tsx:8 (third consumer, play at :56-62)"
+    },
+    {
+      "claim": "Sibling overlay link absolute inset-0 z-10",
+      "specRef": "00",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/components/character-card.tsx:130-134"
+    },
+    {
+      "claim": "Actions inside a card that transforms on hover",
+      "specRef": "00",
+      "verdict": "CONFIRMED",
+      "evidence": "character-card.tsx:62 (relative z-20), :117 (group-hover:-translate-y-0.5); ui/character-card.tsx:37 (hover:-translate-y-0.5, transition-[box-shadow,transform])"
+    },
+    {
+      "claim": "JSDOM insufficient; Storybook userEvent also has no real hit-testing",
+      "specRef": "00, 03 §1",
+      "verdict": "CONFIRMED",
+      "evidence": "user-event 14.6.1 dist/esm/utils/pointer/cssPointerEvents.js:46 (pointer-events check only); storybook 10.5.5 dist/test/index.js has no elementFromPoint"
+    },
+    {
+      "claim": "Preview uses the primitive with hover cancelled",
+      "specRef": "00",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-preview.tsx:55-68, :57"
+    },
+    {
+      "claim": "p-5 / size-14 / text-xl",
+      "specRef": "01 §5",
+      "verdict": "CONFIRMED",
+      "evidence": "ui/character-card.tsx:37, :45, :49, :55"
+    },
+    {
+      "claim": "Hidden-fields indicator in the action cluster",
+      "specRef": "01 §2",
+      "verdict": "CONFIRMED",
+      "evidence": "character-card.tsx:63-72"
+    },
+    {
+      "claim": "Summary chip Персонажів: N and the tab count share one source",
+      "specRef": "01 §1",
+      "verdict": "CONFIRMED",
+      "evidence": "book-characters-tab.tsx:105-109; book-details-view.tsx:44-57"
+    },
+    {
+      "claim": "Overflow menu is exactly Edit + Unlink, no Переглянути",
+      "specRef": "01 §7",
+      "verdict": "ALREADY DONE",
+      "evidence": "character-card.tsx:101-112; character-card.test.tsx:75-86"
+    },
+    {
+      "claim": "UiIcon has an unlink or link-off icon",
+      "specRef": "01 §7",
+      "verdict": "FALSE",
+      "evidence": "components/icons/ui-icon.tsx:73 has only 'link'; public/icons/ui-icons.svg has i-link only"
+    },
+    {
+      "claim": "CharacterSummaryView has displayName and name",
+      "specRef": "01 §3",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/characters.ts:531, :538; apps/api/src/modules/characters/domain/character.mapper.ts:391, :398"
+    },
+    {
+      "claim": "Primary name is displayName ?? name",
+      "specRef": "01 §3",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/model/characters-roster-query.ts:38-40"
+    },
+    {
+      "claim": "Stretched-link pattern in BookRow / BookCard / PublisherCard",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "book-row.tsx:98, :308-317; ui/book-card.tsx:52-54, :207-221; publisher-card.tsx:25, :34-40"
+    },
+    {
+      "claim": "truncated-text.tsx measures real overflow",
+      "specRef": "02",
+      "verdict": "CONFIRMED",
+      "evidence": "features/timeline/components/truncated-text.tsx:22, :26 (single-line scrollWidth only)"
+    },
+    {
+      "claim": "No generic shared clamp helper exists (implied by 'prefer a small local helper unless …')",
+      "specRef": "02",
+      "verdict": "ALREADY DONE",
+      "evidence": "hooks/use-is-text-clamped.ts:15-41; consumers tag-name-capsule.tsx:29, tag-description.tsx:15, quote-comment.tsx:20; tests hooks/use-is-text-clamped.test.tsx:39-89"
+    },
+    {
+      "claim": "tooltip-hint.tsx",
+      "specRef": "00",
+      "verdict": "CONFIRMED",
+      "evidence": "components/tooltip-hint.tsx:15-21 (not overflow-aware)"
+    },
+    {
+      "claim": "Browser harness and test:storybook exist",
+      "specRef": "03 §1, §5",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/vitest.config.ts:40-69; package.json test:storybook = vitest --project storybook run"
+    },
+    {
+      "claim": "CI runs the browser story",
+      "specRef": "not in spec",
+      "verdict": "FINDING",
+      "evidence": ".github/workflows/ci.yml:179 runs the unit project only"
+    },
+    {
+      "claim": "Two-column grid at md",
+      "specRef": "01 §1",
+      "verdict": "CONFIRMED",
+      "evidence": "book-characters-tab.tsx:215, :217 (li flex stretches cards to row height)"
+    },
+    {
+      "claim": "Routes for details and edit",
+      "specRef": "03 §1",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/model/character-routes.ts:10-16"
+    },
+    {
+      "claim": "Preserved query behavior (debounce 300/min 2, sorts, page size 20)",
+      "specRef": "00",
+      "verdict": "CONFIRMED",
+      "evidence": "components/debounced-search-input.tsx:8-9; characters-roster-query.ts:12-14"
+    },
+    {
+      "claim": "Heading-name dependence of existing tests",
+      "specRef": "not in spec",
+      "verdict": "FINDING",
+      "evidence": "book-characters-tab.test.tsx (37 heading lookups; cardFor :62-66); character-card.test.tsx:33"
+    },
+    {
+      "claim": "Skeleton shared with catalog",
+      "specRef": "not in spec",
+      "verdict": "FINDING",
+      "evidence": "character-card-skeleton.tsx:5, :7; characters-catalog-content.tsx:52"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A1",
+      "topic": "Baseline drift",
+      "decision": "Before the first edit, fetch and compare origin/dev with e8034f54. If it has moved, re-open the lines behind audit C6, C7, C15, C18, C22 and C42 before applying T1-T11.",
+      "reason": "00 says to re-read dev. This audit compared against the local remote ref only.",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A2",
+      "topic": "When the secondary name shows",
+      "decision": "Show character.name as the secondary line only when displayName !== null and displayName !== name, compared exactly. The API already turns an empty displayName into null (character.mapper.ts:391). Values that differ only in case or whitespace count as different.",
+      "reason": "01 §3 says 'differs' and 'Do not duplicate the same value twice'.",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A3",
+      "topic": "Spoilers and the global name",
+      "decision": "The API never masks name (character.mapper.ts:398), so showing it as secondary text reveals no field the API hides. A book alias chosen to disguise a character will now show the real name under it. 01 §3 asks for exactly this, so it is treated as accepted product behavior.",
+      "reason": "Recorded so a reviewer does not flag it as a spoiler leak.",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A4",
+      "topic": "Where the clamp applies",
+      "decision": "The two-line clamp and the overflow tooltip apply only in compact density. A preview with a name of three or more lines renders exactly as today.",
+      "reason": "01 §5 and 02 require the preview to stay visually compatible. This follows D1 option A.",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A5",
+      "topic": "Browser coverage is local-only",
+      "decision": "The story tests in T15 and T16 run only under `pnpm --filter @app/web test:storybook`, and CI does not run that project (audit C39). The final report quotes the local run.",
+      "reason": "Wiring CI is out of scope.",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A6",
+      "topic": "Unlink icon",
+      "decision": "Прибрати з цієї книги keeps the 'link' icon.",
+      "reason": "01 §7 applies only if an unlink icon exists, and none does (audit C28).",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A7",
+      "topic": "Editing components/ui",
+      "decision": "Editing ui/character-card.tsx is allowed. It is a project primitive, not vendored shadcn (audit C46), and the spec permits a backwards-compatible change.",
+      "reason": "CLAUDE.md §7 says vendored shadcn primitives are do-not-edit.",
+      "recordedBy": "spec-auditor"
+    },
+    {
+      "id": "A-worktree",
+      "topic": "Workspace",
+      "decision": "Work runs in .claude/worktrees/character-cards on branch refactor/character-cards cut from origin/dev e8034f54 (fetched 2026-10-06, equals the spec baseline).",
+      "reason": "Project rule: feature work never happens in the main checkout.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-d3-probe",
+      "topic": "D3 feasibility, verified 2026-10-06",
+      "decision": "In a story play function, `const { userEvent } = await import(\"vitest/browser\")` loads under `vitest --project storybook` (a static import would throw outside Browser Mode, e.g. in `storybook dev`, so it must stay a dynamic import inside play, and the real-pointer story is tagged [\"!dev\"]). A probe story on the unfixed roster card (e8034f54) failed: Playwright reported `<a href=\"/uk/characters/c1?bookId=b1\" aria-label=\"Відкрити персонажа Ґеральт\" class=\"absolute inset-0 z-10 ...\"> intercepts pointer events` while hovering the ⋮ trigger, retrying until timeout. The probe file was deleted.",
+      "reason": "Closes the open D3 unknowns: the real-pointer path works in the existing storybook project, and it reproduces the bug.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-before-pseudo",
+      "topic": "Stretched link pseudo-element",
+      "decision": "The stretched link and its focus ring use ::before (before:absolute before:inset-0 before:rounded-xl, focus-visible:before:ring-3) instead of the ::after named in T1/T2.",
+      "reason": "::after paints after the name span inside the link, so the tooltip trigger span would never receive hover unless it got a z-index, which T1 forbids (only the actions layer may carry one). With ::before the span is plain relative and sits above the pseudo-element; clicks on it still land in the <a>.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-avatar-size",
+      "topic": "Compact avatar size",
+      "decision": "Compact density keeps the avatar and its initial exactly as today: Avatar size=lg with the original size-14 class (rendered 40px) and a text-xl initial.",
+      "reason": "Avatar size=lg carries data-[size=lg]:size-10, which outranks size-14, so the baseline roster avatar was already 40px (audit C22 read the class, not the rendered size). A first pass shrank the compact initial to text-lg; the a11y audit showed that drops it below WCAG large-text size and fails 4.5:1 against the gradient, so it was reverted. The dead size-14 is follow-up FU2.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-secondary-clamp",
+      "topic": "Secondary name truncation",
+      "decision": "The secondary global name uses line-clamp-1 wrap-anywhere instead of truncate.",
+      "reason": "truncate (nowrap) puts the full name width into min-content, and the narrow grid track is auto, so a long global name caused horizontal overflow at 390px.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-focus-within",
+      "topic": "Card focus highlight",
+      "decision": "The linked card highlights on focus-within, so it also lights up while Favorite or the menu trigger hold focus.",
+      "reason": "T2 names focus-within verbatim and PublisherCard (publisher-card.tsx:25) uses the same tokens, so this follows the established Book Nest card pattern.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-badge-sr-only",
+      "topic": "Hidden-fields badge accessible text",
+      "decision": "The hidden-fields Badge moved into meta without aria-label: the visible count is <span aria-hidden>{count}</span> and the label characters.card.hiddenFields is an sr-only span.",
+      "reason": "Code review: aria-label on a role-less <span> is prohibited ARIA (axe aria-prohibited-attr) and many screen readers announced only the number. The a11y audit confirmed the badge now reads \"Приховані поля: 2\". T8's bullet about aria-label from characters.card.hiddenFields is satisfied by the same key, delivered as sr-only text.",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-red-first-evidence",
+      "topic": "T15 red on the unfixed card",
+      "decision": "The final click-matrix stories (not only the probe) were run against the unfixed character-card.tsx at e8034f54 before T7 landed: 7 failed, 1 passed (CardBodyOpensDetails).",
+      "reason": "Quoted failures: MenuButtonOpensMenu, EditOpensEditPage, UnlinkOpensDialog: `TimeoutError: locator.click: Timeout 3000ms exceeded ... <a aria-label=\"Відкрити персонажа Ґеральт\" href=\"/uk/characters/char-1?bookId=book-1\" class=\"absolute inset-0 z-10 ...\"></a> intercepts pointer events`. FavoriteToggles: `locator.click: Timeout 3000ms exceeded ... <a ... class=\"absolute inset-0 z-10 ...\"></a> intercepts pointer events`. MenuButtonStaysOnTopWhileHovered / FavoriteStaysOnTopWhileHovered: `<button aria-label=\"Дії з персонажем\" ...> does not contain: <a aria-label=\"Відкрити персонажа Ґеральт\" ...>`. HoverKeepsCardInPlace: card top 176 -> 174 (the 2px lift).",
+      "recordedBy": "orchestrator"
+    },
+    {
+      "id": "A-roster-query-helper",
+      "topic": "rosterDistinctGlobalName in model/characters-roster-query.ts",
+      "decision": "T18's no-diff list is narrowed for model/characters-roster-query.ts: adding the pure display-name helper rosterDistinctGlobalName next to rosterDisplayName is allowed; nothing that builds roster query params, keys or pagination may change.",
+      "reason": "Code review asked for the display-name vs global-name rule to live in one file. The guardrail's intent is to keep roster query semantics unchanged, and the diff only appends a pure function used by the card.",
+      "recordedBy": "orchestrator"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "T9",
+      "title": "Optional: tooltip on the truncated secondary name",
+      "reason": "D8 = A: the secondary-name tooltip does not fit the stretched-link mechanism naturally, which is the spec 01 §4 condition for adding it."
+    },
+    {
+      "id": "FU1",
+      "title": "Move the global /characters catalog card onto ui/character-card.tsx (density compact, href, meta for appearanceCount and tags)",
+      "reason": "Follow-up by user decision 2026-10-06. Catalog UX is out of scope in spec 00; the primitive API from T1-T6 is shaped so this move is mechanical."
+    },
+    {
+      "id": "FU2",
+      "title": "Drop the dead size-14 on the default-density avatar (Avatar size=lg forces size-10)",
+      "reason": "Follow-up: changing it alters default markup, which D1 keeps unchanged in this diff."
+    },
+    {
+      "id": "FU3",
+      "title": "Remove the dead hover:translate-y-0 hover:shadow-card override in character-edit-preview.tsx:57",
+      "reason": "Follow-up from code review: it is a no-op since D4, but T2 requires no diff to the preview file in this change."
+    },
+    {
+      "id": "FU4",
+      "title": "Translate the hardcoded «з книги «…»» string in ui/character-card.tsx bookTitle row",
+      "reason": "Pre-existing, outside this diff; belongs with the catalog follow-up FU1."
+    },
+    {
+      "id": "FU5",
+      "title": "Badge variant primary (importance major) fails WCAG 1.4.3 in light theme: 3.93:1 (#9a4c2f on #f8c69b)",
+      "reason": "Pre-existing token in components/ui/badge.tsx:13, not changed by this diff. Audit suggests text-accent-foreground (5.71:1 light, 9.97:1 dark); needs design-engineer review since the variant is shared."
+    },
+    {
+      "id": "FU6",
+      "title": "--warning token fails WCAG 1.4.3 for the hidden-fields count in light theme: 4.24:1 (#a06604 on #fff0d0)",
+      "reason": "Pre-existing global token in styles/globals.css:166. Audit measured oklch(0.53 0.12 70) at 4.80:1; dark theme unaffected. Global change, needs design-engineer review."
+    },
+    {
+      "id": "FU7",
+      "title": "Pre-existing roster a11y polish: avatar alt duplicates the adjacent heading (use alt=\"\"), Favorite toggles both aria-label and aria-pressed (APG: keep a stable label), initial letter read as text before each heading, missing h2 between the page h1 and card h3s",
+      "reason": "All present on origin/dev and outside this spec's scope; recorded from the a11y audit."
+    }
+  ]
+}

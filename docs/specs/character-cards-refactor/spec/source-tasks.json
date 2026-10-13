@@ -1,0 +1,77 @@
+{
+  "package": "booknest-character-cards-refactor-v2",
+  "baseline": {
+    "branch": "dev",
+    "analyzedHead": "e8034f54ee827fec44803862f1e7f71855179363",
+    "rule": "Re-read latest dev before implementation; current code wins over stale line-level assumptions."
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Re-read dev and audit CharacterCard consumers",
+      "doneWhen": [
+        "Current dev HEAD is recorded.",
+        "All consumers of apps/web/src/components/ui/character-card.tsx are identified.",
+        "Character Edit preview compatibility is protected before shared primitive edits."
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Fix card navigation and action priority",
+      "dependsOn": ["T1"],
+      "doneWhen": [
+        "Fragile sibling full-card overlay architecture is removed or replaced by an equally robust DOM structure.",
+        "Card body/name opens contextual details.",
+        "Favorite and overflow trigger never navigate.",
+        "Edit and unlink retain existing routes/flows."
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Refactor roster card presentation and long names",
+      "dependsOn": ["T1", "T2"],
+      "doneWhen": [
+        "Roster card is compact without changing Character Edit preview defaults.",
+        "No roster vertical hover transform remains.",
+        "Importance, POV, status and hidden fields form one metadata group.",
+        "Primary name is max two lines with safe token breaking.",
+        "Tooltip appears only for measured overflow and remeasures on resize/text change.",
+        "Different global name appears as a muted secondary line."
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Remove redundant roster total chip",
+      "dependsOn": ["T1"],
+      "doneWhen": [
+        "Roster summary no longer repeats total Characters.",
+        "Favorites, POV and hidden warning remain.",
+        "Book Details tab count is unchanged."
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Add focused browser and unit regression coverage",
+      "dependsOn": ["T2", "T3", "T4"],
+      "doneWhen": [
+        "Browser-capable test proves overflow menu and Favorite do not navigate while card body does.",
+        "Long-name overflow/non-overflow behavior is covered with real layout measurement.",
+        "Existing roster tests remain green.",
+        "Character Edit preview remains compatible."
+      ]
+    },
+    {
+      "id": "T6",
+      "title": "Run quality gates and report",
+      "dependsOn": ["T5"],
+      "doneWhen": [
+        "pnpm --filter @app/web test passes.",
+        "pnpm --filter @app/web typecheck passes.",
+        "pnpm lint has no new errors.",
+        "pnpm format:check passes.",
+        "pnpm --filter @app/web test:storybook passes if browser stories/tests changed.",
+        "No backend/shared schema/generated API/dependency changes are present."
+      ]
+    }
+  ]
+}

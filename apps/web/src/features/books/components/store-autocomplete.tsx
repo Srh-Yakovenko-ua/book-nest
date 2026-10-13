@@ -118,7 +118,7 @@ export function StoreAutocomplete({
               <CommandEmpty>{t("store.empty")}</CommandEmpty>
             ) : null}
             {filteredStores.length > 0 ? (
-              <CommandGroup heading={t("store.recentHeading")}>
+              <CommandGroup heading={t("store.recentHeading")} variant="sectioned">
                 {filteredStores.map((store) => (
                   <CommandItem
                     className="cursor-pointer"

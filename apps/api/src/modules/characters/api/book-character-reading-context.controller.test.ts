@@ -14,6 +14,12 @@ import { CharactersModule } from "../characters.module.js";
 
 type RosterBody = { items: { characterId: string; name: string }[]; totalCount: number };
 
+type SuggestionSurfaceReveal = {
+  control: boolean;
+  roster: boolean;
+  suggestions: boolean;
+};
+
 type SummaryBody = {
   hasHiddenRecords: boolean;
   top: { characterId: string; name: string }[];
@@ -173,6 +179,37 @@ async function revealAcrossSurfaces({
     roster: listed.items.some((item) => item.characterId === characterId),
     search: found.items.some((item) => item.characterId === characterId),
     summaryTop: recap.top.some((entry) => entry.characterId === characterId),
+  };
+}
+
+async function revealOnRosterAndSuggestions({
+  characterId,
+  controlCharacterId,
+  homeBookId,
+  readingContext,
+  suggestionsBookId,
+  token,
+}: {
+  characterId: string;
+  controlCharacterId: string;
+  homeBookId: string;
+  readingContext: string;
+  suggestionsBookId: string;
+  token: string;
+}): Promise<SuggestionSurfaceReveal> {
+  const listed = await roster(token, homeBookId, `?${readingContext}`);
+  const suggested = await authed(
+    "get",
+    `/api/books/${suggestionsBookId}/character-suggestions?${readingContext}`,
+    token,
+  );
+  expect(suggested.status).toBe(HttpStatus.OK);
+  const suggestedIds = suggested.body.suggestions.map((row: { id: string }) => row.id);
+
+  return {
+    control: suggestedIds.includes(controlCharacterId),
+    roster: listed.items.some((item) => item.characterId === characterId),
+    suggestions: suggestedIds.includes(characterId),
   };
 }
 
@@ -476,6 +513,44 @@ describe("contextual character surfaces agree", () => {
       search: true,
       summaryTop: true,
     });
+  });
+
+  it("suggests a character for a sibling part exactly when the roster reveals it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const standaloneBook = await createBook(accessToken, "Foundation");
+    const characterId = await addCharacter({
+      bookId: secondBook,
+      name: "Alia Atreides",
+      profile: { firstAppearanceChapter: "40" },
+      token: accessToken,
+    });
+    const controlCharacterId = await addCharacter({
+      bookId: standaloneBook,
+      name: "Hari Seldon",
+      token: accessToken,
+    });
+
+    const beforeFirstAppearance = await revealOnRosterAndSuggestions({
+      characterId,
+      controlCharacterId,
+      homeBookId: secondBook,
+      readingContext: `contextBookId=${secondBook}&contextChapter=5`,
+      suggestionsBookId: firstBook,
+      token: accessToken,
+    });
+    expect(beforeFirstAppearance).toEqual({ control: true, roster: false, suggestions: false });
+
+    const afterFirstAppearance = await revealOnRosterAndSuggestions({
+      characterId,
+      controlCharacterId,
+      homeBookId: secondBook,
+      readingContext: `contextBookId=${secondBook}&contextChapter=40`,
+      suggestionsBookId: firstBook,
+      token: accessToken,
+    });
+    expect(afterFirstAppearance).toEqual({ control: true, roster: true, suggestions: true });
   });
 
   it("rejects a reading position on the details surface unless the context book is named", async () => {

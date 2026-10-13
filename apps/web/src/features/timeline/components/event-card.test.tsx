@@ -18,8 +18,8 @@ describe("EventCard", () => {
     );
 
     expect(screen.getByText("Битва під Содденом")).toBeInTheDocument();
-    expect(screen.getByText("Основна подія")).toBeInTheDocument();
-    expect(screen.getByText("Ключова")).toBeInTheDocument();
+    expect(screen.getByText("Тип: Основна подія")).toBeInTheDocument();
+    expect(screen.getByText("Важливість: Ключова")).toBeInTheDocument();
   });
 
   it("opens the event when the card is activated", async () => {
@@ -38,7 +38,7 @@ describe("EventCard", () => {
     expect(onOpen).toHaveBeenCalledWith("event-7");
   });
 
-  it("renders the whole context row when nothing is suppressed", () => {
+  it("renders the whole context row and the footer page when nothing is suppressed", () => {
     renderWithProviders(
       <EventCard
         contextMode="full"
@@ -54,9 +54,36 @@ describe("EventCard", () => {
     );
 
     expect(screen.getByText("Розділ 4")).toBeInTheDocument();
-    expect(screen.getByText("128")).toBeInTheDocument();
+    expect(screen.getByText("стор. 128")).toBeInTheDocument();
     expect(screen.getByText("Третій день подорожі")).toBeInTheDocument();
     expect(screen.getByText("Визима")).toBeInTheDocument();
+  });
+
+  it("keeps the page in the footer without a timeline pill", () => {
+    renderWithProviders(
+      <EventCard
+        contextMode="full"
+        event={makeTimelineEventView({ pageNumber: 42 })}
+        onOpen={vi.fn()}
+        showTimelineName={false}
+      />,
+    );
+
+    expect(screen.getByText("стор. 42")).toBeInTheDocument();
+  });
+
+  it("renders no footer when there is neither a page nor a timeline pill", () => {
+    renderWithProviders(
+      <EventCard
+        contextMode="full"
+        event={makeTimelineEventView({ pageNumber: null, timelineName: "Флешбеки" })}
+        onOpen={vi.fn()}
+        showTimelineName={false}
+      />,
+    );
+
+    expect(screen.queryByText(/стор\./)).not.toBeInTheDocument();
+    expect(screen.queryByText("Флешбеки")).not.toBeInTheDocument();
   });
 
   it("drops the chapter that the chapter group already shows", () => {
@@ -70,7 +97,7 @@ describe("EventCard", () => {
     );
 
     expect(screen.queryByText("Розділ 4")).not.toBeInTheDocument();
-    expect(screen.getByText("128")).toBeInTheDocument();
+    expect(screen.getByText("стор. 128")).toBeInTheDocument();
   });
 
   it("drops the story time that the divider already shows", () => {

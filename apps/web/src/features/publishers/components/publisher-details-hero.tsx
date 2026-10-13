@@ -22,6 +22,7 @@ type PublisherDetailsHeroProps = {
   onAddBook: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onMerge: () => void;
 };
 
 export function PublisherDetailsHero({
@@ -30,6 +31,7 @@ export function PublisherDetailsHero({
   onAddBook,
   onDelete,
   onEdit,
+  onMerge,
 }: PublisherDetailsHeroProps) {
   const t = useTranslations("publishers.details.hero");
   const locale = useLocale();
@@ -93,6 +95,10 @@ export function PublisherDetailsHero({
               <DropdownMenuItem onSelect={onEdit}>
                 <UiIcon name="edit" size={16} />
                 {t("edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onMerge}>
+                <UiIcon name="swap" size={16} />
+                {t("merge")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onDelete} variant="destructive">
                 <UiIcon name="trash" size={16} />

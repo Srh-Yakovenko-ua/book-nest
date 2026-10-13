@@ -1,8 +1,14 @@
 "use client";
 
-import type { LibraryPublisherDetail, Nullable, UpdatePublisherInput } from "@app/shared";
+import type {
+  LibraryPublisherDetail,
+  Nullable,
+  PublisherDuplicateCandidate,
+  UpdatePublisherInput,
+} from "@app/shared";
 
 import {
+  normalizeName,
   PublisherCountryCodeSchema,
   PublisherFoundedYearSchema,
   PublisherWebsiteUrlSchema,
@@ -11,7 +17,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -30,6 +36,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { YearPicker } from "@/components/ui/year-picker";
 import { DiscardConfirmDialog } from "@/features/books";
+import {
+  distinctMatchedName,
+  isReliableMatch,
+  PUBLISHER_LOOKUP,
+  usePublisherDuplicateCandidates,
+} from "@/features/books/api/use-publisher-duplicate-candidates";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ApiError } from "@/lib/http-client";
 
 import { useUpdatePublisher } from "../api/use-update-publisher";
@@ -55,6 +68,11 @@ type EditPublisherFormValues = {
   websiteUrl: string;
 };
 
+type PublisherLookupState = {
+  conflictingPublisher: Nullable<PublisherDuplicateCandidate>;
+  lookupUnavailable: boolean;
+};
+
 export function EditPublisherDialog({
   details,
   onCloseAutoFocus,
@@ -62,6 +80,7 @@ export function EditPublisherDialog({
   open,
 }: EditPublisherDialogProps) {
   const t = useTranslations("publishers.details.editDialog");
+  const tDiscardChanges = useTranslations("common.discardChanges");
   const [dirty, setDirty] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
@@ -107,6 +126,8 @@ export function EditPublisherDialog({
         </DialogContent>
       </Dialog>
       <DiscardConfirmDialog
+        cancelLabel={tDiscardChanges("cancel")}
+        confirmLabel={tDiscardChanges("confirm")}
         description={t("discardDescription")}
         onConfirm={() => {
           setDiscardOpen(false);
@@ -118,6 +139,38 @@ export function EditPublisherDialog({
         title={t("discardTitle")}
       />
     </>
+  );
+}
+
+function DuplicateNotice({
+  conflictingPublisher,
+  keepsOwnName,
+}: {
+  conflictingPublisher: Nullable<PublisherDuplicateCandidate>;
+  keepsOwnName: boolean;
+}) {
+  const t = useTranslations("publishers.details.editDialog");
+  if (conflictingPublisher === null) return null;
+
+  const { name } = conflictingPublisher;
+  const matchedName = distinctMatchedName(conflictingPublisher);
+
+  if (keepsOwnName) {
+    return (
+      <p className="text-xs text-muted-foreground" role="status">
+        {matchedName === null
+          ? t("duplicateSelf", { name })
+          : t("duplicateSelfAlias", { matchedName, name })}
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-xs text-warning" role="status">
+      {matchedName === null
+        ? t("duplicateTaken", { name })
+        : t("duplicateTakenAlias", { matchedName, name })}
+    </p>
   );
 }
 
@@ -180,11 +233,18 @@ function EditPublisherForm({
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  const nameValue = useWatch({ control, name: "name" }) ?? "";
+  const { conflictingPublisher, lookupUnavailable } = useConflictingPublisher({
+    name: nameValue,
+    publisherId: details.id,
+  });
+  const keepsOwnName = normalizeName(nameValue) === normalizeName(details.name);
+  const showLookupUnavailable = lookupUnavailable && conflictingPublisher === null && !keepsOwnName;
+
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
     const payload: UpdatePublisherInput = {
       foundedYear: values.foundedYear,
-      name: TaxonomyNameSchema.parse(values.name),
       websiteUrl:
         values.websiteUrl.trim() === "" ? null : PublisherWebsiteUrlSchema.parse(values.websiteUrl),
       ...(dirtyFields.countryCode === true
@@ -195,6 +255,7 @@ function EditPublisherForm({
                 : PublisherCountryCodeSchema.parse(values.countryCode),
           }
         : {}),
+      ...(dirtyFields.name === true ? { name: TaxonomyNameSchema.parse(values.name) } : {}),
     };
 
     updatePublisher.mutate(payload, {
@@ -226,6 +287,19 @@ function EditPublisherForm({
           {...register("name")}
         />
         <FieldError error={errors.name} id="edit-publisher-name-error" />
+        {errors.name === undefined ? (
+          <>
+            <DuplicateNotice
+              conflictingPublisher={conflictingPublisher}
+              keepsOwnName={keepsOwnName}
+            />
+            {showLookupUnavailable ? (
+              <p className="text-xs text-warning" role="status">
+                {t("lookupUnavailable")}
+              </p>
+            ) : null}
+          </>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -318,4 +392,26 @@ function EditPublisherForm({
       </DialogFooter>
     </form>
   );
+}
+
+function useConflictingPublisher({
+  name,
+  publisherId,
+}: {
+  name: string;
+  publisherId: string;
+}): PublisherLookupState {
+  const trimmedName = name.trim();
+  const debouncedName = useDebouncedValue(trimmedName, PUBLISHER_LOOKUP.debounceMs);
+  const { data: candidates = [], isError } = usePublisherDuplicateCandidates({
+    excludePublisherId: publisherId,
+    name: debouncedName,
+  });
+
+  const lookupMatchesName = debouncedName === trimmedName;
+
+  return {
+    conflictingPublisher: lookupMatchesName ? (candidates.find(isReliableMatch) ?? null) : null,
+    lookupUnavailable: isError && lookupMatchesName,
+  };
 }

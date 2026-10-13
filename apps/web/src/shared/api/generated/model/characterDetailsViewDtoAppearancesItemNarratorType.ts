@@ -17,6 +17,5 @@ export const CharacterDetailsViewDtoAppearancesItemNarratorType = {
   first_person: "first_person",
   third_person_limited: "third_person_limited",
   third_person_omniscient: "third_person_omniscient",
-  unreliable: "unreliable",
   other: "other",
 } as const;

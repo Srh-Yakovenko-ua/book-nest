@@ -5,12 +5,7 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
-import {
-  type inferParserType,
-  parseAsInteger,
-  parseAsString,
-  parseAsStringLiteral,
-} from "nuqs/server";
+import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 import type { BookCharactersControllerListParams } from "@/shared/api/generated/model";
 
@@ -23,7 +18,6 @@ const FULLY_READ_STATUSES = ["finished", "dnf"] as const satisfies readonly Read
 export type CharactersRosterSort = (typeof CHARACTERS_ROSTER_SORTS)[number];
 
 export const charactersRosterParsers = {
-  characterPage: parseAsInteger.withDefault(1),
   characterSearch: parseAsString.withDefault(""),
   characterSort: parseAsStringLiteral(CHARACTERS_ROSTER_SORTS).withDefault(
     CHARACTERS_ROSTER_SORT_DEFAULT,
@@ -33,7 +27,6 @@ export const charactersRosterParsers = {
 export type CharactersRosterState = inferParserType<typeof charactersRosterParsers>;
 
 export const CHARACTERS_ROSTER_RESET = {
-  characterPage: null,
   characterSearch: null,
   characterSort: null,
 } satisfies Partial<Record<keyof CharactersRosterState, null>>;
@@ -46,6 +39,13 @@ export function rosterDisplayName(character: CharacterSummaryView): string {
   return character.displayName ?? character.name;
 }
 
+export function rosterDistinctGlobalName({
+  displayName,
+  name,
+}: CharacterSummaryView): string | undefined {
+  return displayName !== null && displayName !== name ? name : undefined;
+}
+
 export function toBookCharactersListParams(
   state: CharactersRosterState,
   readingContext: BookCharacterSummaryQuery,
@@ -53,7 +53,6 @@ export function toBookCharactersListParams(
   const search = state.characterSearch.trim();
 
   return {
-    pageNumber: state.characterPage,
     pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
     sort: state.characterSort,
     ...readingContext,

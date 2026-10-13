@@ -11,7 +11,6 @@ import {
 } from "./characters-roster-query";
 
 const rosterState = {
-  characterPage: 1,
   characterSearch: "",
   characterSort: "importance",
 } as const;
@@ -37,10 +36,13 @@ function makeBookAt(currentPage: Nullable<number>, readingStatus: ReadingStatus)
 describe("toBookCharactersListParams", () => {
   it("always asks the backend for the selected sort", () => {
     expect(toBookCharactersListParams({ ...rosterState, characterSort: "name" }, {})).toEqual({
-      pageNumber: 1,
       pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
       sort: "name",
     });
+  });
+
+  it("leaves the page number to the infinite query", () => {
+    expect(toBookCharactersListParams(rosterState, {})).not.toHaveProperty("pageNumber");
   });
 
   it("omits an empty search and trims a filled one", () => {

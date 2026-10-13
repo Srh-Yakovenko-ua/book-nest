@@ -56,14 +56,11 @@ export type CreateCharacterInBookDto =
         importance?:
           "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
+        isUnreliableNarrator?: boolean;
+        isUnreliableNarratorSpoiler?: boolean;
         /** @nullable */
         narratorType?:
-          | "first_person"
-          | "third_person_limited"
-          | "third_person_omniscient"
-          | "unreliable"
-          | "other"
-          | null;
+          "first_person" | "third_person_limited" | "third_person_omniscient" | "other" | null;
         /**
          * @maxLength 5000
          * @nullable
@@ -106,10 +103,10 @@ export type CreateCharacterInBookDto =
          */
         sortOrder?: number | null;
         /**
-         * @maxLength 200
          * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
          */
-        speciesOverride?: string | null;
+        speciesOverrideId?: string | null;
         speciesOverrideIsSpoiler?: boolean;
         status?:
           "active" | "missing" | "dead" | "unknown" | "transformed" | "other" | "not_specified";
@@ -173,14 +170,11 @@ export type CreateCharacterInBookDto =
         importance?:
           "central" | "major" | "supporting" | "episodic" | "mentioned" | "not_specified";
         isPovCharacter?: boolean;
+        isUnreliableNarrator?: boolean;
+        isUnreliableNarratorSpoiler?: boolean;
         /** @nullable */
         narratorType?:
-          | "first_person"
-          | "third_person_limited"
-          | "third_person_omniscient"
-          | "unreliable"
-          | "other"
-          | null;
+          "first_person" | "third_person_limited" | "third_person_omniscient" | "other" | null;
         /**
          * @maxLength 5000
          * @nullable
@@ -223,10 +217,10 @@ export type CreateCharacterInBookDto =
          */
         sortOrder?: number | null;
         /**
-         * @maxLength 200
          * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
          */
-        speciesOverride?: string | null;
+        speciesOverrideId?: string | null;
         speciesOverrideIsSpoiler?: boolean;
         status?:
           "active" | "missing" | "dead" | "unknown" | "transformed" | "other" | "not_specified";
@@ -298,10 +292,10 @@ export type CreateCharacterInBookDto =
          */
         pronouns?: string | null;
         /**
-         * @maxLength 120
          * @nullable
+         * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
          */
-        species?: string | null;
+        speciesId?: string | null;
       };
       mode: "new";
     };

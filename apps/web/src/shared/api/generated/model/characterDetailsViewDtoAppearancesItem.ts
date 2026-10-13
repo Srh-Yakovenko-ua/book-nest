@@ -11,6 +11,7 @@ import type { CharacterDetailsViewDtoAppearancesItemImportance } from "./charact
 import type { CharacterDetailsViewDtoAppearancesItemNarratorType } from "./characterDetailsViewDtoAppearancesItemNarratorType";
 import type { CharacterDetailsViewDtoAppearancesItemPortrait } from "./characterDetailsViewDtoAppearancesItemPortrait";
 import type { CharacterDetailsViewDtoAppearancesItemRolesItem } from "./characterDetailsViewDtoAppearancesItemRolesItem";
+import type { CharacterDetailsViewDtoAppearancesItemSpeciesOverride } from "./characterDetailsViewDtoAppearancesItemSpeciesOverride";
 import type { CharacterDetailsViewDtoAppearancesItemStatus } from "./characterDetailsViewDtoAppearancesItemStatus";
 
 export type CharacterDetailsViewDtoAppearancesItem = {
@@ -51,6 +52,9 @@ export type CharacterDetailsViewDtoAppearancesItem = {
   importance: CharacterDetailsViewDtoAppearancesItemImportance;
   isPovCharacter: boolean;
   /** @nullable */
+  isUnreliableNarrator: boolean | null;
+  isUnreliableNarratorSpoiler: boolean;
+  /** @nullable */
   narratorType: CharacterDetailsViewDtoAppearancesItemNarratorType;
   /** @nullable */
   personalImpression: string | null;
@@ -66,7 +70,7 @@ export type CharacterDetailsViewDtoAppearancesItem = {
    */
   sortOrder: number | null;
   /** @nullable */
-  speciesOverride: string | null;
+  speciesOverride: CharacterDetailsViewDtoAppearancesItemSpeciesOverride;
   speciesOverrideIsSpoiler: boolean;
   /** @nullable */
   status: CharacterDetailsViewDtoAppearancesItemStatus;

@@ -50,6 +50,8 @@ export const characterPortabilityControllerExportBundleResponseCharactersItemApp
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
 
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPersonalImpressionMax = 5000;
 
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPortraitMediaIdRegExp =
@@ -66,7 +68,9 @@ export const characterPortabilityControllerExportBundleResponseCharactersItemApp
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMin = 0;
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMax = 2147483647;
 
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax = 200;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
 
 export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemStatusCustomTextMax = 200;
 
@@ -100,7 +104,9 @@ export const characterPortabilityControllerExportBundleResponseCharactersItemNeu
 
 export const characterPortabilityControllerExportBundleResponseCharactersItemPronounsMax = 60;
 
-export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax = 120;
+export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesKeyMax = 60;
 
 export const characterPortabilityControllerExportBundleResponseCharactersItemTagIdsItemRegExp =
   new RegExp(
@@ -316,12 +322,21 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 "not_specified",
               ]),
               isPovCharacter: zod.boolean(),
+              isUnreliableNarrator: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                ),
+              isUnreliableNarratorSpoiler: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                ),
               narratorType: zod
                 .union([
                   zod.literal("first_person"),
                   zod.literal("third_person_limited"),
                   zod.literal("third_person_omniscient"),
-                  zod.literal("unreliable"),
                   zod.literal("other"),
                   zod.literal(null),
                 ])
@@ -389,6 +404,13 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
+              speciesOverrideKey: zod
+                .string()
+                .min(1)
+                .max(
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideKeyMax,
+                )
+                .nullish(),
               status: zod.enum([
                 "active",
                 "missing",
@@ -497,6 +519,11 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
           .string()
           .max(characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax)
           .nullable(),
+        speciesKey: zod
+          .string()
+          .min(1)
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemSpeciesKeyMax)
+          .nullish(),
         tagIds: zod
           .array(
             zod
@@ -830,6 +857,8 @@ export const characterPortabilityControllerImportBundleBodyCharactersItemAppeara
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
 
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPersonalImpressionMax = 5000;
 
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPortraitMediaIdRegExp =
@@ -846,7 +875,9 @@ export const characterPortabilityControllerImportBundleBodyCharactersItemAppeara
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMin = 0;
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMax = 2147483647;
 
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideMax = 200;
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
 
 export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemStatusCustomTextMax = 200;
 
@@ -880,7 +911,9 @@ export const characterPortabilityControllerImportBundleBodyCharactersItemNeutral
 
 export const characterPortabilityControllerImportBundleBodyCharactersItemPronounsMax = 60;
 
-export const characterPortabilityControllerImportBundleBodyCharactersItemSpeciesMax = 120;
+export const characterPortabilityControllerImportBundleBodyCharactersItemSpeciesMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyCharactersItemSpeciesKeyMax = 60;
 
 export const characterPortabilityControllerImportBundleBodyCharactersItemTagIdsItemRegExp =
   new RegExp(
@@ -1093,12 +1126,21 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 "not_specified",
               ]),
               isPovCharacter: zod.boolean(),
+              isUnreliableNarrator: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                ),
+              isUnreliableNarratorSpoiler: zod
+                .boolean()
+                .default(
+                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                ),
               narratorType: zod
                 .union([
                   zod.literal("first_person"),
                   zod.literal("third_person_limited"),
                   zod.literal("third_person_omniscient"),
-                  zod.literal("unreliable"),
                   zod.literal("other"),
                   zod.literal(null),
                 ])
@@ -1166,6 +1208,13 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
+              speciesOverrideKey: zod
+                .string()
+                .min(1)
+                .max(
+                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideKeyMax,
+                )
+                .nullish(),
               status: zod.enum([
                 "active",
                 "missing",
@@ -1266,6 +1315,11 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
           .string()
           .max(characterPortabilityControllerImportBundleBodyCharactersItemSpeciesMax)
           .nullable(),
+        speciesKey: zod
+          .string()
+          .min(1)
+          .max(characterPortabilityControllerImportBundleBodyCharactersItemSpeciesKeyMax)
+          .nullish(),
         tagIds: zod
           .array(
             zod
@@ -1746,8 +1800,10 @@ export const charactersControllerCreateBodyCharacterNeutralDescriptionMax = 5000
 
 export const charactersControllerCreateBodyCharacterPronounsMax = 60;
 
-export const charactersControllerCreateBodyCharacterSpeciesMax = 120;
-
+export const charactersControllerCreateBodyCharacterSpeciesIdDefault = null;
+export const charactersControllerCreateBodyCharacterSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const charactersControllerCreateBodyFirstAppearanceBookIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
@@ -1773,6 +1829,8 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileFirstAppear
 export const charactersControllerCreateBodyFirstAppearanceBookProfileHidePresenceAsSpoilerDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileImportanceDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileIsPovCharacterDefault = false;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorDefault = false;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorSpoilerDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfilePersonalImpressionMax = 5000;
 
 export const charactersControllerCreateBodyFirstAppearanceBookProfilePersonalImpressionIsSpoilerDefault = false;
@@ -1793,8 +1851,12 @@ export const charactersControllerCreateBodyFirstAppearanceBookProfileRolesMax = 
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMin = 0;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMax = 2147483647;
 
-export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideMax = 200;
-
+export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIdDefault =
+  null;
+export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 export const charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIsSpoilerDefault = false;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusDefault = `not_specified`;
 export const charactersControllerCreateBodyFirstAppearanceBookProfileStatusCustomTextMax = 200;
@@ -1870,7 +1932,11 @@ export const CharactersControllerCreateBody = zod.object({
       .max(charactersControllerCreateBodyCharacterNeutralDescriptionMax)
       .nullish(),
     pronouns: zod.string().max(charactersControllerCreateBodyCharacterPronounsMax).nullish(),
-    species: zod.string().max(charactersControllerCreateBodyCharacterSpeciesMax).nullish(),
+    speciesId: zod
+      .uuid()
+      .regex(charactersControllerCreateBodyCharacterSpeciesIdRegExp)
+      .nullish()
+      .default(charactersControllerCreateBodyCharacterSpeciesIdDefault),
   }),
   firstAppearance: zod
     .object({
@@ -1950,12 +2016,21 @@ export const CharactersControllerCreateBody = zod.object({
         isPovCharacter: zod
           .boolean()
           .default(charactersControllerCreateBodyFirstAppearanceBookProfileIsPovCharacterDefault),
+        isUnreliableNarrator: zod
+          .boolean()
+          .default(
+            charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorDefault,
+          ),
+        isUnreliableNarratorSpoiler: zod
+          .boolean()
+          .default(
+            charactersControllerCreateBodyFirstAppearanceBookProfileIsUnreliableNarratorSpoilerDefault,
+          ),
         narratorType: zod
           .union([
             zod.literal("first_person"),
             zod.literal("third_person_limited"),
             zod.literal("third_person_omniscient"),
-            zod.literal("unreliable"),
             zod.literal("other"),
             zod.literal(null),
           ])
@@ -2014,10 +2089,13 @@ export const CharactersControllerCreateBody = zod.object({
           .min(charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMin)
           .max(charactersControllerCreateBodyFirstAppearanceBookProfileSortOrderMax)
           .nullish(),
-        speciesOverride: zod
-          .string()
-          .max(charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideMax)
-          .nullish(),
+        speciesOverrideId: zod
+          .uuid()
+          .regex(charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIdRegExp)
+          .nullish()
+          .default(
+            charactersControllerCreateBodyFirstAppearanceBookProfileSpeciesOverrideIdDefault,
+          ),
         speciesOverrideIsSpoiler: zod
           .boolean()
           .default(
@@ -2060,8 +2138,15 @@ export const charactersControllerCreateResponseAppearancesItemRolesItemPositionM
 export const charactersControllerCreateResponseAppearancesItemSortOrderMin = -9007199254740991;
 export const charactersControllerCreateResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const charactersControllerCreateResponseAppearancesItemSpeciesOverrideIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const charactersControllerCreateResponseFormsItemPositionMin = -9007199254740991;
 export const charactersControllerCreateResponseFormsItemPositionMax = 9007199254740991;
+
+export const charactersControllerCreateResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const CharactersControllerCreateResponse = zod.object({
   aliases: zod.array(
@@ -2164,12 +2249,13 @@ export const CharactersControllerCreateResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -2220,7 +2306,18 @@ export const CharactersControllerCreateResponse = zod.object({
         .min(charactersControllerCreateResponseAppearancesItemSortOrderMin)
         .max(charactersControllerCreateResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(charactersControllerCreateResponseAppearancesItemSpeciesOverrideIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -2320,7 +2417,16 @@ export const CharactersControllerCreateResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(charactersControllerCreateResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -2358,9 +2464,10 @@ export const charactersControllerListQuerySeriesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
 export const charactersControllerListQuerySortDefault = `name`;
-export const charactersControllerListQuerySpeciesItemMax = 120;
-
-export const charactersControllerListQuerySpeciesMax = 100;
+export const charactersControllerListQuerySpeciesIdItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const charactersControllerListQuerySpeciesIdMax = 100;
 
 export const charactersControllerListQueryTagIdItemRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -2427,9 +2534,9 @@ export const CharactersControllerListQueryParams = zod.object({
   sort: zod
     .enum(["name", "recently_added", "recently_updated"])
     .default(charactersControllerListQuerySortDefault),
-  species: zod
-    .array(zod.string().min(1).max(charactersControllerListQuerySpeciesItemMax))
-    .max(charactersControllerListQuerySpeciesMax)
+  speciesId: zod
+    .array(zod.uuid().regex(charactersControllerListQuerySpeciesIdItemRegExp))
+    .max(charactersControllerListQuerySpeciesIdMax)
     .optional(),
   tagId: zod
     .array(zod.uuid().regex(charactersControllerListQueryTagIdItemRegExp))
@@ -2440,6 +2547,9 @@ export const CharactersControllerListQueryParams = zod.object({
 export const charactersControllerListResponseItemsItemAppearanceCountMin = -9007199254740991;
 export const charactersControllerListResponseItemsItemAppearanceCountMax = 9007199254740991;
 
+export const charactersControllerListResponseItemsItemSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const charactersControllerListResponsePageMin = -9007199254740991;
 export const charactersControllerListResponsePageMax = 9007199254740991;
 
@@ -2498,7 +2608,16 @@ export const CharactersControllerListResponse = zod.object({
       name: zod.string(),
       neutralDescription: zod.string().nullable(),
       pronouns: zod.string().nullable(),
-      species: zod.string().nullable(),
+      species: zod
+        .object({
+          id: zod.uuid().regex(charactersControllerListResponseItemsItemSpeciesIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       tags: zod.array(
         zod.object({
           color: zod
@@ -2561,6 +2680,11 @@ export const charactersControllerDuplicateCandidatesResponseCandidatesItemAppear
   -9007199254740991;
 export const charactersControllerDuplicateCandidatesResponseCandidatesItemAppearanceCountMax = 9007199254740991;
 
+export const charactersControllerDuplicateCandidatesResponseCandidatesItemSpeciesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+
 export const CharactersControllerDuplicateCandidatesResponse = zod.object({
   candidates: zod.array(
     zod.object({
@@ -2607,7 +2731,18 @@ export const CharactersControllerDuplicateCandidatesResponse = zod.object({
       name: zod.string(),
       neutralDescription: zod.string().nullable(),
       pronouns: zod.string().nullable(),
-      species: zod.string().nullable(),
+      species: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(charactersControllerDuplicateCandidatesResponseCandidatesItemSpeciesIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       tags: zod.array(
         zod.object({
           color: zod
@@ -2748,13 +2883,16 @@ export const CharactersControllerGetByIdQueryParams = zod.object({
   revealFieldIds: zod
     .array(
       zod.enum([
+        "aliases",
         "appearanceNotes",
         "description",
         "displayName",
         "personalImpression",
         "portrait",
+        "roles",
         "speciesOverride",
         "status",
+        "unreliableNarrator",
       ]),
     )
     .max(charactersControllerGetByIdQueryRevealFieldIdsMax)
@@ -2783,8 +2921,15 @@ export const charactersControllerGetByIdResponseAppearancesItemRolesItemPosition
 export const charactersControllerGetByIdResponseAppearancesItemSortOrderMin = -9007199254740991;
 export const charactersControllerGetByIdResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const charactersControllerGetByIdResponseAppearancesItemSpeciesOverrideIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const charactersControllerGetByIdResponseFormsItemPositionMin = -9007199254740991;
 export const charactersControllerGetByIdResponseFormsItemPositionMax = 9007199254740991;
+
+export const charactersControllerGetByIdResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const CharactersControllerGetByIdResponse = zod.object({
   aliases: zod.array(
@@ -2887,12 +3032,13 @@ export const CharactersControllerGetByIdResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -2943,7 +3089,18 @@ export const CharactersControllerGetByIdResponse = zod.object({
         .min(charactersControllerGetByIdResponseAppearancesItemSortOrderMin)
         .max(charactersControllerGetByIdResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(charactersControllerGetByIdResponseAppearancesItemSpeciesOverrideIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -3043,7 +3200,16 @@ export const CharactersControllerGetByIdResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(charactersControllerGetByIdResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -3074,7 +3240,9 @@ export const charactersControllerUpdateGlobalBodyNeutralDescriptionMax = 5000;
 
 export const charactersControllerUpdateGlobalBodyPronounsMax = 60;
 
-export const charactersControllerUpdateGlobalBodySpeciesMax = 120;
+export const charactersControllerUpdateGlobalBodySpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const CharactersControllerUpdateGlobalBody = zod.object({
   aliases: zod
@@ -3133,7 +3301,7 @@ export const CharactersControllerUpdateGlobalBody = zod.object({
     .max(charactersControllerUpdateGlobalBodyNeutralDescriptionMax)
     .nullish(),
   pronouns: zod.string().max(charactersControllerUpdateGlobalBodyPronounsMax).nullish(),
-  species: zod.string().max(charactersControllerUpdateGlobalBodySpeciesMax).nullish(),
+  speciesId: zod.uuid().regex(charactersControllerUpdateGlobalBodySpeciesIdRegExp).nullish(),
 });
 
 export const charactersControllerUpdateGlobalResponseAliasesItemPositionMin = -9007199254740991;
@@ -3159,8 +3327,16 @@ export const charactersControllerUpdateGlobalResponseAppearancesItemSortOrderMin
   -9007199254740991;
 export const charactersControllerUpdateGlobalResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const charactersControllerUpdateGlobalResponseAppearancesItemSpeciesOverrideIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 export const charactersControllerUpdateGlobalResponseFormsItemPositionMin = -9007199254740991;
 export const charactersControllerUpdateGlobalResponseFormsItemPositionMax = 9007199254740991;
+
+export const charactersControllerUpdateGlobalResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const CharactersControllerUpdateGlobalResponse = zod.object({
   aliases: zod.array(
@@ -3263,12 +3439,13 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -3319,7 +3496,18 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
         .min(charactersControllerUpdateGlobalResponseAppearancesItemSortOrderMin)
         .max(charactersControllerUpdateGlobalResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(charactersControllerUpdateGlobalResponseAppearancesItemSpeciesOverrideIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -3419,7 +3607,16 @@ export const CharactersControllerUpdateGlobalResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(charactersControllerUpdateGlobalResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -3549,8 +3746,15 @@ export const charactersControllerRestoreResponseAppearancesItemRolesItemPosition
 export const charactersControllerRestoreResponseAppearancesItemSortOrderMin = -9007199254740991;
 export const charactersControllerRestoreResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const charactersControllerRestoreResponseAppearancesItemSpeciesOverrideIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const charactersControllerRestoreResponseFormsItemPositionMin = -9007199254740991;
 export const charactersControllerRestoreResponseFormsItemPositionMax = 9007199254740991;
+
+export const charactersControllerRestoreResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const CharactersControllerRestoreResponse = zod.object({
   aliases: zod.array(
@@ -3653,12 +3857,13 @@ export const CharactersControllerRestoreResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -3709,7 +3914,18 @@ export const CharactersControllerRestoreResponse = zod.object({
         .min(charactersControllerRestoreResponseAppearancesItemSortOrderMin)
         .max(charactersControllerRestoreResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(charactersControllerRestoreResponseAppearancesItemSpeciesOverrideIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -3809,7 +4025,16 @@ export const CharactersControllerRestoreResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(charactersControllerRestoreResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -4127,6 +4352,44 @@ export const CharacterMergeControllerMergeResponse = zod.object({
 });
 
 /**
+ * @summary List the custom character roles and statuses the user has already typed
+ */
+export const characterCustomLabelsControllerListResponseRolesItemCountMin = 0;
+export const characterCustomLabelsControllerListResponseRolesItemCountMax = 9007199254740991;
+
+export const characterCustomLabelsControllerListResponseRolesMax = 50;
+
+export const characterCustomLabelsControllerListResponseStatusesItemCountMin = 0;
+export const characterCustomLabelsControllerListResponseStatusesItemCountMax = 9007199254740991;
+
+export const characterCustomLabelsControllerListResponseStatusesMax = 50;
+
+export const CharacterCustomLabelsControllerListResponse = zod.object({
+  roles: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(characterCustomLabelsControllerListResponseRolesItemCountMin)
+          .max(characterCustomLabelsControllerListResponseRolesItemCountMax),
+        label: zod.string(),
+      }),
+    )
+    .max(characterCustomLabelsControllerListResponseRolesMax),
+  statuses: zod
+    .array(
+      zod.object({
+        count: zod
+          .int()
+          .min(characterCustomLabelsControllerListResponseStatusesItemCountMin)
+          .max(characterCustomLabelsControllerListResponseStatusesItemCountMax),
+        label: zod.string(),
+      }),
+    )
+    .max(characterCustomLabelsControllerListResponseStatusesMax),
+});
+
+/**
  * @summary List the current user's characters for a book
  */
 export const BookCharactersControllerListParams = zod.object({
@@ -4310,6 +4573,8 @@ export const bookCharactersControllerCreateBodyOneBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyOneBookProfileHidePresenceAsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileIsPovCharacterDefault = false;
+export const bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorDefault = false;
+export const bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfilePersonalImpressionMax = 5000;
 
 export const bookCharactersControllerCreateBodyOneBookProfilePersonalImpressionIsSpoilerDefault = false;
@@ -4329,8 +4594,10 @@ export const bookCharactersControllerCreateBodyOneBookProfileRolesMax = 20;
 export const bookCharactersControllerCreateBodyOneBookProfileSortOrderMin = 0;
 export const bookCharactersControllerCreateBodyOneBookProfileSortOrderMax = 2147483647;
 
-export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideMax = 200;
-
+export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIdDefault = null;
+export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyOneBookProfileStatusDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyOneBookProfileStatusCustomTextMax = 200;
@@ -4361,6 +4628,8 @@ export const bookCharactersControllerCreateBodyTwoBookProfileFirstAppearancePage
 export const bookCharactersControllerCreateBodyTwoBookProfileHidePresenceAsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfileImportanceDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileIsPovCharacterDefault = false;
+export const bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorDefault = false;
+export const bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfilePersonalImpressionMax = 5000;
 
 export const bookCharactersControllerCreateBodyTwoBookProfilePersonalImpressionIsSpoilerDefault = false;
@@ -4380,8 +4649,10 @@ export const bookCharactersControllerCreateBodyTwoBookProfileRolesMax = 20;
 export const bookCharactersControllerCreateBodyTwoBookProfileSortOrderMin = 0;
 export const bookCharactersControllerCreateBodyTwoBookProfileSortOrderMax = 2147483647;
 
-export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideMax = 200;
-
+export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIdDefault = null;
+export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault = false;
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusDefault = `not_specified`;
 export const bookCharactersControllerCreateBodyTwoBookProfileStatusCustomTextMax = 200;
@@ -4415,7 +4686,10 @@ export const bookCharactersControllerCreateBodyTwoCharacterNeutralDescriptionMax
 
 export const bookCharactersControllerCreateBodyTwoCharacterPronounsMax = 60;
 
-export const bookCharactersControllerCreateBodyTwoCharacterSpeciesMax = 120;
+export const bookCharactersControllerCreateBodyTwoCharacterSpeciesIdDefault = null;
+export const bookCharactersControllerCreateBodyTwoCharacterSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const BookCharactersControllerCreateBody = zod.union([
   zod.object({
@@ -4480,12 +4754,19 @@ export const BookCharactersControllerCreateBody = zod.union([
       isPovCharacter: zod
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileIsPovCharacterDefault),
+      isUnreliableNarrator: zod
+        .boolean()
+        .default(bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorDefault),
+      isUnreliableNarratorSpoiler: zod
+        .boolean()
+        .default(
+          bookCharactersControllerCreateBodyOneBookProfileIsUnreliableNarratorSpoilerDefault,
+        ),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -4540,10 +4821,11 @@ export const BookCharactersControllerCreateBody = zod.union([
         .min(bookCharactersControllerCreateBodyOneBookProfileSortOrderMin)
         .max(bookCharactersControllerCreateBodyOneBookProfileSortOrderMax)
         .nullish(),
-      speciesOverride: zod
-        .string()
-        .max(bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideMax)
-        .nullish(),
+      speciesOverrideId: zod
+        .uuid()
+        .regex(bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIdRegExp)
+        .nullish()
+        .default(bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIdDefault),
       speciesOverrideIsSpoiler: zod
         .boolean()
         .default(bookCharactersControllerCreateBodyOneBookProfileSpeciesOverrideIsSpoilerDefault),
@@ -4623,12 +4905,19 @@ export const BookCharactersControllerCreateBody = zod.union([
       isPovCharacter: zod
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileIsPovCharacterDefault),
+      isUnreliableNarrator: zod
+        .boolean()
+        .default(bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorDefault),
+      isUnreliableNarratorSpoiler: zod
+        .boolean()
+        .default(
+          bookCharactersControllerCreateBodyTwoBookProfileIsUnreliableNarratorSpoilerDefault,
+        ),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -4683,10 +4972,11 @@ export const BookCharactersControllerCreateBody = zod.union([
         .min(bookCharactersControllerCreateBodyTwoBookProfileSortOrderMin)
         .max(bookCharactersControllerCreateBodyTwoBookProfileSortOrderMax)
         .nullish(),
-      speciesOverride: zod
-        .string()
-        .max(bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideMax)
-        .nullish(),
+      speciesOverrideId: zod
+        .uuid()
+        .regex(bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIdRegExp)
+        .nullish()
+        .default(bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIdDefault),
       speciesOverrideIsSpoiler: zod
         .boolean()
         .default(bookCharactersControllerCreateBodyTwoBookProfileSpeciesOverrideIsSpoilerDefault),
@@ -4777,7 +5067,11 @@ export const BookCharactersControllerCreateBody = zod.union([
         .string()
         .max(bookCharactersControllerCreateBodyTwoCharacterPronounsMax)
         .nullish(),
-      species: zod.string().max(bookCharactersControllerCreateBodyTwoCharacterSpeciesMax).nullish(),
+      speciesId: zod
+        .uuid()
+        .regex(bookCharactersControllerCreateBodyTwoCharacterSpeciesIdRegExp)
+        .nullish()
+        .default(bookCharactersControllerCreateBodyTwoCharacterSpeciesIdDefault),
     }),
     mode: zod.enum(["new"]),
   }),
@@ -4805,8 +5099,16 @@ export const bookCharactersControllerCreateResponseAppearancesItemRolesItemPosit
 export const bookCharactersControllerCreateResponseAppearancesItemSortOrderMin = -9007199254740991;
 export const bookCharactersControllerCreateResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const bookCharactersControllerCreateResponseAppearancesItemSpeciesOverrideIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 export const bookCharactersControllerCreateResponseFormsItemPositionMin = -9007199254740991;
 export const bookCharactersControllerCreateResponseFormsItemPositionMax = 9007199254740991;
+
+export const bookCharactersControllerCreateResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const BookCharactersControllerCreateResponse = zod.object({
   aliases: zod.array(
@@ -4909,12 +5211,13 @@ export const BookCharactersControllerCreateResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -4965,7 +5268,18 @@ export const BookCharactersControllerCreateResponse = zod.object({
         .min(bookCharactersControllerCreateResponseAppearancesItemSortOrderMin)
         .max(bookCharactersControllerCreateResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(bookCharactersControllerCreateResponseAppearancesItemSpeciesOverrideIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -5065,7 +5379,16 @@ export const BookCharactersControllerCreateResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(bookCharactersControllerCreateResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -5099,8 +5422,16 @@ export const bookCharactersControllerGetByIdResponseAppearancesItemRolesItemPosi
 export const bookCharactersControllerGetByIdResponseAppearancesItemSortOrderMin = -9007199254740991;
 export const bookCharactersControllerGetByIdResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const bookCharactersControllerGetByIdResponseAppearancesItemSpeciesOverrideIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 export const bookCharactersControllerGetByIdResponseFormsItemPositionMin = -9007199254740991;
 export const bookCharactersControllerGetByIdResponseFormsItemPositionMax = 9007199254740991;
+
+export const bookCharactersControllerGetByIdResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const BookCharactersControllerGetByIdResponse = zod.object({
   aliases: zod.array(
@@ -5203,12 +5534,13 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -5259,7 +5591,18 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
         .min(bookCharactersControllerGetByIdResponseAppearancesItemSortOrderMin)
         .max(bookCharactersControllerGetByIdResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(bookCharactersControllerGetByIdResponseAppearancesItemSpeciesOverrideIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -5359,7 +5702,16 @@ export const BookCharactersControllerGetByIdResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(bookCharactersControllerGetByIdResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -5412,8 +5764,9 @@ export const bookCharactersControllerUpdateInBookBodyRolesMax = 20;
 export const bookCharactersControllerUpdateInBookBodySortOrderMin = 0;
 export const bookCharactersControllerUpdateInBookBodySortOrderMax = 2147483647;
 
-export const bookCharactersControllerUpdateInBookBodySpeciesOverrideMax = 200;
-
+export const bookCharactersControllerUpdateInBookBodySpeciesOverrideIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookCharactersControllerUpdateInBookBodyStatusCustomTextMax = 200;
 
 export const bookCharactersControllerUpdateInBookBodyTagIdsItemRegExp = new RegExp(
@@ -5493,12 +5846,13 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"])
     .optional(),
   isPovCharacter: zod.boolean().optional(),
+  isUnreliableNarrator: zod.boolean().optional(),
+  isUnreliableNarratorSpoiler: zod.boolean().optional(),
   narratorType: zod
     .union([
       zod.literal("first_person"),
       zod.literal("third_person_limited"),
       zod.literal("third_person_omniscient"),
-      zod.literal("unreliable"),
       zod.literal("other"),
       zod.literal(null),
     ])
@@ -5547,9 +5901,9 @@ export const BookCharactersControllerUpdateInBookBody = zod.object({
     .min(bookCharactersControllerUpdateInBookBodySortOrderMin)
     .max(bookCharactersControllerUpdateInBookBodySortOrderMax)
     .nullish(),
-  speciesOverride: zod
-    .string()
-    .max(bookCharactersControllerUpdateInBookBodySpeciesOverrideMax)
+  speciesOverrideId: zod
+    .uuid()
+    .regex(bookCharactersControllerUpdateInBookBodySpeciesOverrideIdRegExp)
     .nullish(),
   speciesOverrideIsSpoiler: zod.boolean().optional(),
   status: zod
@@ -5589,8 +5943,16 @@ export const bookCharactersControllerUpdateInBookResponseAppearancesItemSortOrde
   -9007199254740991;
 export const bookCharactersControllerUpdateInBookResponseAppearancesItemSortOrderMax = 9007199254740991;
 
+export const bookCharactersControllerUpdateInBookResponseAppearancesItemSpeciesOverrideIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 export const bookCharactersControllerUpdateInBookResponseFormsItemPositionMin = -9007199254740991;
 export const bookCharactersControllerUpdateInBookResponseFormsItemPositionMax = 9007199254740991;
+
+export const bookCharactersControllerUpdateInBookResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 
 export const BookCharactersControllerUpdateInBookResponse = zod.object({
   aliases: zod.array(
@@ -5701,12 +6063,13 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
         "not_specified",
       ]),
       isPovCharacter: zod.boolean(),
+      isUnreliableNarrator: zod.boolean().nullable(),
+      isUnreliableNarratorSpoiler: zod.boolean(),
       narratorType: zod
         .union([
           zod.literal("first_person"),
           zod.literal("third_person_limited"),
           zod.literal("third_person_omniscient"),
-          zod.literal("unreliable"),
           zod.literal("other"),
           zod.literal(null),
         ])
@@ -5757,7 +6120,20 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
         .min(bookCharactersControllerUpdateInBookResponseAppearancesItemSortOrderMin)
         .max(bookCharactersControllerUpdateInBookResponseAppearancesItemSortOrderMax)
         .nullable(),
-      speciesOverride: zod.string().nullable(),
+      speciesOverride: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(
+              bookCharactersControllerUpdateInBookResponseAppearancesItemSpeciesOverrideIdRegExp,
+            ),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       speciesOverrideIsSpoiler: zod.boolean(),
       status: zod
         .union([
@@ -5857,7 +6233,16 @@ export const BookCharactersControllerUpdateInBookResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(bookCharactersControllerUpdateInBookResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
   updatedAt: zod.string(),
 });
 
@@ -5878,12 +6263,43 @@ export const BookCharacterSuggestionsControllerListParams = zod.object({
   bookId: zod.string().describe("Book id"),
 });
 
+export const bookCharacterSuggestionsControllerListQueryContextAudioSecondsMin = 0;
+export const bookCharacterSuggestionsControllerListQueryContextAudioSecondsMax = 2147483647;
+
+export const bookCharacterSuggestionsControllerListQueryContextChapterMin = 0;
+export const bookCharacterSuggestionsControllerListQueryContextChapterMax = 2147483647;
+
+export const bookCharacterSuggestionsControllerListQueryContextPageMin = 0;
+export const bookCharacterSuggestionsControllerListQueryContextPageMax = 2147483647;
+
+export const bookCharacterSuggestionsControllerListQueryContextBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookCharacterSuggestionsControllerListQueryLimitDefault = 10;
 export const bookCharacterSuggestionsControllerListQueryLimitMax = 50;
 
 export const bookCharacterSuggestionsControllerListQueryQMax = 100;
 
 export const BookCharacterSuggestionsControllerListQueryParams = zod.object({
+  contextAudioSeconds: zod
+    .int()
+    .min(bookCharacterSuggestionsControllerListQueryContextAudioSecondsMin)
+    .max(bookCharacterSuggestionsControllerListQueryContextAudioSecondsMax)
+    .optional(),
+  contextChapter: zod
+    .int()
+    .min(bookCharacterSuggestionsControllerListQueryContextChapterMin)
+    .max(bookCharacterSuggestionsControllerListQueryContextChapterMax)
+    .optional(),
+  contextPage: zod
+    .int()
+    .min(bookCharacterSuggestionsControllerListQueryContextPageMin)
+    .max(bookCharacterSuggestionsControllerListQueryContextPageMax)
+    .optional(),
+  contextBookId: zod
+    .uuid()
+    .regex(bookCharacterSuggestionsControllerListQueryContextBookIdRegExp)
+    .optional(),
   limit: zod
     .int()
     .min(1)
@@ -5895,6 +6311,11 @@ export const BookCharacterSuggestionsControllerListQueryParams = zod.object({
 export const bookCharacterSuggestionsControllerListResponseSuggestionsItemAppearanceCountMin =
   -9007199254740991;
 export const bookCharacterSuggestionsControllerListResponseSuggestionsItemAppearanceCountMax = 9007199254740991;
+
+export const bookCharacterSuggestionsControllerListResponseSuggestionsItemSpeciesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
 
 export const BookCharacterSuggestionsControllerListResponse = zod.object({
   suggestions: zod.array(
@@ -5942,7 +6363,18 @@ export const BookCharacterSuggestionsControllerListResponse = zod.object({
       name: zod.string(),
       neutralDescription: zod.string().nullable(),
       pronouns: zod.string().nullable(),
-      species: zod.string().nullable(),
+      species: zod
+        .object({
+          id: zod
+            .uuid()
+            .regex(bookCharacterSuggestionsControllerListResponseSuggestionsItemSpeciesIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
       tags: zod.array(
         zod.object({
           color: zod
@@ -6343,6 +6775,10 @@ export const seriesCharactersControllerProfileResponseAppearancesItemRolesItemPo
   -9007199254740991;
 export const seriesCharactersControllerProfileResponseAppearancesItemRolesItemPositionMax = 9007199254740991;
 
+export const seriesCharactersControllerProfileResponseSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+
 export const SeriesCharactersControllerProfileResponse = zod.object({
   aliases: zod.array(
     zod.object({
@@ -6489,7 +6925,16 @@ export const SeriesCharactersControllerProfileResponse = zod.object({
   name: zod.string(),
   neutralDescription: zod.string().nullable(),
   pronouns: zod.string().nullable(),
-  species: zod.string().nullable(),
+  species: zod
+    .object({
+      id: zod.uuid().regex(seriesCharactersControllerProfileResponseSpeciesIdRegExp),
+      key: zod.string().nullable(),
+      labels: zod.object({
+        en: zod.string(),
+        uk: zod.string(),
+      }),
+    })
+    .nullable(),
 });
 
 /**

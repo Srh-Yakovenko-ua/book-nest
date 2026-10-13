@@ -89,10 +89,6 @@ function PublisherDetailsSkeleton({ label }: { label: string }) {
           <Skeleton className="h-24 w-full rounded-xl" key={key} />
         ))}
       </div>
-      <div className="flex gap-1 border-b border-border pb-2">
-        <Skeleton className="h-7 w-20 rounded-md" />
-        <Skeleton className="h-7 w-20 rounded-md" />
-      </div>
       <Skeleton className="h-64 w-full rounded-xl" />
     </output>
   );
