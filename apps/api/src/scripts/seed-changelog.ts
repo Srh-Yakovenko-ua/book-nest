@@ -1281,14 +1281,86 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
   },
   {
     bodyEn:
-      "A character's Species field is now a search instead of free text. It looks through a shared list of 114 ready-made species, such as human, elf, orc, vampire and dragon, and finds each one by its Ukrainian or English name. Before you type anything, it suggests popular species and the ones you created recently. If nothing fits, create your own species right in the field. Only you can see it, and if a species with the same or a similar name already exists, the field shows it first so you don't end up with a duplicate. In Manage your own species you can rename your species, merge one into another so its characters move over, or delete one that is not used anywhere. Species in this book works the same way, and spoiler hiding still applies to it. The species your characters already had are kept: names that match the list now point to it, and the rest became your own species.",
+      "A character's Species field is now a search instead of free text, over a shared list of 114 ready-made species such as human, elf, orc, vampire and dragon, each found by its Ukrainian or English name. Before you type, it shows Popular and Your recent species, and below them you can scroll through the whole list: your own species first, then the ready-made ones by category. If nothing fits, create your own species right in the field: only you can see it, and if one with the same or a similar name already exists, the field shows it first so you don't end up with a duplicate. In Manage your own species you can search your list, filter it by In use or Not used with a count on each, and use one menu on each row to rename a species, delete it, or merge it into another so its characters move over. Renaming shows similar species and offers to merge into one that already has the new name, and a species that is still in use cannot be deleted: the window says why and offers to merge it instead. Species in this book works the same way, and spoiler hiding still applies to it. The species your characters already had are kept: names that match the list now point to it, and the rest became your own species.",
     bodyUk:
-      "Поле «Вид» у персонажа тепер працює як пошук, а не як вільний текст. Воно шукає у спільному переліку зі 114 готових видів, як-от людина, ельф, орк, вампір і дракон, і знаходить кожен за українською або англійською назвою. Поки ви нічого не ввели, поле пропонує популярні види та ті, які ви нещодавно створили. Якщо потрібного немає, створіть власний вид просто в полі. Його бачите лише ви, а якщо вид із такою самою чи схожою назвою вже є, поле спершу покаже його, щоб не з’явився дублікат. У вікні «Керування власними видами» свої види можна перейменувати, об’єднати з іншим, і тоді їхні персонажі перейдуть до нього, або видалити вид, який ніде не використовується. Поле «Вид у цій книзі» працює так само, і приховування спойлерів на нього теж діє. Види, які вже були у ваших персонажів, збереглися: назви, що є в переліку, тепер посилаються на нього, а решта стали вашими власними видами.",
+      "Поле «Вид» у персонажа тепер працює як пошук, а не як вільний текст: воно шукає у спільному переліку зі 114 готових видів, як-от людина, ельф, орк, вампір і дракон, і знаходить кожен за українською або англійською назвою. Поки ви нічого не ввели, поле показує «Популярні» та «Ваші нещодавні», а нижче можна прогорнути весь перелік: спершу ваші власні види, потім готові, згруповані за категоріями. Якщо потрібного немає, створіть власний вид просто в полі: його бачите лише ви, а якщо вид із такою самою чи схожою назвою вже є, поле спершу покаже його, щоб не з’явився дублікат. У вікні «Керування власними видами» є пошук і фільтри «Використовуються» та «Не використовуються» з кількістю видів, а через одне меню в рядку вид можна перейменувати, видалити або об’єднати з іншим, щоб його персонажі перейшли до того виду. Під час перейменування видно схожі види й можна одразу об’єднати з тим, що вже має таку назву, а вид, який ще використовується, видалити не можна: вікно пояснить чому й запропонує натомість об’єднати його з іншим. Поле «Вид у цій книзі» працює так само, і приховування спойлерів на нього теж діє. Види, які вже були у ваших персонажів, збереглися: назви, що є в переліку, тепер посилаються на нього, а решта стали вашими власними видами.",
     category: "feature",
     publishedAt: "2026-10-10T00:00:00.000Z",
     slug: "character-species-catalog",
     titleEn: "Species catalog for characters",
     titleUk: "Каталог видів для персонажів",
+    version: null,
+  },
+  {
+    bodyEn:
+      "If you created the same publisher twice, you can now merge the extra one into the right one. On your own publisher's page, open the actions menu, choose Merge into another and pick where its books should go: one of your other publishers or one from the catalog. Every book moves over, including those in the trash, and the emptied duplicate is removed, while a catalog publisher you merge into stays exactly as it was. Before, a publisher whose books were all in the trash could still be deleted, and those books quietly lost their publisher. Now a publisher with any linked books, in the trash or not, can't be deleted, and the delete window offers Merge into another instead.",
+    bodyUk:
+      "Якщо ви випадково створили те саме видавництво двічі, тепер зайве можна обʼєднати з потрібним. На сторінці власного видавництва відкрийте меню дій, виберіть «Обʼєднати з іншим» і вкажіть, куди перенести книги: до іншого вашого видавництва чи до видавництва з каталогу. Туди переходять усі його книги, зокрема ті, що в кошику, після чого порожній дублікат видаляється, а видавництво з каталогу, до якого ви їх переносите, лишається без жодних змін. Раніше видавництво, усі книги якого були в кошику, все одно можна було видалити, і ці книги непомітно втрачали видавництво. Тепер видавництво, до якого привʼязана хоч одна книга, у кошику чи ні, видалити не можна, а вікно видалення натомість пропонує «Обʼєднати з іншим».",
+    category: "feature",
+    publishedAt: "2026-10-13T00:00:00.000Z",
+    slug: "publisher-merge",
+    titleEn: "Merging duplicate publishers",
+    titleUk: "Обʼєднання дублікатів видавництв",
+    version: null,
+  },
+  {
+    bodyEn:
+      'When you type a publisher in the book form, the name is now compared with every name each publisher has and with its Latin or Cyrillic spelling, so "Віват" finds "Видавництво Vivat". A publisher that already has this name is listed under This publisher already exists, and close matches are listed under Similar publishers. If a publisher was found by one of its other names, the name that matched is now shown under it. A name you typed but did not pick from the list no longer disappears when you save the book: if one publisher matches, it is used, if several do, you are asked to choose, and if none does, you are asked to confirm a new publisher. If the check fails, the suggestion list and the Edit publisher window now say so, and if you enter a name there that is already taken, you see which publisher uses it. Before, a publisher whose name matched another one could not be saved at all, even when you changed only its country, founded year or website, and now it saves with a note that you can merge the two.',
+    bodyUk:
+      "Коли ви вводите видавництво у формі книги, назва тепер звіряється з усіма назвами кожного видавництва, а також із її написанням латиницею чи кирилицею, тож «Віват» знаходить «Видавництво Vivat». Видавництво, яке вже має таку назву, зʼявляється в розділі «Це видавництво вже є», а близькі варіанти потрапляють до розділу «Схожі видавництва». Якщо видавництво знайшлося за іншою своєю назвою, під ним тепер видно, яка саме назва збіглася. Назва, яку ви ввели, але не вибрали зі списку, більше не зникає під час збереження книги: якщо збіг один, форма візьме його, якщо їх кілька, попросить вибрати, а якщо збігів немає, попросить підтвердити нове видавництво. Коли перевірка не вдається, про це тепер повідомляють і список підказок, і вікно «Редагувати видавництво», а якщо ввести там уже зайняту назву, ви побачите, яке видавництво її використовує. Раніше видавництво, чия назва збігалася з назвою іншого, взагалі не вдавалося зберегти, навіть коли ви змінювали лише країну, рік заснування чи сайт, а тепер зміни зберігаються, і під назвою зʼявляється підказка, що ці видавництва можна обʼєднати.",
+    category: "improvement",
+    publishedAt: "2026-10-13T00:00:01.000Z",
+    slug: "publisher-name-matching",
+    titleEn: "Recognizing publishers by any name",
+    titleUk: "Розпізнавання видавництв за будь-якою назвою",
+    version: null,
+  },
+  {
+    bodyEn:
+      "In the event form, the Chapter field now suggests the chapters this book already uses in your notes, quotes and events, and shows how often each one appears. Picking a suggestion keeps one chapter from being saved under several spellings, and you can still type a new one. The timeline switcher is now a dropdown next to search, and Manage timelines sits next to Timeline overview. When you switch to a single timeline, its events are sorted in Timeline order, unless you picked a different sort yourself. Save and add another now carries the chapter, page, in-story time and location over to the next event. Hidden spoiler events now look the same in the Timeline and Table views and in the event window.",
+    bodyUk:
+      "У формі події поле «Розділ» тепер підказує розділи, які вже є в нотатках, цитатах і подіях цієї книги, і показує, скільки разів трапляється кожен. Підказки допомагають записувати той самий розділ завжди однаково, а власну назву, як і раніше, можна ввести вручну. Часові лінії тепер перемикаються через спадний список поруч із пошуком, а кнопка «Керувати лініями» стоїть біля кнопки «Огляд хронології». Коли ви вибираєте окрему лінію, її події сортуються за внутрішньою хронологією, якщо тільки ви не задали сортування самі. Кнопка «Зберегти й додати ще» тепер переносить у наступну подію розділ, сторінку, внутрішньосюжетний час і локацію. Приховані події зі спойлерами тепер виглядають однаково у стрічці, таблиці та вікні події.",
+    category: "improvement",
+    publishedAt: "2026-10-13T00:00:02.000Z",
+    slug: "timeline-chapter-suggestions",
+    titleEn: "Timeline chapter suggestions",
+    titleUk: "Підказки розділів у хронології",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Roles on the character edit page are now picked in one field, like tags: choose or type up to five, hide any of them as a spoiler with the eye, and find the roles you created for other characters under Your roles. Status and Gender no longer need a separate box for your own value: pick from the list or just type it, and the statuses you created for other characters appear under Your statuses. Under First appearance, Chapter suggests the chapters you have already recorded for this book, and Page no longer accepts a number past the book's page count. Other names now fit in one compact field, each shown with its type: click a name to edit it, and add up to 30 names for all books and 30 more for this book. In the new Character image panel you can add, replace or remove the main avatar without leaving the page, choose the main avatar or a separate portrait for this book, and drag an image onto the panel or paste it. We also fixed a bug where saving a character could quietly delete roles or other names that were hidden as spoilers.",
+    bodyUk:
+      "Ролі на сторінці редагування персонажа тепер вибираються в одному полі, як теги: можна вибрати або ввести до п'яти, кожну сховати як спойлер, натиснувши на око, а ролі, які ви створили для інших персонажів, з'являються в групі «Ваші ролі». Для «Статусу» й «Гендеру» більше не потрібне окреме поле для власного варіанта: виберіть значення зі списку або просто введіть своє, а статуси, створені для інших персонажів, з'являються в групі «Ваші статуси». У блоці «Перша поява» поле «Розділ» підказує розділи, які ви вже вказували для цієї книги, а в полі «Сторінка» не можна вказати число, більше за кількість сторінок у книзі. Інші імена тепер уміщуються в одне компактне поле, де кожне показано разом із типом: натисніть на ім'я, щоб змінити його, і додайте до 30 імен для всіх книг та ще 30 для цієї книги. У новій панелі «Зображення персонажа» можна додати, замінити або прибрати основний аватар, не виходячи зі сторінки, вибрати для цієї книги основний аватар або окремий портрет, а також перетягнути зображення на панель чи вставити його. Ми також виправили помилку: раніше збереження персонажа могло непомітно видалити ролі чи інші імена, приховані як спойлер.",
+    category: "improvement",
+    publishedAt: "2026-10-13T00:00:03.000Z",
+    slug: "character-edit-rework",
+    titleEn: "Reworked character editing",
+    titleUk: "Оновлене редагування персонажа",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Unreliable used to be one of the options in Narration method, so you could not record a narrator who tells the story in the first person and cannot be trusted. Now Unreliable narrator has its own switch in the Role in the story section, which appears when Point-of-view character (POV) is on, and you can combine it with any narration method. Turn on Mark as spoiler under it, and the character page keeps this hidden until you press Show. Characters you had already marked as unreliable kept the mark, and you can now also set how they tell the story.",
+    bodyUk:
+      "Раніше «Ненадійний» був одним із варіантів у полі «Спосіб оповіді», тож не можна було записати оповідача, який веде розповідь від першої особи й водночас не заслуговує на довіру. Тепер «Ненадійний оповідач» має власний перемикач у розділі «Роль у розповіді», який з'являється, коли ввімкнено «Персонаж із власною перспективою (POV)», і його можна поєднати з будь-яким способом оповіді. Якщо ввімкнути під ним «Позначити як спойлер», сторінка персонажа ховатиме цю позначку, доки ви не натиснете «Показати». Персонажі, яких ви вже позначили як ненадійних, цю позначку зберегли, а тепер їм можна ще й указати спосіб оповіді.",
+    category: "feature",
+    publishedAt: "2026-10-13T00:00:04.000Z",
+    slug: "character-unreliable-narrator",
+    titleEn: "Unreliable narrator",
+    titleUk: "Ненадійний оповідач",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Characters now has its own item in the sidebar, under Catalog, so you no longer need a direct link to open that page. The sidebar is grouped into Books, Catalog, Records and Tracking, with Home on its own at the top. When the sidebar is collapsed, Notes, Borrowed books and Deliveries open a small menu with their pages instead of jumping straight to the first one. Settings now sits at the bottom, just above the button that collapses the sidebar. Items that used to share a name are easier to tell apart: Book notes, Series notes and Delivery statistics.",
+    bodyUk:
+      "Раніше сторінку «Персонажі» можна було відкрити лише за прямим посиланням, а тепер вона має свій пункт у бічній панелі, у розділі «Каталог». Бічну панель поділено на розділи «Книги», «Каталог», «Записи» та «Облік», а «Головна» стоїть окремо вгорі. Коли панель згорнута, «Нотатки», «Позичені книги» й «Доставки» відкривають невелике меню зі своїми сторінками, а не переносять одразу на першу з них. «Налаштування» тепер унизу, над кнопкою, що згортає панель. Пункти, які раніше мали однакові назви, тепер легко розрізнити: «Нотатки до книг», «Нотатки до серій» і «Статистика доставок».",
+    category: "improvement",
+    publishedAt: "2026-10-13T00:00:05.000Z",
+    slug: "sidebar-sections",
+    titleEn: "Sidebar with sections",
+    titleUk: "Бічна панель із розділами",
     version: null,
   },
 ];
