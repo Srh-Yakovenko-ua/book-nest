@@ -7,7 +7,7 @@ import { makeBookView } from "@/features/books/components/book-details.fixtures"
 import {
   CHARACTERS_ROSTER_PAGE_SIZE,
   toBookCharactersListParams,
-  toCharacterReadingContext,
+  toCharacterBookContext,
 } from "./characters-roster-query";
 
 const rosterState = {
@@ -52,28 +52,43 @@ describe("toBookCharactersListParams", () => {
     ).toMatchObject({ search: "Ґеральт" });
   });
 
-  it("forwards the reading context to the backend", () => {
-    expect(
-      toBookCharactersListParams(rosterState, { contextBookId: "book-1", contextPage: 42 }),
-    ).toMatchObject({ contextBookId: "book-1", contextPage: 42 });
+  it("forwards the context book to the backend", () => {
+    expect(toBookCharactersListParams(rosterState, { contextBookId: "book-1" })).toEqual({
+      contextBookId: "book-1",
+      pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
+      sort: "importance",
+    });
   });
 });
 
-describe("toCharacterReadingContext", () => {
-  it("sends the current page for a book that is still being read", () => {
-    expect(toCharacterReadingContext(makeBookAt(42, "reading"))).toEqual({
+describe("toCharacterBookContext", () => {
+  it("names only the book while it is still being read", () => {
+    expect(toCharacterBookContext(makeBookAt(42, "reading"))).toEqual({
       contextBookId: "book-1",
-      contextPage: 42,
     });
   });
 
-  it("reveals everything once the book is finished or abandoned", () => {
-    expect(toCharacterReadingContext(makeBookAt(42, "finished"))).toEqual({});
-    expect(toCharacterReadingContext(makeBookAt(42, "dnf"))).toEqual({});
+  it("reveals everything once the book is finished", () => {
+    expect(toCharacterBookContext(makeBookAt(42, "finished"))).toEqual({});
   });
 
-  it("sends nothing when there is no usable position", () => {
-    expect(toCharacterReadingContext(makeBookAt(null, "reading"))).toEqual({});
-    expect(toCharacterReadingContext(makeBookAt(0, "reading"))).toEqual({});
+  it("reveals everything once the book is abandoned", () => {
+    expect(toCharacterBookContext(makeBookAt(42, "dnf"))).toEqual({});
+  });
+
+  it("sends nothing when the book has no reading progress", () => {
+    expect(toCharacterBookContext(makeBookView({ id: "book-1", readingProgress: null }))).toEqual(
+      {},
+    );
+  });
+
+  it("sends nothing when the current page is missing", () => {
+    expect(toCharacterBookContext(makeBookAt(null, "reading"))).toEqual({});
+  });
+
+  it("sends nothing when the current page is not a positive whole page", () => {
+    expect(toCharacterBookContext(makeBookAt(0, "reading"))).toEqual({});
+    expect(toCharacterBookContext(makeBookAt(-3, "reading"))).toEqual({});
+    expect(toCharacterBookContext(makeBookAt(4.5, "reading"))).toEqual({});
   });
 });

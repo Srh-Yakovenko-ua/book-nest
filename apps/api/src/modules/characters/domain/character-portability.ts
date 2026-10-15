@@ -89,7 +89,6 @@ export type ExportAppearanceRow = {
   firstAppearanceChapter: Nullable<string>;
   firstAppearanceNote: Nullable<string>;
   firstAppearancePage: Nullable<number>;
-  hidePresenceAsSpoiler: boolean;
   importance: string;
   isPovCharacter: boolean;
   isUnreliableNarrator: boolean;
@@ -134,7 +133,6 @@ export type ExportCharacterRow = {
   forms: ExportFormRow[];
   gender: string;
   globalAttitude: Nullable<string>;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -225,7 +223,6 @@ export type ImportBookCharacterRow = {
   firstAppearanceChapter: Nullable<string>;
   firstAppearanceNote: Nullable<string>;
   firstAppearancePage: Nullable<number>;
-  hidePresenceAsSpoiler: boolean;
   id: string;
   importance: string;
   isPovCharacter: boolean;
@@ -269,7 +266,6 @@ export type ImportCharacterRow = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -566,7 +562,6 @@ function planCharacter({
     entityKind: character.entityKind,
     gender: character.gender,
     globalAttitude: character.globalAttitude,
-    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: freshCharacterId,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -676,7 +671,6 @@ function planCharacter({
       firstAppearanceChapter: emptyToNull(appearance.firstAppearanceChapter),
       firstAppearanceNote: emptyToNull(appearance.firstAppearanceNote),
       firstAppearancePage: appearance.firstAppearancePage,
-      hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
       id: bookCharacterId,
       importance: appearance.importance,
       isPovCharacter: appearance.isPovCharacter,
@@ -957,7 +951,6 @@ function serializeAppearance(
     firstAppearanceChapter: row.firstAppearanceChapter,
     firstAppearanceNote: row.firstAppearanceNote,
     firstAppearancePage: row.firstAppearancePage,
-    hidePresenceAsSpoiler: row.hidePresenceAsSpoiler,
     importance: BookCharacterImportanceSchema.parse(row.importance),
     isPovCharacter: row.isPovCharacter,
     isUnreliableNarrator: row.isUnreliableNarrator,
@@ -1011,7 +1004,6 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     gender: CharacterGenderSchema.parse(row.gender),
     globalAttitude:
       row.globalAttitude === null ? null : CharacterAttitudeSchema.parse(row.globalAttitude),
-    hideProfileAsSpoiler: row.hideProfileAsSpoiler,
     id: row.id,
     isArchived: row.archivedAt !== null,
     isFavorite: row.isFavorite,

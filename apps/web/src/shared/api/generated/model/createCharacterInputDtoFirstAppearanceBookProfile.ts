@@ -54,7 +54,6 @@ export type CreateCharacterInputDtoFirstAppearanceBookProfile = {
    * @nullable
    */
   firstAppearancePage?: number | null;
-  hidePresenceAsSpoiler?: boolean;
   importance?: CreateCharacterInputDtoFirstAppearanceBookProfileImportance;
   isPovCharacter?: boolean;
   isUnreliableNarrator?: boolean;

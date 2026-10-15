@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom/vitest";
+import type { BookCharacterSummaryQuery } from "@app/shared";
+
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,16 +68,16 @@ function paramOf(url: string | undefined, name: string): null | string {
   return new URL(url, "http://localhost").searchParams.get(name);
 }
 
-function renderDialog(readingContext = {}) {
+function renderDialog(bookContext: BookCharacterSummaryQuery = {}) {
   const onOpenChange = vi.fn();
   const onOpenDetails = vi.fn();
   const view = renderWithProviders(
     <AddCharacterDialog
       book={book}
+      bookContext={bookContext}
       onOpenChange={onOpenChange}
       onOpenDetails={onOpenDetails}
       open
-      readingContext={readingContext}
     />,
   );
   return { ...view, onOpenChange, onOpenDetails };
@@ -175,15 +177,14 @@ describe("AddCharacterDialog search", () => {
     expect(screen.getByText("Geralt")).toBeInTheDocument();
   });
 
-  it("forwards the reading context to both lookups", async () => {
-    renderDialog({ contextBookId: "book-1", contextPage: 42 });
+  it("forwards the context book to both lookups", async () => {
+    renderDialog({ contextBookId: "book-1" });
 
     await search("Geralt");
 
     await waitFor(() => expect(suggestionRequestUrls()).toHaveLength(1));
     for (const url of [lookupRequestUrls()[0], suggestionRequestUrls()[0]]) {
       expect(paramOf(url, "contextBookId")).toBe("book-1");
-      expect(paramOf(url, "contextPage")).toBe("42");
     }
   });
 });

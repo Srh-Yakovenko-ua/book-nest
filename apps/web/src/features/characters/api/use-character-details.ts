@@ -1,8 +1,4 @@
-import type {
-  BookCharacterSummaryQuery,
-  CharacterDetailsView,
-  CharacterRevealFieldKey,
-} from "@app/shared";
+import type { CharacterDetailsView, CharacterRevealFieldKey } from "@app/shared";
 
 import { CharacterDetailsViewSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -13,25 +9,28 @@ import { charactersControllerGetById } from "@/shared/api/generated/endpoints/ch
 
 import { characterKeys } from "./character-keys";
 
-type UseCharacterDetailsArgs = BookCharacterSummaryQuery & {
+type UseCharacterDetailsArgs = {
   characterId: string;
-  includeHiddenProfiles?: boolean;
+  contextBookId?: string;
+  placeholderData?: (
+    previous: CharacterDetailsView | undefined,
+  ) => CharacterDetailsView | undefined;
   revealFieldIds?: CharacterRevealFieldKey[];
 };
 
 export function useCharacterDetails({
   characterId,
-  includeHiddenProfiles,
+  contextBookId,
+  placeholderData,
   revealFieldIds,
-  ...readingContext
 }: UseCharacterDetailsArgs) {
   const params: CharactersControllerGetByIdParams = {
-    ...readingContext,
-    ...(includeHiddenProfiles === true ? { includeHiddenProfiles: "true" } : {}),
+    ...(contextBookId === undefined ? {} : { contextBookId }),
     ...(revealFieldIds === undefined || revealFieldIds.length === 0 ? {} : { revealFieldIds }),
   };
 
   return useQuery({
+    ...(placeholderData === undefined ? {} : { placeholderData }),
     queryFn: async (): Promise<CharacterDetailsView> =>
       CharacterDetailsViewSchema.parse(await charactersControllerGetById(characterId, params)),
     queryKey: characterKeys.details(characterId, params),

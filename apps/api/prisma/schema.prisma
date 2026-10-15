@@ -1050,7 +1050,6 @@ model Character {
   neutralDescription    String?                    @map("neutral_description")
   avatarMediaId         String?                    @map("avatar_media_id") @db.Uuid
   isFavorite            Boolean                    @default(false) @map("is_favorite")
-  hideProfileAsSpoiler  Boolean                    @default(false) @map("hide_profile_as_spoiler")
   globalAttitude        String?                    @map("global_attitude")
   archivedAt            DateTime?                  @map("archived_at") @db.Timestamptz
   deletedAt             DateTime?                  @map("deleted_at") @db.Timestamptz
@@ -1144,7 +1143,6 @@ model BookCharacter {
   isUnreliableNarrator        Boolean             @default(false) @map("is_unreliable_narrator")
   isUnreliableNarratorSpoiler Boolean             @default(false) @map("is_unreliable_narrator_spoiler")
   sortOrder                   Int?                @map("sort_order")
-  hidePresenceAsSpoiler       Boolean             @default(false) @map("hide_presence_as_spoiler")
   displayNameIsSpoiler        Boolean             @default(false) @map("display_name_is_spoiler")
   statusIsSpoiler             Boolean             @default(false) @map("status_is_spoiler")
   descriptionIsSpoiler        Boolean             @default(false) @map("description_is_spoiler")

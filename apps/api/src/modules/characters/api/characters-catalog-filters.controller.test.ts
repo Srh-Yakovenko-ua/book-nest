@@ -162,22 +162,17 @@ describe("global catalog: tag surfacing", () => {
 });
 
 describe("global catalog: bookId and seriesId filters", () => {
-  it("filters by bookId and excludes hidden-presence appearances", async () => {
+  it("filters by bookId and keeps a character first met late in the book", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const first = await createBook(accessToken, { title: "Dune" });
     const second = await createBook(accessToken, { title: "Foundation" });
 
     await createInBook(accessToken, first, { name: "Paul Atreides" });
     await createInBook(accessToken, second, { name: "Hari Seldon" });
-    await createInBook(
-      accessToken,
-      first,
-      { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true },
-    );
+    await createInBook(accessToken, first, { name: "The Traitor" }, { firstAppearancePage: 480 });
 
     const res = await authed("get", `/api/characters?bookId=${first}`, accessToken);
-    expect(names(res)).toEqual(["Paul Atreides"]);
+    expect(names(res)).toEqual(["Paul Atreides", "The Traitor"]);
   });
 
   it("filters by seriesId across the series books", async () => {
@@ -312,7 +307,7 @@ describe("global catalog: hasSpoilers honors contextBookId", () => {
       accessToken,
       futureBook,
       { name: "The Ghola" },
-      { hidePresenceAsSpoiler: true },
+      { status: "dead", statusIsSpoiler: true },
     );
 
     const plainContext = await authed(

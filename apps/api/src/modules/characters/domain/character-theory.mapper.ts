@@ -6,7 +6,6 @@ export type CharacterTheorySource = {
   book: Nullable<{ id: string; title: string }>;
   character: Nullable<{
     deletedAt: Nullable<Date>;
-    hideProfileAsSpoiler: boolean;
     id: string;
     name: string;
   }>;
@@ -21,9 +20,7 @@ export type CharacterTheorySource = {
 
 export function toCharacterTheoryView(theory: CharacterTheorySource): CharacterTheoryView {
   const status = CharacterTheoryStatusSchema.parse(theory.status);
-  const characterNameHidden =
-    theory.character !== null &&
-    (theory.character.deletedAt !== null || theory.character.hideProfileAsSpoiler);
+  const characterNameHidden = theory.character !== null && theory.character.deletedAt !== null;
   return {
     bookId: theory.book?.id ?? null,
     bookTitle: theory.book?.title ?? null,

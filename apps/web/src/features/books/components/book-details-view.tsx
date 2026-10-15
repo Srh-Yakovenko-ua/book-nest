@@ -11,7 +11,7 @@ import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   BookCharactersTab,
-  toCharacterReadingContext,
+  toCharacterBookContext,
   useBookCharacterSummary,
 } from "@/features/characters";
 import { BookNotesBlock } from "@/features/notes";
@@ -41,7 +41,7 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
   const t = useTranslations("books.details");
   const tCharacters = useTranslations("characters");
   const [tab, setTab] = useQueryState("tab", tabParser);
-  const charactersSummary = useBookCharacterSummary(book.id, toCharacterReadingContext(book));
+  const charactersSummary = useBookCharacterSummary(book.id, toCharacterBookContext(book));
   const charactersCount = charactersSummary.data?.totalVisibleCharacters ?? 0;
   const timelineSummaryQuery = useTimelineSummary(book.id);
 

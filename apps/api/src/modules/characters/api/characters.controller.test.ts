@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { CharacterRevealFieldKeySchema } from "@app/shared";
 import { HttpStatus } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -297,7 +298,7 @@ describe("character ownership (IDOR)", () => {
 });
 
 describe("spoiler redaction", () => {
-  it("omits spoiler-flagged fields from the roster but keeps them in details", async () => {
+  it("masks spoiler-flagged fields in the roster and in book character details until revealed", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
 
@@ -326,20 +327,57 @@ describe("spoiler redaction", () => {
     expect(JSON.stringify(item)).not.toContain("Muad'Dib");
     expect(JSON.stringify(item)).not.toContain("Kwisatz Haderach");
 
-    const details = await authed("get", `/api/books/${bookId}/characters`, accessToken);
-    const characterId = details.body.items[0].characterId;
-    const full = await authed("get", `/api/books/${bookId}/characters/${characterId}`, accessToken);
-    expect(full.status).toBe(HttpStatus.OK);
-    const appearance = full.body.appearances[0];
-    expect(appearance.displayName).toBe("Muad'Dib");
-    expect(appearance.description).toBe("Becomes the Kwisatz Haderach");
-    expect(appearance.displayNameIsSpoiler).toBe(true);
-    expect(appearance.hiddenFields).toEqual(
-      expect.arrayContaining(["description", "displayName", "status"]),
+    const detailsPath = `/api/books/${bookId}/characters/${item.characterId}`;
+    const masked = await authed("get", detailsPath, accessToken);
+    expect(masked.status).toBe(HttpStatus.OK);
+    const maskedAppearance = masked.body.appearances[0];
+    expect(maskedAppearance.displayName).toBeNull();
+    expect(maskedAppearance.description).toBeNull();
+    expect(maskedAppearance.status).toBeNull();
+    expect(maskedAppearance.displayNameIsSpoiler).toBe(true);
+    expect(masked.body.hiddenFields).toEqual(["description", "displayName", "status"]);
+    expect(JSON.stringify(masked.body)).not.toContain("Muad'Dib");
+    expect(JSON.stringify(masked.body)).not.toContain("Kwisatz Haderach");
+
+    const revealed = await authed(
+      "get",
+      `${detailsPath}?revealFieldIds=description&revealFieldIds=displayName`,
+      accessToken,
     );
+    expect(revealed.status).toBe(HttpStatus.OK);
+    const revealedAppearance = revealed.body.appearances[0];
+    expect(revealedAppearance.displayName).toBe("Muad'Dib");
+    expect(revealedAppearance.description).toBe("Becomes the Kwisatz Haderach");
+    expect(revealedAppearance.status).toBeNull();
+    expect(revealedAppearance.hiddenFields).toEqual(["status"]);
   });
 
-  it("hides characters flagged with hidePresenceAsSpoiler from the roster", async () => {
+  it("returns 404 from book character details for another user's character", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const ownerBookId = await createBook(owner.accessToken);
+    const intruderBookId = await createBook(intruder.accessToken);
+    const created = await createNewInBook(
+      owner.accessToken,
+      ownerBookId,
+      { name: "Paul Atreides" },
+      { displayName: "Muad'Dib", displayNameIsSpoiler: true },
+    );
+    expect(created.status).toBe(HttpStatus.CREATED);
+    const characterId = String(created.body.id);
+
+    for (const bookId of [ownerBookId, intruderBookId]) {
+      const res = await authed(
+        "get",
+        `/api/books/${bookId}/characters/${characterId}?revealFieldIds=displayName`,
+        intruder.accessToken,
+      );
+      expect(res.status).toBe(HttpStatus.NOT_FOUND);
+      expect(JSON.stringify(res.body)).not.toContain("Muad'Dib");
+    }
+  });
+
+  it("lists a character first met late in the book on the roster", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
 
@@ -348,12 +386,15 @@ describe("spoiler redaction", () => {
       accessToken,
       bookId,
       { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true },
+      { firstAppearancePage: 480 },
     );
 
-    const roster = await authed("get", `/api/books/${bookId}/characters`, accessToken);
-    expect(roster.body.totalCount).toBe(1);
-    expect(roster.body.items[0].name).toBe("Paul Atreides");
+    const roster = await authed("get", `/api/books/${bookId}/characters?sort=name`, accessToken);
+    expect(roster.body.totalCount).toBe(2);
+    expect(roster.body.items.map((item: { name: string }) => item.name)).toEqual([
+      "Paul Atreides",
+      "The Traitor",
+    ]);
   });
 });
 
@@ -855,7 +896,7 @@ describe("mutation ownership (IDOR)", () => {
   });
 });
 
-describe("page-level spoiler masking (character details)", () => {
+describe("first-appearance position on character details", () => {
   async function createGlobalWithAppearance(
     token: string,
     bookId: string,
@@ -869,53 +910,7 @@ describe("page-level spoiler masking (character details)", () => {
     return res.body.id;
   }
 
-  it("masks an appearance the reader has not yet reached in the context book", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const bookId = await createBook(accessToken);
-    const characterId = await createGlobalWithAppearance(accessToken, bookId, {
-      firstAppearancePage: 200,
-    });
-
-    const before = await authed(
-      "get",
-      `/api/characters/${characterId}?contextBookId=${bookId}&contextPage=3`,
-      accessToken,
-    );
-    expect(before.status).toBe(HttpStatus.NOT_FOUND);
-  });
-
-  it("reveals the appearance once the reader page reaches it", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const bookId = await createBook(accessToken);
-    const characterId = await createGlobalWithAppearance(accessToken, bookId, {
-      firstAppearancePage: 200,
-    });
-
-    const after = await authed(
-      "get",
-      `/api/characters/${characterId}?contextBookId=${bookId}&contextPage=250`,
-      accessToken,
-    );
-    expect(after.status).toBe(HttpStatus.OK);
-    expect(after.body.appearances).toHaveLength(1);
-    expect(after.body.appearances[0].firstAppearancePage).toBe(200);
-  });
-
-  it("still shows a positionless appearance once the book is reached", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const bookId = await createBook(accessToken);
-    const characterId = await createGlobalWithAppearance(accessToken, bookId, {});
-
-    const res = await authed(
-      "get",
-      `/api/characters/${characterId}?contextBookId=${bookId}&contextPage=3`,
-      accessToken,
-    );
-    expect(res.status).toBe(HttpStatus.OK);
-    expect(res.body.appearances).toHaveLength(1);
-  });
-
-  it("keeps book-level behavior unchanged when no reader position is sent", async () => {
+  it("shows an appearance first met deep into the context book with its first-appearance page", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const characterId = await createGlobalWithAppearance(accessToken, bookId, {
@@ -929,5 +924,176 @@ describe("page-level spoiler masking (character details)", () => {
     );
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.appearances).toHaveLength(1);
+    expect(res.body.appearances[0].firstAppearancePage).toBe(200);
+  });
+
+  it("shows a positionless appearance in the context book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const characterId = await createGlobalWithAppearance(accessToken, bookId, {});
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.appearances).toHaveLength(1);
+    expect(res.body.appearances[0].firstAppearancePage).toBeNull();
+  });
+});
+
+describe("global character profile spoilers", () => {
+  const ALIAS = {
+    bookPlain: "Young Master",
+    bookSpoiler: "Lisan al-Gaib",
+    globalPlain: "Usul",
+    globalSpoiler: "Mahdi of the Fremen",
+  };
+
+  const EVERY_REVEAL_KEY_QUERY = CharacterRevealFieldKeySchema.options
+    .map((fieldId) => `revealFieldIds=${fieldId}`)
+    .join("&");
+
+  const aliasNamesOf = (res: request.Response): string[] =>
+    res.body.aliases.map((alias: { name: string }) => alias.name).sort();
+
+  async function createAliasedCharacter(
+    token: string,
+    profile: Record<string, unknown> = {},
+  ): Promise<string> {
+    const bookId = await createBook(token);
+    const created = await createNewInBook(
+      token,
+      bookId,
+      {
+        aliases: [
+          { name: ALIAS.globalPlain, type: "nickname" },
+          { isSpoiler: true, name: ALIAS.globalSpoiler, type: "title" },
+        ],
+      },
+      profile,
+    );
+    expect(created.status).toBe(HttpStatus.CREATED);
+    const characterId: string = created.body.id;
+    const patched = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      token,
+    ).send({
+      aliases: [
+        { name: ALIAS.bookPlain, type: "nickname" },
+        { isSpoiler: true, name: ALIAS.bookSpoiler, type: "title" },
+      ],
+    });
+    expect(patched.status).toBe(HttpStatus.OK);
+    return characterId;
+  }
+
+  it("withholds spoiler global aliases and every book alias from the normal global profile", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const characterId = await createAliasedCharacter(accessToken);
+
+    const res = await authed("get", `/api/characters/${characterId}`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(aliasNamesOf(res)).toEqual([ALIAS.globalPlain]);
+    expect(res.body.hiddenFields).toContain("globalAliases");
+    expect(res.body.hiddenFields).not.toContain("bookAliases");
+    const body = JSON.stringify(res.body);
+    expect(
+      [ALIAS.globalSpoiler, ALIAS.bookPlain, ALIAS.bookSpoiler].filter((name) =>
+        body.includes(name),
+      ),
+    ).toEqual([]);
+  });
+
+  it("masks the spoiler values of every appearance in the normal global profile", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const duneId = await createBook(accessToken);
+    const messiahId = await createBook(accessToken, { title: "Dune Messiah" });
+    const created = await createNewInBook(
+      accessToken,
+      duneId,
+      {},
+      { description: "Becomes the Kwisatz Haderach", descriptionIsSpoiler: true },
+    );
+    expect(created.status).toBe(HttpStatus.CREATED);
+    const characterId: string = created.body.id;
+    const linked = await authed("post", `/api/books/${messiahId}/characters`, accessToken).send({
+      bookProfile: bookProfile({
+        personalImpression: "Turns into a tyrant",
+        personalImpressionIsSpoiler: true,
+        status: "other",
+        statusCustomText: "Walks the Golden Path",
+        statusIsSpoiler: true,
+      }),
+      characterId,
+      mode: "existing",
+    });
+    expect(linked.status).toBe(HttpStatus.CREATED);
+
+    const res = await authed("get", `/api/characters/${characterId}`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.OK);
+    const appearanceIn = (bookId: string): Record<string, unknown> =>
+      res.body.appearances.find((appearance: { bookId: string }) => appearance.bookId === bookId);
+    expect(appearanceIn(duneId)).toMatchObject({
+      description: null,
+      hiddenFields: ["description"],
+    });
+    expect(appearanceIn(messiahId)).toMatchObject({
+      hiddenFields: ["personalImpression", "status"],
+      personalImpression: null,
+      status: null,
+      statusCustomText: null,
+    });
+    const body = JSON.stringify(res.body);
+    expect(
+      ["Kwisatz Haderach", "Turns into a tyrant", "Golden Path"].filter((text) =>
+        body.includes(text),
+      ),
+    ).toEqual([]);
+  });
+
+  it("returns every global alias and unmasked appearance values to the editor request with every reveal key", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const characterId = await createAliasedCharacter(accessToken, {
+      displayName: "Muad'Dib",
+      displayNameIsSpoiler: true,
+      status: "dead",
+      statusIsSpoiler: true,
+    });
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?${EVERY_REVEAL_KEY_QUERY}`,
+      accessToken,
+    );
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(aliasNamesOf(res)).toEqual([ALIAS.globalSpoiler, ALIAS.globalPlain].sort());
+    expect(res.body.hiddenFields).toEqual([]);
+    expect(res.body.appearances[0]).toMatchObject({
+      displayName: "Muad'Dib",
+      hiddenFields: [],
+      status: "dead",
+    });
+  });
+
+  it("returns 404 for another user's character even when the editor request sends every reveal key", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const characterId = await createAliasedCharacter(owner.accessToken);
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?${EVERY_REVEAL_KEY_QUERY}`,
+      intruder.accessToken,
+    );
+
+    expect(res.status).toBe(HttpStatus.NOT_FOUND);
+    expect(res.body.code).toBe("character_not_found");
+    expect(JSON.stringify(res.body)).not.toContain(ALIAS.globalSpoiler);
   });
 });

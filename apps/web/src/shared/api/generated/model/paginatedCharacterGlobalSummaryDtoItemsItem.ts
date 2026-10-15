@@ -28,7 +28,6 @@ export type PaginatedCharacterGlobalSummaryDtoItemsItem = {
   gender: PaginatedCharacterGlobalSummaryDtoItemsItemGender;
   /** @nullable */
   globalAttitude: PaginatedCharacterGlobalSummaryDtoItemsItemGlobalAttitude;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;

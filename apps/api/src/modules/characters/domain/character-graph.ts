@@ -76,7 +76,6 @@ export type GraphMembershipSource = {
 export type GraphNodeAppearance = {
   bookId: string;
   createdAt: Date;
-  hidePresenceAsSpoiler: boolean;
   importance: string;
 };
 
@@ -134,7 +133,6 @@ type ClusterComputeInput = {
   allowedBookIds: Set<string>;
   memberships: GraphMembershipSource[];
   nodes: CharacterGraphNodeView[];
-  presenceHiddenIds: Set<string>;
 };
 
 type ClusterResult = {
@@ -144,11 +142,7 @@ type ClusterResult = {
 
 export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterGraphView {
   const nodeById = new Map(input.nodes.map((node) => [node.id, node]));
-  const {
-    edges: preparedEdges,
-    hasHiddenEdges,
-    presenceHiddenIds,
-  } = computeVisibleGraphEdges({
+  const { edges: preparedEdges, hasHiddenEdges } = computeVisibleGraphEdges({
     categoryFilter: input.categoryFilter,
     edges: input.edges,
     mode: input.mode,
@@ -164,7 +158,6 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     edges: preparedEdges,
     focusCharacterId: input.focusCharacterId,
     nodeById,
-    presenceHiddenIds,
   });
   const bounded = applyPayloadCap({
     edgeLimit: input.edgeLimit,
@@ -196,7 +189,6 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     clusterBy: input.clusterBy,
     memberships: input.memberships,
     nodes: baseNodes,
-    presenceHiddenIds,
   });
   const nodes = baseNodes.map((node) => ({
     ...node,
@@ -220,7 +212,6 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     }),
     hiddenContent: {
       hasHiddenEdges,
-      hasHiddenNodes: presenceHiddenIds.size > 0,
       hasLockedEdges: bounded.edges.some((edge) => edge.typeHidden),
       truncated: bounded.truncated,
     },
@@ -257,9 +248,8 @@ export function computeVisibleGraphEdges({
   positionGate?: Nullable<ReadingPositionGate>;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
-}): { edges: PreparedEdge[]; hasHiddenEdges: boolean; presenceHiddenIds: Set<string> } {
+}): { edges: PreparedEdge[]; hasHiddenEdges: boolean } {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const presenceHiddenIds = collectPresenceHiddenIds(nodes);
   const effectiveCategories = combineCategoryFilters({
     categoryFilter,
     modeCategories: computeModeCategories(mode),
@@ -290,12 +280,7 @@ export function computeVisibleGraphEdges({
       hasHiddenEdges = true;
       continue;
     }
-    if (
-      presenceHiddenIds.has(edge.sourceCharacterId) ||
-      presenceHiddenIds.has(edge.targetCharacterId) ||
-      !nodeById.has(edge.sourceCharacterId) ||
-      !nodeById.has(edge.targetCharacterId)
-    ) {
+    if (!nodeById.has(edge.sourceCharacterId) || !nodeById.has(edge.targetCharacterId)) {
       continue;
     }
 
@@ -335,7 +320,7 @@ export function computeVisibleGraphEdges({
     });
   }
 
-  return { edges: preparedEdges, hasHiddenEdges, presenceHiddenIds };
+  return { edges: preparedEdges, hasHiddenEdges };
 }
 
 export function toGraphEdgeView(edge: PreparedEdge): CharacterGraphEdgeView {
@@ -366,10 +351,7 @@ export function toGraphNodeView({
   node: GraphNodeSource;
   partNumberById: Map<string, Nullable<number>>;
 }): CharacterGraphNodeView {
-  const visibleAppearances = node.appearances.filter(
-    (appearance) => !appearance.hidePresenceAsSpoiler,
-  );
-  const representative = pickEffectiveBookState({ partNumberById, states: visibleAppearances });
+  const representative = pickEffectiveBookState({ partNumberById, states: node.appearances });
   const importance: Nullable<BookCharacterImportance> =
     representative === null ? null : BookCharacterImportanceSchema.parse(representative.importance);
   return {
@@ -402,18 +384,16 @@ function applyFocus({
   edges,
   focusCharacterId,
   nodeById,
-  presenceHiddenIds,
 }: {
   depth: number;
   edges: PreparedEdge[];
   focusCharacterId: Nullable<string>;
   nodeById: Map<string, GraphNodeSource>;
-  presenceHiddenIds: Set<string>;
 }): { edges: PreparedEdge[]; nodeIds: Set<string> } {
   if (focusCharacterId === null) {
     return { edges, nodeIds: collectEndpointIds(edges) };
   }
-  if (!nodeById.has(focusCharacterId) || presenceHiddenIds.has(focusCharacterId)) {
+  if (!nodeById.has(focusCharacterId)) {
     return { edges: [], nodeIds: new Set() };
   }
   const reachable = collectReachableIds({ depth, edges, start: focusCharacterId });
@@ -479,19 +459,6 @@ function collectEndpointIds(edges: PreparedEdge[]): Set<string> {
   return ids;
 }
 
-function collectPresenceHiddenIds(nodes: GraphNodeSource[]): Set<string> {
-  const hidden = new Set<string>();
-  for (const node of nodes) {
-    const hasVisibleAppearance = node.appearances.some(
-      (appearance) => !appearance.hidePresenceAsSpoiler,
-    );
-    if (node.appearances.length > 0 && !hasVisibleAppearance) {
-      hidden.add(node.id);
-    }
-  }
-  return hidden;
-}
-
 function collectReachableIds({
   depth,
   edges,
@@ -544,13 +511,12 @@ function computeClusters({
   clusterBy,
   memberships,
   nodes,
-  presenceHiddenIds,
 }: ClusterComputeInput & { clusterBy: Nullable<CharacterGraphClusterBy> }): ClusterResult {
   if (clusterBy === null) {
     return { clusterIdByNodeId: new Map(), clusters: [] };
   }
   const builders: Record<CharacterGraphClusterBy, () => ClusterResult> = {
-    group: () => computeGroupClusters({ allowedBookIds, memberships, nodes, presenceHiddenIds }),
+    group: () => computeGroupClusters({ allowedBookIds, memberships, nodes }),
     importance: () => computeImportanceClusters({ nodes }),
   };
   return builders[clusterBy]();
@@ -591,15 +557,9 @@ function computeGroupClusters({
   allowedBookIds,
   memberships,
   nodes,
-  presenceHiddenIds,
 }: ClusterComputeInput): ClusterResult {
   const nodeIds = new Set(nodes.map((node) => node.id));
-  const context = {
-    allowedBookIds,
-    unreachableCharacterIds: new Set(
-      [...presenceHiddenIds].filter((characterId) => !nodeIds.has(characterId)),
-    ),
-  };
+  const context = { allowedBookIds, unreachableCharacterIds: new Set<string>() };
 
   const visibleByCharacter = new Map<string, GraphMembershipSource[]>();
   for (const membership of memberships) {

@@ -39,6 +39,8 @@ export * from "./bookCharacterGraphControllerGetMode";
 export * from "./bookCharacterGraphControllerGetParams";
 export * from "./bookCharacterGraphControllerGetRelationshipTypesItem";
 export * from "./bookCharacterRelationshipsControllerListParams";
+export * from "./bookCharactersControllerGetByIdParams";
+export * from "./bookCharactersControllerGetByIdRevealFieldIdsItem";
 export * from "./bookCharactersControllerListParams";
 export * from "./bookCharactersControllerListSort";
 export * from "./bookCharacterSuggestionsControllerListParams";

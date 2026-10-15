@@ -2109,7 +2109,6 @@ export const BookCharacterGraphControllerGetResponse = zod.object({
   graphVersion: zod.string(),
   hiddenContent: zod.object({
     hasHiddenEdges: zod.boolean(),
-    hasHiddenNodes: zod.boolean(),
     hasLockedEdges: zod.boolean(),
     truncated: zod.boolean(),
   }),
@@ -2493,7 +2492,6 @@ export const SeriesCharacterGraphControllerGetResponse = zod.object({
   graphVersion: zod.string(),
   hiddenContent: zod.object({
     hasHiddenEdges: zod.boolean(),
-    hasHiddenNodes: zod.boolean(),
     hasLockedEdges: zod.boolean(),
     truncated: zod.boolean(),
   }),

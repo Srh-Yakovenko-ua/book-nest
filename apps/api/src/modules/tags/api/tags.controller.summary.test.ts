@@ -49,7 +49,7 @@ async function seedLibrary(userId: string): Promise<void> {
   await seed.book({ title: "Untagged", userId });
   const trashed = await seed.book({ deletedAt: HIDDEN_AT, title: "Trashed", userId });
   const paul = await seed.character({ name: "Paul", userId });
-  const twist = await seed.character({ hideProfileAsSpoiler: true, name: "Twist", userId });
+  const twist = await seed.character({ name: "Twist", userId });
   await seed.character({ name: "Untagged", userId });
   const archived = await seed.character({ archivedAt: HIDDEN_AT, name: "Archived", userId });
   const deleted = await seed.character({ deletedAt: HIDDEN_AT, name: "Deleted", userId });

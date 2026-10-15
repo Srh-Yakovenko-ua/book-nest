@@ -48,23 +48,23 @@ export function rosterDistinctGlobalName({
 
 export function toBookCharactersListParams(
   state: CharactersRosterState,
-  readingContext: BookCharacterSummaryQuery,
+  bookContext: BookCharacterSummaryQuery,
 ): BookCharactersControllerListParams {
   const search = state.characterSearch.trim();
 
   return {
     pageSize: CHARACTERS_ROSTER_PAGE_SIZE,
     sort: state.characterSort,
-    ...readingContext,
+    ...bookContext,
     ...(search === "" ? {} : { search }),
   };
 }
 
-export function toCharacterReadingContext(book: BookView): BookCharacterSummaryQuery {
+export function toCharacterBookContext(book: BookView): BookCharacterSummaryQuery {
   if (FULLY_READ_STATUSES.some((status) => status === book.readingStatus)) return {};
 
   const currentPage = book.readingProgress?.currentPage ?? null;
   if (currentPage === null || !Number.isInteger(currentPage) || currentPage <= 0) return {};
 
-  return { contextBookId: book.id, contextPage: currentPage };
+  return { contextBookId: book.id };
 }

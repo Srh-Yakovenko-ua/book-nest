@@ -46,7 +46,6 @@ describe("buildBookCharacterSummary", () => {
         { count: 1, importance: "supporting" },
       ],
       favoritesCount: 1,
-      hasHiddenRecords: false,
       povCount: 3,
       topCandidates: [],
       totalVisibleCharacters: 3,
@@ -73,7 +72,6 @@ describe("buildBookCharacterSummary", () => {
         { count: 4, importance: "not_specified" },
       ],
       favoritesCount: 0,
-      hasHiddenRecords: false,
       povCount: 0,
       topCandidates: [],
       totalVisibleCharacters: 5,
@@ -105,7 +103,6 @@ describe("buildBookCharacterSummary", () => {
       bookId: "book",
       byImportanceEntries: [],
       favoritesCount: 0,
-      hasHiddenRecords: false,
       povCount: 0,
       topCandidates: candidates,
       totalVisibleCharacters: candidates.length,
@@ -113,20 +110,6 @@ describe("buildBookCharacterSummary", () => {
 
     expect(view.top.map((entry) => entry.id)).toEqual(["6", "7", "8", "4", "3"]);
     expect(view.top.every((entry) => isTopImportance(entry.importance))).toBe(true);
-  });
-
-  it("passes hasHiddenRecords through untouched", () => {
-    const view = buildBookCharacterSummary({
-      bookId: "book",
-      byImportanceEntries: [],
-      favoritesCount: 0,
-      hasHiddenRecords: true,
-      povCount: 0,
-      topCandidates: [],
-      totalVisibleCharacters: 0,
-    });
-
-    expect(view.hasHiddenRecords).toBe(true);
   });
 });
 
@@ -137,7 +120,6 @@ describe("buildSeriesCharacterSummary", () => {
       byImportanceEntries: importances.map((importance) => ({ count: 1, importance })),
       contextBookId: "context-book",
       favoritesCount: 2,
-      hasHiddenRecords: true,
       povCount: 1,
       seriesId: "series",
       topCandidates: [summary({ id: "top", importance: "central", name: "Lead" })],
@@ -154,6 +136,5 @@ describe("buildSeriesCharacterSummary", () => {
       supporting: 0,
     });
     expect(view.top.map((entry) => entry.id)).toEqual(["top"]);
-    expect(view.hasHiddenRecords).toBe(true);
   });
 });

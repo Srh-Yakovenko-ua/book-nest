@@ -79,7 +79,6 @@ export class CharacterMergeRepository {
               { appearanceNotesIsSpoiler: true },
               { descriptionIsSpoiler: true },
               { displayNameIsSpoiler: true },
-              { hidePresenceAsSpoiler: true },
               { isUnreliableNarratorSpoiler: true },
               { personalImpressionIsSpoiler: true },
               { portraitIsSpoiler: true },

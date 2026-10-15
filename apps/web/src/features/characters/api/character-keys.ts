@@ -29,8 +29,8 @@ export const characterKeys = {
   bookRosterInfiniteScope: (bookId: string) =>
     [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId, BOOK_ROSTER.infinite] as const,
   bookRosterScope: (bookId: string) => [CHARACTERS_ROOT, BOOK_ROSTER.root, bookId] as const,
-  bookSummary: (bookId: string, readingContext: BookCharacterSummaryQuery) =>
-    [CHARACTERS_ROOT, "book-summary", bookId, readingContext] as const,
+  bookSummary: (bookId: string, bookContext: BookCharacterSummaryQuery) =>
+    [CHARACTERS_ROOT, "book-summary", bookId, bookContext] as const,
   customLabels: () => [CHARACTERS_ROOT, "custom-labels"] as const,
   deletionPreview: (characterId: string) =>
     [CHARACTERS_ROOT, "deletion-preview", characterId] as const,

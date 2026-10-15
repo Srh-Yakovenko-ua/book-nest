@@ -56,7 +56,6 @@ export type CharacterImportBundleDtoCharactersItemAppearancesItem = {
    * @nullable
    */
   firstAppearancePage: number | null;
-  hidePresenceAsSpoiler: boolean;
   importance: CharacterImportBundleDtoCharactersItemAppearancesItemImportance;
   isPovCharacter: boolean;
   isUnreliableNarrator?: boolean;

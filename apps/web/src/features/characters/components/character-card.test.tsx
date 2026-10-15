@@ -129,4 +129,10 @@ describe("CharacterCard hidden fields", () => {
       screen.getByRole("button", { name: "Додати в улюблені" }).parentElement,
     ).not.toContainElement(badge);
   });
+
+  it("shows no hidden-fields badge while nothing is hidden", () => {
+    renderCard(makeCharacterSummary({ hiddenFields: [] }));
+
+    expect(screen.queryByText(/Приховані поля/)).not.toBeInTheDocument();
+  });
 });

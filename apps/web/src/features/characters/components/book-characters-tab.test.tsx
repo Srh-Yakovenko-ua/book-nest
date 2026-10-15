@@ -106,6 +106,11 @@ function rosterPageNumber(url: string): number {
   return Number(new URL(url, "http://localhost").searchParams.get("pageNumber") ?? 1);
 }
 
+function rosterQueryOf(url: string | undefined): Record<string, string> {
+  if (url === undefined) return {};
+  return Object.fromEntries(new URL(url, "http://localhost").searchParams);
+}
+
 function rosterRequestUrls(): string[] {
   return fetchMock.mock.calls
     .filter(([, init]) => ((init as RequestInit | undefined)?.method ?? "GET") === "GET")
@@ -202,7 +207,7 @@ describe("BookCharactersTab roster", () => {
 });
 
 describe("BookCharactersTab contextual roster", () => {
-  it("asks the backend to sort and forwards the reading position of a book in progress", async () => {
+  it("asks the backend to sort and names a book in progress as the only spoiler context", async () => {
     renderTab(
       "",
       makeBookView({
@@ -224,18 +229,20 @@ describe("BookCharactersTab contextual roster", () => {
 
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    const url = rosterRequestUrls()[0];
-    expect(url).toContain("sort=importance");
-    expect(url).toContain("contextBookId=book-1");
-    expect(url).toContain("contextPage=42");
+    expect(rosterQueryOf(rosterRequestUrls()[0])).toEqual({
+      contextBookId: "book-1",
+      pageNumber: "1",
+      pageSize: "20",
+      sort: "importance",
+    });
   });
 
-  it("sends no reading position for a finished book", async () => {
+  it("sends no spoiler context for a finished book", async () => {
     renderTab();
 
     await screen.findByRole("heading", { name: "Ґеральт" });
 
-    expect(rosterRequestUrls()[0]).not.toContain("contextPage");
+    expect(rosterQueryOf(rosterRequestUrls()[0])).not.toHaveProperty("contextBookId");
   });
 
   it("hides the summary and the toolbar for an empty book", async () => {
@@ -524,12 +531,11 @@ describe("BookCharactersTab invalidation", () => {
 });
 
 describe("BookCharactersTab summary strip", () => {
-  it("shows favorites, POV and the hidden warning without a total characters chip", async () => {
+  it("shows favorites and POV without a total characters chip", async () => {
     respondToSummary = () =>
       jsonResponse(
         makeBookCharacterSummary({
           favoritesCount: 1,
-          hasHiddenRecords: true,
           povCount: 2,
           totalVisibleCharacters: 3,
         }),
@@ -539,7 +545,21 @@ describe("BookCharactersTab summary strip", () => {
 
     expect(await screen.findByText("Улюблених: 1")).toBeVisible();
     expect(screen.getByText("POV: 2")).toBeVisible();
-    expect(screen.getByText("Є приховані записи")).toBeVisible();
     expect(screen.queryByText(/Персонажів:/)).not.toBeInTheDocument();
+  });
+
+  it("leaves the hidden-content signal to the card lock instead of a roster-wide warning", async () => {
+    respondToSummary = () =>
+      jsonResponse(makeBookCharacterSummary({ favoritesCount: 1, povCount: 2 }));
+    respondToRoster = () =>
+      rosterPage([{ ...geralt, hiddenFields: ["biography", "appearance"] }, yennefer], 1);
+
+    renderTab();
+
+    await screen.findByRole("heading", { name: "Ґеральт" });
+    expect(await screen.findByText("Улюблених: 1")).toBeVisible();
+    expect(within(cardFor("Ґеральт")).getByText("Приховані поля: 2")).toBeInTheDocument();
+    expect(within(cardFor("Єнніфер")).queryByText(/Приховані поля/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/приховані записи/i)).not.toBeInTheDocument();
   });
 });

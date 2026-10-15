@@ -34,7 +34,6 @@ export function buildCharacterData({
     entityKind: input.entityKind,
     gender: input.gender,
     globalAttitude: input.globalAttitude ?? null,
-    hideProfileAsSpoiler: input.hideProfileAsSpoiler,
     isFavorite: input.isFavorite,
     name: input.name,
     neutralDescription: emptyToNull(input.neutralDescription),
@@ -94,9 +93,6 @@ export function buildCharacterUpdateData({
   }
   if (input.globalAttitude !== undefined) {
     data.globalAttitude = input.globalAttitude ?? null;
-  }
-  if (input.hideProfileAsSpoiler !== undefined) {
-    data.hideProfileAsSpoiler = input.hideProfileAsSpoiler;
   }
   return data;
 }

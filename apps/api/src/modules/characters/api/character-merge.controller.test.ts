@@ -383,8 +383,9 @@ describe("GET /api/characters/:characterId/merge-preview", () => {
     const survivor = await createCharacter(accessToken, { name: "Survivor" });
     const loser = await createCharacter(accessToken, { name: "Loser" });
     await linkToBook(accessToken, book, loser, {
-      hidePresenceAsSpoiler: true,
       importance: "central",
+      status: "dead",
+      statusIsSpoiler: true,
     });
 
     const preview = await authed(
@@ -423,7 +424,11 @@ describe("POST /api/characters/:characterId/merge with species", () => {
     expect(merged.status).toBe(HttpStatus.OK);
     expect(merged.body.counts.appearances).toEqual({ dropped: 0, moved: 2 });
 
-    const details = await authed("get", `/api/characters/${survivor}`, accessToken);
+    const details = await authed(
+      "get",
+      `/api/characters/${survivor}?revealFieldIds=speciesOverride`,
+      accessToken,
+    );
     expect(details.status).toBe(HttpStatus.OK);
     expect(details.body.appearances).toHaveLength(2);
     expect(details.body.appearances).toEqual(

@@ -231,17 +231,6 @@ describe("GET /api/tags/catalog", () => {
 
       expect(itemNamed(res, "mentor")).toMatchObject({ charactersCount: 1, usageCount: 1 });
     });
-
-    it("counts a spoiler-hidden character as visible usage", async () => {
-      const { accessToken, userId } = await context.registerVerifyAndLogin();
-      const hidden = await seed.character({ hideProfileAsSpoiler: true, name: "Twist", userId });
-      const tag = await seed.tag({ name: "traitor", userId });
-      await seed.tagCharacters({ characterIds: [hidden.id], tagId: tag.id });
-
-      const res = await getCatalog(accessToken);
-
-      expect(itemNamed(res, "traitor")).toMatchObject({ charactersCount: 1, usageCount: 1 });
-    });
   });
 
   describe("search", () => {

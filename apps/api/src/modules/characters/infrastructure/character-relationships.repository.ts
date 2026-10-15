@@ -17,14 +17,9 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 
 const detailsInclude = {
   bookStates: { orderBy: [{ createdAt: "asc" }] },
-  sourceCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
-  targetCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
+  sourceCharacter: { select: { name: true } },
+  targetCharacter: { select: { name: true } },
 } satisfies Prisma.CharacterRelationshipInclude;
-
-const visibleEndpointWhere = {
-  sourceCharacter: { hideProfileAsSpoiler: false },
-  targetCharacter: { hideProfileAsSpoiler: false },
-} satisfies Prisma.CharacterRelationshipWhereInput;
 
 export type CreateBookStateData = UpdateBookStateData & {
   bookId: string;
@@ -173,12 +168,11 @@ export class CharacterRelationshipsRepository {
     return this.prisma.characterRelationship.findMany({
       include: {
         bookStates: { orderBy: [{ createdAt: "asc" }], where: { bookId: { in: bookIds } } },
-        sourceCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
-        targetCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
+        sourceCharacter: { select: { name: true } },
+        targetCharacter: { select: { name: true } },
       },
       orderBy: [{ createdAt: "asc" }],
       where: {
-        ...visibleEndpointWhere,
         bookStates: { some: { bookId: { in: bookIds } } },
         userId,
       },

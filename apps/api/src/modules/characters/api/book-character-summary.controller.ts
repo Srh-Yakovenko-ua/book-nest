@@ -27,15 +27,12 @@ export class BookCharacterSummaryController {
 
   @ApiNotFoundResponse({ description: "Book or context book not found" })
   @ApiOkResponse({
-    description: "A spoiler-safe recap of the book's cast at the current reading position",
+    description: "A recap of the book's cast within the series reading context",
     type: BookCharacterSummaryViewDto,
   })
   @ApiOperation({ summary: "Get a spoiler-safe recap of a book's characters" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiQuery({ name: "contextBookId", required: false })
-  @ApiQuery({ name: "contextChapter", required: false })
-  @ApiQuery({ name: "contextPage", required: false })
-  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @Get()
   get(
     @CurrentUser() user: AuthenticatedUser,

@@ -49,7 +49,7 @@ export function findVisibleRelationshipPath({
   toId: string;
   typeFilter: Nullable<Set<RelationshipType>>;
 }): CharacterRelationshipPathView {
-  const { edges: visibleEdges, presenceHiddenIds } = computeVisibleGraphEdges({
+  const { edges: visibleEdges } = computeVisibleGraphEdges({
     categoryFilter,
     edges,
     mode,
@@ -69,9 +69,7 @@ export function findVisibleRelationshipPath({
     toId,
   };
 
-  const fromVisible = nodeById.has(fromId) && !presenceHiddenIds.has(fromId);
-  const toVisible = nodeById.has(toId) && !presenceHiddenIds.has(toId);
-  if (!fromVisible || !toVisible) {
+  if (!nodeById.has(fromId) || !nodeById.has(toId)) {
     return notConnected;
   }
 

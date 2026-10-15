@@ -380,35 +380,49 @@ describe("character portability — forms", () => {
   });
 });
 
-describe("character portability — whole-profile hidden characters", () => {
-  it("preserves hideProfileAsSpoiler across an export and import round-trip", async () => {
-    const owner = await context.registerVerifyAndLogin();
-    await createCharacter(owner.accessToken, { hideProfileAsSpoiler: true, name: "The Ghost" });
+describe("character portability — retired hiding flags", () => {
+  it("imports a bundle that still carries both retired hiding flags and shows its character everywhere", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, "Children of Dune");
+    const characterId = await createCharacter(accessToken, { name: "The Preacher" });
+    await linkToBook(accessToken, bookId, characterId, { firstAppearancePage: 410 });
+    const exported = CharacterBundleSchema.parse(await exportBundle(accessToken));
+    const legacyBundle = {
+      ...exported,
+      characters: exported.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) => ({
+          ...appearance,
+          hidePresenceAsSpoiler: true,
+        })),
+        hideProfileAsSpoiler: true,
+        name: "Legacy Preacher",
+      })),
+    };
 
-    const bundle = await exportBundle(owner.accessToken);
-    const exported = bundle.characters as { hideProfileAsSpoiler: boolean; name: string }[];
-    expect(exported).toHaveLength(1);
-    expect(exported[0]).toMatchObject({ hideProfileAsSpoiler: true, name: "The Ghost" });
+    const res = await authed("post", "/api/characters/import", accessToken).send(legacyBundle);
+    expect(res.status).toBe(HttpStatus.OK);
 
-    const importer = await context.registerVerifyAndLogin({ email: "importer@example.com" });
-    const imported = await authed("post", "/api/characters/import", importer.accessToken).send(
-      bundle,
-    );
-    expect(imported.status).toBe(HttpStatus.OK);
+    const listed = await authed("get", "/api/characters?q=Legacy", accessToken);
+    expect(listed.status).toBe(HttpStatus.OK);
+    expect(listed.body.items.map((item: { name: string }) => item.name)).toEqual([
+      "Legacy Preacher",
+    ]);
+    const importedId: string = listed.body.items[0].id;
 
-    const listDefault = await authed("get", "/api/characters", importer.accessToken);
-    expect(listDefault.body.items).toEqual([]);
+    const roster = await authed("get", `/api/books/${bookId}/characters?sort=name`, accessToken);
+    expect(roster.body.items.map((item: { name: string }) => item.name)).toEqual([
+      "Legacy Preacher",
+      "The Preacher",
+    ]);
 
-    const listRevealed = await authed(
+    const details = await authed(
       "get",
-      "/api/characters?includeHiddenProfiles=true",
-      importer.accessToken,
+      `/api/characters/${importedId}?contextBookId=${bookId}`,
+      accessToken,
     );
-    expect(listRevealed.body.items).toHaveLength(1);
-    expect(listRevealed.body.items[0]).toMatchObject({
-      hideProfileAsSpoiler: true,
-      name: "The Ghost",
-    });
+    expect(details.status).toBe(HttpStatus.OK);
+    expect(details.body.name).toBe("Legacy Preacher");
   });
 });
 

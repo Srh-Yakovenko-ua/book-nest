@@ -22,6 +22,7 @@ import type {
   BookCharacterSuggestionsControllerListParams,
   BookCharacterSummaryControllerGetParams,
   BookCharacterSummaryViewDto,
+  BookCharactersControllerGetByIdParams,
   BookCharactersControllerListParams,
   CharacterBundleDto,
   CharacterCustomLabelsViewDto,
@@ -3122,6 +3123,11 @@ export type bookCharactersControllerGetByIdResponse200 = {
   status: 200;
 };
 
+export type bookCharactersControllerGetByIdResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type bookCharactersControllerGetByIdResponse401 = {
   data: void;
   status: 401;
@@ -3137,7 +3143,9 @@ export type bookCharactersControllerGetByIdResponseSuccess =
     headers: Headers;
   };
 export type bookCharactersControllerGetByIdResponseError = (
-  bookCharactersControllerGetByIdResponse401 | bookCharactersControllerGetByIdResponse404
+  | bookCharactersControllerGetByIdResponse400
+  | bookCharactersControllerGetByIdResponse401
+  | bookCharactersControllerGetByIdResponse404
 ) & {
   headers: Headers;
 };
@@ -3145,8 +3153,29 @@ export type bookCharactersControllerGetByIdResponseError = (
 export type bookCharactersControllerGetByIdResponse =
   bookCharactersControllerGetByIdResponseSuccess | bookCharactersControllerGetByIdResponseError;
 
-export const getBookCharactersControllerGetByIdUrl = (bookId: string, characterId: string) => {
-  return `/api/books/${bookId}/characters/${characterId}`;
+export const getBookCharactersControllerGetByIdUrl = (
+  bookId: string,
+  characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["revealFieldIds"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${bookId}/characters/${characterId}?${stringifiedParams}`
+    : `/api/books/${bookId}/characters/${characterId}`;
 };
 
 /**
@@ -3155,10 +3184,11 @@ export const getBookCharactersControllerGetByIdUrl = (bookId: string, characterI
 export const bookCharactersControllerGetById = async (
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<bookCharactersControllerGetByIdResponse> => {
   return customInstance<bookCharactersControllerGetByIdResponse>(
-    getBookCharactersControllerGetByIdUrl(bookId, characterId),
+    getBookCharactersControllerGetByIdUrl(bookId, characterId, params),
     {
       ...options,
       method: "GET",
@@ -3166,8 +3196,12 @@ export const bookCharactersControllerGetById = async (
   );
 };
 
-export const getBookCharactersControllerGetByIdQueryKey = (bookId: string, characterId: string) => {
-  return [`/api/books/${bookId}/characters/${characterId}`] as const;
+export const getBookCharactersControllerGetByIdQueryKey = (
+  bookId: string,
+  characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
+) => {
+  return [`/api/books/${bookId}/characters/${characterId}`, ...(params ? [params] : [])] as const;
 };
 
 export const getBookCharactersControllerGetByIdQueryOptions = <
@@ -3176,6 +3210,7 @@ export const getBookCharactersControllerGetByIdQueryOptions = <
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3186,11 +3221,12 @@ export const getBookCharactersControllerGetByIdQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getBookCharactersControllerGetByIdQueryKey(bookId, characterId);
+    queryOptions?.queryKey ??
+    getBookCharactersControllerGetByIdQueryKey(bookId, characterId, params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof bookCharactersControllerGetById>>> = ({
     signal,
-  }) => bookCharactersControllerGetById(bookId, characterId, { signal, ...requestOptions });
+  }) => bookCharactersControllerGetById(bookId, characterId, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -3216,6 +3252,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params: undefined | BookCharactersControllerGetByIdParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3238,6 +3275,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3260,6 +3298,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3278,6 +3317,7 @@ export function useBookCharactersControllerGetById<
 >(
   bookId: string,
   characterId: string,
+  params?: BookCharactersControllerGetByIdParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookCharactersControllerGetById>>, TError, TData>
@@ -3286,7 +3326,12 @@ export function useBookCharactersControllerGetById<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookCharactersControllerGetByIdQueryOptions(bookId, characterId, options);
+  const queryOptions = getBookCharactersControllerGetByIdQueryOptions(
+    bookId,
+    characterId,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

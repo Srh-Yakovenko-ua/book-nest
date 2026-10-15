@@ -77,20 +77,18 @@ afterAll(async () => {
 
 async function addCharacter({
   bookId,
-  character,
   name,
   profile,
   token,
 }: {
   bookId: string;
-  character?: Record<string, unknown>;
   name: string;
   profile?: Record<string, unknown>;
   token: string;
 }): Promise<string> {
   const res = await authed("post", `/api/books/${bookId}/characters`, token).send({
     bookProfile: { importance: "central", ...profile },
-    character: { name, ...character },
+    character: { name },
     mode: "new",
   });
   expect(res.status).toBe(HttpStatus.CREATED);
@@ -128,13 +126,11 @@ async function createSeries(token: string): Promise<SeriesSetup> {
 }
 
 async function createSubject({
-  character,
   homeBook,
   name,
   profile,
   token,
 }: {
-  character?: Record<string, unknown>;
   homeBook?: "first" | "second";
   name: string;
   profile?: Record<string, unknown>;
@@ -142,7 +138,7 @@ async function createSubject({
 }): Promise<ContextualSubject> {
   const series = await createSeries(token);
   const bookId = homeBook === "first" ? series.firstBook : series.secondBook;
-  const characterId = await addCharacter({ bookId, character, name, profile, token });
+  const characterId = await addCharacter({ bookId, name, profile, token });
 
   const group = await authed("post", "/api/character-groups", token).send({
     members: [{ characterId }],
@@ -166,18 +162,14 @@ function listsCharacter(items: { characterId: string }[], characterId: string): 
 
 async function revealAcrossSurfaces({
   contextBookId,
-  readingPosition,
   subject,
   token,
 }: {
   contextBookId: string;
-  readingPosition: string;
   subject: ContextualSubject;
   token: string;
 }): Promise<SurfaceReveal> {
-  const query = `contextBookId=${contextBookId}${
-    readingPosition === "" ? "" : `&${readingPosition}`
-  }`;
+  const query = `contextBookId=${contextBookId}`;
   const [bookRoster, seriesRoster, seriesSummary, seriesProfile, details, group, theories] =
     await Promise.all([
       authed("get", `/api/books/${contextBookId}/characters?${query}`, token),
@@ -217,18 +209,14 @@ async function revealAcrossSurfaces({
 
 async function serializedSurfaces({
   contextBookId,
-  readingPosition,
   subject,
   token,
 }: {
   contextBookId: string;
-  readingPosition: string;
   subject: ContextualSubject;
   token: string;
 }): Promise<string> {
-  const query = `contextBookId=${contextBookId}${
-    readingPosition === "" ? "" : `&${readingPosition}`
-  }`;
+  const query = `contextBookId=${contextBookId}`;
   const responses = await Promise.all([
     authed("get", `/api/books/${contextBookId}/characters?${query}`, token),
     authed("get", `/api/series/${subject.seriesId}/characters?${query}`, token),
@@ -242,19 +230,15 @@ async function serializedSurfaces({
 async function suggestsCharacter({
   characterId,
   contextBookId,
-  readingPosition,
   targetBookId,
   token,
 }: {
   characterId: string;
   contextBookId: string;
-  readingPosition: string;
   targetBookId: string;
   token: string;
 }): Promise<boolean> {
-  const query = `contextBookId=${contextBookId}${
-    readingPosition === "" ? "" : `&${readingPosition}`
-  }`;
+  const query = `contextBookId=${contextBookId}`;
   const res = await authed(
     "get",
     `/api/books/${targetBookId}/character-suggestions?${query}`,
@@ -273,22 +257,22 @@ describe("book character suggestions join the contextual surfaces", () => {
       token: accessToken,
     });
 
-    for (const readingPosition of ["contextChapter=5", "contextChapter=40"]) {
-      const reveal = await revealAcrossSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
+    const agreements: { revealed: boolean; suggested: boolean }[] = [];
+    for (const contextBookId of [subject.firstBook, subject.secondBook]) {
+      const reveal = await revealAcrossSurfaces({ contextBookId, subject, token: accessToken });
       const suggested = await suggestsCharacter({
         characterId: subject.characterId,
-        contextBookId: subject.secondBook,
-        readingPosition,
+        contextBookId,
         targetBookId: subject.firstBook,
         token: accessToken,
       });
-      expect(suggested).toBe(reveal.bookRoster);
+      agreements.push({ revealed: reveal.seriesRoster, suggested });
     }
+
+    expect(agreements).toEqual([
+      { revealed: false, suggested: false },
+      { revealed: true, suggested: true },
+    ]);
   });
 
   it("never suggests a future part's character into an earlier part", async () => {
@@ -302,65 +286,15 @@ describe("book character suggestions join the contextual surfaces", () => {
     const suggested = await suggestsCharacter({
       characterId: subject.characterId,
       contextBookId: subject.firstBook,
-      readingPosition: "contextChapter=99",
       targetBookId: subject.firstBook,
       token: accessToken,
     });
     expect(suggested).toBe(false);
   });
-
-  it("keeps a presence-hidden subject addable to a sibling part while every reveal surface hides it", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const subject = await createSubject({
-      name: "The Traitor",
-      profile: { firstAppearanceChapter: "1", hidePresenceAsSpoiler: true },
-      token: accessToken,
-    });
-
-    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
-      const reveal = await revealAcrossSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
-
-      const suggested = await suggestsCharacter({
-        characterId: subject.characterId,
-        contextBookId: subject.secondBook,
-        readingPosition,
-        targetBookId: subject.firstBook,
-        token: accessToken,
-      });
-      expect(suggested).toBe(true);
-    }
-  });
-
-  it("never suggests a profile-hidden subject", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const subject = await createSubject({
-      character: { hideProfileAsSpoiler: true },
-      name: "Leto II",
-      profile: { firstAppearanceChapter: "1" },
-      token: accessToken,
-    });
-
-    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
-      const suggested = await suggestsCharacter({
-        characterId: subject.characterId,
-        contextBookId: subject.secondBook,
-        readingPosition,
-        targetBookId: subject.firstBook,
-        token: accessToken,
-      });
-      expect(suggested).toBe(false);
-    }
-  });
 });
 
 describe("contextual character surfaces agree on one visible set", () => {
-  it("agrees that an unreached chapter hides every contextual surface", async () => {
+  it("agrees that a late first-appearance chapter hides no contextual surface", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const subject = await createSubject({
       name: "Alia Atreides",
@@ -368,32 +302,22 @@ describe("contextual character surfaces agree on one visible set", () => {
       token: accessToken,
     });
 
-    const unreached = await revealAcrossSurfaces({
+    const reveal = await revealAcrossSurfaces({
       contextBookId: subject.secondBook,
-      readingPosition: "contextChapter=5",
       subject,
       token: accessToken,
     });
-    expect(unreached).toEqual(ALL_SURFACES_HIDDEN);
+    expect(reveal).toEqual(ALL_SURFACES_VISIBLE);
     const serialized = await serializedSurfaces({
       contextBookId: subject.secondBook,
-      readingPosition: "contextChapter=5",
       subject,
       token: accessToken,
     });
-    expect(serialized).not.toContain(subject.name);
-    expect(serialized).not.toContain(SUBJECT_THEORY_TEXT);
-
-    const reached = await revealAcrossSurfaces({
-      contextBookId: subject.secondBook,
-      readingPosition: "contextChapter=40",
-      subject,
-      token: accessToken,
-    });
-    expect(reached).toEqual(ALL_SURFACES_VISIBLE);
+    expect(serialized).toContain(subject.name);
+    expect(serialized).toContain(SUBJECT_THEORY_TEXT);
   });
 
-  it("agrees that an unreached page hides every contextual surface", async () => {
+  it("agrees that a late first-appearance page hides no contextual surface", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const subject = await createSubject({
       name: "Alia Atreides",
@@ -401,31 +325,15 @@ describe("contextual character surfaces agree on one visible set", () => {
       token: accessToken,
     });
 
-    const unreached = await revealAcrossSurfaces({
+    const reveal = await revealAcrossSurfaces({
       contextBookId: subject.secondBook,
-      readingPosition: "contextPage=50",
       subject,
       token: accessToken,
     });
-    expect(unreached).toEqual(ALL_SURFACES_HIDDEN);
-    const serialized = await serializedSurfaces({
-      contextBookId: subject.secondBook,
-      readingPosition: "contextPage=50",
-      subject,
-      token: accessToken,
-    });
-    expect(serialized).not.toContain(subject.name);
-
-    const reached = await revealAcrossSurfaces({
-      contextBookId: subject.secondBook,
-      readingPosition: "contextPage=420",
-      subject,
-      token: accessToken,
-    });
-    expect(reached).toEqual(ALL_SURFACES_VISIBLE);
+    expect(reveal).toEqual(ALL_SURFACES_VISIBLE);
   });
 
-  it("agrees that an unreached audiobook position hides every contextual surface", async () => {
+  it("agrees that a late audiobook first appearance hides no contextual surface", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const subject = await createSubject({
       name: "Alia Atreides",
@@ -433,28 +341,12 @@ describe("contextual character surfaces agree on one visible set", () => {
       token: accessToken,
     });
 
-    const unreached = await revealAcrossSurfaces({
+    const reveal = await revealAcrossSurfaces({
       contextBookId: subject.secondBook,
-      readingPosition: "contextAudioSeconds=600",
       subject,
       token: accessToken,
     });
-    expect(unreached).toEqual(ALL_SURFACES_HIDDEN);
-    const serialized = await serializedSurfaces({
-      contextBookId: subject.secondBook,
-      readingPosition: "contextAudioSeconds=600",
-      subject,
-      token: accessToken,
-    });
-    expect(serialized).not.toContain(subject.name);
-
-    const reached = await revealAcrossSurfaces({
-      contextBookId: subject.secondBook,
-      readingPosition: "contextAudioSeconds=36000",
-      subject,
-      token: accessToken,
-    });
-    expect(reached).toEqual(ALL_SURFACES_VISIBLE);
+    expect(reveal).toEqual(ALL_SURFACES_VISIBLE);
   });
 
   it("agrees that a future part's character is never revealed from an earlier part", async () => {
@@ -467,21 +359,19 @@ describe("contextual character surfaces agree on one visible set", () => {
 
     const reveal = await revealAcrossSurfaces({
       contextBookId: subject.firstBook,
-      readingPosition: "contextChapter=99",
       subject,
       token: accessToken,
     });
     expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
     const serialized = await serializedSurfaces({
       contextBookId: subject.firstBook,
-      readingPosition: "contextChapter=99",
       subject,
       token: accessToken,
     });
     expect(serialized).not.toContain(subject.name);
   });
 
-  it("agrees that an earlier part's character stays visible while the context book is gated", async () => {
+  it("agrees that an earlier part's character stays visible from a later part", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const subject = await createSubject({
       homeBook: "first",
@@ -492,64 +382,10 @@ describe("contextual character surfaces agree on one visible set", () => {
 
     const reveal = await revealAcrossSurfaces({
       contextBookId: subject.secondBook,
-      readingPosition: "contextChapter=5",
       subject,
       token: accessToken,
     });
     expect(reveal).toEqual({ ...ALL_SURFACES_VISIBLE, bookRoster: false });
-  });
-
-  it("agrees that a presence-hidden character is never revealed", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const subject = await createSubject({
-      name: "The Traitor",
-      profile: { firstAppearanceChapter: "1", hidePresenceAsSpoiler: true },
-      token: accessToken,
-    });
-
-    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
-      const reveal = await revealAcrossSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
-      const serialized = await serializedSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(serialized).not.toContain(subject.name);
-    }
-  });
-
-  it("agrees that a profile-hidden character is never revealed", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const subject = await createSubject({
-      character: { hideProfileAsSpoiler: true },
-      name: "Leto II",
-      profile: { firstAppearanceChapter: "1" },
-      token: accessToken,
-    });
-
-    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
-      const reveal = await revealAcrossSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
-      const serialized = await serializedSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(serialized).not.toContain(subject.name);
-    }
   });
 
   it("agrees that a character unlinked from every book is never revealed", async () => {
@@ -566,60 +402,58 @@ describe("contextual character surfaces agree on one visible set", () => {
     );
     expect(unlinked.status).toBe(HttpStatus.NO_CONTENT);
 
-    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
-      const reveal = await revealAcrossSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
-      const serialized = await serializedSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(serialized).not.toContain(subject.name);
-      expect(serialized).not.toContain(SUBJECT_THEORY_TEXT);
-    }
+    const reveal = await revealAcrossSurfaces({
+      contextBookId: subject.secondBook,
+      subject,
+      token: accessToken,
+    });
+    expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
+    const serialized = await serializedSurfaces({
+      contextBookId: subject.secondBook,
+      subject,
+      token: accessToken,
+    });
+    expect(serialized).not.toContain(subject.name);
+    expect(serialized).not.toContain(SUBJECT_THEORY_TEXT);
   });
 
-  it("agrees that trashing the only book of a presence-hidden character reveals nothing", async () => {
+  it("agrees that trashing the only book of a character reveals nothing", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const subject = await createSubject({
       homeBook: "first",
-      name: "The Traitor",
-      profile: { firstAppearanceChapter: "1", hidePresenceAsSpoiler: true },
+      name: "Paul Atreides",
+      profile: { firstAppearanceChapter: "1" },
       token: accessToken,
     });
+    const beforeTrash = await revealAcrossSurfaces({
+      contextBookId: subject.secondBook,
+      subject,
+      token: accessToken,
+    });
+    expect(beforeTrash).toEqual({ ...ALL_SURFACES_VISIBLE, bookRoster: false });
+
     const trashed = await authed("delete", `/api/books/${subject.firstBook}`, accessToken);
     expect(trashed.status).toBe(HttpStatus.OK);
 
-    for (const readingPosition of ["", "contextChapter=1", "contextChapter=99"]) {
-      const reveal = await revealAcrossSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(reveal).toEqual(ALL_SURFACES_HIDDEN);
-      const serialized = await serializedSurfaces({
-        contextBookId: subject.secondBook,
-        readingPosition,
-        subject,
-        token: accessToken,
-      });
-      expect(serialized).not.toContain(subject.name);
-    }
+    const afterTrash = await revealAcrossSurfaces({
+      contextBookId: subject.secondBook,
+      subject,
+      token: accessToken,
+    });
+    expect(afterTrash).toEqual(ALL_SURFACES_HIDDEN);
+    const serialized = await serializedSurfaces({
+      contextBookId: subject.secondBook,
+      subject,
+      token: accessToken,
+    });
+    expect(serialized).not.toContain(subject.name);
   });
 
-  it("agrees that a profile-hidden character is not named without a reading context either", async () => {
+  it("names the character on details, group and theories without a reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const subject = await createSubject({
-      character: { hideProfileAsSpoiler: true },
       name: "Leto II",
-      profile: { firstAppearanceChapter: "1" },
+      profile: { firstAppearanceChapter: "40" },
       token: accessToken,
     });
 
@@ -629,51 +463,16 @@ describe("contextual character surfaces agree on one visible set", () => {
       authed("get", "/api/character-theories", accessToken),
     ]);
 
-    expect(details.status).toBe(HttpStatus.NOT_FOUND);
+    expect(details.status).toBe(HttpStatus.OK);
+    expect(details.body.name).toBe("Leto II");
     expect(group.status).toBe(HttpStatus.OK);
-    expect(group.body.memberCount).toBe(0);
-    expect(group.body.members).toEqual([]);
+    expect(group.body.memberCount).toBe(1);
+    expect(group.body.members.map((member: { characterId: string }) => member.characterId)).toEqual(
+      [subject.characterId],
+    );
     expect(theories.status).toBe(HttpStatus.OK);
     expect(
-      theories.body.items.some(
-        (theory: { characterId: null | string }) => theory.characterId === subject.characterId,
-      ),
-    ).toBe(false);
-    expect(JSON.stringify([details.body, group.body, theories.body])).not.toContain(subject.name);
-  });
-
-  it("rejects a reading position on every contextual surface unless the context book is named", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    const subject = await createSubject({
-      name: "Alia Atreides",
-      profile: { firstAppearanceChapter: "40" },
-      token: accessToken,
-    });
-
-    const anchoredToPathBook = await authed(
-      "get",
-      `/api/books/${subject.secondBook}/characters?contextChapter=5`,
-      accessToken,
-    );
-    expect(anchoredToPathBook.status).toBe(HttpStatus.OK);
-    expect(listsCharacter(anchoredToPathBook.body.items, subject.characterId)).toBe(false);
-
-    for (const path of [
-      `/api/series/${subject.seriesId}/characters?contextChapter=5`,
-      `/api/series/${subject.seriesId}/character-summary?contextChapter=5`,
-      `/api/series/${subject.seriesId}/characters/${subject.characterId}?contextChapter=5`,
-      `/api/characters/${subject.characterId}?contextChapter=5`,
-      `/api/character-groups/${subject.groupId}?contextChapter=5`,
-      "/api/character-theories?contextChapter=5",
-    ]) {
-      const bare = await authed("get", path, accessToken);
-      expect(bare.status).toBe(HttpStatus.BAD_REQUEST);
-      expect(bare.body.errorsMessages).toEqual([
-        {
-          field: "contextBookId",
-          message: "contextBookId is required when a reading position is supplied",
-        },
-      ]);
-    }
+      theories.body.items.map((theory: { characterId: null | string }) => theory.characterId),
+    ).toEqual([subject.characterId]);
   });
 });

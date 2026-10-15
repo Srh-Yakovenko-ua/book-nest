@@ -7,7 +7,7 @@ import type {
   CharacterBundle,
 } from "@app/shared";
 
-import { CharacterBundleSchema } from "@app/shared";
+import { CharacterBundleSchema, upgradeLegacyCharacterBundle } from "@app/shared";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -53,7 +53,6 @@ function makeAppearance(overrides: Partial<BundleAppearance> = {}): BundleAppear
     firstAppearanceChapter: null,
     firstAppearanceNote: null,
     firstAppearancePage: null,
-    hidePresenceAsSpoiler: false,
     importance: "supporting",
     isPovCharacter: false,
     isUnreliableNarrator: false,
@@ -96,7 +95,6 @@ function makeCharacter(overrides: Partial<BundleCharacter> = {}): BundleCharacte
     forms: [],
     gender: "unknown",
     globalAttitude: null,
-    hideProfileAsSpoiler: false,
     id: CHAR_A,
     isArchived: false,
     isFavorite: false,
@@ -433,7 +431,6 @@ describe("portable species references", () => {
           forms: [],
           gender: "unknown",
           globalAttitude: null,
-          hideProfileAsSpoiler: false,
           id: CHAR_A,
           isFavorite: false,
           name: "Legolas",
@@ -497,7 +494,6 @@ describe("serializeCharacterBundle", () => {
           ],
           gender: "male",
           globalAttitude: "favorite",
-          hideProfileAsSpoiler: false,
           id: CHAR_A,
           isFavorite: true,
           name: "Paul",
@@ -569,5 +565,47 @@ describe("CharacterBundleSchema", () => {
       relationships: [makeRelationship({ sourceCharacterId: CHAR_A, targetCharacterId: CHAR_B })],
     });
     expect(CharacterBundleSchema.safeParse(bundle).success).toBe(false);
+  });
+});
+
+describe("upgradeLegacyCharacterBundle", () => {
+  const currentBundle = makeBundle({
+    characters: [
+      makeCharacter({ appearances: [makeAppearance()], id: CHAR_A }),
+      makeCharacter({
+        appearances: [
+          makeAppearance({ bookId: BOOK_OWNED }),
+          makeAppearance({ bookId: BOOK_MISSING, firstAppearancePage: 412 }),
+        ],
+        id: CHAR_B,
+        name: "Chani",
+      }),
+    ],
+  });
+
+  it("imports a bundle exported with both retired hiding flags set to true", () => {
+    const legacyBundle = {
+      ...currentBundle,
+      characters: currentBundle.characters.map((character) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) => ({
+          ...appearance,
+          hidePresenceAsSpoiler: true,
+        })),
+        hideProfileAsSpoiler: true,
+      })),
+    };
+
+    expect(CharacterBundleSchema.safeParse(legacyBundle).success).toBe(false);
+    const upgraded = CharacterBundleSchema.safeParse(upgradeLegacyCharacterBundle(legacyBundle));
+    expect(upgraded.success).toBe(true);
+    expect(upgraded.data).toEqual(currentBundle);
+  });
+
+  it("imports a bundle that never carried the retired hiding flags", () => {
+    const upgraded = CharacterBundleSchema.safeParse(upgradeLegacyCharacterBundle(currentBundle));
+
+    expect(upgraded.success).toBe(true);
+    expect(upgraded.data).toEqual(currentBundle);
   });
 });

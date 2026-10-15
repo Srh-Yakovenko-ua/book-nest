@@ -256,23 +256,21 @@ describe("global character list", () => {
     expect(res.body.items[0].id).toBe(keepId);
   });
 
-  it("hides characters flagged hidePresence in the context book but keeps them globally", async () => {
+  it("lists a character first met late in the context book both globally and in context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     await createInBook(accessToken, bookId, { name: "Paul Atreides" });
-    await createInBook(
-      accessToken,
-      bookId,
-      { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true },
-    );
+    await createInBook(accessToken, bookId, { name: "The Traitor" }, { firstAppearancePage: 480 });
 
     const global = await authed("get", "/api/characters", accessToken);
     expect(global.body.totalCount).toBe(2);
 
     const inContext = await authed("get", `/api/characters?contextBookId=${bookId}`, accessToken);
-    expect(inContext.body.totalCount).toBe(1);
-    expect(inContext.body.items[0].name).toBe("Paul Atreides");
+    expect(inContext.body.totalCount).toBe(2);
+    expect(inContext.body.items.map((item: { name: string }) => item.name)).toEqual([
+      "Paul Atreides",
+      "The Traitor",
+    ]);
   });
 
   it("paginates the list", async () => {
@@ -460,18 +458,18 @@ describe("book character suggestions", () => {
     expect(withoutContext).toContain(unrelatedId);
   });
 
-  it("suggests a same-series character the reader has reached and hides one they have not", async () => {
+  it("suggests every character of a reached part whatever its first-appearance position", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
     const standaloneBook = await createBook(accessToken, { title: "Foundation" });
-    const unreachedId = await createInBook(
+    const lateId = await createInBook(
       accessToken,
       secondBook,
       { name: "Alia" },
       { firstAppearanceChapter: "40" },
     );
-    const reachedId = await createInBook(
+    const earlyId = await createInBook(
       accessToken,
       secondBook,
       { name: "Chani" },
@@ -479,23 +477,9 @@ describe("book character suggestions", () => {
     );
     const unrelatedId = await createInBook(accessToken, standaloneBook, { name: "Hari Seldon" });
 
-    const gated = await suggestedIds(
-      accessToken,
-      firstBook,
-      `?contextBookId=${secondBook}&contextChapter=5`,
-    );
-    expect(gated).not.toContain(unreachedId);
-    expect(gated).toContain(reachedId);
-    expect(gated).toContain(unrelatedId);
+    const suggested = await suggestedIds(accessToken, firstBook, `?contextBookId=${secondBook}`);
 
-    const fullyRead = await suggestedIds(
-      accessToken,
-      firstBook,
-      `?contextBookId=${secondBook}&contextChapter=40`,
-    );
-    expect(fullyRead).toContain(unreachedId);
-    expect(fullyRead).toContain(reachedId);
-    expect(fullyRead).toContain(unrelatedId);
+    expect([...suggested].sort()).toEqual([earlyId, lateId, unrelatedId].sort());
   });
 
   it("still filters by q and caps by limit while a reading context is supplied", async () => {
@@ -513,9 +497,9 @@ describe("book character suggestions", () => {
       { firstAppearanceChapter: "40" },
     );
 
-    const readingContext = `contextBookId=${secondBook}&contextChapter=5`;
+    const readingContext = `contextBookId=${secondBook}`;
     const filtered = await suggestedIds(accessToken, firstBook, `?${readingContext}&q=fremen`);
-    expect(filtered).toHaveLength(2);
+    expect(filtered).toHaveLength(3);
 
     const capped = await suggestedIds(
       accessToken,
@@ -588,20 +572,18 @@ describe("series character aggregate", () => {
     expect(withFuture.body.totalCount).toBe(2);
   });
 
-  it("excludes characters whose appearance hides its presence", async () => {
+  it("includes a character first met late in a series book", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     await createInBook(accessToken, bookId, { name: "Paul Atreides" });
-    await createInBook(
-      accessToken,
-      bookId,
-      { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true },
-    );
+    await createInBook(accessToken, bookId, { name: "The Traitor" }, { firstAppearancePage: 480 });
 
     const res = await authed("get", `/api/series/${seriesId}/characters`, accessToken);
-    expect(res.body.totalCount).toBe(1);
-    expect(res.body.items[0].name).toBe("Paul Atreides");
+    expect(res.body.totalCount).toBe(2);
+    expect(res.body.items.map((item: { name: string }) => item.name)).toEqual([
+      "Paul Atreides",
+      "The Traitor",
+    ]);
   });
 
   it("does not match q against a spoiler displayName", async () => {
@@ -611,7 +593,7 @@ describe("series character aggregate", () => {
       accessToken,
       bookId,
       { name: "Paul Atreides" },
-      { displayName: "Muad'Dib", displayNameIsSpoiler: true, hidePresenceAsSpoiler: false },
+      { displayName: "Muad'Dib", displayNameIsSpoiler: true },
     );
 
     const bySpoiler = await authed("get", `/api/series/${seriesId}/characters?q=muad`, accessToken);

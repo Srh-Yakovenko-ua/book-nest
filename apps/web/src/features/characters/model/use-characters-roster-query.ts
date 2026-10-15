@@ -25,14 +25,14 @@ export type UseCharactersRosterQueryResult = {
 };
 
 export function useCharactersRosterQuery(
-  readingContext: BookCharacterSummaryQuery,
+  bookContext: BookCharacterSummaryQuery,
 ): UseCharactersRosterQueryResult {
   const [state, setState] = useQueryStates(charactersRosterParsers);
 
   return {
     clearSearch: () => void setState(CHARACTERS_ROSTER_RESET),
     hasActiveSearch: hasActiveRosterSearch(state),
-    listParams: toBookCharactersListParams(state, readingContext),
+    listParams: toBookCharactersListParams(state, bookContext),
     setSearch: (characterSearch) => void setState({ characterSearch }),
     setSort: (characterSort) => void setState({ characterSort }),
     state,

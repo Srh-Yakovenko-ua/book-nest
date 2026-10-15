@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  BookCharacterSummaryQuery,
   BookCharacterView,
   CharacterAliasView,
   CharacterDetailsView,
@@ -10,10 +9,11 @@ import type {
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { keepPreviousData } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
@@ -21,9 +21,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBook } from "@/features/books";
 import { useSpeciesLabel } from "@/features/species";
 import { Link, useRouter } from "@/i18n/navigation";
+import { cn } from "@/lib/utils";
 
 import { useCharacterDetails } from "../api/use-character-details";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
@@ -37,12 +37,18 @@ import {
   getCharacterDetailsPath,
   getCharacterEditPath,
 } from "../model/character-routes";
-import { addRevealKey, isFieldHidden, toRevealKey } from "../model/character-spoiler";
-import { toCharacterReadingContext } from "../model/characters-roster-query";
+import {
+  addRevealKey,
+  findRevealFocusTarget,
+  isFieldHidden,
+  REVEAL_FOCUS_TARGET,
+  revealFocusTarget,
+} from "../model/character-spoiler";
 import { useDeleteCharacterWithUndo } from "../model/use-delete-character-with-undo";
 import { CharacterSpoilerField } from "./character-spoiler-field";
 import { CharactersErrorState } from "./characters-error-state";
 import { DeleteCharacterDialog } from "./delete-character-dialog";
+import { SpoilerRevealButton } from "./spoiler-reveal-button";
 import { UnlinkCharacterDialog } from "./unlink-character-dialog";
 
 type CharacterDetailsPageProps = {
@@ -53,27 +59,69 @@ export function CharacterDetailsPage({ characterId }: CharacterDetailsPageProps)
   const [contextBookId] = useQueryState("bookId", parseAsString);
 
   if (contextBookId === null) {
-    return <GlobalCharacterDetails characterId={characterId} />;
+    return <GlobalCharacterDetails characterId={characterId} key={characterId} />;
   }
 
-  return <ContextualCharacterDetails characterId={characterId} contextBookId={contextBookId} />;
+  return (
+    <ContextualCharacterDetails
+      characterId={characterId}
+      contextBookId={contextBookId}
+      key={`${characterId}:${contextBookId}`}
+    />
+  );
 }
 
-function AliasList({ aliases, label }: { aliases: CharacterAliasView[]; label: string }) {
-  if (aliases.length === 0) return null;
+function AliasGroup({
+  aliases,
+  field,
+  hidden,
+  label,
+  onReveal,
+  pendingReveal,
+}: {
+  aliases: CharacterAliasView[];
+  field: Extract<CharacterRevealFieldKey, "bookAliases" | "globalAliases">;
+  hidden: boolean;
+  label: string;
+  onReveal: (key: CharacterRevealFieldKey) => void;
+  pendingReveal: Nullable<CharacterRevealFieldKey>;
+}) {
+  const t = useTranslations("characters.page");
+  const labelId = useId();
+
+  if (aliases.length === 0 && !hidden) return null;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+    <div
+      aria-labelledby={labelId}
+      className={cn("flex flex-col gap-1.5 rounded-lg", REVEAL_FOCUS_TARGET.focusClassName)}
+      role="group"
+      {...revealFocusTarget(field)}
+    >
+      <span
+        className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        id={labelId}
+      >
         {label}
       </span>
-      <div className="flex flex-wrap gap-1.5">
-        {aliases.map((alias) => (
-          <Badge key={alias.id} variant="outline">
-            {alias.name}
-          </Badge>
-        ))}
-      </div>
+      {aliases.length === 0 ? null : (
+        <div className="flex flex-wrap gap-1.5">
+          {aliases.map((alias) => (
+            <Badge key={alias.id} variant="outline">
+              {alias.name}
+            </Badge>
+          ))}
+        </div>
+      )}
+      {hidden ? (
+        <HiddenGroupNotice
+          accessibleName={t("revealHiddenAliasesAria", { group: label })}
+          actionLabel={t("revealHiddenAliases")}
+          message={t("hiddenAliasesNotice")}
+          onReveal={() => onReveal(field)}
+          revealing={pendingReveal === field}
+        />
+      ) : null}
     </div>
   );
 }
@@ -173,23 +221,25 @@ function AppearancesSection({
 
 function BookContextSection({
   aliases,
+  aliasesHidden,
   appearance,
   onReveal,
-  revealing,
+  pendingReveal,
 }: {
   aliases: CharacterAliasView[];
+  aliasesHidden: boolean;
   appearance: BookCharacterView;
-  onReveal: (field: string) => void;
-  revealing: boolean;
+  onReveal: (key: CharacterRevealFieldKey) => void;
+  pendingReveal: Nullable<CharacterRevealFieldKey>;
 }) {
   const t = useTranslations("characters.page");
   const tNarrator = useTranslations("characters.narratorType");
   const tRole = useTranslations("characters.roleType");
+  const tSpoilers = useTranslations("characters.spoilers");
   const tStatus = useTranslations("characters.status");
   const speciesLabel = useSpeciesLabel();
 
-  const visibleRoles = appearance.roles.filter((role) => !role.isSpoiler);
-  const hiddenRoleCount = appearance.roles.length - visibleRoles.length;
+  const rolesHidden = isFieldHidden(appearance.hiddenFields, "roles");
   const status = explicitStatus(appearance.status);
   const statusText =
     status === null
@@ -200,30 +250,56 @@ function BookContextSection({
 
   return (
     <Section title={t("bookSection")}>
-      {visibleRoles.length > 0 || hiddenRoleCount > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {visibleRoles.map((role) => (
-            <Badge key={role.id} variant="secondary">
-              {role.roleType === "custom" && role.customRole !== null
-                ? role.customRole
-                : tRole(role.roleType)}
-            </Badge>
-          ))}
-          {hiddenRoleCount > 0 ? (
-            <Badge variant="warning">
-              <UiIcon name="lock" size={12} />
-              {t("hiddenRoles", { count: hiddenRoleCount })}
-            </Badge>
+      <HeaderFieldReveal
+        appearance={appearance}
+        field="displayName"
+        label={tSpoilers("displayName")}
+        onReveal={onReveal}
+        pendingReveal={pendingReveal}
+      />
+      <HeaderFieldReveal
+        appearance={appearance}
+        field="portrait"
+        label={tSpoilers("portrait")}
+        onReveal={onReveal}
+        pendingReveal={pendingReveal}
+      />
+
+      {appearance.roles.length === 0 && !rolesHidden ? null : (
+        <div
+          aria-label={t("roles")}
+          className={cn("flex flex-col gap-4 rounded-lg", REVEAL_FOCUS_TARGET.focusClassName)}
+          role="group"
+          {...revealFocusTarget("roles")}
+        >
+          {appearance.roles.length === 0 ? null : (
+            <div className="flex flex-wrap gap-1.5">
+              {appearance.roles.map((role) => (
+                <Badge key={role.id} variant="secondary">
+                  {role.roleType === "custom" && role.customRole !== null
+                    ? role.customRole
+                    : tRole(role.roleType)}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {rolesHidden ? (
+            <HiddenGroupNotice
+              actionLabel={t("revealHiddenRoles")}
+              message={t("hiddenRolesNotice")}
+              onReveal={() => onReveal("roles")}
+              revealing={pendingReveal === "roles"}
+            />
           ) : null}
         </div>
-      ) : null}
+      )}
 
       <SpoilerText
         appearance={appearance}
         field="status"
         label={t("status")}
         onReveal={onReveal}
-        revealing={revealing}
+        pendingReveal={pendingReveal}
         value={statusText}
       />
       <SpoilerText
@@ -231,7 +307,7 @@ function BookContextSection({
         field="description"
         label={t("bookDescription")}
         onReveal={onReveal}
-        revealing={revealing}
+        pendingReveal={pendingReveal}
         value={appearance.description}
       />
       <SpoilerText
@@ -239,7 +315,7 @@ function BookContextSection({
         field="personalImpression"
         label={t("personalImpression")}
         onReveal={onReveal}
-        revealing={revealing}
+        pendingReveal={pendingReveal}
         value={appearance.personalImpression}
       />
       <SpoilerText
@@ -247,7 +323,7 @@ function BookContextSection({
         field="appearanceNotes"
         label={t("appearanceNotes")}
         onReveal={onReveal}
-        revealing={revealing}
+        pendingReveal={pendingReveal}
         value={appearance.appearanceNotes}
       />
       <SpoilerText
@@ -255,7 +331,7 @@ function BookContextSection({
         field="speciesOverride"
         label={t("speciesOverride")}
         onReveal={onReveal}
-        revealing={revealing}
+        pendingReveal={pendingReveal}
         value={speciesLabel(appearance.speciesOverride)}
       />
 
@@ -270,14 +346,21 @@ function BookContextSection({
           field="unreliableNarrator"
           label={t("unreliableNarrator")}
           onReveal={onReveal}
-          revealing={revealing}
+          pendingReveal={pendingReveal}
           value={appearance.isUnreliableNarrator === true ? t("unreliableNarratorYes") : null}
         />
       ) : null}
 
       <FirstAppearance appearance={appearance} />
 
-      <AliasList aliases={aliases} label={t("bookAliases")} />
+      <AliasGroup
+        aliases={aliases}
+        field="bookAliases"
+        hidden={aliasesHidden}
+        label={t("bookAliases")}
+        onReveal={onReveal}
+        pendingReveal={pendingReveal}
+      />
     </Section>
   );
 }
@@ -289,18 +372,35 @@ function CharacterDetailsBody({
   character,
   contextBookId,
   onReveal,
-  revealing,
+  pendingReveal,
 }: {
   appearance: BookCharacterView | undefined;
   backHref: string;
   backLabel: string;
   character: CharacterDetailsView;
   contextBookId: null | string;
-  onReveal: (field: string) => void;
-  revealing: boolean;
+  onReveal: (key: CharacterRevealFieldKey) => void;
+  pendingReveal: Nullable<CharacterRevealFieldKey>;
 }) {
+  const articleRef = useRef<HTMLElement>(null);
+  const focusRequest = useRef<Nullable<CharacterRevealFieldKey>>(null);
+
+  useEffect(() => {
+    const requested = focusRequest.current;
+    if (requested === null || pendingReveal !== null) return;
+    focusRequest.current = null;
+    const hiddenFields = [...character.hiddenFields, ...(appearance?.hiddenFields ?? [])];
+    if (isFieldHidden(hiddenFields, requested) || articleRef.current === null) return;
+    findRevealFocusTarget(articleRef.current, requested)?.focus();
+  }, [appearance, character, pendingReveal]);
+
+  const revealAndFocus = (key: CharacterRevealFieldKey) => {
+    focusRequest.current = key;
+    onReveal(key);
+  };
+
   return (
-    <article className="flex flex-col gap-8">
+    <article className="flex flex-col gap-8" ref={articleRef}>
       <Link
         className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         href={backHref}
@@ -313,14 +413,19 @@ function CharacterDetailsBody({
 
       {appearance === undefined ? null : (
         <BookContextSection
-          aliases={visibleAliases(character, appearance.bookId)}
+          aliases={character.aliases.filter((alias) => alias.bookId === appearance.bookId)}
+          aliasesHidden={isFieldHidden(character.hiddenFields, "bookAliases")}
           appearance={appearance}
-          onReveal={onReveal}
-          revealing={revealing}
+          onReveal={revealAndFocus}
+          pendingReveal={pendingReveal}
         />
       )}
 
-      <ProfileSection character={character} />
+      <ProfileSection
+        character={character}
+        onReveal={revealAndFocus}
+        pendingReveal={pendingReveal}
+      />
 
       <AppearancesSection
         appearances={character.appearances}
@@ -340,36 +445,14 @@ function ContextualCharacterDetails({
   characterId: string;
   contextBookId: string;
 }) {
-  const book = useBook(contextBookId);
-
-  if (book.isPending) return <DetailsSkeleton />;
-
-  return (
-    <ContextualCharacterDetailsBody
-      characterId={characterId}
-      contextBookId={contextBookId}
-      readingContext={book.data === undefined ? {} : toCharacterReadingContext(book.data)}
-    />
-  );
-}
-
-function ContextualCharacterDetailsBody({
-  characterId,
-  contextBookId,
-  readingContext,
-}: {
-  characterId: string;
-  contextBookId: string;
-  readingContext: BookCharacterSummaryQuery;
-}) {
   const t = useTranslations("characters.page");
   const [revealFieldIds, setRevealFieldIds] = useState<CharacterRevealFieldKey[]>([]);
 
   const details = useCharacterDetails({
     characterId,
     contextBookId,
+    placeholderData: keepPreviousData,
     revealFieldIds,
-    ...readingContext,
   });
 
   if (details.isPending) return <DetailsSkeleton />;
@@ -393,11 +476,8 @@ function ContextualCharacterDetailsBody({
       backLabel={t("backToBook")}
       character={details.data}
       contextBookId={appearance === undefined ? null : contextBookId}
-      onReveal={(field) => {
-        const key = toRevealKey(field);
-        if (key !== null) setRevealFieldIds((current) => addRevealKey(current, key));
-      }}
-      revealing={details.isFetching}
+      onReveal={(key) => setRevealFieldIds((current) => addRevealKey(current, key))}
+      pendingReveal={details.isPlaceholderData ? (revealFieldIds.at(-1) ?? null) : null}
     />
   );
 }
@@ -422,8 +502,12 @@ function DetailsHeader({
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
       <Avatar
-        className="size-24 bg-gradient-to-br from-accent-border to-primary text-primary-foreground"
+        className={cn(
+          "size-24 bg-gradient-to-br from-accent-border to-primary text-primary-foreground",
+          REVEAL_FOCUS_TARGET.focusClassName,
+        )}
         size="lg"
+        {...revealFocusTarget("portrait")}
       >
         {portrait === null ? null : <AvatarImage alt={displayName} src={portrait.urls.card} />}
         <AvatarFallback className="bg-transparent font-heading text-3xl font-bold text-primary-foreground">
@@ -432,7 +516,15 @@ function DetailsHeader({
       </Avatar>
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <h1 className="font-heading text-3xl leading-tight text-ink">{displayName}</h1>
+        <h1
+          className={cn(
+            "self-start rounded-lg font-heading text-3xl leading-tight text-ink",
+            REVEAL_FOCUS_TARGET.focusClassName,
+          )}
+          {...revealFocusTarget("displayName")}
+        >
+          {displayName}
+        </h1>
 
         {displayName === character.name ? null : (
           <p className="text-sm text-muted-foreground">{character.name}</p>
@@ -524,7 +616,13 @@ function FirstAppearance({ appearance }: { appearance: BookCharacterView }) {
 
 function GlobalCharacterDetails({ characterId }: { characterId: string }) {
   const t = useTranslations("characters.page");
-  const details = useCharacterDetails({ characterId });
+  const [revealFieldIds, setRevealFieldIds] = useState<CharacterRevealFieldKey[]>([]);
+
+  const details = useCharacterDetails({
+    characterId,
+    placeholderData: keepPreviousData,
+    revealFieldIds,
+  });
 
   if (details.isPending) return <DetailsSkeleton />;
 
@@ -543,9 +641,65 @@ function GlobalCharacterDetails({ characterId }: { characterId: string }) {
       backLabel={t("backToLibrary")}
       character={details.data}
       contextBookId={null}
-      onReveal={() => undefined}
-      revealing={false}
+      onReveal={(key) => setRevealFieldIds((current) => addRevealKey(current, key))}
+      pendingReveal={details.isPlaceholderData ? (revealFieldIds.at(-1) ?? null) : null}
     />
+  );
+}
+
+function HeaderFieldReveal({
+  appearance,
+  field,
+  label,
+  onReveal,
+  pendingReveal,
+}: {
+  appearance: BookCharacterView;
+  field: Extract<CharacterRevealFieldKey, "displayName" | "portrait">;
+  label: string;
+  onReveal: (key: CharacterRevealFieldKey) => void;
+  pendingReveal: Nullable<CharacterRevealFieldKey>;
+}) {
+  if (!isFieldHidden(appearance.hiddenFields, field)) return null;
+
+  return (
+    <CharacterSpoilerField
+      hidden
+      label={label}
+      reveal={{ field, onReveal: () => onReveal(field), pending: pendingReveal === field }}
+    >
+      {null}
+    </CharacterSpoilerField>
+  );
+}
+
+function HiddenGroupNotice({
+  accessibleName,
+  actionLabel,
+  message,
+  onReveal,
+  revealing,
+}: {
+  accessibleName?: string;
+  actionLabel: string;
+  message: string;
+  onReveal: () => void;
+  revealing: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-secondary/50 px-3 py-2.5">
+      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+        <UiIcon name="lock" size={16} />
+        {message}
+      </span>
+      <SpoilerRevealButton
+        accessibleName={accessibleName}
+        onReveal={onReveal}
+        revealing={revealing}
+      >
+        {actionLabel}
+      </SpoilerRevealButton>
+    </div>
   );
 }
 
@@ -643,7 +797,15 @@ function ManagementSection({
   );
 }
 
-function ProfileSection({ character }: { character: CharacterDetailsView }) {
+function ProfileSection({
+  character,
+  onReveal,
+  pendingReveal,
+}: {
+  character: CharacterDetailsView;
+  onReveal: (key: CharacterRevealFieldKey) => void;
+  pendingReveal: Nullable<CharacterRevealFieldKey>;
+}) {
   const t = useTranslations("characters.page");
   const tEntity = useTranslations("characters.entityKind");
   const tGender = useTranslations("characters.gender");
@@ -677,7 +839,14 @@ function ProfileSection({ character }: { character: CharacterDetailsView }) {
         </p>
       )}
 
-      <AliasList aliases={visibleAliases(character, null)} label={t("globalAliases")} />
+      <AliasGroup
+        aliases={character.aliases.filter((alias) => alias.bookId === null)}
+        field="globalAliases"
+        hidden={isFieldHidden(character.hiddenFields, "globalAliases")}
+        label={t("globalAliases")}
+        onReveal={onReveal}
+        pendingReveal={pendingReveal}
+      />
     </Section>
   );
 }
@@ -696,14 +865,14 @@ function SpoilerText({
   field,
   label,
   onReveal,
-  revealing,
+  pendingReveal,
   value,
 }: {
   appearance: BookCharacterView;
-  field: string;
+  field: CharacterRevealFieldKey;
   label: string;
-  onReveal: (field: string) => void;
-  revealing: boolean;
+  onReveal: (key: CharacterRevealFieldKey) => void;
+  pendingReveal: Nullable<CharacterRevealFieldKey>;
   value: null | string;
 }) {
   const hidden = isFieldHidden(appearance.hiddenFields, field);
@@ -713,8 +882,7 @@ function SpoilerText({
     <CharacterSpoilerField
       hidden={hidden}
       label={label}
-      onReveal={() => onReveal(field)}
-      revealing={revealing}
+      reveal={{ field, onReveal: () => onReveal(field), pending: pendingReveal === field }}
     >
       <p className="whitespace-pre-line">{value}</p>
     </CharacterSpoilerField>
@@ -747,11 +915,4 @@ function UnavailableContext({
       </Button>
     </div>
   );
-}
-
-function visibleAliases(
-  character: CharacterDetailsView,
-  bookId: Nullable<string>,
-): CharacterAliasView[] {
-  return character.aliases.filter((alias) => !alias.isSpoiler && alias.bookId === bookId);
 }

@@ -18,24 +18,24 @@ export const BOOK_CHARACTER_LOOKUP = {
 export type BookCharactersPage = z.infer<typeof PaginatedCharacterSummarySchema>;
 
 type BookCharacterLookupArgs = {
+  bookContext: BookCharacterSummaryQuery;
   bookId: string;
   pageSize: number;
   query: string;
-  readingContext: BookCharacterSummaryQuery;
 };
 
 export function useBookCharacterLookup({
+  bookContext,
   bookId,
   pageSize,
   query,
-  readingContext,
 }: BookCharacterLookupArgs) {
   const params: BookCharactersControllerListParams = {
     pageNumber: 1,
     pageSize,
     search: query,
     sort: BOOK_CHARACTER_LOOKUP.sort,
-    ...readingContext,
+    ...bookContext,
   };
 
   return useQuery({
