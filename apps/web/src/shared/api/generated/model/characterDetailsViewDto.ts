@@ -30,7 +30,6 @@ export interface CharacterDetailsViewDto {
   /** @nullable */
   globalAttitude: CharacterDetailsViewDtoGlobalAttitude;
   hiddenFields: string[];
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;

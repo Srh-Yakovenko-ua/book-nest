@@ -1,0 +1,1031 @@
+{
+  "spec": "docs/character-spoilers-final-spec.md",
+  "specFiles": ["docs/character-spoilers-final-spec.md"],
+  "baseCommit": "9dc07425",
+  "generatedAt": "2026-10-15T11:27:02Z",
+  "scope": {
+    "included": [
+      "§1 Remove whole-character hiding (hidePresenceAsSpoiler, hideProfileAsSpoiler, includeHiddenProfiles, revealHiddenProfile, excludeHiddenProfiles) across UI, queries, services, repositories, DTOs, create/update/read, mappers, aggregates, search, series",
+      "§1 Remove presence gating by firstAppearance*/contextPage on roster, details, edit, counts, search, series, keeping ownership, soft-delete, book access and series context (allowedBookIds)",
+      "§1 Keep firstAppearanceChapter/Page/Note/AudioSeconds as informational fields",
+      "§1 Prisma migration dropping both columns without losing characters, links, media, roles or names",
+      "§1 Remove the hide-presence switch, its hints and the hidden-characters badge; keep the hidden-fields lock badge on cards",
+      "§1 Book edit form opens and saves; post-save navigation lands on reachable details",
+      "§2 Seven book-field spoilers: masking table, fallbacks, manual reveal (incl. missing displayName and portrait reveal), no DOM/API leak before reveal, reveal not persisted",
+      "§2 'No value, no spoiler': disabled+unchecked switches, reset on clear in form and payload, stale-flag normalization on normal edit, no indicators for stale flags",
+      "§3 Roles: per-role flag kept, one group reveal, no count, no FE re-filter",
+      "§4 Aliases: two independent groups (global / context book), independent reveal keys and hidden markers, global profile masks spoiler global aliases server-side, owner editor gets full data",
+      "§5 Spoiler section UX: no Collapsible, all seven rows visible in two ordered groups, short hints, reuse ActionRow/Switch/Separator/EditSection/ScopeBadge",
+      "§6.5 OpenAPI + Orval regeneration, targeted checks, typecheck/lint",
+      "§7 Acceptance criteria (as doneWhen and test tasks)",
+      "'Не робити' list (as doneWhen guards and exclusions)"
+    ],
+    "excluded": [
+      "isUnreliableNarratorSpoiler, form/image spoilers (CharacterForm.isSpoiler), timeline, theory and relationship spoilers (hideRelationshipAsSpoiler, isTypeSpoiler, isDescriptionSpoiler, introduced* reading-position gate on edges): 'Не робити' #1. Only the dependencies on the two removed flags are touched (T5, T6)",
+      "New tables, reveal endpoints, feature flags, reveal state in localStorage/URL, a 'Керувати прихованими' UI, reveal buttons on cards: 'Не робити' #2, §1, §2, §3",
+      "Mass data migration that rewrites stale *IsSpoiler=true flags with empty values: §2 'не роби окремої масової data-міграції'",
+      "Redesign of lists, cards or the global catalog; catalog filters hasSpoilers/includeSpoilerSearch keep their semantics apart from dropping the hidePresenceAsSpoiler predicate: 'Не робити' #2",
+      "Series profile alias and role masking (series-characters.service.ts:130-136, character.mapper.ts:612): §3 and §4 scope book details and the global profile only. Series surfaces only lose presence gating (T8)",
+      "Merge preview hasHiddenRecords (characters.ts:873, character-merge.service.ts:122): a different concept (spoiler records on the loser). Only its hidePresenceAsSpoiler predicate goes (T5)",
+      "docs/features/characters.md (lines 22, 43, 76, 82, 86 describe hidePresenceAsSpoiler): not requested by the spec; it goes stale and should be refreshed in a follow-up",
+      "Changelog entry: not requested by the spec"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Remove whole-character hiding from the @app/shared character contracts",
+      "specRef": "§1 bullets 1 and 5; §7 bullet 1",
+      "layer": "shared",
+      "files": ["packages/shared/src/characters.ts"],
+      "dependsOn": [],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "hideProfileAsSpoiler removed from CharacterInputSchema (:193), UpdateCharacterSchema (:289), CharacterDetailsViewSchema (:529), CharacterGlobalSummaryViewSchema (:755)",
+        "hidePresenceAsSpoiler removed from BookCharacterProfileInputSchema (:224), UpdateBookCharacterSchema (:323), BookCharacterViewSchema (:473)",
+        "includeHiddenProfiles removed from CharactersListQuerySchema (:612) and CharacterDetailsQuerySchema (:725)",
+        "hasHiddenRecords removed from BookCharacterSummaryViewSchema (:801) and SeriesCharacterSummaryViewSchema (:819); CharacterMergePreviewViewSchema (:873) keeps it",
+        "The .strict() input schemas (:279, :296, :342) stay strict"
+      ],
+      "status": "done",
+      "verifyProof": "packages/shared/src/characters.ts diff drops hideProfileAsSpoiler x4, hidePresenceAsSpoiler x3, includeHiddenProfiles x2, hasHiddenRecords on book/series summary; merge preview keeps it (:861); .strict() at :272/:288/:333"
+    },
+    {
+      "id": "T2",
+      "title": "Drop the two flags from the character bundle and keep old exports importable",
+      "specRef": "§1 bullets 1 and 4 (dependency: the spec is silent on export/import, but the bundle schema requires both flags)",
+      "layer": "shared",
+      "files": ["packages/shared/src/character-portability.ts"],
+      "dependsOn": [],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "BundleAppearanceSchema has no hidePresenceAsSpoiler (:101) and BundleCharacterSchema has no hideProfileAsSpoiler (:149); both stay .strict()",
+        "upgradeLegacyCharacterBundle (:387) strips hidePresenceAsSpoiler from every appearance and hideProfileAsSpoiler from every character before CharacterBundleSchema parses (character-portability.service.ts:86)",
+        "CHARACTER_BUNDLE_FORMAT_VERSION (:28) stays 1",
+        "Unit test: a bundle exported before this change, with both keys set to true, imports; a bundle without the keys imports too"
+      ],
+      "status": "done",
+      "verifyProof": "packages/shared/src/character-portability.ts:387-418 strips both flags before parse; CHARACTER_BUNDLE_FORMAT_VERSION=1 (:28); tests domain/character-portability.test.ts:586-608, api/character-portability.controller.test.ts:383"
+    },
+    {
+      "id": "T3",
+      "title": "Drop hide_presence_as_spoiler and hide_profile_as_spoiler with a reviewed migration",
+      "specRef": "§1 bullet 4; §6.2; §6.5; §7 bullet 1",
+      "layer": "db",
+      "files": [
+        "apps/api/prisma/schema.prisma",
+        "apps/api/prisma/migrations/<timestamp>_drop_character_hiding_flags/migration.sql"
+      ],
+      "dependsOn": [],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "schema.prisma has no hideProfileAsSpoiler (was :1053) and no hidePresenceAsSpoiler (was :1147)",
+        "Migration created with `pnpm --filter @app/api db:migrate --name <snake_case>` (create-only), reviewed by migration-reviewer, then applied with db:migrate:deploy",
+        "migration.sql contains only ALTER TABLE \"book_characters\" DROP COLUMN \"hide_presence_as_spoiler\" and ALTER TABLE \"characters\" DROP COLUMN \"hide_profile_as_spoiler\". No DELETE, UPDATE or DROP TABLE, and any generated DROP INDEX (trigram trap) is stripped",
+        "apps/api/src/core/database/raw-sql-indexes.test.ts is unchanged and green",
+        "No rows in characters, book_characters, character_aliases, book_character_roles or media_assets are removed or rewritten: the migration only drops columns, so former true rows become ordinary visible characters"
+      ],
+      "status": "done",
+      "verifyProof": "schema.prisma has neither flag; migrations/20261015115446_drop_character_hiding_flags/migration.sql = exactly 2 ALTER TABLE DROP COLUMN, no DROP INDEX/DELETE/UPDATE; prisma migrate status: up to date; raw-sql-indexes.test.ts untouched. migration-reviewer pass not evidenced in artifacts (SQL re-read here)"
+    },
+    {
+      "id": "T4",
+      "title": "Stop writing and exporting the flags in the write and portability paths",
+      "specRef": "§1 bullet 1 (create/update/read)",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-write.ts",
+        "apps/api/src/modules/characters/domain/book-character-write.ts",
+        "apps/api/src/modules/characters/domain/character-portability.ts",
+        "apps/api/src/modules/characters/infrastructure/character-portability.repository.ts"
+      ],
+      "dependsOn": ["T1", "T2", "T3"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "character-write.ts :37 and :98-99, and book-character-write.ts :48 and :138-139, are removed",
+        "character-portability.ts :92, :137, :228, :272, :569, :679, :960, :1014 and character-portability.repository.ts :45, :83 are removed",
+        "Export emits neither key. Importing an upgraded legacy bundle still creates the characters, appearances, aliases, roles and media links"
+      ],
+      "status": "done",
+      "verifyProof": "git diff: deletion-only, character-write.ts -4, book-character-write.ts -4, domain/character-portability.ts -8, character-portability.repository.ts -2"
+    },
+    {
+      "id": "T5",
+      "title": "Remove whole-character hiding from repositories and the access asserter",
+      "specRef": "§1 bullets 1 and 2 (queries/filters, repository, search, series)",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/infrastructure/characters.repository.ts",
+        "apps/api/src/modules/characters/infrastructure/character-custom-labels.repository.ts",
+        "apps/api/src/modules/characters/infrastructure/character-theories.repository.ts",
+        "apps/api/src/modules/characters/infrastructure/character-relationships.repository.ts",
+        "apps/api/src/modules/characters/infrastructure/character-groups.repository.ts",
+        "apps/api/src/modules/characters/infrastructure/character-merge.repository.ts",
+        "apps/api/src/modules/characters/application/character-access.asserter.ts",
+        "apps/api/src/modules/characters/application/character-relationship-path.service.ts"
+      ],
+      "dependsOn": ["T1", "T3"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "characters.repository.ts: the flag is gone from catalogCharacterScope (:1171), characterRosterScope (:1415), buildGlobalCharacterWhere (:1208-1210, :1266, :1273, the contextBookId clause :1297-1301), buildHasSpoilerContentWhere (:1349), findAppearanceLeaders (:627), findDuplicateNormalizedNames (:644-659, includeHiddenProfiles param), findSeriesCharacterProfile (:771), the graph node select and where (:845, :849), listSeriesAppearances (:917-918) and listSuggestions (:1021)",
+        "Every touched where still filters deletedAt: null, userId and SOFT_DELETE_SCOPE.active where it did before",
+        "excludeHiddenProfiles is removed from character-access.asserter.ts (:78-91), characters.repository.ts (:464-474) and character-relationship-path.service.ts (:87)",
+        "character-custom-labels (:66-67), character-theories (:13, :152), character-relationships (:20-26, :176-177) and character-groups (:17) repositories no longer select or filter the flag",
+        "character-merge.repository.ts:82 predicate is removed. countHiddenLoserRecords still counts the other spoiler flags"
+      ],
+      "status": "done",
+      "verifyProof": "characters.repository.ts diff removes every flag predicate (catalogCharacterScope :1094, characterRosterScope :1312, global where, graph select/where :812/:816, listSeriesAppearances :861, listSuggestions) plus listRosterPositionCandidates, listSeriesHiddenCharacterIds, buildRosterHiddenWhere; excludeHiddenProfiles gone from asserter and path service; merge.repository -1 predicate"
+    },
+    {
+      "id": "T6",
+      "title": "Remove whole-character hiding from services, the details assembler and mappers",
+      "specRef": "§1 bullets 1 and 2 (services, mappers, aggregates, read)",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/application/character-details.assembler.ts",
+        "apps/api/src/modules/characters/application/book-characters.service.ts",
+        "apps/api/src/modules/characters/application/characters.service.ts",
+        "apps/api/src/modules/characters/application/series-characters.service.ts",
+        "apps/api/src/modules/characters/application/character-groups.service.ts",
+        "apps/api/src/modules/characters/application/relationship-context.service.ts",
+        "apps/api/src/modules/characters/domain/character-theory.mapper.ts",
+        "apps/api/src/modules/characters/domain/character-graph.ts",
+        "apps/api/src/modules/characters/domain/character.mapper.ts",
+        "apps/api/src/modules/characters/api/characters.controller.ts"
+      ],
+      "dependsOn": ["T1", "T5"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "The revealHiddenProfile argument and its 404 checks are gone from character-details.assembler.ts (:37, :45, :56, :63, :82-84)",
+        "getBookCharacterDetails (book-characters.service.ts:179) returns 404 only for a missing row or no appearance",
+        "characters.service.ts has no includeHiddenProfiles (:160, :192). characters.controller.ts drops the includeHiddenProfiles @ApiQuery on list (:111-115) and details (:167-171)",
+        "The flag is gone from series-characters.service.ts :114, character-groups.service.ts :127-130, relationship-context.service.ts :50-52 and character-theory.mapper.ts :9/:26",
+        "character-graph.ts: GraphNodeAppearance.hidePresenceAsSpoiler (:79), the toGraphNodeView filter (:369-371), collectPresenceHiddenIds (:482-492) and its uses (:262, :294-295) are removed. Edge gating by hideRelationshipAsSpoiler and introduced* (:275-291) is unchanged",
+        "character.mapper.ts source types and views have no hidePresenceAsSpoiler or hideProfileAsSpoiler (:57, :101, :117, :215, :276, :328, :475)",
+        "`rg -n \"hidePresenceAsSpoiler|hideProfileAsSpoiler|includeHiddenProfiles|revealHiddenProfile|excludeHiddenProfiles\" apps/api/src --glob '!*.test.ts' --glob '!generated/**'` returns 0 lines"
+      ],
+      "status": "done",
+      "verifyProof": "grep of the 5 removed names in apps/api/src non-test = 0; assembler has no revealHiddenProfile; character-graph.ts presence filter removed, edge gate kept (:265-274); theory.mapper, groups and relationship-context services drop the flag"
+    },
+    {
+      "id": "T7",
+      "title": "Drop the reading-position params from the character-presence query schemas",
+      "specRef": "§1 bullet 2 ('не повинні виключати персонажа через firstAppearance* чи contextPage')",
+      "layer": "shared",
+      "files": [
+        "packages/shared/src/characters.ts",
+        "packages/shared/src/character-groups.ts",
+        "packages/shared/src/character-theories.ts"
+      ],
+      "dependsOn": ["T1"],
+      "blockedBy": ["D2"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingContextQuerySchema (characters.ts:376-379) carries only contextBookId, so BookCharactersQuery, BookCharacterSummaryQuery, CharacterSuggestionsQuery, SeriesCharactersQuery, SeriesCharacterProfileQuery and CharacterDetailsQuery no longer accept contextPage, contextChapter or contextAudioSeconds",
+        "The .superRefine(requireContextBookForReadingPosition) calls at characters.ts :699, :705, :727 are removed",
+        "readingPositionQueryFields stays on character-relationships.ts (:399, :408, :415), character-graph.ts (:31) and character-path.ts (:15), unchanged",
+        "character-groups.ts (:124-127) and character-theories.ts (:91-101) follow the D2 answer"
+      ],
+      "status": "done",
+      "verifyProof": "ReadingContextQuerySchema = {contextBookId} only; superRefine calls and requireContextBookForReadingPosition (common.ts) removed; groups/theories schemas per D2-A; readingPositionQueryFields kept in character-graph.ts:31, character-path.ts:15, character-relationships.ts:399/408/415"
+    },
+    {
+      "id": "T8",
+      "title": "Remove first-appearance and reading-position gating of character presence",
+      "specRef": "§1 bullets 2 and 3; §6.2; §7 bullets 1 and 5",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/domain/reading-context-window.ts",
+        "apps/api/src/modules/characters/domain/suggestion-exclusions.ts",
+        "apps/api/src/modules/characters/domain/character-summary.ts",
+        "apps/api/src/modules/characters/application/book-characters.service.ts",
+        "apps/api/src/modules/characters/application/series-characters.service.ts",
+        "apps/api/src/modules/characters/application/character-details.assembler.ts",
+        "apps/api/src/modules/characters/application/characters.service.ts",
+        "apps/api/src/modules/characters/application/character-groups.service.ts",
+        "apps/api/src/modules/characters/application/character-theories.service.ts",
+        "apps/api/src/modules/characters/infrastructure/characters.repository.ts",
+        "apps/api/src/modules/characters/api/book-characters.controller.ts",
+        "apps/api/src/modules/characters/api/book-character-summary.controller.ts",
+        "apps/api/src/modules/characters/api/book-character-suggestions.controller.ts",
+        "apps/api/src/modules/characters/api/series-characters.controller.ts",
+        "apps/api/src/modules/characters/api/series-character-summary.controller.ts",
+        "apps/api/src/modules/characters/api/characters.controller.ts",
+        "apps/api/src/modules/characters/api/character-groups.controller.ts",
+        "apps/api/src/modules/characters/api/character-theories.controller.ts"
+      ],
+      "dependsOn": ["T6", "T7"],
+      "blockedBy": ["D2"],
+      "mandatory": true,
+      "doneWhen": [
+        "ReadingContextWindow (reading-context-window.ts:19-36) no longer carries positionGate. Character presence depends only on ownership, soft-delete and allowedBookIds; isAppearanceRevealable/isAppearanceWithinReadingWindow (:87-122) collapse into one allowed-books check or disappear",
+        "resolveRosterVisibility (book-characters.service.ts:400-424) yields only 'outside the series window' or ungated. listRosterPositionCandidates (:884-903), rosterPositionCandidateSelect (:23-30), positionHiddenIds, buildRosterHiddenWhere (:1364-1378) and the hiddenCount aggregate (:388-414) are removed",
+        "Book and series summaries no longer compute hasHiddenRecords. listSeriesHiddenCharacterIds (:968-984) and the series-profile maskedBookIds (series-characters.service.ts:120-128) are removed",
+        "loadMaskedCharacterDetails no longer returns 404 because of firstAppearance*. It still returns 404 for a foreign or deleted character, bookNotFound for an unknown or foreign context book, and 404 when no appearance falls inside allowedBookIds",
+        "Suggestions still exclude characters that appear only in later series books (buildSuggestionExclusions, suggestion-exclusions.ts:18-40)",
+        "Relationship, graph and path gating by introduced* is unchanged (relationship-context.service.ts:66, :101, :130; character-graph.service.ts:52, :73; character-relationship-path.service.ts:55)",
+        "Controllers on the T7 surfaces drop their contextPage, contextChapter and contextAudioSeconds @ApiQuery decorators",
+        "firstAppearanceChapter, Page, Note and AudioSeconds are still read, written and returned on BookCharacterView (character.mapper.ts:470-473)"
+      ],
+      "status": "done",
+      "verifyProof": "reading-context-window.ts:1-66 has no positionGate; RosterVisibility = outside_context_window|ungated (:9); assembler :58-75 404 only on missing row or no allowed appearance; suggestion-exclusions.ts:13-29 (old excludedEverywhere was a subset of unreachable, so behaviour equal); contextPage @ApiQuery only on graph/relationships controllers; firstAppearance* still mapped (character.mapper.ts:209-212, :491-494)"
+    },
+    {
+      "id": "T9",
+      "title": "API tests for slice 1: presence is never hidden, access rules hold",
+      "specRef": "§7 bullets 1, 5, 7",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/characters/api/character-presence-visibility.controller.test.ts",
+        "apps/api/src/modules/characters/domain/reading-context-window.test.ts",
+        "apps/api/src/modules/characters/api/book-character-reading-context.controller.test.ts",
+        "apps/api/src/modules/characters/api/series-character-reading-context.controller.test.ts",
+        "apps/api/src/modules/characters/api/contextual-character-surface-consistency.controller.test.ts",
+        "apps/api/src/modules/characters/api/character-summary.controller.test.ts",
+        "apps/api/src/modules/characters/api/characters-reading-mode.controller.test.ts",
+        "apps/api/src/modules/characters/api/character-group-reading-context.controller.test.ts",
+        "apps/api/src/modules/characters/api/character-theory-reading-context.controller.test.ts",
+        "apps/api/src/modules/characters/domain/character-portability.test.ts",
+        "apps/api/src/modules/characters/api/character-portability.controller.test.ts",
+        "apps/api/src/modules/characters/domain/character-graph.test.ts",
+        "apps/api/src/modules/characters/domain/character-relationship-path.test.ts",
+        "apps/api/src/modules/tags/api/tags-usage.fixtures.ts",
+        "apps/api/src/modules/tags/api/tags.controller.summary.test.ts",
+        "apps/api/src/modules/tags/api/tags.controller.catalog.test.ts",
+        "every other test file in the 63-file flag grep"
+      ],
+      "dependsOn": ["T4", "T5", "T6", "T8"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "No API test or fixture references the removed flags or params",
+        "New integration test: a character whose firstAppearancePage is past the reader's progress appears in the book roster, the roster totalCount, the book summary totals, the global list (bookId and contextBookId), search, suggestions, the series list, summary and profile, and contextual details",
+        "New integration test: another user's character returns 404, a soft-deleted character or a character on a soft-deleted book is absent, and with contextBookId the series profile and list exclude appearances in later books when includeFuture=false",
+        "Relationship introduced-position tests stay green without edits",
+        "Targeted vitest of the touched files is green after `pnpm --filter @app/shared build`"
+      ],
+      "status": "done",
+      "verifyProof": "api/character-presence-visibility.controller.test.ts:134-249 (roster, total, summary, global list by bookId/contextBookId, search, suggestions, series list/summary/profile, details) and :250-369 (foreign 404, foreign book 404, soft-delete, includeFuture); only legacy-import tests still name the flags"
+    },
+    {
+      "id": "T10",
+      "title": "Regenerate OpenAPI and the Orval client for slice 1",
+      "specRef": "§6.5",
+      "layer": "contract",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T8"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm --filter @app/api generate:openapi` and `pnpm gen:api` are run. The generated diff removes includeHiddenProfiles, both flags and the character-surface contextPage params",
+        "No hand edits under apps/web/src/shared/api/generated/**"
+      ],
+      "status": "done",
+      "verifyProof": "generated: 0 hits for removed flags, includeHiddenProfiles, hasHiddenNodes; characters.zod.ts and *Params.ts have 0 contextPage; openapi.json is gitignored. Absence of hand edits not independently provable"
+    },
+    {
+      "id": "T11",
+      "title": "Remove whole-character hiding and the reading-position plumbing from the frontend",
+      "specRef": "§1 bullets 1, 2, 5, 6",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/model/character-edit-form.ts",
+        "apps/web/src/features/characters/model/add-character-schema.ts",
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/features/characters/components/character-edit-page.tsx",
+        "apps/web/src/features/characters/api/use-character-details.ts",
+        "apps/web/src/features/characters/components/book-characters-tab.tsx",
+        "apps/web/src/features/characters/model/characters-roster-query.ts",
+        "apps/web/src/features/characters/model/use-characters-roster-query.ts",
+        "apps/web/src/features/characters/index.ts",
+        "apps/web/src/features/books/components/book-details-view.tsx",
+        "apps/web/src/features/characters/components/character-details-page.tsx",
+        "apps/web/src/features/characters/api/use-book-characters.ts",
+        "apps/web/src/features/characters/api/use-book-character-summary.ts",
+        "apps/web/src/features/characters/api/use-character-suggestions.ts",
+        "apps/web/src/features/characters/api/character-keys.ts",
+        "apps/web/src/features/characters/components/add-character-dialog.tsx",
+        "apps/web/src/features/characters/components/character-command-palette.tsx",
+        "apps/web/src/features/characters/model/characters.fixtures.ts"
+      ],
+      "dependsOn": ["T10"],
+      "blockedBy": ["D2"],
+      "mandatory": true,
+      "doneWhen": [
+        "apps/web/src has no hidePresenceAsSpoiler, hideProfileAsSpoiler or includeHiddenProfiles outside shared/api/generated",
+        "The 'Є приховані записи' badge (book-characters-tab.tsx:111-116) and the hide-presence switch and hint (character-edit-sections.tsx:604-628) are gone",
+        "No character request carries contextPage, contextChapter or contextAudioSeconds. toCharacterReadingContext (characters-roster-query.ts:63-70) and its barrel export (index.ts:6) are removed or reduced per D2, and every caller compiles",
+        "The card hidden-fields lock badge (character-card.tsx:45, :110-116) is unchanged",
+        "Opening the book editor for any character and saving it works, and post-save navigation (character-edit-page.tsx:186-203) reaches details that render, not the UnavailableContext state"
+      ],
+      "status": "done",
+      "verifyProof": "apps/web/src grep for flags/includeHiddenProfiles = 0 outside generated; book-characters-tab.tsx badge removed; toCharacterBookContext (characters-roster-query.ts:63) sends only contextBookId; character-card.tsx has no diff"
+    },
+    {
+      "id": "T12",
+      "title": "Web tests for slice 1",
+      "specRef": "§7 bullets 1, 7",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-page.test.tsx",
+        "apps/web/src/features/characters/model/characters-roster-query.test.ts",
+        "apps/web/src/features/characters/components/character-command-palette.test.tsx",
+        "apps/web/src/features/characters/components/book-characters-tab.test.tsx",
+        "apps/web/src/features/characters/components/add-character-dialog.test.tsx",
+        "apps/web/src/features/characters/components/character-details-page.test.tsx",
+        "apps/web/src/features/characters/api/character-keys.test.ts"
+      ],
+      "dependsOn": ["T11"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "No web test references the removed flags or params",
+        "The details-page test 'forwards the reading position of the context book' (character-details-page.test.tsx:123) asserts that no reading position is sent",
+        "book-characters-tab test asserts there is no 'Є приховані записи' badge, and the card lock badge still renders for hiddenFields",
+        "Targeted `pnpm exec vitest run --project unit <files>` is green"
+      ],
+      "status": "done",
+      "verifyProof": "character-details-page.test.tsx:156-158 asserts no contextPage/Chapter/AudioSeconds; book-characters-tab.test 'leaves the hidden-content signal to the card lock'; character-card.test.tsx:122, :133. Green run is orchestrator evidence"
+    },
+    {
+      "id": "T13",
+      "title": "Split the alias reveal key into two independent group keys",
+      "specRef": "§4 bullets 4, 5",
+      "layer": "shared",
+      "files": ["packages/shared/src/characters.ts"],
+      "dependsOn": ["T1"],
+      "blockedBy": ["D1"],
+      "mandatory": true,
+      "doneWhen": [
+        "CharacterRevealFieldKeySchema (:709-720) contains the two D1 group keys (e.g. globalAliases, bookAliases) in place of aliases",
+        "The FE ALL_REVEAL_FIELD_KEYS (model/character-spoiler.ts:5-7) picks the new keys up from .options with no hand-written list"
+      ],
+      "status": "done",
+      "verifyProof": "CharacterRevealFieldKeySchema has bookAliases/globalAliases, no aliases; ALL_REVEAL_FIELD_KEYS from .options (model/character-spoiler.ts:5-7)"
+    },
+    {
+      "id": "T14",
+      "title": "Make book-field masking value-aware and keep the seven-field table",
+      "specRef": "§2 table, 'Відсутнє книжкове значення', 'Немає значення — немає спойлера', 'Для старих прапорців'; §7 bullet 2",
+      "layer": "api",
+      "files": ["apps/api/src/modules/characters/domain/character.mapper.ts"],
+      "dependsOn": ["T6"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "toMaskedBookCharacterView (:418-501) masks a field and adds it to hiddenFields only when the flag is true AND a value exists: displayName non-blank, portraitMediaId non-null, status !== 'not_specified', speciesOverrideId non-null, description, personalImpression and appearanceNotes non-blank after trim. A stale flag with no value adds no hiddenFields entry",
+        "status 'unknown' and 'other' count as values. When status is masked, both status and statusCustomText are null (:496-497)",
+        "'roles' is in hiddenFields only when at least one role has isSpoiler and roles are not revealed. Once revealed, every role is returned (:446-449, :489-492)",
+        "computeSummaryHiddenFields (:560-572) and toSeriesAppearancePoint (:607-613) apply the same value rule for displayName, portrait and status, so a card shows no lock for a stale flag",
+        "Card fallbacks are unchanged: a masked displayName or portrait comes back null (:405, :413), so the card uses character.name and character.avatar, and a masked status comes back null (:414)",
+        "appearanceNotesIsSpoiler never affects portrait and portraitIsSpoiler never affects appearanceNotes. Masking of isUnreliableNarrator (:452-455, :479) is unchanged",
+        "No fallback from neutralDescription or globalAttitude is introduced"
+      ],
+      "status": "done",
+      "verifyProof": "domain/maskable-spoiler.ts:7-32 value-aware rule; toMaskedBookCharacterView character.mapper.ts:418-524 (roles :464-467/:509-512, status+customText :516-520); computeSummaryHiddenFields :581-593; toSeriesAppearancePoint :616-640; unreliableNarrator flag-only :473-476"
+    },
+    {
+      "id": "T15",
+      "title": "Contextual details: two alias groups with independent reveal and hidden markers",
+      "specRef": "§4 bullets 2-5; §7 bullet 4",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/application/character-details.assembler.ts",
+        "apps/api/src/modules/characters/application/character-view.mapper.ts"
+      ],
+      "dependsOn": ["T13", "T8"],
+      "blockedBy": ["D1"],
+      "mandatory": true,
+      "doneWhen": [
+        "loadMaskedCharacterDetails returns only aliases with bookId === null (global group) or bookId === contextBookId (book group). Aliases of other series books are excluded; today they come back through allowedBookIds (:96-98)",
+        "Each group withholds its isSpoiler aliases unless its own key is in revealFieldIds",
+        "Character-level hiddenFields carries the global key only if a global spoiler alias was withheld, and the book key only if a spoiler alias for contextBookId was withheld. No counts. Replaces the single 'aliases' marker (character-view.mapper.ts:76)",
+        "Revealing one group's key leaves the other group's spoiler aliases withheld",
+        "The response before reveal contains no withheld alias name"
+      ],
+      "status": "done",
+      "verifyProof": "domain/alias-groups.ts:15-45 (global = bookId null, book = contextBookId, other books dropped, one hidden key per group); assembler :82; tests alias-groups.test.ts:39-92, book-character-reading-context.controller.test.ts:736-823"
+    },
+    {
+      "id": "T16",
+      "title": "Global detail endpoint: masked normal view, full data for the owner editor",
+      "specRef": "§4 bullets 6, 7; 'Не робити' #3; §7 bullet 4",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/application/character-details.assembler.ts",
+        "apps/api/src/modules/characters/application/characters.service.ts",
+        "apps/api/src/modules/characters/application/character-view.mapper.ts",
+        "apps/api/src/modules/characters/api/characters.controller.ts",
+        "packages/shared/src/characters.ts"
+      ],
+      "dependsOn": ["T13", "T14"],
+      "blockedBy": ["D1", "D3", "D4"],
+      "mandatory": true,
+      "doneWhen": [
+        "GET /api/characters/:id without contextBookId (today loadFullCharacterDetails, assembler :35-49, which returns everything) returns only bookId === null aliases in normal mode, withholds spoiler global aliases unless the global key is revealed, and lists the global key in hiddenFields when it withholds any",
+        "No book-scoped alias of any book appears in the normal global response",
+        "Appearances are masked or not per D4",
+        "The owner-editor request (per D3: every reveal key, or the minimal mode param) returns every global alias and unmasked appearance values",
+        "Owner check unchanged: another user's id returns 404. No new endpoint"
+      ],
+      "status": "done",
+      "verifyProof": "characters.service.ts:159-172 routes no-context requests to loadMaskedGlobalCharacterDetails (assembler :86-111, contextBookId null so no book alias, masked appearances); characters.controller.test.ts 'global character profile spoilers' (normal view, masked appearances, editor with every key, foreign 404)"
+    },
+    {
+      "id": "T17",
+      "title": "API tests for slice 2: seven fields, roles, alias groups, global mode, editor path",
+      "specRef": "§7 bullets 2, 4, 7",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/characters/domain/character.mapper.test.ts (new or existing mapper test)",
+        "apps/api/src/modules/characters/api/book-character-reading-context.controller.test.ts",
+        "apps/api/src/modules/characters/api/characters.controller.test.ts"
+      ],
+      "dependsOn": ["T14", "T15", "T16"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "One case per row of the §2 table: masked value null plus hiddenFields entry, then the reveal key returns the value. Status 'other' hides statusCustomText as well",
+        "Stale flag (flag true, value empty) produces no hiddenFields entry, on both details and summary",
+        "Roles: hiddenFields has 'roles' with no count before reveal, and all roles come back after revealFieldIds=roles",
+        "Aliases: the two group keys are independent, and aliases of another series book are never returned",
+        "Global normal mode withholds spoiler global aliases and every book alias, while the editor request gets everything. Another user's id returns 404",
+        "Targeted vitest green"
+      ],
+      "status": "done",
+      "verifyProof": "domain/character.mapper.test.ts:201-430 (seven-field it.each, stale flags, status other/unknown, roles, summary); alias-groups.test.ts; book-character-reading-context.controller.test.ts:630-870; characters.controller.test.ts global tests. Green run is orchestrator evidence"
+    },
+    {
+      "id": "T18",
+      "title": "Regenerate OpenAPI and the Orval client for slice 2",
+      "specRef": "§6.5",
+      "layer": "contract",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T16"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "generate:openapi and gen:api are re-run. The revealFieldIds enum in generated params shows the two group keys and no 'aliases'",
+        "No hand edits under generated/**"
+      ],
+      "status": "done",
+      "verifyProof": "model/charactersControllerGetByIdRevealFieldIdsItem.ts lists bookAliases + globalAliases, no aliases"
+    },
+    {
+      "id": "T19",
+      "title": "Details: one group reveal for hidden roles",
+      "specRef": "§3 bullets 2-4",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-details-page.tsx"],
+      "dependsOn": ["T18"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "The FE filter and hiddenRoleCount (character-details-page.tsx:191-192) are removed. Roles render exactly as received",
+        "When appearance.hiddenFields contains 'roles', the page shows the text 'Є приховані ролі' and one button 'Показати приховані ролі' that calls addRevealKey(current, 'roles')",
+        "No number is rendered anywhere for hidden roles",
+        "After the refetch every role, spoiler roles included, is shown and the indicator is gone",
+        "Reveal state lives in component useState only (:366): nothing in storage or the URL, and it resets on reload"
+      ],
+      "status": "done",
+      "verifyProof": "character-details-page.tsx:242 rolesHidden from hiddenFields, :268-295 roles rendered as received with one HiddenGroupNotice and no count; uk page.hiddenRolesNotice/revealHiddenRoles; reveal state useState :449"
+    },
+    {
+      "id": "T20",
+      "title": "Details and global profile: two independent alias groups with reveal",
+      "specRef": "§4 bullets 1-7",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-details-page.tsx"],
+      "dependsOn": ["T18"],
+      "blockedBy": ["D1"],
+      "mandatory": true,
+      "doneWhen": [
+        "visibleAliases (:752-757) is removed. The global group is aliases with bookId === null and the book group is aliases with bookId === contextBookId, with no isSpoiler re-filter",
+        "Each group whose key is in character.hiddenFields shows 'Є приховані імена' and one 'Показати приховані' button that adds only that group's key",
+        "GlobalCharacterDetails (:525-550) keeps its own revealFieldIds state and reveals the global group. onReveal is no longer a noop. The global page renders no book alias group",
+        "No buttons on individual chips, no counts. The alias chip editor (character-alias-chip.tsx) is untouched"
+      ],
+      "status": "done",
+      "verifyProof": "visibleAliases removed; book group filters bookId only (:416), global group bookId === null (:843), per-group notice and button (AliasGroup :74-127); GlobalCharacterDetails has its own state and onReveal (:617-648); no book group on the global page"
+    },
+    {
+      "id": "T21",
+      "title": "Details: reveal for the book name and portrait; status and species hidden states",
+      "specRef": "§2 table rows displayName, portrait, status, speciesOverride; §2 'Ручне розкриття'",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-details-page.tsx",
+        "apps/web/src/features/characters/components/character-spoiler-field.tsx"
+      ],
+      "dependsOn": ["T18"],
+      "blockedBy": ["D5", "D6", "D7"],
+      "mandatory": true,
+      "doneWhen": [
+        "When appearance.hiddenFields contains displayName or portrait, the details page offers a reveal action placed per D5, reusing CharacterSpoilerField. Clicking adds that key with addRevealKey",
+        "Before reveal the header shows character.name and character.avatar or the placeholder (:418-419). After reveal it shows the book displayName and portrait",
+        "A masked status shows no header badge (:421, :449), and the book section shows the hidden state worded per D6. After reveal it shows the status, with statusCustomText for 'other' (:193-199)",
+        "speciesOverride follows D7",
+        "No masked value is in the DOM before reveal"
+      ],
+      "status": "done",
+      "verifyProof": "HeaderFieldReveal (:650-674) for displayName/portrait at :253-266 via CharacterSpoilerField; header uses book value ?? global (:498-499); status badge null when masked (:501, :541); status SpoilerText (:297-304, D6-B); species per D7-A (:329-336, ProfileSection :825)"
+    },
+    {
+      "id": "T22",
+      "title": "Editor: full owner data path and the new mask keys",
+      "specRef": "§4 bullets 6, 7; 'Не робити' #3",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-edit-page.tsx",
+        "apps/web/src/features/characters/api/use-character-details.ts",
+        "apps/web/src/features/characters/model/character-edit-form.ts",
+        "apps/web/src/features/characters/model/character-spoiler.ts"
+      ],
+      "dependsOn": ["T18"],
+      "blockedBy": ["D1", "D3"],
+      "mandatory": true,
+      "doneWhen": [
+        "maskedEditFields (character-edit-form.ts:198-209) maps the global group key to the global form's aliases and the book group key to the book form's aliases. The string 'aliases' is gone",
+        "The editor request (character-edit-page.tsx:58-63) follows D3 and drops includeHiddenProfiles",
+        "Test: an editor save that changes something unrelated keeps the spoiler global aliases, spoiler book aliases, spoiler roles and every spoiler field value, so nothing is overwritten with null",
+        "Normal details pages never send the editor's full-data request"
+      ],
+      "status": "done",
+      "verifyProof": "character-edit-form.ts:66-69 ALIAS_GROUP_REVEAL_KEYS, maskedEditFields :211-222, toGlobalUpdate :327 (globalAliases), payload map aliases -> bookAliases :78; edit page :58-62 sends ALL_REVEAL_FIELD_KEYS, no includeHiddenProfiles; tests edit-page.test.tsx:2550-2640"
+    },
+    {
+      "id": "T23",
+      "title": "Form: 'no value, no spoiler' for all seven switches",
+      "specRef": "§2 'Немає значення — немає спойлера', 'Для старих прапорців'; §7 bullet 3",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/model/character-edit-form.ts",
+        "apps/web/src/features/characters/components/character-edit-sections.tsx"
+      ],
+      "dependsOn": ["T11"],
+      "blockedBy": ["D8"],
+      "mandatory": true,
+      "doneWhen": [
+        "A switch is disabled and unchecked when its value is empty: displayName null or blank, portraitMediaId null, status 'not_specified', speciesOverride null, or description, personalImpression or appearanceNotes blank after trim",
+        "status 'unknown' and 'other' enable the status switch",
+        "Clearing a value sets the matching flag to false at once in the field's change path, not in a syncing useEffect (code-principles §4.4). Typing a value again does not re-enable it",
+        "toBookProfileUpdate (:442-482) and toBookUpdate emit false for any flag whose value is empty, regardless of form state",
+        "toCharacterEditValues (:232-296) loads a stale true flag with an empty value as false, so a normal save writes the normalized record. No mass data migration"
+      ],
+      "status": "done",
+      "verifyProof": "model/book-spoiler-flags.ts:7-74; reset in change paths (edit-sections :138-143, :163-168, :270-276, :316-362; portrait-panel changePortrait); toBookProfileUpdate :464 withoutEmptySpoilerFlags; toCharacterEditValues :263; no syncing useEffect; test edit-page.test.tsx:2765-2850 (clear => disabled/off, refill stays off, payload false)"
+    },
+    {
+      "id": "T24",
+      "title": "Final 'Спойлери' section: two groups, seven visible rows, no Collapsible",
+      "specRef": "§5; §1 bullet 5; §7 bullet 6",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T11", "T23"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "BookCharacterSpoilerSection (:591-678) has no Collapsible, CollapsibleTrigger, CollapsibleContent, activeCount or Badge count. The Collapsible import (:16) and any other import left unused are removed",
+        "It stays inside the existing EditSection with ScopeBadge scope='book' and one general hint about manual reveal",
+        "Group 1 'На картках і сторінці персонажа' lists, in order, displayNameIsSpoiler, portraitIsSpoiler, statusIsSpoiler. Group 2 'Тільки на сторінці деталей' lists, in order, speciesOverrideIsSpoiler, descriptionIsSpoiler, personalImpressionIsSpoiler, appearanceNotesIsSpoiler. SPOILER_FIELDS (:68-76) is reordered and grouped to match",
+        "Each row is an ActionRow with a title, exactly one short localized subtitle and a trailing Switch labelled via aria-labelledby. A disabled row's hint reads 'Спочатку заповніть поле' or equivalent",
+        "All seven switches are in the DOM and visible without interaction. Each is reachable with Tab and toggles with Space, and disabled ones cannot be toggled",
+        "No new modal, drawer, nested card or global component"
+      ],
+      "status": "done",
+      "verifyProof": "character-edit-sections.tsx:639-698 no Collapsible or count, EditSection + ScopeBadge book + revealHint; SPOILER_FIELDS :68-89 two ordered groups; Switch disabled={!present} checked={present && value}; emptyValueHint. Note: the hint is a sibling <p> wired by aria-describedby, not the ActionRow subtitle prop (one hint per row either way)"
+    },
+    {
+      "id": "T25",
+      "title": "i18n uk and en: remove dead keys, add group, hint, reveal and hidden-state texts",
+      "specRef": "§1 bullet 5; §3; §4; §5; §6.4",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T19", "T20", "T21", "T24"],
+      "blockedBy": ["D6"],
+      "mandatory": true,
+      "doneWhen": [
+        "Removed from both locales where no longer used: characters.spoilers.hidePresence, hidePresenceHint, expand, activeCount, granularHint (uk.json:8227-8235), characters.summary.hidden (uk.json:8261) and characters.page.hiddenRoles with count (uk.json:8149)",
+        "Added in both locales: two group titles, seven row hints, the disabled hint, the general manual-reveal hint, 'Є приховані ролі' / 'Показати приховані ролі', 'Є приховані імена' / 'Показати приховані', and the name and portrait reveal labels (reusing spoilers.displayName and spoilers.portrait where they fit)",
+        "uk and en have identical key sets for the touched namespaces"
+      ],
+      "status": "done",
+      "verifyProof": "uk/en key sets identical for characters.spoilers (19), spoiler (3), page (42), summary (2); hidePresence*, expand, activeCount, granularHint, summary.hidden, page.hiddenRoles absent; group titles, hints, emptyValueHint, revealHint and roles/aliases notice keys present"
+    },
+    {
+      "id": "T26",
+      "title": "Web tests for slice 2",
+      "specRef": "§7 bullets 2-4, 6, 7",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/components/character-details-page.test.tsx",
+        "apps/web/src/features/characters/components/character-edit-page.test.tsx",
+        "apps/web/src/features/characters/model/character-edit-form.test.ts",
+        "apps/web/src/features/characters/components/character-card.test.tsx"
+      ],
+      "dependsOn": ["T19", "T20", "T21", "T22", "T23", "T24", "T25"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "Details: the roles group reveal sends revealFieldIds=roles and then renders the spoiler role. Each alias group reveal sends only its own key. Name and portrait reveal update the header. No masked value is in the DOM before reveal. A remount sends no reveal keys",
+        "Global profile: the global alias reveal works and no book alias group renders",
+        "Form: for each of the seven fields, an empty value leaves the switch disabled and unchecked, and clearing the value resets the flag in form state and in the payload. 'unknown' enables the status switch and 'not_specified' disables it",
+        "Spoiler section: all seven switches visible, in group order, with no disclosure button and no hide-presence switch",
+        "Card: a lock badge renders when hiddenFields is non-empty",
+        "Targeted `pnpm exec vitest run --project unit <files>` is green"
+      ],
+      "status": "done",
+      "verifyProof": "details-page.test.tsx spoiler reveal suites (roles, each alias group, name, portrait, status, no DOM leak, remount resets, global page); edit-page.test.tsx seven switches, stale flags, unknown vs not_specified, clear it.each :2765; character-card.test.tsx:122, :133. Green run is orchestrator evidence"
+    },
+    {
+      "id": "T27",
+      "title": "Gates: blast radius, typecheck, lint, format, targeted tests, live API check",
+      "specRef": "§6.5; §7 bullet 7; final report",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T9", "T12", "T17", "T26"],
+      "blockedBy": [],
+      "mandatory": true,
+      "doneWhen": [
+        "/blast-radius run over the shared, prisma and repository/service signature changes, with its consumer tests green",
+        "pnpm typecheck, pnpm lint and pnpm format:check are green",
+        "`pnpm dev:api` starts. curl of GET /api/books/:id/characters, GET /api/books/:id/characters/summary, GET /api/characters/:id (with and without contextBookId and revealFieldIds) is captured, showing no withheld value before reveal",
+        "The final report lists the migration, contract changes and real remaining limits only"
+      ],
+      "status": "partial",
+      "verifyProof": "Verified here: pnpm typecheck 3/3 (turbo cache hit on current inputs), prettier --check on every touched area clean, eslint on 9 key files no errors. Orchestrator-only evidence: full pnpm lint, live curl, targeted vitest counts. Not evidenced: a /blast-radius skill run, a captured curl transcript. Open: the final report is not written yet. A local targeted vitest re-run was blocked by a concurrent vitest from another session (pid 4228, started 18:00)"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "What are the names of the two alias-group reveal and hidden keys, and does the old 'aliases' key survive?",
+      "specSays": "§4: 'globalAliases та bookAliases або рівнозначне точне найменування' instead of one 'aliases'; hiddenFields keys or equivalent, no count.",
+      "options": [
+        "A. globalAliases + bookAliases in CharacterRevealFieldKeySchema and as hiddenFields markers. 'aliases' is removed",
+        "B. The same names, with 'aliases' kept as a deprecated alias that reveals both groups"
+      ],
+      "codebaseCost": "Reveal state is component useState (character-details-page.tsx:366), not URL or storage, and the only client is the Orval client regenerated in the same PR. 'aliases' is read in 3 places: assembler :99, view mapper :76, character-edit-form.ts:207. i18n already has characters.page.globalAliases / bookAliases labels (uk.json:8135, :8148).",
+      "recommendation": "A. Nothing persisted depends on 'aliases', and keeping it re-creates the over-broad reveal the spec removes.",
+      "specRef": "§4 bullets 4, 5",
+      "blocks": ["T13", "T15", "T16", "T20", "T22"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "Accepted as stated assumption (user did not object)"
+    },
+    {
+      "id": "D2",
+      "question": "How far does removing reading-position presence gating go?",
+      "specSays": "§1: presence is not gated by firstAppearance*/contextPage 'на всіх поверхнях персонажів' (roster, details, edit, counts, search, series). 'Не робити' #1: do not change theory/other spoilers except dependencies on the removed flags.",
+      "options": [
+        "A. Drop positionGate from ReadingContextWindow entirely. Character presence everywhere, groups and theories included (collectUnreachableCharacterIds: character-groups.service.ts:439, character-theories.service.ts:241), uses only allowedBookIds. Remove contextPage/Chapter/AudioSeconds from the characters, groups and theories query schemas, and delete the FE readingContext plumbing. Relationship, graph and path keep their own introduced* gate",
+        "B. As A for the character surfaces, but groups and theories keep position gating of member/target characters and their reading-position params",
+        "C. Keep every param in the schemas and ignore it on the server"
+      ],
+      "codebaseCost": "No FE code sends reading position to groups or theories (only features/characters/** sends it), so their gate is dormant API behaviour. A removes reading-position.ts usage from reading-context-window.ts entirely. B keeps a second window shape alive for two dormant callers. C leaves dead params in OpenAPI.",
+      "recommendation": "A. The spec's premise is that a character's existence is never hidden. Group and theory gating of a member's presence is that same rule, not a theory-content spoiler.",
+      "specRef": "§1 bullet 2; 'Не робити' #1",
+      "blocks": ["T7", "T8", "T11"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "User answer 2026-10-15: remove everywhere incl. groups and theories"
+    },
+    {
+      "id": "D3",
+      "question": "How does the owner editor get full data while the normal view stays masked?",
+      "specSays": "§4: separate the normal view from full owner editing within the existing API and hooks. A minimal mode param on the existing endpoint is allowed only if server masking of global aliases is otherwise impossible. No new endpoint.",
+      "options": [
+        "A. No new param. The no-context path masks by default and honours the existing revealFieldIds. The editor keeps sending every reveal key (it already sends ALL_REVEAL_FIELD_KEYS, character-edit-page.tsx:58-63), and with bookId it goes through the contextual path with everything revealed",
+        "B. A minimal mode param (e.g. view=edit) on GET /api/characters/:id that returns the unmasked owner row in both scopes"
+      ],
+      "codebaseCost": "A needs zero contract additions. ALL_REVEAL_FIELD_KEYS derives from the enum, so new keys flow in automatically. Book aliases are replaced per bookId (characters.repository.ts:1094), so restricting the book group to contextBookId cannot drop other books' aliases. B adds a param, a branch in the service, an OpenAPI change and a hook flag.",
+      "recommendation": "A. Server masking is achievable without a param, so by the spec's own condition the param is not justified.",
+      "specRef": "§4 bullets 6, 7",
+      "blocks": ["T16", "T22"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "Accepted as stated assumption: no mode param, editor sends all reveal keys"
+    },
+    {
+      "id": "D4",
+      "question": "In the normal global-profile response (no contextBookId), are per-appearance book spoiler values masked too?",
+      "specSays": "§4: mask spoiler global aliases and leak no other books' aliases. §2: masking is required 'в контекстній відповіді API'. The global profile is not contextual.",
+      "options": [
+        "A. Mask every appearance through toMaskedBookCharacterView with the request's revealFieldIds",
+        "B. Mask only aliases. Appearances stay unmasked, as today (toDetailsView, character-view.mapper.ts:40-47)"
+      ],
+      "codebaseCost": "The global page renders only title, series, importance and POV per appearance (character-details-page.tsx:81-143), so A changes no UI. A reuses mapMaskedAppearance (:118-131). Today the global response ships every book's spoiler description, impression and notes to the browser.",
+      "recommendation": "A. It costs nothing, closes the API leak, and the editor still gets everything under D3-A.",
+      "specRef": "§2 intro; §4 bullet 6; 'Не робити' #3",
+      "blocks": ["T16"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "Accepted as stated assumption: global response masks per-appearance book values"
+    },
+    {
+      "id": "D5",
+      "question": "Where do the new reveal actions for the book name and portrait go in details?",
+      "specSays": "§2: add the missing reveal actions for name and portrait in details, reuse CharacterSpoilerField, no new components.",
+      "options": [
+        "A. Two CharacterSpoilerField rows at the top of the book section, rendered only while hidden. After reveal the header shows the book name and portrait",
+        "B. A small reveal control inside DetailsHeader (:405-472) next to the name and avatar"
+      ],
+      "codebaseCost": "A is the same SpoilerText pattern as the other five (:221-260). B needs header layout work and a second visual pattern.",
+      "recommendation": "A",
+      "specRef": "§2 'Ручне розкриття'",
+      "blocks": ["T21"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "Accepted as stated assumption"
+    },
+    {
+      "id": "D6",
+      "question": "Wording of the hidden status in details",
+      "specSays": "§2 table: 'у деталях «Статус приховано»'.",
+      "options": [
+        "A. A literal 'Статус приховано' placeholder via an optional hidden-text prop on CharacterSpoilerField",
+        "B. Keep the current pattern: the 'Статус' label above the generic 'Приховано (спойлер)' (character-spoiler-field.tsx:29-36, uk.json:8223)"
+      ],
+      "codebaseCost": "B is zero work and matches the other six fields. A adds a prop and a key.",
+      "recommendation": "B, unless the user wants the literal text. Label plus placeholder already reads 'Статус: Приховано'.",
+      "specRef": "§2 table, row statusIsSpoiler",
+      "blocks": ["T21", "T25"],
+      "status": "answered",
+      "answer": "B",
+      "answerNote": "User answer 2026-10-15: keep the same pattern as other fields (label Статус + Приховано (спойлер))"
+    },
+    {
+      "id": "D7",
+      "question": "How is species shown in contextual details?",
+      "specSays": "§2: when the override is hidden, the effective species is character.species. When the override is available and not hidden, the book value takes priority. Global data must not change its semantics.",
+      "options": [
+        "A. Keep the current split: global species in ProfileSection (:663-665) and the override as its own revealable 'Вид у цій книзі' field in the book section (:253-260)",
+        "B. ProfileSection shows the effective species (the visible override, else global) in book context"
+      ],
+      "codebaseCost": "A is zero work and keeps the global profile's semantics. B changes ProfileSection in book context only.",
+      "recommendation": "A. The book section is where the book value has priority, and the profile section stays global data.",
+      "specRef": "§2 table row speciesOverrideIsSpoiler; paragraph after the table",
+      "blocks": ["T21"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "User answer 2026-10-15: keep two separate fields"
+    },
+    {
+      "id": "D8",
+      "question": "Does the server also coerce a stale flag to false on write?",
+      "specSays": "§2: reset 'у формі та у payload'. Normalize 'форму й запис при звичайному редагуванні'. No mass migration.",
+      "options": [
+        "A. FE only: form and payload normalization (T23), plus value-aware masking on read (T14)",
+        "B. Also coerce in buildBookCharacterUpdateData when a payload sends an empty value with a true flag"
+      ],
+      "codebaseCost": "UpdateBookCharacter is a partial PATCH (characters.ts:309-342). Coercing a flag sent without its value needs a read-before-write. B covers only the case where both arrive in the same payload.",
+      "recommendation": "A. The editor sends the full profile on every save (character-edit-form.ts:458-481), and T14 already suppresses indicators for stale flags.",
+      "specRef": "§2 'Немає значення — немає спойлера'",
+      "blocks": ["T23"],
+      "status": "answered",
+      "answer": "A",
+      "answerNote": "Accepted as stated assumption: FE-only normalization + value-aware masking on read"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Base dev 9dc07425",
+      "specRef": "header",
+      "verdict": "CONFIRMED",
+      "evidence": "git rev-parse HEAD = refs/remotes/origin/dev = 9dc07425252f15d1074e1373a97a9e1e394a4c07"
+    },
+    {
+      "claim": "hidePresenceAsSpoiler exists (book) and hideProfileAsSpoiler exists (global profile)",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:1147, :1053; 211 occurrences in 63 files"
+    },
+    {
+      "claim": "includeHiddenProfiles is a related param",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/characters.ts:612 (list), :725 (details); characters.controller.ts:111-115, :167-171"
+    },
+    {
+      "claim": "revealHiddenProfile is a param",
+      "specRef": "§1",
+      "verdict": "MOVED",
+      "evidence": "Internal argument only, mapped from includeHiddenProfiles: characters.service.ts:160; character-details.assembler.ts:37, :45, :56, :82"
+    },
+    {
+      "claim": "excludeHiddenProfiles is a param",
+      "specRef": "§1",
+      "verdict": "MOVED",
+      "evidence": "Internal repository/asserter option, not API: character-access.asserter.ts:78-91; characters.repository.ts:464-474; character-relationship-path.service.ts:87"
+    },
+    {
+      "claim": "isAppearanceRevealable gates presence",
+      "specRef": "§6.1",
+      "verdict": "CONFIRMED",
+      "evidence": "reading-context-window.ts:87-98 (hidePresence plus position window); consumers series-characters.service.ts:110, :320; character-details.assembler.ts:89; reading-context-window.ts:65, :80"
+    },
+    {
+      "claim": "resolveRosterVisibility gates the roster",
+      "specRef": "§6.1",
+      "verdict": "CONFIRMED",
+      "evidence": "book-characters.service.ts:400-424, called at :106 (summary) and :215 (roster); listRosterPositionCandidates characters.repository.ts:884-903; rosterVisibleCore :1418-1427"
+    },
+    {
+      "claim": "toCharacterReadingContext is a presence-gating consumer",
+      "specRef": "§6.1",
+      "verdict": "CONFIRMED",
+      "evidence": "FE helper apps/web/src/features/characters/model/characters-roster-query.ts:63-70 sends contextPage=currentPage while reading; used by book-details-view.tsx:44, book-characters-tab.tsx:55, character-details-page.tsx:351, index.ts:6"
+    },
+    {
+      "claim": "CharacterDetailsAssembler",
+      "specRef": "§6.1",
+      "verdict": "CONFIRMED",
+      "evidence": "character-details.assembler.ts:18; injected in characters.service.ts:49, book-characters.service.ts:62, character-lifecycle.service.ts:32"
+    },
+    {
+      "claim": "toMaskedBookCharacterView masks the seven fields and roles",
+      "specRef": "§6.1, §2",
+      "verdict": "CONFIRMED",
+      "evidence": "domain/character.mapper.ts:418-501, called from character-view.mapper.ts:125. Hides on flag alone, even with no value (:430-436)"
+    },
+    {
+      "claim": "BookCharacterSpoilerSection has a nested Collapsible with trigger and count",
+      "specRef": "§5",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:591-678 (Collapsible :630-676, activeCount :595, :643-645); hide-presence switch :604-626"
+    },
+    {
+      "claim": "visibleAliases re-filters !alias.isSpoiler on the FE",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "character-details-page.tsx:752-757, used at :316 (book group) and :680 (global group)"
+    },
+    {
+      "claim": "Reuse CharacterSpoilerField, hiddenFields, revealFieldIds, addRevealKey",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "character-spoiler-field.tsx:18; model/character-spoiler.ts:9-14 (addRevealKey), :5-7 (ALL_REVEAL_FIELD_KEYS); characters.ts:709-726"
+    },
+    {
+      "claim": "hiddenFields / revealFieldIds are enums",
+      "specRef": "context (c)",
+      "verdict": "FALSE",
+      "evidence": "hiddenFields is z.array(z.string()) on every view (characters.ts:472, :528, :546, :566, :587). Only revealFieldIds is an enum (:709-720) with one 'aliases' key"
+    },
+    {
+      "claim": "globalAliases/bookAliases split exists",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "Confirmed absent, so the spec's call for the split stands: a single 'aliases' key (characters.ts:710), one marker (character-view.mapper.ts:76), one reveal (assembler :99-101)"
+    },
+    {
+      "claim": "Book alias group contains only contextBookId aliases",
+      "specRef": "§4",
+      "verdict": "FALSE",
+      "evidence": "assembler :96-98 also returns aliases of every allowedBookId, i.e. earlier series books"
+    },
+    {
+      "claim": "Global profile hides spoiler global aliases server-side",
+      "specRef": "§4",
+      "verdict": "FALSE",
+      "evidence": "The no-context path loadFullCharacterDetails (assembler :35-49) returns every alias, spoilers and other books' included. Masking is FE-only (character-details-page.tsx:680, :756)"
+    },
+    {
+      "claim": "The global detail endpoint returns full data to the owner, and the editor and the normal view share it",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "Same hook useCharacterDetails (api/use-character-details.ts:22-40) and the same GET /api/characters/:id (characters.controller.ts:187). The global page sends nothing (details-page :527). The editor sends includeHiddenProfiles + ALL_REVEAL_FIELD_KEYS, plus contextBookId when bookId is set (character-edit-page.tsx:58-63), so the book editor goes through the masked contextual path"
+    },
+    {
+      "claim": "Seven *IsSpoiler book fields",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:1148-1155"
+    },
+    {
+      "claim": "role.isSpoiler; server masks spoiler roles and marks 'roles'",
+      "specRef": "§3",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:1216; character.mapper.ts:446-449, :489-492"
+    },
+    {
+      "claim": "FE re-filters .filter(role => !role.isSpoiler)",
+      "specRef": "§3",
+      "verdict": "CONFIRMED",
+      "evidence": "character-details-page.tsx:191. hiddenRoleCount (:192) is computed from the already server-filtered array, so it is always 0 before reveal and the page has no roles reveal at all"
+    },
+    {
+      "claim": "alias.isSpoiler is per alias; alias.bookId exists",
+      "specRef": "§4",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:1109-1110; editor chip character-alias-chip.tsx:48-78"
+    },
+    {
+      "claim": "Roster, details, counts, search and series exclude characters by firstAppearance*/contextPage",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "Roster/summary: book-characters.service.ts:400-424. Details: assembler :66-93. Series: series-characters.service.ts:304-308, :110, :320. Suggestions: suggestion-exclusions.ts:28-36. Groups/theories: character-groups.service.ts:439, character-theories.service.ts:241. Separate introduced* edge gate in relationship-context.service.ts:66, :101, :130; character-graph.ts:279-291"
+    },
+    {
+      "claim": "Series context restriction is independent of position gating",
+      "specRef": "§1, §7",
+      "verdict": "CONFIRMED",
+      "evidence": "allowedBookIds from resolveAllowedBookIds (context-books.ts:50; series-characters.service.ts:297); soft-delete in detailsInclude (characters.repository.ts:56) and SOFT_DELETE_SCOPE in roster and series queries"
+    },
+    {
+      "claim": "Raw-SQL indexes or their test reference the two columns",
+      "specRef": "context (b)",
+      "verdict": "FALSE",
+      "evidence": "hide_presence_as_spoiler / hide_profile_as_spoiler appear only in schema.prisma and their creating migrations (20260717190841_characters_core/migration.sql:62, 20260719172438_character_hide_profile_as_spoiler/migration.sql:2). No @@index on them, none in raw-sql-indexes.test.ts"
+    },
+    {
+      "claim": "Status values: not_specified is empty, unknown is meaningful, other carries statusCustomText",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "BookCharacterStatusSchema characters.ts:129-137; BOOK_CHARACTER_STATUS.custom='other' character-options.ts:48-49; masked statusCustomText null with status (character.mapper.ts:496-497)"
+    },
+    {
+      "claim": "EditSection and ScopeBadge exist",
+      "specRef": "§5",
+      "verdict": "CONFIRMED",
+      "evidence": "Both are file-local functions, not shared components: character-edit-sections.tsx:918, :1037. ActionRow supports subtitle (components/ui/action-row.tsx:54)"
+    },
+    {
+      "claim": "A 'hidden character' badge exists on cards",
+      "specRef": "§1",
+      "verdict": "MOVED",
+      "evidence": "No per-card badge. The only hidden-characters indicator is the roster summary badge book-characters-tab.tsx:111-116 ('Є приховані записи', uk.json:8261), driven by hasHiddenRecords (book-characters.service.ts:122)"
+    },
+    {
+      "claim": "Hidden-fields lock badge on cards",
+      "specRef": "§1",
+      "verdict": "CONFIRMED",
+      "evidence": "character-card.tsx:45, :110-116"
+    },
+    {
+      "claim": "Reveal actions for book name and portrait are missing in details",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "The keys exist (characters.ts:713, :715), but DetailsHeader (:418-419) only falls back. SpoilerText covers status, description, impression, notes and species only (:221-260)"
+    },
+    {
+      "claim": "Switches disabled/unchecked when the value is empty",
+      "specRef": "§2",
+      "verdict": "CONFIRMED",
+      "evidence": "Confirmed absent, so the requirement stands: no disabled prop in character-edit-sections.tsx:591-678"
+    },
+    {
+      "claim": "No fallback from neutralDescription/globalAttitude",
+      "specRef": "§2",
+      "verdict": "ALREADY DONE",
+      "evidence": "Book section renders appearance values only (character-details-page.tsx:229-252); ProfileSection shows global values separately (:646-682)"
+    },
+    {
+      "claim": "Card fallbacks: name, avatar, no status",
+      "specRef": "§2, §7",
+      "verdict": "ALREADY DONE",
+      "evidence": "character.mapper.ts:405, :413, :414; character-card.tsx:40-43"
+    },
+    {
+      "claim": "Reveal is not persisted",
+      "specRef": "§2",
+      "verdict": "ALREADY DONE",
+      "evidence": "useState in character-details-page.tsx:366"
+    },
+    {
+      "claim": "Removing the flags needs only DTO/service/UI work",
+      "specRef": "§1",
+      "verdict": "FALSE",
+      "evidence": "The portability bundle requires both flags under .strict() (packages/shared/src/character-portability.ts:101, :149) and needs a legacy strip in upgradeLegacyCharacterBundle (:387)"
+    },
+    {
+      "claim": "Removing the flags leaves only dead UI",
+      "specRef": "§1",
+      "verdict": "FALSE",
+      "evidence": "Graph nodes are also hidden by hidePresenceAsSpoiler (character-graph.ts:79, :370, :486), relationships by hideProfileAsSpoiler (relationship-context.service.ts:51-52), and group members, theories and custom labels too (T5, T6)"
+    }
+  ],
+  "assumptions": [
+    "The hidden-characters badge the spec means is the roster summary badge 'Є приховані записи' (no per-card variant exists), so hasHiddenRecords leaves the book and series summary contracts (T1, T8)",
+    "GET /api/books/:bookId/characters/:characterId (no FE consumer) now returns the masked contextual view (contextBookId = bookId, optional revealFieldIds query), covering every appearance inside the series window up to this book; 404 if the character has no appearance in this book. Security-review fix (spec §7: no hidden values in a reader-context API response).",
+    "Series window kept on FE (spec §7 \"контекстне обмеження книг серії\"): the old toCharacterReadingContext is reduced to toCharacterBookContext, which sends contextBookId under the exact old condition (book not finished/dnf and currentPage > 0) without any reading-position params; details/edit keep contextBookId from the URL.",
+    "hiddenContent.hasHiddenNodes removed from the graph view contract: after T6 it was constantly false and had no FE consumer.",
+    "Global GET returns character forms in full as before (\"Не робити\" #1: form/image spoilers unchanged).",
+    "Details pages use placeholderData: keepPreviousData so a reveal refetch keeps the masked page in place instead of flashing a skeleton; components are keyed by characterId[:contextBookId] so reveal state never carries across characters/books.",
+    "Focus management after reveal (focus moves to the revealed content, pending reveal button stays focusable with aria-busy) and distinct accessible names for the two alias reveal buttons were added after the accessibility audit (WCAG 2.4.3 / 4.1.3).",
+    "statusCustomText is returned only when the visible status is \"other\" (stale text after a status change is never sent). Security-review fix."
+  ],
+  "residualLimitations": [
+    "unreliableNarrator stays flag-only masking (not value-aware): spec \"Не робити\" #1 forbids changing that spoiler.",
+    "Series profile appearance points drop spoiler roles without a roles marker (series surface has no reveal UI; spec forbids new card-level reveal buttons).",
+    "Pre-existing, not from this diff (a11y audit 2026-10-15): importance badge «Центральний» contrast 3.92:1 (Badge primary variant, vendored ui); Switch focus ring 2.07:1 (global --ring token); role picker combobox aria-controls points to a missing id.",
+    "Pre-existing: a failed details fetch (network error) renders the \"character unavailable in this book\" state instead of an error; with reveal it drops the page to that state too."
+  ],
+  "verifiedAt": "2026-10-15T16:17:09Z"
+}

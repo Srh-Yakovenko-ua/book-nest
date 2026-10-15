@@ -84,7 +84,6 @@ export class CharacterRelationshipPathService {
   }): Promise<void> {
     return this.accessAsserter.assertCharactersOwned({
       characterIds,
-      excludeHiddenProfiles: true,
       notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
       userId,
     });

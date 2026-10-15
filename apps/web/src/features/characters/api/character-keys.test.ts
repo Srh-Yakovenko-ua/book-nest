@@ -28,9 +28,9 @@ function seededClient(): QueryClient {
 }
 
 describe("characterKeys.bookSummary", () => {
-  it("separates two reading positions of the same book", () => {
-    expect(characterKeys.bookSummary(BOOK_ID, { contextChapter: 5 })).not.toEqual(
-      characterKeys.bookSummary(BOOK_ID, { contextChapter: 40 }),
+  it("separates a spoiler-safe summary from the full one", () => {
+    expect(characterKeys.bookSummary(BOOK_ID, { contextBookId: BOOK_ID })).not.toEqual(
+      characterKeys.bookSummary(BOOK_ID, {}),
     );
   });
 
@@ -40,9 +40,9 @@ describe("characterKeys.bookSummary", () => {
     );
   });
 
-  it("stays stable for the same reading context", () => {
-    expect(characterKeys.bookSummary(BOOK_ID, { contextPage: 12 })).toEqual(
-      characterKeys.bookSummary(BOOK_ID, { contextPage: 12 }),
+  it("stays stable for the same context book", () => {
+    expect(characterKeys.bookSummary(BOOK_ID, { contextBookId: "first" })).toEqual(
+      characterKeys.bookSummary(BOOK_ID, { contextBookId: "first" }),
     );
   });
 });

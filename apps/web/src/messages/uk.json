@@ -8146,7 +8146,8 @@
       "firstAppearancePage": "стор. {page}",
       "gender": "Гендер",
       "globalAliases": "Інші імена",
-      "hiddenRoles": "Приховані ролі: {count}",
+      "hiddenAliasesNotice": "Є приховані імена",
+      "hiddenRolesNotice": "Є приховані ролі",
       "managementSection": "Керування персонажем",
       "metaTitle": "Персонаж",
       "narratorType": "Спосіб оповіді",
@@ -8155,6 +8156,10 @@
       "pov": "POV",
       "profileSection": "Про персонажа",
       "pronouns": "Займенники",
+      "revealHiddenAliases": "Показати приховані",
+      "revealHiddenAliasesAria": "Показати приховані: {group}",
+      "revealHiddenRoles": "Показати приховані ролі",
+      "roles": "Ролі",
       "seriesPart": "{name}, частина {part}",
       "species": "Вид",
       "speciesOverride": "Вид у цій книзі",
@@ -8225,17 +8230,26 @@
       "revealAria": "Показати поле: {field}"
     },
     "spoilers": {
-      "activeCount": "Приховано: {count}",
       "appearanceNotes": "Зовнішність у цій книзі",
       "description": "Дані в цій книзі",
       "displayName": "Ім’я в цій книзі",
-      "expand": "Налаштувати, що саме приховати",
-      "granularHint": "Ці поля будуть приховані, доки читач не відкриє їх вручну.",
-      "hidePresence": "Приховати сам факт появи персонажа",
-      "hidePresenceHint": "Персонаж не з’явиться у списках цієї книги, доки читач не дійде до його першої появи. Решта налаштувань нижче лишаються збереженими.",
+      "emptyValueHint": "Спочатку заповніть поле",
+      "groups": {
+        "cards": "На картках і сторінці персонажа",
+        "details": "Тільки на сторінці деталей"
+      },
+      "hints": {
+        "appearanceNotes": "Лише текст про зовнішність, не зображення",
+        "description": "Лише опис для цієї книги",
+        "displayName": "Замість нього — основне ім’я",
+        "personalImpression": "Ваші особисті нотатки",
+        "portrait": "Замість нього — основний аватар або заглушка",
+        "speciesOverride": "Замість нього — основний вид, якщо він є",
+        "status": "Прихований на картці, розкривається в деталях"
+      },
       "personalImpression": "Моє враження",
       "portrait": "Зображення в цій книзі",
-      "sectionHint": "Стосується лише цієї книги.",
+      "revealHint": "Позначені поля приховано, доки ви не розкриєте їх вручну на сторінці персонажа.",
       "sectionTitle": "Спойлери",
       "speciesOverride": "Вид у цій книзі",
       "status": "Статус"
@@ -8258,7 +8272,6 @@
     },
     "summary": {
       "favorites": "Улюблених: {count}",
-      "hidden": "Є приховані записи",
       "pov": "POV: {count}"
     },
     "tab": "Персонажі",

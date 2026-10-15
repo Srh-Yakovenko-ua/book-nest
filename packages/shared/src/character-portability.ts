@@ -98,7 +98,6 @@ const BundleAppearanceSchema = z
     firstAppearanceChapter: nullableText(BUNDLE_SHORT_TEXT_MAX),
     firstAppearanceNote: nullableText(BUNDLE_SHORT_TEXT_MAX),
     firstAppearancePage: nullablePositiveInt,
-    hidePresenceAsSpoiler: z.boolean(),
     importance: BookCharacterImportanceSchema,
     isPovCharacter: z.boolean(),
     isUnreliableNarrator: z.boolean().default(false),
@@ -146,7 +145,6 @@ const BundleCharacterSchema = z
     forms: z.array(BundleFormSchema).max(CHARACTER_BUNDLE_FORMS_PER_CHARACTER_MAX),
     gender: CharacterGenderSchema,
     globalAttitude: CharacterAttitudeSchema.nullable(),
-    hideProfileAsSpoiler: z.boolean(),
     id: z.uuid(),
     isArchived: z.boolean(),
     isFavorite: z.boolean(),
@@ -384,6 +382,8 @@ const BundleAppearancesShapeSchema = z.looseObject({
   characters: z.array(z.looseObject({ appearances: z.array(z.unknown()) })),
 });
 
+const BundleAppearanceRecordSchema = z.looseObject({});
+
 export function upgradeLegacyCharacterBundle(payload: unknown): unknown {
   const shape = BundleAppearancesShapeSchema.safeParse(payload);
   if (!shape.success) {
@@ -391,18 +391,30 @@ export function upgradeLegacyCharacterBundle(payload: unknown): unknown {
   }
   return {
     ...shape.data,
-    characters: shape.data.characters.map((character) => ({
-      ...character,
-      appearances: character.appearances.map((appearance) =>
-        upgradeLegacyBundleAppearance(appearance),
-      ),
-    })),
+    characters: shape.data.characters.map(
+      ({ hideProfileAsSpoiler: _retiredProfileFlag, ...character }) => ({
+        ...character,
+        appearances: character.appearances.map((appearance) =>
+          upgradeLegacyBundleAppearance(appearance),
+        ),
+      }),
+    ),
   };
 }
 
 function upgradeLegacyBundleAppearance(appearance: unknown): unknown {
-  const legacy = LegacyUnreliableNarratorAppearanceSchema.safeParse(appearance);
-  return legacy.success ? legacy.data : appearance;
+  const withoutRetiredFlag = withoutRetiredPresenceFlag(appearance);
+  const legacy = LegacyUnreliableNarratorAppearanceSchema.safeParse(withoutRetiredFlag);
+  return legacy.success ? legacy.data : withoutRetiredFlag;
+}
+
+function withoutRetiredPresenceFlag(appearance: unknown): unknown {
+  const record = BundleAppearanceRecordSchema.safeParse(appearance);
+  if (!record.success) {
+    return appearance;
+  }
+  const { hidePresenceAsSpoiler: _retiredPresenceFlag, ...rest } = record.data;
+  return rest;
 }
 
 export const CharacterExportQuerySchema = z.object({

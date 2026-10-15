@@ -147,7 +147,7 @@ describe("book character graph", () => {
     expect(res.body.graphVersion).toHaveLength(16);
   });
 
-  it("drops a presence-hidden node and every edge touching it", async () => {
+  it("keeps a node first met late in the book and every edge touching it", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
@@ -155,7 +155,7 @@ describe("book character graph", () => {
     const carol = await createCharacter(accessToken, "Carol");
     await linkCharacter({
       bookId,
-      bookProfile: { hidePresenceAsSpoiler: true, importance: "central" },
+      bookProfile: { firstAppearancePage: 480, importance: "central" },
       characterId: bob,
       token: accessToken,
     });
@@ -179,11 +179,15 @@ describe("book character graph", () => {
     const res = await authed("get", `/api/books/${bookId}/character-graph`, accessToken);
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.nodes.map((node: { id: string }) => node.id).sort()).toEqual(
-      [alice, carol].sort(),
+      [alice, bob, carol].sort(),
     );
-    expect(res.body.nodes.find((node: { id: string }) => node.id === alice).degree).toBe(1);
-    expect(res.body.hiddenContent.hasHiddenNodes).toBe(true);
-    expect(res.body.edges).toHaveLength(1);
+    expect(res.body.nodes.find((node: { id: string }) => node.id === alice).degree).toBe(2);
+    expect(res.body.hiddenContent).toEqual({
+      hasHiddenEdges: false,
+      hasLockedEdges: false,
+      truncated: false,
+    });
+    expect(res.body.edges).toHaveLength(2);
   });
 
   it("keeps an isTypeSpoiler edge but locks its type", async () => {

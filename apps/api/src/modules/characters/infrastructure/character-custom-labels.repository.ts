@@ -24,7 +24,7 @@ export class CharacterCustomLabelsRepository {
     { userId }: { userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<CustomLabelUsage> {
-    const appearanceScope = spoilerSafeAppearanceScope(userId);
+    const appearanceScope = activeAppearanceScope(userId);
 
     const [roleGroups, statusGroups] = await Promise.all([
       client.bookCharacterRole.groupBy({
@@ -60,11 +60,10 @@ export class CharacterCustomLabelsRepository {
   }
 }
 
-function spoilerSafeAppearanceScope(userId: string): Prisma.BookCharacterWhereInput {
+function activeAppearanceScope(userId: string): Prisma.BookCharacterWhereInput {
   return {
     book: SOFT_DELETE_SCOPE.active,
-    character: { ...SOFT_DELETE_SCOPE.active, hideProfileAsSpoiler: false, userId },
-    hidePresenceAsSpoiler: false,
+    character: { ...SOFT_DELETE_SCOPE.active, userId },
   };
 }
 

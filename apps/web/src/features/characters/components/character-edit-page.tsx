@@ -57,7 +57,6 @@ export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
   const [bookId] = useQueryState("bookId", parseAsString);
   const details = useCharacterDetails({
     characterId,
-    includeHiddenProfiles: true,
     revealFieldIds: ALL_REVEAL_FIELD_KEYS,
     ...(bookId === null ? {} : { contextBookId: bookId }),
   });
@@ -196,6 +195,7 @@ function CharacterEditForm({
     const next = withSpeciesChange(getValues(), change);
     setValue("global.species", next.global.species);
     setValue("book.speciesOverride", next.book.speciesOverride);
+    setValue("book.speciesOverrideIsSpoiler", next.book.speciesOverrideIsSpoiler);
     setBaseline((previous) => withSpeciesChange(previous, change));
   }
 

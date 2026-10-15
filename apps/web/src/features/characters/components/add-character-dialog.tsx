@@ -47,10 +47,10 @@ const PICKER = {
 
 type AddCharacterDialogProps = {
   book: BookView;
+  bookContext: BookCharacterSummaryQuery;
   onOpenChange: (open: boolean) => void;
   onOpenDetails: (characterId: string) => void;
   open: boolean;
-  readingContext: BookCharacterSummaryQuery;
 };
 
 type DuplicateWarning = {
@@ -60,10 +60,10 @@ type DuplicateWarning = {
 
 export function AddCharacterDialog({
   book,
+  bookContext,
   onOpenChange,
   onOpenDetails,
   open,
-  readingContext,
 }: AddCharacterDialogProps) {
   const t = useTranslations("characters.add");
 
@@ -78,9 +78,9 @@ export function AddCharacterDialog({
         {open ? (
           <AddCharacterPicker
             book={book}
+            bookContext={bookContext}
             onClose={() => onOpenChange(false)}
             onOpenDetails={onOpenDetails}
-            readingContext={readingContext}
           />
         ) : null}
       </DialogContent>
@@ -90,14 +90,14 @@ export function AddCharacterDialog({
 
 function AddCharacterPicker({
   book,
+  bookContext,
   onClose,
   onOpenDetails,
-  readingContext,
 }: {
   book: BookView;
+  bookContext: BookCharacterSummaryQuery;
   onClose: () => void;
   onOpenDetails: (characterId: string) => void;
-  readingContext: BookCharacterSummaryQuery;
 }) {
   const t = useTranslations("characters.add");
   const tDuplicate = useTranslations("characters.duplicate");
@@ -113,12 +113,12 @@ function AddCharacterPicker({
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
   const inBook = useBookCharacterLookup({
+    bookContext,
     bookId: book.id,
     pageSize: PICKER.inBookLimit,
     query,
-    readingContext,
   });
-  const suggestions = useCharacterSuggestions({ bookId: book.id, query, readingContext });
+  const suggestions = useCharacterSuggestions({ bookContext, bookId: book.id, query });
 
   const inBookMatches = inBook.data?.items ?? [];
   const reusable = suggestions.data?.suggestions ?? [];

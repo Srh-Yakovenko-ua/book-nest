@@ -16,7 +16,6 @@ export interface BookCharacterSummaryViewDto {
    * @maximum 9007199254740991
    */
   favoritesCount: number;
-  hasHiddenRecords: boolean;
   /**
    * @minimum 0
    * @maximum 9007199254740991

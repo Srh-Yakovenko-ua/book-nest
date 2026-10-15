@@ -12,17 +12,13 @@ import { characterKeys } from "./character-keys";
 const SUGGESTIONS_MIN_LENGTH = 2;
 
 type CharacterSuggestionsArgs = {
+  bookContext: BookCharacterSummaryQuery;
   bookId: string;
   query: string;
-  readingContext: BookCharacterSummaryQuery;
 };
 
-export function useCharacterSuggestions({
-  bookId,
-  query,
-  readingContext,
-}: CharacterSuggestionsArgs) {
-  const params: BookCharacterSuggestionsControllerListParams = { q: query, ...readingContext };
+export function useCharacterSuggestions({ bookContext, bookId, query }: CharacterSuggestionsArgs) {
+  const params: BookCharacterSuggestionsControllerListParams = { q: query, ...bookContext };
 
   return useQuery({
     enabled: query.length >= SUGGESTIONS_MIN_LENGTH,

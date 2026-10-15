@@ -35,7 +35,6 @@ export function buildBookCharacterSummary({
   bookId,
   byImportanceEntries,
   favoritesCount,
-  hasHiddenRecords,
   povCount,
   topCandidates,
   totalVisibleCharacters,
@@ -43,7 +42,6 @@ export function buildBookCharacterSummary({
   bookId: string;
   byImportanceEntries: ImportanceCountEntry[];
   favoritesCount: number;
-  hasHiddenRecords: boolean;
   povCount: number;
   topCandidates: CharacterSummaryView[];
   totalVisibleCharacters: number;
@@ -57,7 +55,6 @@ export function buildBookCharacterSummary({
       totalVisibleCharacters,
     }),
     bookId,
-    hasHiddenRecords,
   };
 }
 
@@ -65,7 +62,6 @@ export function buildSeriesCharacterSummary({
   byImportanceEntries,
   contextBookId,
   favoritesCount,
-  hasHiddenRecords,
   povCount,
   seriesId,
   topCandidates,
@@ -74,7 +70,6 @@ export function buildSeriesCharacterSummary({
   byImportanceEntries: ImportanceCountEntry[];
   contextBookId: Nullable<string>;
   favoritesCount: number;
-  hasHiddenRecords: boolean;
   povCount: number;
   seriesId: string;
   topCandidates: CharacterSummaryView[];
@@ -89,7 +84,6 @@ export function buildSeriesCharacterSummary({
       totalVisibleCharacters,
     }),
     contextBookId,
-    hasHiddenRecords,
     seriesId,
   };
 }

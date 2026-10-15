@@ -23,7 +23,6 @@ const PURGE_AT = new Date("2026-02-01T00:00:00.000Z");
 type AppearanceSeed = {
   bookId: string;
   characterId: string;
-  hidePresenceAsSpoiler?: boolean;
   roles?: RoleSeed[];
   status?: string;
   statusCustomText?: string;
@@ -88,18 +87,15 @@ async function createBook({
 }
 
 async function createCharacter({
-  hideProfileAsSpoiler = false,
   trashed = false,
   userId,
 }: {
-  hideProfileAsSpoiler?: boolean;
   trashed?: boolean;
   userId: string;
 }): Promise<string> {
   const name = `Character ${randomUUID()}`;
   const character = await prisma.character.create({
     data: {
-      hideProfileAsSpoiler,
       name,
       normalizedName: name.toLowerCase(),
       userId,
@@ -290,12 +286,12 @@ describe("GET /api/character-custom-labels", () => {
     });
   });
 
-  it("excludes labels hidden as spoilers", async () => {
+  it("excludes labels marked as spoilers and counts every character's open labels", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const bookId = await createBook({ userId });
     const openCharacterId = await createCharacter({ userId });
-    const hiddenPresenceCharacterId = await createCharacter({ userId });
-    const hiddenProfileCharacterId = await createCharacter({ hideProfileAsSpoiler: true, userId });
+    const secondCharacterId = await createCharacter({ userId });
+    const thirdCharacterId = await createCharacter({ userId });
 
     await createAppearance({
       bookId,
@@ -310,26 +306,32 @@ describe("GET /api/character-custom-labels", () => {
     });
     await createAppearance({
       bookId,
-      characterId: hiddenPresenceCharacterId,
-      hidePresenceAsSpoiler: true,
-      roles: [{ customRole: "Прихована присутність", roleType: "custom" }],
+      characterId: secondCharacterId,
+      roles: [{ customRole: "Друга роль", roleType: "custom" }],
       status: "other",
-      statusCustomText: "Статус прихованої присутності",
+      statusCustomText: "Статус другого",
     });
     await createAppearance({
       bookId,
-      characterId: hiddenProfileCharacterId,
-      roles: [{ customRole: "Прихований профіль", roleType: "custom" }],
+      characterId: thirdCharacterId,
+      roles: [{ customRole: "Третя роль", roleType: "custom" }],
       status: "other",
-      statusCustomText: "Статус прихованого профілю",
+      statusCustomText: "Статус третього",
     });
 
     const res = await getCustomLabels(accessToken);
 
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body).toEqual<CharacterCustomLabelsView>({
-      roles: [{ count: 1, label: "Відкрита роль" }],
-      statuses: [],
+      roles: [
+        { count: 1, label: "Відкрита роль" },
+        { count: 1, label: "Друга роль" },
+        { count: 1, label: "Третя роль" },
+      ],
+      statuses: [
+        { count: 1, label: "Статус другого" },
+        { count: 1, label: "Статус третього" },
+      ],
     });
   });
 });

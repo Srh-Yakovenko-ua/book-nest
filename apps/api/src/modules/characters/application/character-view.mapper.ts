@@ -13,6 +13,7 @@ import type {
 import { Injectable } from "@nestjs/common";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+import type { VisibleAliases } from "../domain/alias-groups.js";
 import type {
   CharacterDetailsRow,
   CharacterGlobalSummaryRow,
@@ -55,26 +56,24 @@ export class CharacterViewMapper {
   }
 
   toMaskedDetailsView({
-    aliases,
-    hasHiddenAliases,
+    forms,
     revealedFields,
     row,
-    visibleAppearances,
+    visibleAliases,
   }: {
-    aliases: CharacterDetailsRow["aliases"];
-    hasHiddenAliases: boolean;
+    forms: CharacterDetailsRow["forms"];
     revealedFields: ReadonlySet<CharacterRevealFieldKey>;
     row: CharacterDetailsRow;
-    visibleAppearances: CharacterDetailsRow["bookAppearances"];
+    visibleAliases: VisibleAliases<CharacterDetailsRow["aliases"][number]>;
   }): CharacterDetailsView {
     return toCharacterDetailsView({
-      appearances: visibleAppearances.map((appearance) =>
+      appearances: row.bookAppearances.map((appearance) =>
         this.mapMaskedAppearance({ appearance, revealedFields }),
       ),
       avatar: this.mediaViewOf(row.avatarMedia),
-      character: { ...row, aliases },
-      characterHiddenFields: hasHiddenAliases ? ["aliases"] : [],
-      forms: row.forms.filter((form) => !form.isSpoiler).map((form) => this.mapForm(form)),
+      character: { ...row, aliases: visibleAliases.aliases },
+      characterHiddenFields: visibleAliases.hiddenFields,
+      forms: forms.map((form) => this.mapForm(form)),
     });
   }
 

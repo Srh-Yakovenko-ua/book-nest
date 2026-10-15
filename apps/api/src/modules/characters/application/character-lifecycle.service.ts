@@ -85,11 +85,7 @@ export class CharacterLifecycleService {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     await this.cancelPurge(characterId);
-    return this.detailsAssembler.loadFullCharacterDetails({
-      characterId,
-      revealHiddenProfile: true,
-      userId,
-    });
+    return this.detailsAssembler.loadFullCharacterDetails({ characterId, userId });
   }
 
   async softDelete({

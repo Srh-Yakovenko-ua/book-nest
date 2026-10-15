@@ -12,8 +12,6 @@ import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { ActionRow } from "@/components/ui/action-row";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FieldError as FieldErrorText } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,9 +31,11 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
+import type { BookSpoilerFlag } from "../model/book-spoiler-flags";
 import type { CharacterEditScope, CharacterEditValues } from "../model/character-edit-form";
 
 import { useCharacterCustomLabels } from "../api/use-character-custom-labels";
+import { hasSpoilerValue, spoilerValuePresence } from "../model/book-spoiler-flags";
 import { effectiveCharacterName } from "../model/character-edit-form";
 import { isBookFieldMasked } from "../model/character-inheritance";
 import {
@@ -66,16 +66,27 @@ type EditErrors = FieldErrors<CharacterEditValues>;
 type FieldRequirement = "optional" | "required";
 
 const SPOILER_FIELDS = [
-  { label: "displayName", name: "book.displayNameIsSpoiler" },
-  { label: "status", name: "book.statusIsSpoiler" },
-  { label: "description", name: "book.descriptionIsSpoiler" },
-  { label: "personalImpression", name: "book.personalImpressionIsSpoiler" },
-  { label: "appearanceNotes", name: "book.appearanceNotesIsSpoiler" },
-  { label: "speciesOverride", name: "book.speciesOverrideIsSpoiler" },
-  { label: "portrait", name: "book.portraitIsSpoiler" },
-] as const;
-
-const SPOILER_FLAG_NAMES = SPOILER_FIELDS.map((entry) => entry.name);
+  {
+    fields: [
+      { flag: "displayNameIsSpoiler", label: "displayName" },
+      { flag: "portraitIsSpoiler", label: "portrait" },
+      { flag: "statusIsSpoiler", label: "status" },
+    ],
+    title: "cards",
+  },
+  {
+    fields: [
+      { flag: "speciesOverrideIsSpoiler", label: "speciesOverride" },
+      { flag: "descriptionIsSpoiler", label: "description" },
+      { flag: "personalImpressionIsSpoiler", label: "personalImpression" },
+      { flag: "appearanceNotesIsSpoiler", label: "appearanceNotes" },
+    ],
+    title: "details",
+  },
+] as const satisfies readonly {
+  fields: readonly { flag: BookSpoilerFlag; label: string }[];
+  title: string;
+}[];
 
 const SCOPE_BADGE = {
   book: { icon: "book", label: "scopeBook" },
@@ -102,6 +113,8 @@ export function BookCharacterInheritanceSection({
   const globalName = useWatch({ control, name: "global.name" });
   const globalSpecies = useWatch({ control, name: "global.species" });
   const globalAttitude = useWatch({ control, name: "global.attitude" });
+  const displayNameSpoiler = useController({ control, name: "book.displayNameIsSpoiler" });
+  const speciesOverrideSpoiler = useController({ control, name: "book.speciesOverrideIsSpoiler" });
 
   return (
     <EditSection
@@ -122,7 +135,12 @@ export function BookCharacterInheritanceSection({
                 id="character-display-name"
                 label={t("displayName")}
                 maxLength={CHARACTER_TEXT_MAX.shortText}
-                onChange={field.onChange}
+                onChange={(next) => {
+                  field.onChange(next);
+                  if (!hasSpoilerValue.displayNameIsSpoiler(next)) {
+                    displayNameSpoiler.field.onChange(false);
+                  }
+                }}
                 placeholder={t("displayNamePlaceholder")}
                 value={field.value}
               />
@@ -142,7 +160,12 @@ export function BookCharacterInheritanceSection({
                 id="character-species-override"
                 label={t("speciesInBook")}
                 onBlur={field.onBlur}
-                onChange={field.onChange}
+                onChange={(next) => {
+                  field.onChange(next);
+                  if (!hasSpoilerValue.speciesOverrideIsSpoiler(next)) {
+                    speciesOverrideSpoiler.field.onChange(false);
+                  }
+                }}
                 onSpeciesChange={onSpeciesChange}
                 placeholder={t("speciesInBookPlaceholder")}
                 ref={field.ref}
@@ -191,6 +214,13 @@ export function BookCharacterMainSection({
 
   const status = useController({ control, name: "book.status" });
   const statusCustomText = useController({ control, name: "book.statusCustomText" });
+  const statusSpoiler = useController({ control, name: "book.statusIsSpoiler" });
+  const descriptionSpoiler = useController({ control, name: "book.descriptionIsSpoiler" });
+  const appearanceNotesSpoiler = useController({ control, name: "book.appearanceNotesIsSpoiler" });
+  const personalImpressionSpoiler = useController({
+    control,
+    name: "book.personalImpressionIsSpoiler",
+  });
   const statusError = errors.book?.statusCustomText;
   const customLabels = useCharacterCustomLabels();
 
@@ -240,6 +270,9 @@ export function BookCharacterMainSection({
             onChange={(choice) => {
               status.field.onChange(choice.option);
               statusCustomText.field.onChange(choice.customText);
+              if (!hasSpoilerValue.statusIsSpoiler(choice.option)) {
+                statusSpoiler.field.onChange(false);
+              }
             }}
             optionLabel={(option) => tStatus(option)}
             options={BOOK_CHARACTER_STATUS.options}
@@ -280,6 +313,11 @@ export function BookCharacterMainSection({
           error={errors.book?.description}
           id="character-book-description"
           name="book.description"
+          onValueChange={(next) => {
+            if (!hasSpoilerValue.descriptionIsSpoiler(next)) {
+              descriptionSpoiler.field.onChange(false);
+            }
+          }}
           placeholder={t("bookDescriptionPlaceholder")}
           register={register}
           rows={3}
@@ -296,6 +334,11 @@ export function BookCharacterMainSection({
           error={errors.book?.appearanceNotes}
           id="character-appearance-notes"
           name="book.appearanceNotes"
+          onValueChange={(next) => {
+            if (!hasSpoilerValue.appearanceNotesIsSpoiler(next)) {
+              appearanceNotesSpoiler.field.onChange(false);
+            }
+          }}
           placeholder={t("appearanceNotesPlaceholder")}
           register={register}
           rows={3}
@@ -312,6 +355,11 @@ export function BookCharacterMainSection({
           error={errors.book?.personalImpression}
           id="character-personal-impression"
           name="book.personalImpression"
+          onValueChange={(next) => {
+            if (!hasSpoilerValue.personalImpressionIsSpoiler(next)) {
+              personalImpressionSpoiler.field.onChange(false);
+            }
+          }}
           placeholder={t("personalImpressionPlaceholder")}
           register={register}
           rows={3}
@@ -590,90 +638,61 @@ export function BookCharacterNarrativeSection({
 
 export function BookCharacterSpoilerSection({ control }: { control: EditControl }) {
   const t = useTranslations("characters.spoilers");
-  const hidePresenceHintId = useId();
-  const flags = useWatch({ control, name: SPOILER_FLAG_NAMES });
-  const activeCount = flags.filter(Boolean).length;
+  const idPrefix = useId();
+  const book = useWatch({ control, name: "book" });
+  const present = spoilerValuePresence(book);
 
   return (
     <EditSection
       action={<ScopeBadge scope="book" />}
-      description={t("sectionHint")}
+      description={t("revealHint")}
       icon="eye-off"
       title={t("sectionTitle")}
     >
-      <Controller
-        control={control}
-        name="book.hidePresenceAsSpoiler"
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <ActionRow
-              className="px-0 py-1 [&_span]:whitespace-normal"
-              title={t("hidePresence")}
-              trailing={(labelId) => (
-                <Switch
-                  aria-describedby={hidePresenceHintId}
-                  aria-labelledby={labelId}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <p className="text-sm text-muted-foreground" id={hidePresenceHintId}>
-              {t("hidePresenceHint")}
-            </p>
-          </div>
-        )}
-      />
-
-      <Separator />
-
-      <Collapsible className="flex flex-col gap-3" defaultOpen={activeCount > 0}>
-        <CollapsibleTrigger asChild>
-          <Button
-            className="group/disclosure -ml-2.5 h-auto min-h-8 self-start py-1.5 text-left whitespace-normal"
-            type="button"
-            variant="ghost"
-          >
-            <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-              {t("expand")}
-              {activeCount > 0 ? (
-                <Badge variant="secondary">{t("activeCount", { count: activeCount })}</Badge>
-              ) : null}
-            </span>
-            <UiIcon
-              className="transition-transform group-data-[state=open]/disclosure:rotate-180 motion-reduce:transition-none"
-              name="chevron-down"
-              size={16}
-            />
-          </Button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent className="flex flex-col">
-          <p className="pb-1 text-xs text-muted-foreground">{t("granularHint")}</p>
-          {SPOILER_FIELDS.map((entry, index) => (
-            <Fragment key={entry.name}>
+      {SPOILER_FIELDS.map((group) => (
+        <div
+          aria-labelledby={`${idPrefix}-${group.title}`}
+          className="flex flex-col"
+          key={group.title}
+          role="group"
+        >
+          <h3 className="pb-1 text-sm font-semibold text-ink" id={`${idPrefix}-${group.title}`}>
+            {t(`groups.${group.title}`)}
+          </h3>
+          {group.fields.map((entry, index) => (
+            <Fragment key={entry.flag}>
               {index === 0 ? null : <Separator />}
               <Controller
                 control={control}
-                name={entry.name}
+                name={`book.${entry.flag}`}
                 render={({ field }) => (
-                  <ActionRow
-                    className="px-0 py-2.5"
-                    title={t(entry.label)}
-                    trailing={(labelId) => (
-                      <Switch
-                        aria-labelledby={labelId}
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    )}
-                  />
+                  <div className="flex flex-col gap-0.5 py-2.5">
+                    <ActionRow
+                      className="px-0 py-0 [&_span]:whitespace-normal"
+                      title={t(entry.label)}
+                      trailing={(labelId) => (
+                        <Switch
+                          aria-describedby={`${idPrefix}-${entry.flag}-hint`}
+                          aria-labelledby={labelId}
+                          checked={present[entry.flag] && field.value}
+                          disabled={!present[entry.flag]}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
+                    />
+                    <p
+                      className="pr-11 text-[0.8125rem] text-muted-foreground"
+                      id={`${idPrefix}-${entry.flag}-hint`}
+                    >
+                      {present[entry.flag] ? t(`hints.${entry.label}`) : t("emptyValueHint")}
+                    </p>
+                  </div>
                 )}
               />
             </Fragment>
           ))}
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
+      ))}
     </EditSection>
   );
 }

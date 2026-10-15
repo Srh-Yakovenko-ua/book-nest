@@ -32,6 +32,7 @@ import type { SpeciesRefSource } from "../../species/index.js";
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { toSpeciesRefView } from "../../species/index.js";
 import { emptyToNull } from "./character-fields.js";
+import { isMaskableSpoiler } from "./maskable-spoiler.js";
 
 export type CharacterAliasSource = {
   bookId: Nullable<string>;
@@ -54,7 +55,6 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   firstAppearanceChapter: Nullable<string>;
   firstAppearanceNote: Nullable<string>;
   firstAppearancePage: Nullable<number>;
-  hidePresenceAsSpoiler: boolean;
   id: string;
   importance: string;
   isPovCharacter: boolean;
@@ -62,9 +62,11 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   isUnreliableNarratorSpoiler: boolean;
   narratorType: Nullable<string>;
   personalImpression: Nullable<string>;
+  portraitMediaId: Nullable<string>;
   roles: CharacterRoleSource[];
   sortOrder: Nullable<number>;
   speciesOverride: Nullable<SpeciesRefSource>;
+  speciesOverrideId: Nullable<string>;
   status: string;
   statusCustomText: Nullable<string>;
   updatedAt: Date;
@@ -98,7 +100,6 @@ export type CharacterSource = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -114,7 +115,6 @@ export type GlobalSummaryCharacterSource = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -124,16 +124,14 @@ export type GlobalSummaryCharacterSource = {
   tags: { tag: TagViewSource }[];
 };
 
-export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
+export type SeriesProfileAppearanceSource = SummaryHiddenFieldSource & {
   attitude: Nullable<string>;
   bookId: string;
   createdAt: Date;
-  displayName: Nullable<string>;
   id: string;
   importance: string;
   portrait: Nullable<MediaView>;
   roles: CharacterRoleSource[];
-  status: string;
 };
 
 export type SeriesProfileCharacterSource = {
@@ -159,12 +157,10 @@ export type SpoilerFlags = {
   statusIsSpoiler: boolean;
 };
 
-export type SummaryAppearanceSource = SpoilerFlags & {
-  displayName: Nullable<string>;
+export type SummaryAppearanceSource = SummaryHiddenFieldSource & {
   id: string;
   importance: string;
   isPovCharacter: boolean;
-  status: string;
 };
 
 export type SummaryCharacterSource = {
@@ -174,9 +170,12 @@ export type SummaryCharacterSource = {
   name: string;
 };
 
-export type SummaryHiddenFieldFlags = {
+export type SummaryHiddenFieldSource = {
+  displayName: Nullable<string>;
   displayNameIsSpoiler: boolean;
   portraitIsSpoiler: boolean;
+  portraitMediaId: Nullable<string>;
+  status: string;
   statusIsSpoiler: boolean;
 };
 
@@ -212,7 +211,6 @@ export function toBookCharacterView({
     firstAppearanceNote: emptyToNull(appearance.firstAppearanceNote),
     firstAppearancePage: appearance.firstAppearancePage,
     hiddenFields: computeHiddenFields(appearance),
-    hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isPovCharacter: appearance.isPovCharacter,
@@ -273,7 +271,6 @@ export function toCharacterDetailsView({
         ? null
         : CharacterAttitudeSchema.parse(character.globalAttitude),
     hiddenFields,
-    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: character.id,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -325,7 +322,6 @@ export function toCharacterGlobalSummaryView({
       character.globalAttitude === null
         ? null
         : CharacterAttitudeSchema.parse(character.globalAttitude),
-    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: character.id,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -402,7 +398,9 @@ export function toCharacterSummaryView({
   return {
     avatar,
     characterId: character.id,
-    displayName: appearance.displayNameIsSpoiler ? null : emptyToNull(appearance.displayName),
+    displayName: isMaskableSpoiler.displayName(appearance)
+      ? null
+      : emptyToNull(appearance.displayName),
     entityKind: CharacterEntityKindSchema.parse(character.entityKind),
     hiddenFields: computeSummaryHiddenFields(appearance),
     id: appearance.id,
@@ -410,8 +408,10 @@ export function toCharacterSummaryView({
     isFavorite: character.isFavorite,
     isPovCharacter: appearance.isPovCharacter,
     name: character.name,
-    portrait: appearance.portraitIsSpoiler ? null : portrait,
-    status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
+    portrait: isMaskableSpoiler.portrait(appearance) ? null : portrait,
+    status: isMaskableSpoiler.status(appearance)
+      ? null
+      : BookCharacterStatusSchema.parse(appearance.status),
   };
 }
 
@@ -427,32 +427,53 @@ export function toMaskedBookCharacterView({
   revealedFields: ReadonlySet<CharacterRevealFieldKey>;
 }): BookCharacterView {
   const hiddenFields: string[] = [];
-  const isVisible = (field: CharacterRevealFieldKey, isSpoiler: boolean): boolean => {
-    if (!isSpoiler || revealedFields.has(field)) {
+  const isVisible = ({
+    field,
+    isMasked,
+  }: {
+    field: CharacterRevealFieldKey;
+    isMasked: boolean;
+  }): boolean => {
+    if (!isMasked || revealedFields.has(field)) {
       return true;
     }
     hiddenFields.push(field);
     return false;
   };
 
-  const showAppearanceNotes = isVisible("appearanceNotes", appearance.appearanceNotesIsSpoiler);
-  const showDescription = isVisible("description", appearance.descriptionIsSpoiler);
-  const showDisplayName = isVisible("displayName", appearance.displayNameIsSpoiler);
-  const showPersonalImpression = isVisible(
-    "personalImpression",
-    appearance.personalImpressionIsSpoiler,
-  );
-  const showPortrait = isVisible("portrait", appearance.portraitIsSpoiler);
-  const showSpoilerRoles = isVisible(
-    "roles",
-    appearance.roles.some((role) => role.isSpoiler),
-  );
-  const showSpeciesOverride = isVisible("speciesOverride", appearance.speciesOverrideIsSpoiler);
-  const showStatus = isVisible("status", appearance.statusIsSpoiler);
-  const showUnreliableNarrator = isVisible(
-    "unreliableNarrator",
-    appearance.isUnreliableNarratorSpoiler,
-  );
+  const showAppearanceNotes = isVisible({
+    field: "appearanceNotes",
+    isMasked: isMaskableSpoiler.appearanceNotes(appearance),
+  });
+  const showDescription = isVisible({
+    field: "description",
+    isMasked: isMaskableSpoiler.description(appearance),
+  });
+  const showDisplayName = isVisible({
+    field: "displayName",
+    isMasked: isMaskableSpoiler.displayName(appearance),
+  });
+  const showPersonalImpression = isVisible({
+    field: "personalImpression",
+    isMasked: isMaskableSpoiler.personalImpression(appearance),
+  });
+  const showPortrait = isVisible({
+    field: "portrait",
+    isMasked: isMaskableSpoiler.portrait(appearance),
+  });
+  const showSpoilerRoles = isVisible({
+    field: "roles",
+    isMasked: appearance.roles.some((role) => role.isSpoiler),
+  });
+  const showSpeciesOverride = isVisible({
+    field: "speciesOverride",
+    isMasked: isMaskableSpoiler.speciesOverride(appearance),
+  });
+  const showStatus = isVisible({ field: "status", isMasked: isMaskableSpoiler.status(appearance) });
+  const showUnreliableNarrator = isVisible({
+    field: "unreliableNarrator",
+    isMasked: appearance.isUnreliableNarratorSpoiler,
+  });
 
   return {
     appearanceNotes: showAppearanceNotes ? emptyToNull(appearance.appearanceNotes) : null,
@@ -472,7 +493,6 @@ export function toMaskedBookCharacterView({
     firstAppearanceNote: emptyToNull(appearance.firstAppearanceNote),
     firstAppearancePage: appearance.firstAppearancePage,
     hiddenFields,
-    hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
     id: appearance.id,
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     isPovCharacter: appearance.isPovCharacter,
@@ -494,7 +514,10 @@ export function toMaskedBookCharacterView({
     speciesOverride: showSpeciesOverride ? toSpeciesRefView(appearance.speciesOverride) : null,
     speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
     status: showStatus ? BookCharacterStatusSchema.parse(appearance.status) : null,
-    statusCustomText: showStatus ? emptyToNull(appearance.statusCustomText) : null,
+    statusCustomText:
+      showStatus && appearance.status === BookCharacterStatusSchema.enum.other
+        ? emptyToNull(appearance.statusCustomText)
+        : null,
     statusIsSpoiler: appearance.statusIsSpoiler,
     updatedAt: appearance.updatedAt.toISOString(),
   };
@@ -526,46 +549,44 @@ function comparePartNumberAscNullsLast(left: Nullable<number>, right: Nullable<n
   return left - right;
 }
 
-function computeHiddenFields(
-  flags: Pick<CharacterAppearanceSource, "isUnreliableNarratorSpoiler"> & SpoilerFlags,
-): string[] {
+function computeHiddenFields(appearance: CharacterAppearanceSource): string[] {
   const hidden: string[] = [];
-  if (flags.appearanceNotesIsSpoiler) {
+  if (isMaskableSpoiler.appearanceNotes(appearance)) {
     hidden.push("appearanceNotes");
   }
-  if (flags.descriptionIsSpoiler) {
+  if (isMaskableSpoiler.description(appearance)) {
     hidden.push("description");
   }
-  if (flags.displayNameIsSpoiler) {
+  if (isMaskableSpoiler.displayName(appearance)) {
     hidden.push("displayName");
   }
-  if (flags.personalImpressionIsSpoiler) {
+  if (isMaskableSpoiler.personalImpression(appearance)) {
     hidden.push("personalImpression");
   }
-  if (flags.portraitIsSpoiler) {
+  if (isMaskableSpoiler.portrait(appearance)) {
     hidden.push("portrait");
   }
-  if (flags.speciesOverrideIsSpoiler) {
+  if (isMaskableSpoiler.speciesOverride(appearance)) {
     hidden.push("speciesOverride");
   }
-  if (flags.statusIsSpoiler) {
+  if (isMaskableSpoiler.status(appearance)) {
     hidden.push("status");
   }
-  if (flags.isUnreliableNarratorSpoiler) {
+  if (appearance.isUnreliableNarratorSpoiler) {
     hidden.push("unreliableNarrator");
   }
   return hidden;
 }
 
-function computeSummaryHiddenFields(flags: SummaryHiddenFieldFlags): string[] {
+function computeSummaryHiddenFields(appearance: SummaryHiddenFieldSource): string[] {
   const hidden: string[] = [];
-  if (flags.displayNameIsSpoiler) {
+  if (isMaskableSpoiler.displayName(appearance)) {
     hidden.push("displayName");
   }
-  if (flags.portraitIsSpoiler) {
+  if (isMaskableSpoiler.portrait(appearance)) {
     hidden.push("portrait");
   }
-  if (flags.statusIsSpoiler) {
+  if (isMaskableSpoiler.status(appearance)) {
     hidden.push("status");
   }
   return hidden;
@@ -604,12 +625,16 @@ function toSeriesAppearancePoint({
       appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
     bookCharacterId: appearance.id,
     bookId: appearance.bookId,
-    displayName: appearance.displayNameIsSpoiler ? null : emptyToNull(appearance.displayName),
+    displayName: isMaskableSpoiler.displayName(appearance)
+      ? null
+      : emptyToNull(appearance.displayName),
     hiddenFields: computeSummaryHiddenFields(appearance),
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     partNumber,
-    portrait: appearance.portraitIsSpoiler ? null : appearance.portrait,
+    portrait: isMaskableSpoiler.portrait(appearance) ? null : appearance.portrait,
     roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
-    status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
+    status: isMaskableSpoiler.status(appearance)
+      ? null
+      : BookCharacterStatusSchema.parse(appearance.status),
   };
 }

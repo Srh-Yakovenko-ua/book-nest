@@ -6,6 +6,7 @@ import type {
 } from "@app/shared";
 
 import {
+  BookCharacterDetailsQuerySchema,
   BookCharactersQuerySchema,
   BookCharactersSortSchema,
   CreateCharacterInBookSchema,
@@ -46,6 +47,7 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookCharactersService } from "../application/book-characters.service.js";
+import { BookCharacterDetailsQueryDto } from "./input-dto/book-character-details-query.input-dto.js";
 import { BookCharactersQueryDto } from "./input-dto/book-characters-query.input-dto.js";
 import { CreateCharacterInBookInputDto } from "./input-dto/create-character-in-book.input-dto.js";
 import { UpdateBookCharacterInputDto } from "./input-dto/update-book-character.input-dto.js";
@@ -60,7 +62,7 @@ export class BookCharactersController {
 
   @ApiNotFoundResponse({ description: "Book or context book not found" })
   @ApiOkResponse({
-    description: "A spoiler-safe roster of the book's characters at the current reading position",
+    description: "The roster of the book's characters within the series reading context",
     type: PaginatedCharactersDto,
   })
   @ApiOperation({ summary: "List the current user's characters for a book" })
@@ -70,9 +72,6 @@ export class BookCharactersController {
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
-  @ApiQuery({ name: "contextChapter", required: false })
-  @ApiQuery({ name: "contextPage", required: false })
-  @ApiQuery({ name: "contextAudioSeconds", required: false })
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,
@@ -102,23 +101,28 @@ export class BookCharactersController {
     return this.bookCharactersService.createInBook({ bookId, input: body, userId: user.id });
   }
 
+  @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiNotFoundResponse({ description: "Book or character not found" })
   @ApiOkResponse({
-    description: "The character combined with its book appearance",
+    description:
+      "The character within the book's reading context. Spoiler values stay masked unless named in revealFieldIds",
     type: CharacterDetailsViewDto,
   })
   @ApiOperation({ summary: "Get a character with its appearance in a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiParam({ description: "Character id", name: "characterId" })
+  @ApiQuery({ name: "revealFieldIds", required: false })
   @Get(":characterId")
   getById(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Param("characterId", ParseUUIDPipe) characterId: string,
+    @Query(new ZodQueryPipe(BookCharacterDetailsQuerySchema)) query: BookCharacterDetailsQueryDto,
   ): Promise<CharacterDetailsView> {
     return this.bookCharactersService.getBookCharacterDetails({
       bookId,
       characterId,
+      query,
       userId: user.id,
     });
   }

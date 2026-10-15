@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import type { CharacterEditValues } from "../model/character-edit-form";
 import type { CharacterImageUpload } from "./character-image-field";
 
+import { hasSpoilerValue } from "../model/book-spoiler-flags";
 import { effectiveCharacterName } from "../model/character-edit-form";
 import { isBookFieldMasked } from "../model/character-inheritance";
 import { CharacterImageField } from "./character-image-field";
@@ -145,6 +146,7 @@ function BookImageSourceField({
   const displayName = useWatch({ control, name: "book.displayName" });
   const name = effectiveCharacterName({ displayName, globalName });
   const { field } = useController({ control, name: "book.portraitMediaId" });
+  const portraitSpoiler = useController({ control, name: "book.portraitIsSpoiler" });
   const [source, setSource] = useState<BookImageSource>(
     field.value === null ? BOOK_IMAGE_SOURCE.main : BOOK_IMAGE_SOURCE.book,
   );
@@ -162,14 +164,19 @@ function BookImageSourceField({
     return hasMainAvatar ? t("mainAvatarInUse") : t("mainAvatarMissing");
   }
 
+  function changePortrait(next: Nullable<string>) {
+    field.onChange(next);
+    if (!hasSpoilerValue.portraitIsSpoiler(next)) portraitSpoiler.field.onChange(false);
+  }
+
   function chooseSource(next: BookImageSource) {
     setSource(next);
     if (next === BOOK_IMAGE_SOURCE.main) {
       setStashedPortraitId(field.value);
-      field.onChange(null);
+      changePortrait(null);
       return;
     }
-    field.onChange(stashedPortraitId);
+    changePortrait(stashedPortraitId);
   }
 
   return (
@@ -219,7 +226,7 @@ function BookImageSourceField({
             fallbackText={name}
             onUpload={(upload) => {
               onImageUpload(upload);
-              field.onChange(upload.mediaId);
+              changePortrait(upload.mediaId);
             }}
             previewUrl={portraitUrl}
             uploadLabel={field.value === null ? t("imageAdd") : t("imageReplace")}

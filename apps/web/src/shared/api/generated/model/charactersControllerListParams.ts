@@ -41,10 +41,6 @@ export type CharactersControllerListParams = {
    * @maxItems 100
    */
   importance?: CharactersControllerListImportanceItem[];
-  /**
-   * Owner opt-in to include whole-profile hidden characters in the results
-   */
-  includeHiddenProfiles?: string;
   includeSpoilerSearch?: string;
   multipleBooks?: string;
   /**

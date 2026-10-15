@@ -130,7 +130,7 @@ async function markFinished(token: string, bookId: string): Promise<void> {
 }
 
 describe("character details reading-mode masking", () => {
-  it("returns full values with no reading context", async () => {
+  it("masks spoiler appearance values in the global profile with no reading context", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const characterId = await createInBook(
@@ -147,8 +147,35 @@ describe("character details reading-mode masking", () => {
 
     const res = await authed("get", `/api/characters/${characterId}`, accessToken);
     expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.appearances[0].displayName).toBeNull();
+    expect(res.body.appearances[0].status).toBeNull();
+    expect(res.body.appearances[0].hiddenFields).toEqual(["displayName", "status"]);
+  });
+
+  it("returns full appearance values in the global profile for the revealed fields", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const characterId = await createInBook(
+      accessToken,
+      bookId,
+      { name: "Paul Atreides" },
+      {
+        displayName: "Muad'Dib",
+        displayNameIsSpoiler: true,
+        status: "dead",
+        statusIsSpoiler: true,
+      },
+    );
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?revealFieldIds=displayName&revealFieldIds=status`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.appearances[0].displayName).toBe("Muad'Dib");
     expect(res.body.appearances[0].status).toBe("dead");
+    expect(res.body.appearances[0].hiddenFields).toEqual([]);
   });
 
   it("masks appearances beyond the context book", async () => {
@@ -171,7 +198,7 @@ describe("character details reading-mode masking", () => {
     expect(masked.body.appearances[0].bookId).toBe(firstBook);
   });
 
-  it("redacts spoiler field values and reports hiddenFields in reading mode", async () => {
+  it("redacts spoiler field values and reports hiddenFields only for flagged fields that hold a value", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const characterId = await createInBook(
@@ -200,8 +227,8 @@ describe("character details reading-mode masking", () => {
     expect(entry.description).toBeNull();
     expect(entry.status).toBeNull();
     expect(entry.portrait).toBeNull();
-    expect(entry.hiddenFields).toEqual(["description", "displayName", "portrait", "status"]);
-    expect(res.body.hiddenFields).toEqual(["description", "displayName", "portrait", "status"]);
+    expect(entry.hiddenFields).toEqual(["description", "displayName", "status"]);
+    expect(res.body.hiddenFields).toEqual(["description", "displayName", "status"]);
     expect(JSON.stringify(res.body)).not.toContain("Muad'Dib");
     expect(JSON.stringify(res.body)).not.toContain("Becomes the Emperor");
     expect(JSON.stringify(res.body)).not.toContain("dead");
@@ -297,23 +324,23 @@ describe("character details reading-mode masking", () => {
     expect(masked.body.code).toBe("character_not_found");
   });
 
-  it("returns 404 when the in-context presence is hidden as a spoiler", async () => {
+  it("returns the details of a character first met late in the context book", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId } = await createSeriesFirstBook(accessToken, "Dune Saga");
     const characterId = await createInBook(
       accessToken,
       bookId,
       { name: "The Traitor" },
-      { hidePresenceAsSpoiler: true },
+      { firstAppearancePage: 480 },
     );
 
-    const masked = await authed(
+    const res = await authed(
       "get",
       `/api/characters/${characterId}?contextBookId=${bookId}`,
       accessToken,
     );
-    expect(masked.status).toBe(HttpStatus.NOT_FOUND);
-    expect(masked.body.code).toBe("character_not_found");
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.name).toBe("The Traitor");
   });
 
   it("returns 404 for a context book that is not owned", async () => {

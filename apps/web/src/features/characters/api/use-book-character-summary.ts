@@ -7,16 +7,13 @@ import { bookCharacterSummaryControllerGet } from "@/shared/api/generated/endpoi
 
 import { characterKeys } from "./character-keys";
 
-export function useBookCharacterSummary(
-  bookId: string,
-  readingContext: BookCharacterSummaryQuery = {},
-) {
+export function useBookCharacterSummary(bookId: string, bookContext: BookCharacterSummaryQuery) {
   return useQuery({
     queryFn: async (): Promise<BookCharacterSummaryView> =>
       BookCharacterSummaryViewSchema.parse(
-        await bookCharacterSummaryControllerGet(bookId, readingContext),
+        await bookCharacterSummaryControllerGet(bookId, bookContext),
       ),
-    queryKey: characterKeys.bookSummary(bookId, readingContext),
+    queryKey: characterKeys.bookSummary(bookId, bookContext),
     retry: false,
   });
 }

@@ -57,7 +57,6 @@ export interface UpdateBookCharacterInputDto {
    * @nullable
    */
   firstAppearancePage?: number | null;
-  hidePresenceAsSpoiler?: boolean;
   importance?: UpdateBookCharacterInputDtoImportance;
   isPovCharacter?: boolean;
   isUnreliableNarrator?: boolean;

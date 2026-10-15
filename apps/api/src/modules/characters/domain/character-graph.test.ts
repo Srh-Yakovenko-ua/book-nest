@@ -108,7 +108,6 @@ function nodeSource(overrides: Partial<GraphNodeSource> & { id: string }): Graph
       {
         bookId: BOOK,
         createdAt: new Date("2024-01-01T00:00:00.000Z"),
-        hidePresenceAsSpoiler: false,
         importance: "major",
       },
     ],
@@ -158,7 +157,7 @@ describe("buildCharacterGraph", () => {
     expect(graph.updatedAt).toBe("2024-01-02T00:00:00.000Z");
   });
 
-  it("drops a presence-hidden node and every edge touching it without affecting other degrees", () => {
+  it("keeps every appearing node and all of its edges in the degree count", () => {
     const graph = build({
       edges: [
         edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: BOB }),
@@ -176,7 +175,6 @@ describe("buildCharacterGraph", () => {
             {
               bookId: BOOK,
               createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: true,
               importance: "central",
             },
           ],
@@ -186,10 +184,14 @@ describe("buildCharacterGraph", () => {
       ],
     });
 
-    expect(graph.nodes.map((node) => node.id).sort()).toEqual([ALICE, CAROL].sort());
-    expect(graph.edges.map((edge) => edge.id)).toEqual(["rel-2"]);
-    expect(graph.nodes.find((node) => node.id === ALICE)?.degree).toBe(1);
-    expect(graph.hiddenContent.hasHiddenNodes).toBe(true);
+    expect(graph.nodes.map((node) => node.id).sort()).toEqual([ALICE, BOB, CAROL].sort());
+    expect(graph.edges.map((edge) => edge.id).sort()).toEqual(["rel-1", "rel-2"]);
+    expect(graph.nodes.find((node) => node.id === ALICE)?.degree).toBe(2);
+    expect(graph.hiddenContent).toEqual({
+      hasHiddenEdges: false,
+      hasLockedEdges: false,
+      truncated: false,
+    });
   });
 
   it("omits a hideRelationshipAsSpoiler edge and it never contributes to degree", () => {
@@ -491,7 +493,7 @@ describe("buildCharacterGraph", () => {
     ]);
   });
 
-  it("keeps a presence-hidden character out of every cluster and its size count", () => {
+  it("counts every appearing member in its cluster and the cluster size", () => {
     const graph = build({
       clusterBy: "group",
       edges: [
@@ -515,7 +517,6 @@ describe("buildCharacterGraph", () => {
             {
               bookId: BOOK,
               createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: true,
               importance: "central",
             },
           ],
@@ -525,9 +526,9 @@ describe("buildCharacterGraph", () => {
       ],
     });
 
-    expect(graph.nodes.some((node) => node.id === BOB)).toBe(false);
+    expect(graph.nodes.find((node) => node.id === BOB)?.clusterId).toBe(GROUP_STARK);
     expect(graph.clusters).toEqual([
-      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 2 },
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 3 },
     ]);
   });
 
@@ -592,7 +593,6 @@ describe("buildCharacterGraph", () => {
             {
               bookId: BOOK,
               createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: false,
               importance: "central",
             },
           ],

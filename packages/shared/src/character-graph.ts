@@ -109,7 +109,6 @@ export type CharacterGraphEdgeView = z.infer<typeof CharacterGraphEdgeViewSchema
 
 export const CharacterGraphHiddenContentViewSchema = z.object({
   hasHiddenEdges: z.boolean(),
-  hasHiddenNodes: z.boolean(),
   hasLockedEdges: z.boolean(),
   truncated: z.boolean(),
 });

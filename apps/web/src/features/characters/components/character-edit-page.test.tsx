@@ -269,8 +269,13 @@ describe("CharacterEditPage without a book context", () => {
 });
 
 function inheritedField(label: string): HTMLElement {
-  const shell = screen.getByText(label).closest('[data-slot="inherited-field"]');
-  if (!(shell instanceof HTMLElement)) throw new Error(`no inherited field labelled ${label}`);
+  const [shell, ...others] = screen.getAllByText(label).flatMap((element) => {
+    const container = element.closest('[data-slot="inherited-field"]');
+    return container instanceof HTMLElement ? [container] : [];
+  });
+  if (shell === undefined || others.length > 0) {
+    throw new Error(`expected one inherited field labelled ${label}`);
+  }
   return shell;
 }
 
@@ -833,47 +838,68 @@ describe("CharacterEditPage narrative metadata", () => {
   });
 });
 
+const SPOILER_SWITCH_NAMES = [
+  "Ім’я в цій книзі",
+  "Зображення в цій книзі",
+  "Статус",
+  "Вид у цій книзі",
+  "Дані в цій книзі",
+  "Моє враження",
+  "Зовнішність у цій книзі",
+];
+
 describe("CharacterEditPage spoilers", () => {
-  it("opens collapsed and keeps hide-presence separate from the granular switches", async () => {
+  it("lists all seven spoiler switches in their groups with no disclosure step", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
 
+    const expected = SPOILER_SWITCH_NAMES.map((name) => screen.getByRole("switch", { name }));
+    expect(screen.getAllByRole("switch").filter((element) => expected.includes(element))).toEqual(
+      expected,
+    );
     expect(
-      screen.getByRole("switch", { name: "Приховати сам факт появи персонажа" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("switch", { name: "Моє враження" })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Налаштувати, що саме приховати" }));
-
-    expect(await screen.findByRole("switch", { name: "Моє враження" })).toBeInTheDocument();
+      within(screen.getByRole("group", { name: "На картках і сторінці персонажа" })).getAllByRole(
+        "switch",
+      ),
+    ).toEqual(expected.slice(0, 3));
+    expect(
+      within(screen.getByRole("group", { name: "Тільки на сторінці деталей" })).getAllByRole(
+        "switch",
+      ),
+    ).toEqual(expected.slice(3));
+    expect(
+      screen.queryByRole("button", { name: "Налаштувати, що саме приховати" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("keeps the granular settings when hide presence is turned on", async () => {
+  it("offers no way to hide the character's presence in the book", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.click(screen.getByRole("button", { name: "Налаштувати, що саме приховати" }));
-    await userEvent.click(screen.getByRole("switch", { name: "Моє враження" }));
-    await userEvent.click(
-      screen.getByRole("switch", { name: "Приховати сам факт появи персонажа" }),
-    );
+
+    expect(screen.queryByRole("switch", { name: /факт появи/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/не з’явиться у списках цієї книги/)).not.toBeInTheDocument();
+  });
+
+  it("saves a granular spoiler switch without any presence flag", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(screen.getByRole("switch", { name: "Дані в цій книзі" }));
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
-    expect(bookPatchBody()).toMatchObject({
-      hidePresenceAsSpoiler: true,
-      personalImpressionIsSpoiler: true,
-    });
+    expect(bookPatchBody()).toHaveProperty("descriptionIsSpoiler", true);
+    expect(bookPatchBody()).not.toHaveProperty("hidePresenceAsSpoiler");
   });
 
   it("offers no spoiler switch for the point of view or the first appearance", async () => {
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
-    await userEvent.click(screen.getByRole("button", { name: "Налаштувати, що саме приховати" }));
 
-    expect(screen.getAllByRole("switch")).toHaveLength(9);
+    expect(screen.getAllByRole("switch")).toHaveLength(8);
     expect(screen.queryByRole("switch", { name: "Перша поява" })).not.toBeInTheDocument();
   });
 });
@@ -2419,10 +2445,12 @@ describe("CharacterEditPage spoiler collections round trip", () => {
     characterHiddenFields: string[];
   }) {
     const isRolesMasked = appearanceHiddenFields.includes("roles");
-    const isAliasesMasked = characterHiddenFields.includes("aliases");
 
     servedCharacter = makeCharacterDetails({
-      aliases: isAliasesMasked ? [] : aliases,
+      aliases: aliases.filter(
+        (alias) =>
+          !characterHiddenFields.includes(alias.bookId === null ? "globalAliases" : "bookAliases"),
+      ),
       appearances: [
         makeBookCharacterView({
           bookId: "book-1",
@@ -2473,7 +2501,7 @@ describe("CharacterEditPage spoiler collections round trip", () => {
   it("sends no roles and no aliases for the book while the server masks them", async () => {
     serveWithHiddenFields({
       appearanceHiddenFields: ["roles"],
-      characterHiddenFields: ["aliases"],
+      characterHiddenFields: ["bookAliases"],
     });
     renderEdit();
 
@@ -2491,7 +2519,7 @@ describe("CharacterEditPage spoiler collections round trip", () => {
   it("sends no aliases for the character while the server masks them", async () => {
     serveWithHiddenFields({
       appearanceHiddenFields: ["roles"],
-      characterHiddenFields: ["aliases"],
+      characterHiddenFields: ["globalAliases"],
     });
     renderEdit();
 
@@ -2504,4 +2532,320 @@ describe("CharacterEditPage spoiler collections round trip", () => {
     expect(body).not.toHaveProperty("aliases");
     expect(body).toHaveProperty("name", "Ґеральт із Рівії");
   });
+
+  it("keeps sending the book aliases while only the global aliases are masked", async () => {
+    serveWithHiddenFields({ appearanceHiddenFields: [], characterHiddenFields: ["globalAliases"] });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("aliases", [
+      { isSpoiler: true, name: "Різник із Блавікену", position: 0, type: "title" },
+    ]);
+  });
+
+  it("asks the server to reveal every spoiler field", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    const detailsUrl = fetchMock.mock.calls
+      .map(([url]) => String(url))
+      .find((url) => url.includes("/api/characters/char-1"));
+    expect(
+      new URL(String(detailsUrl), "http://localhost").searchParams.getAll("revealFieldIds").sort(),
+    ).toEqual([
+      "appearanceNotes",
+      "bookAliases",
+      "description",
+      "displayName",
+      "globalAliases",
+      "personalImpression",
+      "portrait",
+      "roles",
+      "speciesOverride",
+      "status",
+      "unreliableNarrator",
+    ]);
+  });
+
+  it("keeps every spoiler value of the book when an unrelated book field is saved", async () => {
+    servedCharacter = makeCharacterDetails({
+      aliases,
+      appearances: [makeBookCharacterView({ bookId: "book-1", ...filledSpoilerValues(), roles })],
+      name: "Ґеральт",
+      species: SPECIES_REFS.witcher,
+    });
+    renderEdit();
+
+    await userEvent.type(
+      await screen.findByRole("textbox", { name: /^Нотатка про першу появу/ }),
+      "Корчма в Блавікені",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({
+      ...ALL_SPOILER_FLAGS_ON,
+      aliases: [{ isSpoiler: true, name: "Різник із Блавікену", position: 0, type: "title" }],
+      appearanceNotes: "Шрам через ліве око",
+      description: "Мутант, що полює на чудовиськ",
+      displayName: "Вовк із Рівії",
+      firstAppearanceNote: "Корчма в Блавікені",
+      personalImpression: "Похмурий, але чесний",
+      portraitMediaId: savedPortrait.id,
+      roles: [
+        { customRole: null, isSpoiler: false, position: 0, roleType: "protagonist" },
+        { customRole: null, isSpoiler: true, position: 1, roleType: "love_interest" },
+      ],
+      speciesOverrideId: SPECIES_REFS.mutant.id,
+      status: "dead",
+    });
+  });
+
+  it("keeps the spoiler global alias when an unrelated global field is saved", async () => {
+    serveWithHiddenFields({ appearanceHiddenFields: [], characterHiddenFields: [] });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByDisplayValue("Ґеральт"), " із Рівії");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    expect(globalPatchBody()).toHaveProperty("aliases", [
+      { isSpoiler: true, name: "Білий Вовк", position: 0, type: "title" },
+    ]);
+  });
+});
+
+const ALL_SPOILER_FLAGS_ON = {
+  appearanceNotesIsSpoiler: true,
+  descriptionIsSpoiler: true,
+  displayNameIsSpoiler: true,
+  personalImpressionIsSpoiler: true,
+  portraitIsSpoiler: true,
+  speciesOverrideIsSpoiler: true,
+  statusIsSpoiler: true,
+};
+
+function filledSpoilerValues(): Partial<BookCharacterView> {
+  return {
+    ...ALL_SPOILER_FLAGS_ON,
+    appearanceNotes: "Шрам через ліве око",
+    description: "Мутант, що полює на чудовиськ",
+    displayName: "Вовк із Рівії",
+    personalImpression: "Похмурий, але чесний",
+    portrait: savedPortrait,
+    speciesOverride: SPECIES_REFS.mutant,
+    status: "dead",
+  };
+}
+
+async function pickStatus(option: string) {
+  await userEvent.click(screen.getByRole("combobox", { name: "Статус" }));
+  await userEvent.click(await screen.findByRole("option", { name: option }));
+}
+
+function serveBookValues(values: Partial<BookCharacterView>) {
+  servedCharacter = {
+    ...character,
+    appearances: character.appearances.map((appearance) => ({ ...appearance, ...values })),
+  };
+}
+
+const SPOILER_SWITCH_HINTS = {
+  "Вид у цій книзі": "Замість нього — основний вид, якщо він є",
+  "Дані в цій книзі": "Лише опис для цієї книги",
+  "Зображення в цій книзі": "Замість нього — основний аватар або заглушка",
+  "Зовнішність у цій книзі": "Лише текст про зовнішність, не зображення",
+  "Ім’я в цій книзі": "Замість нього — основне ім’я",
+  "Моє враження": "Ваші особисті нотатки",
+  Статус: "Прихований на картці, розкривається в деталях",
+} as const satisfies Record<(typeof SPOILER_SWITCH_NAMES)[number], string>;
+
+function spoilerSwitch(name: string): HTMLElement {
+  return screen.getByRole("switch", { name });
+}
+
+describe("CharacterEditPage spoiler switches follow their values", () => {
+  it("keeps the switch of every filled field enabled and on", async () => {
+    serveBookValues(filledSpoilerValues());
+    renderEdit();
+
+    await screen.findByDisplayValue("Вовк із Рівії");
+
+    for (const name of SPOILER_SWITCH_NAMES) {
+      expect(spoilerSwitch(name)).toBeEnabled();
+      expect(spoilerSwitch(name)).toBeChecked();
+    }
+  });
+
+  it("describes the switch of every filled field with its own hint", async () => {
+    serveBookValues(filledSpoilerValues());
+    renderEdit();
+
+    await screen.findByDisplayValue("Вовк із Рівії");
+
+    for (const [name, hint] of Object.entries(SPOILER_SWITCH_HINTS)) {
+      expect(spoilerSwitch(name)).toHaveAccessibleDescription(hint);
+    }
+  });
+
+  it("leaves the switch of every empty field disabled and off even over a stale flag", async () => {
+    serveBookValues({
+      ...ALL_SPOILER_FLAGS_ON,
+      appearanceNotes: null,
+      description: null,
+      displayName: null,
+      personalImpression: null,
+      portrait: null,
+      speciesOverride: null,
+      status: "not_specified",
+    });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    for (const name of SPOILER_SWITCH_NAMES) {
+      expect(spoilerSwitch(name)).toBeDisabled();
+      expect(spoilerSwitch(name)).not.toBeChecked();
+      expect(spoilerSwitch(name)).toHaveAccessibleDescription("Спочатку заповніть поле");
+    }
+    expect(screen.getAllByText("Спочатку заповніть поле")).toHaveLength(7);
+  });
+
+  it("saves a stale flag over an empty value as off", async () => {
+    serveBookValues({
+      ...ALL_SPOILER_FLAGS_ON,
+      appearanceNotes: null,
+      description: null,
+      displayName: null,
+      personalImpression: null,
+      portrait: null,
+      speciesOverride: null,
+      status: "not_specified",
+    });
+    renderEdit();
+
+    await userEvent.type(
+      await screen.findByRole("textbox", { name: /^Нотатка про першу появу/ }),
+      "Корчма",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({
+      appearanceNotesIsSpoiler: false,
+      descriptionIsSpoiler: false,
+      displayNameIsSpoiler: false,
+      personalImpressionIsSpoiler: false,
+      portraitIsSpoiler: false,
+      speciesOverrideIsSpoiler: false,
+      statusIsSpoiler: false,
+    });
+  });
+
+  it("enables the status switch for an unknown status and disables it for an unset one", async () => {
+    serveBookValues({ status: "not_specified" });
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    expect(spoilerSwitch("Статус")).toBeDisabled();
+
+    await pickStatus("Невідомо");
+    expect(spoilerSwitch("Статус")).toBeEnabled();
+
+    await pickStatus("Не вказано");
+    expect(spoilerSwitch("Статус")).toBeDisabled();
+  });
+
+  it.each<{ clear: () => Promise<void>; flag: string; name: string; refill: () => Promise<void> }>([
+    {
+      clear: () => userEvent.clear(within(inheritedField("Ім’я в цій книзі")).getByRole("textbox")),
+      flag: "displayNameIsSpoiler",
+      name: "Ім’я в цій книзі",
+      refill: () =>
+        userEvent.type(
+          within(inheritedField("Ім’я в цій книзі")).getByRole("textbox"),
+          "Біловолосий",
+        ),
+    },
+    {
+      clear: selectMainAvatar,
+      flag: "portraitIsSpoiler",
+      name: "Зображення в цій книзі",
+      refill: selectBookPortrait,
+    },
+    {
+      clear: () => pickStatus("Не вказано"),
+      flag: "statusIsSpoiler",
+      name: "Статус",
+      refill: () => pickStatus("Мертвий"),
+    },
+    {
+      clear: () =>
+        userEvent.click(
+          within(inheritedField("Вид у цій книзі")).getByRole("button", {
+            name: "Використовувати основне значення",
+          }),
+        ),
+      flag: "speciesOverrideIsSpoiler",
+      name: "Вид у цій книзі",
+      refill: () =>
+        userEvent.click(
+          within(inheritedField("Вид у цій книзі")).getByRole("button", {
+            name: "Змінити лише для цієї книги",
+          }),
+        ),
+    },
+    {
+      clear: () => userEvent.clear(screen.getByRole("textbox", { name: /^Дані в цій книзі/ })),
+      flag: "descriptionIsSpoiler",
+      name: "Дані в цій книзі",
+      refill: () =>
+        userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), "Новий опис"),
+    },
+    {
+      clear: () => userEvent.clear(screen.getByRole("textbox", { name: /^Моє враження/ })),
+      flag: "personalImpressionIsSpoiler",
+      name: "Моє враження",
+      refill: () =>
+        userEvent.type(screen.getByRole("textbox", { name: /^Моє враження/ }), "Нове враження"),
+    },
+    {
+      clear: () =>
+        userEvent.clear(screen.getByRole("textbox", { name: /^Зовнішність у цій книзі/ })),
+      flag: "appearanceNotesIsSpoiler",
+      name: "Зовнішність у цій книзі",
+      refill: () =>
+        userEvent.type(
+          screen.getByRole("textbox", { name: /^Зовнішність у цій книзі/ }),
+          "Нова зовнішність",
+        ),
+    },
+  ])(
+    "turns $name off for good once its value is cleared",
+    async ({ clear, flag, name, refill }) => {
+      serveBookValues(filledSpoilerValues());
+      renderEdit();
+
+      await screen.findByDisplayValue("Вовк із Рівії");
+      expect(spoilerSwitch(name)).toBeChecked();
+
+      await clear();
+      expect(spoilerSwitch(name)).toBeDisabled();
+      expect(spoilerSwitch(name)).not.toBeChecked();
+
+      await refill();
+      expect(spoilerSwitch(name)).toBeEnabled();
+      expect(spoilerSwitch(name)).not.toBeChecked();
+
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+      await waitFor(() => expect(bookPatchBody()).toBeDefined());
+      expect(bookPatchBody()).toHaveProperty(flag, false);
+    },
+  );
 });

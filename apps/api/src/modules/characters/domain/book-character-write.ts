@@ -45,7 +45,6 @@ export function buildBookCharacterData({
     firstAppearanceChapter: emptyToNull(profile.firstAppearanceChapter),
     firstAppearanceNote: emptyToNull(profile.firstAppearanceNote),
     firstAppearancePage: profile.firstAppearancePage ?? null,
-    hidePresenceAsSpoiler: profile.hidePresenceAsSpoiler,
     importance: profile.importance,
     ...buildNarrationCreateData(profile),
     personalImpression: emptyToNull(profile.personalImpression),
@@ -134,9 +133,6 @@ export function buildBookCharacterUpdateData(input: UpdateBookCharacter): Update
   }
   if (input.sortOrder !== undefined) {
     data.sortOrder = input.sortOrder ?? null;
-  }
-  if (input.hidePresenceAsSpoiler !== undefined) {
-    data.hidePresenceAsSpoiler = input.hidePresenceAsSpoiler;
   }
   return { ...data, ...buildNarrationUpdateData(input) };
 }

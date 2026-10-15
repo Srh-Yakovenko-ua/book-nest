@@ -28,7 +28,6 @@ export type CharacterSuggestionsDtoSuggestionsItem = {
   gender: CharacterSuggestionsDtoSuggestionsItemGender;
   /** @nullable */
   globalAttitude: CharacterSuggestionsDtoSuggestionsItemGlobalAttitude;
-  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;

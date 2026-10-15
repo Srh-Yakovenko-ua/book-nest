@@ -10,7 +10,7 @@ import { THEORY_LIST_ORDER_BY } from "../domain/character-theory-sort.js";
 
 const theoryInclude = {
   book: { select: { id: true, title: true } },
-  character: { select: { deletedAt: true, hideProfileAsSpoiler: true, id: true, name: true } },
+  character: { select: { deletedAt: true, id: true, name: true } },
   series: { select: { id: true, name: true } },
 } satisfies Prisma.CharacterTheoryInclude;
 
@@ -149,7 +149,6 @@ function buildTheoriesWhere({
   const and: Prisma.CharacterTheoryWhereInput[] = [
     { OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }] },
     { OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }] },
-    { OR: [{ characterId: null }, { character: { hideProfileAsSpoiler: false } }] },
   ];
   if (contextAllowedBookIds !== undefined) {
     where.isSpoiler = false;

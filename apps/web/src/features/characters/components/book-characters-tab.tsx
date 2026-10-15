@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
 
-import { UiIcon } from "@/components/icons";
 import { InfiniteScrollFooter } from "@/components/infinite-scroll-footer";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "@/i18n/navigation";
@@ -18,7 +17,7 @@ import { useBookCharacterSummary } from "../api/use-book-character-summary";
 import { useBookCharactersInfinite } from "../api/use-book-characters-infinite";
 import { useUnlinkCharacter } from "../api/use-unlink-character";
 import { getCharacterDetailsPath } from "../model/character-routes";
-import { toCharacterReadingContext } from "../model/characters-roster-query";
+import { toCharacterBookContext } from "../model/characters-roster-query";
 import { useCharactersRosterQuery } from "../model/use-characters-roster-query";
 import { AddCharacterDialog } from "./add-character-dialog";
 import { CharacterCard } from "./character-card";
@@ -52,10 +51,10 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const t = useTranslations("characters");
   const tToast = useTranslations("characters.toast");
 
-  const readingContext = toCharacterReadingContext(book);
-  const roster = useCharactersRosterQuery(readingContext);
+  const bookContext = toCharacterBookContext(book);
+  const roster = useCharactersRosterQuery(bookContext);
   const characters = useBookCharactersInfinite(bookId, roster.listParams);
-  const summary = useBookCharacterSummary(bookId, readingContext);
+  const summary = useBookCharacterSummary(bookId, bookContext);
   const unlinkCharacter = useUnlinkCharacter();
   const router = useRouter();
 
@@ -108,12 +107,6 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
           <Badge variant="secondary">
             {t("summary.pov", { count: formatNumber(summary.data.povCount, locale) })}
           </Badge>
-          {summary.data.hasHiddenRecords ? (
-            <Badge variant="warning">
-              <UiIcon name="lock" size={12} />
-              {t("summary.hidden")}
-            </Badge>
-          ) : null}
         </div>
       ) : null}
 
@@ -140,10 +133,10 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 
       <AddCharacterDialog
         book={book}
+        bookContext={bookContext}
         onOpenChange={setAddOpen}
         onOpenDetails={openDetails}
         open={addOpen}
-        readingContext={readingContext}
       />
 
       <UnlinkCharacterDialog
@@ -156,11 +149,11 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
       />
 
       <CharacterCommandPalette
+        bookContext={bookContext}
         bookId={bookId}
         onOpenChange={setPaletteOpen}
         onSelect={openDetails}
         open={paletteOpen}
-        readingContext={readingContext}
       />
     </div>
   );

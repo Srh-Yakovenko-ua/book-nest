@@ -91,7 +91,6 @@ function nodeSource(overrides: Partial<GraphNodeSource> & { id: string }): Graph
       {
         bookId: BOOK,
         createdAt: new Date("2024-01-01T00:00:00.000Z"),
-        hidePresenceAsSpoiler: false,
         importance: "major",
       },
     ],
@@ -196,40 +195,6 @@ describe("findVisibleRelationshipPath", () => {
     expect(hiddenPath).toEqual(genuinelyUnconnected);
     expect(JSON.stringify(hiddenPath)).not.toContain("rel-2");
     expect(JSON.stringify(hiddenPath)).not.toContain(BOB);
-  });
-
-  it("does not surface a presence-hidden intermediate node on the shortest chain", () => {
-    const result = find({
-      edges: [
-        edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: BOB }),
-        edgeSource({
-          bookStates: [stateSource({ id: "state-2", relationshipId: "rel-2" })],
-          id: "rel-2",
-          sourceCharacterId: BOB,
-          targetCharacterId: CAROL,
-        }),
-      ],
-      fromId: ALICE,
-      nodes: [
-        nodeSource({ id: ALICE }),
-        nodeSource({
-          appearances: [
-            {
-              bookId: BOOK,
-              createdAt: new Date("2024-01-01T00:00:00.000Z"),
-              hidePresenceAsSpoiler: true,
-              importance: "central",
-            },
-          ],
-          id: BOB,
-        }),
-        nodeSource({ id: CAROL }),
-      ],
-      toId: CAROL,
-    });
-
-    expect(result.found).toBe(false);
-    expect(JSON.stringify(result)).not.toContain(BOB);
   });
 
   it("keeps an isTypeSpoiler hop present but type-locked", () => {

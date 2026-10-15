@@ -8146,7 +8146,8 @@
       "firstAppearancePage": "p. {page}",
       "gender": "Gender",
       "globalAliases": "Other names",
-      "hiddenRoles": "Hidden roles: {count}",
+      "hiddenAliasesNotice": "Some names are hidden",
+      "hiddenRolesNotice": "Some roles are hidden",
       "managementSection": "Manage character",
       "metaTitle": "Character",
       "narratorType": "Narration method",
@@ -8155,6 +8156,10 @@
       "pov": "POV",
       "profileSection": "About the character",
       "pronouns": "Pronouns",
+      "revealHiddenAliases": "Show hidden",
+      "revealHiddenAliasesAria": "Show hidden: {group}",
+      "revealHiddenRoles": "Show hidden roles",
+      "roles": "Roles",
       "seriesPart": "{name}, part {part}",
       "species": "Species",
       "speciesOverride": "Species in this book",
@@ -8225,17 +8230,26 @@
       "revealAria": "Show field: {field}"
     },
     "spoilers": {
-      "activeCount": "Hidden: {count}",
       "appearanceNotes": "Appearance in this book",
       "description": "Details in this book",
       "displayName": "Name in this book",
-      "expand": "Choose what to hide",
-      "granularHint": "These fields stay hidden until the reader reveals them.",
-      "hidePresence": "Hide that the character appears at all",
-      "hidePresenceHint": "The character stays out of this book's lists until the reader reaches its first appearance. The settings below are kept either way.",
+      "emptyValueHint": "Fill in the field first",
+      "groups": {
+        "cards": "On cards and the character page",
+        "details": "Only on the details page"
+      },
+      "hints": {
+        "appearanceNotes": "Only the appearance text, not the image",
+        "description": "Only the description for this book",
+        "displayName": "The main name is shown instead",
+        "personalImpression": "Your personal notes",
+        "portrait": "The main avatar or a placeholder is shown instead",
+        "speciesOverride": "The main species is shown instead, if set",
+        "status": "Hidden on cards, revealable in details"
+      },
       "personalImpression": "My impression",
       "portrait": "Image in this book",
-      "sectionHint": "Applies to this book only.",
+      "revealHint": "Marked fields stay hidden until you reveal them on the character page.",
       "sectionTitle": "Spoilers",
       "speciesOverride": "Species in this book",
       "status": "Status"
@@ -8258,7 +8272,6 @@
     },
     "summary": {
       "favorites": "Favorites: {count}",
-      "hidden": "Some records are hidden",
       "pov": "POV: {count}"
     },
     "tab": "Characters",
