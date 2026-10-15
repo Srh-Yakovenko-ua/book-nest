@@ -9,6 +9,7 @@ import type { CharacterDetailsRow } from "../infrastructure/characters.repositor
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { selectVisibleAliases } from "../domain/alias-groups.js";
 import { resolveReadingContextWindow } from "../domain/reading-context-window.js";
+import { selectVisibleForms } from "../domain/visible-forms.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterViewMapper } from "./character-view.mapper.js";
 
@@ -76,10 +77,10 @@ export class CharacterDetailsAssembler {
 
     const revealedFields = new Set(revealFieldIds);
     return this.viewMapper.toMaskedDetailsView({
-      forms: row.forms.filter((form) => !form.isSpoiler),
       revealedFields,
       row,
       visibleAliases: selectVisibleAliases({ aliases: row.aliases, contextBookId, revealedFields }),
+      visibleForms: selectVisibleForms({ forms: row.forms, revealedFields }),
     });
   }
 
@@ -99,7 +100,6 @@ export class CharacterDetailsAssembler {
 
     const revealedFields = new Set(revealFieldIds);
     return this.viewMapper.toMaskedDetailsView({
-      forms: row.forms,
       revealedFields,
       row,
       visibleAliases: selectVisibleAliases({
@@ -107,6 +107,7 @@ export class CharacterDetailsAssembler {
         contextBookId: null,
         revealedFields,
       }),
+      visibleForms: selectVisibleForms({ forms: row.forms, revealedFields }),
     });
   }
 }

@@ -27,6 +27,12 @@ import { useCharacterDetails } from "../api/use-character-details";
 import { useUpdateBookCharacter } from "../api/use-update-book-character";
 import { useUpdateCharacter } from "../api/use-update-character";
 import {
+  type CharacterDetailsMode,
+  characterRouteArgsOf,
+  isUnavailableContextError,
+  resolveCharacterDetailsRequest,
+} from "../model/character-details-context";
+import {
   buildCharacterEditSchema,
   isScopeDirty,
   maskedEditFields,
@@ -47,6 +53,7 @@ import {
   CharacterGlobalSection,
 } from "./character-edit-sections";
 import { CharacterPortraitPanel } from "./character-portrait-panel";
+import { CharacterUnavailableContext } from "./character-unavailable-context";
 import { CharactersErrorState } from "./characters-error-state";
 
 type CharacterEditPageProps = {
@@ -55,15 +62,25 @@ type CharacterEditPageProps = {
 
 export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
   const [bookId] = useQueryState("bookId", parseAsString);
+  const [view] = useQueryState("view", parseAsString);
+  const request = resolveCharacterDetailsRequest({ bookId, view });
   const details = useCharacterDetails({
     characterId,
+    enabled: request.kind !== "invalid-book",
     revealFieldIds: ALL_REVEAL_FIELD_KEYS,
-    ...(bookId === null ? {} : { contextBookId: bookId }),
+    ...(request.kind === "book" ? { contextBookId: request.bookId } : {}),
   });
+
+  if (request.kind === "invalid-book") {
+    return <CharacterUnavailableContext characterId={characterId} />;
+  }
 
   if (details.isPending) return <EditSkeleton />;
 
   if (details.isError) {
+    if (request.kind === "book" && isUnavailableContextError(details.error)) {
+      return <CharacterUnavailableContext characterId={characterId} />;
+    }
     return (
       <div role="alert">
         <CharactersErrorState onRetry={() => void details.refetch()} />
@@ -72,14 +89,21 @@ export function CharacterEditPage({ characterId }: CharacterEditPageProps) {
   }
 
   const appearance =
-    bookId === null ? undefined : details.data.appearances.find((entry) => entry.bookId === bookId);
+    request.kind === "book"
+      ? details.data.appearances.find((entry) => entry.bookId === request.bookId)
+      : undefined;
+
+  if (request.kind === "book" && appearance === undefined) {
+    return <CharacterUnavailableContext characterId={characterId} />;
+  }
 
   return (
     <CharacterEditForm
       appearance={appearance}
       character={details.data}
-      contextBookId={appearance === undefined ? null : bookId}
+      contextBookId={appearance?.bookId ?? null}
       key={characterId}
+      mode={request}
     />
   );
 }
@@ -88,10 +112,12 @@ function CharacterEditForm({
   appearance,
   character,
   contextBookId,
+  mode,
 }: {
   appearance: BookCharacterView | undefined;
   character: CharacterDetailsView;
   contextBookId: null | string;
+  mode: CharacterDetailsMode;
 }) {
   const t = useTranslations("characters.edit");
   const tAliases = useTranslations("characters.aliases");
@@ -182,10 +208,9 @@ function CharacterEditForm({
   });
   const previewImageUrl = portraitMediaId === null ? avatarUrl : portraitUrl;
 
-  const detailsHref = getCharacterDetailsPath({
-    characterId: character.id,
-    ...(contextBookId === null ? {} : { bookId: contextBookId }),
-  });
+  const detailsHref = getCharacterDetailsPath(
+    characterRouteArgsOf({ characterId: character.id, mode }),
+  );
 
   function rememberUploadedImage(upload: CharacterImageUpload) {
     setUploadedImageUrls((previous) => ({ ...previous, [upload.mediaId]: upload.previewUrl }));

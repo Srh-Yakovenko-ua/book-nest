@@ -698,6 +698,7 @@ export const CharacterRevealFieldKeySchema = z.enum([
   "bookAliases",
   "description",
   "displayName",
+  "forms",
   "globalAliases",
   "personalImpression",
   "portrait",

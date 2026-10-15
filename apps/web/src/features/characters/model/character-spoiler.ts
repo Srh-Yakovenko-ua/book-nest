@@ -1,4 +1,4 @@
-import type { CharacterRevealFieldKey } from "@app/shared";
+import type { CharacterRevealFieldKey, Nullable } from "@app/shared";
 
 import { CharacterRevealFieldKeySchema } from "@app/shared";
 
@@ -11,6 +11,12 @@ export const REVEAL_FOCUS_TARGET = {
   focusClassName:
     "focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-ring/50",
 } as const;
+
+export type CharacterRevealControl = {
+  isRevealed: (field: CharacterRevealFieldKey) => boolean;
+  onReveal: (field: CharacterRevealFieldKey) => Promise<boolean>;
+  pending: Nullable<CharacterRevealFieldKey>;
+};
 
 export function addRevealKey(
   current: readonly CharacterRevealFieldKey[],
