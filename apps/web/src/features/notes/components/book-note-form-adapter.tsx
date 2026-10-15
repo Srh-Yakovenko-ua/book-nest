@@ -1,14 +1,16 @@
 "use client";
 
-import type { NoteBookPreview } from "@app/shared";
+import type { NoteBookPreview, Nullable } from "@app/shared";
 
 import { NOTE_INPUT_LIMITS } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { Controller } from "react-hook-form";
 
+import { ChapterCombobox } from "@/components/chapter-combobox";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useBookChapters } from "@/features/books/api/use-book-chapters";
 import { BookSingleSelectPicker } from "@/features/books/components/book-single-select-picker";
 import { BookSingleSelectValue } from "@/features/books/components/book-single-select-value";
 import {
@@ -16,7 +18,7 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
-import type { NoteFormControl, NoteFormErrors, NoteFormRegister } from "../model/note-form-schema";
+import type { NoteFormControl, NoteFormErrors } from "../model/note-form-schema";
 
 import { bookSelectOptionFromPreview, noteEntityRefFromBook } from "../model/note-entity-options";
 import { NOTE_FORM_FIELD_IDS } from "./note-form-field-ids";
@@ -26,17 +28,18 @@ export function BookNoteLinkedEntity({ book }: { book: NoteBookPreview }) {
 }
 
 export function BookNoteLocationFields({
+  bookId,
   control,
   errors,
   pageMax,
-  register,
 }: {
+  bookId: Nullable<string>;
   control: NoteFormControl;
   errors: NoteFormErrors;
   pageMax: number;
-  register: NoteFormRegister;
 }) {
   const t = useTranslations("notes.form");
+  const chaptersQuery = useBookChapters(bookId, { enabled: true });
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row">
@@ -45,15 +48,21 @@ export function BookNoteLocationFields({
           {t("chapter")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
         </Label>
-        <Input
-          aria-describedby={errors.chapter ? NOTE_FORM_FIELD_IDS.chapterError : undefined}
-          aria-invalid={errors.chapter !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id={NOTE_FORM_FIELD_IDS.chapter}
-          maxLength={NOTE_INPUT_LIMITS.chapterMax}
-          placeholder={t("chapterPlaceholder")}
-          {...register("chapter")}
+        <Controller
+          control={control}
+          name="chapter"
+          render={({ field }) => (
+            <ChapterCombobox
+              describedBy={errors.chapter ? NOTE_FORM_FIELD_IDS.chapterError : undefined}
+              id={NOTE_FORM_FIELD_IDS.chapter}
+              invalid={errors.chapter !== undefined}
+              maxLength={NOTE_INPUT_LIMITS.chapterMax}
+              onChange={field.onChange}
+              options={chaptersQuery.data?.chapters ?? []}
+              placeholder={t("chapterPlaceholder")}
+              value={field.value}
+            />
+          )}
         />
         <FieldError error={errors.chapter} id={NOTE_FORM_FIELD_IDS.chapterError} />
       </div>

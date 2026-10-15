@@ -1363,6 +1363,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Бічна панель із розділами",
     version: null,
   },
+  {
+    bodyEn:
+      "In the note and quote forms, the Chapter field now suggests the chapters this book already uses in notes, quotes, timeline events and characters' first appearances, and shows how often each one appears. Picking a suggestion keeps one chapter from being saved under several spellings. You can still type a new one, and a chapter you save shows up in suggestions right away.",
+    bodyUk:
+      "У формах нотатки й цитати поле «Розділ» тепер підказує розділи цієї книги, які вже вказані в нотатках, цитатах, подіях хронології та в першій появі персонажів, і показує, скільки разів трапляється кожен. Підказки допомагають записувати той самий розділ завжди однаково. Власну назву, як і раніше, можна ввести вручну, а щойно збережений розділ одразу з'являється серед підказок.",
+    category: "improvement",
+    publishedAt: "2026-10-15T00:00:00.000Z",
+    slug: "notes-quotes-chapter-suggestions",
+    titleEn: "Chapter suggestions in notes and quotes",
+    titleUk: "Підказки розділів у нотатках і цитатах",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

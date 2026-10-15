@@ -1,6 +1,7 @@
 import type { EntityNotesView, NoteEntityType, NoteView, Nullable, Paginator } from "@app/shared";
 import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
 
+import { bookKeys } from "@/features/books/api/book-keys";
 import { assertNever } from "@/lib/assert-never";
 
 import type { NotesArchiveScope } from "../model/notes-archive-config";
@@ -36,12 +37,14 @@ export async function refreshAfterNoteMutation(
 ): Promise<void> {
   const scope = NOTES_ARCHIVE_SCOPE_BY_ENTITY[note.entityType];
   const detailsKey = noteDetailsKey(note);
+  const chaptersKey = noteChaptersKey(note);
   const keys: QueryKey[] = [
     ...NOTE_MUTATION_EFFECTS.archiveParts[kind].map((part) => notesKeys.archivePart(scope, part)),
     ...NOTE_MUTATION_EFFECTS.overviewScopes[kind][note.entityType].map((overviewScope) =>
       notesKeys.archivePart(overviewScope, "overview"),
     ),
     ...(detailsKey === null ? [] : [detailsKey]),
+    ...(chaptersKey === null ? [] : [chaptersKey]),
   ];
 
   await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
@@ -68,6 +71,20 @@ export function writeUpdatedNote(queryClient: QueryClient, note: NoteView): void
   queryClient.setQueryData<EntityNotesView>(detailsKey, (data) =>
     data === undefined ? data : { ...data, notes: data.notes.map(replace) },
   );
+}
+
+function noteChaptersKey(note: NoteView): Nullable<QueryKey> {
+  const entity = noteEntityRefFromNote(note);
+  if (entity === null) return null;
+
+  switch (entity.type) {
+    case "book":
+      return bookKeys.chapters(entity.book.id);
+    case "series":
+      return null;
+    default:
+      return assertNever(entity);
+  }
 }
 
 function noteDetailsKey(note: NoteView): Nullable<QueryKey> {

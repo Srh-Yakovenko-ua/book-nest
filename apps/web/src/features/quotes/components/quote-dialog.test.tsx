@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { BookView } from "@app/shared";
+import type { BookChapterUsageView, BookView } from "@app/shared";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -39,6 +39,11 @@ const LONGER_BOOK = makeBookView({
 
 const LIBRARY = [PICKED_BOOK, UNCOUNTED_BOOK, LONGER_BOOK];
 
+const CHAPTERS_BY_BOOK: Record<string, BookChapterUsageView[]> = {
+  "book-1": [{ chapter: "Епілог", count: 5 }],
+  "picked-book": [{ chapter: "Пролог", count: 2 }],
+};
+
 const QUOTE = makeQuote();
 const QUOTE_BOOK: BookSelectOption = {
   authorName: QUOTE.book.firstAuthorName,
@@ -48,6 +53,14 @@ const QUOTE_BOOK: BookSelectOption = {
 };
 
 const fetchMock = vi.fn();
+
+function bodySentWith(method: "PATCH" | "POST"): unknown {
+  const write = fetchMock.mock.calls.find(
+    ([, init]) => String((init as RequestInit | undefined)?.method).toUpperCase() === method,
+  );
+  if (write === undefined) throw new Error(`no ${method} request was sent`);
+  return JSON.parse(String((write[1] as RequestInit).body));
+}
 
 function bookDetailRequests(): string[] {
   return fetchMock.mock.calls
@@ -65,6 +78,10 @@ function booksPage(items: BookView[]): Response {
   });
 }
 
+function chapterInput(): HTMLElement {
+  return screen.getByLabelText("Розділ");
+}
+
 function dialog(): HTMLElement {
   return screen.getByRole("dialog");
 }
@@ -77,14 +94,6 @@ function jsonResponse(body: unknown): Response {
 
 function pageInput(): HTMLElement {
   return screen.getByLabelText("Сторінка");
-}
-
-function postedBody(): unknown {
-  const post = fetchMock.mock.calls.find(
-    ([, init]) => String((init as RequestInit | undefined)?.method).toUpperCase() === "POST",
-  );
-  if (post === undefined) throw new Error("no POST request was sent");
-  return JSON.parse(String((post[1] as RequestInit).body));
 }
 
 function submitButton(name: string): HTMLElement {
@@ -107,6 +116,9 @@ beforeEach(() => {
     const method = (init?.method ?? "GET").toUpperCase();
     if (method === "POST" || method === "PATCH") return Promise.resolve(jsonResponse(QUOTE));
     if (url.startsWith("/api/books?")) return Promise.resolve(booksPage(LIBRARY));
+    const chaptersBookId = /^\/api\/books\/([^/?]+)\/chapters$/.exec(url)?.[1];
+    if (chaptersBookId !== undefined)
+      return Promise.resolve(jsonResponse({ chapters: CHAPTERS_BY_BOOK[chaptersBookId] ?? [] }));
     const book = LIBRARY.find(({ id }) => url === `/api/books/${id}`);
     if (book !== undefined) return Promise.resolve(jsonResponse(book));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
@@ -188,6 +200,19 @@ describe("QuoteDialog create mode with the book picker", () => {
     expect(within(dialog()).getAllByText("Месія Дюни")).toHaveLength(1);
   });
 
+  it("posts the stored spelling of a chapter picked from the chosen book's suggestions", async () => {
+    renderCreate();
+    await pickBook();
+    await userEvent.type(screen.getByLabelText(/Текст цитати/), "Страх — убивця розуму.");
+
+    await userEvent.type(chapterInput(), "пролог");
+    await userEvent.click(await screen.findByRole("option", { name: "Пролог використано 2 рази" }));
+    await userEvent.click(submitButton("Зберегти цитату"));
+
+    await waitFor(() => expect(writeRequests()).toHaveLength(1));
+    expect(bodySentWith("POST")).toMatchObject({ chapter: "Пролог" });
+  });
+
   it("rejects a page beyond the picked book and accepts its last page", async () => {
     renderCreate();
     await pickBook();
@@ -205,7 +230,7 @@ describe("QuoteDialog create mode with the book picker", () => {
     await userEvent.click(submitButton("Зберегти цитату"));
 
     await waitFor(() => expect(writeRequests()).toHaveLength(1));
-    expect(postedBody()).toMatchObject({ page: 300 });
+    expect(bodySentWith("POST")).toMatchObject({ page: 300 });
   });
 
   it("drops the page error once a longer book is picked", async () => {
@@ -245,7 +270,7 @@ describe("QuoteDialog create mode with the book picker", () => {
     await userEvent.click(submitButton("Зберегти цитату"));
 
     await waitFor(() => expect(writeRequests()).toHaveLength(1));
-    expect(postedBody()).toMatchObject({ page: 10000 });
+    expect(bodySentWith("POST")).toMatchObject({ page: 10000 });
   });
 
   it("renders the picker inline, without opening a second dialog", async () => {
@@ -292,5 +317,19 @@ describe("QuoteDialog edit mode", () => {
 
     await waitFor(() => expect(writeRequests()).toHaveLength(1));
     expect(writeRequests()).toEqual([{ method: "PATCH", url: "/api/books/book-1/quotes/quote-1" }]);
+  });
+
+  it("patches the quote with a chapter picked from its book's suggestions", async () => {
+    renderEdit();
+
+    await userEvent.clear(chapterInput());
+    await userEvent.type(chapterInput(), "епі");
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Епілог використано 5 разів" }),
+    );
+    await userEvent.click(submitButton("Зберегти зміни"));
+
+    await waitFor(() => expect(writeRequests()).toHaveLength(1));
+    expect(bodySentWith("PATCH")).toMatchObject({ chapter: "Епілог" });
   });
 });

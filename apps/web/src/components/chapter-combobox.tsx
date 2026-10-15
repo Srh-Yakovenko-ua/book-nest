@@ -43,8 +43,9 @@ export function ChapterCombobox({
   const [highlightArmed, setHighlightArmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const hasOptions = options.length > 0;
-  const suggestions = matchingChapters(options, value);
+  const fittingOptions = options.filter((option) => option.chapter.length <= maxLength);
+  const hasOptions = fittingOptions.length > 0;
+  const suggestions = matchingChapters(fittingOptions, value);
   const suggestionsOpen = open && suggestions.length > 0;
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -94,6 +95,7 @@ export function ChapterCombobox({
             className="h-10"
             id={id}
             maxLength={maxLength}
+            onBlur={() => toggleSuggestions(false)}
             onChange={(event) => typeChapter(event.target.value)}
             onClick={() => setOpen(true)}
             onFocus={() => setOpen(true)}
@@ -110,6 +112,7 @@ export function ChapterCombobox({
           onInteractOutside={(event) => {
             if (event.detail.originalEvent.target === inputRef.current) event.preventDefault();
           }}
+          onMouseDown={(event) => event.preventDefault()}
           onOpenAutoFocus={(event) => event.preventDefault()}
           sideOffset={6}
         >

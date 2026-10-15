@@ -1,7 +1,9 @@
 import type { QueryKey } from "@tanstack/react-query";
 
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
+import { bookKeys } from "@/features/books/api/book-keys";
 import { createTestQueryClient } from "@/test-utils";
 
 import { makeBookNote, makeSeriesNote } from "../model/notes.fixtures";
@@ -41,4 +43,47 @@ describe("refreshAfterNoteMutation overviews", () => {
 
     expect(keys).not.toContainEqual(notesKeys.archivePart("books", "overview"));
   });
+});
+
+describe("refreshAfterNoteMutation chapter suggestions", () => {
+  const SEEDED_KEYS = {
+    bookDetail: bookKeys.detail("book-1"),
+    notedBookChapters: bookKeys.chapters("book-1"),
+    otherBookChapters: bookKeys.chapters("book-2"),
+  } as const;
+
+  async function staleAfter(mutation: Parameters<typeof refreshAfterNoteMutation>[1]) {
+    const queryClient = new QueryClient();
+    for (const key of Object.values(SEEDED_KEYS)) queryClient.setQueryData(key, {});
+
+    await refreshAfterNoteMutation(queryClient, mutation);
+
+    return {
+      bookDetail: queryClient.getQueryState(SEEDED_KEYS.bookDetail)?.isInvalidated,
+      notedBookChapters: queryClient.getQueryState(SEEDED_KEYS.notedBookChapters)?.isInvalidated,
+      otherBookChapters: queryClient.getQueryState(SEEDED_KEYS.otherBookChapters)?.isInvalidated,
+    };
+  }
+
+  it.each(["create", "update", "delete"] as const)(
+    "marks only the noted book's chapters stale after a book note %s",
+    async (kind) => {
+      expect(await staleAfter({ kind, note: makeBookNote() })).toEqual({
+        bookDetail: false,
+        notedBookChapters: true,
+        otherBookChapters: false,
+      });
+    },
+  );
+
+  it.each(["create", "update", "delete"] as const)(
+    "leaves every book's chapters alone after a series note %s",
+    async (kind) => {
+      expect(await staleAfter({ kind, note: makeSeriesNote() })).toEqual({
+        bookDetail: false,
+        notedBookChapters: false,
+        otherBookChapters: false,
+      });
+    },
+  );
 });
