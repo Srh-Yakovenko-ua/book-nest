@@ -57,6 +57,22 @@ function renderCombobox(options: BookChapterUsageView[] = CHAPTERS) {
   return { field: screen.getByPlaceholderText("Напр. Розділ 12"), onChange };
 }
 
+function renderComboboxAwaitingChapters() {
+  const onChange = vi.fn();
+  const page = (options: BookChapterUsageView[]) => (
+    <>
+      <Harness onChange={onChange} options={options} />
+      <input aria-label="Сторінка" />
+    </>
+  );
+  const { rerender } = renderWithProviders(page([]));
+  return {
+    chaptersArrive: () => rerender(page(CHAPTERS)),
+    field: screen.getByPlaceholderText("Напр. Розділ 12"),
+    pageField: screen.getByRole("textbox", { name: "Сторінка" }),
+  };
+}
+
 function renderComboboxInForm() {
   const onChange = vi.fn();
   const onSubmit = vi.fn();
@@ -131,6 +147,51 @@ describe("ChapterCombobox", () => {
     expect(field).not.toHaveAttribute("role", "combobox");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  });
+
+  it("leaves out chapters longer than the field accepts", async () => {
+    const tooLong = "Д".repeat(CHAPTER_MAX + 1);
+    const { field } = renderCombobox([...CHAPTERS, { chapter: tooLong, count: 1 }]);
+
+    await userEvent.click(field);
+
+    expect(
+      await screen.findByRole("option", { name: OPTION_NAMES.chapterOne }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("option")).toHaveLength(CHAPTERS.length);
+    expect(screen.queryByText(tooLong)).not.toBeInTheDocument();
+  });
+
+  it("stays a plain text field when every chapter is longer than the field accepts", async () => {
+    const { field } = renderCombobox([{ chapter: "Д".repeat(CHAPTER_MAX + 1), count: 1 }]);
+
+    await userEvent.click(field);
+
+    expect(field).not.toHaveAttribute("role", "combobox");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("keeps the suggestions closed when chapters arrive after focus has left the field", async () => {
+    const { chaptersArrive, field, pageField } = renderComboboxAwaitingChapters();
+
+    await userEvent.click(field);
+    await userEvent.tab();
+    expect(pageField).toHaveFocus();
+    chaptersArrive();
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("opens the suggestions when chapters arrive while the field still has focus", async () => {
+    const { chaptersArrive, field } = renderComboboxAwaitingChapters();
+
+    await userEvent.click(field);
+    chaptersArrive();
+
+    expect(
+      await screen.findByRole("option", { name: OPTION_NAMES.chapterOne }),
+    ).toBeInTheDocument();
   });
 
   it("keeps the typed text when Enter arrives without a keyboard highlight", async () => {

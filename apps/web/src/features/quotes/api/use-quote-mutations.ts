@@ -3,6 +3,7 @@ import type { CreateQuoteInput, QuoteView, UpdateQuoteInput } from "@app/shared"
 import { QuoteViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { bookKeys } from "@/features/books/api/book-keys";
 import {
   bookQuotesControllerCreateQuote,
   bookQuotesControllerDeleteQuote,
@@ -61,7 +62,8 @@ export function useUpdateQuote() {
 function useQuoteSync() {
   const queryClient = useQueryClient();
 
-  return () => {
+  return (_result: unknown, { bookId }: { bookId: string }) => {
     void queryClient.invalidateQueries({ queryKey: quoteKeys.root });
+    void queryClient.invalidateQueries({ queryKey: bookKeys.chapters(bookId) });
   };
 }

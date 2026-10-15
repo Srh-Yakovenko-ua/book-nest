@@ -105,9 +105,8 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
   });
 
   const selectedEntity = useWatch({ control, name: "entity" });
-  const pagesCount = useBookPagesCount(
-    selectedEntity?.type === "book" ? selectedEntity.book.id : null,
-  );
+  const selectedBookId = selectedEntity?.type === "book" ? selectedEntity.book.id : null;
+  const pagesCount = useBookPagesCount(selectedBookId);
   const pageCeiling = bookPageCeiling({ pagesCount, technicalMax: NOTE_INPUT_LIMITS.pageMax });
   const messages: NoteFormMessages = {
     chapterTooLong: tErrors("chapterTooLong"),
@@ -156,12 +155,12 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
         <NoteTextField control={control} errors={errors} register={register} />
         <NoteCategoryFields control={control} errors={errors} register={register} />
         <NoteLocationSlot
+          bookId={selectedBookId}
           control={control}
           entityType={entityType}
           errors={errors}
           note={note}
           pageMax={pageCeiling.max}
-          register={register}
         />
         <NoteFlagFields control={control} />
       </div>

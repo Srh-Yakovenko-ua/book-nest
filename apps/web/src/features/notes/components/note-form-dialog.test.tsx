@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { BookView, NoteView, SeriesView } from "@app/shared";
+import type { BookChapterUsageView, BookView, NoteView, SeriesView } from "@app/shared";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 
@@ -42,7 +42,10 @@ const NAMES = {
   chapter: "Розділ (необовʼязково)",
   createTitle: "Додати нотатку",
   editTitle: "Редагувати нотатку",
+  epilogueOption: "Епілог використано 2 рази",
   page: "Сторінка (необовʼязково)",
+  partThreeOption: "Розділ III використано 4 рази",
+  prologueOption: "Пролог використано 1 раз",
   removeLocation: "Прибрати збережене місце",
   restoreLocation: "Повернути збережене місце",
   savedLocation: "Збережене місце",
@@ -55,7 +58,11 @@ const NAMES = {
 
 const DRAFT = "Пророцтво ще повернеться у третій частині.";
 
-const LIBRARY: { books: BookView[]; series: SeriesView[] } = {
+const LIBRARY: {
+  books: BookView[];
+  chapters: Record<string, BookChapterUsageView[]>;
+  series: SeriesView[];
+} = {
   books: [
     makeBookView({
       authors: [{ id: "author-1", name: "Френк Герберт" }],
@@ -70,6 +77,13 @@ const LIBRARY: { books: BookView[]; series: SeriesView[] } = {
       title: "Чарівник Земномор'я",
     }),
   ],
+  chapters: {
+    "book-1": [
+      { chapter: "Розділ III", count: 4 },
+      { chapter: "Пролог", count: 1 },
+    ],
+    "book-2": [{ chapter: "Епілог", count: 2 }],
+  },
   series: [
     makeSeriesView({
       authors: [{ id: "author-1", name: "Френк Герберт" }],
@@ -97,6 +111,12 @@ function bookDetailRequests(): string[] {
 function bookEntity(note: NoteView): NoteEntityRef {
   if (note.book === null) throw new Error("book note without book");
   return { book: note.book, type: "book" };
+}
+
+function chapterRequests(): string[] {
+  return fetchMock.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url.endsWith("/chapters"));
 }
 
 function deferredResponse() {
@@ -192,6 +212,9 @@ beforeEach(() => {
       return Promise.resolve(page(LIBRARY.books));
     if (method === "GET" && url.startsWith("/api/series?"))
       return Promise.resolve(page(LIBRARY.series));
+    const chaptersBookId = /^\/api\/books\/([^/?]+)\/chapters$/.exec(url)?.[1];
+    if (method === "GET" && chaptersBookId !== undefined)
+      return Promise.resolve(jsonResponse({ chapters: LIBRARY.chapters[chaptersBookId] ?? [] }));
     const book = LIBRARY.books.find(({ id }) => url === `/api/books/${id}`);
     if (method === "GET" && book !== undefined) return Promise.resolve(jsonResponse(book));
     if (method !== "GET") {
@@ -743,6 +766,59 @@ describe("NoteFormDialog preselected entity", () => {
 
     const call = await onlyWrite();
     expect(call.url).toBe("/api/books/book-1/notes");
+  });
+});
+
+describe("NoteFormDialog chapter suggestions", () => {
+  it("posts the stored spelling of a chapter picked from the book's suggestions", async () => {
+    const note = makeBookNote();
+    renderDialog({ entity: bookEntity(note), mode: "preselected" });
+
+    await userEvent.type(await screen.findByRole("textbox", { name: NAMES.text }), DRAFT);
+    await userEvent.type(screen.getByLabelText(NAMES.chapter), "розділ");
+    await userEvent.click(await screen.findByRole("option", { name: NAMES.partThreeOption }));
+    await submit(NAMES.submitCreate);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ chapter: "Розділ III", text: DRAFT });
+  });
+
+  it("patches the note with a chapter picked from the book's suggestions", async () => {
+    const note = makeBookNote({ chapter: "Розділ III" });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+
+    const field = await screen.findByLabelText(NAMES.chapter);
+    await userEvent.clear(field);
+    await userEvent.type(field, "про");
+    await userEvent.click(await screen.findByRole("option", { name: NAMES.prologueOption }));
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ chapter: "Пролог" });
+  });
+
+  it("asks for chapters only once a book is picked and suggests that book's chapters", async () => {
+    renderDialog({ entityType: "book", mode: "pick" });
+    await screen.findByRole("radio", { name: /Чарівник Земномор/ });
+    expect(chapterRequests()).toEqual([]);
+
+    await pickBook(/Чарівник Земномор/);
+    await userEvent.click(screen.getByLabelText(NAMES.chapter));
+
+    expect(await screen.findByRole("option", { name: NAMES.epilogueOption })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: NAMES.partThreeOption })).not.toBeInTheDocument();
+    expect(chapterRequests()).toEqual(["/api/books/book-2/chapters"]);
+  });
+
+  it("never asks for chapters while writing a series note", async () => {
+    renderDialog({ entityType: "series", mode: "pick" });
+
+    await pickSeries(/Хроніки Дюни/);
+    await userEvent.type(screen.getByRole("textbox", { name: NAMES.text }), DRAFT);
+    await submit(NAMES.submitCreate);
+    await onlyWrite();
+
+    expect(chapterRequests()).toEqual([]);
   });
 });
 
