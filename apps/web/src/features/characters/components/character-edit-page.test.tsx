@@ -249,6 +249,34 @@ describe("CharacterEditPage leaving a dirty form", () => {
   });
 });
 
+describe("CharacterEditPage return to the details context", () => {
+  it.each([
+    { href: "/characters/char-1?view=global", search: "view=global" },
+    { href: "/characters/char-1?bookId=book-1", search: "bookId=book-1" },
+    { href: "/characters/char-1", search: "" },
+  ])("returns to $href after a cancel without changes", async ({ href, search }) => {
+    renderEdit(search);
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
+
+    expect(push).toHaveBeenCalledWith(href);
+  });
+
+  it("refuses to open the general editor for a book the character is not in", async () => {
+    renderEdit("bookId=book-404");
+
+    expect(
+      await screen.findByRole("heading", { name: "Персонаж недоступний у цій книзі" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Ґеральт")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Відкрити загальний профіль" })).toHaveAttribute(
+      "href",
+      "/characters/char-1?view=global",
+    );
+  });
+});
+
 describe("CharacterEditPage without a book context", () => {
   it("shows only the shared section", async () => {
     renderEdit("");
@@ -2562,6 +2590,7 @@ describe("CharacterEditPage spoiler collections round trip", () => {
       "bookAliases",
       "description",
       "displayName",
+      "forms",
       "globalAliases",
       "personalImpression",
       "portrait",

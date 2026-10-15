@@ -1,7 +1,7 @@
 import type { CharacterDetailsView, CharacterRevealFieldKey } from "@app/shared";
 
 import { CharacterDetailsViewSchema } from "@app/shared";
-import { useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import type { CharactersControllerGetByIdParams } from "@/shared/api/generated/model";
 
@@ -9,31 +9,34 @@ import { charactersControllerGetById } from "@/shared/api/generated/endpoints/ch
 
 import { characterKeys } from "./character-keys";
 
-type UseCharacterDetailsArgs = {
+type CharacterDetailsQueryArgs = {
   characterId: string;
   contextBookId?: string;
-  placeholderData?: (
-    previous: CharacterDetailsView | undefined,
-  ) => CharacterDetailsView | undefined;
   revealFieldIds?: CharacterRevealFieldKey[];
 };
 
-export function useCharacterDetails({
+type UseCharacterDetailsArgs = CharacterDetailsQueryArgs & {
+  enabled?: boolean;
+};
+
+export function characterDetailsQueryOptions({
   characterId,
   contextBookId,
-  placeholderData,
   revealFieldIds,
-}: UseCharacterDetailsArgs) {
+}: CharacterDetailsQueryArgs) {
   const params: CharactersControllerGetByIdParams = {
     ...(contextBookId === undefined ? {} : { contextBookId }),
     ...(revealFieldIds === undefined || revealFieldIds.length === 0 ? {} : { revealFieldIds }),
   };
 
-  return useQuery({
-    ...(placeholderData === undefined ? {} : { placeholderData }),
+  return queryOptions({
     queryFn: async (): Promise<CharacterDetailsView> =>
       CharacterDetailsViewSchema.parse(await charactersControllerGetById(characterId, params)),
     queryKey: characterKeys.details(characterId, params),
     retry: false,
   });
+}
+
+export function useCharacterDetails({ enabled = true, ...args }: UseCharacterDetailsArgs) {
+  return useQuery({ ...characterDetailsQueryOptions(args), enabled });
 }
