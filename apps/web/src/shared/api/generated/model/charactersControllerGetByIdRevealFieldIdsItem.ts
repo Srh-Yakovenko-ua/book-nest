@@ -14,6 +14,7 @@ export const CharactersControllerGetByIdRevealFieldIdsItem = {
   bookAliases: "bookAliases",
   description: "description",
   displayName: "displayName",
+  forms: "forms",
   globalAliases: "globalAliases",
   personalImpression: "personalImpression",
   portrait: "portrait",

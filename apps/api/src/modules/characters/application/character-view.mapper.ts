@@ -14,6 +14,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type { VisibleAliases } from "../domain/alias-groups.js";
+import type { VisibleForms } from "../domain/visible-forms.js";
 import type {
   CharacterDetailsRow,
   CharacterGlobalSummaryRow,
@@ -56,15 +57,15 @@ export class CharacterViewMapper {
   }
 
   toMaskedDetailsView({
-    forms,
     revealedFields,
     row,
     visibleAliases,
+    visibleForms,
   }: {
-    forms: CharacterDetailsRow["forms"];
     revealedFields: ReadonlySet<CharacterRevealFieldKey>;
     row: CharacterDetailsRow;
     visibleAliases: VisibleAliases<CharacterDetailsRow["aliases"][number]>;
+    visibleForms: VisibleForms<CharacterDetailsRow["forms"][number]>;
   }): CharacterDetailsView {
     return toCharacterDetailsView({
       appearances: row.bookAppearances.map((appearance) =>
@@ -72,8 +73,8 @@ export class CharacterViewMapper {
       ),
       avatar: this.mediaViewOf(row.avatarMedia),
       character: { ...row, aliases: visibleAliases.aliases },
-      characterHiddenFields: visibleAliases.hiddenFields,
-      forms: forms.map((form) => this.mapForm(form)),
+      characterHiddenFields: [...visibleAliases.hiddenFields, ...visibleForms.hiddenFields],
+      forms: visibleForms.forms.map((form) => this.mapForm(form)),
     });
   }
 
