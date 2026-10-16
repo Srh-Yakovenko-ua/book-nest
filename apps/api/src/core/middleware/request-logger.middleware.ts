@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { NestMiddleware } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 
@@ -7,7 +8,39 @@ import { pinoHttp } from "pino-http";
 import { HTTP_STATUS } from "../http-status.js";
 import { logger } from "../logger.js";
 
+export type RequestLogFields = {
+  id: string;
+  ip: Nullable<string>;
+  method: string;
+  path: string;
+  userId: Nullable<string>;
+};
+
 export type RequestLogLevel = "error" | "info" | "warn";
+
+export function requestLogFields({
+  currentUser,
+  id,
+  ip,
+  method,
+  url,
+}: {
+  currentUser: undefined | { id: string };
+  id: string;
+  ip: string | undefined;
+  method: string;
+  url: string;
+}): RequestLogFields {
+  const [path] = url.split("?");
+
+  return {
+    id,
+    ip: ip ?? null,
+    method,
+    path: path ?? url,
+    userId: currentUser?.id ?? null,
+  };
+}
 
 export function requestLogLevel({
   failed,
@@ -29,11 +62,14 @@ const pinoMiddleware = pinoHttp<Request, Response>({
   genReqId: (req) => req.requestId,
   logger,
   serializers: {
-    req: (req) => ({
-      id: req.id,
-      method: req.method,
-      url: req.url,
-    }),
+    req: (req) =>
+      requestLogFields({
+        currentUser: req.currentUser,
+        id: req.id,
+        ip: req.ip,
+        method: req.method,
+        url: req.url,
+      }),
     res: (res) => ({
       statusCode: res.statusCode,
     }),
