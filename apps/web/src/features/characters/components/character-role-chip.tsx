@@ -4,9 +4,9 @@ import type { KeyboardEvent } from "react";
 
 import { useTranslations } from "next-intl";
 
+import { ActionChip, ActionChipButton } from "@/components/action-chip";
 import { UiIcon } from "@/components/icons";
 import { TooltipHint } from "@/components/tooltip-hint";
-import { cn } from "@/lib/utils";
 
 type CharacterRoleChipProps = {
   isSpoiler: boolean;
@@ -36,43 +36,35 @@ export function CharacterRoleChip({
 }: CharacterRoleChipProps) {
   const t = useTranslations("characters.rolePicker");
   const spoilerToggle = SPOILER_TOGGLE[isSpoiler ? "hidden" : "visible"];
-  const iconButtonClassName =
-    "relative grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full text-current opacity-80 transition-[opacity,background-color] after:absolute after:-inset-[3px] hover:bg-current/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
   return (
-    <span
-      className={cn(
-        "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border py-0 pr-1.5 pl-2.5 text-[0.8125rem] font-semibold whitespace-nowrap",
-        isSpoiler
-          ? "border-dashed border-border bg-secondary/50 text-muted-foreground"
-          : "border-accent-border bg-accent text-accent-foreground",
-      )}
-    >
-      <span className="overflow-hidden text-ellipsis" title={label}>
-        {label}
-      </span>
-      <TooltipHint label={t(spoilerToggle.tooltip)}>
-        <button
-          aria-label={t(spoilerToggle.ariaLabel, { role: label })}
-          aria-pressed={isSpoiler}
-          className={iconButtonClassName}
-          onClick={onToggleSpoiler}
-          onKeyDown={keepKeysFromRoleList}
-          type="button"
-        >
-          <UiIcon className="size-3.5" name={spoilerToggle.icon} size={14} />
-        </button>
-      </TooltipHint>
-      <button
-        aria-label={t("remove", { role: label })}
-        className={iconButtonClassName}
-        onClick={onRemove}
-        onKeyDown={keepKeysFromRoleList}
-        type="button"
-      >
-        <UiIcon className="size-3" name="x" size={12} />
-      </button>
-    </span>
+    <ActionChip
+      actions={
+        <>
+          <TooltipHint label={t(spoilerToggle.tooltip)}>
+            <ActionChipButton
+              aria-label={t(spoilerToggle.ariaLabel, { role: label })}
+              aria-pressed={isSpoiler}
+              onClick={onToggleSpoiler}
+              onKeyDown={keepKeysFromRoleList}
+            >
+              <UiIcon name={spoilerToggle.icon} size={16} />
+            </ActionChipButton>
+          </TooltipHint>
+          <TooltipHint label={t("removeTooltip")}>
+            <ActionChipButton
+              aria-label={t("remove", { role: label })}
+              onClick={onRemove}
+              onKeyDown={keepKeysFromRoleList}
+            >
+              <UiIcon name="x" size={16} />
+            </ActionChipButton>
+          </TooltipHint>
+        </>
+      }
+      label={label}
+      spoiler={isSpoiler}
+    />
   );
 }
 

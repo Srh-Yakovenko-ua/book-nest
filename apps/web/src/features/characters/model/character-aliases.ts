@@ -1,8 +1,10 @@
 import type { CharacterAliasType, CharacterDetailsView, Nullable } from "@app/shared";
 
-import { normalizeName } from "@app/shared";
+import { CHARACTER_ALIASES_MAX, normalizeName } from "@app/shared";
 
 export const ALIAS_DEFAULT_TYPE = "other" satisfies CharacterAliasType;
+
+export type AliasRestoreRefusal = "duplicate" | "limit" | "reserved";
 
 export type CharacterAliasRow = {
   isSpoiler: boolean;
@@ -11,6 +13,36 @@ export type CharacterAliasRow = {
 };
 
 type AliasConflict = "duplicate" | "reserved";
+
+export function aliasRestoreIndex({
+  keys,
+  originalIndex,
+  previousKey,
+}: {
+  keys: readonly string[];
+  originalIndex: number;
+  previousKey: Nullable<string>;
+}): number {
+  if (previousKey === null) return 0;
+  const previousIndex = keys.indexOf(previousKey);
+  if (previousIndex === -1) return Math.min(originalIndex, keys.length);
+  return previousIndex + 1;
+}
+
+export function aliasRestoreRefusal({
+  aliases,
+  countBeforeRemoval,
+  removed,
+  reservedName,
+}: {
+  aliases: readonly CharacterAliasRow[];
+  countBeforeRemoval: number;
+  removed: CharacterAliasRow;
+  reservedName: Nullable<string>;
+}): Nullable<AliasRestoreRefusal> {
+  if (aliases.length >= Math.max(CHARACTER_ALIASES_MAX, countBeforeRemoval)) return "limit";
+  return findAliasDraftConflict({ aliases, draft: removed, editingIndex: null, reservedName });
+}
 
 export function emptyAliasRow(): CharacterAliasRow {
   return { isSpoiler: false, name: "", type: ALIAS_DEFAULT_TYPE };
@@ -69,6 +101,20 @@ export function findAliasDraftConflict({
   if (reservedIndexes.includes(draftIndex)) return "reserved";
   if (duplicateIndexes.includes(draftIndex)) return "duplicate";
   return null;
+}
+
+export function isAliasDraftChanged({
+  draft,
+  original,
+}: {
+  draft: CharacterAliasRow;
+  original: CharacterAliasRow;
+}): boolean {
+  return (
+    draft.name.trim() !== original.name.trim() ||
+    draft.type !== original.type ||
+    draft.isSpoiler !== original.isSpoiler
+  );
 }
 
 export function toAliasPayload(aliases: readonly CharacterAliasRow[]) {

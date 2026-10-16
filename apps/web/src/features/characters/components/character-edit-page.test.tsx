@@ -12,6 +12,7 @@ import type {
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
@@ -35,9 +36,17 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
 }));
 
-vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }),
-}));
+type ToastOptions = { action?: { label: string; onClick: () => void }; id?: string };
+
+const toastMock = vi.hoisted(() =>
+  Object.assign(vi.fn<(message: string, options?: ToastOptions) => void>(), {
+    error: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+  }),
+);
+
+vi.mock("sonner", () => ({ toast: toastMock }));
 
 const character = makeCharacterDetails({
   appearances: [
@@ -363,17 +372,38 @@ describe("CharacterEditPage aliases", () => {
     return screen.getByRole("group", { name: title });
   }
 
+  function aliasEditor(title: string): HTMLElement {
+    return screen.getByRole("group", { name: title });
+  }
+
+  function bookAliases(): HTMLElement {
+    return aliasGroup("Інші імена в цій книзі");
+  }
+
   function globalAliases(): HTMLElement {
     return aliasGroup("Альтернативні імена");
   }
 
-  function serveGlobalAliases(aliases: { name: string; type: CharacterAliasType }[]) {
+  function lastUndo(): () => void {
+    const action = toastMock.mock.lastCall?.[1]?.action;
+    if (action === undefined) throw new Error("expected the last toast to offer an undo");
+    return action.onClick;
+  }
+
+  function serveAliases(
+    aliases: {
+      bookId?: Nullable<string>;
+      isSpoiler?: boolean;
+      name: string;
+      type: CharacterAliasType;
+    }[],
+  ) {
     servedCharacter = {
       ...character,
       aliases: aliases.map((alias, index) => ({
-        bookId: null,
+        bookId: alias.bookId ?? null,
         id: `alias-${index}`,
-        isSpoiler: false,
+        isSpoiler: alias.isSpoiler ?? false,
         name: alias.name,
         position: index,
         type: alias.type,
@@ -381,9 +411,20 @@ describe("CharacterEditPage aliases", () => {
     };
   }
 
+  function numberedAliases(count: number) {
+    return Array.from({ length: count }, (_unused, index) => ({
+      name: `Ім’я ${index + 1}`,
+      type: "other" as const,
+    }));
+  }
+
   async function openAliasEditor(group: HTMLElement) {
-    await userEvent.click(within(group).getByRole("button", { name: "Додати ім’я…" }));
+    await userEvent.click(within(group).getByRole("button", { name: "Додати ім’я" }));
     return within(group).getByRole("textbox", { name: "Альтернативне ім’я" });
+  }
+
+  function undo(restore: () => void) {
+    act(() => restore());
   }
 
   it("adds a name per group through the inline editor and saves each into its own scope", async () => {
@@ -398,21 +439,23 @@ describe("CharacterEditPage aliases", () => {
     expect(
       within(globalAliases()).getByRole("button", { name: "Змінити ім’я «Білий Вовк» (Інше)" }),
     ).toBeInTheDocument();
-    const nextGlobalInput = within(globalAliases()).getByRole("textbox", {
-      name: "Альтернативне ім’я",
-    });
-    expect(nextGlobalInput).toHaveValue("");
-    expect(nextGlobalInput).toHaveFocus();
-    await userEvent.keyboard("{Escape}");
+    expect(
+      within(globalAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).not.toBeInTheDocument();
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toHaveFocus();
 
-    const bookGroup = aliasGroup("Інші імена в цій книзі");
-    await userEvent.type(await openAliasEditor(bookGroup), "Різник");
-    await userEvent.click(within(bookGroup).getByRole("button", { name: "Додати" }));
+    await userEvent.type(await openAliasEditor(bookAliases()), "Різник");
+    await userEvent.click(
+      within(aliasEditor("Додавання імені")).getByRole("button", { name: "Додати ім’я" }),
+    );
 
+    expect(
+      within(bookAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).not.toBeInTheDocument();
     expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+    expect(within(bookAliases()).getByText("1 / 30")).toBeInTheDocument();
     expect(patchCount()).toBe(0);
 
-    await userEvent.keyboard("{Escape}");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(patchCount()).toBe(2));
@@ -433,13 +476,13 @@ describe("CharacterEditPage aliases", () => {
     expect(
       within(globalAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
     ).not.toBeInTheDocument();
-    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я…" })).toHaveFocus();
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toHaveFocus();
     expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
   });
 
   it("edits a name in place and keeps its position", async () => {
-    serveGlobalAliases([
+    serveAliases([
       { name: "Білий Вовк", type: "nickname" },
       { name: "Різник", type: "other" },
     ]);
@@ -458,13 +501,19 @@ describe("CharacterEditPage aliases", () => {
     await userEvent.type(input, "Вовк");
     await userEvent.click(within(globalAliases()).getByRole("combobox", { name: "Тип імені" }));
     await userEvent.click(await screen.findByRole("option", { name: "Титул" }));
-    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Містить спойлер" }));
-    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Готово" }));
+    await userEvent.click(
+      within(globalAliases()).getByRole("checkbox", { name: "Це ім’я містить спойлер" }),
+    );
+    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Застосувати" }));
 
+    expect(
+      within(globalAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).not.toBeInTheDocument();
     expect(
       within(globalAliases()).getByRole("button", { name: "Змінити ім’я «Вовк» (Титул)" }),
     ).toHaveFocus();
     expect(within(globalAliases()).getByText("2 / 30")).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
 
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
@@ -476,7 +525,7 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("leaves the name untouched when editing is cancelled", async () => {
-    serveGlobalAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
@@ -500,7 +549,7 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("toggles the spoiler mark from the eye without opening the editor", async () => {
-    serveGlobalAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
@@ -528,7 +577,7 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("removes a name with its cross and moves focus to the next one", async () => {
-    serveGlobalAliases([
+    serveAliases([
       { name: "Білий Вовк", type: "nickname" },
       { name: "Різник", type: "other" },
     ]);
@@ -552,7 +601,7 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("refuses the same name of the same type but accepts it under another type", async () => {
-    serveGlobalAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
@@ -563,7 +612,7 @@ describe("CharacterEditPage aliases", () => {
 
     expect(within(globalAliases()).getByText("Таке ім’я з цим типом уже є")).toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(within(globalAliases()).getByRole("button", { name: "Додати" })).toBeDisabled();
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toBeDisabled();
 
     await userEvent.click(within(globalAliases()).getByRole("combobox", { name: "Тип імені" }));
     await userEvent.click(await screen.findByRole("option", { name: "Титул" }));
@@ -571,7 +620,8 @@ describe("CharacterEditPage aliases", () => {
     expect(
       within(globalAliases()).queryByText("Таке ім’я з цим типом уже є"),
     ).not.toBeInTheDocument();
-    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Додати" }));
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Додати ім’я" }));
 
     expect(
       within(globalAliases()).getByRole("button", { name: "Змінити ім’я «білий вовк» (Титул)" }),
@@ -585,23 +635,52 @@ describe("CharacterEditPage aliases", () => {
     await userEvent.type(await openAliasEditor(globalAliases()), " ґеральт {Enter}");
 
     expect(within(globalAliases()).getByText("Це основне ім’я персонажа")).toBeInTheDocument();
-    expect(within(globalAliases()).getByRole("button", { name: "Додати" })).toBeDisabled();
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toBeDisabled();
     expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
   });
 
-  it("blocks adding at the limit but keeps editing and removing", async () => {
-    serveGlobalAliases(
-      Array.from({ length: 30 }, (_unused, index) => ({
-        name: `Ім’я ${index + 1}`,
-        type: "other" as const,
-      })),
-    );
+  it("refuses a book alias that repeats the name the character goes by in this book", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(await openAliasEditor(bookAliases()), "ҐЕРАЛЬТ{Enter}");
+
+    expect(within(bookAliases()).getByText("Це ім’я персонажа в цій книзі")).toBeInTheDocument();
+    expect(within(bookAliases()).getByRole("button", { name: "Додати ім’я" })).toBeDisabled();
+    expect(within(bookAliases()).getByText("0 / 30")).toBeInTheDocument();
+  });
+
+  it("asks for a name only after an attempt to add an empty one and clears the error once typed", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const input = await openAliasEditor(globalAliases());
+
+    expect(within(globalAliases()).queryByText("Вкажіть ім’я")).not.toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "false");
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(within(globalAliases()).getByText("Вкажіть ім’я")).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toBeDisabled();
+
+    await userEvent.type(input, "Вовк");
+
+    expect(within(globalAliases()).queryByText("Вкажіть ім’я")).not.toBeInTheDocument();
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toBeEnabled();
+  });
+
+  it("hides adding at the limit but keeps editing and removing", async () => {
+    serveAliases(numberedAliases(30));
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
 
     expect(within(globalAliases()).getByText("30 / 30")).toBeInTheDocument();
-    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я…" })).toBeDisabled();
+    expect(
+      within(globalAliases()).queryByRole("button", { name: "Додати ім’я" }),
+    ).not.toBeInTheDocument();
     expect(
       within(globalAliases()).getByText("Ліміт вичерпано — видаліть зайве ім’я"),
     ).toBeInTheDocument();
@@ -619,11 +698,27 @@ describe("CharacterEditPage aliases", () => {
     );
 
     expect(within(globalAliases()).getByText("29 / 30")).toBeInTheDocument();
-    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я…" })).toBeEnabled();
+    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я" })).toBeEnabled();
+  });
+
+  it("hides adding once a new name fills the last slot and moves focus to that name", async () => {
+    serveAliases(numberedAliases(29));
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк{Enter}");
+
+    expect(within(globalAliases()).getByText("30 / 30")).toBeInTheDocument();
+    expect(
+      within(globalAliases()).queryByRole("button", { name: "Додати ім’я" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(globalAliases()).getByRole("button", { name: "Змінити ім’я «Білий Вовк» (Інше)" }),
+    ).toHaveFocus();
   });
 
   it("marks a saved name as soon as the main name repeats it and clears it once the name changes back", async () => {
-    serveGlobalAliases([{ name: "Вовк", type: "nickname" }]);
+    serveAliases([{ name: "Вовк", type: "nickname" }]);
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
@@ -653,7 +748,7 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("keeps the typed draft when an earlier name is removed during editing", async () => {
-    serveGlobalAliases([
+    serveAliases([
       { name: "Білий Вовк", type: "nickname" },
       { name: "Різник", type: "other" },
       { name: "Ґвинблейдд", type: "other" },
@@ -675,8 +770,9 @@ describe("CharacterEditPage aliases", () => {
     expect(
       within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
     ).toHaveValue("Ґвинблейдд з Рівії");
+    expect(aliasEditor("Редагування: Ґвинблейдд")).toBeInTheDocument();
 
-    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Готово" }));
+    await userEvent.click(within(globalAliases()).getByRole("button", { name: "Застосувати" }));
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(globalPatchBody()).toBeDefined());
@@ -687,7 +783,7 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("moves focus into the open add editor when the last name is removed", async () => {
-    serveGlobalAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
@@ -700,24 +796,798 @@ describe("CharacterEditPage aliases", () => {
   });
 
   it("still saves a scope that already holds more names than the limit", async () => {
-    serveGlobalAliases(
-      Array.from({ length: 32 }, (_unused, index) => ({
-        name: `Ім’я ${index + 1}`,
-        type: "other" as const,
-      })),
-    );
+    serveAliases(numberedAliases(32));
     renderEdit();
 
     await screen.findByDisplayValue("Ґеральт");
 
     expect(within(globalAliases()).getByText("32 / 30")).toBeInTheDocument();
-    expect(within(globalAliases()).getByRole("button", { name: "Додати ім’я…" })).toBeDisabled();
+    expect(
+      within(globalAliases()).queryByRole("button", { name: "Додати ім’я" }),
+    ).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(globalPatchBody()).toBeDefined());
     expect(globalPatchBody()).toHaveProperty("name", "Ґеральт із Рівії");
+  });
+
+  it("edits a name in a scope over the limit and saves every name", async () => {
+    serveAliases(numberedAliases(32));
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", { name: "Змінити ім’я «Ім’я 32» (Інше)" }),
+    );
+    await userEvent.type(
+      within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+      " з Рівії{Enter}",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(globalPatchBody()).toBeDefined());
+    const aliases = globalPatchBody()?.aliases;
+    expect(aliases).toHaveLength(32);
+    expect(aliases).toContainEqual({
+      isSpoiler: false,
+      name: "Ім’я 32 з Рівії",
+      position: 31,
+      type: "other",
+    });
+  });
+
+  it("says that a group has no names yet", async () => {
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(within(bookAliases()).getByText("Імена ще не додані")).toBeInTheDocument();
+    expect(within(globalAliases()).queryByText("Імена ще не додані")).not.toBeInTheDocument();
+  });
+
+  it("puts the edit, spoiler and remove actions on each name in that order, before the add button", async () => {
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const [edit, spoiler, remove, add, ...rest] = within(globalAliases()).getAllByRole("button");
+
+    expect(edit).toHaveAccessibleName("Змінити ім’я «Білий Вовк» (Прізвисько)");
+    expect(spoiler).toHaveAccessibleName("Позначити ім’я «Білий Вовк» як спойлер");
+    expect(remove).toHaveAccessibleName("Прибрати ім’я «Білий Вовк»");
+    expect(add).toHaveAccessibleName("Додати ім’я");
+    expect(rest).toEqual([]);
+  });
+
+  it("explains the edit action of a name in a tooltip", async () => {
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.hover(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Змінити ім’я");
+  });
+
+  it("keeps the edited name visible and highlighted above its editor until editing ends", async () => {
+    serveAliases([
+      { name: "Білий Вовк", type: "nickname" },
+      { name: "Різник", type: "other" },
+    ]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const edit = within(globalAliases()).getByRole("button", {
+      name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+    });
+    await userEvent.click(edit);
+
+    const editor = aliasEditor("Редагування: Білий Вовк");
+    const otherEdit = within(globalAliases()).getByRole("button", {
+      name: "Змінити ім’я «Різник» (Інше)",
+    });
+    expect(edit).toBeInTheDocument();
+    expect(edit.closest("[data-active]")).not.toBeNull();
+    expect(otherEdit.closest("[data-active]")).toBeNull();
+    expect(edit.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(edit.closest("[data-active]")).toBeNull();
+  });
+
+  it("titles the edit form with the original name and its scope while the name is retyped", async () => {
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+    await userEvent.type(
+      within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+      " із Рівії",
+    );
+
+    const editor = aliasEditor("Редагування: Білий Вовк");
+    expect(globalAliases()).toContainElement(editor);
+    expect(within(editor).getByText("Для всіх книг")).toBeInTheDocument();
+  });
+
+  it("titles the add form of the book group with the book scope", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await openAliasEditor(bookAliases());
+
+    const editor = aliasEditor("Додавання імені");
+    expect(bookAliases()).toContainElement(editor);
+    expect(within(editor).getByText("Лише в цій книзі")).toBeInTheDocument();
+  });
+
+  it("ignores Enter and Escape that only finish an input method composition", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    const input = await openAliasEditor(globalAliases());
+    await userEvent.type(input, "Ґвинблейдд");
+    fireEvent.keyDown(input, { isComposing: true, key: "Enter" });
+    fireEvent.keyDown(input, { key: "Escape", keyCode: 229 });
+
+    expect(
+      within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).toHaveValue("Ґвинблейдд");
+    expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
+
+    await userEvent.keyboard("{Enter}");
+
+    expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+  });
+
+  it("switches from an unchanged editor in one group to adding in the other at once", async () => {
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+    await openAliasEditor(bookAliases());
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("textbox", { name: "Альтернативне ім’я" })).toHaveLength(1);
+    expect(bookAliases()).toContainElement(aliasEditor("Додавання імені"));
+  });
+
+  it("switches from an add editor holding only a chosen type without asking", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await openAliasEditor(globalAliases());
+    await userEvent.click(within(globalAliases()).getByRole("combobox", { name: "Тип імені" }));
+    await userEvent.click(await screen.findByRole("option", { name: "Титул" }));
+    await openAliasEditor(bookAliases());
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("textbox", { name: "Альтернативне ім’я" })).toHaveLength(1);
+    expect(bookAliases()).toContainElement(aliasEditor("Додавання імені"));
+  });
+
+  it("asks before dropping a changed draft for another name and keeps the draft and focus on refusal", async () => {
+    serveAliases([
+      { name: "Білий Вовк", type: "nickname" },
+      { bookId: "book-1", name: "Різник", type: "other" },
+    ]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+    await userEvent.type(
+      within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+      " із Рівії",
+    );
+    await userEvent.click(
+      within(bookAliases()).getByRole("button", { name: "Змінити ім’я «Різник» (Інше)" }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog", { name: "Відхилити зміни в імені?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Продовжити редагування" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    const input = within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" });
+    expect(input).toHaveValue("Білий Вовк із Рівії");
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(
+      within(bookAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("drops the changed draft and opens the other name once the user agrees", async () => {
+    serveAliases([
+      { name: "Білий Вовк", type: "nickname" },
+      { bookId: "book-1", name: "Різник", type: "other" },
+    ]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+    await userEvent.type(
+      within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+      " із Рівії",
+    );
+    await userEvent.click(
+      within(bookAliases()).getByRole("button", { name: "Змінити ім’я «Різник» (Інше)" }),
+    );
+    const dialog = await screen.findByRole("alertdialog", { name: "Відхилити зміни в імені?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Відхилити зміни" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(bookAliases()).toContainElement(aliasEditor("Редагування: Різник"));
+    expect(
+      within(globalAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+  });
+
+  it("asks before removing the name whose changed draft is open", async () => {
+    serveAliases([
+      { name: "Білий Вовк", type: "nickname" },
+      { name: "Різник", type: "other" },
+    ]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+    await userEvent.type(
+      within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+      " із Рівії",
+    );
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", { name: "Прибрати ім’я «Білий Вовк»" }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog", { name: "Відхилити зміни в імені?" });
+    expect(toastMock).not.toHaveBeenCalled();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Відхилити зміни" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+    expect(
+      within(globalAliases()).queryByRole("textbox", { name: "Альтернативне ім’я" }),
+    ).not.toBeInTheDocument();
+    expect(toastMock).toHaveBeenLastCalledWith("Ім’я «Білий Вовк» прибрано", expect.anything());
+  });
+
+  it("keeps the eye of the edited name and the spoiler checkbox on one draft that Cancel throws away", async () => {
+    serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+      }),
+    );
+    await userEvent.click(
+      within(globalAliases()).getByRole("button", {
+        name: "Позначити ім’я «Білий Вовк» як спойлер",
+      }),
+    );
+
+    const checkbox = within(globalAliases()).getByRole("checkbox", {
+      name: "Це ім’я містить спойлер",
+    });
+    expect(checkbox).toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    expect(checkbox).not.toBeChecked();
+    expect(
+      within(globalAliases()).getByRole("button", {
+        name: "Позначити ім’я «Білий Вовк» як спойлер",
+      }),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(checkbox);
+
+    expect(
+      within(globalAliases()).getByRole("button", {
+        name: "Прибрати позначку спойлера з імені «Білий Вовк»",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(
+      within(aliasEditor("Редагування: Білий Вовк")).getByRole("button", { name: "Скасувати" }),
+    );
+
+    expect(
+      within(globalAliases()).getByRole("button", {
+        name: "Позначити ім’я «Білий Вовк» як спойлер",
+      }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+  });
+
+  describe("undoing a removal", () => {
+    const EXPIRED = "Це видалення вже не можна скасувати";
+
+    function holdPatches(): () => void {
+      const serve = fetchMock.getMockImplementation();
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        const respond = () => serve?.(input, init);
+        return (init?.method ?? "GET").toUpperCase() === "PATCH" ? gate.then(respond) : respond();
+      });
+      return () => release();
+    }
+
+    async function removeAlias(group: HTMLElement, name: string) {
+      await userEvent.click(within(group).getByRole("button", { name: `Прибрати ім’я «${name}»` }));
+    }
+
+    it("offers to undo a removal in a toast without sending anything", async () => {
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+
+      expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
+      expect(toastMock).toHaveBeenLastCalledWith("Ім’я «Білий Вовк» прибрано", {
+        action: { label: "Скасувати", onClick: expect.any(Function) },
+        id: "character-alias-undo",
+      });
+      expect(patchCount()).toBe(0);
+    });
+
+    it("restores a removed book name with its type and spoiler mark in its original place", async () => {
+      serveAliases([
+        { name: "Різник", type: "other" },
+        { bookId: "book-1", name: "Ґвинблейдд", type: "other" },
+        { bookId: "book-1", isSpoiler: true, name: "Різник із Блавікену", type: "title" },
+        { bookId: "book-1", name: "Вовк", type: "nickname" },
+      ]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(bookAliases(), "Різник із Блавікену");
+      undo(lastUndo());
+
+      const editButtons = within(bookAliases()).getAllByRole("button", { name: /^Змінити ім’я/ });
+      expect(editButtons).toHaveLength(3);
+      expect(editButtons[1]).toHaveAccessibleName("Змінити ім’я «Різник із Блавікену» (Титул)");
+      expect(editButtons[1]).toHaveFocus();
+      expect(
+        within(bookAliases()).getByRole("button", {
+          name: "Прибрати позначку спойлера з імені «Різник із Блавікену»",
+        }),
+      ).toHaveAttribute("aria-pressed", "true");
+      expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    });
+
+    it("keeps an edit made after the removal when the removal is undone", async () => {
+      serveAliases([
+        { name: "Білий Вовк", type: "nickname" },
+        { name: "Різник", type: "other" },
+        { name: "Ґвинблейдд", type: "other" },
+      ]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restore = lastUndo();
+      await userEvent.click(
+        within(globalAliases()).getByRole("button", { name: "Змінити ім’я «Ґвинблейдд» (Інше)" }),
+      );
+      await userEvent.type(
+        within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+        " з Рівії{Enter}",
+      );
+      undo(restore);
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      await waitFor(() => expect(globalPatchBody()).toBeDefined());
+      expect(globalPatchBody()).toHaveProperty("aliases", [
+        { isSpoiler: false, name: "Білий Вовк", position: 0, type: "nickname" },
+        { isSpoiler: false, name: "Різник", position: 1, type: "other" },
+        { isSpoiler: false, name: "Ґвинблейдд з Рівії", position: 2, type: "other" },
+      ]);
+    });
+
+    it("lets only the latest removal be undone", async () => {
+      serveAliases([
+        { name: "Білий Вовк", type: "nickname" },
+        { name: "Різник", type: "other" },
+        { name: "Ґвинблейдд", type: "other" },
+      ]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restoreFirst = lastUndo();
+      await removeAlias(globalAliases(), "Різник");
+      const restoreSecond = lastUndo();
+
+      undo(restoreFirst);
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(EXPIRED);
+      expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+
+      undo(restoreSecond);
+
+      expect(within(globalAliases()).getByText("2 / 30")).toBeInTheDocument();
+      expect(
+        within(globalAliases()).queryByRole("button", {
+          name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+        }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(globalAliases()).getByRole("button", { name: "Змінити ім’я «Різник» (Інше)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("refuses to undo a removal that would repeat a name added since", async () => {
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restore = lastUndo();
+      await userEvent.type(await openAliasEditor(globalAliases()), "білий вовк");
+      await userEvent.click(within(globalAliases()).getByRole("combobox", { name: "Тип імені" }));
+      await userEvent.click(await screen.findByRole("option", { name: "Прізвисько" }));
+      await userEvent.click(within(globalAliases()).getByRole("button", { name: "Додати ім’я" }));
+
+      expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+
+      undo(restore);
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(
+        "Не вдалося повернути «Білий Вовк»: таке ім’я з цим типом уже є",
+      );
+      expect(within(globalAliases()).getByText("1 / 30")).toBeInTheDocument();
+    });
+
+    it("refuses to undo a removal once a new name has taken the last slot", async () => {
+      serveAliases(numberedAliases(30));
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Ім’я 30");
+      const restore = lastUndo();
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк{Enter}");
+      undo(restore);
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(
+        "Не вдалося повернути «Ім’я 30»: ліміт імен вичерпано",
+      );
+      expect(within(globalAliases()).getByText("30 / 30")).toBeInTheDocument();
+    });
+
+    it("restores a removed name into a scope that was already over the limit", async () => {
+      serveAliases(numberedAliases(32));
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Ім’я 5");
+
+      expect(within(globalAliases()).getByText("31 / 30")).toBeInTheDocument();
+
+      undo(lastUndo());
+
+      expect(within(globalAliases()).getByText("32 / 30")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    });
+
+    it("refuses to undo a removal once it is saved", async () => {
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restore = lastUndo();
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+      await waitFor(() => expect(push).toHaveBeenCalled());
+
+      undo(restore);
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(EXPIRED);
+      expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
+    });
+
+    it("refuses to undo a global removal once only the global update is saved", async () => {
+      bookPatchStatus = 500;
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restore = lastUndo();
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+      await waitFor(() => expect(patchCount()).toBe(2));
+      await waitFor(() => expect(toastMock.error).toHaveBeenCalled());
+
+      undo(restore);
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(EXPIRED);
+      expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
+    });
+
+    it("still undoes a book removal when only the global update is saved", async () => {
+      bookPatchStatus = 500;
+      serveAliases([{ bookId: "book-1", name: "Різник", type: "other" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+      await removeAlias(bookAliases(), "Різник");
+      const restore = lastUndo();
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+      await waitFor(() => expect(patchCount()).toBe(2));
+      await waitFor(() => expect(toastMock.error).toHaveBeenCalled());
+
+      undo(restore);
+
+      expect(toastMock.warning).not.toHaveBeenCalledWith(EXPIRED);
+      expect(within(bookAliases()).getByText("1 / 30")).toBeInTheDocument();
+      expect(
+        within(bookAliases()).getByRole("button", { name: "Змінити ім’я «Різник» (Інше)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("refuses to undo a removal while the form is saving", async () => {
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      const release = holdPatches();
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restore = lastUndo();
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+      await waitFor(() => expect(patchCount()).toBe(1));
+
+      undo(restore);
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(EXPIRED);
+      expect(within(globalAliases()).getByText("0 / 30")).toBeInTheDocument();
+
+      release();
+      await waitFor(() => expect(push).toHaveBeenCalled());
+    });
+
+    it("refuses to undo a removal once the page is gone", async () => {
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      const { unmount } = renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await removeAlias(globalAliases(), "Білий Вовк");
+      const restore = lastUndo();
+      unmount();
+
+      restore();
+
+      expect(toastMock.warning).toHaveBeenLastCalledWith(EXPIRED);
+    });
+  });
+
+  describe("with an unapplied name draft", () => {
+    const SAVE_BLOCKED = "Застосуйте або скасуйте зміни в імені, щоб зберегти персонажа.";
+
+    function pageCancelButton(): HTMLElement {
+      const button = screen
+        .getAllByRole("button", { name: "Скасувати" })
+        .find((candidate) => !editCard("Інші імена").contains(candidate));
+      if (button === undefined) throw new Error("expected the page cancel button");
+      return button;
+    }
+
+    function unloadIsWarned(): boolean {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    }
+
+    it("enables Save for the draft alone and explains in the editor instead of saving", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк");
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      const input = within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" });
+      expect(input).toHaveAccessibleDescription(SAVE_BLOCKED);
+      expect(input).toHaveFocus();
+      expect(patchCount()).toBe(0);
+    });
+
+    it("sends nothing while a draft is unapplied even though the other changes are valid", async () => {
+      serveAliases([{ bookId: "book-1", name: "Різник", type: "other" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+      await userEvent.click(
+        within(bookAliases()).getByRole("button", { name: "Змінити ім’я «Різник» (Інше)" }),
+      );
+      await userEvent.type(
+        within(bookAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+        " із Блавікену",
+      );
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      expect(within(bookAliases()).getByText(SAVE_BLOCKED)).toBeInTheDocument();
+      expect(patchCount()).toBe(0);
+    });
+
+    it("points at the draft rather than an invalid field when Save is pressed", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.clear(screen.getByRole("textbox", { name: /Ім’я/ }));
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк");
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      expect(
+        within(globalAliases()).getByRole("textbox", { name: "Альтернативне ім’я" }),
+      ).toHaveFocus();
+      expect(within(globalAliases()).getByText(SAVE_BLOCKED)).toBeInTheDocument();
+      expect(patchCount()).toBe(0);
+    });
+
+    it("saves normally once the blocked draft is added", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк");
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+      await userEvent.click(
+        within(aliasEditor("Додавання імені")).getByRole("button", { name: "Додати ім’я" }),
+      );
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      await waitFor(() => expect(globalPatchBody()).toBeDefined());
+      expect(globalPatchBody()).toHaveProperty("aliases", [
+        { isSpoiler: false, name: "Білий Вовк", position: 0, type: "other" },
+      ]);
+    });
+
+    it("lets an open but unchanged editor stay out of the way of a normal save", async () => {
+      serveAliases([{ name: "Білий Вовк", type: "nickname" }]);
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+      await userEvent.click(
+        within(globalAliases()).getByRole("button", {
+          name: "Змінити ім’я «Білий Вовк» (Прізвисько)",
+        }),
+      );
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      await waitFor(() => expect(globalPatchBody()).toBeDefined());
+      expect(globalPatchBody()).toHaveProperty("name", "Ґеральт із Рівії");
+      expect(screen.queryByText(SAVE_BLOCKED)).not.toBeInTheDocument();
+    });
+
+    it("asks before leaving when only the draft has changes", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк");
+      await userEvent.click(pageCancelButton());
+
+      expect(
+        await screen.findByRole("alertdialog", { name: "Відхилити зміни?" }),
+      ).toBeInTheDocument();
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it("leaves without asking while the open add editor is still empty", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await openAliasEditor(globalAliases());
+      await userEvent.click(pageCancelButton());
+
+      expect(push).toHaveBeenCalledWith("/characters/char-1?bookId=book-1");
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    });
+
+    it("treats an add editor without a name as empty even with a type and spoiler chosen", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await openAliasEditor(globalAliases());
+      await userEvent.click(within(globalAliases()).getByRole("combobox", { name: "Тип імені" }));
+      await userEvent.click(await screen.findByRole("option", { name: "Титул" }));
+      await userEvent.click(
+        within(globalAliases()).getByRole("checkbox", { name: "Це ім’я містить спойлер" }),
+      );
+
+      expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+      expect(unloadIsWarned()).toBe(false);
+
+      await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      await waitFor(() => expect(globalPatchBody()).toBeDefined());
+      expect(globalPatchBody()).toHaveProperty("name", "Ґеральт із Рівії");
+      expect(screen.queryByText(SAVE_BLOCKED)).not.toBeInTheDocument();
+    });
+
+    it("warns before the page unloads only while the draft has changes", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      const input = await openAliasEditor(globalAliases());
+
+      expect(unloadIsWarned()).toBe(false);
+
+      await userEvent.type(input, "Білий Вовк");
+
+      expect(unloadIsWarned()).toBe(true);
+
+      await userEvent.keyboard("{Escape}");
+
+      expect(unloadIsWarned()).toBe(false);
+    });
+
+    it("stops warning before unload once leaving is confirmed", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк");
+      await userEvent.click(pageCancelButton());
+      const dialog = await screen.findByRole("alertdialog", { name: "Відхилити зміни?" });
+      await userEvent.click(within(dialog).getByRole("button", { name: "Так, вийти" }));
+
+      expect(push).toHaveBeenCalledWith("/characters/char-1?bookId=book-1");
+      expect(unloadIsWarned()).toBe(false);
+    });
+
+    it("stops warning before unload once the page is gone", async () => {
+      const { unmount } = renderEdit();
+
+      await screen.findByDisplayValue("Ґеральт");
+      await userEvent.type(await openAliasEditor(globalAliases()), "Білий Вовк");
+      unmount();
+
+      expect(unloadIsWarned()).toBe(false);
+    });
   });
 });
 
@@ -1013,6 +1883,7 @@ describe("CharacterEditPage layout by mode", () => {
           ["textbox", "Ім’я"],
           ["combobox", "Важливість"],
           ["combobox", "Статус"],
+          ["combobox", "Ролі"],
         ],
       },
       {
