@@ -7909,6 +7909,7 @@
       "favorite": "Додати в улюблені",
       "hiddenFields": "Приховані поля: {count}",
       "menu": "Дії з персонажем",
+      "moreRoles": "Інші ролі: {count}",
       "pov": "POV",
       "unfavorite": "Прибрати з улюблених",
       "unlink": "Прибрати з цієї книги"
@@ -8163,8 +8164,8 @@
       "third_person_omniscient": "Оповідач знає думки та події поза перспективою одного персонажа."
     },
     "noResults": {
-      "clear": "Очистити пошук",
-      "description": "Спробуйте змінити запит.",
+      "clear": "Скинути пошук і фільтри",
+      "description": "Спробуйте змінити запит або фільтри.",
       "title": "Нічого не знайдено"
     },
     "page": {
@@ -8352,9 +8353,15 @@
     },
     "toolbar": {
       "add": "Додати персонажа",
+      "clearFilters": "Скинути фільтри",
+      "favoritesOnly": "Улюблені",
+      "filtersLabel": "Фільтри персонажів",
+      "importance": "Важливість",
+      "povOnly": "POV",
       "searchClear": "Очистити пошук",
       "searchLabel": "Пошук персонажів",
       "searchPlaceholder": "Пошук у цій книзі...",
+      "selectedCount": "Вибрано: {count}",
       "sortLabel": "Сортування"
     },
     "unlink": {

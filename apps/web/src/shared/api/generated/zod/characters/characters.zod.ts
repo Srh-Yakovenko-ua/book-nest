@@ -4361,10 +4361,22 @@ export const BookCharactersControllerListQueryParams = zod.object({
     .min(1)
     .max(bookCharactersControllerListQueryPageSizeMax)
     .default(bookCharactersControllerListQueryPageSizeDefault),
+  favoritesOnly: zod.enum(["true", "false"]).optional(),
+  importance: zod
+    .array(zod.enum(["central", "major", "supporting", "episodic", "mentioned", "not_specified"]))
+    .optional()
+    .describe("Comma-separated or repeated importance values, matched with OR"),
+  povOnly: zod.enum(["true", "false"]).optional(),
   search: zod.string().max(bookCharactersControllerListQuerySearchMax).optional(),
   sort: zod.enum(["importance", "manual", "name"]).optional(),
 });
 
+export const bookCharactersControllerListResponseItemsItemRolesItemPositionMin = -9007199254740991;
+export const bookCharactersControllerListResponseItemsItemRolesItemPositionMax = 9007199254740991;
+
+export const bookCharactersControllerListResponseItemsItemSpeciesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const bookCharactersControllerListResponsePageMin = -9007199254740991;
 export const bookCharactersControllerListResponsePageMax = 9007199254740991;
 
@@ -4442,6 +4454,39 @@ export const BookCharactersControllerListResponse = zod.object({
           zod.literal(null),
         ])
         .nullable(),
+      descriptionPreview: zod.string().nullable(),
+      roles: zod.array(
+        zod.object({
+          customRole: zod.string().nullable(),
+          id: zod.string(),
+          isSpoiler: zod.boolean(),
+          position: zod
+            .int()
+            .min(bookCharactersControllerListResponseItemsItemRolesItemPositionMin)
+            .max(bookCharactersControllerListResponseItemsItemRolesItemPositionMax),
+          roleType: zod.enum([
+            "protagonist",
+            "deuteragonist",
+            "antagonist",
+            "love_interest",
+            "supporting",
+            "episodic",
+            "mentioned",
+            "custom",
+          ]),
+        }),
+      ),
+      species: zod
+        .object({
+          id: zod.uuid().regex(bookCharactersControllerListResponseItemsItemSpeciesIdRegExp),
+          key: zod.string().nullable(),
+          labels: zod.object({
+            en: zod.string(),
+            uk: zod.string(),
+          }),
+        })
+        .nullable(),
+      statusCustomText: zod.string().nullable(),
     }),
   ),
   page: zod

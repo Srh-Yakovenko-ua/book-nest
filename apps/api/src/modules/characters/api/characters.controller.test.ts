@@ -322,8 +322,8 @@ describe("spoiler redaction", () => {
     const item = roster.body.items[0];
     expect(item.displayName).toBeNull();
     expect(item.status).toBeNull();
-    expect(item.hiddenFields).toEqual(expect.arrayContaining(["displayName", "status"]));
-    expect(item.hiddenFields).not.toContain("description");
+    expect(item.hiddenFields).toEqual(["description", "displayName", "status"]);
+    expect(item.descriptionPreview).toBeNull();
     expect(JSON.stringify(item)).not.toContain("Muad'Dib");
     expect(JSON.stringify(item)).not.toContain("Kwisatz Haderach");
 

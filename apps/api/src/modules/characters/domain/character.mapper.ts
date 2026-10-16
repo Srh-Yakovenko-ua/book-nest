@@ -523,6 +523,16 @@ export function toMaskedBookCharacterView({
   };
 }
 
+export function toRoleView(role: CharacterRoleSource): BookCharacterView["roles"][number] {
+  return {
+    customRole: emptyToNull(role.customRole),
+    id: role.id,
+    isSpoiler: role.isSpoiler,
+    position: role.position,
+    roleType: BookCharacterRoleTypeSchema.parse(role.roleType),
+  };
+}
+
 function attachArcChangeMarkers(points: SeriesAppearancePoint[]): SeriesCharacterAppearanceView[] {
   return points.map((point, index) => {
     const previous = points[index - 1];
@@ -600,16 +610,6 @@ function toAliasView(alias: CharacterAliasSource): CharacterDetailsView["aliases
     name: alias.name,
     position: alias.position,
     type: CharacterAliasTypeSchema.parse(alias.type),
-  };
-}
-
-function toRoleView(role: CharacterRoleSource): BookCharacterView["roles"][number] {
-  return {
-    customRole: emptyToNull(role.customRole),
-    id: role.id,
-    isSpoiler: role.isSpoiler,
-    position: role.position,
-    roleType: BookCharacterRoleTypeSchema.parse(role.roleType),
   };
 }
 

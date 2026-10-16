@@ -1,4 +1,5 @@
 import type {
+  BookCharacterRosterItem,
   BookCharacterView,
   CharacterAppearanceBook,
   CharacterDetailsView,
@@ -18,10 +19,12 @@ import type { VisibleForms } from "../domain/visible-forms.js";
 import type {
   CharacterDetailsRow,
   CharacterGlobalSummaryRow,
-  RosterRow,
+  RosterPageRow,
+  RosterSummaryRow,
 } from "../infrastructure/characters.repository.js";
 
 import { MediaService } from "../../media/index.js";
+import { toBookCharacterRosterItem } from "../domain/book-character-roster-item.js";
 import {
   toBookCharacterView,
   toCharacterDetailsView,
@@ -78,7 +81,16 @@ export class CharacterViewMapper {
     });
   }
 
-  toSummaryView(row: RosterRow): CharacterSummaryView {
+  toRosterItem(row: RosterPageRow): BookCharacterRosterItem {
+    return toBookCharacterRosterItem({
+      appearance: row,
+      avatar: this.mediaViewOf(row.character.avatarMedia),
+      character: row.character,
+      portrait: this.mediaViewOf(row.portraitMedia),
+    });
+  }
+
+  toSummaryView(row: RosterSummaryRow): CharacterSummaryView {
     return toCharacterSummaryView({
       appearance: row,
       avatar: this.mediaViewOf(row.character.avatarMedia),

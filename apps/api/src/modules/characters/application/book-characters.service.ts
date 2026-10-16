@@ -1,12 +1,12 @@
 import type {
   BookCharacterDetailsQuery,
+  BookCharacterRosterItem,
   BookCharactersQuery,
   BookCharacterSummaryQuery,
   BookCharacterSummaryView,
   CharacterDetailsView,
   CharacterSuggestionsQuery,
   CharacterSuggestionsView,
-  CharacterSummaryView,
   CreateCharacterInBook,
   Nullable,
   Paginator,
@@ -206,10 +206,18 @@ export class BookCharactersService {
     bookId: string;
     query: BookCharactersQuery;
     userId: string;
-  }): Promise<Paginator<CharacterSummaryView>> {
+  }): Promise<Paginator<BookCharacterRosterItem>> {
     await this.accessAsserter.assertBookOwned({ bookId, userId });
     const visibility = await this.resolveRosterVisibility({ bookId, query, userId });
-    const filter = { bookId, search: normalizeSearch(query.search), userId, visibility };
+    const filter = {
+      bookId,
+      favoritesOnly: query.favoritesOnly ?? false,
+      importance: [...new Set(query.importance)],
+      povOnly: query.povOnly ?? false,
+      search: normalizeSearch(query.search),
+      userId,
+      visibility,
+    };
 
     const [items, totalCount] = await Promise.all([
       this.charactersRepository.listRoster({
@@ -221,7 +229,7 @@ export class BookCharactersService {
     ]);
 
     return buildPaginator({
-      items: items.map((row) => this.viewMapper.toSummaryView(row)),
+      items: items.map((row) => this.viewMapper.toRosterItem(row)),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount,

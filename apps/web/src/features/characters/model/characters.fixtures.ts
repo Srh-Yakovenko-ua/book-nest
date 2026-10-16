@@ -1,11 +1,11 @@
 import type {
+  BookCharacterRosterItem,
   BookCharacterSummaryView,
   BookCharacterView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
   CharacterDetailsView,
   CharacterGlobalSummaryView,
-  CharacterSummaryView,
   SpeciesRefView,
 } from "@app/shared";
 
@@ -23,7 +23,7 @@ export const SPECIES_REFS = {
 } as const satisfies Record<string, SpeciesRefView>;
 
 type CharacterSummaryPage = {
-  items: CharacterSummaryView[];
+  items: BookCharacterRosterItem[];
   page: number;
   pagesCount: number;
   pageSize: number;
@@ -135,11 +135,12 @@ export function makeCharacterGlobalSummary(
 }
 
 export function makeCharacterSummary(
-  overrides: Partial<CharacterSummaryView> = {},
-): CharacterSummaryView {
+  overrides: Partial<BookCharacterRosterItem> = {},
+): BookCharacterRosterItem {
   return {
     avatar: null,
     characterId: "char-1",
+    descriptionPreview: null,
     displayName: null,
     entityKind: "individual",
     hiddenFields: [],
@@ -149,13 +150,16 @@ export function makeCharacterSummary(
     isPovCharacter: false,
     name: "Ґеральт",
     portrait: null,
+    roles: [],
+    species: null,
     status: null,
+    statusCustomText: null,
     ...overrides,
   };
 }
 
 export function makeCharacterSummaryPage(
-  items: CharacterSummaryView[],
+  items: BookCharacterRosterItem[],
   overrides: Partial<CharacterSummaryPage> = {},
 ): CharacterSummaryPage {
   return {

@@ -372,6 +372,9 @@ export type ReadingContextQuery = z.infer<typeof ReadingContextQuerySchema>;
 
 export const BookCharactersQuerySchema = ReadingContextQuerySchema.extend({
   ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
+  favoritesOnly: z.stringbool().optional(),
+  importance: queryStringArray(BookCharacterImportanceSchema),
+  povOnly: z.stringbool().optional(),
   search: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   sort: BookCharactersSortSchema.default("manual"),
 });
@@ -420,13 +423,15 @@ export const CharacterAliasViewSchema = z.object({
 
 export type CharacterAliasView = z.infer<typeof CharacterAliasViewSchema>;
 
-const BookCharacterRoleViewSchema = z.object({
+export const BookCharacterRoleViewSchema = z.object({
   customRole: z.string().nullable(),
   id: z.string(),
   isSpoiler: z.boolean(),
   position: z.number().int(),
   roleType: BookCharacterRoleTypeSchema,
 });
+
+export type BookCharacterRoleView = z.infer<typeof BookCharacterRoleViewSchema>;
 
 export const CharacterAppearanceBookSchema = z.object({
   cover: MediaViewSchema.nullable(),
@@ -544,6 +549,19 @@ export const CharacterSummaryViewSchema = z.object({
 export type CharacterSummaryView = z.infer<typeof CharacterSummaryViewSchema>;
 
 export const PaginatedCharacterSummarySchema = createPaginatedSchema(CharacterSummaryViewSchema);
+
+export const BookCharacterRosterItemSchema = CharacterSummaryViewSchema.extend({
+  descriptionPreview: z.string().nullable(),
+  roles: z.array(BookCharacterRoleViewSchema),
+  species: SpeciesRefViewSchema.nullable(),
+  statusCustomText: z.string().nullable(),
+});
+
+export type BookCharacterRosterItem = z.infer<typeof BookCharacterRosterItemSchema>;
+
+export const PaginatedBookCharacterRosterSchema = createPaginatedSchema(
+  BookCharacterRosterItemSchema,
+);
 
 export const SeriesCharacterAppearanceViewSchema = z.object({
   attitude: CharacterAttitudeSchema.nullable(),
