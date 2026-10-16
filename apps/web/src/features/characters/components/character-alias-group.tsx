@@ -22,6 +22,7 @@ import {
 } from "../model/character-aliases";
 import { CharacterAliasChip } from "./character-alias-chip";
 import { CharacterAliasEditor } from "./character-alias-editor";
+import { CharacterScopeBadge } from "./character-scope-badge";
 
 type AliasEditorState =
   { index: number; mode: "edit" } | { mode: "add"; session: number } | { mode: "closed" };
@@ -176,9 +177,12 @@ export function CharacterAliasGroup({
   return (
     <div aria-labelledby={titleId} className="flex flex-col gap-2" role="group">
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-ink" id={titleId}>
-          {t(copy.title)}
-        </h3>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="min-w-0 text-sm font-semibold text-ink" id={titleId}>
+            {t(copy.title)}
+          </h3>
+          <CharacterScopeBadge scope={scope} />
+        </div>
         <p className="text-xs text-muted-foreground">{t(copy.description)}</p>
       </div>
 

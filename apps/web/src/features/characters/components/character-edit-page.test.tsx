@@ -283,8 +283,8 @@ describe("CharacterEditPage without a book context", () => {
 
     await screen.findByDisplayValue("Ґеральт");
 
-    expect(screen.queryByRole("heading", { name: "У цій книзі" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Про персонажа" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Описи в цій книзі" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Основне про персонажа" })).toBeInTheDocument();
   });
 
   it("asks for no custom roles or statuses, since no book section needs them", async () => {
@@ -932,8 +932,34 @@ describe("CharacterEditPage spoilers", () => {
   });
 });
 
+function editCard(title: string): HTMLElement {
+  const card = screen.getByRole("heading", { level: 2, name: title }).closest("section");
+  if (!(card instanceof HTMLElement)) throw new Error(`expected a card titled ${title}`);
+  return card;
+}
+
+function groupTitles(card: string): string[] {
+  return within(editCard(card))
+    .getAllByRole("heading", { level: 3 })
+    .map((heading) => heading.textContent ?? "");
+}
+
 function previewRegion(): HTMLElement {
   return screen.getByRole("region", { name: "Попередній перегляд" });
+}
+
+function scopeChips(card: string): string[] {
+  return within(editCard(card))
+    .queryAllByText(/^(Ця книга|Усі книги)$/)
+    .map((chip) => chip.textContent ?? "");
+}
+
+function sectionTitles(): string[] {
+  const sidePanels = [imagesPanel(), previewRegion()];
+  return screen
+    .getAllByRole("heading", { level: 2 })
+    .filter((heading) => !sidePanels.some((panel) => panel.contains(heading)))
+    .map((heading) => heading.textContent ?? "");
 }
 
 describe("CharacterEditPage layout by mode", () => {
@@ -942,20 +968,85 @@ describe("CharacterEditPage layout by mode", () => {
 
     await screen.findByDisplayValue("Ґеральт");
 
-    const sectionTitles = [
-      "У цій книзі",
+    expect(sectionTitles()).toEqual([
+      "Основне про персонажа",
+      "Описи в цій книзі",
       "Роль у розповіді",
-      "Про персонажа",
-      "Лише для цієї книги",
+      "Моє ставлення та враження",
       "Інші імена",
       "Спойлери",
-    ];
-    const renderedTitles = screen
-      .getAllByRole("heading", { level: 2 })
-      .map((heading) => heading.textContent ?? "")
-      .filter((title) => sectionTitles.includes(title));
+    ]);
+    expect(groupTitles("Основне про персонажа")).toEqual([
+      "Загальна інформація",
+      "Особливості в цій книзі",
+    ]);
+    expect(groupTitles("Роль у розповіді")).toEqual(["Перша поява", "Перспектива та оповідь"]);
+    expect(groupTitles("Моє ставлення та враження")).toEqual([
+      "Загальне ставлення",
+      "Враження від цієї книги",
+    ]);
+    expect(groupTitles("Інші імена")).toEqual(["Альтернативні імена", "Інші імена в цій книзі"]);
+  });
 
-    expect(renderedTitles).toEqual(sectionTitles);
+  it("marks each card or group with the scope it edits", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    expect(scopeChips("Основне про персонажа")).toEqual(["Усі книги", "Ця книга"]);
+    expect(scopeChips("Описи в цій книзі")).toEqual(["Ця книга"]);
+    expect(scopeChips("Роль у розповіді")).toEqual(["Ця книга"]);
+    expect(scopeChips("Моє ставлення та враження")).toEqual(["Усі книги", "Ця книга"]);
+    expect(scopeChips("Інші імена")).toEqual(["Усі книги", "Ця книга"]);
+    expect(scopeChips("Спойлери")).toEqual(["Ця книга"]);
+  });
+
+  it("places each moved field once, in its card", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Ґеральт");
+
+    const fieldsByCard = [
+      {
+        card: "Основне про персонажа",
+        fields: [
+          ["textbox", "Ім’я"],
+          ["combobox", "Важливість"],
+          ["combobox", "Статус"],
+        ],
+      },
+      {
+        card: "Описи в цій книзі",
+        fields: [
+          ["textbox", /^Дані в цій книзі/],
+          ["textbox", /^Зовнішність у цій книзі/],
+        ],
+      },
+      {
+        card: "Роль у розповіді",
+        fields: [
+          ["spinbutton", /^Сторінка/],
+          ["switch", "Персонаж із власною перспективою (POV)"],
+        ],
+      },
+      {
+        card: "Моє ставлення та враження",
+        fields: [
+          ["combobox", "Моє ставлення"],
+          ["textbox", /^Моє враження/],
+        ],
+      },
+    ] as const;
+
+    for (const { card, fields } of fieldsByCard) {
+      for (const [role, name] of fields) {
+        expect(screen.getAllByRole(role, { name })).toHaveLength(1);
+        expect(within(editCard(card)).getByRole(role, { name })).toBeInTheDocument();
+      }
+    }
+    expect(inheritedField("Ім’я в цій книзі")).toBeInTheDocument();
+    expect(inheritedField("Вид у цій книзі")).toBeInTheDocument();
+    expect(inheritedField("Моє ставлення в цій книзі")).toBeInTheDocument();
   });
 
   it("renders only the shared sections without a book context", async () => {
@@ -963,12 +1054,21 @@ describe("CharacterEditPage layout by mode", () => {
 
     await screen.findByDisplayValue("Ґеральт");
 
-    expect(screen.getByRole("heading", { level: 2, name: "Про персонажа" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Інші імена" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "У цій книзі" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Роль у розповіді" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Лише для цієї книги" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Спойлери" })).not.toBeInTheDocument();
+    expect(sectionTitles()).toEqual([
+      "Основне про персонажа",
+      "Моє ставлення та враження",
+      "Інші імена",
+    ]);
+    expect(groupTitles("Основне про персонажа")).toEqual(["Загальна інформація"]);
+    expect(groupTitles("Моє ставлення та враження")).toEqual(["Загальне ставлення"]);
+    expect(groupTitles("Інші імена")).toEqual(["Альтернативні імена"]);
+    expect(screen.queryByText("Ім’я в цій книзі")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Важливість" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Статус" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Моє ставлення в цій книзі")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: /^Моє враження/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Ця книга")).not.toBeInTheDocument();
+    expect(customLabelRequests()).toEqual([]);
   });
 
   it("shows the image panel with the book image choice next to the preview in a book context", async () => {
