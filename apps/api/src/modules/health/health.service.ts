@@ -1,4 +1,4 @@
-import type { ApiHealth } from "@app/shared";
+import type { ApiHealth, ApiLiveness } from "@app/shared";
 
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
@@ -10,6 +10,10 @@ import { HEALTH_QUEUE_NAME } from "./health-queue.js";
 const PG_HEALTHCHECK_TIMEOUT_MS = 1000;
 const REDIS_HEALTHCHECK_TIMEOUT_MS = 1000;
 
+type DependencyProbes = Pick<ApiHealth, "postgres" | "redis">;
+
+type ProcessSnapshot = Pick<ApiHealth, "timestamp" | "uptimeSeconds">;
+
 @Injectable()
 export class HealthService {
   constructor(
@@ -18,11 +22,35 @@ export class HealthService {
   ) {}
 
   async getHealth(): Promise<ApiHealth> {
-    const [postgres, redis] = await Promise.all([this.pingPostgres(), this.pingRedis()]);
+    const probes = await this.probeDependencies();
+
     return {
-      postgres,
-      redis,
-      status: postgres === "ok" ? "ok" : "degraded",
+      ...probes,
+      ...this.buildProcessSnapshot(),
+      status: probes.postgres === "ok" ? "ok" : "degraded",
+    };
+  }
+
+  getLiveness(): ApiLiveness {
+    return {
+      ...this.buildProcessSnapshot(),
+      status: "ok",
+    };
+  }
+
+  async getReadiness(): Promise<ApiHealth> {
+    const probes = await this.probeDependencies();
+    const dependenciesReady = probes.postgres === "ok" && probes.redis === "ok";
+
+    return {
+      ...probes,
+      ...this.buildProcessSnapshot(),
+      status: dependenciesReady ? "ok" : "degraded",
+    };
+  }
+
+  private buildProcessSnapshot(): ProcessSnapshot {
+    return {
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
     };
@@ -69,5 +97,11 @@ export class HealthService {
   private async pingRedisClient(): Promise<void> {
     const client = await this.healthQueue.client;
     await client.info();
+  }
+
+  private async probeDependencies(): Promise<DependencyProbes> {
+    const [postgres, redis] = await Promise.all([this.pingPostgres(), this.pingRedis()]);
+
+    return { postgres, redis };
   }
 }

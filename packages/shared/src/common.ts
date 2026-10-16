@@ -21,6 +21,12 @@ export type ApiHealth = {
   uptimeSeconds: number;
 };
 
+export type ApiLiveness = {
+  status: "ok";
+  timestamp: string;
+  uptimeSeconds: number;
+};
+
 export type FieldError = {
   code?: string;
   field: string;
