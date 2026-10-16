@@ -1,5 +1,7 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { addYears, endOfYear, startOfYear, subYears } from "date-fns";
 
 import { DatePicker } from "@/components/ui/date-picker";
@@ -16,7 +18,7 @@ type BookDateFieldProps = {
   disablePast?: boolean;
   id: string;
   invalid?: boolean;
-  onChange: (value: string | undefined) => void;
+  onChange: (value: Nullable<string>) => void;
   placeholder?: string;
   required?: boolean;
   value: unknown;
@@ -51,7 +53,7 @@ export function BookDateField({
       endMonth={endMonth}
       id={id}
       invalid={invalid}
-      onChange={(date) => onChange(date ? dateToIsoDay(date) : undefined)}
+      onChange={(date) => onChange(date ? dateToIsoDay(date) : null)}
       placeholder={placeholder}
       required={required}
       startMonth={startMonth}

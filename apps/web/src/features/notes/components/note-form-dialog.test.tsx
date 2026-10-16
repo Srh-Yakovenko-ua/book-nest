@@ -38,6 +38,10 @@ const NAMES = {
   bookGroup: "Книга",
   books: "Ваші книги",
   bookSearch: "Пошук книги за назвою або автором",
+  categoryCharacters: "Персонажі",
+  categoryClear: "Очистити категорію",
+  categoryField: /^Категорія/,
+  categoryPlaceholder: "Оберіть категорію",
   change: "Змінити",
   chapter: "Розділ (необовʼязково)",
   createTitle: "Додати нотатку",
@@ -634,6 +638,39 @@ describe("NoteFormDialog book edit", () => {
       page: 87,
       text: `${NOTE_FIXTURE.text} Оновлено.`,
     });
+  });
+
+  it("keeps a cleared saved page empty and patches the note without a page", async () => {
+    const note = makeBookNote({ page: 42 });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+    const pageInput = await screen.findByLabelText(NAMES.page);
+    expect(pageInput).toHaveValue(42);
+
+    await userEvent.clear(pageInput);
+    expect(pageInput).toHaveDisplayValue("");
+
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ page: null });
+  });
+
+  it("shows the placeholder after the category is cleared and patches the note without one", async () => {
+    const note = makeBookNote({ category: "characters" });
+    renderDialog({ entity: bookEntity(note), mode: "edit", note });
+    expect(await screen.findByRole("combobox", { name: NAMES.categoryField })).toHaveTextContent(
+      NAMES.categoryCharacters,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: NAMES.categoryClear }));
+    expect(screen.getByRole("combobox", { name: NAMES.categoryField })).toHaveTextContent(
+      NAMES.categoryPlaceholder,
+    );
+
+    await submit(NAMES.submitEdit);
+
+    const call = await onlyWrite();
+    expect(call.body).toMatchObject({ category: null });
   });
 
   it("reports a failed edit and keeps the dialog open", async () => {

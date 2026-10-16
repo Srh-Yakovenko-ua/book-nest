@@ -81,8 +81,8 @@ export function NoteCategoryFields({ control, errors, register }: NoteFieldsProp
                 className="h-10 w-full data-[size=default]:h-10"
                 clearLabel={t("categoryClear")}
                 id={NOTE_FORM_FIELD_IDS.category}
-                isClearable={field.value !== undefined}
-                onClear={() => field.onChange(undefined)}
+                isClearable={field.value !== null}
+                onClear={() => field.onChange(null)}
               >
                 <SelectValue placeholder={t("categoryPlaceholder")} />
               </SelectTrigger>

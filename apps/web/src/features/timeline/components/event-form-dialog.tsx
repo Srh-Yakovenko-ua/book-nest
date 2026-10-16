@@ -246,9 +246,7 @@ function EventForm({
       defaultValues.description !== "" ||
       defaultValues.personalNote !== "",
     place:
-      defaultValues.chapter !== "" ||
-      defaultValues.page !== undefined ||
-      defaultValues.storyTime !== "",
+      defaultValues.chapter !== "" || defaultValues.page !== null || defaultValues.storyTime !== "",
     relations: false,
     thread: defaultValues.threadStatus !== null,
   }));
@@ -286,7 +284,7 @@ function EventForm({
 
   const placeSummary = joinSummary([
     chapter,
-    page === undefined ? "" : tRoot("list.page", { page }),
+    page === null ? "" : tRoot("list.page", { page }),
     storyTime,
   ]);
   const detailsSummary = joinSummary([
@@ -553,9 +551,7 @@ function EventForm({
                     min={1}
                     onChange={(changeEvent) =>
                       field.onChange(
-                        changeEvent.target.value === ""
-                          ? undefined
-                          : Number(changeEvent.target.value),
+                        changeEvent.target.value === "" ? null : Number(changeEvent.target.value),
                       )
                     }
                     onKeyDown={blockNegativeNumberKeys}

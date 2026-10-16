@@ -134,7 +134,7 @@ export function QuotesAdvancedFilters({
                 className="h-9 text-sm"
                 id="quotes-filter-created-from"
                 invalid={rangeIsInverted}
-                onChange={(value) => setDraft((prev) => ({ ...prev, createdFrom: value ?? null }))}
+                onChange={(value) => setDraft((prev) => ({ ...prev, createdFrom: value }))}
                 placeholder={t("range.from")}
                 value={draft.createdFrom}
               />
@@ -143,7 +143,7 @@ export function QuotesAdvancedFilters({
                 className="h-9 text-sm"
                 id="quotes-filter-created-to"
                 invalid={rangeIsInverted}
-                onChange={(value) => setDraft((prev) => ({ ...prev, createdTo: value ?? null }))}
+                onChange={(value) => setDraft((prev) => ({ ...prev, createdTo: value }))}
                 placeholder={t("range.to")}
                 value={draft.createdTo}
               />
