@@ -147,15 +147,15 @@ describe("OrderShipmentActionDialog edit-order", () => {
     expect(screen.getByLabelText("Вартість доставки")).toHaveValue(60);
     expect(screen.getByLabelText("Знижка")).toHaveValue(10);
     expect(screen.getByLabelText("Валюта")).toHaveTextContent("USD");
-    expect(screen.getByRole("button", { name: "Дата замовлення" })).toHaveTextContent(
-      "1 серпня 2026",
-    );
+    expect(
+      screen.getByRole("button", { name: "Дата замовлення, 1 серпня 2026" }),
+    ).toHaveTextContent("1 серпня 2026");
   });
 
   it("saves the order date picked in the calendar", async () => {
     renderEditOrder();
 
-    const dateField = await screen.findByRole("button", { name: "Дата замовлення" });
+    const dateField = await screen.findByRole("button", { name: "Дата замовлення, 1 серпня 2026" });
     await userEvent.click(dateField);
     await userEvent.click(await screen.findByRole("button", { name: /10-е серпня 2026/ }));
     await userEvent.click(screen.getByRole("button", { name: "Зберегти" }));

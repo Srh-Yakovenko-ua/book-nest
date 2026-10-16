@@ -532,7 +532,9 @@
       "placeholder": "Pick a date",
       "triggerLabel": "Pick your date of birth",
       "monthLabel": "Month",
-      "yearLabel": "Year"
+      "yearLabel": "Year",
+      "dayToday": "Today, {day}",
+      "daySelected": "{day}, selected"
     },
     "errors": {
       "required": "This field is required",

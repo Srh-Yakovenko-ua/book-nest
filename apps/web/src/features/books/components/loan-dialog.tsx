@@ -410,6 +410,7 @@ function LoanForm({
                 invalid={errors.loanDate !== undefined}
                 onChange={(next) => field.onChange(next ?? "")}
                 placeholder={t("fields.datePlaceholder")}
+                required
                 value={field.value}
               />
             )}

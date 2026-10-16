@@ -180,7 +180,7 @@ describe("StatisticsToolbar", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Від" }));
+    await userEvent.click(screen.getByRole("button", { name: "Від, 3 серпня 2026" }));
     await userEvent.click(
       within(screen.getByRole("grid")).getByRole("button", { name: /10-е серпня 2026/ }),
     );
@@ -201,7 +201,7 @@ describe("StatisticsToolbar", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "До" }));
+    await userEvent.click(screen.getByRole("button", { name: "До, 14 серпня 2026" }));
     await userEvent.click(
       within(screen.getByRole("grid")).getByRole("button", { name: /19-е серпня 2026/ }),
     );
@@ -220,7 +220,7 @@ describe("StatisticsToolbar", () => {
       />,
     );
 
-    for (const name of ["Від", "До"]) {
+    for (const name of ["Від, 1 травня 2026", "До, 1 березня 2026"]) {
       const picker = screen.getByRole("button", { name });
       expect(picker).toHaveAttribute("aria-invalid", "true");
       expect(picker).toHaveAccessibleDescription("Початок періоду має бути не пізніше за кінець.");
@@ -238,7 +238,7 @@ describe("StatisticsToolbar", () => {
       />,
     );
 
-    for (const name of ["Від", "До"]) {
+    for (const name of ["Від, 1 березня 2026", "До, 1 травня 2026"]) {
       const picker = screen.getByRole("button", { name });
       expect(picker).not.toHaveAttribute("aria-invalid", "true");
       expect(picker).not.toHaveAccessibleDescription(

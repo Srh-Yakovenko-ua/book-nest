@@ -532,7 +532,9 @@
       "placeholder": "Оберіть дату",
       "triggerLabel": "Оберіть дату народження",
       "monthLabel": "Місяць",
-      "yearLabel": "Рік"
+      "yearLabel": "Рік",
+      "dayToday": "Сьогодні, {day}",
+      "daySelected": "{day}, обрано"
     },
     "errors": {
       "required": "Це поле обовʼязкове",
