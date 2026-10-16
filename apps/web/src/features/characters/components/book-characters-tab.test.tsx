@@ -563,3 +563,100 @@ describe("BookCharactersTab summary strip", () => {
     expect(screen.queryByText(/приховані записи/i)).not.toBeInTheDocument();
   });
 });
+
+describe("BookCharactersTab filters", () => {
+  function lastRosterQuery(): URLSearchParams {
+    const url = rosterRequestUrls().at(-1);
+    return new URL(url ?? "/", "http://localhost").searchParams;
+  }
+
+  it("sends the URL filters to the backend and keeps the toolbar when nothing matches", async () => {
+    respondToRoster = () => rosterPage([], 1);
+
+    renderTab(
+      "characterImportance=not_specified,major&characterFavoritesOnly=true&characterPovOnly=true",
+    );
+
+    expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(screen.queryByText("Тут поки немає персонажів")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Улюблені" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const query = lastRosterQuery();
+    expect(query.getAll("importance")).toEqual(["major", "not_specified"]);
+    expect(query.get("favoritesOnly")).toBe("true");
+    expect(query.get("povOnly")).toBe("true");
+  });
+
+  it("reloads from the first page when the favorites filter is switched on", async () => {
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Улюблені" }));
+
+    await waitFor(() => expect(lastRosterQuery().get("favoritesOnly")).toBe("true"));
+    expect(lastRosterQuery().get("pageNumber")).toBe("1");
+    expect(screen.getByRole("button", { name: "Улюблені" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("filters by importance, including unspecified, from the toolbar menu", async () => {
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("button", { name: /Важливість/ }));
+    await userEvent.click(await screen.findByRole("menuitemcheckbox", { name: "Не вказано" }));
+
+    await waitFor(() => expect(lastRosterQuery().getAll("importance")).toEqual(["not_specified"]));
+  });
+
+  it("clears only the filters and keeps the search", async () => {
+    renderTab("characterSearch=Ге&characterPovOnly=true&characterSort=name");
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
+
+    await waitFor(() => expect(lastRosterQuery().get("povOnly")).toBeNull());
+    expect(lastRosterQuery().get("search")).toBe("Ге");
+    expect(lastRosterQuery().get("sort")).toBe("name");
+    expect(screen.queryByRole("button", { name: "Скинути фільтри" })).not.toBeInTheDocument();
+  });
+
+  it("clears search and filters from the no-results state but keeps the sort", async () => {
+    respondToRoster = (url) => rosterPage(url.includes("search=") ? [] : [geralt], 1);
+
+    renderTab("characterSearch=zzz&characterImportance=major&characterSort=name");
+    await screen.findByText("Нічого не знайдено");
+
+    await userEvent.click(screen.getByRole("button", { name: "Скинути пошук і фільтри" }));
+
+    expect(await screen.findByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    const query = lastRosterQuery();
+    expect(query.get("search")).toBeNull();
+    expect(query.getAll("importance")).toEqual([]);
+    expect(query.get("sort")).toBe("name");
+  });
+});
+
+describe("BookCharactersTab favorite guard", () => {
+  it("sends one request when the heart is pressed again while the first is pending", async () => {
+    const gate = favoriteGate();
+    respondToFavorite = () => gate.promise;
+
+    renderTab();
+    await screen.findByRole("heading", { name: "Ґеральт" });
+
+    const card = cardFor("Ґеральт");
+    await userEvent.click(within(card).getByRole("button", { name: "Додати в улюблені" }));
+    await userEvent.click(within(card).getByRole("button", { name: "Прибрати з улюблених" }));
+
+    const patches = fetchMock.mock.calls.filter(
+      ([, init]) => (init as RequestInit | undefined)?.method === "PATCH",
+    );
+    expect(patches).toHaveLength(1);
+    gate.fail(new Error("stop"));
+  });
+});

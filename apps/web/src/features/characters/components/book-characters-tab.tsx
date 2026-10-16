@@ -1,9 +1,9 @@
 "use client";
 
-import type { BookView, CharacterSummaryView } from "@app/shared";
+import type { BookCharacterRosterItem, BookView } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
@@ -30,6 +30,8 @@ import { UnlinkCharacterDialog } from "./unlink-character-dialog";
 
 const SKELETON_COUNT = 6;
 
+const ROSTER_GRID = "grid grid-cols-1 gap-4 @2xl/roster:grid-cols-2";
+
 type BookCharactersTabProps = {
   book: BookView;
 };
@@ -37,11 +39,11 @@ type BookCharactersTabProps = {
 type RosterListProps = {
   bookId: string;
   characters: ReturnType<typeof useBookCharactersInfinite>;
-  hasActiveSearch: boolean;
+  hasActiveCriteria: boolean;
   hasError: boolean;
-  items: CharacterSummaryView[];
+  items: BookCharacterRosterItem[];
   onAdd: () => void;
-  onClearSearch: () => void;
+  onClearCriteria: () => void;
   onUnlink: (characterId: string) => void;
 };
 
@@ -61,12 +63,28 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [unlinkId, setUnlinkId] = useState<null | string>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const rosterStartRef = useRef<HTMLDivElement>(null);
+  const rosterCriteriaKey = JSON.stringify(roster.listParams);
+  const previousCriteriaKey = useRef(rosterCriteriaKey);
 
   const rosterItems = (characters.data?.pages ?? []).flatMap((page) => page.items);
-  const hasRosterError = characters.isError && !characters.isFetchNextPageError;
+  const hasLoadedRoster = characters.data !== undefined;
+  const hasRosterError = characters.isError && !hasLoadedRoster;
   const isEmptyBook =
-    characters.data !== undefined && rosterItems.length === 0 && !roster.hasActiveSearch;
-  const showControls = characters.data !== undefined && !hasRosterError && !isEmptyBook;
+    hasLoadedRoster &&
+    !characters.isPlaceholderData &&
+    rosterItems.length === 0 &&
+    !roster.hasActiveCriteria;
+  const showControls = !isEmptyBook && (hasLoadedRoster || roster.hasActiveCriteria);
+
+  useEffect(() => {
+    if (previousCriteriaKey.current === rosterCriteriaKey) return;
+    previousCriteriaKey.current = rosterCriteriaKey;
+    const rosterStart = rosterStartRef.current;
+    if (rosterStart !== null && rosterStart.getBoundingClientRect().top < 0) {
+      rosterStart.scrollIntoView({ block: "start" });
+    }
+  }, [rosterCriteriaKey]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -98,7 +116,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="@container/roster flex scroll-mt-4 flex-col gap-5" ref={rosterStartRef}>
       {showControls && summary.data !== undefined ? (
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
@@ -110,24 +128,16 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         </div>
       ) : null}
 
-      {showControls ? (
-        <CharactersToolbar
-          onAdd={() => setAddOpen(true)}
-          onSearch={roster.setSearch}
-          onSortChange={roster.setSort}
-          search={roster.state.characterSearch}
-          sort={roster.state.characterSort}
-        />
-      ) : null}
+      {showControls ? <CharactersToolbar onAdd={() => setAddOpen(true)} roster={roster} /> : null}
 
       <RosterList
         bookId={bookId}
         characters={characters}
-        hasActiveSearch={roster.hasActiveSearch}
+        hasActiveCriteria={roster.hasActiveCriteria}
         hasError={hasRosterError}
         items={rosterItems}
         onAdd={() => setAddOpen(true)}
-        onClearSearch={roster.clearSearch}
+        onClearCriteria={roster.clearSearchAndFilters}
         onUnlink={setUnlinkId}
       />
 
@@ -162,11 +172,11 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
 function RosterList({
   bookId,
   characters,
-  hasActiveSearch,
+  hasActiveCriteria,
   hasError,
   items,
   onAdd,
-  onClearSearch,
+  onClearCriteria,
   onUnlink,
 }: RosterListProps) {
   const t = useTranslations("characters.states");
@@ -179,9 +189,9 @@ function RosterList({
     );
   }
 
-  if (characters.isPending) {
+  if (characters.isPending || characters.isPlaceholderData) {
     return (
-      <div aria-busy className="grid gap-4 md:grid-cols-2" role="status">
+      <div aria-busy className={ROSTER_GRID} role="status">
         <span className="sr-only">{t("loading")}</span>
         {Array.from({ length: SKELETON_COUNT }, (_, index) => (
           <CharacterCardSkeleton key={index} />
@@ -190,17 +200,17 @@ function RosterList({
     );
   }
 
-  if (items.length === 0 && !hasActiveSearch) {
+  if (items.length === 0 && !hasActiveCriteria) {
     return <CharactersEmptyState onAdd={onAdd} />;
   }
 
   if (items.length === 0) {
-    return <CharactersNoResults onClear={onClearSearch} />;
+    return <CharactersNoResults onClear={onClearCriteria} />;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ul className="grid gap-4 md:grid-cols-2">
+      <ul className={ROSTER_GRID}>
         {items.map((character) => (
           <li className="flex" key={character.id}>
             <CharacterCard
@@ -223,6 +233,6 @@ function RosterList({
 
 function toLoadMoreState(characters: RosterListProps["characters"]): InfiniteScrollState {
   if (characters.isFetchNextPageError) return "error";
-  if (characters.isFetchingNextPage) return "loading";
-  return characters.hasNextPage ? "idle" : "none";
+  if (!characters.hasNextPage) return "none";
+  return characters.isFetching ? "loading" : "idle";
 }

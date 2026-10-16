@@ -7909,6 +7909,7 @@
       "favorite": "Add to favorites",
       "hiddenFields": "Hidden fields: {count}",
       "menu": "Character actions",
+      "moreRoles": "More roles: {count}",
       "pov": "POV",
       "unfavorite": "Remove from favorites",
       "unlink": "Remove from this book"
@@ -8163,8 +8164,8 @@
       "third_person_omniscient": "The narrator knows thoughts and events beyond any single character’s perspective."
     },
     "noResults": {
-      "clear": "Clear search",
-      "description": "Try adjusting your query.",
+      "clear": "Clear search and filters",
+      "description": "Try adjusting your search or filters.",
       "title": "Nothing found"
     },
     "page": {
@@ -8352,9 +8353,15 @@
     },
     "toolbar": {
       "add": "Add character",
+      "clearFilters": "Clear filters",
+      "favoritesOnly": "Favorites",
+      "filtersLabel": "Character filters",
+      "importance": "Importance",
+      "povOnly": "POV",
       "searchClear": "Clear search",
       "searchLabel": "Search characters",
       "searchPlaceholder": "Search in this book...",
+      "selectedCount": "Selected: {count}",
       "sortLabel": "Sort"
     },
     "unlink": {

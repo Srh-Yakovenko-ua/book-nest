@@ -60,6 +60,7 @@ type CharacterCardProps = Omit<React.ComponentProps<"article">, "role" | "title"
   bookTitle?: string;
   density?: CharacterCardDensity;
   description?: string;
+  footer?: React.ReactNode;
   href?: string;
   linkComponent?: CharacterCardLinkComponent;
   meta?: React.ReactNode;
@@ -101,6 +102,7 @@ function CharacterCard({
   className,
   density = "default",
   description,
+  footer,
   href,
   linkComponent,
   meta,
@@ -180,7 +182,14 @@ function CharacterCard({
       )}
 
       {description === undefined ? null : (
-        <p className="mt-3 text-sm leading-relaxed text-foreground">{description}</p>
+        <p
+          className={cn(
+            "mt-3 text-sm leading-relaxed text-foreground",
+            density === "compact" && "line-clamp-3 wrap-anywhere",
+          )}
+        >
+          {description}
+        </p>
       )}
 
       {density === "default" && (hasTraits || meta !== undefined) ? (
@@ -196,7 +205,33 @@ function CharacterCard({
           {meta}
         </div>
       ) : null}
+
+      {footer === undefined ? null : (
+        <div className="mt-auto pt-3">
+          <div className="border-t border-border pt-3">{footer}</div>
+        </div>
+      )}
     </article>
+  );
+}
+
+function CharacterCardChip({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 max-w-full items-center rounded-full border border-border bg-secondary px-2 text-xs font-medium text-foreground/85",
+        className,
+      )}
+      data-slot="character-card-chip"
+    >
+      <span className="truncate">{children}</span>
+    </span>
   );
 }
 
@@ -243,12 +278,7 @@ function CompactMetadata({
         <Badge variant={role.variant ?? "secondary"}>{role.label}</Badge>
       )}
       {traits?.map((trait) => (
-        <span
-          className="inline-flex h-5 items-center rounded-full border border-border bg-secondary px-2 text-xs font-medium text-foreground/85"
-          key={trait}
-        >
-          {trait}
-        </span>
+        <CharacterCardChip key={trait}>{trait}</CharacterCardChip>
       ))}
       {meta}
     </div>
@@ -259,4 +289,4 @@ function initial(name: string) {
   return name.trim().charAt(0).toUpperCase();
 }
 
-export { CharacterCard };
+export { CharacterCard, CharacterCardChip };

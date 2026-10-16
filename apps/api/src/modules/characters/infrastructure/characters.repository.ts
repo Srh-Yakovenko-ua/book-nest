@@ -1,4 +1,9 @@
-import type { BookCharactersSort, CharacterListSort, Nullable } from "@app/shared";
+import type {
+  BookCharacterImportance,
+  BookCharactersSort,
+  CharacterListSort,
+  Nullable,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -53,12 +58,42 @@ const detailsInclude = {
   species: SPECIES_REF_ARGS,
 } satisfies Prisma.CharacterInclude;
 
-const rosterInclude = {
+const rosterSummarySelect = {
   character: {
     select: { avatarMedia: true, entityKind: true, id: true, isFavorite: true, name: true },
   },
+  displayName: true,
+  displayNameIsSpoiler: true,
+  id: true,
+  importance: true,
+  isPovCharacter: true,
+  portraitIsSpoiler: true,
   portraitMedia: true,
-} satisfies Prisma.BookCharacterInclude;
+  portraitMediaId: true,
+  status: true,
+  statusIsSpoiler: true,
+} satisfies Prisma.BookCharacterSelect;
+
+const rosterPageSelect = {
+  ...rosterSummarySelect,
+  character: {
+    select: {
+      ...rosterSummarySelect.character.select,
+      neutralDescription: true,
+      species: SPECIES_REF_ARGS,
+    },
+  },
+  description: true,
+  descriptionIsSpoiler: true,
+  roles: {
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    select: { customRole: true, id: true, isSpoiler: true, position: true, roleType: true },
+  },
+  speciesOverride: SPECIES_REF_ARGS,
+  speciesOverrideId: true,
+  speciesOverrideIsSpoiler: true,
+  statusCustomText: true,
+} satisfies Prisma.BookCharacterSelect;
 
 const globalSummaryInclude = {
   _count: { select: { bookAppearances: { where: { book: SOFT_DELETE_SCOPE.active } } } },
@@ -118,10 +153,22 @@ const GLOBAL_CHARACTER_ORDER_BY: Record<
 
 const ROSTER_ORDER_BY: Record<BookCharactersSort, Prisma.BookCharacterOrderByWithRelationInput[]> =
   {
-    importance: [{ importanceRank: "asc" }, { character: { name: "asc" } }, { createdAt: "asc" }],
-    manual: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    name: [{ character: { name: "asc" } }, { createdAt: "asc" }],
+    importance: [
+      { importanceRank: "asc" },
+      { character: { name: "asc" } },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
+    manual: [{ sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    name: [{ character: { name: "asc" } }, { createdAt: "asc" }, { id: "asc" }],
   };
+
+const UNFILTERED_ROSTER: RosterCriteria = {
+  favoritesOnly: false,
+  importance: [],
+  povOnly: false,
+  search: undefined,
+};
 
 export type BookCharacterSummaryAggregate = {
   byImportance: { count: number; importance: string }[];
@@ -275,7 +322,11 @@ export type GraphNodeRow = {
   updatedAt: Date;
 };
 
-export type RosterRow = Prisma.BookCharacterGetPayload<{ include: typeof rosterInclude }>;
+export type RosterPageRow = Prisma.BookCharacterGetPayload<{ select: typeof rosterPageSelect }>;
+
+export type RosterSummaryRow = Prisma.BookCharacterGetPayload<{
+  select: typeof rosterSummarySelect;
+}>;
 
 export type SeriesAppearanceRow = Prisma.BookCharacterGetPayload<{
   include: typeof seriesAppearanceInclude;
@@ -343,9 +394,15 @@ type ListRosterInput = RosterFilter & {
   take: number;
 };
 
-type RosterFilter = {
-  bookId: string;
+type RosterCriteria = {
+  favoritesOnly: boolean;
+  importance: BookCharacterImportance[];
+  povOnly: boolean;
   search: string | undefined;
+};
+
+type RosterFilter = RosterCriteria & {
+  bookId: string;
   userId: string;
   visibility: RosterVisibility;
 };
@@ -363,7 +420,7 @@ export class CharactersRepository {
     userId: string;
     visibility: RosterVisibility;
   }): Promise<BookCharacterSummaryAggregate> {
-    const visibleWhere = buildRosterWhere({ bookId, search: undefined, userId, visibility });
+    const visibleWhere = buildRosterWhere({ ...UNFILTERED_ROSTER, bookId, userId, visibility });
 
     const [byImportanceRows, povCount, favoritesCount] = await Promise.all([
       this.prisma.bookCharacter.groupBy({
@@ -837,10 +894,10 @@ export class CharactersRepository {
     });
   }
 
-  listRoster({ skip, sort, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
+  listRoster({ skip, sort, take, ...filter }: ListRosterInput): Promise<RosterPageRow[]> {
     return this.prisma.bookCharacter.findMany({
-      include: rosterInclude,
       orderBy: ROSTER_ORDER_BY[sort],
+      select: rosterPageSelect,
       skip,
       take,
       where: buildRosterWhere(filter),
@@ -995,13 +1052,13 @@ export class CharactersRepository {
     limit: number;
     userId: string;
     visibility: RosterVisibility;
-  }): Promise<RosterRow[]> {
+  }): Promise<RosterSummaryRow[]> {
     return this.prisma.bookCharacter.findMany({
-      include: rosterInclude,
       orderBy: [{ importanceRank: "asc" }, { character: { name: "asc" } }],
+      select: rosterSummarySelect,
       take: limit,
       where: {
-        ...buildRosterWhere({ bookId, search: undefined, userId, visibility }),
+        ...buildRosterWhere({ ...UNFILTERED_ROSTER, bookId, userId, visibility }),
         importance: { in: [CHARACTER_IMPORTANCE_CENTRAL, CHARACTER_IMPORTANCE_MAJOR] },
       },
     });
@@ -1277,15 +1334,28 @@ function buildHasSpoilerContentWhere({
 
 function buildRosterWhere({
   bookId,
+  favoritesOnly,
+  importance,
+  povOnly,
   search,
   userId,
   visibility,
 }: RosterFilter): Prisma.BookCharacterWhereInput {
   const where: Prisma.BookCharacterWhereInput = {
     bookId,
-    character: characterRosterScope(userId),
+    character: favoritesOnly
+      ? { ...characterRosterScope(userId), isFavorite: true }
+      : characterRosterScope(userId),
     ...rosterVisibleCore(visibility),
   };
+
+  if (importance.length > 0) {
+    where.importance = { in: importance };
+  }
+
+  if (povOnly) {
+    where.isPovCharacter = true;
+  }
 
   if (search !== undefined) {
     const contains = { contains: search, mode: "insensitive" } as const;

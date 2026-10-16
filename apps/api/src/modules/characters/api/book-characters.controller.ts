@@ -1,12 +1,13 @@
 import type {
+  BookCharacterRosterItem,
   CharacterDetailsView,
-  CharacterSummaryView,
   CreateCharacterInBook,
   Paginator,
 } from "@app/shared";
 
 import {
   BookCharacterDetailsQuerySchema,
+  BookCharacterImportanceSchema,
   BookCharactersQuerySchema,
   BookCharactersSortSchema,
   CreateCharacterInBookSchema,
@@ -52,7 +53,7 @@ import { BookCharactersQueryDto } from "./input-dto/book-characters-query.input-
 import { CreateCharacterInBookInputDto } from "./input-dto/create-character-in-book.input-dto.js";
 import { UpdateBookCharacterInputDto } from "./input-dto/update-book-character.input-dto.js";
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
-import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto.js";
+import { PaginatedBookCharacterRosterDto } from "./view-dto/paginated-book-character-roster.view-dto.js";
 
 @ApiTags("characters")
 @Controller("api/books/:bookId/characters")
@@ -63,12 +64,21 @@ export class BookCharactersController {
   @ApiNotFoundResponse({ description: "Book or context book not found" })
   @ApiOkResponse({
     description: "The roster of the book's characters within the series reading context",
-    type: PaginatedCharactersDto,
+    type: PaginatedBookCharacterRosterDto,
   })
   @ApiOperation({ summary: "List the current user's characters for a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ enum: BookCharactersSortSchema.options, name: "sort", required: false })
+  @ApiQuery({
+    description: "Comma-separated or repeated importance values, matched with OR",
+    enum: BookCharacterImportanceSchema.options,
+    isArray: true,
+    name: "importance",
+    required: false,
+  })
+  @ApiQuery({ enum: ["true", "false"], name: "favoritesOnly", required: false })
+  @ApiQuery({ enum: ["true", "false"], name: "povOnly", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
@@ -77,7 +87,7 @@ export class BookCharactersController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Query(new ZodQueryPipe(BookCharactersQuerySchema)) query: BookCharactersQueryDto,
-  ): Promise<Paginator<CharacterSummaryView>> {
+  ): Promise<Paginator<BookCharacterRosterItem>> {
     return this.bookCharactersService.listBookRoster({ bookId, query, userId: user.id });
   }
 
