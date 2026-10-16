@@ -104,6 +104,7 @@ function userModel(overrides: Partial<ProfileWithSocialLinks> = {}): ProfileWith
     lastName: null,
     name: "Reader",
     nickname: null,
+    passwordChangedAt: null,
     passwordHash: "stored-hash",
     role: "user",
     socialLinks: [],

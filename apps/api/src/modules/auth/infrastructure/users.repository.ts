@@ -61,6 +61,9 @@ export class UsersRepository {
     passwordHash: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<UserModel> {
-    return client.user.update({ data: { passwordHash }, where: { id: userId } });
+    return client.user.update({
+      data: { passwordChangedAt: new Date(), passwordHash },
+      where: { id: userId },
+    });
   }
 }
