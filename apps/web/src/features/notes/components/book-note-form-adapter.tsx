@@ -6,7 +6,7 @@ import { NOTE_INPUT_LIMITS } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { Controller } from "react-hook-form";
 
-import { ChapterCombobox } from "@/components/chapter-combobox";
+import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,13 +52,13 @@ export function BookNoteLocationFields({
           control={control}
           name="chapter"
           render={({ field }) => (
-            <ChapterCombobox
+            <SuggestionCombobox
               describedBy={errors.chapter ? NOTE_FORM_FIELD_IDS.chapterError : undefined}
               id={NOTE_FORM_FIELD_IDS.chapter}
               invalid={errors.chapter !== undefined}
               maxLength={NOTE_INPUT_LIMITS.chapterMax}
               onChange={field.onChange}
-              options={chaptersQuery.data?.chapters ?? []}
+              options={chaptersQuery.data ?? []}
               placeholder={t("chapterPlaceholder")}
               value={field.value}
             />

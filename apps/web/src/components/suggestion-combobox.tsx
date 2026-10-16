@@ -1,6 +1,5 @@
 "use client";
 
-import type { BookChapterUsageView } from "@app/shared";
 import type { KeyboardEvent } from "react";
 
 import { Command as CommandPrimitive } from "cmdk";
@@ -11,13 +10,18 @@ import { CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 
-type ChapterComboboxProps = {
+export type SuggestionOption = {
+  count: number;
+  value: string;
+};
+
+type SuggestionComboboxProps = {
   describedBy?: string;
   id: string;
   invalid: boolean;
   maxLength: number;
   onChange: (value: string) => void;
-  options: BookChapterUsageView[];
+  options: SuggestionOption[];
   placeholder: string;
   value: string;
 };
@@ -28,7 +32,7 @@ const SUGGESTION_KEYS = {
   pick: "Enter",
 } as const;
 
-export function ChapterCombobox({
+export function SuggestionCombobox({
   describedBy,
   id,
   invalid,
@@ -37,15 +41,15 @@ export function ChapterCombobox({
   options,
   placeholder,
   value,
-}: ChapterComboboxProps) {
-  const t = useTranslations("common.chapterCombobox");
+}: SuggestionComboboxProps) {
+  const t = useTranslations("common.suggestionCombobox");
   const [open, setOpen] = useState(false);
   const [highlightArmed, setHighlightArmed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const fittingOptions = options.filter((option) => option.chapter.length <= maxLength);
+  const fittingOptions = options.filter((option) => option.value.length <= maxLength);
   const hasOptions = fittingOptions.length > 0;
-  const suggestions = matchingChapters(fittingOptions, value);
+  const suggestions = matchingSuggestions(fittingOptions, value);
   const suggestionsOpen = open && suggestions.length > 0;
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -65,14 +69,14 @@ export function ChapterCombobox({
     if (!suggestionsOpen || !highlightArmed) event.stopPropagation();
   }
 
-  function typeChapter(chapter: string) {
-    onChange(chapter);
+  function typeValue(typed: string) {
+    onChange(typed);
     setHighlightArmed(false);
     setOpen(true);
   }
 
-  function pickChapter(chapter: string) {
-    onChange(chapter);
+  function pickSuggestion(picked: string) {
+    onChange(picked);
     setHighlightArmed(false);
     setOpen(false);
   }
@@ -96,7 +100,7 @@ export function ChapterCombobox({
             id={id}
             maxLength={maxLength}
             onBlur={() => toggleSuggestions(false)}
-            onChange={(event) => typeChapter(event.target.value)}
+            onChange={(event) => typeValue(event.target.value)}
             onClick={() => setOpen(true)}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
@@ -121,11 +125,11 @@ export function ChapterCombobox({
               {suggestions.map((option) => (
                 <CommandItem
                   className="cursor-pointer"
-                  key={option.chapter}
-                  onSelect={() => pickChapter(option.chapter)}
-                  value={option.chapter}
+                  key={option.value}
+                  onSelect={() => pickSuggestion(option.value)}
+                  value={option.value}
                 >
-                  <span className="min-w-0 flex-1 truncate">{option.chapter}</span>
+                  <span className="min-w-0 flex-1 truncate">{option.value}</span>
                   <span aria-hidden className="shrink-0 text-xs text-muted-foreground tabular-nums">
                     {option.count}
                   </span>
@@ -140,8 +144,8 @@ export function ChapterCombobox({
   );
 }
 
-function matchingChapters(options: BookChapterUsageView[], value: string): BookChapterUsageView[] {
+function matchingSuggestions(options: SuggestionOption[], value: string): SuggestionOption[] {
   const query = value.trim().toLowerCase();
   if (query.length === 0) return options;
-  return options.filter((option) => option.chapter.toLowerCase().includes(query));
+  return options.filter((option) => option.value.toLowerCase().includes(query));
 }

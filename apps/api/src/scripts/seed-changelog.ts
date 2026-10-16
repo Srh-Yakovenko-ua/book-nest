@@ -1387,6 +1387,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Заголовки нотаток",
     version: null,
   },
+  {
+    bodyEn:
+      "In the event form, the Location field now suggests the locations this book's events already use, and shows how often each one appears. Pick one, type to narrow the list, or enter a new location. If the book is part of a series, the suggestions are shared across all its books, so a location added in one book shows up in the others.",
+    bodyUk:
+      "У формі події поле «Локація» тепер підказує локації, які вже вказані в подіях цієї книги, і показує, скільки разів трапляється кожна. Виберіть підказку, введіть кілька літер, щоб звузити список, або додайте нову локацію. Якщо книга входить до серії, підказки спільні для всіх її книг, тож локація, додана в одній книзі, з'являється і в інших.",
+    category: "improvement",
+    publishedAt: "2026-10-16T00:00:01.000Z",
+    slug: "timeline-location-suggestions",
+    titleEn: "Timeline location suggestions",
+    titleUk: "Підказки локацій у хронології",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

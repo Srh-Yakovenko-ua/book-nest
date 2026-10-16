@@ -1,17 +1,17 @@
 import "@testing-library/jest-dom/vitest";
-import type { BookChapterUsageView } from "@app/shared";
-
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
-import { ChapterCombobox } from "./chapter-combobox";
+import type { SuggestionOption } from "./suggestion-combobox";
 
-const CHAPTERS: BookChapterUsageView[] = [
-  { chapter: "Розділ 1", count: 7 },
-  { chapter: "Розділ 12", count: 3 },
-  { chapter: "Пролог", count: 2 },
+import { SuggestionCombobox } from "./suggestion-combobox";
+
+const CHAPTERS: SuggestionOption[] = [
+  { count: 7, value: "Розділ 1" },
+  { count: 3, value: "Розділ 12" },
+  { count: 2, value: "Пролог" },
 ];
 
 const CHAPTER_MAX = 100;
@@ -27,12 +27,12 @@ function Harness({
   options,
 }: {
   onChange: (value: string) => void;
-  options: BookChapterUsageView[];
+  options: SuggestionOption[];
 }) {
   const [value, setValue] = useState("");
 
   return (
-    <ChapterCombobox
+    <SuggestionCombobox
       id="chapter"
       invalid={false}
       maxLength={CHAPTER_MAX}
@@ -51,7 +51,7 @@ function lastChange(onChange: ReturnType<typeof vi.fn>): unknown {
   return onChange.mock.calls.at(-1)?.[0];
 }
 
-function renderCombobox(options: BookChapterUsageView[] = CHAPTERS) {
+function renderCombobox(options: SuggestionOption[] = CHAPTERS) {
   const onChange = vi.fn();
   renderWithProviders(<Harness onChange={onChange} options={options} />);
   return { field: screen.getByPlaceholderText("Напр. Розділ 12"), onChange };
@@ -59,7 +59,7 @@ function renderCombobox(options: BookChapterUsageView[] = CHAPTERS) {
 
 function renderComboboxAwaitingChapters() {
   const onChange = vi.fn();
-  const page = (options: BookChapterUsageView[]) => (
+  const page = (options: SuggestionOption[]) => (
     <>
       <Harness onChange={onChange} options={options} />
       <input aria-label="Сторінка" />
@@ -90,7 +90,7 @@ function renderComboboxInForm() {
   return { field: screen.getByPlaceholderText("Напр. Розділ 12"), onChange, onSubmit };
 }
 
-describe("ChapterCombobox", () => {
+describe("SuggestionCombobox", () => {
   it("offers every chapter with its usage count once the empty field is focused", async () => {
     const { field } = renderCombobox();
 
@@ -151,7 +151,7 @@ describe("ChapterCombobox", () => {
 
   it("leaves out chapters longer than the field accepts", async () => {
     const tooLong = "Д".repeat(CHAPTER_MAX + 1);
-    const { field } = renderCombobox([...CHAPTERS, { chapter: tooLong, count: 1 }]);
+    const { field } = renderCombobox([...CHAPTERS, { count: 1, value: tooLong }]);
 
     await userEvent.click(field);
 
@@ -163,7 +163,7 @@ describe("ChapterCombobox", () => {
   });
 
   it("stays a plain text field when every chapter is longer than the field accepts", async () => {
-    const { field } = renderCombobox([{ chapter: "Д".repeat(CHAPTER_MAX + 1), count: 1 }]);
+    const { field } = renderCombobox([{ count: 1, value: "Д".repeat(CHAPTER_MAX + 1) }]);
 
     await userEvent.click(field);
 

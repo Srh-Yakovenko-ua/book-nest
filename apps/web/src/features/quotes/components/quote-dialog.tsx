@@ -15,8 +15,8 @@ import { z } from "zod";
 import type { BookPageCeiling } from "@/features/books/model/book-page-ceiling";
 import type { BookSelectOption } from "@/features/books/model/book-select-option";
 
-import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon } from "@/components/icons";
+import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -436,13 +436,13 @@ function QuoteForm({
             control={control}
             name="chapter"
             render={({ field }) => (
-              <ChapterCombobox
+              <SuggestionCombobox
                 describedBy={errors.chapter ? "quote-chapter-error" : undefined}
                 id="quote-chapter"
                 invalid={errors.chapter !== undefined}
                 maxLength={QUOTE_CHAPTER_MAX}
                 onChange={field.onChange}
-                options={chaptersQuery.data?.chapters ?? []}
+                options={chaptersQuery.data ?? []}
                 placeholder={t("chapterPlaceholder")}
                 value={field.value}
               />

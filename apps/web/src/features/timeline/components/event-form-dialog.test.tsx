@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import type { BookChapterUsageView } from "@app/shared";
+import type { BookChapterUsageView, TimelineLocationUsageView } from "@app/shared";
 
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -46,6 +46,16 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function locationField() {
+  return screen.getByLabelText("Локація");
+}
+
+function locationsRequests() {
+  return fetchMock.mock.calls.filter(([url]) =>
+    String(url).includes("/books/book-1/timeline/locations"),
+  );
+}
+
 function relationCall() {
   return callFor((url, method) => url.includes("/relations") && method === "POST");
 }
@@ -69,10 +79,12 @@ function routeFetch({
   chapters = [],
   detail,
   listItems = [],
+  locations = [],
 }: {
   chapters?: BookChapterUsageView[];
   detail?: unknown;
   listItems?: ReturnType<typeof makeTimelineEventView>[];
+  locations?: TimelineLocationUsageView[];
 } = {}) {
   fetchMock.mockImplementation((input, init) => {
     const url = String(input);
@@ -80,6 +92,9 @@ function routeFetch({
 
     if (url.includes("/books/book-1/chapters")) {
       return Promise.resolve(jsonResponse({ chapters }));
+    }
+    if (url.includes("/books/book-1/timeline/locations")) {
+      return Promise.resolve(jsonResponse({ locations }));
     }
     if (url.includes("/relations") && method === "POST") {
       return Promise.resolve(
@@ -422,5 +437,113 @@ describe("EventFormDialog edit", () => {
       targetEventId: "event-7",
     });
     expect(updateCall()).toBeUndefined();
+  });
+});
+
+describe("EventFormDialog location suggestions", () => {
+  const savedLocations: TimelineLocationUsageView[] = [
+    { count: 3, location: "Каер Морен" },
+    { count: 1, location: "Новіград" },
+  ];
+
+  beforeEach(() => {
+    routeFetch({ locations: savedLocations });
+  });
+
+  async function focusLocationField() {
+    renderForm();
+    await toggleSection(/Деталі події/);
+    await userEvent.click(locationField());
+  }
+
+  it("lists the saved locations with their usage counts when the field is focused", async () => {
+    await focusLocationField();
+
+    expect(
+      await screen.findByRole("option", { name: "Каер Морен використано 3 рази" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Новіград використано 1 раз" })).toBeInTheDocument();
+  });
+
+  it("fills the location with a picked suggestion", async () => {
+    await focusLocationField();
+
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Новіград використано 1 раз" }),
+    );
+
+    expect(locationField()).toHaveValue("Новіград");
+  });
+
+  it("narrows the suggestions to the locations matching the typed text", async () => {
+    await focusLocationField();
+    await screen.findByRole("option", { name: "Новіград використано 1 раз" });
+
+    await userEvent.type(locationField(), "мор");
+
+    expect(
+      screen.getByRole("option", { name: "Каер Морен використано 3 рази" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Новіград/ })).not.toBeInTheDocument();
+  });
+
+  it("submits a typed location as written even when it partially matches a suggestion", async () => {
+    await focusLocationField();
+    await screen.findByRole("option", { name: "Каер Морен використано 3 рази" });
+
+    await userEvent.type(locationField(), "Каер");
+    await userEvent.type(titleField(), "Облога фортеці");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти подію" }));
+
+    await waitFor(() => expect(createCall()).toBeDefined());
+    expect(bodyOf(createCall())).toMatchObject({ location: "Каер", title: "Облога фортеці" });
+  });
+
+  it("requests the locations only once the details section is opened", async () => {
+    renderForm();
+    await toggleSection(/Місце в книзі/);
+    await waitFor(() =>
+      expect(callFor((url) => url.includes("/books/book-1/chapters"))).toBeDefined(),
+    );
+    expect(locationsRequests()).toHaveLength(0);
+
+    await toggleSection(/Деталі події/);
+
+    await waitFor(() => expect(locationsRequests()).toHaveLength(1));
+  });
+
+  it("swaps the saved location of an edited event for another suggestion", async () => {
+    const locatedEvent = makeTimelineEventView({ id: "event-1", location: "Каер Морен" });
+    routeFetch({ detail: makeTimelineEventDetailView(locatedEvent), locations: savedLocations });
+    renderForm({ event: locatedEvent });
+
+    await waitFor(() => expect(titleField()).toHaveFocus());
+
+    await userEvent.clear(locationField());
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Новіград використано 1 раз" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    await waitFor(() => expect(updateCall()).toBeDefined());
+    expect(bodyOf(updateCall())).toMatchObject({ location: "Новіград" });
+  });
+
+  it("refetches the locations after save-and-add-another so the new location is suggested", async () => {
+    renderForm();
+    await userEvent.type(titleField(), "Облога фортеці");
+    await toggleSection(/Деталі події/);
+    await userEvent.type(locationField(), "Цінтра");
+    await waitFor(() => expect(locationsRequests()).toHaveLength(1));
+    routeFetch({ locations: [...savedLocations, { count: 1, location: "Цінтра" }] });
+
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти й додати ще" }));
+    await waitFor(() => expect(titleField()).toHaveValue(""));
+
+    await waitFor(() => expect(locationsRequests()).toHaveLength(2));
+    await userEvent.click(locationField());
+    expect(
+      await screen.findByRole("option", { name: "Цінтра використано 1 раз" }),
+    ).toBeInTheDocument();
   });
 });

@@ -15,5 +15,10 @@ export function useBookChapters(bookId: Nullable<string>, { enabled }: { enabled
         await bookChaptersControllerGetChapters(bookId ?? "", { signal }),
       ),
     queryKey: bookKeys.chapters(bookId ?? ""),
+    select: toChapterSuggestions,
   });
+}
+
+function toChapterSuggestions({ chapters }: BookChaptersView) {
+  return chapters.map(({ chapter, count }) => ({ count, value: chapter }));
 }
