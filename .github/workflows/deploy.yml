@@ -214,6 +214,8 @@ jobs:
           DEV_R2_SECRET_ACCESS_KEY: ${{ secrets.DEV_R2_SECRET_ACCESS_KEY }}
           PROD_R2_ACCESS_KEY_ID: ${{ secrets.PROD_R2_ACCESS_KEY_ID }}
           PROD_R2_SECRET_ACCESS_KEY: ${{ secrets.PROD_R2_SECRET_ACCESS_KEY }}
+          BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+          BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ci
@@ -244,15 +246,19 @@ jobs:
             echo "DEV_R2_SECRET_ACCESS_KEY=${DEV_R2_SECRET_ACCESS_KEY}"
             echo "PROD_R2_ACCESS_KEY_ID=${PROD_R2_ACCESS_KEY_ID}"
             echo "PROD_R2_SECRET_ACCESS_KEY=${PROD_R2_SECRET_ACCESS_KEY}"
+            echo "BACKUP_R2_ACCESS_KEY_ID=${BACKUP_R2_ACCESS_KEY_ID}"
+            echo "BACKUP_R2_SECRET_ACCESS_KEY=${BACKUP_R2_SECRET_ACCESS_KEY}"
+            echo "BACKUP_R2_ENDPOINT=https://440b6e63826c7fd04d634fb176eb576f.r2.cloudflarestorage.com"
+            echo "BACKUP_R2_BUCKET=book-nest-backups"
             echo "API_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-api"
             echo "WEB_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-web"
           } > /tmp/server.env
 
           $SSHC "$USER@$HOST" "mkdir -p ~/booknest"
-          $SCPC deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh deploy/maintenance.sh deploy/README.md "$USER@$HOST:~/booknest/"
-          $SCPC -r deploy/maintenance "$USER@$HOST:~/booknest/"
+          $SCPC deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh deploy/backup.sh deploy/maintenance.sh deploy/README.md deploy/RESTORE.md "$USER@$HOST:~/booknest/"
+          $SCPC -r deploy/maintenance deploy/systemd "$USER@$HOST:~/booknest/"
           $SCPC /tmp/server.env "$USER@$HOST:~/booknest/.env"
-          $SSHC "$USER@$HOST" "chmod +x ~/booknest/deploy.sh ~/booknest/maintenance.sh && chmod 600 ~/booknest/.env"
+          $SSHC "$USER@$HOST" "chmod +x ~/booknest/deploy.sh ~/booknest/backup.sh ~/booknest/maintenance.sh && chmod 600 ~/booknest/.env"
           rm -f /tmp/server.env
 
           $SSHC "$USER@$HOST" ENV="$ENV" GHCR_USER="$GHCR_USER" GHCR_TOKEN="$GHCR_TOKEN" 'bash -s' <<'REMOTE'
