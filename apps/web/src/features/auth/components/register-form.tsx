@@ -2,7 +2,7 @@
 
 import { NicknameSchema } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, isValid, parse, startOfYear, subYears } from "date-fns";
+import { startOfYear, subYears } from "date-fns";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Link } from "@/i18n/navigation";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 import { cn } from "@/lib/utils";
 
 import { useNicknameAvailability } from "../api/use-nickname-availability";
@@ -237,11 +238,9 @@ export function RegisterForm() {
                 endMonth={endMonth}
                 id="register-dob"
                 invalid={errors.dateOfBirth !== undefined}
-                onChange={(date) =>
-                  dobField.onChange(date ? format(date, "yyyy-MM-dd") : undefined)
-                }
+                onChange={(date) => dobField.onChange(date ? dateToIsoDay(date) : undefined)}
                 startMonth={startMonth}
-                value={parseBirthDate(dobField.value)}
+                value={isoDayToDate(dobField.value)}
               />
               <AuthFieldError
                 error={errors.dateOfBirth}
@@ -346,12 +345,6 @@ function NicknameStatus({ nickname }: { nickname: string }) {
       {data.available ? t("register.nicknameAvailable") : t("errors.nicknameTaken")}
     </p>
   );
-}
-
-function parseBirthDate(value: string | undefined): Date | undefined {
-  if (value === undefined || value === "") return undefined;
-  const parsed = parse(value, "yyyy-MM-dd", new Date());
-  return isValid(parsed) ? parsed : undefined;
 }
 
 function PasswordLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) {

@@ -1,11 +1,11 @@
 "use client";
 
-import { addYears, endOfYear, format, isValid, parse, startOfYear, subYears } from "date-fns";
+import { addYears, endOfYear, startOfYear, subYears } from "date-fns";
 
 import { DatePicker } from "@/components/ui/date-picker";
 import { useWeekStartsOn } from "@/features/settings";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
-const ISO_FORMAT = "yyyy-MM-dd";
 const YEAR_SPAN = 10;
 
 type BookDateFieldProps = {
@@ -49,17 +49,11 @@ export function BookDateField({
       endMonth={endMonth}
       id={id}
       invalid={invalid}
-      onChange={(date) => onChange(date ? format(date, ISO_FORMAT) : undefined)}
+      onChange={(date) => onChange(date ? dateToIsoDay(date) : undefined)}
       placeholder={placeholder}
       startMonth={startMonth}
-      value={parseIsoDate(value)}
+      value={typeof value === "string" ? isoDayToDate(value) : undefined}
       weekStartsOn={weekStartsOn}
     />
   );
-}
-
-function parseIsoDate(value: unknown): Date | undefined {
-  if (typeof value !== "string" || value.length === 0) return undefined;
-  const parsed = parse(value, ISO_FORMAT, new Date());
-  return isValid(parsed) ? parsed : undefined;
 }

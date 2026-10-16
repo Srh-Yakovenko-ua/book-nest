@@ -3,15 +3,14 @@ import type { BookOrderStatisticsCompareMode, Nullable } from "@app/shared";
 import {
   addDays,
   endOfMonth,
-  format,
-  isValid,
-  parse,
   parseISO,
   startOfMonth,
   startOfYear,
   subDays,
   subMonths,
 } from "date-fns";
+
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
 export const STATISTICS_PERIOD_PRESETS = [
   "this_month",
@@ -28,6 +27,7 @@ export type StatisticsPeriodPreset = (typeof STATISTICS_PERIOD_PRESETS)[number];
 
 export const STATISTICS_PERIOD = {
   defaultPreset: "this_year",
+  earliestCustomDay: "1900-01-01",
   isoDayFormat: "yyyy-MM-dd",
   rollingDays: 30,
   rollingMonthsLong: 12,
@@ -55,7 +55,7 @@ export function defaultStatisticsCompareMode(
 }
 
 export function isStatisticsDay(value: string): boolean {
-  return value !== "" && isValid(parse(value, STATISTICS_PERIOD.isoDayFormat, new Date()));
+  return isoDayToDate(value) !== undefined;
 }
 
 export function resolveStatisticsPeriod({
@@ -82,29 +82,25 @@ export function resolveStatisticsPeriod({
     case "last_12_months":
       return { from: rollingStart(now, STATISTICS_PERIOD.rollingMonthsLong), to: today };
     case "last_30_days":
-      return { from: toIsoDay(subDays(now, STATISTICS_PERIOD.rollingDays - 1)), to: today };
+      return { from: dateToIsoDay(subDays(now, STATISTICS_PERIOD.rollingDays - 1)), to: today };
     case "last_month": {
       const previousMonth = subMonths(now, 1);
       return {
-        from: toIsoDay(startOfMonth(previousMonth)),
-        to: toIsoDay(endOfMonth(previousMonth)),
+        from: dateToIsoDay(startOfMonth(previousMonth)),
+        to: dateToIsoDay(endOfMonth(previousMonth)),
       };
     }
     case "this_month":
-      return { from: toIsoDay(startOfMonth(now)), to: today };
+      return { from: dateToIsoDay(startOfMonth(now)), to: today };
     case "this_year":
-      return { from: toIsoDay(startOfYear(now)), to: today };
+      return { from: dateToIsoDay(startOfYear(now)), to: today };
   }
 }
 
 export function todayIsoDay(): string {
-  return toIsoDay(new Date());
+  return dateToIsoDay(new Date());
 }
 
 function rollingStart(now: Date, months: number): string {
-  return toIsoDay(addDays(subMonths(now, months), 1));
-}
-
-function toIsoDay(date: Date): string {
-  return format(date, STATISTICS_PERIOD.isoDayFormat);
+  return dateToIsoDay(addDays(subMonths(now, months), 1));
 }
