@@ -133,6 +133,10 @@ jobs:
       - name: Apply migrations
         run: pnpm --filter @app/api db:migrate:deploy
 
+      - name: Check schema.prisma against the applied migrations
+        if: matrix.shard == 1
+        run: pnpm --filter @app/api db:drift
+
       - name: Test shard
         run: pnpm --filter @app/api exec vitest run --shard=${{ matrix.shard }}/4
 
@@ -277,15 +281,38 @@ jobs:
     steps:
       - name: Require every gate to pass
         env:
-          RESULTS: ${{ needs.static.result }} ${{ needs.test-api.result }} ${{ needs.test-web.result }} ${{ needs.build.result }}
+          EVENT: ${{ github.event_name }}
+          STATIC: ${{ needs.static.result }}
+          TEST_API: ${{ needs.test-api.result }}
+          TEST_WEB: ${{ needs.test-web.result }}
+          BUILD: ${{ needs.build.result }}
         run: |
-          echo "static=${{ needs.static.result }}"
-          echo "test-api=${{ needs.test-api.result }}"
-          echo "test-web=${{ needs.test-web.result }}"
-          echo "build=${{ needs.build.result }}"
-          for result in $RESULTS; do
+          failed=0
+          require() {
+            name=$1
+            result=$2
+            may_skip=$3
+            echo "$name=$result"
             case "$result" in
-              success|skipped) ;;
-              *) echo "::error::a required gate reported '$result'"; exit 1 ;;
+              success) ;;
+              skipped)
+                if [ "$may_skip" != yes ]; then
+                  echo "::error::$name was skipped but must run on $EVENT"
+                  failed=1
+                fi
+                ;;
+              *)
+                echo "::error::$name reported '$result'"
+                failed=1
+                ;;
             esac
-          done
+          }
+          build_may_skip=no
+          if [ "$EVENT" = push ]; then
+            build_may_skip=yes
+          fi
+          require static "$STATIC" no
+          require test-api "$TEST_API" no
+          require test-web "$TEST_WEB" no
+          require build "$BUILD" "$build_may_skip"
+          exit "$failed"
