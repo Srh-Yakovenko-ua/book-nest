@@ -47,16 +47,20 @@ export class StatisticsActivityRepository {
   async aggregateDays({ from, to, userId }: ActivityScope): Promise<DayActivityRow[]> {
     const rows = await this.prisma.$queryRaw`
       SELECT
-        event.date AS "date",
-        SUM(event.pages_read)::int AS "pagesRead",
-        COUNT(DISTINCT event.book_id)::int AS "booksCount"
-      FROM book_reading_progress_events event
-      JOIN books book ON book.id = event.book_id
-      WHERE book.user_id = ${userId}::uuid
-        AND (${from}::date IS NULL OR event.date >= ${from}::date)
-        AND event.date <= ${to}::date
-      GROUP BY event.date
-      ORDER BY event.date ASC
+        book_day.date AS "date",
+        SUM(book_day.pages_read)::int AS "pagesRead",
+        (COUNT(*) FILTER (WHERE book_day.pages_read > 0))::int AS "booksCount"
+      FROM (
+        SELECT event.date, event.book_id, SUM(event.pages_read) AS pages_read
+        FROM book_reading_progress_events event
+        JOIN books book ON book.id = event.book_id
+        WHERE book.user_id = ${userId}::uuid
+          AND (${from}::date IS NULL OR event.date >= ${from}::date)
+          AND event.date <= ${to}::date
+        GROUP BY event.date, event.book_id
+      ) book_day
+      GROUP BY book_day.date
+      ORDER BY book_day.date ASC
     `;
 
     return z

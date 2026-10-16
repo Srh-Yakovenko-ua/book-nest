@@ -37,6 +37,17 @@ describe("buildInsightPool", () => {
     expect(pool.featuredInsight?.code).toBe("completed_reads_vs_comparison");
   });
 
+  it("leaves out the pages comparison when the compared history is not reliable", () => {
+    const pool = buildInsightPool(
+      input({
+        comparison: { completedReads: 4, pagesRead: null },
+        current: { completedReads: 4, pagesRead: 400 },
+      }),
+    );
+
+    expect(pool).toEqual({ featuredInsight: null, items: [] });
+  });
+
   it("keeps the featured candidate out of the regular cards", () => {
     const pool = buildInsightPool(
       input({

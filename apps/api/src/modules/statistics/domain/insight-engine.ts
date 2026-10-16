@@ -38,7 +38,7 @@ const PRIORITY: Record<ReadingStatisticsInsight["code"], number> = {
 };
 
 export type InsightEngineInput = {
-  comparison: Nullable<{ completedReads: number; pagesRead: number }>;
+  comparison: Nullable<{ completedReads: number; pagesRead: Nullable<number> }>;
   current: { completedReads: number; pagesRead: number };
   discoveredAuthors: DiscoveredEntity[];
   longestStreak: StatisticsStreakSpan;
@@ -188,11 +188,13 @@ function comparisonCandidates(input: InsightEngineInput): InsightCandidate[] {
       currentValue: current.completedReads,
       previousValue: comparison.completedReads,
     }),
-    comparisonCandidate({
-      code: "pages_read_vs_comparison",
-      currentValue: current.pagesRead,
-      previousValue: comparison.pagesRead,
-    }),
+    comparison.pagesRead === null
+      ? null
+      : comparisonCandidate({
+          code: "pages_read_vs_comparison",
+          currentValue: current.pagesRead,
+          previousValue: comparison.pagesRead,
+        }),
   ].flatMap((candidate) => (candidate === null ? [] : [candidate]));
 }
 
