@@ -96,7 +96,7 @@ export class CancelledFollowUpRepository {
       return Promise.resolve([]);
     }
     return this.prisma.book.findMany({
-      where: { id: { in: bookIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       ...previewRelations,
     });
   }
