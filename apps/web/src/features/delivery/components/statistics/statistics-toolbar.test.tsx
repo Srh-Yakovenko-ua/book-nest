@@ -1,12 +1,31 @@
 import type { BookOrderStatisticsMeta } from "@app/shared";
 
-import { describe, expect, it, vi } from "vitest";
+import { defaultUserProfileSettings } from "@app/shared";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
 import { StatisticsToolbar } from "./statistics-toolbar";
+
+const fetchMock = vi.fn((input: RequestInfo | URL) =>
+  String(input).includes("/api/profile/settings")
+    ? Promise.resolve(
+        new Response(JSON.stringify(defaultUserProfileSettings), {
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+    : Promise.reject(new Error(`unexpected fetch ${String(input)}`)),
+);
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const META: BookOrderStatisticsMeta = {
   activeSource: { isTruncated: false, loadedOrdersCount: 0, maxOrders: 5000 },
@@ -146,6 +165,86 @@ describe("StatisticsToolbar", () => {
 
     expect(screen.getByLabelText("Від")).toBeInTheDocument();
     expect(screen.getByLabelText("До")).toBeInTheDocument();
+  });
+
+  it("sets the custom start to the day picked in the calendar", async () => {
+    const setCustomRange = vi.fn();
+    renderWithProviders(
+      <StatisticsToolbar
+        meta={META}
+        params={buildParams({
+          setCustomRange,
+          state: { ...buildParams().state, from: "2026-08-03", period: "custom", to: "2026-08-14" },
+        })}
+        stores={[]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Від" }));
+    await userEvent.click(
+      within(screen.getByRole("grid")).getByRole("button", { name: /10-е серпня 2026/ }),
+    );
+
+    expect(setCustomRange).toHaveBeenCalledWith({ from: "2026-08-10", to: "2026-08-14" });
+  });
+
+  it("sets the custom end to the day picked in the calendar", async () => {
+    const setCustomRange = vi.fn();
+    renderWithProviders(
+      <StatisticsToolbar
+        meta={META}
+        params={buildParams({
+          setCustomRange,
+          state: { ...buildParams().state, from: "2026-08-03", period: "custom", to: "2026-08-14" },
+        })}
+        stores={[]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "До" }));
+    await userEvent.click(
+      within(screen.getByRole("grid")).getByRole("button", { name: /19-е серпня 2026/ }),
+    );
+
+    expect(setCustomRange).toHaveBeenCalledWith({ from: "2026-08-03", to: "2026-08-19" });
+  });
+
+  it("flags both custom dates against the alert when the range is reversed", () => {
+    renderWithProviders(
+      <StatisticsToolbar
+        meta={META}
+        params={buildParams({
+          state: { ...buildParams().state, from: "2026-05-01", period: "custom", to: "2026-03-01" },
+        })}
+        stores={[]}
+      />,
+    );
+
+    for (const name of ["Від", "До"]) {
+      const picker = screen.getByRole("button", { name });
+      expect(picker).toHaveAttribute("aria-invalid", "true");
+      expect(picker).toHaveAccessibleDescription("Початок періоду має бути не пізніше за кінець.");
+    }
+  });
+
+  it("leaves both custom dates unflagged when the range is in order", () => {
+    renderWithProviders(
+      <StatisticsToolbar
+        meta={META}
+        params={buildParams({
+          state: { ...buildParams().state, from: "2026-03-01", period: "custom", to: "2026-05-01" },
+        })}
+        stores={[]}
+      />,
+    );
+
+    for (const name of ["Від", "До"]) {
+      const picker = screen.getByRole("button", { name });
+      expect(picker).not.toHaveAttribute("aria-invalid", "true");
+      expect(picker).not.toHaveAccessibleDescription(
+        "Початок періоду має бути не пізніше за кінець.",
+      );
+    }
   });
 
   it("keeps the cancelled toggle with the other dataset filters", async () => {

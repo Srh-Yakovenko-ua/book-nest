@@ -3,11 +3,12 @@
 import type { Nullable, ReadingStatisticsComparison, ReadingStatisticsPeriod } from "@app/shared";
 
 import { READING_STATISTICS_CUSTOM_PERIOD_BOUNDS } from "@app/shared";
+import { parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
 import { UiIcon } from "@/components/icons";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,6 +20,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { YearPicker } from "@/components/ui/year-picker";
+import { useWeekStartsOn } from "@/features/settings";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
@@ -46,9 +49,15 @@ export function StatisticsPeriodControls({
   const compareId = useId();
   const compareModeId = useId();
   const yearId = useId();
+  const fromId = useId();
+  const toId = useId();
   const rangeIssueId = useId();
+  const weekStartsOn = useWeekStartsOn();
   const hasRangeIssue = params.rangeIssue !== null && params.rangeIssue !== "incomplete";
+  const rangeIssueDescription = params.rangeIssue === null ? undefined : rangeIssueId;
   const yearBounds = selectableYearBounds(params.today);
+  const today = parseISO(params.today);
+  const earliestDay = parseISO(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay);
 
   const currentLabel =
     period === null ? null : formatDayRange({ from: period.from, locale, to: period.to });
@@ -96,33 +105,43 @@ export function StatisticsPeriodControls({
         ) : null}
 
         {params.state.period === "custom" ? (
-          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
-            <Input
-              aria-describedby={params.rangeIssue === null ? undefined : rangeIssueId}
-              aria-invalid={hasRangeIssue}
-              aria-label={t("from")}
-              className="h-9 min-w-0 flex-1 sm:w-[9.5rem] sm:flex-none"
-              max={params.today}
-              min={READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay}
-              onChange={(event) =>
-                params.setCustomRange({ from: event.target.value, to: params.state.to })
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <DatePicker
+              ariaLabel={t("from")}
+              className="h-9 rounded-lg text-sm whitespace-nowrap sm:w-50"
+              describedBy={rangeIssueDescription}
+              endMonth={today}
+              id={fromId}
+              invalid={hasRangeIssue}
+              onChange={(date) =>
+                params.setCustomRange({
+                  from: date ? dateToIsoDay(date) : "",
+                  to: params.state.to,
+                })
               }
-              type="date"
-              value={params.state.from}
+              placeholder={t("from")}
+              startMonth={earliestDay}
+              value={isoDayToDate(params.state.from)}
+              weekStartsOn={weekStartsOn}
             />
-            <span className="text-sm text-muted-foreground">–</span>
-            <Input
-              aria-describedby={params.rangeIssue === null ? undefined : rangeIssueId}
-              aria-invalid={hasRangeIssue}
-              aria-label={t("to")}
-              className="h-9 min-w-0 flex-1 sm:w-[9.5rem] sm:flex-none"
-              max={params.today}
-              min={READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay}
-              onChange={(event) =>
-                params.setCustomRange({ from: params.state.from, to: event.target.value })
+            <span className="hidden text-sm text-muted-foreground sm:inline">–</span>
+            <DatePicker
+              ariaLabel={t("to")}
+              className="h-9 rounded-lg text-sm whitespace-nowrap sm:w-50"
+              describedBy={rangeIssueDescription}
+              endMonth={today}
+              id={toId}
+              invalid={hasRangeIssue}
+              onChange={(date) =>
+                params.setCustomRange({
+                  from: params.state.from,
+                  to: date ? dateToIsoDay(date) : "",
+                })
               }
-              type="date"
-              value={params.state.to}
+              placeholder={t("to")}
+              startMonth={earliestDay}
+              value={isoDayToDate(params.state.to)}
+              weekStartsOn={weekStartsOn}
             />
           </div>
         ) : null}

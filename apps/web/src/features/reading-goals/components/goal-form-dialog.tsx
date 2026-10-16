@@ -4,7 +4,7 @@ import type { Nullable, ReadingGoalView } from "@app/shared";
 import type { RefObject } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addYears, endOfYear, format, isValid, parse } from "date-fns";
+import { addYears, endOfYear } from "date-fns";
 import { useTranslations } from "next-intl";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 import { ApiError } from "@/lib/http-client";
+import { dateToIsoDay, isoDayToDate } from "@/lib/iso-day";
 
 import type { GoalFormValues } from "../model/goal-form";
 
@@ -269,10 +270,10 @@ function GoalForm({
               endMonth={endOfYear(addYears(now, CALENDAR_YEAR_SPAN))}
               id={FIELD_ID.deadline}
               invalid={errors.deadline !== undefined}
-              onChange={(date) => field.onChange(date ? format(date, GOAL_FORM.isoDateFormat) : "")}
+              onChange={(date) => field.onChange(date ? dateToIsoDay(date) : "")}
               placeholder={t("deadlinePlaceholder")}
               startMonth={now}
-              value={parseIsoDate(field.value)}
+              value={isoDayToDate(field.value)}
               weekStartsOn={weekStartsOn}
             />
           )}
@@ -292,10 +293,4 @@ function GoalForm({
       </DialogFooter>
     </form>
   );
-}
-
-function parseIsoDate(value: string): Date | undefined {
-  if (value === "") return undefined;
-  const parsed = parse(value, GOAL_FORM.isoDateFormat, new Date());
-  return isValid(parsed) ? parsed : undefined;
 }

@@ -9,7 +9,7 @@ import {
   ReadingStatisticsCompareModeSchema,
   ReadingStatisticsPeriodKindSchema,
 } from "@app/shared";
-import { differenceInCalendarDays, isAfter, isBefore, isValid, parse, parseISO } from "date-fns";
+import { differenceInCalendarDays, isAfter, isBefore, parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import {
   type inferParserType,
@@ -19,6 +19,8 @@ import {
 } from "nuqs/server";
 
 import type { StatisticsControllerGetOverviewParams } from "@/shared/api/generated/model";
+
+import { isoDayToDate } from "@/lib/iso-day";
 
 export const STATISTICS_PERIOD = {
   defaultKind: "year",
@@ -83,7 +85,7 @@ export function defaultStatisticsCompareMode(
 }
 
 export function isStatisticsDay(value: string): boolean {
-  return value !== "" && isValid(parse(value, STATISTICS_PERIOD.isoDayFormat, new Date()));
+  return isoDayToDate(value) !== undefined;
 }
 
 export function resolvedStatisticsYear(state: StatisticsQueryState, today: string): number {
