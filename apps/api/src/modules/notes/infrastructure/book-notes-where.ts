@@ -80,6 +80,7 @@ function buildBookNoteSearchConditions(search: string): Prisma.NoteWhereInput[] 
   const contains = { contains: escapeLikePattern(search), mode: "insensitive" } as const;
   const conditions: Prisma.NoteWhereInput[] = [
     { text: contains },
+    { title: contains },
     ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
     { chapter: contains },
     { customCategory: contains },

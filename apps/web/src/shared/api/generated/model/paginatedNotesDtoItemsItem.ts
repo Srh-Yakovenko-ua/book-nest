@@ -34,5 +34,7 @@ export type PaginatedNotesDtoItemsItem = {
   /** @nullable */
   series: PaginatedNotesDtoItemsItemSeries;
   text: string;
+  /** @nullable */
+  title: string | null;
   updatedAt: string;
 };

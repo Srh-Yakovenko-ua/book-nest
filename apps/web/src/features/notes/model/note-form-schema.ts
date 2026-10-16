@@ -39,6 +39,7 @@ export type NoteFormMessages = {
   pageNotPositive: string;
   textEmpty: string;
   textTooLong: string;
+  titleTooLong: string;
 };
 
 export type NoteFormRegister = UseFormRegister<NoteFormInput>;
@@ -80,6 +81,7 @@ export function buildNoteFormSchema(messages: NoteFormMessages, pageCeiling: Boo
       .trim()
       .min(1, { error: messages.textEmpty })
       .max(NOTE_INPUT_LIMITS.textMax, { error: messages.textTooLong }),
+    title: z.string().trim().max(NOTE_INPUT_LIMITS.titleMax, { error: messages.titleTooLong }),
   });
 }
 
@@ -118,6 +120,7 @@ export function noteFormDefaults({
     isSpoiler: note?.isSpoiler ?? false,
     page: note?.page ?? undefined,
     text: note?.text ?? "",
+    title: note?.title ?? "",
   };
 }
 
@@ -149,6 +152,7 @@ function bookLocationInput(values: NoteFormValues): Pick<CreateNoteInput, "chapt
 function noteOwnedInput(values: NoteFormValues): CreateSeriesNoteInput {
   const customCategory =
     values.category === NOTE_CUSTOM_CATEGORY ? values.customCategory.trim() : "";
+  const title = values.title.trim();
 
   return {
     category: values.category ?? null,
@@ -157,5 +161,6 @@ function noteOwnedInput(values: NoteFormValues): CreateSeriesNoteInput {
     isPinned: values.isPinned,
     isSpoiler: values.isSpoiler,
     text: values.text.trim(),
+    title: title.length > 0 ? title : null,
   };
 }

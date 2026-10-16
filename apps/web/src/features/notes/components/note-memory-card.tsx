@@ -26,6 +26,7 @@ type NoteMemoryCardProps = {
   onOpenNote: OpenNoteFullView;
   recordImpression: RecordNoteImpression;
   source: ReactNode;
+  titleAs: "h3" | "h4";
 };
 
 const MEMORY_SIGNAL_ICONS = {
@@ -39,6 +40,7 @@ export function NoteMemoryCard({
   onOpenNote,
   recordImpression,
   source,
+  titleAs: TitleHeading,
 }: NoteMemoryCardProps) {
   const t = useTranslations("notes.overview.memory");
   const tCategories = useTranslations("notes.categories");
@@ -72,9 +74,16 @@ export function NoteMemoryCard({
 
       {source}
 
-      <p className="line-clamp-4 text-sm leading-relaxed wrap-anywhere whitespace-pre-line text-foreground">
-        {note.text}
-      </p>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {note.title === null ? null : (
+          <TitleHeading className="line-clamp-2 font-heading text-base leading-snug font-semibold wrap-anywhere text-ink">
+            {note.title}
+          </TitleHeading>
+        )}
+        <p className="line-clamp-4 text-sm leading-relaxed wrap-anywhere whitespace-pre-line text-foreground">
+          {note.text}
+        </p>
+      </div>
 
       {category === null ? null : (
         <Badge

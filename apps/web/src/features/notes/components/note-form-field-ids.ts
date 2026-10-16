@@ -19,4 +19,6 @@ export const NOTE_FORM_FIELD_IDS = {
   text: "note-text",
   textCounter: "note-text-counter",
   textError: "note-text-error",
+  title: "note-title",
+  titleError: "note-title-error",
 } as const;

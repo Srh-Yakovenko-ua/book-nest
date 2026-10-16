@@ -20,6 +20,7 @@ export function makeBookNote(overrides: Partial<NoteView> = {}): NoteView {
     page: null,
     series: null,
     text: NOTE_FIXTURE.text,
+    title: null,
     updatedAt: NOTE_FIXTURE.createdAt,
     ...overrides,
   };

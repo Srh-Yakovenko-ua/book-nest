@@ -76,6 +76,7 @@ export type CreateNoteData = {
   page: Nullable<number>;
   seriesId: Nullable<string>;
   text: string;
+  title: Nullable<string>;
   userId: string;
 };
 
@@ -96,6 +97,7 @@ export type UpdateNoteFields = {
   isSpoiler?: boolean;
   page?: Nullable<number>;
   text?: string;
+  title?: Nullable<string>;
   updatedAt?: Date;
 };
 

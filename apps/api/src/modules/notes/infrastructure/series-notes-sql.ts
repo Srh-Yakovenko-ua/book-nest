@@ -138,6 +138,7 @@ export function buildSeriesNotesSearchCondition(search: string): Prisma.Sql {
 
   return Prisma.sql`(
     ${ilikeContains({ column: Prisma.sql`note.text`, search })}
+    OR ${ilikeContains({ column: Prisma.sql`note.title`, search })}
     OR ${ilikeContains({ column: Prisma.sql`series.name`, search })}
     OR ${authorNameMatches}
     OR ${ilikeContains({ column: Prisma.sql`note.custom_category`, search })}

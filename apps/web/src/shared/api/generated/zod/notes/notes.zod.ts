@@ -107,6 +107,7 @@ export const NoteControllerListBookNotesResponse = zod.object({
         })
         .nullable(),
       text: zod.string(),
+      title: zod.string().nullable(),
       updatedAt: zod.string(),
     }),
   ),
@@ -135,6 +136,8 @@ export const noteControllerCreateBookNoteBodyPageMax = 2147483647;
 
 export const noteControllerCreateBookNoteBodyTextMax = 5000;
 
+export const noteControllerCreateBookNoteBodyTitleMax = 120;
+
 export const NoteControllerCreateBookNoteBody = zod.object({
   category: zod
     .union([
@@ -162,6 +165,7 @@ export const NoteControllerCreateBookNoteBody = zod.object({
     .max(noteControllerCreateBookNoteBodyPageMax)
     .nullish(),
   text: zod.string().min(1).max(noteControllerCreateBookNoteBodyTextMax),
+  title: zod.string().max(noteControllerCreateBookNoteBodyTitleMax).nullish(),
 });
 
 export const noteControllerCreateBookNoteResponsePageMin = -9007199254740991;
@@ -252,6 +256,7 @@ export const NoteControllerCreateBookNoteResponse = zod.object({
     })
     .nullable(),
   text: zod.string(),
+  title: zod.string().nullable(),
   updatedAt: zod.string(),
 });
 
@@ -355,6 +360,7 @@ export const NoteControllerListSeriesNotesResponse = zod.object({
         })
         .nullable(),
       text: zod.string(),
+      title: zod.string().nullable(),
       updatedAt: zod.string(),
     }),
   ),
@@ -378,6 +384,8 @@ export const noteControllerCreateSeriesNoteBodyIsPinnedDefault = false;
 export const noteControllerCreateSeriesNoteBodyIsSpoilerDefault = false;
 export const noteControllerCreateSeriesNoteBodyTextMax = 5000;
 
+export const noteControllerCreateSeriesNoteBodyTitleMax = 120;
+
 export const NoteControllerCreateSeriesNoteBody = zod.object({
   category: zod
     .union([
@@ -399,6 +407,7 @@ export const NoteControllerCreateSeriesNoteBody = zod.object({
   isPinned: zod.boolean().default(noteControllerCreateSeriesNoteBodyIsPinnedDefault),
   isSpoiler: zod.boolean().default(noteControllerCreateSeriesNoteBodyIsSpoilerDefault),
   text: zod.string().min(1).max(noteControllerCreateSeriesNoteBodyTextMax),
+  title: zod.string().max(noteControllerCreateSeriesNoteBodyTitleMax).nullish(),
 });
 
 export const noteControllerCreateSeriesNoteResponsePageMin = -9007199254740991;
@@ -489,6 +498,7 @@ export const NoteControllerCreateSeriesNoteResponse = zod.object({
     })
     .nullable(),
   text: zod.string(),
+  title: zod.string().nullable(),
   updatedAt: zod.string(),
 });
 
@@ -507,6 +517,8 @@ export const noteControllerEditNoteBodyPageExclusiveMin = 0;
 export const noteControllerEditNoteBodyPageMax = 2147483647;
 
 export const noteControllerEditNoteBodyTextMax = 5000;
+
+export const noteControllerEditNoteBodyTitleMax = 120;
 
 export const NoteControllerEditNoteBody = zod.object({
   category: zod
@@ -535,6 +547,7 @@ export const NoteControllerEditNoteBody = zod.object({
     .max(noteControllerEditNoteBodyPageMax)
     .nullish(),
   text: zod.string().min(1).max(noteControllerEditNoteBodyTextMax).optional(),
+  title: zod.string().max(noteControllerEditNoteBodyTitleMax).nullish(),
 });
 
 export const noteControllerEditNoteResponsePageMin = -9007199254740991;
@@ -625,6 +638,7 @@ export const NoteControllerEditNoteResponse = zod.object({
     })
     .nullable(),
   text: zod.string(),
+  title: zod.string().nullable(),
   updatedAt: zod.string(),
 });
 
@@ -1119,6 +1133,7 @@ export const NotesControllerBookOverviewResponse = zod.object({
           })
           .nullable(),
         text: zod.string(),
+        title: zod.string().nullable(),
         updatedAt: zod.string(),
       }),
       source: zod
@@ -1486,6 +1501,7 @@ export const NotesControllerSeriesOverviewResponse = zod.object({
               })
               .nullable(),
             text: zod.string(),
+            title: zod.string().nullable(),
             updatedAt: zod.string(),
             sourceBook: zod.object({
               id: zod.string(),
@@ -1618,6 +1634,7 @@ export const NotesControllerSeriesOverviewResponse = zod.object({
           })
           .nullable(),
         text: zod.string(),
+        title: zod.string().nullable(),
         updatedAt: zod.string(),
       }),
       source: zod
@@ -2169,6 +2186,7 @@ export const NotesControllerListBookArchiveResponse = zod.object({
         })
         .nullable(),
       text: zod.string(),
+      title: zod.string().nullable(),
       updatedAt: zod.string(),
     }),
   ),
@@ -2391,6 +2409,7 @@ export const NotesControllerListSeriesArchiveResponse = zod.object({
         })
         .nullable(),
       text: zod.string(),
+      title: zod.string().nullable(),
       updatedAt: zod.string(),
     }),
   ),

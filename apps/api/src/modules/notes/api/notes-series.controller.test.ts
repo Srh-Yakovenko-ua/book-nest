@@ -291,6 +291,22 @@ describe("GET /api/notes/series acceptance gaps", () => {
     expect(byRawCategory.body.totalCount).toBe(0);
   });
 
+  it("matches a series note by its title when the text does not contain the term", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const seriesId = await createSeries(accessToken, { name: "Earthsea" });
+    const titledId = await createSeriesNote(accessToken, seriesId, {
+      text: "Old speech",
+      title: "The Farthest Shore",
+    });
+    await createSeriesNote(accessToken, seriesId, { text: "Old speech", title: "Tehanu" });
+
+    const res = await authed("get", `${SERIES_ARCHIVE_PATH}?search=farthest`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(listIds(res.body)).toEqual([titledId]);
+    expect(res.body.totalCount).toBe(1);
+  });
+
   it("SERIES-Q-05 filters by a stable canonical author id derived from the series books", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const expanseId = await createSeries(accessToken, {

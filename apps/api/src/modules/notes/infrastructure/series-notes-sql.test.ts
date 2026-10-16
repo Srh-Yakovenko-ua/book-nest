@@ -40,8 +40,17 @@ describe("series archive search", () => {
     expect(searchSql).toContain("note.custom_category ILIKE");
   });
 
+  it("matches the note title through a bound ILIKE parameter, never an inlined term", () => {
+    const condition = buildSeriesNotesSearchCondition("Gom Jabbar");
+    const titlePlaceholder = /note\.title ILIKE \$(\d+) ESCAPE/.exec(condition.text);
+
+    expect(titlePlaceholder).not.toBeNull();
+    expect(condition.values[Number(titlePlaceholder?.[1]) - 1]).toBe("%Gom Jabbar%");
+    expect(condition.text).not.toContain("Gom Jabbar");
+  });
+
   it("does not search book titles, chapter, page or the raw category", () => {
-    expect(searchSql).not.toMatch(/title/);
+    expect(searchSql).not.toMatch(/(?<!note\.)title/);
     expect(searchSql).not.toMatch(/chapter/);
     expect(searchSql).not.toMatch(/\bpage\b/);
     expect(searchSql).not.toMatch(/note\.category\b/);

@@ -79,6 +79,7 @@ function makeBookNote(overrides: Partial<NoteWithEntity> = {}): NoteWithEntity {
     series: null,
     seriesId: null,
     text: "A thought",
+    title: null,
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     userId: USER_ID,
     ...overrides,
@@ -203,6 +204,44 @@ describe("NotesService create", () => {
       expect.objectContaining({ category: "other", customCategory: "love line" }),
     );
   });
+
+  it("persists a trimmed title for a new book note", async () => {
+    const { create, service } = createService();
+
+    await service.createBookNote(USER_ID, BOOK_ID, { ...baseInput, title: "  Gom Jabbar  " });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ title: "Gom Jabbar" }));
+  });
+
+  it.each([
+    { label: "an omitted title", title: undefined },
+    { label: "a null title", title: null },
+    { label: "a blank title", title: "   " },
+  ])("persists $label on a new book note as null", async ({ title }) => {
+    const { create, service } = createService();
+
+    await service.createBookNote(USER_ID, BOOK_ID, { ...baseInput, title });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ title: null }));
+  });
+
+  it("persists the title of a new series note", async () => {
+    const { create, service } = createService();
+
+    await service.createSeriesNote(USER_ID, SERIES_ID, { ...baseSeriesInput, title: "The Ekumen" });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ entityType: "series", title: "The Ekumen" }),
+    );
+  });
+
+  it("persists a blank series note title as null", async () => {
+    const { create, service } = createService();
+
+    await service.createSeriesNote(USER_ID, SERIES_ID, { ...baseSeriesInput, title: "  " });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ title: null }));
+  });
 });
 
 describe("NotesService edit", () => {
@@ -245,6 +284,9 @@ describe("NotesService edit", () => {
     { input: { isFavorite: true, isSpoiler: false }, label: "a spoiler change alongside a flag" },
     { input: { page: 7 }, label: "a page change" },
     { input: { category: "plot" as const }, label: "a category change" },
+    { input: { title: "Arrakis" }, label: "a title change" },
+    { input: { title: null }, label: "a title removal" },
+    { input: { isPinned: true, title: "Arrakis" }, label: "a title change alongside a flag" },
   ])("lets updatedAt advance for $label", async ({ input }) => {
     const current = makeBookNote();
     const { service, update } = createService({ findResult: current, updateResult: current });
@@ -305,6 +347,48 @@ describe("NotesService edit", () => {
 
     expect(update).toHaveBeenCalledWith({
       fields: { customCategory: "romance arc" },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it("sets a trimmed title when the patch carries one", async () => {
+    const current = makeBookNote({ title: "Old heading" });
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { title: "  The Water of Life  " });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { title: "The Water of Life" },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it.each([
+    { label: "null", title: null },
+    { label: "a blank string", title: "   " },
+  ])("clears a saved title when the patch sets it to $label", async ({ title }) => {
+    const current = makeBookNote({ title: "Old heading" });
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { title });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { title: null },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
+  });
+
+  it("leaves a saved title untouched when the patch omits it", async () => {
+    const current = makeBookNote({ title: "Old heading" });
+    const { service, update } = createService({ findResult: current, updateResult: current });
+
+    await service.editNote(USER_ID, NOTE_ID, { text: "Revised thought" });
+
+    expect(update).toHaveBeenCalledWith({
+      fields: { text: "Revised thought" },
       noteId: NOTE_ID,
       userId: USER_ID,
     });

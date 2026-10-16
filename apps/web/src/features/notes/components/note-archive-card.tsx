@@ -138,7 +138,14 @@ export function NoteArchiveCard({ layout, note }: NoteArchiveCardProps) {
       {note.isSpoiler ? (
         <NoteSpoilerGate entityType={note.entityType} layout={layout} onOpen={fullView.openFrom} />
       ) : (
-        <NotePreview card={card} layout={layout} onExpand={fullView.openFrom} text={note.text} />
+        <NotePreview
+          card={card}
+          layout={layout}
+          onExpand={fullView.openFrom}
+          text={note.text}
+          title={note.title}
+          titleAs={hasEntityHeader ? "h4" : "h3"}
+        />
       )}
 
       <NoteEntityLocation note={note} placement="card" />

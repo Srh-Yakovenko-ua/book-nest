@@ -183,7 +183,14 @@ function BeforeContinuationNote({
       {note.isSpoiler ? (
         <NoteSpoilerGate entityType={note.entityType} layout="compact" onOpen={openNote} />
       ) : (
-        <NotePreview card={null} layout="compact" onExpand={openNote} text={note.text} />
+        <NotePreview
+          card={null}
+          layout="compact"
+          onExpand={openNote}
+          text={note.text}
+          title={note.title}
+          titleAs="h4"
+        />
       )}
 
       <NoteEntityLocation note={note} placement="card" />

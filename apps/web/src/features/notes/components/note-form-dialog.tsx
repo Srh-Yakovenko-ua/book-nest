@@ -33,7 +33,12 @@ import {
   noteUpdateInput,
 } from "../model/note-form-schema";
 import { NOTE_FORM_FIELD_IDS } from "./note-form-field-ids";
-import { NoteCategoryFields, NoteFlagFields, NoteTextField } from "./note-form-fields";
+import {
+  NoteCategoryFields,
+  NoteFlagFields,
+  NoteTextField,
+  NoteTitleField,
+} from "./note-form-fields";
 import { NoteEntitySlot, NoteLocationSlot } from "./note-form-slots";
 
 type NoteFormDialogProps = {
@@ -52,7 +57,7 @@ export function NoteFormDialog({ onOpenChange, open, target }: NoteFormDialogPro
   const isEdit = target.mode === "edit";
   const contentRef = useRef<HTMLDivElement>(null);
   const firstFieldId =
-    target.mode === "pick" ? NOTE_FORM_FIELD_IDS.entity : NOTE_FORM_FIELD_IDS.text;
+    target.mode === "pick" ? NOTE_FORM_FIELD_IDS.entity : NOTE_FORM_FIELD_IDS.title;
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -118,6 +123,7 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
     pageNotPositive: tErrors("pageNotPositive"),
     textEmpty: tErrors("textEmpty"),
     textTooLong: tErrors("textTooLong", { max: NOTE_INPUT_LIMITS.textMax }),
+    titleTooLong: tErrors("titleTooLong", { max: NOTE_INPUT_LIMITS.titleMax }),
   };
 
   useEffect(() => {
@@ -150,8 +156,9 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
           control={control}
           entityType={entityType}
           errors={errors}
-          linkedEntity={target.mode === "edit" ? target.entity : null}
+          linkedEntity={target.mode === "pick" ? null : target.entity}
         />
+        <NoteTitleField errors={errors} register={register} />
         <NoteTextField control={control} errors={errors} register={register} />
         <NoteCategoryFields control={control} errors={errors} register={register} />
         <NoteLocationSlot

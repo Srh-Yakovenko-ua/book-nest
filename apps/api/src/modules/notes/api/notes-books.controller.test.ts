@@ -185,6 +185,22 @@ describe("GET /api/notes/books search", () => {
 
     expect(listIds(res.body)).toEqual([matchingId]);
   });
+
+  it("matches a note by its title when the text does not contain the term", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, { author: "Frank Herbert", title: "Dune" });
+    const titledId = await createBookNote(accessToken, bookId, {
+      text: "Desert",
+      title: "The Gom Jabbar",
+    });
+    await createBookNote(accessToken, bookId, { text: "Desert", title: "Sietch Tabr" });
+
+    const res = await authed("get", `${BOOK_ARCHIVE_PATH}?search=jabbar`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(listIds(res.body)).toEqual([titledId]);
+    expect(res.body.totalCount).toBe(1);
+  });
 });
 
 describe("GET /api/notes/books sort across pages", () => {

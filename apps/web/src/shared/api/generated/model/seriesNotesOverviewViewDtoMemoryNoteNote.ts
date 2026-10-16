@@ -34,5 +34,7 @@ export type SeriesNotesOverviewViewDtoMemoryNoteNote = {
   /** @nullable */
   series: SeriesNotesOverviewViewDtoMemoryNoteNoteSeries;
   text: string;
+  /** @nullable */
+  title: string | null;
   updatedAt: string;
 };
