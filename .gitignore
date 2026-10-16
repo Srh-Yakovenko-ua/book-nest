@@ -31,6 +31,9 @@ apps/api/src/generated/
 npm-debug.log*
 pnpm-debug.log*
 
+# Git Bash crash dumps (written to the current directory when bash.exe crashes)
+*.stackdump
+
 # Editor
 .vscode/
 .idea/
