@@ -17,6 +17,7 @@ type DiscardConfirmDialogProps = {
   cancelLabel: string;
   confirmLabel: string;
   description: string;
+  onCloseAutoFocus?: (event: Event) => void;
   onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -27,6 +28,7 @@ export function DiscardConfirmDialog({
   cancelLabel,
   confirmLabel,
   description,
+  onCloseAutoFocus,
   onConfirm,
   onOpenChange,
   open,
@@ -34,7 +36,7 @@ export function DiscardConfirmDialog({
 }: DiscardConfirmDialogProps) {
   return (
     <AlertDialog onOpenChange={onOpenChange} open={open}>
-      <AlertDialogContent size="sm">
+      <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus} size="sm">
         <AlertDialogHeader>
           <AlertDialogMedia>
             <UiIcon name="alert-triangle" size={24} />

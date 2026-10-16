@@ -7830,17 +7830,34 @@
       "title": "Add character"
     },
     "aliases": {
-      "addPlaceholder": "Add a name…",
+      "add": "Add name",
       "announceAdded": "Name “{name}” added, {count} of {max}",
       "announceRemoved": "Name “{name}” removed, {count} of {max}",
+      "announceRestored": "Name “{name}” restored, {count} of {max}",
       "atMax": "Limit reached — remove a name to add more",
       "bookHint": "These names apply to this book only.",
       "bookTitle": "Other names in this book",
       "cancel": "Cancel",
-      "confirmAdd": "Add",
-      "confirmEdit": "Done",
+      "confirmAdd": "Add name",
+      "confirmEdit": "Apply",
       "counter": "{count} / {max}",
+      "discard": {
+        "confirm": "Discard changes",
+        "description": "The changes to this name are not applied yet and will be lost.",
+        "title": "Discard name changes?"
+      },
       "edit": "Edit the name “{name}” ({type})",
+      "editor": {
+        "addTitle": "Adding a name",
+        "contextBook": "This book only",
+        "contextGlobal": "For all books",
+        "editTitle": "Editing: {name}",
+        "nameRequired": "Enter a name",
+        "saveBlocked": "Apply or cancel the name changes before saving the character.",
+        "spoiler": "This name contains a spoiler"
+      },
+      "editTooltip": "Edit name",
+      "empty": "No names added yet",
       "errorDuplicate": "That name with this type is already in the list",
       "errorOnName": "“{name}”: {message}",
       "errorSameAsDisplayName": "That is the character name in this book",
@@ -7850,16 +7867,24 @@
       "name": "Alternative name",
       "namePlaceholder": "Name…",
       "remove": "Remove the name “{name}”",
-      "sectionHint": "Click a name to edit it.",
+      "removeTooltip": "Remove name",
+      "sectionHint": "Use the pencil next to a name to edit it.",
       "sectionTitle": "Other names",
-      "spoiler": "Contains a spoiler",
       "spoilerToggle": {
         "mark": "Mark name as spoiler",
         "markName": "Mark name “{name}” as spoiler",
         "unmark": "Remove spoiler mark",
         "unmarkName": "Remove spoiler mark from name “{name}”"
       },
-      "type": "Name type"
+      "type": "Name type",
+      "undo": {
+        "action": "Undo",
+        "duplicate": "Couldn’t restore “{name}”: that name with this type is already in the list",
+        "expired": "This removal can no longer be undone",
+        "limit": "Couldn’t restore “{name}”: the name limit is reached",
+        "removed": "Name “{name}” removed",
+        "reserved": "Couldn’t restore “{name}”: it matches the character name"
+      }
     },
     "aliasType": {
       "former_name": "Former name",
@@ -8236,6 +8261,7 @@
       "listLabel": "Role options",
       "placeholder": "Pick a role or type your own…",
       "remove": "Remove role “{role}”",
+      "removeTooltip": "Remove role",
       "spoilerToggle": {
         "mark": "Mark role as spoiler",
         "markRole": "Mark role “{role}” as spoiler",

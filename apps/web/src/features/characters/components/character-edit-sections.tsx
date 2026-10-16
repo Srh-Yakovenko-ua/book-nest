@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { Control, FieldError, FieldErrors, UseFormRegister } from "react-hook-form";
+import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 
 import { BOOK_CHARACTER_UNSPECIFIED, CHARACTER_TEXT_MAX } from "@app/shared";
 import { useTranslations } from "next-intl";
@@ -35,7 +35,6 @@ import type { CharacterEditValues } from "../model/character-edit-form";
 
 import { useCharacterCustomLabels } from "../api/use-character-custom-labels";
 import { hasSpoilerValue, spoilerValuePresence } from "../model/book-spoiler-flags";
-import { effectiveCharacterName } from "../model/character-edit-form";
 import { isBookFieldMasked } from "../model/character-inheritance";
 import {
   ATTITUDE_OPTIONS,
@@ -47,7 +46,6 @@ import {
   NARRATOR_TYPE_OPTIONS,
 } from "../model/character-options";
 import { isFieldHidden } from "../model/character-spoiler";
-import { CharacterAliasGroup } from "./character-alias-group";
 import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
 import { InheritedSelectField, InheritedTextField } from "./character-inherited-field";
 import { InheritedSpeciesField } from "./character-inherited-species-field";
@@ -56,8 +54,6 @@ import { CharacterPronounsSelect } from "./character-pronouns-select";
 import { CharacterRolePicker } from "./character-role-picker";
 import { CharacterScopeBadge } from "./character-scope-badge";
 import { CharacterSpoilerField } from "./character-spoiler-field";
-
-type AliasFieldErrors = NonNullable<FieldErrors<CharacterEditValues>["global"]>["aliases"];
 
 type EditControl = Control<CharacterEditValues>;
 
@@ -486,60 +482,6 @@ export function BookCharacterSpoilerSection({ control }: { control: EditControl 
   );
 }
 
-export function CharacterAliasesSection({
-  control,
-  errors,
-  hasBookScope,
-}: {
-  control: EditControl;
-  errors: FieldErrors<CharacterEditValues>;
-  hasBookScope: boolean;
-}) {
-  const t = useTranslations("characters.aliases");
-  const globalName = useWatch({ control, name: "global.name" });
-  const bookDisplayName = useWatch({ control, name: "book.displayName" });
-
-  return (
-    <EditSection description={t("sectionHint")} icon="tag" title={t("sectionTitle")}>
-      <Controller
-        control={control}
-        name="global.aliases"
-        render={({ field }) => (
-          <CharacterAliasGroup
-            errors={aliasNameErrors(errors.global?.aliases, field.value.length)}
-            onChange={field.onChange}
-            reservedName={globalName}
-            scope="global"
-            value={field.value}
-          />
-        )}
-      />
-
-      {hasBookScope ? (
-        <>
-          <Separator />
-          <Controller
-            control={control}
-            name="book.aliases"
-            render={({ field }) => (
-              <CharacterAliasGroup
-                errors={aliasNameErrors(errors.book?.aliases, field.value.length)}
-                onChange={field.onChange}
-                reservedName={effectiveCharacterName({
-                  displayName: bookDisplayName,
-                  globalName,
-                })}
-                scope="book"
-                value={field.value}
-              />
-            )}
-          />
-        </>
-      ) : null}
-    </EditSection>
-  );
-}
-
 export function CharacterAttitudeSection({
   control,
   errors,
@@ -958,11 +900,7 @@ export function CharacterBasicsSection({
   );
 }
 
-function aliasNameErrors(entries: AliasFieldErrors, count: number): (FieldError | undefined)[] {
-  return Array.from({ length: count }, (_unused, index) => entries?.[index]?.name);
-}
-
-function EditSection({
+export function EditSection({
   action,
   children,
   description,
