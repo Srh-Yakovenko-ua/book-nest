@@ -14,6 +14,14 @@ function buildRunner(): {
   return { runner, transaction };
 }
 
+function deadlockError(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError("deadlock detected", {
+    clientVersion: "test",
+    code: "P2010",
+    meta: { driverAdapterError: { cause: { originalCode: "40P01" } } },
+  });
+}
+
 function runnerWith(transaction: ReturnType<typeof vi.fn>): TransactionRunner {
   return new TransactionRunner({ $transaction: transaction } as unknown as PrismaService);
 }
@@ -78,5 +86,15 @@ describe("TransactionRunner.run", () => {
 
     await expect(runner.run(vi.fn(async () => "result"))).rejects.toBe(failure);
     expect(transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a deadlock reported by the driver adapter the same way as a write conflict", async () => {
+    const transaction = vi
+      .fn()
+      .mockRejectedValueOnce(deadlockError())
+      .mockResolvedValueOnce("after-deadlock");
+
+    await expect(runnerWith(transaction).run(async () => "unused")).resolves.toBe("after-deadlock");
+    expect(transaction).toHaveBeenCalledTimes(2);
   });
 });
