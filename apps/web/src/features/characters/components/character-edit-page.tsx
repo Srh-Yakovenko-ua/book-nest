@@ -45,12 +45,12 @@ import { getCharacterDetailsPath } from "../model/character-routes";
 import { ALL_REVEAL_FIELD_KEYS } from "../model/character-spoiler";
 import { CharacterEditPreview } from "./character-edit-preview";
 import {
-  BookCharacterInheritanceSection,
-  BookCharacterMainSection,
+  BookCharacterDescriptionsSection,
   BookCharacterNarrativeSection,
   BookCharacterSpoilerSection,
   CharacterAliasesSection,
-  CharacterGlobalSection,
+  CharacterAttitudeSection,
+  CharacterBasicsSection,
 } from "./character-edit-sections";
 import { CharacterPortraitPanel } from "./character-portrait-panel";
 import { CharacterUnavailableContext } from "./character-unavailable-context";
@@ -290,8 +290,17 @@ function CharacterEditForm({
       </div>
 
       <div className="flex min-w-0 flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:col-start-1 lg:row-start-1">
+        <CharacterBasicsSection
+          control={control}
+          errors={errors}
+          hasBookScope={contextBookId !== null}
+          maskedFields={maskedFields}
+          onSpeciesChange={applySpeciesChange}
+          register={register}
+        />
+
         {contextBookId === null ? null : (
-          <BookCharacterMainSection control={control} errors={errors} register={register} />
+          <BookCharacterDescriptionsSection control={control} errors={errors} register={register} />
         )}
 
         {contextBookId === null ? null : (
@@ -305,21 +314,12 @@ function CharacterEditForm({
           />
         )}
 
-        <CharacterGlobalSection
+        <CharacterAttitudeSection
           control={control}
           errors={errors}
-          onSpeciesChange={applySpeciesChange}
+          hasBookScope={contextBookId !== null}
           register={register}
         />
-
-        {contextBookId === null ? null : (
-          <BookCharacterInheritanceSection
-            control={control}
-            errors={errors}
-            maskedFields={maskedFields}
-            onSpeciesChange={applySpeciesChange}
-          />
-        )}
 
         <CharacterAliasesSection
           control={control}

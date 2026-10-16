@@ -21,10 +21,10 @@ const STORY = {
   avatarUrl: "/auth/cover-login.webp",
   bookId: "book-1",
   bookSectionTitles: [
-    "У цій книзі",
+    "Основне про персонажа",
+    "Описи в цій книзі",
     "Роль у розповіді",
-    "Про персонажа",
-    "Лише для цієї книги",
+    "Моє ставлення та враження",
     "Інші імена",
     "Спойлери",
   ],
@@ -371,9 +371,15 @@ export const Global: Story = {
     await waitFor(async () => {
       await expect(canvas.getByDisplayValue("Ґеральт")).toBeVisible();
     });
-    await expect(canvas.getByRole("heading", { level: 2, name: "Про персонажа" })).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { level: 2, name: "Основне про персонажа" }),
+    ).toBeVisible();
+    await expect(
+      canvas.getByRole("heading", { level: 2, name: "Моє ставлення та враження" }),
+    ).toBeVisible();
     await expect(canvas.getByRole("heading", { level: 2, name: "Інші імена" })).toBeVisible();
-    await expect(canvas.queryByRole("heading", { name: "У цій книзі" })).toBeNull();
+    await expect(canvas.queryByRole("heading", { name: "Описи в цій книзі" })).toBeNull();
+    await expect(canvas.queryByRole("heading", { name: "Роль у розповіді" })).toBeNull();
     await expect(canvas.queryByRole("heading", { name: "Спойлери" })).toBeNull();
     const imagesPanel = within(canvas.getByRole("region", { name: "Зображення персонажа" }));
     await expect(imagesPanel.getByRole("group", { name: "Основний аватар" })).toBeVisible();
