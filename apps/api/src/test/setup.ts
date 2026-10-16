@@ -13,3 +13,4 @@ const workerUrl = workerDatabaseUrl({ config, rawPoolId: process.env.VITEST_POOL
 await ensureWorkerDatabase({ config, workerUrl });
 
 process.env.DATABASE_URL = workerUrl;
+process.env.REDIS_KEY_PREFIX = `test:${runId}:${process.env.VITEST_POOL_ID ?? "1"}:`;
