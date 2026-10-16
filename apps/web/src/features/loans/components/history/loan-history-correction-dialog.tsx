@@ -267,6 +267,7 @@ function ReturnedDateForm({ loan, onDone }: { loan: LoanHistoryDetailView; onDon
               id="loan-history-returned-date"
               invalid={errors.returnedDate !== undefined}
               onChange={(next) => field.onChange(next ?? "")}
+              required
               value={field.value}
             />
           )}

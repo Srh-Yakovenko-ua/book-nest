@@ -18,6 +18,7 @@ type BookDateFieldProps = {
   invalid?: boolean;
   onChange: (value: string | undefined) => void;
   placeholder?: string;
+  required?: boolean;
   value: unknown;
 };
 
@@ -31,6 +32,7 @@ export function BookDateField({
   invalid,
   onChange,
   placeholder,
+  required,
   value,
 }: BookDateFieldProps) {
   const weekStartsOn = useWeekStartsOn();
@@ -51,6 +53,7 @@ export function BookDateField({
       invalid={invalid}
       onChange={(date) => onChange(date ? dateToIsoDay(date) : undefined)}
       placeholder={placeholder}
+      required={required}
       startMonth={startMonth}
       value={typeof value === "string" ? isoDayToDate(value) : undefined}
       weekStartsOn={weekStartsOn}

@@ -120,7 +120,9 @@ export function StatisticsPeriodControls({
                 })
               }
               placeholder={t("from")}
+              required
               startMonth={earliestDay}
+              today={today}
               value={isoDayToDate(params.state.from)}
               weekStartsOn={weekStartsOn}
             />
@@ -139,7 +141,9 @@ export function StatisticsPeriodControls({
                 })
               }
               placeholder={t("to")}
+              required
               startMonth={earliestDay}
+              today={today}
               value={isoDayToDate(params.state.to)}
               weekStartsOn={weekStartsOn}
             />

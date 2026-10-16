@@ -121,6 +121,7 @@ export function StatisticsToolbar({
                 }
                 placeholder={tPeriod("from")}
                 startMonth={earliestDay}
+                today={today}
                 value={isoDayToDate(params.state.from)}
                 weekStartsOn={weekStartsOn}
               />
@@ -140,6 +141,7 @@ export function StatisticsToolbar({
                 }
                 placeholder={tPeriod("to")}
                 startMonth={earliestDay}
+                today={today}
                 value={isoDayToDate(params.state.to)}
                 weekStartsOn={weekStartsOn}
               />

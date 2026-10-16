@@ -299,6 +299,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
               id="update-date"
               invalid={errors.updateDate !== undefined}
               onChange={(next) => field.onChange(next ?? "")}
+              required
               value={field.value}
             />
           )}

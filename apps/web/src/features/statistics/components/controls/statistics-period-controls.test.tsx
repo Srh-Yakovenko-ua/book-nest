@@ -205,7 +205,7 @@ describe("StatisticsPeriodControls", () => {
       }),
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Початок періоду" }));
+    await userEvent.click(screen.getByRole("button", { name: "Початок періоду, 2 березня 2026" }));
     await userEvent.click(
       within(screen.getByRole("grid")).getByRole("button", { name: /10-е березня 2026/ }),
     );
@@ -222,7 +222,7 @@ describe("StatisticsPeriodControls", () => {
       }),
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Кінець періоду" }));
+    await userEvent.click(screen.getByRole("button", { name: "Кінець періоду, 20 березня 2026" }));
     await userEvent.click(
       within(screen.getByRole("grid")).getByRole("button", { name: /25-е березня 2026/ }),
     );

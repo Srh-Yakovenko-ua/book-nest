@@ -92,9 +92,9 @@ describe("GoalFormDialog validation", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти" }));
 
     await waitFor(() =>
-      expect(within(dialog).getByRole("button", { name: "До дати" })).toHaveAccessibleDescription(
-        "Оберіть дату пізніше за сьогодні",
-      ),
+      expect(
+        within(dialog).getByRole("button", { name: "До дати, 5 січня 2026" }),
+      ).toHaveAccessibleDescription("Оберіть дату пізніше за сьогодні"),
     );
     expect(updateCall()).toBeUndefined();
   });

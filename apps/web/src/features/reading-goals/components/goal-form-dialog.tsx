@@ -272,6 +272,7 @@ function GoalForm({
               invalid={errors.deadline !== undefined}
               onChange={(date) => field.onChange(date ? dateToIsoDay(date) : "")}
               placeholder={t("deadlinePlaceholder")}
+              required
               startMonth={now}
               value={isoDayToDate(field.value)}
               weekStartsOn={weekStartsOn}
