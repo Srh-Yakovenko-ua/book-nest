@@ -19,7 +19,7 @@ import {
   ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -48,6 +48,7 @@ import { SessionService } from "../application/session.service.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { CurrentUser } from "./guards/current-user.decorator.js";
 import { JwtProtected } from "./guards/jwt-protected.decorator.js";
+import { TrustedOriginGuard } from "./guards/trusted-origin.guard.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
@@ -148,13 +149,16 @@ export class AuthController {
   }
 
   @ApiBody({ type: LoginInputDto })
-  @ApiForbiddenResponse({ description: "Email not verified" })
+  @ApiForbiddenResponse({
+    description: "Email not verified, or the request did not come from a trusted origin",
+  })
   @ApiOkResponse({ description: "Logged in; access token returned, refresh cookie set" })
   @ApiOperation({ summary: "Authenticate with email and password and open a session" })
   @ApiUnauthorizedResponse({ description: "Invalid email or password" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("login")
   @Throttle({ default: { limit: LOGIN_LIMIT, ttl: seconds(LOGIN_TTL_SECONDS) } })
+  @UseGuards(TrustedOriginGuard)
   async login(
     @Body(new ZodBodyPipe(LoginInputSchema)) body: LoginInputDto,
     @Res({ passthrough: true }) response: Response,
@@ -166,6 +170,7 @@ export class AuthController {
     return result;
   }
 
+  @ApiForbiddenResponse({ description: "Request did not come from a trusted origin" })
   @ApiOkResponse({ description: "New access token issued, refresh cookie rotated" })
   @ApiOperation({ summary: "Rotate the refresh token and issue a new access token" })
   @ApiUnauthorizedResponse({
@@ -173,6 +178,7 @@ export class AuthController {
   })
   @HttpCode(HTTP_STATUS.OK)
   @Post("refresh")
+  @UseGuards(TrustedOriginGuard)
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
@@ -190,10 +196,12 @@ export class AuthController {
     return result;
   }
 
+  @ApiForbiddenResponse({ description: "Request did not come from a trusted origin" })
   @ApiOkResponse({ description: "Session revoked and refresh cookie cleared" })
   @ApiOperation({ summary: "Revoke the current session and clear the refresh cookie" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("logout")
+  @UseGuards(TrustedOriginGuard)
   async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
@@ -206,7 +214,7 @@ export class AuthController {
     response.clearCookie(REFRESH_COOKIE_NAME, {
       httpOnly: true,
       path: REFRESH_COOKIE_PATH,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: env.cookieSecure,
     });
 
@@ -265,7 +273,7 @@ export class AuthController {
       httpOnly: true,
       maxAge: maxAgeMs,
       path: REFRESH_COOKIE_PATH,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: env.cookieSecure,
     });
   }
