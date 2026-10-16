@@ -25,6 +25,13 @@ esac
 
 image_ref="ghcr.io/srh-yakovenko-ua/booknest-api:${ENV}"
 maintenance_flag="maintenance/prod.on"
+deploy_lock=".deploy.lock"
+
+exec 9>"$deploy_lock"
+if ! flock -n 9; then
+	echo ">>> another deploy is still running on this box, try again when it finishes" >&2
+	exit 1
+fi
 
 maintenance_on() {
 	[ "$ENV" = "prod" ] || return 0
