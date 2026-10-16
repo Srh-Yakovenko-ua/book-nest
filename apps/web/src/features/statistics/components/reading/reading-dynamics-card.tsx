@@ -1,31 +1,29 @@
 "use client";
 
-import type {
-  Nullable,
-  ReadingStatisticsDynamicsSection,
-  ReadingStatisticsPeriod,
-} from "@app/shared";
+import type { ReadingStatisticsDynamicsSection, ReadingStatisticsPeriod } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import type { DynamicsMetric } from "../../model/statistics-dynamics";
 
-import { DYNAMICS_METRICS, dynamicsPoints } from "../../model/statistics-dynamics";
+import {
+  canCompareDynamicsMetric,
+  DYNAMICS_METRICS,
+  dynamicsPoints,
+} from "../../model/statistics-dynamics";
 import { formatDayRange } from "../../model/statistics-format";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
 import { StatisticsSectionState } from "../statistics-states";
 import { ReadingDynamicsChart } from "./reading-dynamics-chart";
 
 export function ReadingDynamicsCard({
-  comparisonLabel,
-  currentLabel,
   dynamics,
+  isComparisonLowerBound,
   period,
 }: {
-  comparisonLabel: Nullable<string>;
-  currentLabel: Nullable<string>;
   dynamics: ReadingStatisticsDynamicsSection;
+  isComparisonLowerBound: boolean;
   period: ReadingStatisticsPeriod;
 }) {
   const locale = useLocale();
@@ -36,9 +34,13 @@ export function ReadingDynamicsCard({
     buckets: dynamics.buckets,
     comparisonBuckets: dynamics.comparisonBuckets,
     granularity: period.granularity,
+    isComparisonLowerBound,
     locale,
     metric,
   });
+  const isComparisonHidden =
+    dynamics.comparisonBuckets !== null &&
+    !canCompareDynamicsMetric({ isComparisonLowerBound, metric });
   const peak = metric === "pages" ? dynamics.peakPagesRead : dynamics.peakCompletedReads;
   const peakRange =
     peak === null ? null : formatDayRange({ from: peak.start, locale, to: peak.end });
@@ -56,25 +58,25 @@ export function ReadingDynamicsCard({
       }
       description={t(`subtitles.${period.granularity}`)}
       note={
-        peak === null || peakRange === null ? null : (
-          <p className="text-xs text-muted-foreground">
-            {metric === "pages"
-              ? t("peakPages", { pages: peak.pagesRead, range: peakRange })
-              : t("peakReads", { range: peakRange, reads: peak.completedReads })}
-          </p>
-        )
+        <>
+          {peak === null || peakRange === null ? null : (
+            <p className="text-xs text-muted-foreground">
+              {metric === "pages"
+                ? t("peakPages", { pages: peak.pagesRead, range: peakRange })
+                : t("peakReads", { range: peakRange, reads: peak.completedReads })}
+            </p>
+          )}
+          {isComparisonHidden ? (
+            <p className="text-xs text-muted-foreground">{t("comparisonLowerBound")}</p>
+          ) : null}
+        </>
       }
       title={t("title")}
     >
       {points.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
-        <ReadingDynamicsChart
-          comparisonLabel={comparisonLabel}
-          currentLabel={currentLabel}
-          metric={metric}
-          points={points}
-        />
+        <ReadingDynamicsChart metric={metric} points={points} />
       )}
     </StatisticsSection>
   );

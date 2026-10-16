@@ -4,11 +4,13 @@ import type { ReadingStatisticsLibraryBalanceSection } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { Progress } from "@/components/ui/progress";
 import { formatNumber } from "@/lib/format";
 
 import { formatShare } from "../../model/statistics-format";
 import { StatisticsSection } from "../statistics-section";
-import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
+import { StatisticsStat } from "../statistics-stat";
+import { StatisticsNote } from "../statistics-states";
 
 const FORECAST_FRACTION = { maximumFractionDigits: 1 } as const;
 
@@ -20,74 +22,65 @@ export function LibraryBalanceSection({
   const locale = useLocale();
   const t = useTranslations("statistics.libraryBalance");
 
+  const { flow, forecast, readRatio } = libraryBalance;
+
   return (
     <StatisticsSection description={t("description")} title={t("title")}>
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
-          <dt className="text-xs text-muted-foreground">{t("currentTbr")}</dt>
-          <dd className="font-heading text-lg font-semibold text-ink tabular-nums">
-            {t("currentTbrValue", {
-              total: formatNumber(libraryBalance.currentOwnedTotal, locale),
-              unread: formatNumber(libraryBalance.currentTbrCount, locale),
-            })}
-          </dd>
-        </div>
+        <StatisticsStat
+          label={t("currentTbr")}
+          value={t("currentTbrValue", {
+            total: formatNumber(libraryBalance.currentOwnedTotal, locale),
+            unread: formatNumber(libraryBalance.currentTbrCount, locale),
+          })}
+        />
 
-        <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
-          <dt className="text-xs text-muted-foreground">{t("readRatio")}</dt>
-          <dd className="font-heading text-lg font-semibold text-ink tabular-nums">
-            {libraryBalance.readRatio === null
-              ? "—"
-              : `${formatShare(libraryBalance.readRatio, locale)}%`}
-          </dd>
-        </div>
+        <StatisticsStat
+          label={t("readRatio")}
+          value={
+            readRatio === null ? (
+              "—"
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {`${formatShare(readRatio, locale)}%`}
+                <Progress aria-hidden className="h-1.5" value={readRatio * 100} />
+              </div>
+            )
+          }
+        />
 
-        <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-secondary/50 px-3 py-2.5">
-          <dt className="text-xs text-muted-foreground">{t("forecast")}</dt>
-          <dd className="font-heading text-lg font-semibold text-ink tabular-nums">
-            {libraryBalance.forecast.data === null
+        <StatisticsStat
+          hint={
+            forecast.data === null
+              ? undefined
+              : t("forecastPace", {
+                  rate: formatNumber(forecast.data.readsPerMonth, locale, FORECAST_FRACTION),
+                })
+          }
+          label={t("forecast")}
+          value={
+            forecast.data === null
               ? "—"
               : t("forecastValue", {
-                  months: formatNumber(
-                    libraryBalance.forecast.data.monthsRemaining,
-                    locale,
-                    FORECAST_FRACTION,
-                  ),
-                })}
-          </dd>
-          {libraryBalance.forecast.data === null ? null : (
-            <dd className="text-[0.6875rem] text-muted-foreground">
-              {t("forecastPace", {
-                rate: formatNumber(
-                  libraryBalance.forecast.data.readsPerMonth,
-                  locale,
-                  FORECAST_FRACTION,
-                ),
-              })}
-            </dd>
-          )}
-        </div>
+                  months: formatNumber(forecast.data.monthsRemaining, locale, FORECAST_FRACTION),
+                })
+          }
+        />
       </dl>
 
-      {libraryBalance.flow.availability === "unavailable" || libraryBalance.flow.data === null ? (
-        <StatisticsSectionState
-          description={t(`flowReason.${libraryBalance.flow.reason ?? "HISTORY_NOT_TRACKED"}`)}
-          kind="unavailable"
-          title={t("flowUnavailable")}
-        />
-      ) : (
+      {flow.availability === "unavailable" || flow.data === null ? null : (
         <p className="text-sm text-foreground tabular-nums">
           {t("flow", {
-            inflow: libraryBalance.flow.data.inflow,
-            net: libraryBalance.flow.data.netChange,
-            outflow: libraryBalance.flow.data.outflow,
+            inflow: flow.data.inflow,
+            net: flow.data.netChange,
+            outflow: flow.data.outflow,
           })}
         </p>
       )}
 
-      {libraryBalance.forecast.availability === "unavailable" ? (
+      {forecast.availability === "unavailable" ? (
         <StatisticsNote>
-          {t(`forecastReason.${libraryBalance.forecast.reason ?? "INSUFFICIENT_SAMPLE"}`)}
+          {t(`forecastReason.${forecast.reason ?? "INSUFFICIENT_SAMPLE"}`)}
         </StatisticsNote>
       ) : null}
     </StatisticsSection>

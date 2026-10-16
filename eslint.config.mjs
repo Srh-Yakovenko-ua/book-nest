@@ -76,6 +76,7 @@ export default tseslint.config(
       "import-x/no-cycle": "warn",
       "import-x/no-duplicates": "warn",
       "import-x/no-self-import": "error",
+      "jsx-a11y/no-autofocus": ["error", { ignoreNonDOM: true }],
       "jsx-a11y/no-noninteractive-tabindex": [
         "error",
         { allowExpressionValues: true, roles: ["tabpanel", "region"], tags: [] },

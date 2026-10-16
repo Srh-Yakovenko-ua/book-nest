@@ -2,6 +2,7 @@
 
 import type { Nullable, ReadingStatisticsComparison, ReadingStatisticsPeriod } from "@app/shared";
 
+import { READING_STATISTICS_CUSTOM_PERIOD_BOUNDS } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
@@ -21,7 +22,7 @@ import { YearPicker } from "@/components/ui/year-picker";
 
 import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
-import { formatDayRange } from "../../model/statistics-format";
+import { formatDayLong, formatDayRange } from "../../model/statistics-format";
 import {
   defaultStatisticsCompareMode,
   resolvedStatisticsYear,
@@ -45,6 +46,8 @@ export function StatisticsPeriodControls({
   const compareId = useId();
   const compareModeId = useId();
   const yearId = useId();
+  const rangeIssueId = useId();
+  const hasRangeIssue = params.rangeIssue !== null && params.rangeIssue !== "incomplete";
   const yearBounds = selectableYearBounds(params.today);
 
   const currentLabel =
@@ -93,11 +96,14 @@ export function StatisticsPeriodControls({
         ) : null}
 
         {params.state.period === "custom" ? (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
             <Input
+              aria-describedby={params.rangeIssue === null ? undefined : rangeIssueId}
+              aria-invalid={hasRangeIssue}
               aria-label={t("from")}
-              className="h-9 w-[9.5rem]"
+              className="h-9 min-w-0 flex-1 sm:w-[9.5rem] sm:flex-none"
               max={params.today}
+              min={READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay}
               onChange={(event) =>
                 params.setCustomRange({ from: event.target.value, to: params.state.to })
               }
@@ -106,9 +112,12 @@ export function StatisticsPeriodControls({
             />
             <span className="text-sm text-muted-foreground">–</span>
             <Input
+              aria-describedby={params.rangeIssue === null ? undefined : rangeIssueId}
+              aria-invalid={hasRangeIssue}
               aria-label={t("to")}
-              className="h-9 w-[9.5rem]"
+              className="h-9 min-w-0 flex-1 sm:w-[9.5rem] sm:flex-none"
               max={params.today}
+              min={READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay}
               onChange={(event) =>
                 params.setCustomRange({ from: params.state.from, to: event.target.value })
               }
@@ -179,17 +188,26 @@ export function StatisticsPeriodControls({
       </div>
 
       {params.rangeIssue === null ? null : (
-        <p className="text-xs text-favorite" role="alert">
-          {t(`issues.${params.rangeIssue}`)}
+        <p
+          className={hasRangeIssue ? "text-xs text-favorite" : "text-xs text-muted-foreground"}
+          id={rangeIssueId}
+          role={hasRangeIssue ? "alert" : "status"}
+        >
+          {t(`issues.${params.rangeIssue}`, {
+            earliest: formatDayLong(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay, locale),
+            maxDays: READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.maxDays,
+          })}
         </p>
       )}
 
-      <p className="text-sm text-muted-foreground">
-        {currentLabel === null ? t("allTimeCaption") : t("caption", { range: currentLabel })}
-        {comparisonLabel === null ? null : (
-          <span className="ms-2">{t("comparisonCaption", { range: comparisonLabel })}</span>
-        )}
-      </p>
+      {period === null ? null : (
+        <p className="text-sm text-muted-foreground">
+          {currentLabel === null ? t("allTimeCaption") : t("caption", { range: currentLabel })}
+          {comparisonLabel === null ? null : (
+            <span className="ms-2">{t("comparisonCaption", { range: comparisonLabel })}</span>
+          )}
+        </p>
+      )}
     </section>
   );
 }

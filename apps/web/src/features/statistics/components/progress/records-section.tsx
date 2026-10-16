@@ -9,9 +9,10 @@ import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
 import { Card } from "@/components/ui/card";
+import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
-import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
+import { resolveReadingDayTarget, toContextActionLink } from "../../model/statistics-drilldown";
 import { formatDayLong, formatMonthKey } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
@@ -28,7 +29,13 @@ const RECORD_ICON = {
   shortest_completed_book: "book",
 } as const satisfies Record<ReadingStatisticsRecord["type"], UiIconName>;
 
-export function RecordsSection({ records }: { records: ReadingStatisticsRecordsSection }) {
+export function RecordsSection({
+  isLowerBound,
+  records,
+}: {
+  isLowerBound: boolean;
+  records: ReadingStatisticsRecordsSection;
+}) {
   const t = useTranslations("statistics.records");
 
   return (
@@ -36,19 +43,32 @@ export function RecordsSection({ records }: { records: ReadingStatisticsRecordsS
       {records.items.length === 0 ? (
         <StatisticsSectionState kind="empty" title={t("empty")} />
       ) : (
-        <ul className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 lg:grid lg:grid-cols-4 lg:overflow-visible">
-          {records.items.map((record) => (
-            <li className="w-[85%] shrink-0 snap-start lg:w-auto lg:shrink" key={record.type}>
-              <RecordCard record={record} />
-            </li>
-          ))}
-        </ul>
+        <div
+          aria-label={t("title")}
+          className="-mx-1 snap-x snap-mandatory overflow-x-auto rounded-lg px-1 pb-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:overflow-visible"
+          role="region"
+          tabIndex={0}
+        >
+          <ul className="flex gap-3 lg:grid lg:grid-cols-4">
+            {records.items.map((record) => (
+              <li className="w-[85%] shrink-0 snap-start lg:w-auto lg:shrink" key={record.type}>
+                <RecordCard isLowerBound={isLowerBound} record={record} />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </StatisticsSection>
   );
 }
 
-function RecordBody({ record }: { record: ReadingStatisticsRecord }): ReactNode {
+function RecordBody({
+  isLowerBound,
+  record,
+}: {
+  isLowerBound: boolean;
+  record: ReadingStatisticsRecord;
+}): ReactNode {
   const locale = useLocale();
   const t = useTranslations("statistics.records");
 
@@ -86,14 +106,20 @@ function RecordBody({ record }: { record: ReadingStatisticsRecord }): ReactNode 
               ? undefined
               : `${formatDayLong(record.data.startDate, locale)} – ${formatDayLong(record.data.endDate, locale)}`
           }
-          headline={t("values.streakDays", { count: record.data.days })}
+          note={isLowerBound ? t("values.recordedOnly") : undefined}
+          value={
+            isLowerBound
+              ? t("values.streakDaysAtLeast", { count: record.data.days })
+              : t("values.streakDays", { count: record.data.days })
+          }
         />
       );
     case "most_pages_in_day":
       return (
         <RecordText
           detail={formatDayLong(record.data.date, locale)}
-          headline={t("values.pages", { count: record.data.pagesRead })}
+          note={isLowerBound ? t("values.recordedOnly") : undefined}
+          value={t("values.pages", { count: record.data.pagesRead })}
         />
       );
     case "peak_month":
@@ -103,23 +129,58 @@ function RecordBody({ record }: { record: ReadingStatisticsRecord }): ReactNode 
             pages: formatNumber(record.data.pagesRead, locale),
             reads: record.data.completedReads,
           })}
-          headline={formatMonthKey(record.data.month, locale)}
+          value={formatMonthKey(record.data.month, locale)}
         />
       );
   }
 }
 
-function RecordCard({ record }: { record: ReadingStatisticsRecord }) {
+function recordBookLink(record: ReadingStatisticsRecord) {
+  switch (record.type) {
+    case "fastest_completed_read":
+    case "longest_completed_book":
+    case "shortest_completed_book":
+      return record.data.book.bookState === "active"
+        ? toContextActionLink({ bookId: record.data.book.bookId, kind: "open_book" })
+        : null;
+    default:
+      return null;
+  }
+}
+
+function RecordCard({
+  isLowerBound,
+  record,
+}: {
+  isLowerBound: boolean;
+  record: ReadingStatisticsRecord;
+}) {
   const locale = useLocale();
   const t = useTranslations("statistics.records");
+  const tActions = useTranslations("statistics.contextActions");
 
+  const bookLink = recordBookLink(record);
   const card = (
-    <Card className="flex h-full flex-col gap-1.5 px-4 py-3.5">
+    <Card className="flex h-full min-w-0 flex-col gap-1.5 px-4 py-3.5">
       <span className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        <UiIcon aria-hidden className="text-primary" name={RECORD_ICON[record.type]} size={14} />
-        {t(`types.${record.type}`)}
+        <UiIcon
+          aria-hidden
+          className="shrink-0 text-primary"
+          name={RECORD_ICON[record.type]}
+          size={14}
+        />
+        <span className="line-clamp-2">{t(`types.${record.type}`)}</span>
       </span>
-      <RecordBody record={record} />
+      <RecordBody isLowerBound={isLowerBound} record={record} />
+      {bookLink === null ? null : (
+        <Link
+          className="-mx-1 mt-auto inline-flex min-h-9 items-center gap-1 self-start rounded-md px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          href={bookLink.href}
+        >
+          {tActions(bookLink.kind)}
+          <UiIcon aria-hidden name="arrow-right" size={12} />
+        </Link>
+      )}
     </Card>
   );
 
@@ -131,9 +192,8 @@ function RecordCard({ record }: { record: ReadingStatisticsRecord }) {
   return (
     <StatisticsDetailSurface
       detail={() => <ReadingDayDetails date={detailDate} />}
-      label={t(`types.${record.type}`)}
       title={formatDayLong(detailDate, locale)}
-      triggerClassName="w-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      triggerClassName="h-full w-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       {card}
     </StatisticsDetailSurface>
@@ -143,21 +203,26 @@ function RecordCard({ record }: { record: ReadingStatisticsRecord }) {
 function RecordText({
   detail,
   headline,
+  note,
   value,
 }: {
   detail?: string;
-  headline: string;
-  value?: string;
+  headline?: string;
+  note?: string;
+  value: string;
 }) {
   return (
     <>
-      <span className="font-heading text-base leading-snug font-semibold text-ink">{headline}</span>
-      {value === undefined ? null : (
-        <span className="text-sm font-medium text-foreground tabular-nums">{value}</span>
+      <span className="font-heading text-2xl leading-tight font-semibold text-ink tabular-nums">
+        {value}
+      </span>
+      {headline === undefined ? null : (
+        <span className="line-clamp-2 text-sm font-medium text-foreground">{headline}</span>
       )}
       {detail === undefined ? null : (
         <span className="text-xs text-muted-foreground">{detail}</span>
       )}
+      {note === undefined ? null : <span className="text-xs text-muted-foreground">{note}</span>}
     </>
   );
 }

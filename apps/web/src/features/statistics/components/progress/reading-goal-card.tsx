@@ -49,10 +49,10 @@ export function ReadingGoalCard({ goal }: { goal: ReadingStatisticsGoalSection }
       title={t("title")}
     >
       <div className="flex flex-col gap-2">
-        <span className="font-heading text-sm font-medium text-ink">
+        <span className="truncate text-sm font-medium text-foreground">
           {primary.name ?? primary.listName ?? t("fallbackName", { count: primary.targetCount })}
         </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
+        <span className="font-heading text-lg font-semibold text-ink tabular-nums">
           {t("progress", {
             completed: primary.metrics.completedCount,
             target: primary.targetCount,
@@ -64,7 +64,9 @@ export function ReadingGoalCard({ goal }: { goal: ReadingStatisticsGoalSection }
             className="h-2 flex-1"
             value={percent}
           />
-          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{percent}%</span>
+          <span className="shrink-0 text-sm font-semibold text-primary tabular-nums">
+            {percent}%
+          </span>
         </div>
       </div>
 
@@ -104,7 +106,10 @@ export function ReadingGoalCard({ goal }: { goal: ReadingStatisticsGoalSection }
           </Button>
         ))}
         {goal.activeGoalsCount <= 1 ? null : (
-          <Link className="text-xs text-primary hover:underline" href="/goals">
+          <Link
+            className="inline-flex min-h-9 items-center rounded-md px-1 text-xs text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            href="/goals"
+          >
             {t("otherGoals", { count: goal.activeGoalsCount - 1 })}
           </Link>
         )}

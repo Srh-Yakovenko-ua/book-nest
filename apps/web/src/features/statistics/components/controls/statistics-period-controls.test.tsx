@@ -1,3 +1,5 @@
+import type { Nullable, ReadingStatisticsPeriod } from "@app/shared";
+
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -29,13 +31,25 @@ function makeParams(overrides: Partial<UseStatisticsParamsResult> = {}): UseStat
   };
 }
 
-function render(params: UseStatisticsParamsResult, comparison = overview.comparison) {
+function render(
+  params: UseStatisticsParamsResult,
+  comparison = overview.comparison,
+  period: Nullable<ReadingStatisticsPeriod> = overview.period,
+) {
   return renderWithProviders(
     <NuqsTestingAdapter hasMemory searchParams="">
-      <StatisticsPeriodControls comparison={comparison} params={params} period={overview.period} />
+      <StatisticsPeriodControls comparison={comparison} params={params} period={period} />
     </NuqsTestingAdapter>,
   );
 }
+
+const INVALID_CUSTOM_STATE = {
+  compare: null,
+  from: "2020-01-01",
+  period: "custom",
+  to: "2025-12-31",
+  year: null,
+} as const;
 
 describe("StatisticsPeriodControls", () => {
   it("shows the backend-normalized period range", () => {
@@ -112,5 +126,46 @@ describe("StatisticsPeriodControls", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Період не може сягати у майбутнє.");
+  });
+
+  it("explains the maximum custom range length", () => {
+    render(
+      makeParams({ isRequestable: false, rangeIssue: "tooLong", state: INVALID_CUSTOM_STATE }),
+      null,
+      null,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Власний період може охоплювати щонайбільше 1830 днів — близько п’яти років.",
+    );
+  });
+
+  it("explains the earliest supported start day", () => {
+    render(
+      makeParams({ isRequestable: false, rangeIssue: "tooEarly", state: INVALID_CUSTOM_STATE }),
+      null,
+      null,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Період не може починатися раніше за 1 січня 1900 р.",
+    );
+  });
+
+  it("shows no period caption while no valid period has been loaded", () => {
+    render(
+      makeParams({ isRequestable: false, rangeIssue: "tooLong", state: INVALID_CUSTOM_STATE }),
+      null,
+      null,
+    );
+
+    expect(screen.queryByText(/Період:/)).not.toBeInTheDocument();
+  });
+
+  it("keeps custom dates inside the supported window", () => {
+    render(makeParams({ state: { ...INVALID_CUSTOM_STATE, from: "", to: "" } }));
+
+    expect(screen.getByLabelText("Початок періоду")).toHaveAttribute("min", "1900-01-01");
+    expect(screen.getByLabelText("Кінець періоду")).toHaveAttribute("max", "2026-03-31");
   });
 });

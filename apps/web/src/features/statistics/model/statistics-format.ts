@@ -6,9 +6,13 @@ import { formatNumber, parseIsoDay } from "@/lib/format";
 
 const DAY_LONG = { day: "numeric", month: "long", year: "numeric" } as const;
 
+const DAY_NUMERIC = { day: "numeric", month: "numeric" } as const;
+
 const DAY_SHORT = { day: "numeric", month: "short" } as const;
 
 const MONTH_LONG = { month: "long", year: "numeric" } as const;
+
+const MONTH_NARROW = { month: "narrow" } as const;
 
 const MONTH_SHORT = { month: "short" } as const;
 
@@ -20,6 +24,10 @@ const WEEKDAY_ANCHOR_SUNDAY = "2026-01-04";
 
 export function formatDayLong(day: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, DAY_LONG).format(parseIsoDay(day));
+}
+
+export function formatDayNumeric(day: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, DAY_NUMERIC).format(parseIsoDay(day));
 }
 
 export function formatDayRange({
@@ -42,6 +50,10 @@ export function formatDayShort(day: string, locale: string): string {
 
 export function formatMonthKey(monthKey: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, MONTH_LONG).format(parseIsoDay(`${monthKey}-01`));
+}
+
+export function formatMonthNarrow(day: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, MONTH_NARROW).format(parseIsoDay(day));
 }
 
 export function formatMonthShort(day: string, locale: string): string {

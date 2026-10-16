@@ -8686,8 +8686,9 @@
     "title": "Статистика",
     "subtitle": "Як ви читали за обраний період: динаміка, смаки, прогрес і рекорди.",
     "dividers": {
-      "tastes": "Ваші читацькі смаки",
-      "progress": "Ваш прогрес"
+      "tastes": "Читацькі вподобання",
+      "progress": "Прогрес і досягнення",
+      "reading": "Огляд читання"
     },
     "states": {
       "loading": "Завантажуємо статистику",
@@ -8728,7 +8729,9 @@
         "incomplete": "Оберіть обидві дати періоду.",
         "invalid": "Дата у неправильному форматі.",
         "reversed": "Початок періоду не може бути пізнішим за кінець.",
-        "future": "Період не може сягати у майбутнє."
+        "future": "Період не може сягати у майбутнє.",
+        "tooEarly": "Період не може починатися раніше за {earliest}.",
+        "tooLong": "Власний період може охоплювати щонайбільше {maxDays} днів — близько п’яти років."
       },
       "caption": "Період: {range}",
       "allTimeCaption": "Період: увесь час до сьогодні",
@@ -8805,16 +8808,16 @@
       "description": "Спостереження, які бекенд обрав як найпомітніші для цього періоду.",
       "empty": "Для цього періоду ще немає надійних спостережень.",
       "codes": {
-        "completed_reads_vs_comparison": "{direction, select, up {Ви завершили {currentValue} читань — на {absoluteDelta} більше, ніж торішні {comparisonValue}.} other {Ви завершили {currentValue} читань — на {absoluteDelta} менше, ніж попередні {comparisonValue}.}}",
-        "pages_read_vs_comparison": "{direction, select, up {Прочитано {currentValue} сторінок — на {absoluteDelta} більше, ніж у попередньому періоді ({comparisonValue}).} other {Прочитано {currentValue} сторінок — на {absoluteDelta} менше, ніж у попередньому періоді ({comparisonValue}).}}",
-        "most_active_weekday": "Найактивніший день тижня — {weekday}: {activeDays} активних днів і {pagesRead} сторінок.",
-        "longest_streak_in_period": "Найдовша серія читання — {days} днів поспіль, з {startDate} по {endDate}.",
-        "top_genre_share": "Найчастіший жанр періоду — {genreKey}: {completedReadCount} читань, це {share} завершених читань.",
-        "top_author_reads": "Найчастіше ви читали {authorName} — {completedReadCount} читань.",
-        "series_marathon": "Найдовший серійний марафон — {marathonLength} книг поспіль із серії «{seriesName}».",
-        "high_rating_share": "{highRatedReadsCount} із {ratedReadsCount} оцінених читань отримали 8,0 і вище; середня оцінка — {averageRating}.",
-        "new_authors_discovered": "Ви відкрили {authorCount} нових авторів, серед них {firstAuthorName}.",
-        "dominant_language": "Найчастіша мова видання — {language}: {completedReadCount} читань, {share} відомих."
+        "completed_reads_vs_comparison": "{direction, select, up {Ви завершили <value>{currentValue, plural, one {# читання} few {# читання} many {# читань} other {# читання}}</value> — на {absoluteDelta} більше, ніж у періоді порівняння ({comparisonValue}).} other {Ви завершили <value>{currentValue, plural, one {# читання} few {# читання} many {# читань} other {# читання}}</value> — на {absoluteDelta} менше, ніж у періоді порівняння ({comparisonValue}).}}",
+        "pages_read_vs_comparison": "{direction, select, up {Прочитано <value>{currentValue, plural, one {# сторінку} few {# сторінки} many {# сторінок} other {# сторінки}}</value> — на {absoluteDelta} більше, ніж у періоді порівняння ({comparisonValue}).} other {Прочитано <value>{currentValue, plural, one {# сторінку} few {# сторінки} many {# сторінок} other {# сторінки}}</value> — на {absoluteDelta} менше, ніж у періоді порівняння ({comparisonValue}).}}",
+        "most_active_weekday": "Найактивніший день тижня — <value>{weekday}</value>: {activeDays, plural, one {# активний день} few {# активні дні} many {# активних днів} other {# активного дня}} і {pagesRead, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}.",
+        "longest_streak_in_period": "{history, select, lowerBound {Найдовша зафіксована серія читання — щонайменше <value>{days, plural, one {# день} few {# дні} many {# днів} other {# дня}}</value> поспіль (з {startDate} по {endDate}).} other {Найдовша серія читання — <value>{days, plural, one {# день} few {# дні} many {# днів} other {# дня}}</value> поспіль (з {startDate} по {endDate}).}}",
+        "top_genre_share": "Найчастіший жанр періоду — <value>{genreKey}</value>: {completedReadCount, plural, one {# читання} few {# читання} many {# читань} other {# читання}}, це {share} завершених читань.",
+        "top_author_reads": "Найчастіше ви читали <value>{authorName}</value> — {completedReadCount, plural, one {# читання} few {# читання} many {# читань} other {# читання}}.",
+        "series_marathon": "Найдовший серійний марафон — <value>{marathonLength, plural, one {# книга} few {# книги} many {# книг} other {# книги}}</value> поспіль із серії «{seriesName}».",
+        "high_rating_share": "<value>{highRatedReadsCount} із {ratedReadsCount}</value> оцінених читань отримали 8,0 і вище; середня оцінка — {averageRating}.",
+        "new_authors_discovered": "{authorCount, plural, =1 {Ви відкрили нового автора — <value>{firstAuthorName}</value>.} one {Ви відкрили <value>{authorCount} нового автора</value>, серед них {firstAuthorName}.} other {Ви відкрили <value>{authorCount} нових авторів</value>, серед них {firstAuthorName}.}}",
+        "dominant_language": "Найчастіша мова видання — <value>{language}</value>: {completedReadCount, plural, one {# читання} few {# читання} many {# читань} other {# читання}}, {share} відомих."
       }
     },
     "dynamics": {
@@ -8833,6 +8836,7 @@
       "empty": "За цей період немає даних для графіка.",
       "current": "Поточний період",
       "comparison": "Період порівняння",
+      "comparisonLowerBound": "Сторінки не порівнюються: період порівняння починається раніше, ніж запрацював повний облік, тож його сторінки неповні.",
       "peakReads": "Найактивніший відрізок: {range} — {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}}.",
       "peakPages": "Найактивніший відрізок: {range} — {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}.",
       "tooltip": {
@@ -8841,7 +8845,8 @@
         "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
         "comparison": "{metric} у періоді порівняння: {value}"
       },
-      "srBucket": "{range}: {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · {pages} сторінок"
+      "srBucket": "{range}: {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · {pages} сторінок",
+      "srComparison": "Період порівняння, {range}: {metric} — {value}."
     },
     "calendar": {
       "title": "Читацький календар",
@@ -8874,15 +8879,17 @@
         "reason": {
           "LEGACY_HISTORY_INCOMPLETE": "Частина періоду передує повному обліку історії, тому показник був би оманливим.",
           "PERIOD_NOT_CURRENT": "У закритому періоді немає поточної серії."
-        }
+        },
+        "currentStreakLine": "Поточна серія: <value>{days}</value>"
       },
       "heatmap": {
         "legendLess": "менше",
         "legendMore": "більше",
-        "relativeHint": "Інтенсивність відносна до вашої активності в цьому періоді.",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
-        "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}"
+        "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "intensityLegend": "Інтенсивність за кількістю прочитаних сторінок",
+        "unknownLegend": "Історія невідома"
       },
       "books": {
         "more": "+{count}",
@@ -8893,7 +8900,12 @@
         "daySummary": "{date}: {pages} сторінок, {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "dayEmpty": "{date}: читання не було",
         "dayUnknown": "{date}: даних за цей день може не бути",
-        "diaryMeta": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {pages} сторінок"
+        "diaryMeta": "{books, plural, one {# книга} few {# книги} many {# книг} other {# книги}} · {pages} сторінок",
+        "monthActiveDays": "Активні дні",
+        "monthBooks": "Книги",
+        "monthPages": "Сторінки",
+        "atLeast": "≥ {value}",
+        "unknownLegend": "Історія невідома: цей день передує повному обліку, тож порожня клітинка не доводить, що читання не було."
       }
     },
     "details": {
@@ -8901,11 +8913,12 @@
         "loading": "Завантажуємо деталі дня",
         "error": "Не вдалося завантажити деталі дня",
         "retry": "Спробувати ще раз",
-        "summary": "{pages} сторінок · {books, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
         "empty": "Цього дня немає прочитаних сторінок.",
         "bookPages": "{pages} сторінок",
         "deletedBook": "Книгу видалено з бібліотеки",
-        "legacyQuality": "Цей день передує повному обліку історії, тому дані можуть бути неповними."
+        "legacyQuality": "Цей день передує повному обліку історії, тому дані можуть бути неповними.",
+        "booksLabel": "Книги",
+        "pagesLabel": "Сторінки"
       },
       "completedRead": {
         "open": "Деталі читання: {title}",
@@ -8932,7 +8945,8 @@
       "coverage": "{knownCount} із {eligibleCount} читань оцінено",
       "distributionRow": "Оцінка {rating}: {count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "topRatedTitle": "Найвище оцінені",
-      "topRatedEmpty": "Ще немає оцінених читань."
+      "topRatedEmpty": "Ще немає оцінених читань.",
+      "distributionTitle": "Розподіл оцінок"
     },
     "genres": {
       "title": "Жанри",
@@ -8981,10 +8995,10 @@
       "empty": "У завершених читаннях періоду немає видавництв.",
       "coverage": "{knownCount} із {eligibleCount} читань мають збережене видавництво",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
-      "summary": "Усього видавництв: {total}",
-      "concentration": "Топ-3 дають {percent}% читань",
       "unavailable": "Видавництв виміряти не вдалося",
-      "unavailableDescription": "Жодне завершене читання періоду не має збереженого видавництва."
+      "unavailableDescription": "Жодне завершене читання періоду не має збереженого видавництва.",
+      "totalLabel": "Видавництв",
+      "concentrationLabel": "Частка топ-3"
     },
     "languages": {
       "title": "Мови",
@@ -8994,9 +9008,9 @@
       "share": "{percent}% відомих",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "sourceHint": "Мова видання, зафіксована в BookNest на момент завершення читання.",
-      "diversity": "{count, plural, one {# мова} few {# мови} many {# мов} other {# мови}}",
       "unavailable": "Мов виміряти не вдалося",
-      "unavailableDescription": "Жодне завершене читання періоду не має збереженої мови видання."
+      "unavailableDescription": "Жодне завершене читання періоду не має збереженої мови видання.",
+      "countLabel": "Мов"
     },
     "discoveries": {
       "title": "Нові відкриття",
@@ -9007,7 +9021,6 @@
         "LEGACY_HISTORY_INCOMPLETE": "Частина завершень перенесена з попередньої історії, тому перше знайомство неможливо довести."
       },
       "partialNote": "Частина завершень періоду не має доведеного статусу першого прочитання.",
-      "counts": "Нових авторів: {authors} · жанрів: {genres} · видавництв: {publishers}",
       "kinds": {
         "author": "Автор",
         "genre": "Жанр",
@@ -9015,7 +9028,12 @@
       },
       "firstRead": "Перше завершене читання: {date}",
       "afterDiscovery": "{count, plural, one {# читання після відкриття} few {# читання після відкриття} many {# читань після відкриття} other {# читання після відкриття}}",
-      "averageRating": "середня оцінка {value}"
+      "averageRating": "середня оцінка {value}",
+      "countLabels": {
+        "authors": "Нових авторів",
+        "genres": "Нових жанрів",
+        "publishers": "Нових видавництв"
+      }
     },
     "goal": {
       "title": "Ціль читання",
@@ -9059,7 +9077,6 @@
         "caughtUp": "Наздогнано"
       },
       "mostActiveTitle": "Найактивніші серії",
-      "attributablePages": "{pages} сторінок",
       "reads": "{count, plural, one {# читання} few {# читання} many {# читань} other {# читання}}",
       "empty": "У цьому періоді немає завершених читань із серій.",
       "topProgressTitle": "Найбільший прогрес",
@@ -9075,10 +9092,6 @@
       "forecast": "Вистачить приблизно на",
       "forecastValue": "{months} міс.",
       "forecastPace": "за темпом {rate} книг/міс.",
-      "flowUnavailable": "Рух непрочитаної бібліотеки недоступний",
-      "flowReason": {
-        "HISTORY_NOT_TRACKED": "BookNest ще не веде історію переходів володіння, тому зміну за період порахувати не можна."
-      },
       "flow": "Надійшло {inflow} · вибуло {outflow} · зміна {net}",
       "forecastReason": {
         "INSUFFICIENT_SAMPLE": "Замало історії читання для оцінки темпу.",
@@ -9101,10 +9114,12 @@
       },
       "values": {
         "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}",
-        "elapsedDays": "завершили за {count, plural, one {# день} few {# дні} many {# днів} other {# дня}}",
+        "elapsedDays": "за {count, plural, one {# день} few {# дні} many {# днів} other {# дня}}",
         "marathon": "{count, plural, one {# книга поспіль} few {# книги поспіль} many {# книг поспіль} other {# книги поспіль}}",
         "streakDays": "{count, plural, one {# день поспіль} few {# дні поспіль} many {# днів поспіль} other {# дня поспіль}}",
-        "peakMonthDetail": "{reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · {pages} сторінок"
+        "peakMonthDetail": "{reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · {pages} сторінок",
+        "streakDaysAtLeast": "{count, plural, one {≥ # день поспіль} few {≥ # дні поспіль} many {≥ # днів поспіль} other {≥ # дня поспіль}}",
+        "recordedOnly": "Серед зафіксованих днів: частина періоду передує повному обліку історії."
       }
     }
   }

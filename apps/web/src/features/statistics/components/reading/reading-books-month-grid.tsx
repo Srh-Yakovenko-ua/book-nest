@@ -7,12 +7,18 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-import { buildMonthGrid, weekdayOrder } from "../../model/statistics-calendar";
+import {
+  buildMonthGrid,
+  isUnknownCalendarDay,
+  weekdayOrder,
+} from "../../model/statistics-calendar";
 import { resolveReadingDayTarget } from "../../model/statistics-drilldown";
 import { formatDayLong, weekdayLabel } from "../../model/statistics-format";
 import { ReadingDayDetails } from "../details/reading-day-details";
 import { StatisticsDetailSurface } from "../details/statistics-detail-surface";
 import { ReadingDayPreview } from "./reading-day-preview";
+
+const MONTH_GRID_COVER_LIMIT = 2;
 
 export function ReadingBooksMonthGrid({
   days,
@@ -60,9 +66,14 @@ function MonthDayCell({ day }: { day: StatisticsCalendarDay }) {
 
   const date = formatDayLong(day.date, locale);
   const dayNumber = day.date.slice(8);
+  const isUnknown = isUnknownCalendarDay(day);
   const cellClass = cn(
-    "flex min-h-[4.5rem] w-full flex-col gap-1 rounded-lg border border-border p-1.5",
-    day.booksCount === 0 ? "bg-secondary/30" : "bg-card",
+    "flex min-h-[4.5rem] w-full flex-col gap-1 rounded-lg border p-1.5",
+    day.booksCount > 0
+      ? "border-border bg-card"
+      : isUnknown
+        ? "border-dashed border-muted-foreground/40"
+        : "border-transparent",
   );
   const detailDate = resolveReadingDayTarget(day.drilldown);
 
@@ -78,21 +89,25 @@ function MonthDayCell({ day }: { day: StatisticsCalendarDay }) {
           </span>
         )}
       </span>
-      <ReadingDayPreview day={day} />
+      {isUnknown ? (
+        <span aria-hidden className="m-auto text-sm font-medium text-muted-foreground">
+          ?
+        </span>
+      ) : (
+        <ReadingDayPreview coverLimit={MONTH_GRID_COVER_LIMIT} day={day} />
+      )}
     </>
   );
 
   if (day.booksCount === 0 || detailDate === null) {
     return (
-      <span
-        aria-label={
-          day.historyQuality === "legacy_observed_only"
-            ? t("dayUnknown", { date })
-            : t("dayEmpty", { date })
-        }
-        className={cellClass}
-      >
-        {body}
+      <span className={cellClass}>
+        <span className="sr-only">
+          {isUnknown ? t("dayUnknown", { date }) : t("dayEmpty", { date })}
+        </span>
+        <span aria-hidden className="contents">
+          {body}
+        </span>
       </span>
     );
   }

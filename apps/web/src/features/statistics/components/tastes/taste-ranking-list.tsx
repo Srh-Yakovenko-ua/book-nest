@@ -32,7 +32,7 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-3">
+      <ol className="flex flex-col gap-3">
         {rows.map((row, index) => (
           <li
             className={cn(
@@ -43,6 +43,9 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="flex min-w-0 items-center gap-1.5">
+                <span className="w-5 shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">
+                  {index + 1}
+                </span>
                 <span className="truncate text-sm font-medium text-foreground">{row.label}</span>
                 <TasteContextActions actions={row.contextActions ?? []} />
               </span>
@@ -65,10 +68,11 @@ export function TasteRankingList({ rows }: { rows: readonly TasteRankingRow[] })
             </div>
           </li>
         ))}
-      </ul>
+      </ol>
 
       {hiddenCount === 0 ? null : (
         <Button
+          aria-expanded={expanded}
           className="self-start lg:hidden"
           onClick={() => setExpanded((value) => !value)}
           size="sm"
@@ -92,7 +96,7 @@ function TasteContextActions({ actions }: { actions: readonly ReadingStatisticsC
       {links.map((link) => (
         <Link
           aria-label={tActions(link.kind)}
-          className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+          className="-my-2.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-secondary hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
           href={link.href}
           key={link.kind}
         >
