@@ -31,6 +31,7 @@ function baseValues() {
     importance: "medium",
     isSpoiler: false,
     location: "",
+    page: null,
     personalNote: "",
     resolvedByEventId: null,
     storyTime: "",
@@ -82,7 +83,7 @@ describe("buildEventFormSchema", () => {
     expect(errorFor({ ...baseValues(), page: 100 }, "page", 100)).toBeUndefined();
   });
 
-  it("accepts an omitted page", () => {
+  it("accepts an empty page", () => {
     expect(errorFor(baseValues(), "page", 100)).toBeUndefined();
   });
 
@@ -110,7 +111,7 @@ describe("eventFormValuesToInput", () => {
     expect(input.storyTime).toBe("Третій день");
   });
 
-  it("maps an omitted page to a null page number", () => {
+  it("maps an empty page to a null page number", () => {
     expect(eventFormValuesToInput(parseValues({})).pageNumber).toBeNull();
   });
 
@@ -143,7 +144,7 @@ describe("eventFormDefaults", () => {
     expect(defaults.importance).toBe("medium");
     expect(defaults.title).toBe("");
     expect(defaults.timelineId).toBe("line-1");
-    expect(defaults.page).toBeUndefined();
+    expect(defaults.page).toBeNull();
     expect(defaults.isSpoiler).toBe(false);
   });
 
@@ -165,7 +166,7 @@ describe("eventFormDefaults", () => {
       readingPosition: { currentPage: 42, guardDefault: false, positionKnown: false },
       timelineId: "line-1",
     });
-    expect(defaults.page).toBeUndefined();
+    expect(defaults.page).toBeNull();
   });
 
   it("prefills the form from an existing event", () => {
@@ -238,8 +239,8 @@ describe("eventFormNextInBatch", () => {
     expect(eventFormNextInBatch(batchSource()).page).toBe(128);
   });
 
-  it("keeps an omitted page omitted", () => {
-    expect(eventFormNextInBatch(batchSource({ page: undefined })).page).toBeUndefined();
+  it("keeps an empty page empty", () => {
+    expect(eventFormNextInBatch(batchSource({ page: null })).page).toBeNull();
   });
 
   it("keeps a timeline-less form without a timeline", () => {

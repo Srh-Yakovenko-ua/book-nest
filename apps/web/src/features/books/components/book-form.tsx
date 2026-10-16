@@ -79,6 +79,7 @@ import {
   type SeriesSelection,
   UpdateBookFormSchema,
 } from "../model/create-book-form";
+import { emptyToNull } from "../model/empty-to-null";
 import { buildQueuePriorityPayload } from "../model/queue-priority";
 import { BASIC_INFO_FIELDS } from "../model/section-completeness";
 import {
@@ -121,12 +122,6 @@ type PendingDiscard = {
 
 type PublisherSubmitGate =
   { kind: "blocked" } | { kind: "ready" } | { kind: "resolved"; publisherId: string };
-
-function emptyToNull(value: unknown): null | string {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
 
 const LOAN_PERSON_FIELD_PATHS = ["loanInfo.loanContactId", "loanInfo.personName"] as const;
 

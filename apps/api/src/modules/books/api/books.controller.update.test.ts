@@ -1,4 +1,4 @@
-import type { Nullable } from "@app/shared";
+import type { LoanReminderFilter, Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -780,6 +780,82 @@ describe("PATCH /api/books/:id partial block merge", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.loanInfo).toMatchObject({ note: null, personName: "Olha" });
+  });
+});
+
+describe("PATCH /api/books/:id clearing the loan return date", () => {
+  async function lendWithReturnReminder(accessToken: string): Promise<string> {
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { expectedReturnDate: "2026-09-01", personName: "Olha" },
+      ownershipStatus: "lent_to_someone",
+      title: "Dune",
+    });
+    const reminder = await request(app.getHttpServer())
+      .patch(`/api/books/${created.body.id}/loan/reminder`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ remindBeforeDays: 3 });
+    expect(reminder.status).toBe(200);
+    expect(reminder.body.loanInfo).toMatchObject({ remindBeforeDays: 3, remindToReturn: true });
+
+    return created.body.id;
+  }
+
+  async function listLoanBookIds(
+    accessToken: string,
+    query: { reminder?: LoanReminderFilter },
+  ): Promise<string[]> {
+    const res = await request(app.getHttpServer())
+      .get("/api/loans")
+      .query(query)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(res.status).toBe(200);
+    const items: { book: { id: string } }[] = res.body.items;
+
+    return items.map((item) => item.book.id);
+  }
+
+  it("turns the return reminder off when the expected return date is cleared", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await lendWithReturnReminder(accessToken);
+
+    const res = await updateBook(accessToken, bookId, { loanInfo: { expectedReturnDate: null } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo).toMatchObject({
+      expectedReturnDate: null,
+      personName: "Olha",
+      remindBeforeDays: null,
+      remindToReturn: false,
+    });
+  });
+
+  it("drops the still-active loan out of the reminder-on list when the expected return date is cleared", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await lendWithReturnReminder(accessToken);
+    expect(await listLoanBookIds(accessToken, { reminder: "on" })).toEqual([bookId]);
+
+    await updateBook(accessToken, bookId, { loanInfo: { expectedReturnDate: null } });
+
+    expect(await listLoanBookIds(accessToken, { reminder: "on" })).toEqual([]);
+    expect(await listLoanBookIds(accessToken, {})).toEqual([bookId]);
+  });
+
+  it("does not re-arm the return reminder when a new expected return date is set after clearing it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await lendWithReturnReminder(accessToken);
+    await updateBook(accessToken, bookId, { loanInfo: { expectedReturnDate: null } });
+
+    const res = await updateBook(accessToken, bookId, {
+      loanInfo: { expectedReturnDate: "2026-10-01" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo).toMatchObject({
+      expectedReturnDate: "2026-10-01",
+      remindBeforeDays: null,
+      remindToReturn: false,
+    });
   });
 });
 

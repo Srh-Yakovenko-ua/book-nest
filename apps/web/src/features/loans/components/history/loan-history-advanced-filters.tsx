@@ -186,7 +186,7 @@ export function LoanHistoryAdvancedFilters({
                 className="h-9 text-sm"
                 id="loan-history-filter-loan-from"
                 invalid={rangeFlags.loanDate}
-                onChange={(value) => patch({ loanFrom: value ?? null })}
+                onChange={(value) => patch({ loanFrom: value })}
                 placeholder={t("range.from")}
                 value={draft.loanFrom}
               />
@@ -195,7 +195,7 @@ export function LoanHistoryAdvancedFilters({
                 className="h-9 text-sm"
                 id="loan-history-filter-loan-to"
                 invalid={rangeFlags.loanDate}
-                onChange={(value) => patch({ loanTo: value ?? null })}
+                onChange={(value) => patch({ loanTo: value })}
                 placeholder={t("range.to")}
                 value={draft.loanTo}
               />

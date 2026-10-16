@@ -202,6 +202,24 @@ describe("EventFormDialog create", () => {
     expect(screen.getByLabelText("Сторінка")).toHaveValue(42);
   });
 
+  it("keeps a cleared prefilled page empty and creates the event without a page", async () => {
+    renderForm({
+      pagesCount: 500,
+      readingPosition: makeReadingPosition({ currentPage: 500, positionKnown: true }),
+    });
+    const pageInput = screen.getByLabelText("Сторінка");
+    expect(pageInput).toHaveValue(500);
+
+    await userEvent.clear(pageInput);
+    expect(pageInput).toHaveDisplayValue("");
+
+    await userEvent.type(titleField(), "Подія без сторінки");
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти подію" }));
+
+    await waitFor(() => expect(createCall()).toBeDefined());
+    expect(bodyOf(createCall())).toMatchObject({ pageNumber: null, title: "Подія без сторінки" });
+  });
+
   it("rejects a page beyond the known book length and links the error to the field", async () => {
     renderForm({ pagesCount: 100 });
 
@@ -374,6 +392,22 @@ describe("EventFormDialog edit", () => {
       resolvedByEventId: null,
       threadStatus: null,
     });
+  });
+
+  it("keeps a cleared saved page empty and patches the event without a page", async () => {
+    const pagedEvent = makeTimelineEventView({ id: "event-1", pageNumber: 120 });
+    routeFetch({ detail: makeTimelineEventDetailView(pagedEvent) });
+    renderForm({ event: pagedEvent });
+    const pageInput = screen.getByLabelText("Сторінка");
+    expect(pageInput).toHaveValue(120);
+
+    await userEvent.clear(pageInput);
+    expect(pageInput).toHaveDisplayValue("");
+
+    await userEvent.click(screen.getByRole("button", { name: "Зберегти зміни" }));
+
+    await waitFor(() => expect(updateCall()).toBeDefined());
+    expect(bodyOf(updateCall())).toMatchObject({ pageNumber: null });
   });
 
   it("saves a relation immediately without submitting the form", async () => {

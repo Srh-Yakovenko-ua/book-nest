@@ -87,7 +87,7 @@ export function BookNoteLocationFields({
               min={1}
               onBlur={field.onBlur}
               onChange={(event) =>
-                field.onChange(event.target.value === "" ? undefined : Number(event.target.value))
+                field.onChange(event.target.value === "" ? null : Number(event.target.value))
               }
               onKeyDown={blockNegativeNumberKeys}
               onPaste={blockNegativeNumberPaste}

@@ -127,7 +127,7 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
   };
 
   useEffect(() => {
-    if (!getFieldState("page").isTouched && getValues("page") === undefined) return;
+    if (!getFieldState("page").isTouched && getValues("page") === null) return;
     void trigger("page");
   }, [getFieldState, getValues, pageCeiling.max, trigger]);
 
