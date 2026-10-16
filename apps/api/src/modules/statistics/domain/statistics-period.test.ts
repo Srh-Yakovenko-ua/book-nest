@@ -3,7 +3,11 @@ import type { ReadingStatisticsOverviewQuery } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
-import { inclusiveDays, normalizeReadingStatisticsPeriod } from "./statistics-period.js";
+import {
+  inclusiveDays,
+  normalizeReadingStatisticsPeriod,
+  rollingYearStart,
+} from "./statistics-period.js";
 
 const TODAY = "2026-09-02";
 
@@ -172,5 +176,23 @@ describe("normalizeReadingStatisticsPeriod comparison", () => {
     expect(() => normalize({ compare: "previous_period", period: "all_time" })).toThrow(
       BadRequestError,
     );
+  });
+});
+
+describe("rollingYearStart", () => {
+  it("starts the day after the same date twelve calendar months back", () => {
+    expect(rollingYearStart("2026-10-15")).toBe("2025-10-16");
+  });
+
+  it("rolls past a month end into the next month", () => {
+    expect(rollingYearStart("2026-03-31")).toBe("2025-04-01");
+  });
+
+  it("clamps a leap day to the last day of February before adding the day", () => {
+    expect(rollingYearStart("2024-02-29")).toBe("2023-03-01");
+  });
+
+  it("lands on a leap day when the year back has one", () => {
+    expect(rollingYearStart("2025-02-28")).toBe("2024-02-29");
   });
 });

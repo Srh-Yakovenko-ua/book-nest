@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   canCompareStatisticsPeriod,
   customRangeIssue,
   defaultStatisticsCompareMode,
   selectableYearBounds,
+  todayIsoDay,
   toOverviewParams,
 } from "./statistics-period";
 
@@ -41,6 +42,31 @@ describe("customRangeIssue", () => {
     expect(customRangeIssue({ from: "2026-13-40", to: "2026-03-02", today: TODAY })).toBe(
       "invalid",
     );
+  });
+
+  it("reports a start before the earliest supported day", () => {
+    expect(customRangeIssue({ from: "1899-12-31", to: "1900-02-01", today: TODAY })).toBe(
+      "tooEarly",
+    );
+    expect(customRangeIssue({ from: "1900-01-01", to: "1900-02-01", today: TODAY })).toBeNull();
+  });
+
+  it("accepts exactly 1830 days and rejects one day more", () => {
+    expect(customRangeIssue({ from: "2021-03-28", to: TODAY, today: TODAY })).toBeNull();
+    expect(customRangeIssue({ from: "2021-03-27", to: TODAY, today: TODAY })).toBe("tooLong");
+  });
+});
+
+describe("todayIsoDay", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("reads today in the profile time zone rather than the device one", () => {
+    vi.useFakeTimers({ now: new Date("2026-03-31T22:30:00.000Z") });
+
+    expect(todayIsoDay("Europe/Kyiv")).toBe("2026-04-01");
+    expect(todayIsoDay("America/New_York")).toBe("2026-03-31");
   });
 });
 

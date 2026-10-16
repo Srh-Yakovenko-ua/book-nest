@@ -49,8 +49,6 @@ const ReturningAuthorRowSchema = z.object({
   name: z.string(),
 });
 
-const CountRowSchema = z.object({ count: z.number().int().nonnegative() });
-
 const SeriesFirstCompletionRowSchema = z.object({
   distinctBooks: z.number().int().nonnegative(),
   seriesId: z.string(),
@@ -73,26 +71,6 @@ export type ReturningAuthor = {
 @Injectable()
 export class StatisticsCompletionRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  async countFirstCompletionsSince({
-    since,
-    userId,
-  }: {
-    since: string;
-    userId: string;
-  }): Promise<number> {
-    const rows = await this.prisma.$queryRaw`
-      SELECT COUNT(DISTINCT cycle.book_id)::int AS "count"
-      FROM book_reading_cycles cycle
-      WHERE cycle.user_id = ${userId}::uuid
-        AND cycle.state = ${READING_CYCLE_STATE.finished}
-        AND cycle.first_completion_reliability = ${FIRST_COMPLETION_RELIABILITY.provenFirst}
-        AND cycle.finished_at >= ${since}::date
-    `;
-
-    const [row] = z.array(CountRowSchema).parse(rows);
-    return row?.count ?? 0;
-  }
 
   async countPriorExposure({
     before,

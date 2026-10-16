@@ -34,6 +34,7 @@
     "clsx": "catalog:",
     "cmdk": "catalog:",
     "date-fns": "catalog:",
+    "date-fns-tz": "catalog:",
     "heic-to": "catalog:",
     "input-otp": "catalog:",
     "lucide-react": "catalog:",

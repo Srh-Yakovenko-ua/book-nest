@@ -8,19 +8,31 @@ import type { UiIconName } from "@/components/icons";
 
 export type StatisticsInsightValues = Record<string, number | string>;
 
-export const INSIGHT_ICON = {
-  activity: "calendar",
-  authors: "user",
-  discovery: "sparkles",
-  genres: "tag",
-  languages: "globe",
-  ratings: "star",
-  reading: "book",
-  series: "book-copy",
-} as const satisfies Record<ReadingStatisticsInsight["category"], UiIconName>;
+type ComparisonInsightCode = Extract<
+  ReadingStatisticsInsightCode,
+  "completed_reads_vs_comparison" | "pages_read_vs_comparison"
+>;
+
+const INSIGHT_ICON = {
+  comparison: { down: "trend-down", up: "trend-up" },
+  observation: {
+    dominant_language: "globe",
+    high_rating_share: "star",
+    longest_streak_in_period: "flame",
+    most_active_weekday: "calendar",
+    new_authors_discovered: "sparkles",
+    series_marathon: "book-copy",
+    top_author_reads: "user",
+    top_genre_share: "pie",
+  },
+} as const satisfies {
+  comparison: Record<"down" | "up", UiIconName>;
+  observation: Record<Exclude<ReadingStatisticsInsightCode, ComparisonInsightCode>, UiIconName>;
+};
 
 export type StatisticsInsightFormatters = {
   day: (day: string) => string;
+  genre: (genreKey: string) => string;
   language: (language: BookLanguage) => string;
   rating: (value: number) => string;
   share: (ratio: number) => string;
@@ -33,21 +45,45 @@ export type StatisticsInsightView = {
   values: StatisticsInsightValues;
 };
 
-export function toInsightView(
-  insight: ReadingStatisticsInsight,
-  format: StatisticsInsightFormatters,
-): StatisticsInsightView {
+export function toInsightView({
+  format,
+  insight,
+  isLowerBound,
+}: {
+  format: StatisticsInsightFormatters;
+  insight: ReadingStatisticsInsight;
+  isLowerBound: boolean;
+}): StatisticsInsightView {
   return {
     code: insight.code,
-    icon: INSIGHT_ICON[insight.category],
-    values: toInsightValues(insight, format),
+    icon: insightIcon(insight),
+    values: toInsightValues({ format, insight, isLowerBound }),
   };
 }
 
-function toInsightValues(
-  insight: ReadingStatisticsInsight,
-  format: StatisticsInsightFormatters,
-): StatisticsInsightValues {
+function insightDirection(absoluteDelta: number): "down" | "up" {
+  return absoluteDelta < 0 ? "down" : "up";
+}
+
+function insightIcon(insight: ReadingStatisticsInsight): UiIconName {
+  switch (insight.code) {
+    case "completed_reads_vs_comparison":
+    case "pages_read_vs_comparison":
+      return INSIGHT_ICON.comparison[insightDirection(insight.params.absoluteDelta)];
+    default:
+      return INSIGHT_ICON.observation[insight.code];
+  }
+}
+
+function toInsightValues({
+  format,
+  insight,
+  isLowerBound,
+}: {
+  format: StatisticsInsightFormatters;
+  insight: ReadingStatisticsInsight;
+  isLowerBound: boolean;
+}): StatisticsInsightValues {
   switch (insight.code) {
     case "completed_reads_vs_comparison":
     case "pages_read_vs_comparison":
@@ -55,7 +91,7 @@ function toInsightValues(
         absoluteDelta: Math.abs(insight.params.absoluteDelta),
         comparisonValue: insight.params.comparisonValue,
         currentValue: insight.params.currentValue,
-        direction: insight.params.absoluteDelta < 0 ? "down" : "up",
+        direction: insightDirection(insight.params.absoluteDelta),
         percentDelta:
           insight.params.percentDelta === null
             ? ""
@@ -77,6 +113,7 @@ function toInsightValues(
       return {
         days: insight.params.days,
         endDate: format.day(insight.params.endDate),
+        history: isLowerBound ? "lowerBound" : "exact",
         startDate: format.day(insight.params.startDate),
       };
     case "most_active_weekday":
@@ -103,7 +140,7 @@ function toInsightValues(
     case "top_genre_share":
       return {
         completedReadCount: insight.params.completedReadCount,
-        genreKey: insight.params.genreKey,
+        genreKey: format.genre(insight.params.genreKey),
         share: format.share(insight.params.shareOfCompletedReads),
       };
   }

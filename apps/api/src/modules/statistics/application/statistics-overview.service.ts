@@ -7,7 +7,6 @@ import type {
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { format, parseISO, subMonths } from "date-fns";
 
 import type { CompletedRead } from "../domain/completed-read.js";
 import type { StatisticsPeriodScope } from "../domain/statistics-drilldown.js";
@@ -33,7 +32,7 @@ import {
 } from "../domain/reading-tastes.js";
 import { buildReadingRecords } from "../domain/record-engine.js";
 import { buildStatisticsBuckets } from "../domain/statistics-buckets.js";
-import { normalizeReadingStatisticsPeriod } from "../domain/statistics-period.js";
+import { normalizeReadingStatisticsPeriod, rollingYearStart } from "../domain/statistics-period.js";
 import { StatisticsActivityRepository } from "../infrastructure/statistics-activity.repository.js";
 import { StatisticsCompletionRepository } from "../infrastructure/statistics-completion.repository.js";
 import { StatisticsLibraryRepository } from "../infrastructure/statistics-library.repository.js";
@@ -45,11 +44,7 @@ import { StatisticsLibraryComposer } from "./statistics-library.composer.js";
 import { StatisticsSeriesComposer } from "./statistics-series.composer.js";
 import { StatisticsTastesComposer } from "./statistics-tastes.composer.js";
 
-const ISO_DAY_FORMAT = "yyyy-MM-dd";
-
 const RETURNING_AUTHORS_LIMIT = 5;
-
-const FORECAST_WINDOW_MONTHS = 12;
 
 @Injectable()
 export class StatisticsOverviewService {
@@ -93,7 +88,7 @@ export class StatisticsOverviewService {
       seriesFirstsBefore,
       returningAuthors,
       librarySnapshot,
-      firstCompletionsLastYear,
+      libraryForecastSample,
       goal,
     ] = await Promise.all([
       this.loadReads({ from: period.from, to: period.to, userId }),
@@ -104,10 +99,7 @@ export class StatisticsOverviewService {
       this.completionRepository.countSeriesFirstCompletionsBefore({ before: period.from, userId }),
       this.completionRepository.findReturningAuthors({ limit: RETURNING_AUTHORS_LIMIT, userId }),
       this.libraryRepository.loadSnapshot(userId),
-      this.completionRepository.countFirstCompletionsSince({
-        since: shiftMonths(localToday, -FORECAST_WINDOW_MONTHS),
-        userId,
-      }),
+      this.libraryRepository.loadForecastSample({ since: rollingYearStart(localToday), userId }),
       this.goalComposer.compose(userId),
     ]);
 
@@ -129,6 +121,10 @@ export class StatisticsOverviewService {
       from: period.from,
       reliableFrom: activityReliableFrom,
     });
+    const comparisonActivityReliable =
+      comparison !== null &&
+      pagesReadReliable &&
+      isRangeFullyReliable({ from: comparison.from, reliableFrom: activityReliableFrom });
 
     const discoveries = collectDiscoveries({
       periodReads: reads,
@@ -156,7 +152,7 @@ export class StatisticsOverviewService {
           ? null
           : {
               completedReads: comparisonInputs.totals.completedReads,
-              pagesRead: comparisonInputs.pagesRead,
+              pagesRead: comparisonActivityReliable ? comparisonInputs.pagesRead : null,
             },
       current: { completedReads: reads.length, pagesRead },
       discoveredAuthors: discoveries.authors,
@@ -189,6 +185,7 @@ export class StatisticsOverviewService {
                 reads: comparisonInputs.reads,
               },
         granularity: period.granularity,
+        pagesReadReliable,
         period: periodScope,
         reads,
         weekStartDay: settings.weekStartDay,
@@ -203,6 +200,7 @@ export class StatisticsOverviewService {
       kpis: this.coreComposer.buildKpis({
         activeDays: activeDays.length,
         activeDaysRate,
+        activityComparison: comparisonActivityReliable ? comparisonInputs : null,
         comparison: comparisonInputs,
         pagesRead,
         pagesReadReliable,
@@ -210,8 +208,7 @@ export class StatisticsOverviewService {
       }),
       languages: this.tastesComposer.buildLanguages({ periodScope, reads }),
       libraryBalance: this.libraryComposer.compose({
-        firstCompletionsLastYear,
-        provenFirstCoverageComplete,
+        forecastSample: libraryForecastSample,
         snapshot: librarySnapshot,
       }),
       meta: {
@@ -341,10 +338,6 @@ function earliestOf({
 }): Nullable<string> {
   const dates = [...activity.map((day) => day.date), ...reads.map((read) => read.finishedAt)];
   return [...dates].sort()[0] ?? null;
-}
-
-function shiftMonths(isoDay: string, offset: number): string {
-  return format(subMonths(parseISO(isoDay), Math.abs(offset)), ISO_DAY_FORMAT);
 }
 
 function topAuthorOf(reads: CompletedRead[]) {

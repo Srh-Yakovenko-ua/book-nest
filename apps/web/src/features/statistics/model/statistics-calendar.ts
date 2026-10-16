@@ -12,6 +12,13 @@ const DAYS_IN_WEEK = 7;
 
 const WEEK_START_INDEX: Record<WeekStartDay, number> = { monday: 1, sunday: 0 };
 
+export type CalendarMonthSummary = {
+  activeDays: number;
+  books: { count: number; isLowerBound: boolean };
+  hasUnknownDays: boolean;
+  pagesRead: number;
+};
+
 export type CalendarWeek = Nullable<StatisticsCalendarDay>[];
 
 export function buildHeatmapWeeks({
@@ -88,6 +95,10 @@ export function isDateInMonth(date: string, monthKey: string): boolean {
   return date.startsWith(monthKey);
 }
 
+export function isUnknownCalendarDay(day: StatisticsCalendarDay): boolean {
+  return day.pagesRead === 0 && day.historyQuality === "legacy_observed_only";
+}
+
 export function listCalendarMonths({ from, to }: { from: string; to: string }): string[] {
   const months: string[] = [];
   let cursor = startOfMonth(parseIsoDay(from));
@@ -99,6 +110,23 @@ export function listCalendarMonths({ from, to }: { from: string; to: string }): 
   }
 
   return months;
+}
+
+export function summarizeCalendarMonth(
+  days: readonly StatisticsCalendarDay[],
+): CalendarMonthSummary {
+  const activeDays = days.filter((day) => day.pagesRead > 0);
+  const bookIds = new Set(activeDays.flatMap((day) => day.booksPreview.map((book) => book.bookId)));
+
+  return {
+    activeDays: activeDays.length,
+    books: {
+      count: bookIds.size,
+      isLowerBound: activeDays.some((day) => day.remainingBooksCount > 0),
+    },
+    hasUnknownDays: days.some(isUnknownCalendarDay),
+    pagesRead: activeDays.reduce((total, day) => total + day.pagesRead, 0),
+  };
 }
 
 export function weekdayOrder(weekStartDay: WeekStartDay): number[] {

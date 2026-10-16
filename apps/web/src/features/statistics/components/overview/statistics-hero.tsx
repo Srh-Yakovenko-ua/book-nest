@@ -12,9 +12,11 @@ import { StatisticsInsightBody } from "./statistics-insights";
 
 export function StatisticsHero({
   hero,
+  isLowerBound,
   period,
 }: {
   hero: ReadingStatisticsHeroSection;
+  isLowerBound: boolean;
   period: ReadingStatisticsPeriod;
 }) {
   const locale = useLocale();
@@ -42,7 +44,7 @@ export function StatisticsHero({
         <p className="max-w-xl text-sm text-muted-foreground">{t("subtitle")}</p>
         {hero.featuredInsight === null ? null : (
           <div className="mt-1 rounded-lg border border-border bg-secondary/60 px-3.5 py-3">
-            <StatisticsInsightBody insight={hero.featuredInsight} />
+            <StatisticsInsightBody insight={hero.featuredInsight} isLowerBound={isLowerBound} />
           </div>
         )}
       </div>

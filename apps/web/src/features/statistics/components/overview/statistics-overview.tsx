@@ -2,15 +2,14 @@
 
 import type { ReadingStatisticsOverview } from "@app/shared";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import { TitleLeaf } from "@/components/title-leaf";
-import { cn } from "@/lib/utils";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
 
 import { useReadingStatisticsOverview } from "../../api/use-reading-statistics-overview";
-import { formatDayRange } from "../../model/statistics-format";
+import { isLowerBoundComparison } from "../../model/statistics-dynamics";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
 import { useStatisticsParams } from "../../model/use-statistics-params";
 import { StatisticsPeriodControls } from "../controls/statistics-period-controls";
@@ -95,7 +94,6 @@ function StatisticsBody({
   onShowAllTime: () => void;
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
-  const locale = useLocale();
   const t = useTranslations("statistics");
   const overview = scope.data;
 
@@ -116,28 +114,14 @@ function StatisticsBody({
   }
 
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
-  const currentLabel = formatDayRange({
-    from: overview.period.from,
-    locale,
-    to: overview.period.to,
+  const isComparisonLowerBound = isLowerBoundComparison({
+    comparison: overview.comparison,
+    reliableFrom: overview.meta.activityHistory.reliableFrom,
   });
-  const comparisonLabel =
-    overview.comparison === null
-      ? null
-      : formatDayRange({
-          from: overview.comparison.from,
-          locale,
-          to: overview.comparison.to,
-        });
-
-  const bodyClassName = cn(
-    "flex flex-col gap-6 transition-opacity",
-    scope.isRefreshing && "opacity-70",
-  );
 
   if (!hasReadingActivity(overview)) {
     return (
-      <div aria-busy={scope.isRefreshing} className={bodyClassName}>
+      <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
         <StatisticsPeriodEmpty onShowAllTime={onShowAllTime} />
         <StatisticsDivider title={t("dividers.progress")} />
         <ReadingGoalCard goal={overview.goal} />
@@ -147,19 +131,20 @@ function StatisticsBody({
   }
 
   return (
-    <div aria-busy={scope.isRefreshing} className={bodyClassName}>
+    <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
 
-      <StatisticsHero hero={overview.hero} period={overview.period} />
+      <StatisticsHero hero={overview.hero} isLowerBound={isLowerBound} period={overview.period} />
       <StatisticsKpiGrid isLowerBound={isLowerBound} kpis={overview.kpis} />
-      <StatisticsInsights insights={overview.insights} />
+      <StatisticsInsights insights={overview.insights} isLowerBound={isLowerBound} />
+
+      <StatisticsDivider title={t("dividers.reading")} />
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <ReadingDynamicsCard
-            comparisonLabel={comparisonLabel}
-            currentLabel={currentLabel}
             dynamics={overview.dynamics}
+            isComparisonLowerBound={isComparisonLowerBound}
             period={overview.period}
           />
         </div>
@@ -192,7 +177,7 @@ function StatisticsBody({
 
       <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
 
-      <RecordsSection records={overview.records} />
+      <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
     </div>
   );
 }

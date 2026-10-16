@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { coverageCaption } from "../../model/statistics-availability";
 import { formatRatingScore, formatShare } from "../../model/statistics-format";
+import { useGenreName } from "../../model/use-genre-name";
 import { StatisticsMetricTabs, StatisticsSection } from "../statistics-section";
 import { StatisticsNote, StatisticsSectionState } from "../statistics-states";
 import { TasteRankingList } from "./taste-ranking-list";
@@ -18,6 +19,7 @@ type GenreMode = (typeof GENRE_MODES)[number];
 export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSection }) {
   const locale = useLocale();
   const t = useTranslations("statistics.genres");
+  const genreName = useGenreName();
   const [mode, setMode] = useState<GenreMode>("frequency");
   const coverage = coverageCaption(genres.coverage);
 
@@ -55,7 +57,7 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
           <TasteRankingList
             rows={genres.frequency.map((entry) => ({
               key: entry.genreKey,
-              label: entry.genreKey,
+              label: genreName(entry.genreKey),
               secondary: t("share", {
                 percent: formatShare(entry.shareOfCompletedReads, locale),
               }),
@@ -74,7 +76,7 @@ export function GenresSection({ genres }: { genres: ReadingStatisticsGenresSecti
         <TasteRankingList
           rows={genres.topRated.items.map((entry) => ({
             key: entry.genreKey,
-            label: entry.genreKey,
+            label: genreName(entry.genreKey),
             secondary: t("ratedReads", { count: entry.ratedReadCount }),
             value: entry.averageRating,
             valueLabel: formatRatingScore(entry.averageRating, locale),

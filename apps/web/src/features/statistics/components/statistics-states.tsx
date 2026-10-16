@@ -160,6 +160,7 @@ export function StatisticsSkeleton() {
         ))}
       </div>
       <Skeleton className="h-40 w-full rounded-xl" data-testid="statistics-skeleton-insights" />
+      <Skeleton className="h-6 w-48 rounded-md" />
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
         <Skeleton className="h-[24rem] w-full rounded-xl lg:col-span-2" />
         <Skeleton className="h-[24rem] w-full rounded-xl" />
@@ -168,11 +169,15 @@ export function StatisticsSkeleton() {
         className="h-[26rem] w-full rounded-xl"
         data-testid="statistics-skeleton-calendar"
       />
+      <Skeleton className="h-6 w-48 rounded-md" />
       <Skeleton className="h-72 w-full rounded-xl" />
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <Skeleton className="h-72 w-full rounded-xl" />
         <Skeleton className="h-72 w-full rounded-xl" />
       </div>
+      <Skeleton className="h-6 w-48 rounded-md" />
+      <Skeleton className="h-80 w-full rounded-xl" />
+      <Skeleton className="h-48 w-full rounded-xl" />
     </div>
   );
 }

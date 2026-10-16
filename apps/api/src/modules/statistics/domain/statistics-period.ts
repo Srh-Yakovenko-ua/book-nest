@@ -6,7 +6,17 @@ import type {
   ReadingStatisticsPeriod,
 } from "@app/shared";
 
-import { addDays, differenceInCalendarDays, format, parseISO, subMonths, subYears } from "date-fns";
+import { READING_STATISTICS_CUSTOM_PERIOD_BOUNDS } from "@app/shared";
+import {
+  addDays,
+  differenceInCalendarDays,
+  format,
+  isAfter,
+  isBefore,
+  parseISO,
+  subMonths,
+  subYears,
+} from "date-fns";
 
 import { assertNever } from "../../../core/assert-never.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
@@ -15,13 +25,11 @@ const ISO_DAY_FORMAT = "yyyy-MM-dd";
 
 const GRANULARITY_BOUNDS = { dailyMaxDays: 31, weeklyMaxDays: 180 } as const;
 
-const CUSTOM_PERIOD_BOUNDS = { earliestDay: "1900-01-01", maxDays: 1830 } as const;
-
 const PERIOD_MESSAGE = {
   allTimeComparison: "All time cannot be compared with another period",
   customBoundsRequired: "A custom period needs both a start and an end date",
-  customTooEarly: `A custom period cannot start before ${CUSTOM_PERIOD_BOUNDS.earliestDay}`,
-  customTooWide: `A custom period cannot span more than ${String(CUSTOM_PERIOD_BOUNDS.maxDays)} days`,
+  customTooEarly: `A custom period cannot start before ${READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay}`,
+  customTooWide: `A custom period cannot span more than ${String(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.maxDays)} days`,
   futureBound: "A statistics period cannot reach into the future",
   reversedBounds: "The start of a custom period cannot be later than its end",
   yearRequired: "A calendar-year period needs a year",
@@ -54,6 +62,10 @@ export function normalizeReadingStatisticsPeriod({
   return { comparison: resolveComparison({ bounds, query }), period };
 }
 
+export function rollingYearStart(today: string): string {
+  return format(addDays(subMonths(parseISO(today), 12), 1), ISO_DAY_FORMAT);
+}
+
 function isFullCalendarYear({ from, to }: { from: string; to: string }): boolean {
   return from.endsWith("-01-01") && to === `${from.slice(0, 4)}-12-31`;
 }
@@ -73,16 +85,18 @@ function resolveBounds({
       if (from === undefined || to === undefined) {
         throw new BadRequestError(PERIOD_MESSAGE.customBoundsRequired);
       }
-      if (from > to) {
+      const start = parseISO(from);
+      const end = parseISO(to);
+      if (isAfter(start, end)) {
         throw new BadRequestError(PERIOD_MESSAGE.reversedBounds);
       }
-      if (from > today || to > today) {
+      if (isAfter(end, parseISO(today))) {
         throw new BadRequestError(PERIOD_MESSAGE.futureBound);
       }
-      if (from < CUSTOM_PERIOD_BOUNDS.earliestDay) {
+      if (isBefore(start, parseISO(READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.earliestDay))) {
         throw new BadRequestError(PERIOD_MESSAGE.customTooEarly);
       }
-      if (inclusiveDays({ from, to }) > CUSTOM_PERIOD_BOUNDS.maxDays) {
+      if (inclusiveDays({ from, to }) > READING_STATISTICS_CUSTOM_PERIOD_BOUNDS.maxDays) {
         throw new BadRequestError(PERIOD_MESSAGE.customTooWide);
       }
       return { from, to };
@@ -148,10 +162,6 @@ function resolveGranularity(bounds: {
     return "day";
   }
   return days <= GRANULARITY_BOUNDS.weeklyMaxDays ? "week" : "month";
-}
-
-function rollingYearStart(today: string): string {
-  return format(addDays(subMonths(parseISO(today), 12), 1), ISO_DAY_FORMAT);
 }
 
 function shiftDays(isoDay: string, days: number): string {
