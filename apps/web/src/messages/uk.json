@@ -13,7 +13,7 @@
       "cancel": "Продовжити редагування",
       "confirm": "Так, вийти"
     },
-    "chapterCombobox": {
+    "suggestionCombobox": {
       "usageCount": "використано {count, plural, one {# раз} few {# рази} many {# разів} other {# разу}}"
     }
   },

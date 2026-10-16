@@ -462,6 +462,28 @@ export const TimelineEventsControllerOverviewResponse = zod.object({
 });
 
 /**
+ * @summary List the timeline event locations used across the book or its series
+ */
+export const TimelineEventsControllerLocationsParams = zod.object({
+  bookId: zod.string().describe("Book id"),
+});
+
+export const timelineEventsControllerLocationsResponseLocationsItemCountMin = 0;
+export const timelineEventsControllerLocationsResponseLocationsItemCountMax = 9007199254740991;
+
+export const TimelineEventsControllerLocationsResponse = zod.object({
+  locations: zod.array(
+    zod.object({
+      count: zod
+        .int()
+        .min(timelineEventsControllerLocationsResponseLocationsItemCountMin)
+        .max(timelineEventsControllerLocationsResponseLocationsItemCountMax),
+      location: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Get a timeline event with its relations
  */
 export const TimelineEventsControllerGetEventParams = zod.object({

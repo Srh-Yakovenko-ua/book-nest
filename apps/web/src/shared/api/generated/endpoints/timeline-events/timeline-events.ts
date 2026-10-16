@@ -28,6 +28,7 @@ import type {
   TimelineEventDetailViewDto,
   TimelineEventViewDto,
   TimelineEventsControllerListEventsParams,
+  TimelineLocationsViewDto,
   TimelineOverviewViewDto,
   UpdateTimelineEventInputDto,
 } from "../../model";
@@ -643,6 +644,176 @@ export function useTimelineEventsControllerOverview<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getTimelineEventsControllerOverviewQueryOptions(bookId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type timelineEventsControllerLocationsResponse200 = {
+  data: TimelineLocationsViewDto;
+  status: 200;
+};
+
+export type timelineEventsControllerLocationsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type timelineEventsControllerLocationsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type timelineEventsControllerLocationsResponseSuccess =
+  timelineEventsControllerLocationsResponse200 & {
+    headers: Headers;
+  };
+export type timelineEventsControllerLocationsResponseError = (
+  timelineEventsControllerLocationsResponse401 | timelineEventsControllerLocationsResponse404
+) & {
+  headers: Headers;
+};
+
+export type timelineEventsControllerLocationsResponse =
+  timelineEventsControllerLocationsResponseSuccess | timelineEventsControllerLocationsResponseError;
+
+export const getTimelineEventsControllerLocationsUrl = (bookId: string) => {
+  return `/api/books/${bookId}/timeline/locations`;
+};
+
+/**
+ * @summary List the timeline event locations used across the book or its series
+ */
+export const timelineEventsControllerLocations = async (
+  bookId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<timelineEventsControllerLocationsResponse> => {
+  return customInstance<timelineEventsControllerLocationsResponse>(
+    getTimelineEventsControllerLocationsUrl(bookId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getTimelineEventsControllerLocationsQueryKey = (bookId: string) => {
+  return [`/api/books/${bookId}/timeline/locations`] as const;
+};
+
+export const getTimelineEventsControllerLocationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelineEventsControllerLocations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTimelineEventsControllerLocationsQueryKey(bookId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof timelineEventsControllerLocations>>> = ({
+    signal,
+  }) => timelineEventsControllerLocations(bookId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: bookId !== null && bookId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TimelineEventsControllerLocationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof timelineEventsControllerLocations>>
+>;
+export type TimelineEventsControllerLocationsQueryError = void;
+
+export function useTimelineEventsControllerLocations<
+  TData = Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+  TError = void,
+>(
+  bookId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelineEventsControllerLocations>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+          TError,
+          Awaited<ReturnType<typeof timelineEventsControllerLocations>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTimelineEventsControllerLocations<
+  TData = Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelineEventsControllerLocations>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+          TError,
+          Awaited<ReturnType<typeof timelineEventsControllerLocations>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTimelineEventsControllerLocations<
+  TData = Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelineEventsControllerLocations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the timeline event locations used across the book or its series
+ */
+
+export function useTimelineEventsControllerLocations<
+  TData = Awaited<ReturnType<typeof timelineEventsControllerLocations>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelineEventsControllerLocations>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTimelineEventsControllerLocationsQueryOptions(bookId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -13,7 +13,7 @@
       "cancel": "Keep editing",
       "confirm": "Yes, leave"
     },
-    "chapterCombobox": {
+    "suggestionCombobox": {
       "usageCount": "used {count, plural, one {# time} other {# times}}"
     }
   },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
+import { CountSchema } from "./internal.js";
 import {
   BOOK_NEST_PALETTE_COLORS,
   type BookNestPaletteColor,
@@ -404,6 +405,21 @@ export const TimelineOverviewViewSchema = z.object({
 });
 
 export type TimelineOverviewView = z.infer<typeof TimelineOverviewViewSchema>;
+
+export const TIMELINE_LOCATION_USAGE_MAX = 200;
+
+export const TimelineLocationUsageViewSchema = z.object({
+  count: CountSchema,
+  location: z.string(),
+});
+
+export type TimelineLocationUsageView = z.infer<typeof TimelineLocationUsageViewSchema>;
+
+export const TimelineLocationsViewSchema = z.object({
+  locations: z.array(TimelineLocationUsageViewSchema),
+});
+
+export type TimelineLocationsView = z.infer<typeof TimelineLocationsViewSchema>;
 
 export const TimelineDeletionResultSchema = TrashDeletionResultSchema.extend({
   timelineId: z.string(),

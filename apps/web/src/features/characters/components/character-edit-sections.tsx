@@ -8,8 +8,8 @@ import { useTranslations } from "next-intl";
 import { Fragment, useId } from "react";
 import { Controller, useController, useWatch } from "react-hook-form";
 
-import { ChapterCombobox } from "@/components/chapter-combobox";
 import { UiIcon, type UiIconName } from "@/components/icons";
+import { SuggestionCombobox } from "@/components/suggestion-combobox";
 import { ActionRow } from "@/components/ui/action-row";
 import { FieldError as FieldErrorText } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
@@ -201,7 +201,7 @@ export function BookCharacterNarrativeSection({
               control={control}
               name="book.firstAppearanceChapter"
               render={({ field }) => (
-                <ChapterCombobox
+                <SuggestionCombobox
                   describedBy={
                     errors.book?.firstAppearanceChapter
                       ? "character-first-chapter-error"
@@ -211,7 +211,7 @@ export function BookCharacterNarrativeSection({
                   invalid={errors.book?.firstAppearanceChapter !== undefined}
                   maxLength={CHARACTER_TEXT_MAX.shortText}
                   onChange={field.onChange}
-                  options={chaptersQuery.data?.chapters ?? []}
+                  options={chaptersQuery.data ?? []}
                   placeholder={t("firstAppearanceChapterPlaceholder")}
                   value={field.value}
                 />

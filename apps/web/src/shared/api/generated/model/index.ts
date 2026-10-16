@@ -2203,6 +2203,8 @@ export * from "./timelineEventViewDtoTimelineColorKey";
 export * from "./timelineListViewDto";
 export * from "./timelineListViewDtoTimelinesItem";
 export * from "./timelineListViewDtoTimelinesItemColorKey";
+export * from "./timelineLocationsViewDto";
+export * from "./timelineLocationsViewDtoLocationsItem";
 export * from "./timelineOverviewViewDto";
 export * from "./timelineOverviewViewDtoByImportanceItem";
 export * from "./timelineOverviewViewDtoByImportanceItemImportance";
