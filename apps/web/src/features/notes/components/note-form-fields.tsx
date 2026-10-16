@@ -194,3 +194,27 @@ export function NoteTextField({ control, errors, register }: NoteFieldsProps) {
     </div>
   );
 }
+
+export function NoteTitleField({ errors, register }: Omit<NoteFieldsProps, "control">) {
+  const t = useTranslations("notes.form");
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label className="flex-wrap" htmlFor={NOTE_FORM_FIELD_IDS.title}>
+        {t("title")}{" "}
+        <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
+      </Label>
+      <Input
+        aria-describedby={errors.title ? NOTE_FORM_FIELD_IDS.titleError : undefined}
+        aria-invalid={errors.title !== undefined}
+        autoComplete="off"
+        className="h-10"
+        id={NOTE_FORM_FIELD_IDS.title}
+        maxLength={NOTE_INPUT_LIMITS.titleMax}
+        placeholder={t("titlePlaceholder")}
+        {...register("title")}
+      />
+      <FieldError error={errors.title} id={NOTE_FORM_FIELD_IDS.titleError} />
+    </div>
+  );
+}

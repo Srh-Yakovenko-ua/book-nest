@@ -96,6 +96,47 @@ describe("NoteFullViewDialog fallback title", () => {
   });
 });
 
+describe("NoteFullViewDialog title", () => {
+  const NOTE_TITLE = "Видіння Пола";
+
+  function textRegion(dialog: HTMLElement) {
+    return within(dialog).getByRole("region", { name: "Текст нотатки" });
+  }
+
+  it("shows the title as a heading above the note text", () => {
+    const region = textRegion(openFullView(makeBookNote({ title: NOTE_TITLE })));
+
+    const title = within(region).getByRole("heading", { name: NOTE_TITLE });
+
+    expect(
+      title.compareDocumentPosition(within(region).getByText(NOTE_FIXTURE.text)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+  });
+
+  it("keeps the dialog named after the book when the note has a title", () => {
+    expect(openFullView(makeBookNote({ title: NOTE_TITLE }))).toHaveAccessibleName("Дюна");
+  });
+
+  it("shows no title heading in the text region for an untitled note", () => {
+    const region = textRegion(openFullView(makeBookNote({ title: null })));
+
+    expect(within(region).queryByRole("heading")).not.toBeInTheDocument();
+  });
+
+  it("names the dialog after the title when the note has no linked book", () => {
+    expect(openFullView(makeBookNote({ book: null, title: NOTE_TITLE }))).toHaveAccessibleName(
+      NOTE_TITLE,
+    );
+  });
+
+  it("does not repeat the title in the text region when it already names the dialog", () => {
+    const region = textRegion(openFullView(makeBookNote({ book: null, title: NOTE_TITLE })));
+
+    expect(within(region).queryByText(NOTE_TITLE)).not.toBeInTheDocument();
+  });
+});
+
 describe("NoteFullViewDialog content", () => {
   it("shows the whole note text inside the text region", () => {
     const dialog = openFullView(makeBookNote());

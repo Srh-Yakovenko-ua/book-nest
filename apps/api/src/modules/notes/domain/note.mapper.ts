@@ -39,6 +39,7 @@ type NoteMapperSource = {
     name: string;
   }>;
   text: string;
+  title: Nullable<string>;
   updatedAt: Date;
 };
 
@@ -89,6 +90,7 @@ export function toNoteView(note: NoteMapperSource, covers: NoteEntityCovers): No
             name: note.series.name,
           },
     text: note.text,
+    title: note.title,
     updatedAt: note.updatedAt.toISOString(),
   };
 }

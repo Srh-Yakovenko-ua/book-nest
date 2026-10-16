@@ -53,6 +53,7 @@ export class NotesService {
       page: input.page ?? null,
       seriesId: null,
       text: input.text,
+      title: emptyToNull(input.title),
       userId,
     });
 
@@ -79,6 +80,7 @@ export class NotesService {
       page: null,
       seriesId,
       text: input.text,
+      title: emptyToNull(input.title),
       userId,
     });
 
@@ -192,6 +194,9 @@ export class NotesService {
     }
     if (input.chapter !== undefined) {
       fields.chapter = emptyToNull(input.chapter);
+    }
+    if (input.title !== undefined) {
+      fields.title = emptyToNull(input.title);
     }
 
     if (input.category !== undefined || input.customCategory !== undefined) {

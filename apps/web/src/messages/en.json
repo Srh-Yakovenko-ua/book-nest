@@ -6253,6 +6253,8 @@
         "search": "Search series by name or author"
       },
       "optional": "(optional)",
+      "title": "Title",
+      "titlePlaceholder": "In short: what this note is about",
       "text": "Note text",
       "textPlaceholder": "Write down your thoughts, impressions or important ideas...",
       "category": "Category",
@@ -6284,6 +6286,7 @@
     "errors": {
       "textEmpty": "Enter the note text.",
       "textTooLong": "A note cannot be longer than {max} characters.",
+      "titleTooLong": "The title cannot be longer than {max} characters.",
       "pageNotPositive": "The page number must be greater than 0.",
       "pageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}.",
       "chapterTooLong": "The chapter name is too long.",

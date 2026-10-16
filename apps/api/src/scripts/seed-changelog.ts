@@ -1375,6 +1375,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Підказки розділів у нотатках і цитатах",
     version: null,
   },
+  {
+    bodyEn:
+      "Book and series notes can now have a short title: add it in the Title field above the note text, up to 120 characters, or leave it empty. The title appears on note cards, in the notes blocks on book and series pages, in the full note view and in the Revisit a note and Before you continue the series blocks, and search on the notes pages now looks in titles too. The title of a spoiler note stays hidden together with its text until you reveal it.",
+    bodyUk:
+      "Нотатки до книг і до серій тепер можуть мати короткий заголовок: додайте його в полі «Заголовок» над текстом нотатки, до 120 символів, або залиште порожнім. Заголовок видно на картках нотаток, у блоках нотаток на сторінках книги й серії, у повному перегляді нотатки та в блоках «Згадати нотатку» й «Перед продовженням серії», а пошук на сторінках нотаток тепер шукає і в заголовках. Заголовок нотатки зі спойлером лишається прихованим разом із текстом, доки ви її не відкриєте.",
+    category: "feature",
+    publishedAt: "2026-10-16T00:00:00.000Z",
+    slug: "note-titles",
+    titleEn: "Note titles",
+    titleUk: "Заголовки нотаток",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

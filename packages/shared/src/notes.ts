@@ -21,6 +21,7 @@ export const NOTE_INPUT_LIMITS = {
   customCategoryMax: 100,
   pageMax: 2147483647,
   textMax: 5000,
+  titleMax: 120,
 } as const;
 
 const NOTE_OVERVIEW_LIMITS = { impressionKeyMax: 512, seriesBeforeNextBookPreview: 5 } as const;
@@ -95,6 +96,7 @@ export const CreateNoteInputSchema = z.object({
   isSpoiler: z.boolean().default(false),
   page: z.coerce.number().int().positive().max(NOTE_INPUT_LIMITS.pageMax).nullish(),
   text: z.string().trim().min(1).max(NOTE_INPUT_LIMITS.textMax),
+  title: z.string().trim().max(NOTE_INPUT_LIMITS.titleMax).nullish(),
 });
 
 export type CreateNoteInput = z.infer<typeof CreateNoteInputSchema>;
@@ -115,6 +117,7 @@ export const UpdateNoteInputSchema = z.object({
   isSpoiler: z.boolean().optional(),
   page: z.coerce.number().int().positive().max(NOTE_INPUT_LIMITS.pageMax).nullish(),
   text: z.string().trim().min(1).max(NOTE_INPUT_LIMITS.textMax).optional(),
+  title: z.string().trim().max(NOTE_INPUT_LIMITS.titleMax).nullish(),
 });
 
 export type UpdateNoteInput = z.infer<typeof UpdateNoteInputSchema>;
@@ -204,6 +207,7 @@ export const NoteViewSchema = z.object({
   page: z.number().int().nullable(),
   series: NoteSeriesPreviewSchema.nullable(),
   text: z.string(),
+  title: z.string().nullable(),
   updatedAt: z.string(),
 });
 
