@@ -757,6 +757,26 @@ describe("NoteFormDialog preselected entity", () => {
     expect(within(dialog).queryByRole("radiogroup")).not.toBeInTheDocument();
   });
 
+  it("shows the preselected book read-only, with no way to change it", async () => {
+    const note = makeBookNote();
+    renderDialog({ entity: bookEntity(note), mode: "preselected" });
+
+    const group = await screen.findByRole("group", { name: NAMES.bookGroup });
+    expect(within(group).getByText("Дюна")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: NAMES.change })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: NAMES.bookSearch })).not.toBeInTheDocument();
+  });
+
+  it("shows the preselected series read-only, with no way to change it", async () => {
+    const note = makeSeriesNote();
+    renderDialog({ entity: seriesEntity(note), mode: "preselected" });
+
+    const group = await screen.findByRole("group", { name: NAMES.seriesGroup });
+    expect(within(group).getByText("Хроніки Дюни")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: NAMES.change })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: NAMES.seriesSearch })).not.toBeInTheDocument();
+  });
+
   it("posts to the preselected book", async () => {
     const note = makeBookNote();
     renderDialog({ entity: bookEntity(note), mode: "preselected" });

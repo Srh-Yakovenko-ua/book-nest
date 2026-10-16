@@ -150,7 +150,7 @@ function NoteForm({ onDone, target }: { onDone: () => void; target: NoteFormTarg
           control={control}
           entityType={entityType}
           errors={errors}
-          linkedEntity={target.mode === "edit" ? target.entity : null}
+          linkedEntity={target.mode === "pick" ? null : target.entity}
         />
         <NoteTextField control={control} errors={errors} register={register} />
         <NoteCategoryFields control={control} errors={errors} register={register} />
