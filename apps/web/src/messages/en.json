@@ -8241,6 +8241,19 @@
     },
     "inheritance": {
       "attitude": "My attitude in this book",
+      "bookField": {
+        "action": {
+          "cancelEditing": "Cancel editing",
+          "override": "Change for this book",
+          "reset": "Use main value",
+          "specify": "Set for this book"
+        },
+        "source": {
+          "book": "For this book",
+          "editing": "Editing",
+          "global": "Main"
+        }
+      },
       "bookOnly": "This book only",
       "notSpecified": "Not specified",
       "overrideForBook": "Change for this book only",

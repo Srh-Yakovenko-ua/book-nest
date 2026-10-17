@@ -8,14 +8,19 @@ import type {
   CharacterDetailsView,
   MediaView,
   Nullable,
+  OwnSpeciesView,
+  SpeciesOptionView,
+  SpeciesUsage,
 } from "@app/shared";
 import type { ReactNode } from "react";
 
+import { SpeciesNameInputSchema, SpeciesOptionViewSchema } from "@app/shared";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { stubTextMetrics } from "@/features/quotes/model/quotes.fixtures";
 import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
@@ -62,6 +67,24 @@ const character = makeCharacterDetails({
   name: "Ґеральт",
   species: SPECIES_REFS.witcher,
 });
+
+const SPECIES_OPTIONS = {
+  created: {
+    category: null,
+    id: "00000000-0000-4000-8000-0000000000aa",
+    isOwn: true,
+    key: null,
+    name: "Фримен",
+  },
+  mutant: { category: null, id: SPECIES_REFS.mutant.id, isOwn: true, key: null, name: "Мутант" },
+  witcher: {
+    category: null,
+    id: SPECIES_REFS.witcher.id,
+    isOwn: false,
+    key: "witcher",
+    name: "Відьмак",
+  },
+} as const satisfies Record<string, SpeciesOptionView>;
 
 const fetchMock = vi.fn();
 
@@ -157,6 +180,26 @@ beforeEach(() => {
       return bookDetailGate.then(() =>
         jsonResponse(makeBookView({ id: "book-1", pagesCount: servedPagesCount })),
       );
+    }
+    const { pathname, searchParams } = new URL(url, "http://localhost");
+    if (method === "POST" && pathname === "/api/species") {
+      const { name } = SpeciesNameInputSchema.parse(JSON.parse(String(init?.body)));
+      return Promise.resolve(jsonResponse({ ...SPECIES_OPTIONS.created, name }, 201));
+    }
+    if (method === "GET" && pathname === "/api/species/browse") {
+      return Promise.resolve(
+        jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 30, totalCount: 0 }),
+      );
+    }
+    if (method === "GET" && pathname === "/api/species/candidates") {
+      return Promise.resolve(jsonResponse({ exact: null, similar: [] }));
+    }
+    if (method === "GET" && pathname === "/api/species") {
+      const term = searchParams.get("q")?.toLowerCase() ?? "";
+      const items = [SPECIES_OPTIONS.witcher, SPECIES_OPTIONS.mutant].filter((option) =>
+        option.name.toLowerCase().includes(term),
+      );
+      return Promise.resolve(jsonResponse({ items }));
     }
     if (method === "PATCH" && url.includes("/api/books/")) {
       return Promise.resolve(
@@ -316,6 +359,11 @@ function inheritedField(label: string): HTMLElement {
   return shell;
 }
 
+async function pickBookSpecies(option: string) {
+  await userEvent.click(within(inheritedField("Вид у цій книзі")).getByRole("combobox"));
+  await userEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 describe("CharacterEditPage inheritance", () => {
   it("shows the effective global value while the book value is inherited", async () => {
     renderEdit();
@@ -324,9 +372,9 @@ describe("CharacterEditPage inheritance", () => {
 
     const displayName = inheritedField("Ім’я в цій книзі");
     expect(within(displayName).getByText("Ґеральт")).toBeInTheDocument();
-    expect(within(displayName).getByText("Використовується основне значення")).toBeInTheDocument();
+    expect(within(displayName).getByText("Основне")).toBeInTheDocument();
     expect(
-      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
+      within(displayName).getByRole("button", { name: "Змінити для книги" }),
     ).toBeInTheDocument();
   });
 
@@ -336,9 +384,7 @@ describe("CharacterEditPage inheritance", () => {
     await screen.findByDisplayValue("Ґеральт");
     const displayName = inheritedField("Ім’я в цій книзі");
 
-    await userEvent.click(
-      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
-    );
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
 
     const input = within(displayName).getByRole("textbox");
     expect(input).toHaveValue("Ґеральт");
@@ -356,14 +402,743 @@ describe("CharacterEditPage inheritance", () => {
     await screen.findByDisplayValue("Ґеральт");
     const species = inheritedField("Вид у цій книзі");
 
-    expect(within(species).getByText("Лише для цієї книги")).toBeInTheDocument();
-    await userEvent.click(
-      within(species).getByRole("button", { name: "Використовувати основне значення" }),
-    );
+    expect(within(species).getByText("Для книги")).toBeInTheDocument();
+    await userEvent.click(within(species).getByRole("button", { name: "Повернути основне" }));
     await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
 
     await waitFor(() => expect(bookPatchBody()).toBeDefined());
     expect(bookPatchBody()).toHaveProperty("speciesOverrideId", null);
+  });
+
+  it("moves focus into the book name editor prefilled with the main name once it opens", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+
+    const input = within(displayName).getByRole("textbox");
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("Ґеральт");
+    expect(within(displayName).getByText("Редагування")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+  });
+
+  it.each<{ dismiss: () => Promise<void>; how: string }>([
+    {
+      dismiss: () =>
+        userEvent.click(
+          within(inheritedField("Ім’я в цій книзі")).getByRole("button", {
+            name: "Скасувати редагування",
+          }),
+        ),
+      how: "its cancel action",
+    },
+    {
+      dismiss: async () => {
+        await userEvent.keyboard("{Escape}");
+      },
+      how: "Escape",
+    },
+  ])(
+    "returns an unchanged book name editor to the main name on $how and focuses the action",
+    async ({ dismiss }) => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const displayName = inheritedField("Ім’я в цій книзі");
+      await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+      await dismiss();
+
+      expect(within(displayName).queryByRole("textbox")).not.toBeInTheDocument();
+      expect(within(displayName).getByText("Ґеральт")).toBeInTheDocument();
+      expect(within(displayName).getByText("Основне")).toBeInTheDocument();
+      expect(within(displayName).getByRole("button", { name: "Змінити для книги" })).toHaveFocus();
+      expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+      expect(patchCount()).toBe(0);
+    },
+  );
+
+  it("returns an unchanged book name editor to the main name once focus leaves it", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+    await userEvent.tab();
+    expect(within(displayName).getByRole("textbox")).toBeInTheDocument();
+    await userEvent.tab();
+
+    expect(within(displayName).queryByRole("textbox")).not.toBeInTheDocument();
+    expect(within(displayName).getByText("Ґеральт")).toBeInTheDocument();
+    expect(within(displayName).getByText("Основне")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it.each(["  Ґеральт  ", "   "])(
+    "keeps the book name inherited and the editor open while the draft is %j",
+    async (draft) => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const displayName = inheritedField("Ім’я в цій книзі");
+      await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+      const input = within(displayName).getByRole("textbox");
+      await userEvent.clear(input);
+      await userEvent.type(input, draft);
+
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue(draft);
+      expect(within(displayName).getByText("Редагування")).toBeInTheDocument();
+      expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    },
+  );
+
+  it("keeps typing in the editor and the form clean when a different draft is typed back to the main name", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+    const input = within(displayName).getByRole("textbox");
+    await typeOver(input, "Біловолосий");
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeEnabled();
+
+    await typeOver(input, "Ґеральт");
+
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("Ґеральт");
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("drops a typed book name when the editing is cancelled, before the blur can keep it", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+    await typeOver(within(displayName).getByRole("textbox"), "Біловолосий");
+    await userEvent.click(
+      within(displayName).getByRole("button", { name: "Скасувати редагування" }),
+    );
+
+    expect(within(displayName).queryByRole("textbox")).not.toBeInTheDocument();
+    expect(within(displayName).getByText("Основне")).toBeInTheDocument();
+    expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("ends the editing on Enter with a typed book name kept editable, without saving", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+    const input = within(displayName).getByRole("textbox");
+    await typeOver(input, "Біловолосий");
+    await userEvent.keyboard("{Enter}");
+
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue("Біловолосий");
+    expect(within(displayName).getByText("Для книги")).toBeInTheDocument();
+    expect(
+      within(displayName).getByRole("button", { name: "Повернути основне" }),
+    ).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("ends an unchanged editing on Enter back on the main name, without saving the changed form", async () => {
+    renderEdit();
+
+    await userEvent.type(
+      await screen.findByRole("textbox", { name: /^Дані в цій книзі/ }),
+      " ще трохи",
+    );
+    const displayName = inheritedField("Ім’я в цій книзі");
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+    await userEvent.keyboard("{Enter}");
+
+    expect(within(displayName).queryByRole("textbox")).not.toBeInTheDocument();
+    expect(within(displayName).getByRole("button", { name: "Змінити для книги" })).toHaveFocus();
+    expect(patchCount()).toBe(0);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("keeps a saved book name that equals the main name as the book's own, directly editable", async () => {
+    serveBookValues({ displayName: "Ґеральт" });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const displayName = inheritedField("Ім’я в цій книзі");
+
+    expect(within(displayName).getByRole("textbox")).toHaveValue("Ґеральт");
+    expect(within(displayName).getByText("Для книги")).toBeInTheDocument();
+    expect(
+      within(displayName).getByRole("button", { name: "Повернути основне" }),
+    ).toBeInTheDocument();
+  });
+
+  it("sends a saved book name that equals the main name unchanged when another book field is saved", async () => {
+    serveBookValues({ displayName: "Ґеральт" });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("displayName", "Ґеральт");
+  });
+
+  it("resets a saved book name and its spoiler mark in the form only, until the form is saved", async () => {
+    serveBookValues({ displayName: "Вовк із Рівії", displayNameIsSpoiler: true });
+    renderEdit();
+
+    await screen.findByDisplayValue("Вовк із Рівії");
+    await userEvent.click(
+      within(inheritedField("Ім’я в цій книзі")).getByRole("button", { name: "Повернути основне" }),
+    );
+
+    expect(patchCount()).toBe(0);
+    expect(screen.getByRole("switch", { name: "Ім’я в цій книзі" })).toBeDisabled();
+    expect(screen.getByRole("switch", { name: "Ім’я в цій книзі" })).not.toBeChecked();
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({ displayName: null, displayNameIsSpoiler: false });
+  });
+
+  it("keeps the spoiler mark of a saved book name whose text is edited", async () => {
+    serveBookValues({ displayName: "Вовк із Рівії", displayNameIsSpoiler: true });
+    renderEdit();
+
+    await userEvent.type(await screen.findByDisplayValue("Вовк із Рівії"), ", Білий Вовк");
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toMatchObject({
+      displayName: "Вовк із Рівії, Білий Вовк",
+      displayNameIsSpoiler: true,
+    });
+  });
+
+  it("shows the main name as it is typed in the inherited book name and the preview, sending nothing", async () => {
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    await userEvent.type(screen.getByRole("textbox", { name: /Ім’я/ }), " із Рівії");
+
+    expect(
+      within(inheritedField("Ім’я в цій книзі")).getByText("Ґеральт із Рівії"),
+    ).toBeInTheDocument();
+    expect(
+      within(previewRegion()).getByRole("heading", { name: "Ґеральт із Рівії" }),
+    ).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("keeps the book species inherited when a search over no main species is dismissed", async () => {
+    serveBookValues({ speciesOverride: null });
+    servedCharacter = { ...servedCharacter, species: null };
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    expect(within(species).getByText("Не вказано")).toBeInTheDocument();
+    await userEvent.click(within(species).getByRole("button", { name: "Вказати для книги" }));
+    const picker = within(species).getByRole("combobox");
+    expect(picker).toHaveFocus();
+    expect(picker).toHaveValue("");
+    await userEvent.type(picker, "Мут");
+    await screen.findByRole("option", { name: "Мутант" });
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("{Escape}");
+
+    expect(within(species).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(within(species).getByText("Не вказано")).toBeInTheDocument();
+    expect(within(species).getByRole("button", { name: "Вказати для книги" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("closes only the species list on the first Escape and keeps the book species editor open", async () => {
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    await userEvent.click(within(species).getByRole("combobox"));
+    await screen.findByRole("option", { name: "Мутант" });
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(within(species).getByRole("combobox")).toHaveFocus();
+    expect(within(species).getByText("Редагування")).toBeInTheDocument();
+    expect(
+      within(species).getByRole("button", { name: "Скасувати редагування" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the main species in the open book picker without copying it into the book", async () => {
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    expect(within(species).getByRole("combobox")).toHaveValue("Відьмак");
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+
+    await userEvent.click(within(species).getByRole("combobox"));
+    expect(await screen.findByRole("option", { name: "Відьмак" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(within(species).getByRole("button", { name: "Скасувати редагування" }));
+
+    expect(within(species).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(species).getByText("Основне")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("returns the open book picker to the main species when it is cleared or tabbed out of", async () => {
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    await userEvent.click(within(species).getByRole("button", { name: "Очистити вид" }));
+
+    expect(within(species).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(within(species).getByText("Основне")).toBeInTheDocument();
+    expect(within(species).getByRole("button", { name: "Змінити для книги" })).toHaveFocus();
+
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    expect(within(species).getByRole("combobox")).toHaveFocus();
+    await userEvent.tab();
+    await userEvent.tab();
+    await userEvent.tab();
+
+    expect(within(species).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(within(species).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(species).getByText("Основне")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("saves a different species picked in the open book picker for this book only", async () => {
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    await pickBookSpecies("Мутант");
+
+    expect(within(species).getByRole("combobox")).toHaveValue("Мутант");
+    expect(within(species).getByText("Для книги")).toBeInTheDocument();
+    expect(within(species).getByRole("button", { name: "Повернути основне" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("speciesOverrideId", SPECIES_REFS.mutant.id);
+    expect(globalPatchBody()).toBeUndefined();
+  });
+
+  it("stays inherited when the main species is picked again under another label", async () => {
+    const pageFetch = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      if (new URL(String(input), "http://localhost").pathname !== "/api/species") {
+        return pageFetch?.(input, init);
+      }
+      return Promise.resolve(
+        jsonResponse({ items: [{ ...SPECIES_OPTIONS.witcher, name: "Witcher" }] }),
+      );
+    });
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    await pickBookSpecies("Witcher");
+
+    expect(within(species).queryByRole("combobox")).not.toBeInTheDocument();
+    expect(within(species).getByText("Відьмак")).toBeInTheDocument();
+    expect(within(species).getByText("Основне")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+    expect(patchCount()).toBe(0);
+  });
+
+  it("assigns a species created in the open book picker in the form only, until the form is saved", async () => {
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    await typeOver(within(species).getByRole("combobox"), "Фримен");
+    await userEvent.click(await screen.findByRole("option", { name: "Створити вид «Фримен»" }));
+
+    expect(await within(species).findByDisplayValue("Фримен")).toBeInTheDocument();
+    expect(within(species).getByText("Для книги")).toBeInTheDocument();
+    expect(patchCount()).toBe(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("speciesOverrideId", SPECIES_OPTIONS.created.id);
+  });
+
+  it("never submits a changed form on Enter in the open book species list", async () => {
+    serveBookValues({ speciesOverride: null });
+    renderEdit();
+
+    await userEvent.type(
+      await screen.findByRole("textbox", { name: /^Дані в цій книзі/ }),
+      " ще трохи",
+    );
+    const species = inheritedField("Вид у цій книзі");
+    await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+    await userEvent.click(within(species).getByRole("combobox"));
+    await screen.findByRole("option", { name: "Мутант" });
+    await userEvent.keyboard("{Enter}");
+
+    expect(patchCount()).toBe(0);
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  describe("while own species change in the manage dialog", () => {
+    const unused: SpeciesUsage = {
+      bookOverrides: 0,
+      characters: 0,
+      trashed: 0,
+      trashedBookOverrides: 0,
+      trashedCharacters: 0,
+    };
+
+    beforeEach(() => {
+      let ownSpecies: OwnSpeciesView[] = [
+        { ...SPECIES_OPTIONS.mutant, usage: unused },
+        { ...SPECIES_OPTIONS.created, usage: unused },
+      ];
+      const pageFetch = fetchMock.getMockImplementation();
+      fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+        const { pathname } = new URL(String(input), "http://localhost");
+        const method = (init?.method ?? "GET").toUpperCase();
+        const speciesId = pathname.split("/")[3] ?? "";
+        if (pathname === "/api/species/own") {
+          return Promise.resolve(jsonResponse({ items: ownSpecies }));
+        }
+        if (pathname.endsWith("/deletion-preview")) {
+          return Promise.resolve(jsonResponse({ ...unused, canDelete: true }));
+        }
+        if (method === "PATCH" && pathname.startsWith("/api/species/")) {
+          const { name } = SpeciesNameInputSchema.parse(JSON.parse(String(init?.body)));
+          ownSpecies = ownSpecies.map((own) => (own.id === speciesId ? { ...own, name } : own));
+          const renamed = ownSpecies.find((own) => own.id === speciesId);
+          return Promise.resolve(jsonResponse(SpeciesOptionViewSchema.parse(renamed)));
+        }
+        if (method === "DELETE" && pathname.startsWith("/api/species/")) {
+          ownSpecies = ownSpecies.filter((own) => own.id !== speciesId);
+          return Promise.resolve(new Response(null, { status: 204 }));
+        }
+        return pageFetch?.(input, init);
+      });
+    });
+
+    it("keeps the book species inherited and shows the main species under its new name once it is renamed mid-edit", async () => {
+      serveBookValues({ speciesOverride: null });
+      servedCharacter = { ...servedCharacter, species: SPECIES_REFS.mutant };
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const species = inheritedField("Вид у цій книзі");
+      await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+      expect(within(species).getByRole("combobox")).toHaveValue("Мутант");
+      await userEvent.click(screen.getByRole("button", { name: "Керування власними видами" }));
+      const dialog = await screen.findByRole("dialog", { name: "Керування власними видами" });
+      await userEvent.click(
+        await within(dialog).findByRole("button", { name: "Дії з видом «Мутант»" }),
+      );
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Перейменувати" }));
+      await typeOver(within(dialog).getByRole("textbox", { name: "Нова назва" }), "Мутантка");
+      await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти" }));
+      expect(await within(dialog).findByText("Мутантка")).toBeInTheDocument();
+      await userEvent.keyboard("{Escape}");
+
+      expect(within(species).getByText("Мутантка")).toBeInTheDocument();
+      expect(within(species).queryByText("Мутант")).not.toBeInTheDocument();
+      expect(within(species).getByText("Основне")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Зберегти/ })).toBeDisabled();
+      expect(bookPatchBody()).toBeUndefined();
+
+      await userEvent.click(within(species).getByRole("button", { name: "Змінити для книги" }));
+      expect(within(species).getByRole("combobox")).toHaveValue("Мутантка");
+    });
+
+    it("follows a rename of the book's own species and keeps its spoiler mark", async () => {
+      serveBookValues({ speciesOverride: SPECIES_REFS.mutant, speciesOverrideIsSpoiler: true });
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const species = inheritedField("Вид у цій книзі");
+      await userEvent.click(
+        within(species).getByRole("button", { name: "Керування власними видами" }),
+      );
+      const dialog = await screen.findByRole("dialog", { name: "Керування власними видами" });
+      await userEvent.click(
+        await within(dialog).findByRole("button", { name: "Дії з видом «Мутант»" }),
+      );
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Перейменувати" }));
+      await typeOver(within(dialog).getByRole("textbox", { name: "Нова назва" }), "Мутантка");
+      await userEvent.click(within(dialog).getByRole("button", { name: "Зберегти" }));
+      expect(await within(dialog).findByText("Мутантка")).toBeInTheDocument();
+      await userEvent.keyboard("{Escape}");
+
+      expect(within(species).getByRole("combobox")).toHaveValue("Мутантка");
+      expect(within(species).getByText("Для книги")).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: "Вид у цій книзі" })).toBeChecked();
+    });
+
+    it("returns the book species to the main one and clears its spoiler mark once its own species is deleted", async () => {
+      serveBookValues({ speciesOverride: SPECIES_REFS.mutant, speciesOverrideIsSpoiler: true });
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const species = inheritedField("Вид у цій книзі");
+      await userEvent.click(
+        within(species).getByRole("button", { name: "Керування власними видами" }),
+      );
+      const dialog = await screen.findByRole("dialog", { name: "Керування власними видами" });
+      await userEvent.click(
+        await within(dialog).findByRole("button", { name: "Дії з видом «Мутант»" }),
+      );
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Видалити" }));
+      await within(dialog).findByText("Вид «Мутант» ніде не використовується. Видалити назавжди?");
+      await userEvent.click(within(dialog).getByRole("button", { name: "Видалити" }));
+
+      expect(await within(species).findByText("Відьмак")).toBeInTheDocument();
+      expect(within(species).queryByRole("combobox")).not.toBeInTheDocument();
+      expect(within(species).getByText("Основне")).toBeInTheDocument();
+      expect(screen.getByRole("switch", { name: "Вид у цій книзі" })).toBeDisabled();
+      expect(screen.getByRole("switch", { name: "Вид у цій книзі" })).not.toBeChecked();
+
+      await userEvent.type(screen.getByRole("textbox", { name: /^Дані в цій книзі/ }), " ще трохи");
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      await waitFor(() => expect(bookPatchBody()).toBeDefined());
+      expect(bookPatchBody()).toMatchObject({
+        speciesOverrideId: null,
+        speciesOverrideIsSpoiler: false,
+      });
+    });
+  });
+
+  it("keeps the old wording on the attitude in this book while it inherits the main attitude", async () => {
+    servedCharacter = { ...character, globalAttitude: "like" };
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const attitude = inheritedField("Моє ставлення в цій книзі");
+
+    expect(within(attitude).getByText("Подобається")).toBeInTheDocument();
+    expect(within(attitude).getByText("Використовується основне значення")).toBeInTheDocument();
+    expect(
+      within(attitude).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    ).toBeInTheDocument();
+  });
+
+  it("writes the main attitude into the book at once when the attitude is overridden", async () => {
+    servedCharacter = { ...character, globalAttitude: "like" };
+    renderEdit();
+
+    await screen.findByDisplayValue("Опис у книзі");
+    const attitude = inheritedField("Моє ставлення в цій книзі");
+    await userEvent.click(
+      within(attitude).getByRole("button", { name: "Змінити лише для цієї книги" }),
+    );
+
+    expect(within(attitude).getByText("Лише для цієї книги")).toBeInTheDocument();
+    expect(
+      within(attitude).getByRole("button", { name: "Використовувати основне значення" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Зберегти/ })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+    await waitFor(() => expect(bookPatchBody()).toBeDefined());
+    expect(bookPatchBody()).toHaveProperty("attitude", "like");
+  });
+
+  const MASKED_BOOK_FIELDS = [
+    {
+      field: "displayName",
+      label: "Ім’я в цій книзі",
+      mainValue: "Ґеральт",
+      omitted: ["displayName", "displayNameIsSpoiler"],
+    },
+    {
+      field: "speciesOverride",
+      label: "Вид у цій книзі",
+      mainValue: "Відьмак",
+      omitted: ["speciesOverrideId", "speciesOverrideIsSpoiler"],
+    },
+  ] as const;
+
+  it.each(MASKED_BOOK_FIELDS)(
+    "leaves $label masked by the server out of an unrelated book save",
+    async ({ field, omitted }) => {
+      serveBookValues({ displayName: null, hiddenFields: [field], speciesOverride: null });
+      renderEdit();
+
+      await userEvent.type(
+        await screen.findByRole("textbox", { name: /^Дані в цій книзі/ }),
+        " ще трохи",
+      );
+      await userEvent.click(screen.getByRole("button", { name: /Зберегти/ }));
+
+      await waitFor(() => expect(bookPatchBody()).toBeDefined());
+      const body = bookPatchBody();
+      for (const key of omitted) expect(body).not.toHaveProperty(key);
+      expect(body).toHaveProperty("description", "Опис у книзі ще трохи");
+    },
+  );
+
+  describe("with previews too narrow for their text", () => {
+    const LONG_NAME = "Ґеральт із Рівії, Білий Вовк, Різник із Блавікену, відьмак школи Вовка";
+
+    let restoreMetrics: () => void = () => undefined;
+
+    beforeEach(() => {
+      restoreMetrics = stubTextMetrics({ clientWidth: 200, scrollWidth: 400 });
+    });
+
+    afterEach(() => {
+      restoreMetrics();
+      restoreMetrics = () => undefined;
+    });
+
+    it.each(MASKED_BOOK_FIELDS)(
+      "shows $label masked by the server as hidden, with no value, tooltip or control",
+      async ({ field, label, mainValue }) => {
+        serveBookValues({ displayName: null, hiddenFields: [field], speciesOverride: null });
+        renderEdit();
+
+        await screen.findByDisplayValue("Опис у книзі");
+        const basics = editCard("Основне про персонажа");
+
+        expect(within(basics).getByText(label)).toBeInTheDocument();
+        expect(within(basics).getByText("Приховано (спойлер)")).toBeInTheDocument();
+        expect(within(basics).queryByText(mainValue)).not.toBeInTheDocument();
+        expect(within(basics).queryByRole("button", { name: mainValue })).not.toBeInTheDocument();
+        expect(
+          within(basics).queryByRole("textbox", { name: new RegExp(`^${label}`) }),
+        ).not.toBeInTheDocument();
+        expect(
+          within(basics).queryByRole("combobox", { name: new RegExp(`^${label}`) }),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it("lets a cut-off main name be reached from the keyboard and read in full in a tooltip", async () => {
+      servedCharacter = { ...character, name: LONG_NAME };
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const displayName = inheritedField("Ім’я в цій книзі");
+      act(() => within(displayName).getByRole("button", { name: "Змінити для книги" }).focus());
+      await userEvent.tab({ shift: true });
+
+      expect(within(displayName).getByRole("button", { name: LONG_NAME })).toHaveFocus();
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(LONG_NAME);
+    });
+
+    it("shows a cut-off main name in full in a tooltip on tap", async () => {
+      servedCharacter = { ...character, name: LONG_NAME };
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const preview = within(inheritedField("Ім’я в цій книзі")).getByRole("button", {
+        name: LONG_NAME,
+      });
+      await userEvent.pointer({ keys: "[TouchA]", target: preview });
+
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(LONG_NAME);
+    });
+
+    it("keeps the whole cut-off main name in the opened book name editor", async () => {
+      servedCharacter = { ...character, name: LONG_NAME };
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const displayName = inheritedField("Ім’я в цій книзі");
+      await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
+
+      expect(within(displayName).getByRole("textbox")).toHaveValue(LONG_NAME);
+    });
+
+    it("keeps the whole saved book name in its directly editable input", async () => {
+      serveBookValues({ displayName: LONG_NAME });
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+
+      expect(within(inheritedField("Ім’я в цій книзі")).getByRole("textbox")).toHaveValue(
+        LONG_NAME,
+      );
+    });
+  });
+
+  describe("with previews wide enough for their text", () => {
+    let restoreMetrics: () => void = () => undefined;
+
+    beforeEach(() => {
+      restoreMetrics = stubTextMetrics({ clientWidth: 400, scrollWidth: 400 });
+    });
+
+    afterEach(() => {
+      restoreMetrics();
+      restoreMetrics = () => undefined;
+    });
+
+    it("leaves a main name that fits out of the tab order", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      const displayName = inheritedField("Ім’я в цій книзі");
+      act(() => within(displayName).getByRole("button", { name: "Змінити для книги" }).focus());
+      await userEvent.tab({ shift: true });
+
+      expect(
+        within(displayName).queryByRole("button", { name: "Ґеральт" }),
+      ).not.toBeInTheDocument();
+      expect(displayName.contains(document.activeElement)).toBe(false);
+    });
+
+    it("shows no tooltip when a main name that fits is tapped", async () => {
+      renderEdit();
+
+      await screen.findByDisplayValue("Опис у книзі");
+      await userEvent.pointer({
+        keys: "[TouchA]",
+        target: within(inheritedField("Ім’я в цій книзі")).getByText("Ґеральт"),
+      });
+
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    });
   });
 });
 
@@ -2068,9 +2843,7 @@ describe("CharacterEditPage live preview", () => {
 
     await screen.findByDisplayValue("Ґеральт");
     const displayName = inheritedField("Ім’я в цій книзі");
-    await userEvent.click(
-      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
-    );
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
     const input = within(displayName).getByRole("textbox");
     await userEvent.clear(input);
     await userEvent.type(input, "Біловолосий");
@@ -2088,9 +2861,7 @@ describe("CharacterEditPage live preview", () => {
 
     await screen.findByDisplayValue("Ґеральт");
     const displayName = inheritedField("Ім’я в цій книзі");
-    await userEvent.click(
-      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
-    );
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
     const input = within(displayName).getByRole("textbox");
     await userEvent.clear(input);
     await userEvent.type(input, "   ");
@@ -2103,15 +2874,13 @@ describe("CharacterEditPage live preview", () => {
 
     await screen.findByDisplayValue("Ґеральт");
     const displayName = inheritedField("Ім’я в цій книзі");
-    await userEvent.click(
-      within(displayName).getByRole("button", { name: "Змінити лише для цієї книги" }),
-    );
+    await userEvent.click(within(displayName).getByRole("button", { name: "Змінити для книги" }));
     const input = within(displayName).getByRole("textbox");
     await userEvent.clear(input);
     await userEvent.type(input, "Біловолосий");
-    await userEvent.click(
-      within(displayName).getByRole("button", { name: "Використовувати основне значення" }),
-    );
+    await userEvent.tab();
+    await userEvent.tab();
+    await userEvent.click(within(displayName).getByRole("button", { name: "Повернути основне" }));
 
     expect(within(previewRegion()).getByRole("heading", { name: "Ґеральт" })).toBeInTheDocument();
     expect(
@@ -3789,17 +4558,19 @@ describe("CharacterEditPage spoiler switches follow their values", () => {
       clear: () =>
         userEvent.click(
           within(inheritedField("Вид у цій книзі")).getByRole("button", {
-            name: "Використовувати основне значення",
+            name: "Повернути основне",
           }),
         ),
       flag: "speciesOverrideIsSpoiler",
       name: "Вид у цій книзі",
-      refill: () =>
-        userEvent.click(
+      refill: async () => {
+        await userEvent.click(
           within(inheritedField("Вид у цій книзі")).getByRole("button", {
-            name: "Змінити лише для цієї книги",
+            name: "Змінити для книги",
           }),
-        ),
+        );
+        await pickBookSpecies("Мутант");
+      },
     },
     {
       clear: () => userEvent.clear(screen.getByRole("textbox", { name: /^Дані в цій книзі/ })),

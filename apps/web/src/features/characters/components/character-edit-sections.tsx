@@ -47,8 +47,9 @@ import {
 } from "../model/character-options";
 import { isFieldHidden } from "../model/character-spoiler";
 import { CharacterCreatableSingleSelect } from "./character-creatable-single-select";
-import { InheritedSelectField, InheritedTextField } from "./character-inherited-field";
+import { InheritedSelectField } from "./character-inherited-field";
 import { InheritedSpeciesField } from "./character-inherited-species-field";
+import { InheritedTextField } from "./character-inherited-text-field";
 import { CharacterLongTextField } from "./character-long-text-field";
 import { CharacterPronounsSelect } from "./character-pronouns-select";
 import { CharacterRolePicker } from "./character-role-picker";
@@ -769,58 +770,62 @@ export function CharacterBasicsSection({
               <CharacterScopeBadge scope="book" />
             </div>
 
-            <MaskedOr field="displayName" label={t("displayName")} maskedFields={maskedFields}>
-              <Controller
-                control={control}
-                name="book.displayName"
-                render={({ field }) => (
-                  <InheritedTextField
-                    error={errors.book?.displayName}
-                    globalValue={textOrNull(globalName)}
-                    id="character-display-name"
-                    label={t("displayName")}
-                    maxLength={CHARACTER_TEXT_MAX.shortText}
-                    onChange={(next) => {
-                      field.onChange(next);
-                      if (!hasSpoilerValue.displayNameIsSpoiler(next)) {
-                        displayNameSpoiler.field.onChange(false);
-                      }
-                    }}
-                    placeholder={t("displayNamePlaceholder")}
-                    value={field.value}
+            <div className="@container/book-fields">
+              <div className="grid grid-cols-1 items-start gap-4 @xl/book-fields:grid-cols-2">
+                <MaskedOr field="displayName" label={t("displayName")} maskedFields={maskedFields}>
+                  <Controller
+                    control={control}
+                    name="book.displayName"
+                    render={({ field }) => (
+                      <InheritedTextField
+                        error={errors.book?.displayName}
+                        globalValue={textOrNull(globalName)}
+                        id="character-display-name"
+                        label={t("displayName")}
+                        maxLength={CHARACTER_TEXT_MAX.shortText}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          if (!hasSpoilerValue.displayNameIsSpoiler(next)) {
+                            displayNameSpoiler.field.onChange(false);
+                          }
+                        }}
+                        placeholder={t("displayNamePlaceholder")}
+                        value={field.value}
+                      />
+                    )}
                   />
-                )}
-              />
-            </MaskedOr>
+                </MaskedOr>
 
-            <MaskedOr
-              field="speciesOverride"
-              label={t("speciesInBook")}
-              maskedFields={maskedFields}
-            >
-              <Controller
-                control={control}
-                name="book.speciesOverride"
-                render={({ field }) => (
-                  <InheritedSpeciesField
-                    globalValue={globalSpecies}
-                    id="character-species-override"
-                    label={t("speciesInBook")}
-                    onBlur={field.onBlur}
-                    onChange={(next) => {
-                      field.onChange(next);
-                      if (!hasSpoilerValue.speciesOverrideIsSpoiler(next)) {
-                        speciesOverrideSpoiler.field.onChange(false);
-                      }
-                    }}
-                    onSpeciesChange={onSpeciesChange}
-                    placeholder={t("speciesInBookPlaceholder")}
-                    ref={field.ref}
-                    value={field.value}
+                <MaskedOr
+                  field="speciesOverride"
+                  label={t("speciesInBook")}
+                  maskedFields={maskedFields}
+                >
+                  <Controller
+                    control={control}
+                    name="book.speciesOverride"
+                    render={({ field }) => (
+                      <InheritedSpeciesField
+                        globalValue={globalSpecies}
+                        id="character-species-override"
+                        label={t("speciesInBook")}
+                        onBlur={field.onBlur}
+                        onChange={(next) => {
+                          field.onChange(next);
+                          if (!hasSpoilerValue.speciesOverrideIsSpoiler(next)) {
+                            speciesOverrideSpoiler.field.onChange(false);
+                          }
+                        }}
+                        onSpeciesChange={onSpeciesChange}
+                        placeholder={t("speciesInBookPlaceholder")}
+                        ref={field.ref}
+                        value={field.value}
+                      />
+                    )}
                   />
-                )}
-              />
-            </MaskedOr>
+                </MaskedOr>
+              </div>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Controller
