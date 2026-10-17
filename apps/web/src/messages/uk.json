@@ -8241,6 +8241,19 @@
     },
     "inheritance": {
       "attitude": "Моє ставлення в цій книзі",
+      "bookField": {
+        "action": {
+          "cancelEditing": "Скасувати редагування",
+          "override": "Змінити для книги",
+          "reset": "Повернути основне",
+          "specify": "Вказати для книги"
+        },
+        "source": {
+          "book": "Для книги",
+          "editing": "Редагування",
+          "global": "Основне"
+        }
+      },
       "bookOnly": "Лише для цієї книги",
       "notSpecified": "Не вказано",
       "overrideForBook": "Змінити лише для цієї книги",

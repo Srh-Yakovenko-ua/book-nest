@@ -1,0 +1,760 @@
+{
+  "spec": "docs/specs/book-name-species/spec.md",
+  "specFiles": [
+    "docs/specs/book-name-species/spec.md (00_START_HERE, 01_TASK sections A-F, 02_TEST_MATRIX sections A-E, N01-U03)"
+  ],
+  "baseCommit": "6b948851",
+  "specReferenceCommit": "60c67d45",
+  "generatedAt": "2026-10-17T17:22:30Z",
+  "scope": {
+    "included": [
+      "01_TASK A: approvals 1A-9A (locked, binding)",
+      "01_TASK B: I / D / O state machine for book.displayName and book.speciesOverride, name normalization (trim-only), species identity by id, spoiler/permission invariants",
+      "01_TASK C: 40px bordered value area, container-width responsive two-column grid, one-line truncation with accessible tooltip, source marker in caption row, action below control, focus rules",
+      "01_TASK D: edit surface character-edit-sections.tsx, character-inherited-field.tsx, character-inherited-species-field.tsx, uk.json/en.json",
+      "01_TASK E phases B-D and F Definition of Done (focused vitest, web typecheck, scoped eslint/prettier, git diff --check)",
+      "02_TEST_MATRIX B: all 28 scenarios N01-U03, re-labelled C/U/M against the real test files"
+    ],
+    "excluded": [
+      "Backend, packages/shared, Prisma schema, OpenAPI regeneration: 01_TASK A 'Do not touch ... API/backend/schema/DB'",
+      "Global name/species, aliases, attitude, importance, status, roles, right sidebar, other sections, spoiler section UI: 01_TASK A non-goals. The importance/status grid at character-edit-sections.tsx:825 keeps sm:grid-cols-2 even though it has the same width problem",
+      "InheritedSelectField (attitude, character-edit-sections.tsx:557) appearance or behavior: 01_TASK D item 2 'MUST retain existing appearance and behavior'",
+      "species-picker.tsx, manage-own-species-button.tsx, own-species-change.ts, character-edit-page.tsx, character-edit-form.ts, character-inheritance.ts, book-spoiler-flags.ts: 01_TASK D 'Read/reuse; do NOT change without demonstrated necessity'. No demonstrated necessity found in this audit",
+      "Exporting or moving textOrNull: the two private copies (character-edit-form.ts:455, character-edit-sections.tsx:1022) already feed the component a trimmed-or-null globalValue (character-edit-sections.tsx:779)",
+      "New modal dialogs, new dependencies, global CSS/breakpoints, new spoiler badges/toggles: 01_TASK A, approval 9A, 01_TASK C",
+      "Passing field.ref of book.displayName into InheritedTextField for RHF focus-on-error: existing gap (character-edit-sections.tsx:777-791 never passes ref), not asked",
+      "Commits, pushes, branch switches, stash: 00_START_HERE 'Do not ... auto-commit'"
+    ]
+  },
+  "sliceGates": {
+    "S1": "T1-T3: i18n parity script prints 'locale files in sync'; web typecheck; eslint on changed files; existing attitude/inheritance tests green",
+    "S2": "T4-T6: focused vitest on character-edit-page.test.tsx + character-edit-form.test.ts + species-picker.test.tsx; typecheck; code-reviewer + accessibility-auditor",
+    "S3": "T7-T11: same focused vitest green; Storybook visual check (T11); git diff --check; diff touches only the files in tasks; spec-auditor VERIFY"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "slice": "S1",
+      "title": "Compact source and action strings for the two book fields (uk + en)",
+      "specRef": "01_TASK A approval 3A; A last paragraph (localize only new compact strings); B table rows I, D, O",
+      "layer": "i18n",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "New keys exist in both files under characters.inheritance (uk.json:8242 / en.json:8242 block), grouped in one nested object, for: source global «Основне», source editing «Редагування», source book «Для книги», action override «Змінити для книги», action specify «Вказати для книги», action cancel-editing «Скасувати редагування», action reset «Повернути основне»",
+        "Existing keys attitude, bookOnly, notSpecified, overrideForBook, resetToGlobal, specifyForBook, usingGlobal are unchanged byte for byte (InheritedSelectField still consumes them)",
+        "characters.edit.displayName and characters.edit.speciesInBook labels unchanged (uk.json:8041, :8092)",
+        "node .claude/scripts/check-i18n-parity.mjs prints 'locale files in sync'",
+        "Edits made with Edit/node, never PowerShell (UTF-8 apostrophes ’ survive)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "slice": "S1",
+      "title": "Opt-in compact variant of InheritedFieldShell: source marker in caption row, action below the control, no hint row",
+      "specRef": "01_TASK A 3A; C 'Action and source placement'; D item 2 (opt-in, InheritedSelectField unchanged)",
+      "layer": "web-component",
+      "files": [
+        "apps/web/src/features/characters/components/character-inherited-field.tsx",
+        "apps/web/src/features/characters/components/character-book-field-shell.tsx"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "InheritedSelectField renders exactly the current markup: action in the caption row, hint row <p> with link/edit icon and usingGlobal/bookOnly text, <p> preview (character-inherited-field.tsx:91-104, :120-151)",
+        "The compact variant is selected by an explicit prop or a separate small component, never by default; the source is a discriminated value (global | editing | book), not two booleans (CLAUDE.md §8.9)",
+        "Compact caption row: Label + neutral small icon + source text (Основне / Редагування / Для книги) in text-muted-foreground, no Badge/chip, no vivid color; wraps with flex-wrap on narrow widths",
+        "Compact variant renders no usingGlobal/bookOnly hint row",
+        "Action button renders below the bordered value area, size xs link style kept",
+        "data-slot=\"inherited-field\" stays on the root of both variants (test helper inheritedField, character-edit-page.test.tsx:308-317)",
+        "The field label text appears exactly once inside the shell (inheritedField throws on two matches in one shell)",
+        "Source text is not inside <Label> and not referenced by the input's aria-describedby (character-edit-page.test.tsx:2995 asserts the exact description 'Текст задовгий (макс. 200)')",
+        "No code comments, no any, no !"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "slice": "S1",
+      "title": "Bordered 40px read-only preview with one-line ellipsis and full-value tooltip only when truncated",
+      "specRef": "01_TASK A 1A, 8A, 9A; C 'Stable control' and 'View-only truncation'; B row I",
+      "layer": "web-component",
+      "files": [
+        "apps/web/src/features/characters/components/character-inherited-field.tsx",
+        "apps/web/src/features/characters/components/character-book-field-preview.tsx"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "Compact preview box is h-10, rounded-lg, bordered (same scale as Input h-10 and SpeciesPicker h-10, species-picker.tsx:179), visibly read-only (no bg-field/caret/hover affordance of an input), no min-height padding beyond the box",
+        "Value text is one line with truncate (overflow hidden + ellipsis); empty main value shows characters.inheritance.notSpecified «Не вказано» in muted color",
+        "Preview is not role=textbox and not an <input>: tests query screen.getByRole('textbox', { name: /Ім’я/ }) for the global name (character-edit-page.test.tsx:192, 216, 229, 251, 2058) and a second match would break them",
+        "Truncation detected with useIsTextClamped (apps/web/src/hooks/use-is-text-clamped.ts:15); Tooltip from components/ui/tooltip.tsx opens only while clamped (pattern character-card.tsx:239-264, tag-name-capsule.tsx:29-46)",
+        "Keyboard route: the preview is focusable (tabIndex 0) only while clamped and opens the tooltip on focus-visible; touch route: tap toggles the tooltip (pattern character-alias-card.tsx:73-81)",
+        "No title attribute, no sr-only duplicate, no aria-label carrying the value",
+        "The preview is rendered only inside MaskedOr children, so a masked field never mounts it (character-edit-sections.tsx:991-1009); no tooltip/aria path exists for masked values",
+        "InheritedSelectField keeps the plain <p> InheritedTextPreview (unchanged)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "slice": "S2",
+      "title": "Book name field: I / D / O session state machine without premature RHF writes",
+      "specRef": "01_TASK A 2A, 5A, 7A; B table rows I, I->D, D name x4, O, O->I, Form Save; B 'Important distinction', 'Name equality / normalization'; C 'Focus'",
+      "layer": "web-component",
+      "files": [
+        "apps/web/src/features/characters/components/character-inherited-field.tsx",
+        "apps/web/src/features/characters/components/character-edit-sections.tsx",
+        "apps/web/src/features/characters/components/character-inherited-text-field.tsx"
+      ],
+      "dependsOn": ["T2", "T3"],
+      "mandatory": true,
+      "decisions": ["D4"],
+      "doneWhen": [
+        "InheritedTextField no longer calls onChange(globalValue ?? \"\") on override (current character-inherited-field.tsx:174); entering D calls no onChange at all",
+        "Session state is local UI state (startedFromInherited + draftText), entered only from I (value === null); O never enters D",
+        "D prepopulates the draft with globalValue (already trimmed-or-null via textOrNull at character-edit-sections.tsx:779) or empty when null, and focuses the input on open",
+        "Each D keystroke: if draft.trim() is empty or equals globalValue (trim-only, no case/whitespace/accent folding) then onChange(null), else onChange(draft); the Input stays mounted and focused through intermediate keystrokes",
+        "Source marker in D: Редагування while RHF value is null, Для книги once RHF value is explicit; action in D is always «Скасувати редагування»",
+        "Cancel button and Escape in D: onChange(null), session ends, I preview shows, focus returns to the I action button; Escape never submits the form",
+        "Cancel wins over blur: the Cancel button keeps focus in the group on pointer down (e.g. onMouseDown preventDefault, as species-picker.tsx:208), so blur cannot end the session before the click",
+        "Focus leaving the input+action group (relatedTarget outside the group) ends the session without writing: explicit RHF value -> O (input stays mounted), null -> I",
+        "Enter in D never submits the form (preventDefault) and behaves per D4",
+        "O (saved or committed override): Input directly editable, raw text written on every change exactly as today (character-inherited-field.tsx:197), no equality check against the main name, no auto-clear of a saved value equal to main",
+        "O action «Повернути основне» calls onChange(null) at once, no dialog, no PATCH; the character-edit-sections.tsx:783-788 wrapper sets displayNameIsSpoiler false",
+        "aria-invalid, aria-describedby error id and maxLength CHARACTER_TEXT_MAX.shortText (200, packages/shared/src/characters.ts:14) kept on the Input in D and O",
+        "Label htmlFor points at the input whenever an input is mounted (D and O), none in I",
+        "Opening D does not change book.displayNameIsSpoiler"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "slice": "S2",
+      "title": "Book species field: I / D / O with the inline SpeciesPicker, identity by id, no premature onChange(globalValue)",
+      "specRef": "01_TASK A 2A, 6A, 7A; B rows I->D, D species x3, O, O->I; B 'Species identity & dictionary changes'; C 'Focus'",
+      "layer": "web-component",
+      "files": [
+        "apps/web/src/features/characters/components/character-inherited-species-field.tsx"
+      ],
+      "dependsOn": ["T2", "T3"],
+      "mandatory": true,
+      "decisions": ["D2", "D3"],
+      "doneWhen": [
+        "onOverride no longer calls onChange(globalValue) (current character-inherited-species-field.tsx:67-70); entering D calls no onChange",
+        "D renders the existing SpeciesPicker with value={globalValue} for display only (RHF book.speciesOverride stays null); empty picker with placeholder when there is no main species; picker input focused on open via the forwarded RefCallback (species-picker.tsx:37, :194-197)",
+        "D selection with id !== globalValue?.id: onChange(selection), session ends, O with source Для книги and action «Повернути основне»",
+        "D selection with id === globalValue?.id, or clear (onChange(null) from the picker clear button): session ends to I with no onChange call; comparison by id only, never by label",
+        "Escape while the picker popover is open only closes the popover (picker preventDefaults it, species-picker.tsx:150-154); Escape with the popover closed, or the Cancel button, ends D to I with no onChange",
+        "D focus exit behaves per D2; ManageOwnSpeciesButton visibility in D per D3; in O the button stays exactly as today (character-inherited-species-field.tsx:85-96)",
+        "D holds no local copy of a species selection: what it shows is the globalValue prop, so a rename/merge/delete applied by applySpeciesChange (character-edit-page.tsx:226-232) shows at once and nothing stale can be restored",
+        "Any props-change reset of the session compares globalValue/value by id+label, not object identity (the current observed pattern at :47-52 compares references; useWatch identity is not proven stable)",
+        "O picking the same id as the global species keeps it as an explicit override (no silent clear); a saved explicit override equal to global stays O",
+        "O reset calls onChange(null); the character-edit-sections.tsx:810-815 wrapper sets speciesOverrideIsSpoiler false",
+        "No change to species-picker.tsx, manage-own-species-button.tsx, own-species-change.ts",
+        "Opening D does not change book.speciesOverrideIsSpoiler"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "slice": "S2",
+      "title": "One container-query two-column grid for exactly the two book fields",
+      "specRef": "01_TASK A 4A; C 'Responsive to form content width'; D item 1",
+      "layer": "web-component",
+      "files": ["apps/web/src/features/characters/components/character-edit-sections.tsx"],
+      "dependsOn": ["T4", "T5"],
+      "mandatory": true,
+      "decisions": ["D1"],
+      "doneWhen": [
+        "The two MaskedOr blocks (character-edit-sections.tsx:772-823) and nothing else sit in one grid wrapped by a named container (@container/<name>), using grid-cols-1 below the D1 threshold and grid-cols-2 (repeat(2, minmax(0,1fr))) at or above it",
+        "No sm:/md:/lg: viewport breakpoint on that grid; no edits to globals.css or tailwind config",
+        "Grid aligns items to the start (no stretched empty gap to equalize column heights); a masked MaskedOr placeholder occupies its cell without breaking the grid",
+        "Importance/status grid (:825), roles block (:882), header row (:767-770), global group (:636-760) unchanged",
+        "No horizontal overflow at a 246px-wide book group (1024px viewport, nav sidebar expanded) or at 390px viewport"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "slice": "S3",
+      "title": "Update existing tests whose UI wording or interaction changed, keeping every payload/spoiler assertion",
+      "specRef": "02_TEST_MATRIX A 'Update, never weaken'; C; matrix N02, N07, S05, P03, P04",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T4", "T5", "T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "'shows the effective global value while the book value is inherited' (:320) asserts the new source «Основне» and action «Змінити для книги» instead of «Використовується основне значення» / «Змінити лише для цієї книги»; still asserts the Ґеральт preview",
+        "'prefills the book value from the global one and sends it on save' (:333) uses the new action name; still asserts input value Ґеральт, PATCH displayName 'Ґеральт із Рівії', no global PATCH",
+        "'writes no book value when the field is reset to the global one' (:353) asserts source «Для книги» instead of «Лише для цієї книги» and clicks «Повернути основне»; still asserts speciesOverrideId null",
+        "Live preview :2066, :2086 use the new action name and keep their heading assertions",
+        "Live preview :2101 'returns to the global name when the display name is reset' ends the D session first (Tab out) and then clicks «Повернути основне», so it still tests reset rather than Cancel; keeps both heading assertions",
+        "it.each 'turns $name off for good once its value is cleared' (:3765-3850): species clear clicks «Повернути основне»; species refill picks a species other than Відьмак through the picker (opening D alone no longer fills the value); all expectations (disabled+unchecked after clear, enabled+unchecked after refill, PATCH flag false) unchanged",
+        "Edit-page fetchMock (:144-170) gains /api/species, /api/species/browse and /api/species/candidates routes (shape as species-picker.test.tsx:165-181) so the picker can be driven",
+        "No test deleted, no expect() removed except the replaced copy strings"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "slice": "S3",
+      "title": "New book-name tests: no-op open/Cancel, trim-equal and blank drafts, revert-to-inherited, saved override equal to main, reset only on Save, edit keeps flag, focus lifecycle",
+      "specRef": "02_TEST_MATRIX N01, N03, N04, N05, N07, P02, F01, F03, U03 (name half)",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T4", "T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "N01: open D then Cancel, then open D then Escape, then open D then Tab out: Save stays disabled, patchCount() 0, I preview back, focus on the action after Cancel/Escape",
+        "N03: D draft equal to main after trim ('  Ґеральт  ') and whitespace-only draft: Save disabled, preview Ґеральт, input still mounted while focused",
+        "N04: in D type a different name, then retype the main name: input keeps focus and value, Save disabled again, no PATCH",
+        "N05: served displayName equal to the main name renders O (directly editable input with that value, source Для книги); an unrelated book edit + Save sends displayName unchanged (no silent clear)",
+        "N07: saved book name + «Повернути основне»: patchCount() 0 right after the click, spoiler switch disabled/off, PATCH displayName null and displayNameIsSpoiler false only after Save",
+        "P02: saved book name with flag on, edit its text (not clear) + Save: PATCH keeps displayNameIsSpoiler true",
+        "F03: in I, typing into the global name updates the in-field book preview and the preview card, no PATCH",
+        "U03 name: focus is in the book input after opening; Cancel click wins over blur (value null, no commit); Enter in D submits nothing (patchCount 0, push not called)",
+        "Uses existing helpers (renderEdit, inheritedField, bookPatchBody, patchCount, serveBookValues); no new test file"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "slice": "S3",
+      "title": "New book-species tests: open/search/cancel with and without main species, distinct pick, same-id pick, dictionary changes",
+      "specRef": "02_TEST_MATRIX S01, S02, S03, S04, S07, S08, U03 (species half)",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T5", "T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "S01: no main species + inherited book species: open D, type a search, Escape twice (popover then D): book species stays inherited, Save disabled, no PATCH",
+        "S02: main species Відьмак + inherited book species: open D, picker shows Відьмак, close without choosing: Save disabled, no PATCH",
+        "S03: from D pick a distinct species: book-only PATCH speciesOverrideId = picked id, no global PATCH",
+        "S04: from D pick the main species again (same id): back to I, Save disabled, no PATCH",
+        "S07: with D open, a rename/merge/delete of the main species applied through the manage dialog (or the global field's manage button per D3) leaves book.speciesOverride null and never shows a stale label; an O override renamed/deleted follows withSpeciesChange (flag cleared on delete)",
+        "S08: creating a species in the book picker assigns it in the form only; the PATCH happens on Save",
+        "U03 species: Escape with the popover open keeps D; Enter in the picker never submits (existing species-picker.test.tsx:780 stays green)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "slice": "S3",
+      "title": "Page-level masking, truncation tooltip and InheritedSelectField regression pins",
+      "specRef": "02_TEST_MATRIX P01, U02, R01; 01_TASK A 9A; D item 2",
+      "layer": "test",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.test.tsx"],
+      "dependsOn": ["T3", "T6"],
+      "mandatory": true,
+      "doneWhen": [
+        "P01: appearance hiddenFields ['displayName'] and ['speciesOverride'] (no edit-page test does this today): the field shows «Приховано (спойлер)», no preview box, no tooltip trigger, no textbox/combobox for it; an unrelated book Save omits displayName/displayNameIsSpoiler or speciesOverrideId/speciesOverrideIsSpoiler",
+        "U02: with width metrics stubbed (stubTextMetrics, apps/web/src/features/quotes/model/quotes.fixtures.ts:29; width stub as in hooks/use-is-text-clamped.test.tsx) a long main name is focusable in the preview and shows the full value in a tooltip on keyboard focus and on tap; unclamped text has no tab stop and no tooltip; D/O input holds the full value",
+        "R01: the attitude field still shows «Використовується основне значення» and the «Змінити лише для цієї книги» action, and still writes its value on override (today only existence is checked at :1920)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "slice": "S3",
+      "title": "Visual check of the container-width grid and truncation in Storybook",
+      "specRef": "02_TEST_MATRIX U01, U02; 01_TASK C; CLAUDE.md §9 FE visual verification",
+      "layer": "verify",
+      "files": ["apps/web/src/features/characters/components/character-edit-page.stories.tsx"],
+      "dependsOn": ["T6", "T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "Screenshots of the BookContext story (character-edit-page.stories.tsx:250) at: 1024px viewport with nav sidebar expanded (book group ~246px: stacked), 1440px (~662px: two columns), 768px (~654px: two columns), 390px (stacked); none has horizontal overflow",
+        "Screenshot of a long inherited name showing ellipsis, and of a D and an O state showing the 40px boxes aligned",
+        "Story file changes only if an extra story arg/variant is needed for a long name; otherwise not edited",
+        "Headless Playwright used for the 390px capture (Chrome extension cannot shrink the window)"
+      ],
+      "status": "done",
+      "evidence": "Storybook BookContext via headless Playwright: book group 758/662px at 1536/1440 -> two 371/323px columns, 502/246/398/308px at 1280/1024/768/390 -> one column; docOverflow 0 and field overflow 0 at every width; both boxes h=40 on the same top in two-column mode; long inherited name clamped with role=button tabindex=0 and the tooltip shows the full text on focus; opening the editor focuses INPUT#character-display-name. Story file not edited."
+    },
+    {
+      "id": "T12",
+      "slice": "S3",
+      "title": "Phase D gates and diff audit",
+      "specRef": "01_TASK E Phase D; F Definition of Done; 02_TEST_MATRIX D, E",
+      "layer": "verify",
+      "files": [],
+      "dependsOn": ["T7", "T8", "T9", "T10", "T11"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/web exec vitest --project unit run src/features/characters/components/character-edit-page.test.tsx src/features/characters/model/character-edit-form.test.ts src/features/species/components/species-picker.test.tsx is green (output captured)",
+        "character-edit-form.test.ts and species-picker.test.tsx have no diff",
+        "pnpm --filter @app/web typecheck green; pnpm exec eslint and pnpm exec prettier --check on every changed file green; git diff --check clean",
+        "git diff --name-only lists only files named in T1-T11",
+        "Final report lists commands with PASS / FAIL / NOT RUN"
+      ],
+      "status": "done",
+      "evidence": "2026-10-17: character-edit-page.test.tsx 230/230, species-picker.test.tsx 48/48, character-edit-form.test.ts 60/60 (VITEST_MAX_WORKERS=1, one file per run); pnpm typecheck 3/3; pnpm lint 0 errors, 8 warnings all in untouched files; pnpm format:check clean; i18n parity in sync; git diff --check clean."
+    }
+  ],
+  "acceptanceCoverage": {
+    "N01": {
+      "status": "M",
+      "tasks": ["T4", "T8"],
+      "evidence": "no test opens then cancels the name editor; :333/:2066/:2086/:2101 all type after opening"
+    },
+    "N02": {
+      "status": "U",
+      "tasks": ["T4", "T7"],
+      "evidence": "character-edit-page.test.tsx:333-351, :2066-2084 (action label changes, payload asserts kept)"
+    },
+    "N03": {
+      "status": "M",
+      "tasks": ["T4", "T8"],
+      "evidence": ":2086 types blank after the old onChange(global) prefill; no trim-equal case"
+    },
+    "N04": {
+      "status": "M",
+      "tasks": ["T4", "T8"],
+      "evidence": "none"
+    },
+    "N05": {
+      "status": "M",
+      "tasks": ["T4", "T8"],
+      "evidence": "no fixture with displayName equal to name"
+    },
+    "N06": {
+      "status": "C",
+      "tasks": ["T12"],
+      "evidence": ":247-258 discard guard (global field); guard is payload-based isScopeDirty (character-edit-page.tsx:191-203). Discard navigates away (leave(), :244-255, :391) rather than restoring a baseline in place"
+    },
+    "N07": {
+      "status": "U+M",
+      "tasks": ["T4", "T7", "T8"],
+      "evidence": ":2101 resets during what becomes a D session; no saved-name reset + PATCH displayName null test"
+    },
+    "S01": {
+      "status": "M",
+      "tasks": ["T5", "T9"],
+      "evidence": "edit-page fetchMock has no /api/species route (:144-170), so no test opens the book picker"
+    },
+    "S02": {
+      "status": "M",
+      "tasks": ["T5", "T9"],
+      "evidence": "none"
+    },
+    "S03": {
+      "status": "M",
+      "tasks": ["T5", "T7", "T9"],
+      "evidence": "spec says C; no edit-page test picks a species. :3604 only round-trips a saved mutant id"
+    },
+    "S04": {
+      "status": "M",
+      "tasks": ["T5", "T9"],
+      "evidence": "none"
+    },
+    "S05": {
+      "status": "U",
+      "tasks": ["T5", "T7"],
+      "evidence": ":353-367 asserts old hint «Лише для цієї книги»; it.each species row :3788-3803 refill depends on the old prefill"
+    },
+    "P01": {
+      "status": "C (model) + M (page)",
+      "tasks": ["T3", "T10"],
+      "evidence": "character-edit-form.test.ts:78-86, :693-760 cover payload omission; no edit-page test with hiddenFields displayName/speciesOverride"
+    },
+    "P02": {
+      "status": "M",
+      "tasks": ["T4", "T8"],
+      "evidence": ":3575-3607 covers an unrelated-field save only"
+    },
+    "P03": {
+      "status": "C + U",
+      "tasks": ["T7"],
+      "evidence": ":3697-3718 empty fields disabled; it.each :3765-3850 (species row needs U)"
+    },
+    "F01": {
+      "status": "C",
+      "tasks": ["T8"],
+      "evidence": ":180-186 clean save disabled, :247-258 guard; no-op editor case added in T8 (N01)"
+    },
+    "F02": {
+      "status": "C",
+      "tasks": ["T12"],
+      "evidence": ":188-243"
+    },
+    "R01": {
+      "status": "C + M",
+      "tasks": ["T2", "T6", "T10"],
+      "evidence": "importance/status/roles :1874-1921, status suite :3015+, roles :3179+; attitude InheritedSelectField only existence at :1920"
+    },
+    "S06": {
+      "status": "C",
+      "tasks": ["T12"],
+      "evidence": "species-picker.test.tsx keyboard :735-800, value :802-838, states :840-923; run unchanged"
+    },
+    "S07": {
+      "status": "C (model) + M (UI)",
+      "tasks": ["T5", "T9"],
+      "evidence": "character-edit-form.test.ts:787-821 withSpeciesChange; no UI test"
+    },
+    "S08": {
+      "status": "C (picker) + M (page)",
+      "tasks": ["T9"],
+      "evidence": "species-picker.test.tsx:697-733"
+    },
+    "P04": {
+      "status": "C + U",
+      "tasks": ["T7"],
+      "evidence": "it.each refill :3842-3844 (name row C, species row U)"
+    },
+    "F03": {
+      "status": "C + M",
+      "tasks": ["T8"],
+      "evidence": ":2054-2064 preview card follows global name; in-field inherited preview following edits not asserted"
+    },
+    "F04": {
+      "status": "C",
+      "tasks": ["T12"],
+      "evidence": ":290-305, :1923-1940"
+    },
+    "F05": {
+      "status": "C",
+      "tasks": ["T4", "T12"],
+      "evidence": ":2977-2997 book name error + aria-invalid; :2999-3012 species maxlength 60"
+    },
+    "U01": {
+      "status": "M (visual only)",
+      "tasks": ["T6", "T11"],
+      "evidence": "happy-dom has no layout; container queries cannot be asserted behaviorally"
+    },
+    "U02": {
+      "status": "M",
+      "tasks": ["T3", "T10", "T11"],
+      "evidence": "none"
+    },
+    "U03": {
+      "status": "M",
+      "tasks": ["T4", "T5", "T8", "T9"],
+      "evidence": "none for the book fields; picker Enter covered at species-picker.test.tsx:780"
+    }
+  },
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Container width at which the two book fields switch from one column to two",
+      "options": [
+        "@xl (36rem = 576px container, columns >= 280px)",
+        "@lg (32rem = 512px, columns >= 248px)",
+        "@md (28rem = 448px, columns >= 216px)"
+      ],
+      "specRef": "01_TASK A 4A; C 'Responsive to form content width'",
+      "facts": "Book group width = section inner width. With the nav sidebar expanded (16rem, shows at lg, sidebar.tsx:25, :121; use-mobile.ts:3) and the 22rem right column (character-edit-page.tsx:299): 1024px viewport -> ~246px (sm:grid-cols-2 would give two ~115px columns), 1280 -> ~502, 1440 -> ~662, >=1536 -> ~758; without the right column: 768 -> ~654, 1023 -> ~909, 640 -> ~558. So sm:grid-cols-2 is too narrow and a container query is required, not optional. Precedent: @container/roster + @2xl/roster:grid-cols-2 (book-characters-tab.tsx:33, :144)",
+      "recommendation": "@xl. The uk caption plus the source marker is ~320px wide, so narrower columns wrap one caption and misalign the two 40px boxes; @xl keeps two columns at 1440+, 768-1023 and in tablet widths, and stacks at 1024-1280 with the nav open",
+      "blocks": ["T6", "T11"],
+      "answer": "@xl container (36rem). Adopted recommendation as a stated assumption: the spec asks to run phases A-D without routine approval pauses.",
+      "answeredBy": "orchestrator-assumption"
+    },
+    {
+      "id": "D2",
+      "question": "Species D session when focus really leaves the field without a choice (Tab away, click elsewhere)",
+      "options": ["Return to I (same rule as the name field)", "Stay in D until Cancel or Escape"],
+      "specRef": "01_TASK B row 'D species: search, close popup, Tab away or Escape' ('optionally return to I on real focus exit')",
+      "facts": "Focus-exit can be detected without picker internals: option clicks keep focus in the input (PopoverContent onMouseDown preventDefault, species-picker.tsx:244), keyboard nav is aria-activedescendant, Tab closes the popover (:146-149)",
+      "recommendation": "Return to I. Two fields with different session rules is a trap for users, and a D left open on a field the user has moved away from shows a main value inside a live picker that is not saved",
+      "blocks": ["T5", "T9"],
+      "answer": "Return to I on real focus exit, same rule as the name field. Stated assumption (spec marks it optional).",
+      "answeredBy": "orchestrator-assumption"
+    },
+    {
+      "id": "D3",
+      "question": "Show ManageOwnSpeciesButton under the picker during species D",
+      "options": [
+        "No, O only (current: character-inherited-species-field.tsx:85-96)",
+        "Yes, in D and O"
+      ],
+      "specRef": "01_TASK A 6A 'preserve catalog/own-species management'; B 'Species identity & dictionary changes'",
+      "facts": "The button opens a modal dialog (manage-own-species-button.tsx:21-37). Focus moving into the dialog ends D under D2=I, the trigger then unmounts and focus is lost on dialog close. Management stays reachable from the global species field (character-edit-sections.tsx:723)",
+      "recommendation": "No, keep it O only. With D showing the globalValue prop and no local copy, a dictionary change made from the global field cannot leave a stale value",
+      "blocks": ["T5", "T9"],
+      "answer": "O only, as today. Stated assumption; management stays reachable from the global species field.",
+      "answeredBy": "orchestrator-assumption"
+    },
+    {
+      "id": "D4",
+      "question": "What Enter does in the name D editor (the spec only forbids form submission)",
+      "options": [
+        "End the session like blur: explicit value -> O with focus kept in the input, null -> I with focus on the action",
+        "Nothing (preventDefault only)"
+      ],
+      "specRef": "01_TASK C 'Focus' ('no form submission on Escape/Enter from transient name editor')",
+      "facts": "Without handling, Enter inside the form's text input submits it (form onSubmit, character-edit-page.tsx:298-301). In O, Enter keeps submitting as today",
+      "recommendation": "End the session like blur: it gives keyboard users an explicit 'done' that matches Escape = cancel",
+      "blocks": ["T4", "T8"],
+      "answer": "End the session like blur, with preventDefault so the form never submits. Stated assumption derived from 01_TASK C Focus.",
+      "answeredBy": "orchestrator-assumption"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Worktree matches reference dev 60c67d45",
+      "specRef": "00_START_HERE",
+      "verdict": "STALE",
+      "evidence": "HEAD 6b948851, 6 commits ahead (character facts, roster cards, discard dialog width). git diff --name-only 60c67d45..HEAD on every target source/test file is empty; only characters.fixtures.ts and other unrelated characters model files changed"
+    },
+    {
+      "claim": "CharacterBasicsSection holds the two book-field MaskedOr/Controller blocks with importance/status/roles siblings",
+      "specRef": "01_TASK D item 1",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:597; book group div :766 (flex flex-col gap-4), MaskedOr displayName :772-794, speciesOverride :796-823, importance/status grid :825 (sm:grid-cols-2), roles :882-895. No grid around the two fields"
+    },
+    {
+      "claim": "InheritedFieldShell, InheritanceAction, InheritedTextField, InheritedTextPreview live in character-inherited-field.tsx; InheritedSelectField uses them",
+      "specRef": "01_TASK D item 2",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-field.tsx:52 InheritanceAction, :82 InheritedFieldShell, :108 InheritedSelectField (uses shell :121, action :123, preview :135), :154 InheritedTextField, :208 InheritedTextPreview"
+    },
+    {
+      "claim": "InheritedTextField.onOverride immediately writes globalValue ?? \"\"",
+      "specRef": "01_TASK D 'Current known behavior'",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-field.tsx:174"
+    },
+    {
+      "claim": "InheritedSpeciesField.onOverride immediately writes globalValue, isSpecifying when main species absent",
+      "specRef": "01_TASK D 'Current known behavior'",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inherited-species-field.tsx:46, :67-70; props-change reset by reference :47-52"
+    },
+    {
+      "claim": "textOrNull in character-edit-form.ts",
+      "specRef": "01_TASK D read/reuse list",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-form.ts:455 (module-private, not exported); a second private copy at character-edit-sections.tsx:1022 is what trims globalValue for the field (:779)"
+    },
+    {
+      "claim": "toBookPatch, isScopeDirty, withSpeciesChange in character-edit-form.ts",
+      "specRef": "01_TASK D",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-form.ts:224, :188, :331. isScopeDirty compares toBookUpdate payloads (:205-208), and displayName blank maps to null (:472), so writing null or blank text never makes the form dirty"
+    },
+    {
+      "claim": "isScopeDirty, applySpeciesChange, form Save/discard in character-edit-page.tsx",
+      "specRef": "01_TASK D",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.tsx:191-203 dirty, :226-232 applySpeciesChange, :257-287 save, :249-255 cancel, :386-394 DiscardConfirmDialog onConfirm=leave"
+    },
+    {
+      "claim": "Global form Cancel / discard restores baseline",
+      "specRef": "01_TASK B row 'Form Save / global form Cancel / navigation'",
+      "verdict": "FALSE",
+      "evidence": "Discard confirms into leave() = router.push(detailsHref) (character-edit-page.tsx:244-247, :391); no in-place reset exists. Unsaved edits are dropped by navigating away. Nothing to change, but N06/F01 tests must assert navigation without PATCH, not a restored field"
+    },
+    {
+      "claim": "resolveInherited, isBookFieldMasked in character-inheritance.ts",
+      "specRef": "01_TASK D",
+      "verdict": "CONFIRMED",
+      "evidence": "character-inheritance.ts:21, :14. resolveInherited has no production consumer (grep: tests only); isBookFieldMasked used by MaskedOr character-edit-sections.tsx:1002"
+    },
+    {
+      "claim": "hasSpoilerValue, withoutEmptySpoilerFlags in book-spoiler-flags.ts",
+      "specRef": "01_TASK D",
+      "verdict": "CONFIRMED",
+      "evidence": "book-spoiler-flags.ts:7 (displayName :10, speciesOverride :14), :57"
+    },
+    {
+      "claim": "withoutMasked, MaskedOr, CharacterSpoilerField, maskedEditFields exist",
+      "specRef": "01_TASK B 'Spoiler/permission invariants'",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-form.ts:519 (private), character-edit-sections.tsx:991 (private), character-spoiler-field.tsx:28, character-edit-form.ts:211"
+    },
+    {
+      "claim": "Clearing/resetting an explicit value clears its flag via existing onChange",
+      "specRef": "01_TASK B",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:783-788, :810-815"
+    },
+    {
+      "claim": "Spoiler switch disabled when no explicit book value",
+      "specRef": "01_TASK B",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-sections.tsx:428, :465-466 (disabled={!present[flag]})"
+    },
+    {
+      "claim": "SpeciesPicker, ManageOwnSpeciesButton, own-species-change.ts",
+      "specRef": "01_TASK D",
+      "verdict": "CONFIRMED",
+      "evidence": "species-picker.tsx:45 (props :28-39), manage-own-species-button.tsx:17, own-species-change.ts:15 applyOwnSpeciesChange"
+    },
+    {
+      "claim": "Escape first closes a currently open SpeciesPicker popover",
+      "specRef": "01_TASK B row 'D species: ... Escape'",
+      "verdict": "CONFIRMED",
+      "evidence": "species-picker.tsx:150-154: preventDefault + close only when open; when closed it returns without preventDefault, so the Escape reaches an outer handler"
+    },
+    {
+      "claim": "SpeciesPicker never submits on Enter",
+      "specRef": "01_TASK C 'Focus'",
+      "verdict": "CONFIRMED",
+      "evidence": "species-picker.tsx:156-159; species-picker.test.tsx:780"
+    },
+    {
+      "claim": "CHARACTER_TEXT_MAX.shortText is the book-name cap",
+      "specRef": "01_TASK B",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/characters.ts:14 (200); character-edit-sections.tsx:782; schema character-edit-form.ts:398"
+    },
+    {
+      "claim": "Labels via characters.edit.displayName and characters.edit.speciesInBook",
+      "specRef": "01_TASK A",
+      "verdict": "CONFIRMED",
+      "evidence": "uk.json:8041 «Ім’я в цій книзі», :8092 «Вид у цій книзі»; en.json:8041 'Name in this book', :8092 'Species in this book'"
+    },
+    {
+      "claim": "Empty global species shows «Не вказано»",
+      "specRef": "01_TASK A 6A",
+      "verdict": "ALREADY DONE",
+      "evidence": "InheritedTextPreview character-inherited-field.tsx:213 uses characters.inheritance.notSpecified (uk.json:8245 «Не вказано»)"
+    },
+    {
+      "claim": "No reusable existing keys for Основне / Редагування / Для книги / Скасувати редагування / Повернути основне",
+      "specRef": "01_TASK A 'reusing existing keys if fit'",
+      "verdict": "CONFIRMED",
+      "evidence": "grep over uk.json finds none; existing characters.inheritance keys (uk.json:8242-8250) are longer and still used by the attitude field"
+    },
+    {
+      "claim": "sm:grid-cols-2 may be too narrow next to the right sidebar",
+      "specRef": "01_TASK C",
+      "verdict": "CONFIRMED",
+      "evidence": "At 1024px with the nav sidebar expanded the book group is ~246px (main max-w-7xl px-12 edit/page.tsx:21; form grid 22rem character-edit-page.tsx:299; section p-6 character-edit-sections.tsx:917; nav sidebar 16rem sidebar.tsx:25, desktop at lg :121). Container queries already used: book-characters-tab.tsx:33/:144, series-order-issue-card.tsx:63/:85, stat-card.tsx:60-63"
+    },
+    {
+      "claim": "Existing tooltip primitive for truncated text",
+      "specRef": "01_TASK C 'View-only truncation'",
+      "verdict": "CONFIRMED",
+      "evidence": "components/ui/tooltip.tsx (Radix), TooltipProvider in components/providers.tsx:40; useIsTextClamped hooks/use-is-text-clamped.ts:15; clamped-only tooltip character-card.tsx:239-264, tag-name-capsule.tsx:29-46; tap toggle character-alias-card.tsx:73-81"
+    },
+    {
+      "claim": "Named test files exist",
+      "specRef": "01_TASK D; 02_TEST_MATRIX A",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.test.tsx (3851 lines), character-edit-form.test.ts (888), species-picker.test.tsx (1041)"
+    },
+    {
+      "claim": "rg anchors 'CharacterEditPage inheritance|live preview|spoiler switches follow their values'",
+      "specRef": "02_TEST_MATRIX A, D",
+      "verdict": "CONFIRMED",
+      "evidence": "character-edit-page.test.tsx:319, :2040, :3673; 'CharacterEditPage spoilers' :1749"
+    },
+    {
+      "claim": "Inheritance tests named in 02 C",
+      "specRef": "02_TEST_MATRIX C",
+      "verdict": "CONFIRMED",
+      "evidence": ":320 shows the effective global value..., :333 prefills the book value..., :353 writes no book value..."
+    },
+    {
+      "claim": "Scope orchestration tests named in 02 C",
+      "specRef": "02_TEST_MATRIX C",
+      "verdict": "CONFIRMED",
+      "evidence": ":180, :200, :212, :224"
+    },
+    {
+      "claim": "Live preview tests named in 02 C",
+      "specRef": "02_TEST_MATRIX C",
+      "verdict": "CONFIRMED",
+      "evidence": ":2054, :2066, :2086, :2101"
+    },
+    {
+      "claim": "Existing tests assert the old labels and immediate effects",
+      "specRef": "01_TASK D",
+      "verdict": "CONFIRMED",
+      "evidence": "old strings at :327, :329, :340, :359, :361, :2072, :2092, :2107, :2113, :3792, :3800; it.each species refill :3797-3802 relies on the immediate onChange(global) to enable the switch"
+    },
+    {
+      "claim": "character-edit-form.test.ts covers inheritance null mapping, blank normalization, masked omission, isScopeDirty, species reset",
+      "specRef": "02_TEST_MATRIX C",
+      "verdict": "CONFIRMED",
+      "evidence": ":43-57, :70-76, :78-86, :89-128, :104-114, :693-785, :787-821"
+    },
+    {
+      "claim": "Matrix S03 is covered (C)",
+      "specRef": "02_TEST_MATRIX B",
+      "verdict": "FALSE",
+      "evidence": "edit-page fetchMock (:144-170) rejects /api/species; no edit-page test opens or picks in the book picker. Relabelled M (T9)"
+    },
+    {
+      "claim": "Matrix P01 is covered (C)",
+      "specRef": "02_TEST_MATRIX B",
+      "verdict": "FALSE",
+      "evidence": "model only (character-edit-form.test.ts:78-86, :693-760); no edit-page test with hiddenFields displayName or speciesOverride. Relabelled C+M (T10)"
+    },
+    {
+      "claim": "Matrix N07, S05 covered or only wording",
+      "specRef": "02_TEST_MATRIX B",
+      "verdict": "FALSE",
+      "evidence": "N07 has no saved-name reset test (:2101 resets during a session from I); S05 test :353 and it.each :3788 depend on the old hint and prefill. Relabelled U/U+M (T7, T8)"
+    }
+  ],
+  "facts": {
+    "inheritedComponentConsumers": "InheritedSelectField: character-edit-sections.tsx:557 (book.attitude, CharacterAttitudeSection). InheritedTextField: character-edit-sections.tsx:777 (book.displayName). InheritedSpeciesField: character-edit-sections.tsx:805 (book.speciesOverride). InheritanceAction, InheritedFieldShell, InheritedTextPreview: imported only by character-inherited-species-field.tsx:16-20 besides internal use. Not exported from the characters barrel; no test imports them directly; no story uses them",
+    "speciesPickerApi": "Controlled value: Nullable<SpeciesSelection> + onChange(selection|null) (species-picker.tsx:28-39). Open state is internal (:61), not exposed; no onOpenChange/autoFocus/defaultOpen prop. ref?: RefCallback<HTMLInputElement> is forwarded to the input (:194-197), so the caller can focus it; focus alone does not open the popover (opens on click :191, typing :189, ArrowDown/Up :164). Clear button commits null (:207). commit() refocuses the input (:106)",
+    "testConstraints": "inheritedField() (:308-317) needs data-slot=inherited-field and the label text once per shell; /Ім’я/ textbox queries (:192 etc.) forbid a textbox in the inherited preview; exact accessible description at :2995 forbids adding the source marker to aria-describedby"
+  },
+  "reviewLog": [
+    {
+      "slice": "S1+S2",
+      "reviewer": "code-reviewer",
+      "verdict": "approved with nits, no blocker/high",
+      "fixed": [
+        "Escape ignored during IME composition",
+        "window deactivation no longer ends a D session (hasFocusLeftGroup)",
+        "mousedown on non-interactive shell parts keeps focus, so clicking the label keeps D",
+        "en reset copy Use main value"
+      ],
+      "accepted": [
+        "textFieldAction/speciesFieldAction duplication: second use, not extracted",
+        "tap on an open tooltip does not close it: pre-existing AliasChip pattern"
+      ]
+    },
+    {
+      "slice": "tests",
+      "reviewer": "frontend-test-engineer",
+      "finding": "tap on a clamped preview showed no tooltip (Radix opens on focus, click toggled it closed)",
+      "fixed": "toggle on click now derives from the state captured on pointerdown; character-edit-page.test.tsx 229/229"
+    },
+    {
+      "slice": "S1+S2 UI",
+      "reviewer": "frontend-performance-auditor",
+      "verdict": "pass, nothing measurable regressed (preview + useIsTextClamped ~0.46 ms/keystroke, no CLS between preview and input)"
+    },
+    {
+      "slice": "S1+S2 UI",
+      "reviewer": "accessibility-auditor",
+      "verdict": "no blockers; axe 0 violations",
+      "fixed": [
+        "preview focus indicator contrast 2.07:1 -> solid focus-visible:border-ring (5.01:1)",
+        "label + source marker exposed as role=group aria-labelledby inside the shell",
+        "duplicate tooltip aria-describedby removed from the clamped preview"
+      ],
+      "outOfScope": [
+        "fixed Save/Cancel bar obscures focused fields (WCAG 2.2 2.4.11): page-level, pre-existing, same pattern in book-form.tsx",
+        "clear button in species D returns to inherited: spec B row defines clear in D as return to I; changing it needs a SpeciesPicker prop the spec forbids touching",
+        "link-button target size passes 2.5.8 via spacing exception"
+      ],
+      "preExisting": [
+        "BookContext story play() fails on missing text Приховано: 2 (string no longer exists in uk.json on dev)"
+      ]
+    },
+    {
+      "slice": "verify",
+      "reviewer": "spec-auditor VERIFY",
+      "verdict": "11/12 done, T12 pending gates",
+      "fixed": [
+        "three new component files recorded in T2/T3/T4 files",
+        "added test: open book picker cleared or tabbed out of returns to the main species (D2 + clear row of spec B)"
+      ],
+      "accepted": [
+        "N06 covered indirectly: form discard navigates away by design, spec forbids changing the discard guard",
+        "species merge covered only at model level (character-edit-form.test.ts:796)"
+      ]
+    }
+  ]
+}
