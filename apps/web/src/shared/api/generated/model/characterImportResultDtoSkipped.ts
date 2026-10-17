@@ -26,6 +26,11 @@ export type CharacterImportResultDtoSkipped = {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  factsMissingBook: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   membershipsMissingBook: number;
   /**
    * @minimum 0

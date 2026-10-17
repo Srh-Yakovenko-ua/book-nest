@@ -1,6 +1,7 @@
 "use client";
 
-import type { BookCharacterImportance } from "@app/shared";
+import type { BookCharacterImportance, Nullable } from "@app/shared";
+import type { RefObject } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -32,11 +33,12 @@ import {
 } from "../model/characters-roster-query";
 
 type CharactersToolbarProps = {
+  addButtonRef: RefObject<Nullable<HTMLButtonElement>>;
   onAdd: () => void;
   roster: UseCharactersRosterQueryResult;
 };
 
-export function CharactersToolbar({ onAdd, roster }: CharactersToolbarProps) {
+export function CharactersToolbar({ addButtonRef, onAdd, roster }: CharactersToolbarProps) {
   const t = useTranslations("characters.toolbar");
   const tSort = useTranslations("characters.sort");
   const { characterFavoritesOnly, characterPovOnly } = roster.state;
@@ -77,7 +79,7 @@ export function CharactersToolbar({ onAdd, roster }: CharactersToolbarProps) {
             </Select>
           </div>
 
-          <Button className="h-10" onClick={onAdd}>
+          <Button className="h-10" onClick={onAdd} ref={addButtonRef}>
             <UiIcon name="plus" size={16} />
             {t("add")}
           </Button>

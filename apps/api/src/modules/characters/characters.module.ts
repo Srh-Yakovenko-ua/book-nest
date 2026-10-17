@@ -12,6 +12,7 @@ import { BookCharacterSuggestionsController } from "./api/book-character-suggest
 import { BookCharacterSummaryController } from "./api/book-character-summary.controller.js";
 import { BookCharactersController } from "./api/book-characters.controller.js";
 import { CharacterCustomLabelsController } from "./api/character-custom-labels.controller.js";
+import { CharacterFactsController } from "./api/character-facts.controller.js";
 import { CharacterFormsController } from "./api/character-forms.controller.js";
 import { CharacterGraphLayoutsController } from "./api/character-graph-layouts.controller.js";
 import { CharacterGroupsController } from "./api/character-groups.controller.js";
@@ -29,6 +30,7 @@ import { BookCharactersService } from "./application/book-characters.service.js"
 import { CharacterAccessAsserter } from "./application/character-access.asserter.js";
 import { CharacterCustomLabelsService } from "./application/character-custom-labels.service.js";
 import { CharacterDetailsAssembler } from "./application/character-details.assembler.js";
+import { CharacterFactsService } from "./application/character-facts.service.js";
 import { CharacterFormsService } from "./application/character-forms.service.js";
 import { CharacterGraphLayoutsService } from "./application/character-graph-layouts.service.js";
 import { CharacterGraphService } from "./application/character-graph.service.js";
@@ -48,6 +50,7 @@ import { RelationshipContextService } from "./application/relationship-context.s
 import { SeriesCharactersService } from "./application/series-characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterCustomLabelsRepository } from "./infrastructure/character-custom-labels.repository.js";
+import { CharacterFactsRepository } from "./infrastructure/character-facts.repository.js";
 import { CharacterFormsRepository } from "./infrastructure/character-forms.repository.js";
 import { CharacterGraphLayoutsRepository } from "./infrastructure/character-graph-layouts.repository.js";
 import { CharacterGroupsRepository } from "./infrastructure/character-groups.repository.js";
@@ -65,6 +68,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterMergeController,
     CharacterRelationshipsController,
     CharacterTheoriesController,
+    CharacterFactsController,
     CharacterFormsController,
     CharacterCustomLabelsController,
     BookCharactersController,
@@ -112,6 +116,8 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterRelationshipPathService,
     CharacterTheoriesService,
     CharacterTheoriesRepository,
+    CharacterFactsService,
+    CharacterFactsRepository,
     CharacterFormsService,
     CharacterFormsRepository,
     CharacterCustomLabelsService,

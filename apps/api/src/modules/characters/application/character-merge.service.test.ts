@@ -53,12 +53,13 @@ function createService(
     findLoserRelationships: vi.fn().mockResolvedValue([]),
     findLoserTagIds: vi.fn().mockResolvedValue([]),
     findSurvivorAliasKeys: vi.fn().mockResolvedValue([]),
-    findSurvivorBookIds: vi.fn().mockResolvedValue([]),
+    findSurvivorAppearances: vi.fn().mockResolvedValue([]),
     findSurvivorFormKeys: vi.fn().mockResolvedValue([]),
     findSurvivorMembershipKeys: vi.fn().mockResolvedValue([]),
     findSurvivorRelationships: vi.fn().mockResolvedValue([]),
     findSurvivorTagIds: vi.fn().mockResolvedValue([]),
     hardDeleteCharacter,
+    reparentFacts: vi.fn().mockResolvedValue(0),
     repointAliases: vi.fn().mockResolvedValue(undefined),
     repointBookCharacters: vi.fn(() =>
       options.repointError === undefined

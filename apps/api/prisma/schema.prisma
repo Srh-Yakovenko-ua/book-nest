@@ -1159,6 +1159,7 @@ model BookCharacter {
   portraitMedia               MediaAsset?         @relation(fields: [portraitMediaId], references: [id], onDelete: NoAction)
   speciesOverride             Species?            @relation(fields: [speciesOverrideId], references: [id], onDelete: Restrict)
   roles                       BookCharacterRole[]
+  facts                       CharacterFact[]
 
   @@unique([bookId, characterId])
   @@index([bookId])
@@ -1168,6 +1169,21 @@ model BookCharacter {
   @@index([portraitMediaId])
   @@index([speciesOverrideId])
   @@map("book_characters")
+}
+
+model CharacterFact {
+  id              String        @id @default(uuid()) @db.Uuid
+  bookCharacterId String        @map("book_character_id") @db.Uuid
+  title           String
+  text            String
+  chapter         String?
+  page            Int?
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  bookCharacter   BookCharacter @relation(fields: [bookCharacterId], references: [id], onDelete: Cascade)
+
+  @@index([bookCharacterId, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("character_facts")
 }
 
 enum SpeciesNameKind {

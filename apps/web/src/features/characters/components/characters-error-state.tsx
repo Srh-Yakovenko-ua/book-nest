@@ -6,10 +6,11 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
 type CharactersErrorStateProps = {
+  description?: string;
   onRetry: () => void;
 };
 
-export function CharactersErrorState({ onRetry }: CharactersErrorStateProps) {
+export function CharactersErrorState({ description, onRetry }: CharactersErrorStateProps) {
   const t = useTranslations("characters.states");
 
   return (
@@ -22,7 +23,7 @@ export function CharactersErrorState({ onRetry }: CharactersErrorStateProps) {
       </span>
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium text-foreground">{t("errorTitle")}</p>
-        <p className="text-xs text-muted-foreground">{t("errorDescription")}</p>
+        <p className="text-xs text-muted-foreground">{description ?? t("errorDescription")}</p>
       </div>
       <Button onClick={onRetry} size="sm" variant="secondary">
         <UiIcon name="refresh" size={14} />

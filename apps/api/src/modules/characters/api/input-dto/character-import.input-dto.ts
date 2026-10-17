@@ -1,4 +1,8 @@
-import { CharacterBundleSchema } from "@app/shared";
+import { CharacterBundleAnyVersionSchema } from "@app/shared";
 import { createZodDto } from "nestjs-zod";
 
-export class CharacterImportBundleDto extends createZodDto(CharacterBundleSchema) {}
+export const CharacterImportBundleDto = createZodDto(CharacterBundleAnyVersionSchema);
+
+Object.defineProperty(CharacterImportBundleDto, "name", {
+  value: "CharacterImportBundleDto",
+});

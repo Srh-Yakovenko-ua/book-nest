@@ -92,3 +92,39 @@ describe("characterKeys.customLabels", () => {
     expect(matchedKeys(client, characterKeys.all)).toEqual([characterKeys.customLabels()]);
   });
 });
+
+describe("characterKeys facts", () => {
+  const SCOPE = { bookId: BOOK_ID, characterId: "char-1" };
+
+  it("separates the facts of two books of the same character", () => {
+    expect(characterKeys.factsInfinite({ ...SCOPE, q: "" })).not.toEqual(
+      characterKeys.factsInfinite({ ...SCOPE, bookId: "other-book", q: "" }),
+    );
+  });
+
+  it("separates two searches within the same book", () => {
+    expect(characterKeys.factsInfinite({ ...SCOPE, q: "" })).not.toEqual(
+      characterKeys.factsInfinite({ ...SCOPE, q: "silver" }),
+    );
+  });
+
+  it("reaches every search of the book from the facts scope and nothing of another book", () => {
+    const client = new QueryClient();
+    const page = { items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 };
+    client.setQueryData(characterKeys.factsInfinite({ ...SCOPE, q: "" }), page);
+    client.setQueryData(characterKeys.factsInfinite({ ...SCOPE, q: "silver" }), page);
+    client.setQueryData(
+      characterKeys.factsInfinite({ ...SCOPE, bookId: "other-book", q: "" }),
+      page,
+    );
+    client.setQueryData(
+      characterKeys.factsInfinite({ ...SCOPE, characterId: "char-2", q: "" }),
+      page,
+    );
+
+    expect(matchedKeys(client, characterKeys.factsScope(SCOPE))).toEqual([
+      characterKeys.factsInfinite({ ...SCOPE, q: "" }),
+      characterKeys.factsInfinite({ ...SCOPE, q: "silver" }),
+    ]);
+  });
+});

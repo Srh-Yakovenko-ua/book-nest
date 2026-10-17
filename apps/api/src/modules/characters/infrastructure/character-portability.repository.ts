@@ -29,6 +29,15 @@ const roleSelect = {
   roleType: true,
 } satisfies Prisma.BookCharacterRoleSelect;
 
+const factSelect = {
+  chapter: true,
+  createdAt: true,
+  page: true,
+  text: true,
+  title: true,
+  updatedAt: true,
+} satisfies Prisma.CharacterFactSelect;
+
 const appearanceSelect = {
   appearanceNotes: true,
   appearanceNotesIsSpoiler: true,
@@ -38,6 +47,7 @@ const appearanceSelect = {
   descriptionIsSpoiler: true,
   displayName: true,
   displayNameIsSpoiler: true,
+  facts: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: factSelect },
   firstAppearanceAudioSeconds: true,
   firstAppearanceChapter: true,
   firstAppearanceNote: true,
@@ -201,6 +211,9 @@ export class CharacterPortabilityRepository {
     }
     if (plan.roles.length > 0) {
       await client.bookCharacterRole.createMany({ data: plan.roles });
+    }
+    if (plan.facts.length > 0) {
+      await client.characterFact.createMany({ data: plan.facts });
     }
     if (plan.characterTags.length > 0) {
       await client.characterTag.createMany({ data: plan.characterTags });

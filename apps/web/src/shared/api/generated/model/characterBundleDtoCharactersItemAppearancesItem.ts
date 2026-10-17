@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { CharacterBundleDtoCharactersItemAppearancesItemAttitude } from "./characterBundleDtoCharactersItemAppearancesItemAttitude";
+import type { CharacterBundleDtoCharactersItemAppearancesItemFactsItem } from "./characterBundleDtoCharactersItemAppearancesItemFactsItem";
 import type { CharacterBundleDtoCharactersItemAppearancesItemImportance } from "./characterBundleDtoCharactersItemAppearancesItemImportance";
 import type { CharacterBundleDtoCharactersItemAppearancesItemNarratorType } from "./characterBundleDtoCharactersItemAppearancesItemNarratorType";
 import type { CharacterBundleDtoCharactersItemAppearancesItemRolesItem } from "./characterBundleDtoCharactersItemAppearancesItemRolesItem";
@@ -101,4 +102,6 @@ export type CharacterBundleDtoCharactersItemAppearancesItem = {
    */
   statusCustomText: string | null;
   statusIsSpoiler: boolean;
+  /** @maxItems 200 */
+  facts: CharacterBundleDtoCharactersItemAppearancesItemFactsItem[];
 };

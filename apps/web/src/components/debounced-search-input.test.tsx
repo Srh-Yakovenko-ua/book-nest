@@ -107,6 +107,7 @@ describe("DebouncedSearchInput", () => {
     await userEvent.click(screen.getByRole("button", { name: CLEAR_LABEL }));
 
     expect(searchInput()).toHaveValue("");
+    expect(searchInput()).toHaveFocus();
     expect(activeQuery()).toBe("");
   });
 

@@ -22,6 +22,7 @@ import { useDeletionPreview } from "../api/use-deletion-preview";
 
 const DELETION_IMPACT_ROWS = [
   { key: "appearanceCount", label: "appearances" },
+  { key: "factCount", label: "facts" },
   { key: "roleCount", label: "roles" },
   { key: "aliasCount", label: "aliases" },
   { key: "tagCount", label: "tags" },

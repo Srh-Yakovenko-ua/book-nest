@@ -402,6 +402,7 @@ export type CharacterDeletionResult = z.infer<typeof CharacterDeletionResultSche
 export const CharacterDeletionPreviewSchema = z.object({
   aliasCount: z.number().int(),
   appearanceCount: z.number().int(),
+  factCount: z.number().int(),
   formCount: z.number().int(),
   groupCount: z.number().int(),
   relationshipCount: z.number().int(),
@@ -858,6 +859,7 @@ export type CharacterMergeEntityCounts = z.infer<typeof CharacterMergeEntityCoun
 export const CharacterMergeCountsSchema = z.object({
   aliases: CharacterMergeEntityCountsSchema,
   appearances: CharacterMergeEntityCountsSchema,
+  facts: CharacterMergeEntityCountsSchema,
   forms: CharacterMergeEntityCountsSchema,
   memberships: CharacterMergeEntityCountsSchema,
   relationships: CharacterMergeEntityCountsSchema,

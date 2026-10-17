@@ -8,7 +8,10 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import type { PageTabsItem } from "@/components/page-tabs";
+
 import { UiIcon } from "@/components/icons";
+import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -24,7 +27,9 @@ import {
   resolveCharacterDetailsMode,
   resolveCharacterDetailsRequest,
 } from "../model/character-details-context";
+import { toCharacterDetailsTab } from "../model/character-details-query";
 import {
+  CHARACTER_DETAILS_TABS,
   CHARACTER_GLOBAL_VIEW,
   getBookCharactersPath,
   getCharacterDetailsPath,
@@ -36,10 +41,15 @@ import {
   findRevealFocusTarget,
   isFieldHidden,
 } from "../model/character-spoiler";
+import {
+  useCharacterDetailsTab,
+  useCharacterFactsSearch,
+} from "../model/use-character-details-query";
 import { CharacterAppearancesMobile, CharacterAppearancesSidebar } from "./character-appearances";
 import { CharacterBookSection } from "./character-book-section";
 import { CharacterContextSelect } from "./character-context-select";
 import { CharacterDetailsHero } from "./character-details-hero";
+import { CharacterFactsTab } from "./character-facts-tab";
 import { CharacterFormsSection } from "./character-forms-section";
 import { CharacterProfileSection } from "./character-profile-section";
 import { CharacterUnavailableContext } from "./character-unavailable-context";
@@ -68,8 +78,13 @@ export function CharacterDetailsPage({ characterId }: CharacterDetailsPageProps)
   const router = useRouter();
   const [bookId] = useQueryState("bookId", parseAsString);
   const [view] = useQueryState("view", parseAsString);
+  const [tab] = useCharacterDetailsTab();
+  const [q] = useCharacterFactsSearch();
   const request = resolveCharacterDetailsRequest({ bookId, view });
-  const canonicalHref = canonicalCharacterDetailsHref({ characterId, search: { bookId, view } });
+  const canonicalHref = canonicalCharacterDetailsHref({
+    characterId,
+    search: { bookId, q, tab, view },
+  });
 
   useEffect(() => {
     if (canonicalHref !== null) router.replace(canonicalHref);
@@ -90,9 +105,13 @@ function CharacterDetailsContextView({
   onListStateChange,
 }: ContextViewProps) {
   const t = useTranslations("characters.page");
+  const tTabs = useTranslations("characters.facts.tabs");
   const tToast = useTranslations("characters.toast");
   const queryClient = useQueryClient();
+  const [tab, setTab] = useCharacterDetailsTab();
   const articleRef = useRef<HTMLElement>(null);
+  const contextSelectRef = useRef<HTMLButtonElement>(null);
+  const [isContextSelectOpen, setContextSelectOpen] = useState(false);
   const focusRequest = useRef<Nullable<CharacterRevealFieldKey>>(null);
   const [revealState, setRevealState] = useState<RevealState>({ confirmed: [], pending: null });
 
@@ -121,6 +140,11 @@ function CharacterDetailsContextView({
     findRevealFocusTarget(articleRef.current, requested)?.focus();
   }, [details.data, revealState.pending]);
 
+  function openContextSelect() {
+    contextSelectRef.current?.focus();
+    setContextSelectOpen(true);
+  }
+
   async function revealField(field: CharacterRevealFieldKey): Promise<boolean> {
     if (revealState.pending !== null || revealState.confirmed.includes(field)) return false;
     const target = addRevealKey(revealState.confirmed, field);
@@ -145,11 +169,7 @@ function CharacterDetailsContextView({
     if (mode.kind === "book" && isUnavailableContextError(details.error)) {
       return <CharacterUnavailableContext characterId={characterId} />;
     }
-    return (
-      <div role="alert">
-        <CharactersErrorState onRetry={() => void details.refetch()} />
-      </div>
-    );
+    return <CharactersErrorState onRetry={() => void details.refetch()} />;
   }
 
   const character = details.data;
@@ -175,6 +195,10 @@ function CharacterDetailsContextView({
     listState,
     onListStateChange,
   };
+  const tabItems: PageTabsItem[] = CHARACTER_DETAILS_TABS.map((value) => ({
+    label: tTabs(value),
+    value,
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -194,13 +218,43 @@ function CharacterDetailsContextView({
             editHref={getCharacterEditPath(characterRouteArgsOf({ characterId, mode }))}
             reveal={reveal}
           />
-          <CharacterContextSelect appearances={appearances} characterId={characterId} mode={mode} />
-          <CharacterAppearancesMobile {...appearancesProps} />
-          {appearance === undefined ? null : (
-            <CharacterBookSection appearance={appearance} character={character} reveal={reveal} />
-          )}
-          <CharacterProfileSection appearance={appearance} character={character} reveal={reveal} />
-          <CharacterFormsSection character={character} reveal={reveal} />
+          <CharacterContextSelect
+            appearances={appearances}
+            characterId={characterId}
+            mode={mode}
+            onOpenChange={setContextSelectOpen}
+            open={isContextSelectOpen}
+            triggerRef={contextSelectRef}
+          />
+          <PageTabs
+            items={tabItems}
+            onValueChange={(value) => void setTab(toCharacterDetailsTab(value))}
+            value={tab}
+          >
+            <PageTabsPanel className="flex flex-col gap-6" value="overview">
+              <CharacterAppearancesMobile {...appearancesProps} />
+              {appearance === undefined ? null : (
+                <CharacterBookSection
+                  appearance={appearance}
+                  character={character}
+                  reveal={reveal}
+                />
+              )}
+              <CharacterProfileSection
+                appearance={appearance}
+                character={character}
+                reveal={reveal}
+              />
+              <CharacterFormsSection character={character} reveal={reveal} />
+            </PageTabsPanel>
+            <PageTabsPanel value="facts">
+              <CharacterFactsTab
+                characterId={characterId}
+                mode={mode}
+                onChooseBook={appearances.length === 0 ? null : openContextSelect}
+              />
+            </PageTabsPanel>
+          </PageTabs>
         </article>
 
         <CharacterAppearancesSidebar {...appearancesProps} />
@@ -217,6 +271,8 @@ function CharacterDetailsLoader({
   request: CharacterDetailsMode;
 }) {
   const router = useRouter();
+  const [tab] = useCharacterDetailsTab();
+  const [q] = useCharacterFactsSearch();
   const [listState, setListState] = useState<AppearanceListState>(INITIAL_LIST_STATE);
   const base = useCharacterDetails({ characterId });
 
@@ -226,7 +282,7 @@ function CharacterDetailsLoader({
       : resolveCharacterDetailsMode({ appearances: base.data.appearances, request });
   const smartBookHref =
     request.kind === "smart" && mode?.kind === "book"
-      ? getCharacterDetailsPath({ bookId: mode.bookId, characterId })
+      ? getCharacterDetailsPath({ bookId: mode.bookId, characterId, q, tab })
       : null;
 
   useEffect(() => {
@@ -236,11 +292,7 @@ function CharacterDetailsLoader({
   if (base.isPending) return <DetailsSkeleton />;
 
   if (base.isError) {
-    return (
-      <div role="alert">
-        <CharactersErrorState onRetry={() => void base.refetch()} />
-      </div>
-    );
+    return <CharactersErrorState onRetry={() => void base.refetch()} />;
   }
 
   if (mode === null) return <CharacterUnavailableContext characterId={characterId} />;

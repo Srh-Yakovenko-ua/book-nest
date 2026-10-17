@@ -1399,6 +1399,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Підказки локацій у хронології",
     version: null,
   },
+  {
+    bodyEn:
+      "A character's page now has two tabs: Overview, with everything it showed before, and Facts, where you keep separate facts about the character in the selected book. Each fact has a title and text, plus an optional chapter and page, and the page cannot go past the book's page count. Facts appear as cards, newest first, load as you scroll and can be searched by title or text, and a long one opens in full with Read in full. You can edit or delete any fact, and if you close the form or leave the page with unsaved changes, you are asked first, so a draft is not lost by accident. Facts belong to the character in one book, so without a selected book the tab asks you to choose one. When you remove a character from a book, the confirmation now says how many of its facts will be deleted.",
+    bodyUk:
+      "На сторінці персонажа тепер дві вкладки: «Огляд» з усім, що там було й раніше, і «Факти», де можна вести окремі факти про персонажа в обраній книзі. Кожен факт має назву й текст, а також необов'язкові розділ і сторінку, причому сторінка не може перевищувати кількість сторінок у книзі. Факти відображаються картками, спершу найновіші, довантажуються під час прокручування, їх можна шукати за назвою або текстом, а довгий факт відкривається повністю кнопкою «Читати повністю». Будь-який факт можна змінити або видалити, а якщо закрити форму чи залишити сторінку з незбереженими змінами, спершу з'явиться запитання, тож чернетка не загубиться випадково. Факти належать персонажу в конкретній книзі, тому без обраної книги вкладка попросить її обрати. Коли ви прибираєте персонажа з книги, підтвердження тепер показує, скільки його фактів буде видалено.",
+    category: "feature",
+    publishedAt: "2026-10-17T00:00:00.000Z",
+    slug: "character-facts",
+    titleEn: "Character facts",
+    titleUk: "Факти про персонажа",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
