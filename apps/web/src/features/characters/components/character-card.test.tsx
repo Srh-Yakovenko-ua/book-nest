@@ -138,6 +138,26 @@ describe("CharacterCard hidden fields", () => {
   });
 });
 
+describe("CharacterCard layout", () => {
+  it("lays the chips out as a full-width row between the header and the description", () => {
+    renderCard(
+      makeCharacterSummary({
+        descriptionPreview: "Відьмак із Рівії",
+        importance: "central",
+        isPovCharacter: true,
+      }),
+    );
+
+    const chipsRow = screen.getByText("Центральний").parentElement;
+    const heading = screen.getByRole("heading", { name: "Ґеральт" });
+
+    expect(chipsRow).toContainElement(screen.getByText("POV"));
+    expect(chipsRow?.parentElement).toBe(screen.getByRole("article"));
+    expect(chipsRow?.previousElementSibling).toContainElement(heading);
+    expect(chipsRow?.nextElementSibling).toBe(screen.getByText("Відьмак із Рівії"));
+  });
+});
+
 describe("CharacterCard roster content", () => {
   it("shows the safe description preview", () => {
     renderCard(makeCharacterSummary({ descriptionPreview: "Відьмак із Рівії" }));
