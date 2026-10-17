@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookCharacterRosterItem, BookView } from "@app/shared";
+import type { BookCharacterRosterItem, BookView, Nullable } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -44,7 +44,12 @@ type RosterListProps = {
   items: BookCharacterRosterItem[];
   onAdd: () => void;
   onClearCriteria: () => void;
-  onUnlink: (characterId: string) => void;
+  onUnlink: (characterId: string, trigger: Nullable<HTMLElement>) => void;
+};
+
+type UnlinkTarget = {
+  characterId: string;
+  open: boolean;
 };
 
 export function BookCharactersTab({ book }: BookCharactersTabProps) {
@@ -61,11 +66,13 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
   const router = useRouter();
 
   const [addOpen, setAddOpen] = useState(false);
-  const [unlinkId, setUnlinkId] = useState<null | string>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<Nullable<UnlinkTarget>>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const rosterStartRef = useRef<HTMLDivElement>(null);
   const rosterCriteriaKey = JSON.stringify(roster.listParams);
   const previousCriteriaKey = useRef(rosterCriteriaKey);
+  const unlinkTriggerRef = useRef<Nullable<HTMLElement>>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
 
   const rosterItems = (characters.data?.pages ?? []).flatMap((page) => page.items);
   const hasLoadedRoster = characters.data !== undefined;
@@ -101,15 +108,33 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
     router.push(getCharacterDetailsPath({ bookId, characterId }));
   }
 
+  function requestUnlink(characterId: string, trigger: Nullable<HTMLElement>) {
+    unlinkTriggerRef.current = trigger;
+    setUnlinkTarget({ characterId, open: true });
+  }
+
+  function closeUnlink() {
+    setUnlinkTarget((current) => (current === null ? null : { ...current, open: false }));
+  }
+
+  function returnFocusAfterUnlink(event: Event) {
+    const trigger = unlinkTriggerRef.current;
+    const target = trigger?.isConnected ? trigger : addButtonRef.current;
+    if (target === null || !target.isConnected) return;
+    event.preventDefault();
+    target.focus();
+  }
+
   function confirmUnlink() {
-    if (unlinkId === null) return;
+    if (unlinkTarget === null) return;
     unlinkCharacter.mutate(
-      { bookId, characterId: unlinkId },
+      { bookId, characterId: unlinkTarget.characterId },
       {
         onError: () => toast.error(tToast("unlinkError")),
         onSuccess: () => {
           toast.success(tToast("unlinked"));
-          setUnlinkId(null);
+          unlinkTriggerRef.current = null;
+          closeUnlink();
         },
       },
     );
@@ -128,7 +153,13 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         </div>
       ) : null}
 
-      {showControls ? <CharactersToolbar onAdd={() => setAddOpen(true)} roster={roster} /> : null}
+      {showControls ? (
+        <CharactersToolbar
+          addButtonRef={addButtonRef}
+          onAdd={() => setAddOpen(true)}
+          roster={roster}
+        />
+      ) : null}
 
       <RosterList
         bookId={bookId}
@@ -138,7 +169,7 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         items={rosterItems}
         onAdd={() => setAddOpen(true)}
         onClearCriteria={roster.clearSearchAndFilters}
-        onUnlink={setUnlinkId}
+        onUnlink={requestUnlink}
       />
 
       <AddCharacterDialog
@@ -149,14 +180,18 @@ export function BookCharactersTab({ book }: BookCharactersTabProps) {
         open={addOpen}
       />
 
-      <UnlinkCharacterDialog
-        isUnlinking={unlinkCharacter.isPending}
-        onConfirm={confirmUnlink}
-        onOpenChange={(open) => {
-          if (!open) setUnlinkId(null);
-        }}
-        open={unlinkId !== null}
-      />
+      {unlinkTarget === null ? null : (
+        <UnlinkCharacterDialog
+          isUnlinking={unlinkCharacter.isPending}
+          onCloseAutoFocus={returnFocusAfterUnlink}
+          onConfirm={confirmUnlink}
+          onOpenChange={(open) => {
+            if (!open) closeUnlink();
+          }}
+          open={unlinkTarget.open}
+          scope={{ bookId, characterId: unlinkTarget.characterId }}
+        />
+      )}
 
       <CharacterCommandPalette
         bookContext={bookContext}
@@ -216,7 +251,7 @@ function RosterList({
             <CharacterCard
               bookId={bookId}
               character={character}
-              onUnlink={() => onUnlink(character.characterId)}
+              onUnlink={(trigger) => onUnlink(character.characterId, trigger)}
             />
           </li>
         ))}

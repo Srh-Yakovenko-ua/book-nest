@@ -5,6 +5,7 @@ import type {
   CharacterDeletionPreview,
   CharacterDeletionResult,
   CharacterDetailsView,
+  CharacterFactView,
   CharacterGlobalSummaryView,
   SpeciesRefView,
 } from "@app/shared";
@@ -112,6 +113,19 @@ export function makeCharacterDetails(
   };
 }
 
+export function makeCharacterFact(overrides: Partial<CharacterFactView> = {}): CharacterFactView {
+  return {
+    chapter: "Розділ 3",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    id: "fact-1",
+    page: 42,
+    text: "Носить два мечі: сталевий для людей і срібний для чудовиськ.",
+    title: "Два мечі",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
 export function makeCharacterGlobalSummary(
   overrides: Partial<CharacterGlobalSummaryView> = {},
 ): CharacterGlobalSummaryView {
@@ -178,6 +192,7 @@ export function makeDeletionPreview(
   return {
     aliasCount: 2,
     appearanceCount: 3,
+    factCount: 0,
     formCount: 0,
     groupCount: 0,
     relationshipCount: 0,

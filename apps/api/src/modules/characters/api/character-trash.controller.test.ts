@@ -337,6 +337,7 @@ describe("GET /api/characters/:characterId/deletion-preview", () => {
     expect(preview.body).toEqual({
       aliasCount: 1,
       appearanceCount: 1,
+      factCount: 0,
       formCount: 0,
       groupCount: 0,
       relationshipCount: 0,
@@ -347,6 +348,7 @@ describe("GET /api/characters/:characterId/deletion-preview", () => {
     expect(Object.keys(preview.body).sort()).toEqual([
       "aliasCount",
       "appearanceCount",
+      "factCount",
       "formCount",
       "groupCount",
       "relationshipCount",

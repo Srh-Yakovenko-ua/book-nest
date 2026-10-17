@@ -1,6 +1,7 @@
 "use client";
 
-import type { BookCharacterView } from "@app/shared";
+import type { BookCharacterView, Nullable } from "@app/shared";
+import type { RefObject } from "react";
 
 import { useTranslations } from "next-intl";
 import { useId } from "react";
@@ -17,21 +18,29 @@ import { useRouter } from "@/i18n/navigation";
 import type { CharacterDetailsMode } from "../model/character-details-context";
 
 import { CHARACTER_GLOBAL_VIEW, getCharacterDetailsPath } from "../model/character-routes";
+import { useCharacterDetailsTab } from "../model/use-character-details-query";
 
 type CharacterContextSelectProps = {
   appearances: BookCharacterView[];
   characterId: string;
   mode: CharacterDetailsMode;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  triggerRef: RefObject<Nullable<HTMLButtonElement>>;
 };
 
 export function CharacterContextSelect({
   appearances,
   characterId,
   mode,
+  onOpenChange,
+  open,
+  triggerRef,
 }: CharacterContextSelectProps) {
   const t = useTranslations("characters.page");
   const router = useRouter();
   const labelId = useId();
+  const [tab] = useCharacterDetailsTab();
 
   if (appearances.length === 0) return null;
 
@@ -41,8 +50,8 @@ export function CharacterContextSelect({
     if (next === value) return;
     router.push(
       next === CHARACTER_GLOBAL_VIEW
-        ? getCharacterDetailsPath({ characterId, view: CHARACTER_GLOBAL_VIEW })
-        : getCharacterDetailsPath({ bookId: next, characterId }),
+        ? getCharacterDetailsPath({ characterId, tab, view: CHARACTER_GLOBAL_VIEW })
+        : getCharacterDetailsPath({ bookId: next, characterId, tab }),
     );
   }
 
@@ -51,10 +60,11 @@ export function CharacterContextSelect({
       <span className="shrink-0 text-sm font-medium text-muted-foreground" id={labelId}>
         {t("contextLabel")}
       </span>
-      <Select onValueChange={selectContext} value={value}>
+      <Select onOpenChange={onOpenChange} onValueChange={selectContext} open={open} value={value}>
         <SelectTrigger
           aria-labelledby={labelId}
           className="w-full min-w-0 data-[size=default]:h-10 sm:max-w-sm"
+          ref={triggerRef}
         >
           <SelectValue />
         </SelectTrigger>

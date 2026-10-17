@@ -126,6 +126,9 @@ catalogs:
     '@total-typescript/ts-reset':
       specifier: ^0.6.1
       version: 0.6.1
+    '@types/body-parser':
+      specifier: ^1.19.6
+      version: 1.19.6
     '@types/compression':
       specifier: ^1.8.1
       version: 1.8.1
@@ -572,6 +575,9 @@ importers:
       bcryptjs:
         specifier: 'catalog:'
         version: 3.0.3
+      body-parser:
+        specifier: '>=2.3.0 <3'
+        version: 2.3.0
       bullmq:
         specifier: 'catalog:'
         version: 5.81.3
@@ -642,6 +648,9 @@ importers:
       '@swc/core':
         specifier: 'catalog:'
         version: 1.15.46
+      '@types/body-parser':
+        specifier: 'catalog:'
+        version: 1.19.6
       '@types/compression':
         specifier: 'catalog:'
         version: 1.8.1

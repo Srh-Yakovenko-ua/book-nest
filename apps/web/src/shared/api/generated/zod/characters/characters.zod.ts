@@ -19,103 +19,6 @@ export const CharacterPortabilityControllerExportBundleQueryParams = zod.object(
     .describe("Whether to include archived characters (defaults to true)"),
 });
 
-export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemBookIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemNameMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMin = 0;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMax = 2147483647;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesMax = 30;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemAppearanceNotesMax = 5000;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemBookIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDescriptionMax = 5000;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDisplayNameMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin = 0;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax = 2147483647;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceChapterMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceNoteMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPersonalImpressionMax = 5000;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPortraitMediaIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemCustomRoleMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMin = 0;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMax = 2147483647;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesMax = 20;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMin = 0;
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMax = 2147483647;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax = 60;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemStatusCustomTextMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemAvatarMediaIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerExportBundleResponseCharactersItemCustomGenderMax = 60;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemDescriptionMax = 5000;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemNameMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPortraitMediaIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMin = 0;
-export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMax = 2147483647;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemFormsMax = 50;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemIdRegExp = new RegExp(
-  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-);
-export const characterPortabilityControllerExportBundleResponseCharactersItemNameMax = 200;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemNeutralDescriptionMax = 5000;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemPronounsMax = 60;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax = 60;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesKeyMax = 60;
-
-export const characterPortabilityControllerExportBundleResponseCharactersItemTagIdsItemRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerExportBundleResponseCharactersItemTagIdsMax = 15;
-
-export const characterPortabilityControllerExportBundleResponseCharactersMax = 1000;
-
 export const characterPortabilityControllerExportBundleResponseExportedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
 );
@@ -201,343 +104,126 @@ export const characterPortabilityControllerExportBundleResponseTheoriesItemTextM
 
 export const characterPortabilityControllerExportBundleResponseTheoriesMax = 2000;
 
+export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemNameMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAliasesMax = 30;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAvatarMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemCustomGenderMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemNameMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPortraitMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemFormsMax = 50;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerExportBundleResponseCharactersItemNameMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemNeutralDescriptionMax = 5000;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemPronounsMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemSpeciesKeyMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemTagIdsItemRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemTagIdsMax = 15;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemAppearanceNotesMax = 5000;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDisplayNameMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceChapterMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceNoteMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPersonalImpressionMax = 5000;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPortraitMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemCustomRoleMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesMax = 20;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemStatusCustomTextMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemChapterMax = 100;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemCreatedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemPageExclusiveMin = 0;
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemPageMax = 2147483647;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemTextMax = 5000;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemTitleMax = 120;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemUpdatedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+  );
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersItemAppearancesMax = 200;
+
+export const characterPortabilityControllerExportBundleResponseCharactersMax = 1000;
+
 export const CharacterPortabilityControllerExportBundleResponse = zod.object({
-  characters: zod
-    .array(
-      zod.object({
-        aliases: zod
-          .array(
-            zod.object({
-              bookId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemBookIdRegExp,
-                )
-                .nullable(),
-              isSpoiler: zod.boolean(),
-              name: zod
-                .string()
-                .min(1)
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemNameMax,
-                ),
-              position: zod
-                .int()
-                .min(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMin,
-                )
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMax,
-                ),
-              type: zod.enum([
-                "nickname",
-                "title",
-                "pseudonym",
-                "true_name",
-                "former_name",
-                "translation",
-                "other",
-              ]),
-            }),
-          )
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemAliasesMax),
-        appearances: zod
-          .array(
-            zod.object({
-              appearanceNotes: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemAppearanceNotesMax,
-                )
-                .nullable(),
-              appearanceNotesIsSpoiler: zod.boolean(),
-              attitude: zod
-                .union([
-                  zod.literal("favorite"),
-                  zod.literal("like"),
-                  zod.literal("neutral"),
-                  zod.literal("distrust"),
-                  zod.literal("dislike"),
-                  zod.literal("hate"),
-                  zod.literal("unsure"),
-                  zod.literal(null),
-                ])
-                .nullable(),
-              bookId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemBookIdRegExp,
-                ),
-              description: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDescriptionMax,
-                )
-                .nullable(),
-              descriptionIsSpoiler: zod.boolean(),
-              displayName: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDisplayNameMax,
-                )
-                .nullable(),
-              displayNameIsSpoiler: zod.boolean(),
-              firstAppearanceAudioSeconds: zod
-                .int()
-                .min(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin,
-                )
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax,
-                )
-                .nullable(),
-              firstAppearanceChapter: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceChapterMax,
-                )
-                .nullable(),
-              firstAppearanceNote: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceNoteMax,
-                )
-                .nullable(),
-              firstAppearancePage: zod
-                .int()
-                .gt(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageExclusiveMin,
-                )
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageMax,
-                )
-                .nullable(),
-              importance: zod.enum([
-                "central",
-                "major",
-                "supporting",
-                "episodic",
-                "mentioned",
-                "not_specified",
-              ]),
-              isPovCharacter: zod.boolean(),
-              isUnreliableNarrator: zod
-                .boolean()
-                .default(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault,
-                ),
-              isUnreliableNarratorSpoiler: zod
-                .boolean()
-                .default(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
-                ),
-              narratorType: zod
-                .union([
-                  zod.literal("first_person"),
-                  zod.literal("third_person_limited"),
-                  zod.literal("third_person_omniscient"),
-                  zod.literal("other"),
-                  zod.literal(null),
-                ])
-                .nullable(),
-              personalImpression: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPersonalImpressionMax,
-                )
-                .nullable(),
-              personalImpressionIsSpoiler: zod.boolean(),
-              portraitIsSpoiler: zod.boolean(),
-              portraitMediaId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPortraitMediaIdRegExp,
-                )
-                .nullable(),
-              roles: zod
-                .array(
-                  zod.object({
-                    customRole: zod
-                      .string()
-                      .max(
-                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemCustomRoleMax,
-                      )
-                      .nullable(),
-                    isSpoiler: zod.boolean(),
-                    position: zod
-                      .int()
-                      .min(
-                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMin,
-                      )
-                      .max(
-                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMax,
-                      ),
-                    roleType: zod.enum([
-                      "protagonist",
-                      "deuteragonist",
-                      "antagonist",
-                      "love_interest",
-                      "supporting",
-                      "episodic",
-                      "mentioned",
-                      "custom",
-                    ]),
-                  }),
-                )
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesMax,
-                ),
-              sortOrder: zod
-                .int()
-                .min(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMin,
-                )
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMax,
-                )
-                .nullable(),
-              speciesOverride: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax,
-                )
-                .nullable(),
-              speciesOverrideIsSpoiler: zod.boolean(),
-              speciesOverrideKey: zod
-                .string()
-                .min(1)
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideKeyMax,
-                )
-                .nullish(),
-              status: zod.enum([
-                "active",
-                "missing",
-                "dead",
-                "unknown",
-                "transformed",
-                "other",
-                "not_specified",
-              ]),
-              statusCustomText: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemStatusCustomTextMax,
-                )
-                .nullable(),
-              statusIsSpoiler: zod.boolean(),
-            }),
-          )
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemAppearancesMax),
-        avatarMediaId: zod
-          .uuid()
-          .regex(
-            characterPortabilityControllerExportBundleResponseCharactersItemAvatarMediaIdRegExp,
-          )
-          .nullable(),
-        customGender: zod
-          .string()
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemCustomGenderMax)
-          .nullable(),
-        entityKind: zod.enum(["individual", "collective", "unknown"]),
-        forms: zod
-          .array(
-            zod.object({
-              description: zod
-                .string()
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemDescriptionMax,
-                )
-                .nullable(),
-              formType: zod.enum([
-                "reincarnation",
-                "transformation",
-                "alter_ego",
-                "true_form",
-                "disguise",
-                "other",
-              ]),
-              isSpoiler: zod.boolean(),
-              name: zod
-                .string()
-                .min(1)
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemNameMax,
-                ),
-              portraitMediaId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPortraitMediaIdRegExp,
-                )
-                .nullable(),
-              position: zod
-                .int()
-                .min(
-                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMin,
-                )
-                .max(
-                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMax,
-                ),
-            }),
-          )
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemFormsMax),
-        gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
-        globalAttitude: zod
-          .union([
-            zod.literal("favorite"),
-            zod.literal("like"),
-            zod.literal("neutral"),
-            zod.literal("distrust"),
-            zod.literal("dislike"),
-            zod.literal("hate"),
-            zod.literal("unsure"),
-            zod.literal(null),
-          ])
-          .nullable(),
-        id: zod
-          .uuid()
-          .regex(characterPortabilityControllerExportBundleResponseCharactersItemIdRegExp),
-        isArchived: zod.boolean(),
-        isFavorite: zod.boolean(),
-        name: zod
-          .string()
-          .min(1)
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemNameMax),
-        neutralDescription: zod
-          .string()
-          .max(
-            characterPortabilityControllerExportBundleResponseCharactersItemNeutralDescriptionMax,
-          )
-          .nullable(),
-        pronouns: zod
-          .string()
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemPronounsMax)
-          .nullable(),
-        species: zod
-          .string()
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax)
-          .nullable(),
-        speciesKey: zod
-          .string()
-          .min(1)
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemSpeciesKeyMax)
-          .nullish(),
-        tagIds: zod
-          .array(
-            zod
-              .uuid()
-              .regex(
-                characterPortabilityControllerExportBundleResponseCharactersItemTagIdsItemRegExp,
-              ),
-          )
-          .max(characterPortabilityControllerExportBundleResponseCharactersItemTagIdsMax),
-      }),
-    )
-    .max(characterPortabilityControllerExportBundleResponseCharactersMax),
   exportedAt: zod.iso
     .datetime({ offset: true })
     .regex(characterPortabilityControllerExportBundleResponseExportedAtRegExp),
-  formatVersion: zod.literal(1),
   groups: zod
     .array(
       zod.object({
@@ -819,191 +505,6 @@ export const CharacterPortabilityControllerExportBundleResponse = zod.object({
       }),
     )
     .max(characterPortabilityControllerExportBundleResponseTheoriesMax),
-});
-
-/**
- * @summary Import a character bundle into the caller's library
- */
-export const characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemBookIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemNameMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemPositionMin = 0;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemPositionMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAliasesMax = 30;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemAppearanceNotesMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemBookIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemDescriptionMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemDisplayNameMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin = 0;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceChapterMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceNoteMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPersonalImpressionMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPortraitMediaIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesItemCustomRoleMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesItemPositionMin = 0;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesItemPositionMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesMax = 20;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMin = 0;
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemStatusCustomTextMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAppearancesMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemAvatarMediaIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyCharactersItemCustomGenderMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemFormsItemDescriptionMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemFormsItemNameMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemFormsItemPortraitMediaIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyCharactersItemFormsItemPositionMin = 0;
-export const characterPortabilityControllerImportBundleBodyCharactersItemFormsItemPositionMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemFormsMax = 50;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemIdRegExp = new RegExp(
-  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-);
-export const characterPortabilityControllerImportBundleBodyCharactersItemNameMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemNeutralDescriptionMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemPronounsMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemSpeciesMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemSpeciesKeyMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyCharactersItemTagIdsItemRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyCharactersItemTagIdsMax = 15;
-
-export const characterPortabilityControllerImportBundleBodyCharactersMax = 1000;
-
-export const characterPortabilityControllerImportBundleBodyExportedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-);
-export const characterPortabilityControllerImportBundleBodyGroupsItemCustomTypeMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyGroupsItemDescriptionMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemBookIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemCharacterIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemRoleMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemStatusMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyGroupsItemMembershipsMax = 100;
-
-export const characterPortabilityControllerImportBundleBodyGroupsItemNameMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyGroupsItemSeriesIdRegExp = new RegExp(
-  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-);
-export const characterPortabilityControllerImportBundleBodyGroupsMax = 300;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemBookIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemDescriptionMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedAudioSecondsExclusiveMin = 0;
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedAudioSecondsMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedChapterMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedPageExclusiveMin = 0;
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedPageMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedAudioSecondsExclusiveMin = 0;
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedAudioSecondsMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedChapterMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedPageExclusiveMin = 0;
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedPageMax = 2147483647;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesMax = 200;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemCustomTypeMax = 60;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemSourceCharacterIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemSourceLabelMax = 120;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemTargetCharacterIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyRelationshipsItemTargetLabelMax = 120;
-
-export const characterPortabilityControllerImportBundleBodyRelationshipsMax = 3000;
-
-export const characterPortabilityControllerImportBundleBodyTheoriesItemBookIdRegExp = new RegExp(
-  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-);
-export const characterPortabilityControllerImportBundleBodyTheoriesItemCharacterIdRegExp =
-  new RegExp(
-    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-  );
-export const characterPortabilityControllerImportBundleBodyTheoriesItemSeriesIdRegExp = new RegExp(
-  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-);
-export const characterPortabilityControllerImportBundleBodyTheoriesItemTextMax = 5000;
-
-export const characterPortabilityControllerImportBundleBodyTheoriesMax = 2000;
-
-export const CharacterPortabilityControllerImportBundleBody = zod.object({
   characters: zod
     .array(
       zod.object({
@@ -1013,7 +514,7 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               bookId: zod
                 .uuid()
                 .regex(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemBookIdRegExp,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemBookIdRegExp,
                 )
                 .nullable(),
               isSpoiler: zod.boolean(),
@@ -1021,15 +522,15 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 .string()
                 .min(1)
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemNameMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemNameMax,
                 ),
               position: zod
                 .int()
                 .min(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemPositionMin,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMin,
                 )
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAliasesItemPositionMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAliasesItemPositionMax,
                 ),
               type: zod.enum([
                 "nickname",
@@ -1042,14 +543,116 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               ]),
             }),
           )
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemAliasesMax),
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemAliasesMax),
+        avatarMediaId: zod
+          .uuid()
+          .regex(
+            characterPortabilityControllerExportBundleResponseCharactersItemAvatarMediaIdRegExp,
+          )
+          .nullable(),
+        customGender: zod
+          .string()
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemCustomGenderMax)
+          .nullable(),
+        entityKind: zod.enum(["individual", "collective", "unknown"]),
+        forms: zod
+          .array(
+            zod.object({
+              description: zod
+                .string()
+                .max(
+                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemDescriptionMax,
+                )
+                .nullable(),
+              formType: zod.enum([
+                "reincarnation",
+                "transformation",
+                "alter_ego",
+                "true_form",
+                "disguise",
+                "other",
+              ]),
+              isSpoiler: zod.boolean(),
+              name: zod
+                .string()
+                .min(1)
+                .max(
+                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemNameMax,
+                ),
+              portraitMediaId: zod
+                .uuid()
+                .regex(
+                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPortraitMediaIdRegExp,
+                )
+                .nullable(),
+              position: zod
+                .int()
+                .min(
+                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMin,
+                )
+                .max(
+                  characterPortabilityControllerExportBundleResponseCharactersItemFormsItemPositionMax,
+                ),
+            }),
+          )
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemFormsMax),
+        gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
+        globalAttitude: zod
+          .union([
+            zod.literal("favorite"),
+            zod.literal("like"),
+            zod.literal("neutral"),
+            zod.literal("distrust"),
+            zod.literal("dislike"),
+            zod.literal("hate"),
+            zod.literal("unsure"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        id: zod
+          .uuid()
+          .regex(characterPortabilityControllerExportBundleResponseCharactersItemIdRegExp),
+        isArchived: zod.boolean(),
+        isFavorite: zod.boolean(),
+        name: zod
+          .string()
+          .min(1)
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemNameMax),
+        neutralDescription: zod
+          .string()
+          .max(
+            characterPortabilityControllerExportBundleResponseCharactersItemNeutralDescriptionMax,
+          )
+          .nullable(),
+        pronouns: zod
+          .string()
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemPronounsMax)
+          .nullable(),
+        species: zod
+          .string()
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemSpeciesMax)
+          .nullable(),
+        speciesKey: zod
+          .string()
+          .min(1)
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemSpeciesKeyMax)
+          .nullish(),
+        tagIds: zod
+          .array(
+            zod
+              .uuid()
+              .regex(
+                characterPortabilityControllerExportBundleResponseCharactersItemTagIdsItemRegExp,
+              ),
+          )
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemTagIdsMax),
         appearances: zod
           .array(
             zod.object({
               appearanceNotes: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemAppearanceNotesMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemAppearanceNotesMax,
                 )
                 .nullable(),
               appearanceNotesIsSpoiler: zod.boolean(),
@@ -1068,50 +671,50 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               bookId: zod
                 .uuid()
                 .regex(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemBookIdRegExp,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemBookIdRegExp,
                 ),
               description: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemDescriptionMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDescriptionMax,
                 )
                 .nullable(),
               descriptionIsSpoiler: zod.boolean(),
               displayName: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemDisplayNameMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemDisplayNameMax,
                 )
                 .nullable(),
               displayNameIsSpoiler: zod.boolean(),
               firstAppearanceAudioSeconds: zod
                 .int()
                 .min(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin,
                 )
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax,
                 )
                 .nullable(),
               firstAppearanceChapter: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceChapterMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceChapterMax,
                 )
                 .nullable(),
               firstAppearanceNote: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearanceNoteMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearanceNoteMax,
                 )
                 .nullable(),
               firstAppearancePage: zod
                 .int()
                 .gt(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageExclusiveMin,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageExclusiveMin,
                 )
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemFirstAppearancePageMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFirstAppearancePageMax,
                 )
                 .nullable(),
               importance: zod.enum([
@@ -1126,12 +729,12 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               isUnreliableNarrator: zod
                 .boolean()
                 .default(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorDefault,
                 ),
               isUnreliableNarratorSpoiler: zod
                 .boolean()
                 .default(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
                 ),
               narratorType: zod
                 .union([
@@ -1145,7 +748,7 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               personalImpression: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPersonalImpressionMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPersonalImpressionMax,
                 )
                 .nullable(),
               personalImpressionIsSpoiler: zod.boolean(),
@@ -1153,7 +756,7 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               portraitMediaId: zod
                 .uuid()
                 .regex(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemPortraitMediaIdRegExp,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemPortraitMediaIdRegExp,
                 )
                 .nullable(),
               roles: zod
@@ -1162,17 +765,17 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                     customRole: zod
                       .string()
                       .max(
-                        characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesItemCustomRoleMax,
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemCustomRoleMax,
                       )
                       .nullable(),
                     isSpoiler: zod.boolean(),
                     position: zod
                       .int()
                       .min(
-                        characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesItemPositionMin,
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMin,
                       )
                       .max(
-                        characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesItemPositionMax,
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesItemPositionMax,
                       ),
                     roleType: zod.enum([
                       "protagonist",
@@ -1187,21 +790,21 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                   }),
                 )
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemRolesMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemRolesMax,
                 ),
               sortOrder: zod
                 .int()
                 .min(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMin,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMin,
                 )
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSortOrderMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSortOrderMax,
                 )
                 .nullable(),
               speciesOverride: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideMax,
                 )
                 .nullable(),
               speciesOverrideIsSpoiler: zod.boolean(),
@@ -1209,7 +812,7 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
                 .string()
                 .min(1)
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemSpeciesOverrideKeyMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemSpeciesOverrideKeyMax,
                 )
                 .nullish(),
               status: zod.enum([
@@ -1224,392 +827,1731 @@ export const CharacterPortabilityControllerImportBundleBody = zod.object({
               statusCustomText: zod
                 .string()
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemAppearancesItemStatusCustomTextMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemStatusCustomTextMax,
                 )
                 .nullable(),
               statusIsSpoiler: zod.boolean(),
-            }),
-          )
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemAppearancesMax),
-        avatarMediaId: zod
-          .uuid()
-          .regex(characterPortabilityControllerImportBundleBodyCharactersItemAvatarMediaIdRegExp)
-          .nullable(),
-        customGender: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemCustomGenderMax)
-          .nullable(),
-        entityKind: zod.enum(["individual", "collective", "unknown"]),
-        forms: zod
-          .array(
-            zod.object({
-              description: zod
-                .string()
-                .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemFormsItemDescriptionMax,
-                )
-                .nullable(),
-              formType: zod.enum([
-                "reincarnation",
-                "transformation",
-                "alter_ego",
-                "true_form",
-                "disguise",
-                "other",
-              ]),
-              isSpoiler: zod.boolean(),
-              name: zod
-                .string()
-                .min(1)
-                .max(characterPortabilityControllerImportBundleBodyCharactersItemFormsItemNameMax),
-              portraitMediaId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerImportBundleBodyCharactersItemFormsItemPortraitMediaIdRegExp,
-                )
-                .nullable(),
-              position: zod
-                .int()
-                .min(
-                  characterPortabilityControllerImportBundleBodyCharactersItemFormsItemPositionMin,
+              facts: zod
+                .array(
+                  zod.object({
+                    chapter: zod
+                      .string()
+                      .max(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemChapterMax,
+                      )
+                      .nullable(),
+                    createdAt: zod.iso
+                      .datetime({ offset: true })
+                      .regex(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemCreatedAtRegExp,
+                      ),
+                    page: zod
+                      .int()
+                      .gt(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemPageExclusiveMin,
+                      )
+                      .max(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemPageMax,
+                      )
+                      .nullable(),
+                    text: zod
+                      .string()
+                      .min(1)
+                      .max(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemTextMax,
+                      ),
+                    title: zod
+                      .string()
+                      .min(1)
+                      .max(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemTitleMax,
+                      ),
+                    updatedAt: zod.iso
+                      .datetime({ offset: true })
+                      .regex(
+                        characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsItemUpdatedAtRegExp,
+                      ),
+                  }),
                 )
                 .max(
-                  characterPortabilityControllerImportBundleBodyCharactersItemFormsItemPositionMax,
+                  characterPortabilityControllerExportBundleResponseCharactersItemAppearancesItemFactsMax,
                 ),
             }),
           )
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemFormsMax),
-        gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
-        globalAttitude: zod
-          .union([
-            zod.literal("favorite"),
-            zod.literal("like"),
-            zod.literal("neutral"),
-            zod.literal("distrust"),
-            zod.literal("dislike"),
-            zod.literal("hate"),
-            zod.literal("unsure"),
-            zod.literal(null),
-          ])
-          .nullable(),
-        id: zod.uuid().regex(characterPortabilityControllerImportBundleBodyCharactersItemIdRegExp),
-        isArchived: zod.boolean(),
-        isFavorite: zod.boolean(),
-        name: zod
-          .string()
-          .min(1)
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemNameMax),
-        neutralDescription: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemNeutralDescriptionMax)
-          .nullable(),
-        pronouns: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemPronounsMax)
-          .nullable(),
-        species: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemSpeciesMax)
-          .nullable(),
-        speciesKey: zod
-          .string()
-          .min(1)
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemSpeciesKeyMax)
-          .nullish(),
-        tagIds: zod
-          .array(
-            zod
-              .uuid()
-              .regex(characterPortabilityControllerImportBundleBodyCharactersItemTagIdsItemRegExp),
-          )
-          .max(characterPortabilityControllerImportBundleBodyCharactersItemTagIdsMax),
+          .max(characterPortabilityControllerExportBundleResponseCharactersItemAppearancesMax),
       }),
     )
-    .max(characterPortabilityControllerImportBundleBodyCharactersMax),
-  exportedAt: zod.iso
-    .datetime({ offset: true })
-    .regex(characterPortabilityControllerImportBundleBodyExportedAtRegExp),
-  formatVersion: zod.literal(1),
-  groups: zod
-    .array(
-      zod.object({
-        customType: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyGroupsItemCustomTypeMax)
-          .nullable(),
-        description: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyGroupsItemDescriptionMax)
-          .nullable(),
-        isSpoiler: zod.boolean(),
-        memberships: zod
-          .array(
-            zod.object({
-              bookId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemBookIdRegExp,
-                )
-                .nullable(),
-              characterId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemCharacterIdRegExp,
-                ),
-              isSpoiler: zod.boolean(),
-              role: zod
-                .string()
-                .max(characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemRoleMax)
-                .nullable(),
-              status: zod
-                .string()
-                .max(
-                  characterPortabilityControllerImportBundleBodyGroupsItemMembershipsItemStatusMax,
-                )
-                .nullable(),
-            }),
-          )
-          .max(characterPortabilityControllerImportBundleBodyGroupsItemMembershipsMax),
-        name: zod
-          .string()
-          .min(1)
-          .max(characterPortabilityControllerImportBundleBodyGroupsItemNameMax),
-        seriesId: zod
-          .uuid()
-          .regex(characterPortabilityControllerImportBundleBodyGroupsItemSeriesIdRegExp)
-          .nullable(),
-        type: zod.enum([
-          "family",
-          "clan",
-          "house",
-          "court",
-          "kingdom",
-          "order",
-          "guild",
-          "team",
-          "organization",
-          "cult",
-          "custom",
-        ]),
-      }),
-    )
-    .max(characterPortabilityControllerImportBundleBodyGroupsMax),
-  relationships: zod
-    .array(
-      zod.object({
-        bookStates: zod
-          .array(
-            zod.object({
-              bookId: zod
-                .uuid()
-                .regex(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemBookIdRegExp,
-                ),
-              description: zod
-                .string()
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemDescriptionMax,
-                )
-                .nullable(),
-              endedAudioSeconds: zod
-                .int()
-                .gt(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedAudioSecondsExclusiveMin,
-                )
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedAudioSecondsMax,
-                )
-                .nullable(),
-              endedChapter: zod
-                .string()
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedChapterMax,
-                )
-                .nullable(),
-              endedPage: zod
-                .int()
-                .gt(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedPageExclusiveMin,
-                )
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemEndedPageMax,
-                )
-                .nullable(),
-              hideRelationshipAsSpoiler: zod.boolean(),
-              intensity: zod
-                .union([
-                  zod.literal("low"),
-                  zod.literal("medium"),
-                  zod.literal("high"),
-                  zod.literal(null),
-                ])
-                .nullable(),
-              introducedAudioSeconds: zod
-                .int()
-                .gt(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedAudioSecondsExclusiveMin,
-                )
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedAudioSecondsMax,
-                )
-                .nullable(),
-              introducedChapter: zod
-                .string()
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedChapterMax,
-                )
-                .nullable(),
-              introducedPage: zod
-                .int()
-                .gt(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedPageExclusiveMin,
-                )
-                .max(
-                  characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesItemIntroducedPageMax,
-                )
-                .nullable(),
-              isDescriptionSpoiler: zod.boolean(),
-              isTypeSpoiler: zod.boolean(),
-              status: zod.enum(["active", "ended", "unknown", "hidden"]),
-            }),
-          )
-          .max(characterPortabilityControllerImportBundleBodyRelationshipsItemBookStatesMax),
-        category: zod.enum([
-          "family",
-          "romantic",
-          "social",
-          "conflict",
-          "mentorship",
-          "hierarchy",
-          "supernatural",
-          "custom",
-        ]),
-        customType: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyRelationshipsItemCustomTypeMax)
-          .nullable(),
-        directionality: zod.enum(["directed", "symmetric"]),
-        isCanonical: zod.boolean(),
-        sourceCharacterId: zod
-          .uuid()
-          .regex(
-            characterPortabilityControllerImportBundleBodyRelationshipsItemSourceCharacterIdRegExp,
-          ),
-        sourceLabel: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyRelationshipsItemSourceLabelMax)
-          .nullable(),
-        targetCharacterId: zod
-          .uuid()
-          .regex(
-            characterPortabilityControllerImportBundleBodyRelationshipsItemTargetCharacterIdRegExp,
-          ),
-        targetLabel: zod
-          .string()
-          .max(characterPortabilityControllerImportBundleBodyRelationshipsItemTargetLabelMax)
-          .nullable(),
-        type: zod.enum([
-          "biological_parent_of",
-          "biological_child_of",
-          "adoptive_parent_of",
-          "adoptive_child_of",
-          "step_parent_of",
-          "step_child_of",
-          "guardian_of",
-          "ward_of",
-          "ancestor_of",
-          "descendant_of",
-          "sibling_of",
-          "half_sibling_of",
-          "step_sibling_of",
-          "twin_of",
-          "spouse_of",
-          "ex_spouse_of",
-          "relative_of",
-          "partner_of",
-          "ex_partner_of",
-          "romantic_interest_of",
-          "mutual_romantic_interest",
-          "engaged_to",
-          "romantic_tension_with",
-          "unrequited_love_for",
-          "friend_of",
-          "best_friend_of",
-          "ally_of",
-          "acquaintance_of",
-          "companion_of",
-          "neighbor_of",
-          "trusted_by",
-          "distrusts",
-          "enemy_of",
-          "rival_of",
-          "betrayed",
-          "betrayed_by",
-          "hunts",
-          "hunted_by",
-          "opposes",
-          "feud_with",
-          "mentor_of",
-          "student_of",
-          "teacher_of",
-          "pupil_of",
-          "protector_of",
-          "protected_by",
-          "healer_of",
-          "patient_of",
-          "leader_of",
-          "subordinate_of",
-          "commander_of",
-          "serves_under",
-          "employer_of",
-          "employee_of",
-          "master_of",
-          "servant_of",
-          "member_of_same_group",
-          "rules_over",
-          "subject_of",
-          "creator_of",
-          "creation_of",
-          "summoner_of",
-          "summoned_by",
-          "magically_bonded_to",
-          "soulmate_of",
-          "blood_bonded_to",
-          "possesses",
-          "possessed_by",
-          "shares_body_with",
-          "reincarnation_of",
-          "clone_of",
-          "custom",
-        ]),
-      }),
-    )
-    .max(characterPortabilityControllerImportBundleBodyRelationshipsMax),
-  theories: zod
-    .array(
-      zod.object({
-        bookId: zod
-          .uuid()
-          .regex(characterPortabilityControllerImportBundleBodyTheoriesItemBookIdRegExp)
-          .nullable(),
-        characterId: zod
-          .uuid()
-          .regex(characterPortabilityControllerImportBundleBodyTheoriesItemCharacterIdRegExp)
-          .nullable(),
-        isSpoiler: zod.boolean(),
-        seriesId: zod
-          .uuid()
-          .regex(characterPortabilityControllerImportBundleBodyTheoriesItemSeriesIdRegExp)
-          .nullable(),
-        status: zod.enum(["unverified", "confirmed", "disproved"]),
-        text: zod
-          .string()
-          .min(1)
-          .max(characterPortabilityControllerImportBundleBodyTheoriesItemTextMax),
-      }),
-    )
-    .max(characterPortabilityControllerImportBundleBodyTheoriesMax),
+    .max(characterPortabilityControllerExportBundleResponseCharactersMax),
+  formatVersion: zod.literal(2),
 });
+
+/**
+ * @summary Import a character bundle into the caller's library
+ */
+export const characterPortabilityControllerImportBundleBodyOneExportedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemCustomTypeMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemRoleMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemStatusMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsMax = 100;
+
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneGroupsItemSeriesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerImportBundleBodyOneGroupsMax = 300;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedAudioSecondsExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedChapterMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedPageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedPageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedAudioSecondsExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedChapterMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedPageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedPageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemCustomTypeMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemSourceCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemSourceLabelMax = 120;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemTargetCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsItemTargetLabelMax = 120;
+
+export const characterPortabilityControllerImportBundleBodyOneRelationshipsMax = 3000;
+
+export const characterPortabilityControllerImportBundleBodyOneTheoriesItemBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerImportBundleBodyOneTheoriesItemCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneTheoriesItemSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneTheoriesItemTextMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneTheoriesMax = 2000;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemPositionMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesMax = 30;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAvatarMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemCustomGenderMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemPortraitMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemPositionMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemFormsMax = 50;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemNeutralDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemPronounsMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemSpeciesMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemSpeciesKeyMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemTagIdsItemRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemTagIdsMax = 15;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemAppearanceNotesMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemDisplayNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceChapterMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceNoteMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemPersonalImpressionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemPortraitMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesItemCustomRoleMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesItemPositionMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesMax = 20;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSortOrderMin = 0;
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSortOrderMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSpeciesOverrideMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemStatusCustomTextMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyOneCharactersMax = 1000;
+
+export const characterPortabilityControllerImportBundleBodyTwoExportedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemCustomTypeMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemRoleMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemStatusMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsMax = 100;
+
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoGroupsItemSeriesIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerImportBundleBodyTwoGroupsMax = 300;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedAudioSecondsExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedChapterMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedPageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedPageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedAudioSecondsExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedChapterMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedPageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedPageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemCustomTypeMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemSourceCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemSourceLabelMax = 120;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemTargetCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsItemTargetLabelMax = 120;
+
+export const characterPortabilityControllerImportBundleBodyTwoRelationshipsMax = 3000;
+
+export const characterPortabilityControllerImportBundleBodyTwoTheoriesItemBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerImportBundleBodyTwoTheoriesItemCharacterIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoTheoriesItemSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoTheoriesItemTextMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoTheoriesMax = 2000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemPositionMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesMax = 30;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAvatarMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemCustomGenderMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemPortraitMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemPositionMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsMax = 50;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemNeutralDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemPronounsMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemSpeciesMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemSpeciesKeyMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemTagIdsItemRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemTagIdsMax = 15;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemAppearanceNotesMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemDescriptionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemDisplayNameMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceChapterMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceNoteMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearancePageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearancePageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemIsUnreliableNarratorDefault = false;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault = false;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemPersonalImpressionMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemPortraitMediaIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesItemCustomRoleMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesItemPositionMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesItemPositionMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesMax = 20;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSortOrderMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSortOrderMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSpeciesOverrideMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSpeciesOverrideKeyMax = 60;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemStatusCustomTextMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemChapterMax = 100;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemCreatedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemPageExclusiveMin = 0;
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemPageMax = 2147483647;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemTextMax = 5000;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemTitleMax = 120;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemUpdatedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+  );
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesMax = 200;
+
+export const characterPortabilityControllerImportBundleBodyTwoCharactersMax = 1000;
+
+export const CharacterPortabilityControllerImportBundleBody = zod.union([
+  zod.object({
+    exportedAt: zod.iso
+      .datetime({ offset: true })
+      .regex(characterPortabilityControllerImportBundleBodyOneExportedAtRegExp),
+    groups: zod
+      .array(
+        zod.object({
+          customType: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneGroupsItemCustomTypeMax)
+            .nullable(),
+          description: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneGroupsItemDescriptionMax)
+            .nullable(),
+          isSpoiler: zod.boolean(),
+          memberships: zod
+            .array(
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemBookIdRegExp,
+                  )
+                  .nullable(),
+                characterId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemCharacterIdRegExp,
+                  ),
+                isSpoiler: zod.boolean(),
+                role: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemRoleMax,
+                  )
+                  .nullable(),
+                status: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsItemStatusMax,
+                  )
+                  .nullable(),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyOneGroupsItemMembershipsMax),
+          name: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyOneGroupsItemNameMax),
+          seriesId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyOneGroupsItemSeriesIdRegExp)
+            .nullable(),
+          type: zod.enum([
+            "family",
+            "clan",
+            "house",
+            "court",
+            "kingdom",
+            "order",
+            "guild",
+            "team",
+            "organization",
+            "cult",
+            "custom",
+          ]),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyOneGroupsMax),
+    relationships: zod
+      .array(
+        zod.object({
+          bookStates: zod
+            .array(
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemBookIdRegExp,
+                  ),
+                description: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemDescriptionMax,
+                  )
+                  .nullable(),
+                endedAudioSeconds: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedAudioSecondsExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedAudioSecondsMax,
+                  )
+                  .nullable(),
+                endedChapter: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedChapterMax,
+                  )
+                  .nullable(),
+                endedPage: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedPageExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemEndedPageMax,
+                  )
+                  .nullable(),
+                hideRelationshipAsSpoiler: zod.boolean(),
+                intensity: zod
+                  .union([
+                    zod.literal("low"),
+                    zod.literal("medium"),
+                    zod.literal("high"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                introducedAudioSeconds: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedAudioSecondsExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedAudioSecondsMax,
+                  )
+                  .nullable(),
+                introducedChapter: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedChapterMax,
+                  )
+                  .nullable(),
+                introducedPage: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedPageExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesItemIntroducedPageMax,
+                  )
+                  .nullable(),
+                isDescriptionSpoiler: zod.boolean(),
+                isTypeSpoiler: zod.boolean(),
+                status: zod.enum(["active", "ended", "unknown", "hidden"]),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyOneRelationshipsItemBookStatesMax),
+          category: zod.enum([
+            "family",
+            "romantic",
+            "social",
+            "conflict",
+            "mentorship",
+            "hierarchy",
+            "supernatural",
+            "custom",
+          ]),
+          customType: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneRelationshipsItemCustomTypeMax)
+            .nullable(),
+          directionality: zod.enum(["directed", "symmetric"]),
+          isCanonical: zod.boolean(),
+          sourceCharacterId: zod
+            .uuid()
+            .regex(
+              characterPortabilityControllerImportBundleBodyOneRelationshipsItemSourceCharacterIdRegExp,
+            ),
+          sourceLabel: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneRelationshipsItemSourceLabelMax)
+            .nullable(),
+          targetCharacterId: zod
+            .uuid()
+            .regex(
+              characterPortabilityControllerImportBundleBodyOneRelationshipsItemTargetCharacterIdRegExp,
+            ),
+          targetLabel: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneRelationshipsItemTargetLabelMax)
+            .nullable(),
+          type: zod.enum([
+            "biological_parent_of",
+            "biological_child_of",
+            "adoptive_parent_of",
+            "adoptive_child_of",
+            "step_parent_of",
+            "step_child_of",
+            "guardian_of",
+            "ward_of",
+            "ancestor_of",
+            "descendant_of",
+            "sibling_of",
+            "half_sibling_of",
+            "step_sibling_of",
+            "twin_of",
+            "spouse_of",
+            "ex_spouse_of",
+            "relative_of",
+            "partner_of",
+            "ex_partner_of",
+            "romantic_interest_of",
+            "mutual_romantic_interest",
+            "engaged_to",
+            "romantic_tension_with",
+            "unrequited_love_for",
+            "friend_of",
+            "best_friend_of",
+            "ally_of",
+            "acquaintance_of",
+            "companion_of",
+            "neighbor_of",
+            "trusted_by",
+            "distrusts",
+            "enemy_of",
+            "rival_of",
+            "betrayed",
+            "betrayed_by",
+            "hunts",
+            "hunted_by",
+            "opposes",
+            "feud_with",
+            "mentor_of",
+            "student_of",
+            "teacher_of",
+            "pupil_of",
+            "protector_of",
+            "protected_by",
+            "healer_of",
+            "patient_of",
+            "leader_of",
+            "subordinate_of",
+            "commander_of",
+            "serves_under",
+            "employer_of",
+            "employee_of",
+            "master_of",
+            "servant_of",
+            "member_of_same_group",
+            "rules_over",
+            "subject_of",
+            "creator_of",
+            "creation_of",
+            "summoner_of",
+            "summoned_by",
+            "magically_bonded_to",
+            "soulmate_of",
+            "blood_bonded_to",
+            "possesses",
+            "possessed_by",
+            "shares_body_with",
+            "reincarnation_of",
+            "clone_of",
+            "custom",
+          ]),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyOneRelationshipsMax),
+    theories: zod
+      .array(
+        zod.object({
+          bookId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyOneTheoriesItemBookIdRegExp)
+            .nullable(),
+          characterId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyOneTheoriesItemCharacterIdRegExp)
+            .nullable(),
+          isSpoiler: zod.boolean(),
+          seriesId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyOneTheoriesItemSeriesIdRegExp)
+            .nullable(),
+          status: zod.enum(["unverified", "confirmed", "disproved"]),
+          text: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyOneTheoriesItemTextMax),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyOneTheoriesMax),
+    characters: zod
+      .array(
+        zod.object({
+          aliases: zod
+            .array(
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemBookIdRegExp,
+                  )
+                  .nullable(),
+                isSpoiler: zod.boolean(),
+                name: zod
+                  .string()
+                  .min(1)
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemNameMax,
+                  ),
+                position: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemPositionMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesItemPositionMax,
+                  ),
+                type: zod.enum([
+                  "nickname",
+                  "title",
+                  "pseudonym",
+                  "true_name",
+                  "former_name",
+                  "translation",
+                  "other",
+                ]),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemAliasesMax),
+          avatarMediaId: zod
+            .uuid()
+            .regex(
+              characterPortabilityControllerImportBundleBodyOneCharactersItemAvatarMediaIdRegExp,
+            )
+            .nullable(),
+          customGender: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemCustomGenderMax)
+            .nullable(),
+          entityKind: zod.enum(["individual", "collective", "unknown"]),
+          forms: zod
+            .array(
+              zod.object({
+                description: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemDescriptionMax,
+                  )
+                  .nullable(),
+                formType: zod.enum([
+                  "reincarnation",
+                  "transformation",
+                  "alter_ego",
+                  "true_form",
+                  "disguise",
+                  "other",
+                ]),
+                isSpoiler: zod.boolean(),
+                name: zod
+                  .string()
+                  .min(1)
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemNameMax,
+                  ),
+                portraitMediaId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemPortraitMediaIdRegExp,
+                  )
+                  .nullable(),
+                position: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemPositionMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemFormsItemPositionMax,
+                  ),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemFormsMax),
+          gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
+          globalAttitude: zod
+            .union([
+              zod.literal("favorite"),
+              zod.literal("like"),
+              zod.literal("neutral"),
+              zod.literal("distrust"),
+              zod.literal("dislike"),
+              zod.literal("hate"),
+              zod.literal("unsure"),
+              zod.literal(null),
+            ])
+            .nullable(),
+          id: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyOneCharactersItemIdRegExp),
+          isArchived: zod.boolean(),
+          isFavorite: zod.boolean(),
+          name: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemNameMax),
+          neutralDescription: zod
+            .string()
+            .max(
+              characterPortabilityControllerImportBundleBodyOneCharactersItemNeutralDescriptionMax,
+            )
+            .nullable(),
+          pronouns: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemPronounsMax)
+            .nullable(),
+          species: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemSpeciesMax)
+            .nullable(),
+          speciesKey: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemSpeciesKeyMax)
+            .nullish(),
+          tagIds: zod
+            .array(
+              zod
+                .uuid()
+                .regex(
+                  characterPortabilityControllerImportBundleBodyOneCharactersItemTagIdsItemRegExp,
+                ),
+            )
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemTagIdsMax),
+          appearances: zod
+            .array(
+              zod.object({
+                appearanceNotes: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemAppearanceNotesMax,
+                  )
+                  .nullable(),
+                appearanceNotesIsSpoiler: zod.boolean(),
+                attitude: zod
+                  .union([
+                    zod.literal("favorite"),
+                    zod.literal("like"),
+                    zod.literal("neutral"),
+                    zod.literal("distrust"),
+                    zod.literal("dislike"),
+                    zod.literal("hate"),
+                    zod.literal("unsure"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemBookIdRegExp,
+                  ),
+                description: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemDescriptionMax,
+                  )
+                  .nullable(),
+                descriptionIsSpoiler: zod.boolean(),
+                displayName: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemDisplayNameMax,
+                  )
+                  .nullable(),
+                displayNameIsSpoiler: zod.boolean(),
+                firstAppearanceAudioSeconds: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax,
+                  )
+                  .nullable(),
+                firstAppearanceChapter: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceChapterMax,
+                  )
+                  .nullable(),
+                firstAppearanceNote: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearanceNoteMax,
+                  )
+                  .nullable(),
+                firstAppearancePage: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearancePageExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemFirstAppearancePageMax,
+                  )
+                  .nullable(),
+                importance: zod.enum([
+                  "central",
+                  "major",
+                  "supporting",
+                  "episodic",
+                  "mentioned",
+                  "not_specified",
+                ]),
+                isPovCharacter: zod.boolean(),
+                isUnreliableNarrator: zod
+                  .boolean()
+                  .default(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                  ),
+                isUnreliableNarratorSpoiler: zod
+                  .boolean()
+                  .default(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                  ),
+                narratorType: zod
+                  .union([
+                    zod.literal("first_person"),
+                    zod.literal("third_person_limited"),
+                    zod.literal("third_person_omniscient"),
+                    zod.literal("other"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                personalImpression: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemPersonalImpressionMax,
+                  )
+                  .nullable(),
+                personalImpressionIsSpoiler: zod.boolean(),
+                portraitIsSpoiler: zod.boolean(),
+                portraitMediaId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemPortraitMediaIdRegExp,
+                  )
+                  .nullable(),
+                roles: zod
+                  .array(
+                    zod.object({
+                      customRole: zod
+                        .string()
+                        .max(
+                          characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesItemCustomRoleMax,
+                        )
+                        .nullable(),
+                      isSpoiler: zod.boolean(),
+                      position: zod
+                        .int()
+                        .min(
+                          characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesItemPositionMin,
+                        )
+                        .max(
+                          characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesItemPositionMax,
+                        ),
+                      roleType: zod.enum([
+                        "protagonist",
+                        "deuteragonist",
+                        "antagonist",
+                        "love_interest",
+                        "supporting",
+                        "episodic",
+                        "mentioned",
+                        "custom",
+                      ]),
+                    }),
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemRolesMax,
+                  ),
+                sortOrder: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSortOrderMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSortOrderMax,
+                  )
+                  .nullable(),
+                speciesOverride: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSpeciesOverrideMax,
+                  )
+                  .nullable(),
+                speciesOverrideIsSpoiler: zod.boolean(),
+                speciesOverrideKey: zod
+                  .string()
+                  .min(1)
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemSpeciesOverrideKeyMax,
+                  )
+                  .nullish(),
+                status: zod.enum([
+                  "active",
+                  "missing",
+                  "dead",
+                  "unknown",
+                  "transformed",
+                  "other",
+                  "not_specified",
+                ]),
+                statusCustomText: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesItemStatusCustomTextMax,
+                  )
+                  .nullable(),
+                statusIsSpoiler: zod.boolean(),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyOneCharactersItemAppearancesMax),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyOneCharactersMax),
+    formatVersion: zod.literal(1),
+  }),
+  zod.object({
+    exportedAt: zod.iso
+      .datetime({ offset: true })
+      .regex(characterPortabilityControllerImportBundleBodyTwoExportedAtRegExp),
+    groups: zod
+      .array(
+        zod.object({
+          customType: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoGroupsItemCustomTypeMax)
+            .nullable(),
+          description: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoGroupsItemDescriptionMax)
+            .nullable(),
+          isSpoiler: zod.boolean(),
+          memberships: zod
+            .array(
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemBookIdRegExp,
+                  )
+                  .nullable(),
+                characterId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemCharacterIdRegExp,
+                  ),
+                isSpoiler: zod.boolean(),
+                role: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemRoleMax,
+                  )
+                  .nullable(),
+                status: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsItemStatusMax,
+                  )
+                  .nullable(),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyTwoGroupsItemMembershipsMax),
+          name: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyTwoGroupsItemNameMax),
+          seriesId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyTwoGroupsItemSeriesIdRegExp)
+            .nullable(),
+          type: zod.enum([
+            "family",
+            "clan",
+            "house",
+            "court",
+            "kingdom",
+            "order",
+            "guild",
+            "team",
+            "organization",
+            "cult",
+            "custom",
+          ]),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyTwoGroupsMax),
+    relationships: zod
+      .array(
+        zod.object({
+          bookStates: zod
+            .array(
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemBookIdRegExp,
+                  ),
+                description: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemDescriptionMax,
+                  )
+                  .nullable(),
+                endedAudioSeconds: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedAudioSecondsExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedAudioSecondsMax,
+                  )
+                  .nullable(),
+                endedChapter: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedChapterMax,
+                  )
+                  .nullable(),
+                endedPage: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedPageExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemEndedPageMax,
+                  )
+                  .nullable(),
+                hideRelationshipAsSpoiler: zod.boolean(),
+                intensity: zod
+                  .union([
+                    zod.literal("low"),
+                    zod.literal("medium"),
+                    zod.literal("high"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                introducedAudioSeconds: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedAudioSecondsExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedAudioSecondsMax,
+                  )
+                  .nullable(),
+                introducedChapter: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedChapterMax,
+                  )
+                  .nullable(),
+                introducedPage: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedPageExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesItemIntroducedPageMax,
+                  )
+                  .nullable(),
+                isDescriptionSpoiler: zod.boolean(),
+                isTypeSpoiler: zod.boolean(),
+                status: zod.enum(["active", "ended", "unknown", "hidden"]),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyTwoRelationshipsItemBookStatesMax),
+          category: zod.enum([
+            "family",
+            "romantic",
+            "social",
+            "conflict",
+            "mentorship",
+            "hierarchy",
+            "supernatural",
+            "custom",
+          ]),
+          customType: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoRelationshipsItemCustomTypeMax)
+            .nullable(),
+          directionality: zod.enum(["directed", "symmetric"]),
+          isCanonical: zod.boolean(),
+          sourceCharacterId: zod
+            .uuid()
+            .regex(
+              characterPortabilityControllerImportBundleBodyTwoRelationshipsItemSourceCharacterIdRegExp,
+            ),
+          sourceLabel: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoRelationshipsItemSourceLabelMax)
+            .nullable(),
+          targetCharacterId: zod
+            .uuid()
+            .regex(
+              characterPortabilityControllerImportBundleBodyTwoRelationshipsItemTargetCharacterIdRegExp,
+            ),
+          targetLabel: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoRelationshipsItemTargetLabelMax)
+            .nullable(),
+          type: zod.enum([
+            "biological_parent_of",
+            "biological_child_of",
+            "adoptive_parent_of",
+            "adoptive_child_of",
+            "step_parent_of",
+            "step_child_of",
+            "guardian_of",
+            "ward_of",
+            "ancestor_of",
+            "descendant_of",
+            "sibling_of",
+            "half_sibling_of",
+            "step_sibling_of",
+            "twin_of",
+            "spouse_of",
+            "ex_spouse_of",
+            "relative_of",
+            "partner_of",
+            "ex_partner_of",
+            "romantic_interest_of",
+            "mutual_romantic_interest",
+            "engaged_to",
+            "romantic_tension_with",
+            "unrequited_love_for",
+            "friend_of",
+            "best_friend_of",
+            "ally_of",
+            "acquaintance_of",
+            "companion_of",
+            "neighbor_of",
+            "trusted_by",
+            "distrusts",
+            "enemy_of",
+            "rival_of",
+            "betrayed",
+            "betrayed_by",
+            "hunts",
+            "hunted_by",
+            "opposes",
+            "feud_with",
+            "mentor_of",
+            "student_of",
+            "teacher_of",
+            "pupil_of",
+            "protector_of",
+            "protected_by",
+            "healer_of",
+            "patient_of",
+            "leader_of",
+            "subordinate_of",
+            "commander_of",
+            "serves_under",
+            "employer_of",
+            "employee_of",
+            "master_of",
+            "servant_of",
+            "member_of_same_group",
+            "rules_over",
+            "subject_of",
+            "creator_of",
+            "creation_of",
+            "summoner_of",
+            "summoned_by",
+            "magically_bonded_to",
+            "soulmate_of",
+            "blood_bonded_to",
+            "possesses",
+            "possessed_by",
+            "shares_body_with",
+            "reincarnation_of",
+            "clone_of",
+            "custom",
+          ]),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyTwoRelationshipsMax),
+    theories: zod
+      .array(
+        zod.object({
+          bookId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyTwoTheoriesItemBookIdRegExp)
+            .nullable(),
+          characterId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyTwoTheoriesItemCharacterIdRegExp)
+            .nullable(),
+          isSpoiler: zod.boolean(),
+          seriesId: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyTwoTheoriesItemSeriesIdRegExp)
+            .nullable(),
+          status: zod.enum(["unverified", "confirmed", "disproved"]),
+          text: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyTwoTheoriesItemTextMax),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyTwoTheoriesMax),
+    characters: zod
+      .array(
+        zod.object({
+          aliases: zod
+            .array(
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemBookIdRegExp,
+                  )
+                  .nullable(),
+                isSpoiler: zod.boolean(),
+                name: zod
+                  .string()
+                  .min(1)
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemNameMax,
+                  ),
+                position: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemPositionMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesItemPositionMax,
+                  ),
+                type: zod.enum([
+                  "nickname",
+                  "title",
+                  "pseudonym",
+                  "true_name",
+                  "former_name",
+                  "translation",
+                  "other",
+                ]),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemAliasesMax),
+          avatarMediaId: zod
+            .uuid()
+            .regex(
+              characterPortabilityControllerImportBundleBodyTwoCharactersItemAvatarMediaIdRegExp,
+            )
+            .nullable(),
+          customGender: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemCustomGenderMax)
+            .nullable(),
+          entityKind: zod.enum(["individual", "collective", "unknown"]),
+          forms: zod
+            .array(
+              zod.object({
+                description: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemDescriptionMax,
+                  )
+                  .nullable(),
+                formType: zod.enum([
+                  "reincarnation",
+                  "transformation",
+                  "alter_ego",
+                  "true_form",
+                  "disguise",
+                  "other",
+                ]),
+                isSpoiler: zod.boolean(),
+                name: zod
+                  .string()
+                  .min(1)
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemNameMax,
+                  ),
+                portraitMediaId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemPortraitMediaIdRegExp,
+                  )
+                  .nullable(),
+                position: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemPositionMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsItemPositionMax,
+                  ),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemFormsMax),
+          gender: zod.enum(["female", "male", "non_binary", "agender_or_na", "unknown", "custom"]),
+          globalAttitude: zod
+            .union([
+              zod.literal("favorite"),
+              zod.literal("like"),
+              zod.literal("neutral"),
+              zod.literal("distrust"),
+              zod.literal("dislike"),
+              zod.literal("hate"),
+              zod.literal("unsure"),
+              zod.literal(null),
+            ])
+            .nullable(),
+          id: zod
+            .uuid()
+            .regex(characterPortabilityControllerImportBundleBodyTwoCharactersItemIdRegExp),
+          isArchived: zod.boolean(),
+          isFavorite: zod.boolean(),
+          name: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemNameMax),
+          neutralDescription: zod
+            .string()
+            .max(
+              characterPortabilityControllerImportBundleBodyTwoCharactersItemNeutralDescriptionMax,
+            )
+            .nullable(),
+          pronouns: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemPronounsMax)
+            .nullable(),
+          species: zod
+            .string()
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemSpeciesMax)
+            .nullable(),
+          speciesKey: zod
+            .string()
+            .min(1)
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemSpeciesKeyMax)
+            .nullish(),
+          tagIds: zod
+            .array(
+              zod
+                .uuid()
+                .regex(
+                  characterPortabilityControllerImportBundleBodyTwoCharactersItemTagIdsItemRegExp,
+                ),
+            )
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemTagIdsMax),
+          appearances: zod
+            .array(
+              zod.object({
+                appearanceNotes: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemAppearanceNotesMax,
+                  )
+                  .nullable(),
+                appearanceNotesIsSpoiler: zod.boolean(),
+                attitude: zod
+                  .union([
+                    zod.literal("favorite"),
+                    zod.literal("like"),
+                    zod.literal("neutral"),
+                    zod.literal("distrust"),
+                    zod.literal("dislike"),
+                    zod.literal("hate"),
+                    zod.literal("unsure"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemBookIdRegExp,
+                  ),
+                description: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemDescriptionMax,
+                  )
+                  .nullable(),
+                descriptionIsSpoiler: zod.boolean(),
+                displayName: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemDisplayNameMax,
+                  )
+                  .nullable(),
+                displayNameIsSpoiler: zod.boolean(),
+                firstAppearanceAudioSeconds: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceAudioSecondsMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceAudioSecondsMax,
+                  )
+                  .nullable(),
+                firstAppearanceChapter: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceChapterMax,
+                  )
+                  .nullable(),
+                firstAppearanceNote: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearanceNoteMax,
+                  )
+                  .nullable(),
+                firstAppearancePage: zod
+                  .int()
+                  .gt(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearancePageExclusiveMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFirstAppearancePageMax,
+                  )
+                  .nullable(),
+                importance: zod.enum([
+                  "central",
+                  "major",
+                  "supporting",
+                  "episodic",
+                  "mentioned",
+                  "not_specified",
+                ]),
+                isPovCharacter: zod.boolean(),
+                isUnreliableNarrator: zod
+                  .boolean()
+                  .default(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemIsUnreliableNarratorDefault,
+                  ),
+                isUnreliableNarratorSpoiler: zod
+                  .boolean()
+                  .default(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemIsUnreliableNarratorSpoilerDefault,
+                  ),
+                narratorType: zod
+                  .union([
+                    zod.literal("first_person"),
+                    zod.literal("third_person_limited"),
+                    zod.literal("third_person_omniscient"),
+                    zod.literal("other"),
+                    zod.literal(null),
+                  ])
+                  .nullable(),
+                personalImpression: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemPersonalImpressionMax,
+                  )
+                  .nullable(),
+                personalImpressionIsSpoiler: zod.boolean(),
+                portraitIsSpoiler: zod.boolean(),
+                portraitMediaId: zod
+                  .uuid()
+                  .regex(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemPortraitMediaIdRegExp,
+                  )
+                  .nullable(),
+                roles: zod
+                  .array(
+                    zod.object({
+                      customRole: zod
+                        .string()
+                        .max(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesItemCustomRoleMax,
+                        )
+                        .nullable(),
+                      isSpoiler: zod.boolean(),
+                      position: zod
+                        .int()
+                        .min(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesItemPositionMin,
+                        )
+                        .max(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesItemPositionMax,
+                        ),
+                      roleType: zod.enum([
+                        "protagonist",
+                        "deuteragonist",
+                        "antagonist",
+                        "love_interest",
+                        "supporting",
+                        "episodic",
+                        "mentioned",
+                        "custom",
+                      ]),
+                    }),
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemRolesMax,
+                  ),
+                sortOrder: zod
+                  .int()
+                  .min(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSortOrderMin,
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSortOrderMax,
+                  )
+                  .nullable(),
+                speciesOverride: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSpeciesOverrideMax,
+                  )
+                  .nullable(),
+                speciesOverrideIsSpoiler: zod.boolean(),
+                speciesOverrideKey: zod
+                  .string()
+                  .min(1)
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemSpeciesOverrideKeyMax,
+                  )
+                  .nullish(),
+                status: zod.enum([
+                  "active",
+                  "missing",
+                  "dead",
+                  "unknown",
+                  "transformed",
+                  "other",
+                  "not_specified",
+                ]),
+                statusCustomText: zod
+                  .string()
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemStatusCustomTextMax,
+                  )
+                  .nullable(),
+                statusIsSpoiler: zod.boolean(),
+                facts: zod
+                  .array(
+                    zod.object({
+                      chapter: zod
+                        .string()
+                        .max(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemChapterMax,
+                        )
+                        .nullable(),
+                      createdAt: zod.iso
+                        .datetime({ offset: true })
+                        .regex(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemCreatedAtRegExp,
+                        ),
+                      page: zod
+                        .int()
+                        .gt(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemPageExclusiveMin,
+                        )
+                        .max(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemPageMax,
+                        )
+                        .nullable(),
+                      text: zod
+                        .string()
+                        .min(1)
+                        .max(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemTextMax,
+                        ),
+                      title: zod
+                        .string()
+                        .min(1)
+                        .max(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemTitleMax,
+                        ),
+                      updatedAt: zod.iso
+                        .datetime({ offset: true })
+                        .regex(
+                          characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsItemUpdatedAtRegExp,
+                        ),
+                    }),
+                  )
+                  .max(
+                    characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesItemFactsMax,
+                  ),
+              }),
+            )
+            .max(characterPortabilityControllerImportBundleBodyTwoCharactersItemAppearancesMax),
+        }),
+      )
+      .max(characterPortabilityControllerImportBundleBodyTwoCharactersMax),
+    formatVersion: zod.literal(2),
+  }),
+]);
 
 export const characterPortabilityControllerImportBundleResponseCreatedAliasesMin = 0;
 export const characterPortabilityControllerImportBundleResponseCreatedAliasesMax = 9007199254740991;
@@ -1622,6 +2564,9 @@ export const characterPortabilityControllerImportBundleResponseCreatedBookStates
 
 export const characterPortabilityControllerImportBundleResponseCreatedCharactersMin = 0;
 export const characterPortabilityControllerImportBundleResponseCreatedCharactersMax = 9007199254740991;
+
+export const characterPortabilityControllerImportBundleResponseCreatedFactsMin = 0;
+export const characterPortabilityControllerImportBundleResponseCreatedFactsMax = 9007199254740991;
 
 export const characterPortabilityControllerImportBundleResponseCreatedFormsMin = 0;
 export const characterPortabilityControllerImportBundleResponseCreatedFormsMax = 9007199254740991;
@@ -1655,6 +2600,9 @@ export const characterPortabilityControllerImportBundleResponseSkippedAppearance
 
 export const characterPortabilityControllerImportBundleResponseSkippedBookStatesMissingBookMin = 0;
 export const characterPortabilityControllerImportBundleResponseSkippedBookStatesMissingBookMax = 9007199254740991;
+
+export const characterPortabilityControllerImportBundleResponseSkippedFactsMissingBookMin = 0;
+export const characterPortabilityControllerImportBundleResponseSkippedFactsMissingBookMax = 9007199254740991;
 
 export const characterPortabilityControllerImportBundleResponseSkippedMembershipsMissingBookMin = 0;
 export const characterPortabilityControllerImportBundleResponseSkippedMembershipsMissingBookMax = 9007199254740991;
@@ -1692,6 +2640,10 @@ export const CharacterPortabilityControllerImportBundleResponse = zod.object({
       .int()
       .min(characterPortabilityControllerImportBundleResponseCreatedCharactersMin)
       .max(characterPortabilityControllerImportBundleResponseCreatedCharactersMax),
+    facts: zod
+      .int()
+      .min(characterPortabilityControllerImportBundleResponseCreatedFactsMin)
+      .max(characterPortabilityControllerImportBundleResponseCreatedFactsMax),
     forms: zod
       .int()
       .min(characterPortabilityControllerImportBundleResponseCreatedFormsMin)
@@ -1738,6 +2690,10 @@ export const CharacterPortabilityControllerImportBundleResponse = zod.object({
       .int()
       .min(characterPortabilityControllerImportBundleResponseSkippedBookStatesMissingBookMin)
       .max(characterPortabilityControllerImportBundleResponseSkippedBookStatesMissingBookMax),
+    factsMissingBook: zod
+      .int()
+      .min(characterPortabilityControllerImportBundleResponseSkippedFactsMissingBookMin)
+      .max(characterPortabilityControllerImportBundleResponseSkippedFactsMissingBookMax),
     membershipsMissingBook: zod
       .int()
       .min(characterPortabilityControllerImportBundleResponseSkippedMembershipsMissingBookMin)
@@ -3608,6 +4564,9 @@ export const charactersControllerDeletionPreviewResponseAliasCountMax = 90071992
 export const charactersControllerDeletionPreviewResponseAppearanceCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseAppearanceCountMax = 9007199254740991;
 
+export const charactersControllerDeletionPreviewResponseFactCountMin = -9007199254740991;
+export const charactersControllerDeletionPreviewResponseFactCountMax = 9007199254740991;
+
 export const charactersControllerDeletionPreviewResponseFormCountMin = -9007199254740991;
 export const charactersControllerDeletionPreviewResponseFormCountMax = 9007199254740991;
 
@@ -3635,6 +4594,10 @@ export const CharactersControllerDeletionPreviewResponse = zod.object({
     .int()
     .min(charactersControllerDeletionPreviewResponseAppearanceCountMin)
     .max(charactersControllerDeletionPreviewResponseAppearanceCountMax),
+  factCount: zod
+    .int()
+    .min(charactersControllerDeletionPreviewResponseFactCountMin)
+    .max(charactersControllerDeletionPreviewResponseFactCountMax),
   formCount: zod
     .int()
     .min(charactersControllerDeletionPreviewResponseFormCountMin)
@@ -4010,6 +4973,12 @@ export const characterMergeControllerPreviewResponseCountsAppearancesDroppedMax 
 export const characterMergeControllerPreviewResponseCountsAppearancesMovedMin = 0;
 export const characterMergeControllerPreviewResponseCountsAppearancesMovedMax = 9007199254740991;
 
+export const characterMergeControllerPreviewResponseCountsFactsDroppedMin = 0;
+export const characterMergeControllerPreviewResponseCountsFactsDroppedMax = 9007199254740991;
+
+export const characterMergeControllerPreviewResponseCountsFactsMovedMin = 0;
+export const characterMergeControllerPreviewResponseCountsFactsMovedMax = 9007199254740991;
+
 export const characterMergeControllerPreviewResponseCountsFormsDroppedMin = 0;
 export const characterMergeControllerPreviewResponseCountsFormsDroppedMax = 9007199254740991;
 
@@ -4067,6 +5036,16 @@ export const CharacterMergeControllerPreviewResponse = zod.object({
         .int()
         .min(characterMergeControllerPreviewResponseCountsAppearancesMovedMin)
         .max(characterMergeControllerPreviewResponseCountsAppearancesMovedMax),
+    }),
+    facts: zod.object({
+      dropped: zod
+        .int()
+        .min(characterMergeControllerPreviewResponseCountsFactsDroppedMin)
+        .max(characterMergeControllerPreviewResponseCountsFactsDroppedMax),
+      moved: zod
+        .int()
+        .min(characterMergeControllerPreviewResponseCountsFactsMovedMin)
+        .max(characterMergeControllerPreviewResponseCountsFactsMovedMax),
     }),
     forms: zod.object({
       dropped: zod
@@ -4167,6 +5146,12 @@ export const characterMergeControllerMergeResponseCountsAppearancesDroppedMax = 
 export const characterMergeControllerMergeResponseCountsAppearancesMovedMin = 0;
 export const characterMergeControllerMergeResponseCountsAppearancesMovedMax = 9007199254740991;
 
+export const characterMergeControllerMergeResponseCountsFactsDroppedMin = 0;
+export const characterMergeControllerMergeResponseCountsFactsDroppedMax = 9007199254740991;
+
+export const characterMergeControllerMergeResponseCountsFactsMovedMin = 0;
+export const characterMergeControllerMergeResponseCountsFactsMovedMax = 9007199254740991;
+
 export const characterMergeControllerMergeResponseCountsFormsDroppedMin = 0;
 export const characterMergeControllerMergeResponseCountsFormsDroppedMax = 9007199254740991;
 
@@ -4224,6 +5209,16 @@ export const CharacterMergeControllerMergeResponse = zod.object({
         .int()
         .min(characterMergeControllerMergeResponseCountsAppearancesMovedMin)
         .max(characterMergeControllerMergeResponseCountsAppearancesMovedMax),
+    }),
+    facts: zod.object({
+      dropped: zod
+        .int()
+        .min(characterMergeControllerMergeResponseCountsFactsDroppedMin)
+        .max(characterMergeControllerMergeResponseCountsFactsDroppedMax),
+      moved: zod
+        .int()
+        .min(characterMergeControllerMergeResponseCountsFactsMovedMin)
+        .max(characterMergeControllerMergeResponseCountsFactsMovedMax),
     }),
     forms: zod.object({
       dropped: zod
@@ -4292,6 +5287,219 @@ export const CharacterMergeControllerMergeResponse = zod.object({
     name: zod.string(),
   }),
 });
+
+/**
+ * @summary List and search a character's facts within one book
+ */
+export const CharacterFactsControllerListParams = zod.object({
+  bookId: zod.string().describe("Book id"),
+  characterId: zod.string().describe("Character id"),
+});
+
+export const characterFactsControllerListQueryPageNumberDefault = 1;
+export const characterFactsControllerListQueryPageNumberMax = 21474836;
+
+export const characterFactsControllerListQueryPageSizeDefault = 20;
+export const characterFactsControllerListQueryPageSizeMax = 20;
+
+export const characterFactsControllerListQueryQMax = 100;
+
+export const CharacterFactsControllerListQueryParams = zod.object({
+  pageNumber: zod
+    .int()
+    .min(1)
+    .max(characterFactsControllerListQueryPageNumberMax)
+    .default(characterFactsControllerListQueryPageNumberDefault),
+  pageSize: zod
+    .int()
+    .min(1)
+    .max(characterFactsControllerListQueryPageSizeMax)
+    .default(characterFactsControllerListQueryPageSizeDefault),
+  q: zod.string().max(characterFactsControllerListQueryQMax).optional(),
+});
+
+export const characterFactsControllerListResponseItemsItemCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const characterFactsControllerListResponseItemsItemPageMin = -9007199254740991;
+export const characterFactsControllerListResponseItemsItemPageMax = 9007199254740991;
+
+export const characterFactsControllerListResponseItemsItemUpdatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const characterFactsControllerListResponsePageMin = -9007199254740991;
+export const characterFactsControllerListResponsePageMax = 9007199254740991;
+
+export const characterFactsControllerListResponsePagesCountMin = -9007199254740991;
+export const characterFactsControllerListResponsePagesCountMax = 9007199254740991;
+
+export const characterFactsControllerListResponsePageSizeMin = -9007199254740991;
+export const characterFactsControllerListResponsePageSizeMax = 9007199254740991;
+
+export const characterFactsControllerListResponseTotalCountMin = -9007199254740991;
+export const characterFactsControllerListResponseTotalCountMax = 9007199254740991;
+
+export const CharacterFactsControllerListResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      chapter: zod.string().nullable(),
+      createdAt: zod.iso
+        .datetime({ offset: true })
+        .regex(characterFactsControllerListResponseItemsItemCreatedAtRegExp),
+      id: zod.string(),
+      page: zod
+        .int()
+        .min(characterFactsControllerListResponseItemsItemPageMin)
+        .max(characterFactsControllerListResponseItemsItemPageMax)
+        .nullable(),
+      text: zod.string(),
+      title: zod.string(),
+      updatedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(characterFactsControllerListResponseItemsItemUpdatedAtRegExp),
+    }),
+  ),
+  page: zod
+    .int()
+    .min(characterFactsControllerListResponsePageMin)
+    .max(characterFactsControllerListResponsePageMax),
+  pagesCount: zod
+    .int()
+    .min(characterFactsControllerListResponsePagesCountMin)
+    .max(characterFactsControllerListResponsePagesCountMax),
+  pageSize: zod
+    .int()
+    .min(characterFactsControllerListResponsePageSizeMin)
+    .max(characterFactsControllerListResponsePageSizeMax),
+  totalCount: zod
+    .int()
+    .min(characterFactsControllerListResponseTotalCountMin)
+    .max(characterFactsControllerListResponseTotalCountMax),
+});
+
+/**
+ * @summary Add a fact to a character within one book
+ */
+export const CharacterFactsControllerCreateParams = zod.object({
+  bookId: zod.string().describe("Book id"),
+  characterId: zod.string().describe("Character id"),
+});
+
+export const characterFactsControllerCreateBodyChapterMax = 100;
+
+export const characterFactsControllerCreateBodyPageExclusiveMin = 0;
+export const characterFactsControllerCreateBodyPageMax = 2147483647;
+
+export const characterFactsControllerCreateBodyTextMax = 5000;
+
+export const characterFactsControllerCreateBodyTitleMax = 120;
+
+export const CharacterFactsControllerCreateBody = zod.object({
+  chapter: zod.string().max(characterFactsControllerCreateBodyChapterMax).nullish(),
+  page: zod
+    .int()
+    .gt(characterFactsControllerCreateBodyPageExclusiveMin)
+    .max(characterFactsControllerCreateBodyPageMax)
+    .nullish(),
+  text: zod.string().min(1).max(characterFactsControllerCreateBodyTextMax),
+  title: zod.string().min(1).max(characterFactsControllerCreateBodyTitleMax),
+});
+
+export const characterFactsControllerCreateResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const characterFactsControllerCreateResponsePageMin = -9007199254740991;
+export const characterFactsControllerCreateResponsePageMax = 9007199254740991;
+
+export const characterFactsControllerCreateResponseUpdatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const CharacterFactsControllerCreateResponse = zod.object({
+  chapter: zod.string().nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(characterFactsControllerCreateResponseCreatedAtRegExp),
+  id: zod.string(),
+  page: zod
+    .int()
+    .min(characterFactsControllerCreateResponsePageMin)
+    .max(characterFactsControllerCreateResponsePageMax)
+    .nullable(),
+  text: zod.string(),
+  title: zod.string(),
+  updatedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(characterFactsControllerCreateResponseUpdatedAtRegExp),
+});
+
+/**
+ * @summary Update a character fact
+ */
+export const CharacterFactsControllerUpdateParams = zod.object({
+  bookId: zod.string().describe("Book id"),
+  characterId: zod.string().describe("Character id"),
+  factId: zod.string().describe("Fact id"),
+});
+
+export const characterFactsControllerUpdateBodyChapterMax = 100;
+
+export const characterFactsControllerUpdateBodyPageExclusiveMin = 0;
+export const characterFactsControllerUpdateBodyPageMax = 2147483647;
+
+export const characterFactsControllerUpdateBodyTextMax = 5000;
+
+export const characterFactsControllerUpdateBodyTitleMax = 120;
+
+export const CharacterFactsControllerUpdateBody = zod.object({
+  chapter: zod.string().max(characterFactsControllerUpdateBodyChapterMax).nullish(),
+  page: zod
+    .int()
+    .gt(characterFactsControllerUpdateBodyPageExclusiveMin)
+    .max(characterFactsControllerUpdateBodyPageMax)
+    .nullish(),
+  text: zod.string().min(1).max(characterFactsControllerUpdateBodyTextMax).optional(),
+  title: zod.string().min(1).max(characterFactsControllerUpdateBodyTitleMax).optional(),
+});
+
+export const characterFactsControllerUpdateResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const characterFactsControllerUpdateResponsePageMin = -9007199254740991;
+export const characterFactsControllerUpdateResponsePageMax = 9007199254740991;
+
+export const characterFactsControllerUpdateResponseUpdatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const CharacterFactsControllerUpdateResponse = zod.object({
+  chapter: zod.string().nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(characterFactsControllerUpdateResponseCreatedAtRegExp),
+  id: zod.string(),
+  page: zod
+    .int()
+    .min(characterFactsControllerUpdateResponsePageMin)
+    .max(characterFactsControllerUpdateResponsePageMax)
+    .nullable(),
+  text: zod.string(),
+  title: zod.string(),
+  updatedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(characterFactsControllerUpdateResponseUpdatedAtRegExp),
+});
+
+/**
+ * @summary Delete a character fact
+ */
+export const CharacterFactsControllerRemoveParams = zod.object({
+  bookId: zod.string().describe("Book id"),
+  characterId: zod.string().describe("Character id"),
+  factId: zod.string().describe("Fact id"),
+});
+
+export const CharacterFactsControllerRemoveResponse = zod.void();
 
 /**
  * @summary List the custom character roles and statuses the user has already typed

@@ -31,6 +31,11 @@ export type CharacterImportResultDtoCreated = {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  facts: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   forms: number;
   /**
    * @minimum 0

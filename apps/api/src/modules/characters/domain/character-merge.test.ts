@@ -206,8 +206,14 @@ describe("buildCharacterMergePlan", () => {
       ],
       loserAvatarMediaId: "media-avatar",
       loserBookCharacters: [
-        { bookId: "book-shared", id: "bc-drop", portraitMediaId: "media-portrait", roleCount: 2 },
-        { bookId: "book-solo", id: "bc-move", portraitMediaId: null, roleCount: 1 },
+        {
+          bookId: "book-shared",
+          factCount: 0,
+          id: "bc-drop",
+          portraitMediaId: "media-portrait",
+          roleCount: 2,
+        },
+        { bookId: "book-solo", factCount: 0, id: "bc-move", portraitMediaId: null, roleCount: 1 },
       ],
       loserForms: [
         { id: "form-drop", normalizedName: "true form", portraitMediaId: "media-form" },
@@ -221,7 +227,7 @@ describe("buildCharacterMergePlan", () => {
       loserTheoryCount: 3,
       relationshipCandidates: candidates,
       survivorAliasKeys: [{ bookId: null, normalizedName: "usul", type: "nickname" }],
-      survivorBookIds: ["book-shared"],
+      survivorAppearances: [{ bookId: "book-shared", id: "bc-survivor" }],
       survivorFormKeys: ["true form"],
       survivorMembershipKeys: [{ bookId: null, groupId: "group-shared" }],
       survivorRelationshipKeys: new Set(),
@@ -233,6 +239,7 @@ describe("buildCharacterMergePlan", () => {
     expect(plan.counts).toEqual({
       aliases: { dropped: 1, moved: 1 },
       appearances: { dropped: 1, moved: 1 },
+      facts: { dropped: 0, moved: 0 },
       forms: { dropped: 1, moved: 1 },
       memberships: { dropped: 1, moved: 1 },
       relationships: { dropped: 1, moved: 1 },
@@ -253,5 +260,121 @@ describe("buildCharacterMergePlan", () => {
     expect(plan.relationshipRepoints.map((repoint) => repoint.id)).toEqual(["rel-move"]);
     expect(plan.dropRelationshipIds).toEqual(["rel-self"]);
     expect(plan.droppedMediaIds.sort()).toEqual(["media-avatar", "media-form", "media-portrait"]);
+  });
+});
+
+describe("buildCharacterMergePlan fact handling", () => {
+  type LoserAppearance = CharacterMergePlanInput["loserBookCharacters"][number];
+
+  function loserAppearance({
+    bookId,
+    factCount,
+    id,
+  }: Pick<LoserAppearance, "bookId" | "factCount" | "id">): LoserAppearance {
+    return { bookId, factCount, id, portraitMediaId: null, roleCount: 0 };
+  }
+
+  function appearancesOnlyInput({
+    loserBookCharacters,
+    survivorAppearances,
+  }: Pick<
+    CharacterMergePlanInput,
+    "loserBookCharacters" | "survivorAppearances"
+  >): CharacterMergePlanInput {
+    return {
+      loserAliases: [],
+      loserAvatarMediaId: null,
+      loserBookCharacters,
+      loserForms: [],
+      loserMemberships: [],
+      loserTagIds: [],
+      loserTheoryCount: 0,
+      relationshipCandidates: [],
+      survivorAliasKeys: [],
+      survivorAppearances,
+      survivorFormKeys: [],
+      survivorMembershipKeys: [],
+      survivorRelationshipKeys: new Set(),
+      survivorTagIds: [],
+    };
+  }
+
+  it("re-parents the facts of an overlapping appearance onto the survivor's appearance in that book", () => {
+    const plan = buildCharacterMergePlan(
+      appearancesOnlyInput({
+        loserBookCharacters: [
+          loserAppearance({ bookId: "book-a", factCount: 3, id: "bc-loser-a" }),
+        ],
+        survivorAppearances: [{ bookId: "book-a", id: "bc-survivor-a" }],
+      }),
+    );
+
+    expect(plan.factReparents).toEqual([
+      { fromBookCharacterId: "bc-loser-a", toBookCharacterId: "bc-survivor-a" },
+    ]);
+    expect(plan.dropBookCharacterIds).toEqual(["bc-loser-a"]);
+    expect(plan.repointBookCharacterIds).toEqual([]);
+    expect(plan.counts.facts).toEqual({ dropped: 0, moved: 3 });
+  });
+
+  it("keeps the facts of a non-overlapping appearance by re-pointing the appearance itself", () => {
+    const plan = buildCharacterMergePlan(
+      appearancesOnlyInput({
+        loserBookCharacters: [
+          loserAppearance({ bookId: "book-b", factCount: 2, id: "bc-loser-b" }),
+        ],
+        survivorAppearances: [{ bookId: "book-a", id: "bc-survivor-a" }],
+      }),
+    );
+
+    expect(plan.factReparents).toEqual([]);
+    expect(plan.dropBookCharacterIds).toEqual([]);
+    expect(plan.repointBookCharacterIds).toEqual(["bc-loser-b"]);
+    expect(plan.counts.facts).toEqual({ dropped: 0, moved: 2 });
+  });
+
+  it("re-parents every overlapping appearance, with or without facts, when overlap and non-overlap are mixed", () => {
+    const plan = buildCharacterMergePlan(
+      appearancesOnlyInput({
+        loserBookCharacters: [
+          loserAppearance({ bookId: "book-a", factCount: 4, id: "bc-loser-a" }),
+          loserAppearance({ bookId: "book-b", factCount: 1, id: "bc-loser-b" }),
+          loserAppearance({ bookId: "book-c", factCount: 0, id: "bc-loser-c" }),
+        ],
+        survivorAppearances: [
+          { bookId: "book-a", id: "bc-survivor-a" },
+          { bookId: "book-c", id: "bc-survivor-c" },
+        ],
+      }),
+    );
+
+    expect(plan.factReparents).toEqual([
+      { fromBookCharacterId: "bc-loser-a", toBookCharacterId: "bc-survivor-a" },
+      { fromBookCharacterId: "bc-loser-c", toBookCharacterId: "bc-survivor-c" },
+    ]);
+    expect(plan.dropBookCharacterIds).toEqual(["bc-loser-a", "bc-loser-c"]);
+    expect(plan.repointBookCharacterIds).toEqual(["bc-loser-b"]);
+    expect(plan.counts.facts).toEqual({ dropped: 0, moved: 5 });
+  });
+
+  it("counts every loser fact as moved and none as dropped when every loser appearance collides with the survivor", () => {
+    const plan = buildCharacterMergePlan(
+      appearancesOnlyInput({
+        loserBookCharacters: [
+          loserAppearance({ bookId: "book-a", factCount: 2, id: "bc-loser-a" }),
+          loserAppearance({ bookId: "book-b", factCount: 2, id: "bc-loser-b" }),
+        ],
+        survivorAppearances: [
+          { bookId: "book-a", id: "bc-survivor-a" },
+          { bookId: "book-b", id: "bc-survivor-b" },
+        ],
+      }),
+    );
+
+    expect(plan.factReparents).toEqual([
+      { fromBookCharacterId: "bc-loser-a", toBookCharacterId: "bc-survivor-a" },
+      { fromBookCharacterId: "bc-loser-b", toBookCharacterId: "bc-survivor-b" },
+    ]);
+    expect(plan.counts.facts).toEqual({ dropped: 0, moved: 4 });
   });
 });

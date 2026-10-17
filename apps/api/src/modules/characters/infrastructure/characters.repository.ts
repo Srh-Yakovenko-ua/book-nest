@@ -186,6 +186,7 @@ export type BookContextRow = {
 export type CharacterDeletionImpact = {
   aliasCount: number;
   appearanceCount: number;
+  factCount: number;
   formCount: number;
   groupCount: number;
   relationshipCount: number;
@@ -463,6 +464,7 @@ export class CharactersRepository {
       groupCount,
       relationshipCount,
       theoryCount,
+      factCount,
     ] = await Promise.all([
       client.bookCharacter.count({ where: { characterId } }),
       client.bookCharacterRole.count({ where: { bookCharacter: { characterId } } }),
@@ -474,10 +476,12 @@ export class CharactersRepository {
         where: { OR: [{ sourceCharacterId: characterId }, { targetCharacterId: characterId }] },
       }),
       client.characterTheory.count({ where: { characterId } }),
+      client.characterFact.count({ where: { bookCharacter: { characterId } } }),
     ]);
     return {
       aliasCount,
       appearanceCount,
+      factCount,
       formCount,
       groupCount,
       relationshipCount,

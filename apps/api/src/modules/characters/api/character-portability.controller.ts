@@ -1,11 +1,12 @@
 import type { CharacterBundle, CharacterImportResultView } from "@app/shared";
 
-import { CharacterExportQuerySchema } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
+import { CHARACTER_IMPORT_ERROR_CODES, CharacterExportQuerySchema } from "@app/shared";
+import { Body, Controller, Get, HttpCode, Post, Query, UseInterceptors } from "@nestjs/common";
 import {
   ApiBody,
   ApiOkResponse,
   ApiOperation,
+  ApiPayloadTooLargeResponse,
   ApiQuery,
   ApiTags,
   ApiUnprocessableEntityResponse,
@@ -14,10 +15,12 @@ import { seconds, Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
+import { DeferredJsonBodyInterceptor } from "../../../core/deferred-json-body.interceptor.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterPortabilityService } from "../application/character-portability.service.js";
+import { CHARACTER_IMPORT_TRANSPORT } from "./character-import-transport.js";
 import { CharacterExportQueryDto } from "./input-dto/character-export-query.input-dto.js";
 import { CharacterImportBundleDto } from "./input-dto/character-import.input-dto.js";
 import { CharacterBundleDto } from "./view-dto/character-bundle.view-dto.js";
@@ -57,12 +60,22 @@ export class CharacterPortabilityController {
     type: CharacterImportResultDto,
   })
   @ApiOperation({ summary: "Import a character bundle into the caller's library" })
+  @ApiPayloadTooLargeResponse({
+    description: "The request body exceeds the character bundle byte or JSON value budget",
+  })
   @ApiUnprocessableEntityResponse({
     description: "The bundle is invalid or exceeds the size limit",
   })
   @HttpCode(HTTP_STATUS.OK)
   @Post("import")
   @Throttle({ default: { limit: CHARACTER_IMPORT_LIMIT, ttl: seconds(PORTABILITY_TTL_SECONDS) } })
+  @UseInterceptors(
+    new DeferredJsonBodyInterceptor({
+      admission: CHARACTER_IMPORT_TRANSPORT.admission,
+      limits: CHARACTER_IMPORT_TRANSPORT.body,
+      tooLargeCode: CHARACTER_IMPORT_ERROR_CODES.tooLarge,
+    }),
+  )
   importBundle(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: unknown,

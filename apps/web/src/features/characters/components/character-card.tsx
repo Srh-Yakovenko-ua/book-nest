@@ -3,6 +3,7 @@
 import type { BookCharacterRoleView, BookCharacterRosterItem, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +38,12 @@ const ROSTER_CARD_VISIBLE_ROLES = 2;
 type CharacterCardProps = {
   bookId: string;
   character: BookCharacterRosterItem;
-  onUnlink: () => void;
+  onUnlink: (trigger: Nullable<HTMLElement>) => void;
 };
 
 export function CharacterCard({ bookId, character, onUnlink }: CharacterCardProps) {
   const t = useTranslations("characters.card");
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const tImportance = useTranslations("characters.importance");
   const tRole = useTranslations("characters.roleType");
   const tStatus = useTranslations("characters.status");
@@ -106,6 +108,7 @@ export function CharacterCard({ bookId, character, onUnlink }: CharacterCardProp
               <Button
                 aria-label={t("menu")}
                 className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:border-brand hover:text-brand"
+                ref={menuTriggerRef}
                 size="icon-sm"
                 variant="ghost"
               >
@@ -119,7 +122,7 @@ export function CharacterCard({ bookId, character, onUnlink }: CharacterCardProp
                   {t("edit")}
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onUnlink}>
+              <DropdownMenuItem onSelect={() => onUnlink(menuTriggerRef.current)}>
                 <UiIcon name="link" size={16} />
                 {t("unlink")}
               </DropdownMenuItem>

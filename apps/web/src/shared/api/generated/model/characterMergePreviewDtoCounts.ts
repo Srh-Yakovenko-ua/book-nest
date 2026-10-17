@@ -7,6 +7,7 @@
  */
 import type { CharacterMergePreviewDtoCountsAliases } from "./characterMergePreviewDtoCountsAliases";
 import type { CharacterMergePreviewDtoCountsAppearances } from "./characterMergePreviewDtoCountsAppearances";
+import type { CharacterMergePreviewDtoCountsFacts } from "./characterMergePreviewDtoCountsFacts";
 import type { CharacterMergePreviewDtoCountsForms } from "./characterMergePreviewDtoCountsForms";
 import type { CharacterMergePreviewDtoCountsMemberships } from "./characterMergePreviewDtoCountsMemberships";
 import type { CharacterMergePreviewDtoCountsRelationships } from "./characterMergePreviewDtoCountsRelationships";
@@ -17,6 +18,7 @@ import type { CharacterMergePreviewDtoCountsTheories } from "./characterMergePre
 export type CharacterMergePreviewDtoCounts = {
   aliases: CharacterMergePreviewDtoCountsAliases;
   appearances: CharacterMergePreviewDtoCountsAppearances;
+  facts: CharacterMergePreviewDtoCountsFacts;
   forms: CharacterMergePreviewDtoCountsForms;
   memberships: CharacterMergePreviewDtoCountsMemberships;
   relationships: CharacterMergePreviewDtoCountsRelationships;

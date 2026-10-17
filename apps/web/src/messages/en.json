@@ -8000,6 +8000,7 @@
       "confirm": "Delete entirely",
       "deleting": "Deleting…",
       "description": "The character and all its data will be deleted. You can undo this action for a short time.",
+      "facts": "{count, plural, one {# fact in books} other {# facts in books}}",
       "forms": "Forms and incarnations: {count}",
       "groups": "Group memberships: {count}",
       "noRelatedData": "There is no related data.",
@@ -8108,6 +8109,102 @@
       "individual": "Individual",
       "unknown": "Unknown"
     },
+    "facts": {
+      "add": "Add fact",
+      "allShown": "All facts shown",
+      "card": {
+        "delete": "Delete",
+        "edit": "Edit",
+        "menu": "Actions for the fact “{title}”",
+        "readMore": "Read in full"
+      },
+      "count": "{count, plural, one {# fact} other {# facts}}",
+      "deleteDialog": {
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "deleting": "Deleting…",
+        "description": "The fact “{title}” will be deleted permanently. This can't be undone.",
+        "title": "Delete this fact?"
+      },
+      "empty": {
+        "description": "Separate facts about this character in this book will appear here.",
+        "title": "No facts yet"
+      },
+      "emptySearch": {
+        "clear": "Clear search",
+        "description": "Try a different query.",
+        "title": "Nothing found"
+      },
+      "error": "Couldn't load facts. Please try again.",
+      "form": {
+        "cancel": "Cancel",
+        "chapter": "Chapter",
+        "chapterPlaceholder": "For example, 3 or Prologue",
+        "createDescription": "Write down a single fact about this character in this book.",
+        "createTitle": "New fact",
+        "discard": {
+          "description": "Unsaved changes to the fact will be lost.",
+          "title": "Discard changes?"
+        },
+        "editDescription": "Change the title, the text or the place in the book.",
+        "editTitle": "Edit fact",
+        "errors": {
+          "chapterTooLong": "The chapter can't be longer than {max} characters.",
+          "pageExceedsBook": "The book has only {max, plural, one {# page} other {# pages}}.",
+          "pageNotPositive": "The page must be a whole number above 0.",
+          "pageOutsideBook": "This page is beyond the end of the book.",
+          "pageTooLarge": "The page number is too large.",
+          "textRequired": "Enter the text of the fact.",
+          "textTooLong": "The text can't be longer than {max} characters.",
+          "titleRequired": "Enter a title for the fact.",
+          "titleTooLong": "The title can't be longer than {max} characters."
+        },
+        "optional": "(optional)",
+        "page": "Page",
+        "pagePlaceholder": "Number",
+        "submitCreate": "Add fact",
+        "submitEdit": "Save",
+        "text": "Text",
+        "textPlaceholder": "What you learned about the character…",
+        "textRemaining": "{count, plural, one {# character left} other {# characters left}}",
+        "title": "Title",
+        "titlePlaceholder": "What this fact is about, in short"
+      },
+      "fullView": {
+        "textLabel": "Full text of the fact"
+      },
+      "loadMoreError": "Couldn't load more facts",
+      "loading": "Loading facts",
+      "noAppearances": {
+        "description": "Facts are kept separately for each book. Add this character to a book to keep its facts.",
+        "title": "This character isn't in any book yet"
+      },
+      "noBook": {
+        "action": "Choose a book",
+        "description": "Facts are kept separately for each book. Choose a book to see this character's facts.",
+        "title": "Pick a book first"
+      },
+      "page": "p. {page}",
+      "search": {
+        "clear": "Clear search",
+        "label": "Search facts",
+        "placeholder": "Search by title or text…"
+      },
+      "tabs": {
+        "facts": "Facts",
+        "overview": "Overview"
+      },
+      "toast": {
+        "created": "Fact added",
+        "createError": "Couldn't add the fact",
+        "deleted": "Fact deleted",
+        "deletedElsewhere": "This fact was already deleted. The list is refreshed.",
+        "deleteError": "Couldn't delete the fact",
+        "gone": "The fact or the character in this book no longer exists. The list is refreshed.",
+        "updated": "Fact saved",
+        "updateError": "Couldn't save the fact"
+      }
+    },
     "form": {
       "errors": {
         "customGenderRequired": "Specify your custom gender",
@@ -8176,7 +8273,7 @@
       "backToBook": "Characters",
       "backToLibrary": "My library",
       "bookAliases": "Other names in this book",
-      "bookDescription": "Description in this book",
+      "bookDescription": "General description in this book",
       "bookSection": "In the selected book",
       "collapse": "Collapse",
       "collapseDescription": "Collapse description",
@@ -8368,6 +8465,9 @@
       "cancel": "Cancel",
       "confirm": "Remove",
       "description": "The character will be removed from this book. The global profile and data in other books remain.",
+      "factsLoading": "Counting the character's facts in this book…",
+      "factsUnavailable": "Couldn't find out how many facts will be deleted. All of the character's facts in this book will be deleted permanently.",
+      "factsWarning": "{count, plural, one {# fact} other {# facts}} about the character in this book will be deleted permanently. Adding the character to the book again won't restore them.",
       "title": "Remove from this book",
       "unlinking": "Removing…"
     }

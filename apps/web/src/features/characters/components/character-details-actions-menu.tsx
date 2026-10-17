@@ -3,7 +3,7 @@
 import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
@@ -44,6 +44,14 @@ export function CharacterDetailsActionsMenu({
   const deleteCharacter = useDeleteCharacterWithUndo();
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+
+  function returnFocusToMenu(event: Event) {
+    const trigger = menuTriggerRef.current;
+    if (trigger === null || !trigger.isConnected) return;
+    event.preventDefault();
+    trigger.focus();
+  }
 
   function confirmUnlink() {
     if (contextBookId === null) return;
@@ -64,7 +72,13 @@ export function CharacterDetailsActionsMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button aria-label={tCard("menu")} className={className} size="icon" variant="outline">
+          <Button
+            aria-label={tCard("menu")}
+            className={className}
+            ref={menuTriggerRef}
+            size="icon"
+            variant="outline"
+          >
             <UiIcon name="more" size={18} />
           </Button>
         </DropdownMenuTrigger>
@@ -89,12 +103,16 @@ export function CharacterDetailsActionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <UnlinkCharacterDialog
-        isUnlinking={unlinkCharacter.isPending}
-        onConfirm={confirmUnlink}
-        onOpenChange={setUnlinkOpen}
-        open={unlinkOpen}
-      />
+      {contextBookId === null ? null : (
+        <UnlinkCharacterDialog
+          isUnlinking={unlinkCharacter.isPending}
+          onCloseAutoFocus={returnFocusToMenu}
+          onConfirm={confirmUnlink}
+          onOpenChange={setUnlinkOpen}
+          open={unlinkOpen}
+          scope={{ bookId: contextBookId, characterId }}
+        />
+      )}
 
       <DeleteCharacterDialog
         characterId={characterId}

@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { appearanceListWindow } from "../model/character-appearances";
 import { explicitImportance } from "../model/character-options";
 import { getCharacterDetailsPath } from "../model/character-routes";
+import { useCharacterDetailsTab } from "../model/use-character-details-query";
 
 export type AppearanceListState = {
   expanded: boolean;
@@ -167,6 +168,7 @@ function AppearanceRow({
 }) {
   const t = useTranslations("characters.page");
   const tImportance = useTranslations("characters.importance");
+  const [tab] = useCharacterDetailsTab();
   const importance = explicitImportance(appearance.importance);
   const { book } = appearance;
 
@@ -183,7 +185,7 @@ function AppearanceRow({
         <Link
           aria-current={isActive ? "page" : undefined}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-2.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          href={getCharacterDetailsPath({ bookId: book.id, characterId })}
+          href={getCharacterDetailsPath({ bookId: book.id, characterId, tab })}
           onClick={(event) => {
             if (isActive) event.preventDefault();
           }}

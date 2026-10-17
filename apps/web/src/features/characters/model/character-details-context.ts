@@ -2,7 +2,7 @@ import type { BookCharacterView, Nullable } from "@app/shared";
 
 import { ApiError } from "@/lib/http-client";
 
-import type { CharacterRouteArgs } from "./character-routes";
+import type { CharacterDetailsTab, CharacterRouteArgs } from "./character-routes";
 
 import { CHARACTER_GLOBAL_VIEW, getCharacterDetailsPath } from "./character-routes";
 
@@ -10,6 +10,11 @@ export type CharacterDetailsMode =
   { bookId: string; kind: "book" } | { kind: "global" } | { kind: "smart" };
 
 export type CharacterDetailsRequest = CharacterDetailsMode | { kind: "invalid-book" };
+
+type CharacterDetailsLocation = CharacterDetailsSearch & {
+  q: string;
+  tab: CharacterDetailsTab;
+};
 
 type CharacterDetailsSearch = {
   bookId: Nullable<string>;
@@ -23,13 +28,12 @@ export function canonicalCharacterDetailsHref({
   search,
 }: {
   characterId: string;
-  search: CharacterDetailsSearch;
+  search: CharacterDetailsLocation;
 }): Nullable<string> {
-  if (search.view === null) return null;
-  if (search.bookId !== null) {
-    return getCharacterDetailsPath({ bookId: search.bookId, characterId });
-  }
-  return search.view === CHARACTER_GLOBAL_VIEW ? null : getCharacterDetailsPath({ characterId });
+  const { bookId, q, tab, view } = search;
+  if (view === null) return null;
+  if (bookId !== null) return getCharacterDetailsPath({ bookId, characterId, q, tab });
+  return view === CHARACTER_GLOBAL_VIEW ? null : getCharacterDetailsPath({ characterId, q, tab });
 }
 
 export function characterRouteArgsOf({

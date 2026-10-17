@@ -21,6 +21,11 @@ export interface CharacterDeletionPreviewDto {
    * @minimum -9007199254740991
    * @maximum 9007199254740991
    */
+  factCount: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
   formCount: number;
   /**
    * @minimum -9007199254740991

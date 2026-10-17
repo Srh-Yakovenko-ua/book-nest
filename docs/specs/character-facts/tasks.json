@@ -1,0 +1,1694 @@
+{
+  "spec": "docs/specs/character-facts/spec.md",
+  "specFiles": [
+    "docs/specs/character-facts/spec.md (00_START_HERE, 01_APPROVED_SPEC D01-D20, 02_DEV_INTEGRATION_MAP, 03_IMPLEMENTATION_SLICES S0-S7, 04_ACCEPTANCE_AND_TESTS A01-A20)"
+  ],
+  "baseCommit": "14367c22",
+  "specReferenceCommit": "d5af308a",
+  "generatedAt": "2026-10-16T18:25:52Z",
+  "scope": {
+    "included": [
+      "D01-D20 (all approved decisions, binding)",
+      "v2 technical hardening: merge/fact-writer lock protocol, FK-only reparent timestamp preservation, bounded v2 import with numeric limits, HTTP transport preflight against JSON_BODY_LIMIT",
+      "A01-A20 acceptance matrix as doneWhen criteria and test tasks",
+      "S1-S7 dependency order; S0 preflight is this PLAN run",
+      "docs/specs/character-facts/progress.md resumability checkpoint (00_START_HERE 'Session progress')",
+      "Hard out-of-scope list (01_APPROVED_SPEC) as doneWhen guards"
+    ],
+    "excluded": [
+      "Frontend merge UI: none exists (no non-generated consumer of characterMergeController* in apps/web/src). D18 'preview/result stats' is satisfied in the API DTO; building a merge UI is hard out-of-scope ('New duplicate-detection or merge UI')",
+      "Frontend export/import UI: none exists (no non-generated consumer of characterPortabilityController*). D19 is API-only; no FE task",
+      "Per-fact spoilers, position/manual ordering, tags, categories, favorites, pinning, filters, sort selector, grid/list switch, standalone facts route, fact trash/undo, autosave drafts, fact images: D03, D07, D12, D16, hard out-of-scope",
+      "Migration or conversion of BookCharacter.description into facts: D09, D19, hard out-of-scope",
+      "Global JSON_BODY_LIMIT increase: D19 transport preflight, hard out-of-scope",
+      "Refactoring quotes/timeline page-ceiling helpers into core: not asked; facts get a characters-local helper (TD5)",
+      "docs/features/characters.md refresh and a changelog/what's-new entry: not requested by the spec; candidates for spec-to-ship stage 8 close-out, not tracked as tasks",
+      "Commits, pushes, merges, branch switches: 00_START_HERE, user consent required"
+    ]
+  },
+  "sliceGates": {
+    "S1": "migration-reviewer on migration.sql; raw-sql-indexes.test.ts green; pnpm --filter @app/shared build; typecheck + lint green",
+    "S2": "T8 green; gen:api with no surprise diff; typecheck + lint; code-reviewer + security-reviewer (new authenticated endpoints, input)",
+    "S3": "T11 + T16 green against real Postgres; blast-radius on characters.ts; typecheck + lint; code-reviewer",
+    "S4": "T22 green incl. HTTP transport cases; security-reviewer on T21; typecheck + lint; code-reviewer",
+    "S5": "T30 green; i18n parity; typecheck + lint; code-reviewer + accessibility-auditor + frontend-performance-auditor; no dead control in the diff",
+    "S6": "T39 green; T40 browser evidence; typecheck + lint; code-reviewer + accessibility-auditor",
+    "S7": "T41 gates; spec-auditor VERIFY (T43)"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "slice": "S1",
+      "title": "Shared Zod contract for CharacterFact (input, view, list query, page, limits, error codes)",
+      "specRef": "D01, D03, D07, D16, D20; Domain model guidance; S1 bullet 2",
+      "layer": "shared",
+      "files": [
+        "packages/shared/src/character-facts.ts",
+        "packages/shared/src/index.ts",
+        "apps/api/src/modules/characters/domain/character-facts-contract.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D01", "D03", "D07", "D16", "D20"],
+      "acceptance": ["A02", "A08"],
+      "doneWhen": [
+        "packages/shared/src/character-facts.ts exists and is re-exported from packages/shared/src/index.ts",
+        "CHARACTER_FACTS_PAGE_SIZE = 20 is a standalone export, not reused from CHARACTERS_DEFAULT_PAGE_SIZE (characters.ts:21) or any notes constant",
+        "CHARACTER_FACT_INPUT_LIMITS groups titleMax 120, textMax 5000, chapterMax 100, pageMax CHARACTER_INT4_MAX, searchMax 100 in one object (CLAUDE.md §8.10)",
+        "CHARACTER_FACT_ERROR_CODES has notFound and pageExceedsBook",
+        "CreateCharacterFactInputSchema is .strict(): title z.string().trim().min(1).max(120); text trim min(1) max(5000); chapter trimmed max 100, empty string normalised to null, nullish; page positive int <= CHARACTER_INT4_MAX, nullish",
+        "UpdateCharacterFactInputSchema is .strict(), every field optional, title/text cannot be set to null or blank, an empty object is rejected",
+        "CharacterFactViewSchema has exactly id, title, text, chapter (nullable), page (nullable), createdAt, updatedAt (ISO strings); no isSpoiler, position, userId, characterId, category",
+        "CharacterFactsQuerySchema = paginationQueryFields({ pageSizeDefault: CHARACTER_FACTS_PAGE_SIZE, pageSizeMax: CHARACTER_FACTS_PAGE_SIZE }) + q: trimmed string max 100, optional",
+        "PaginatedCharacterFactsSchema = createPaginatedSchema(CharacterFactViewSchema)",
+        "Contract test covers: title/text blank after trim rejected, 120/121 title, 5000/5001 text, 100/101 chapter, page 0, -1, 1.5 and INT4+1 rejected, chapter '' -> null, unknown key rejected, pageSize > 20 rejected"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16: contract implemented, shared build + typecheck + lint green; contract test pending (T8 test run)",
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T2",
+      "slice": "S1",
+      "title": "Prisma CharacterFact model and reviewed create-only migration",
+      "specRef": "D01, D02, D03, D07, D15; Domain model guidance; S1 bullet 1; trap 9",
+      "layer": "prisma",
+      "files": [
+        "apps/api/prisma/schema.prisma",
+        "apps/api/prisma/migrations/<timestamp>_add_character_facts/migration.sql"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D01", "D02", "D03", "D07", "D15"],
+      "acceptance": ["A01"],
+      "doneWhen": [
+        "model CharacterFact: id uuid @default(uuid()) @db.Uuid; bookCharacterId @map(\"book_character_id\") @db.Uuid; title String; text String; chapter String?; page Int?; createdAt @default(now()) @map(\"created_at\") @db.Timestamptz; updatedAt @updatedAt @map(\"updated_at\") @db.Timestamptz; @@map(\"character_facts\")",
+        "relation bookCharacter BookCharacter @relation(fields: [bookCharacterId], references: [id], onDelete: Cascade); BookCharacter gains facts CharacterFact[]",
+        "@@index([bookCharacterId, createdAt(sort: Desc), id(sort: Desc)]) present; no trigram/GIN index (TD3)",
+        "No userId, characterId, position, isSpoiler, category, tags columns",
+        "migration.sql only creates character_facts, its FK (ON DELETE CASCADE) and its index; no ALTER/DROP on book_characters columns (description, description_is_spoiler untouched); no DROP INDEX line; no data backfill",
+        "Created with pnpm --filter @app/api db:migrate --name add_character_facts (create-only), reviewed by migration-reviewer, applied with db:migrate:deploy; never db push",
+        "apps/api/src/core/database/raw-sql-indexes.test.ts passes against the migrated local DB (all 16 raw-SQL indexes intact)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16: migration 20261016184207_add_character_facts approved by migration-reviewer (no blockers), trigram DROP INDEX lines stripped, applied to scratch DB booknest_facts_shadow only; raw-sql-indexes.test.ts 49/49 green"
+      ]
+    },
+    {
+      "id": "T3",
+      "slice": "S2",
+      "title": "Shared-mode merge guard: fact writers participate in the per-user merge advisory lock",
+      "specRef": "D18 concurrency invariant; trap 4; v2 anchors bullet 2; S3 bullet 3",
+      "layer": "core",
+      "files": [
+        "apps/api/src/core/database/advisory-lock.ts",
+        "apps/api/src/modules/characters/infrastructure/character-merge.repository.ts",
+        "apps/api/src/modules/characters/infrastructure/character-merge-lock.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D18"],
+      "acceptance": ["A17"],
+      "doneWhen": [
+        "advisory-lock.ts exports acquireSharedAdvisoryLock issuing SELECT pg_advisory_xact_lock_shared(classId, hashtext(key)) via parameterized $executeRaw, next to the existing exclusive acquireAdvisoryLock (:28-33)",
+        "The merge lock key (currently the inline template `char-merge:${userId}` at character-merge.repository.ts:61) is built by one function used by both the exclusive merge lock and the shared fact-writer lock, so the two cannot drift",
+        "Merge keeps the exclusive lock (character-merge.service.ts:338); fact writers take the shared variant of the same classId/key, so writers never block each other and every writer is serialised against a running merge of the same user (TD1)"
+      ],
+      "status": "done",
+      "notes": [
+        "Moved to infrastructure/ after S2 code review: the lock key is infrastructure, and domain must not import core/database."
+      ],
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T4",
+      "slice": "S2",
+      "title": "CharacterFactsRepository: scoped appearance lookup, list/count with search and stable order, scoped writes",
+      "specRef": "D01, D02, D07, D15, D16; S2 bullets 1-3; Domain model guidance",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/characters/infrastructure/character-facts.repository.ts"],
+      "dependsOn": ["T2", "T3"],
+      "mandatory": true,
+      "decisions": ["D01", "D02", "D07", "D15", "D16"],
+      "acceptance": ["A04", "A08"],
+      "doneWhen": [
+        "Every method takes an optional trailing client: Prisma.TransactionClient = this.prisma; returns model rows/primitives, never a ViewModel",
+        "findActiveAppearance({ bookId, characterId, userId }) filters book { userId, deletedAt: null } AND character { userId, deletedAt: null } in one query and returns the BookCharacter id plus book pagesCount (existing findOwnedBookCharacter at characters.repository.ts:642-649 ignores book.deletedAt, so it is not reused as-is)",
+        "listFacts orders by [{ createdAt: 'desc' }, { id: 'desc' }] and uses pageSlice skip/take (core/paginator.ts:25)",
+        "Search: when q is set, OR [{ title: { contains: escapeLikePattern(q), mode: 'insensitive' } }, { text: same }] (pattern of notes book-notes-where.ts:79-87); the same where feeds countFacts, so totalCount covers the full scoped dataset",
+        "findFactInAppearance, updateFact and deleteFact all constrain by both id AND bookCharacterId; delete returns the affected count; no method authorises by fact id alone",
+        "createFact never sets createdAt/updatedAt explicitly (DB default + @updatedAt)"
+      ],
+      "status": "done",
+      "notes": [
+        "After S2 code review, update() relies on updateFact constrained by { id, bookCharacterId } and maps P2025 to 404; the redundant findFactInAppearance pre-read was removed. create() maps an FK violation (concurrent unlink/purge) to 404. Writers use HEAVY_TRANSACTION_OPTIONS so they can wait out a merge."
+      ],
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T5",
+      "slice": "S2",
+      "title": "Fact domain helpers: view mapper, server-side page ceiling, search normalisation",
+      "specRef": "D03, D16; A02",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-fact.ts",
+        "apps/api/src/modules/characters/domain/character-fact.test.ts"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "decisions": ["D03", "D16"],
+      "acceptance": ["A02", "A08"],
+      "doneWhen": [
+        "toCharacterFactView maps a row to CharacterFactView with ISO timestamps and nothing else",
+        "assertFactPageWithinBook throws ValidationError with CHARACTER_FACT_ERROR_CODES.pageExceedsBook when page !== null && pagesCount !== null && page > pagesCount; no check when pagesCount is null (technical cap from the Zod schema applies) — same rule as timeline/domain/assert-page-within-book.ts:7-19",
+        "Search term passes through normalizeSearch (shared common.ts:101-107: collapse whitespace + trim, empty -> undefined)",
+        "Unit tests cover page = pagesCount, pagesCount + 1, pagesCount null, and whitespace-collapsed q"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T6",
+      "slice": "S2",
+      "title": "CharacterFactsService: list/create/update/delete with in-transaction scope validation",
+      "specRef": "D01, D02, D03, D07, D12, D15, D18; S2 bullets 2-3",
+      "layer": "application",
+      "files": ["apps/api/src/modules/characters/application/character-facts.service.ts"],
+      "dependsOn": ["T3", "T4", "T5"],
+      "mandatory": true,
+      "decisions": ["D01", "D02", "D03", "D07", "D12", "D15", "D18"],
+      "acceptance": ["A03", "A04", "A05", "A17"],
+      "doneWhen": [
+        "No PrismaService injection; uses CharacterFactsRepository, TransactionRunner, CharacterAccessAsserter",
+        "list: resolves the active appearance for (bookId, characterId, userId); missing book/character/link, soft-deleted book or character -> NotFoundError with an existing CHARACTER_ERROR_CODES code; returns buildPaginator page with normalised q",
+        "create/update/delete each run inside transactionRunner.run: first acquire the shared merge guard (T3), then resolve the active appearance inside the same tx, then (create/update) assertFactPageWithinBook, then write",
+        "update/delete of a fact that is not in that appearance -> NotFoundError CHARACTER_FACT_ERROR_CODES.notFound, response carries no fact content",
+        "update never touches createdAt, so an edited fact keeps its list position",
+        "No reading-context window is applied to facts beyond the book scope: the path bookId is the only book whose facts can be returned (reading-context-window.ts:39-46 makes a book always inside its own window)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)",
+        "Deviation (recorded 2026-10-17): CharacterAccessAsserter is not used. Ownership of book + character + active link is resolved in one scoped query inside the fact transaction (character-facts.repository.ts findActiveAppearance), which is stricter than a separate pre-check because it runs after the shared merge guard in the same tx."
+      ]
+    },
+    {
+      "id": "T7",
+      "slice": "S2",
+      "title": "CharacterFactsController, input/view DTOs, module wiring",
+      "specRef": "Domain model guidance (REST surface); S2 bullets 1, 3, 4",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/characters/api/character-facts.controller.ts",
+        "apps/api/src/modules/characters/api/input-dto/character-facts-query.input-dto.ts",
+        "apps/api/src/modules/characters/api/input-dto/create-character-fact.input-dto.ts",
+        "apps/api/src/modules/characters/api/input-dto/update-character-fact.input-dto.ts",
+        "apps/api/src/modules/characters/api/view-dto/character-fact.view-dto.ts",
+        "apps/api/src/modules/characters/api/view-dto/paginated-character-facts.view-dto.ts",
+        "apps/api/src/modules/characters/characters.module.ts"
+      ],
+      "dependsOn": ["T6"],
+      "mandatory": true,
+      "decisions": ["D01", "D07", "D12", "D16", "D20"],
+      "acceptance": ["A03", "A04", "A08"],
+      "doneWhen": [
+        "@Controller(\"api/books/:bookId/characters/:characterId/facts\") with @JwtProtected(); GET list, POST create (201), PATCH :factId (200 view), DELETE :factId (204)",
+        "bookId, characterId, factId all use ParseUUIDPipe; query via ZodQueryPipe(CharacterFactsQuerySchema); bodies via ZodBodyPipe",
+        "POST/PATCH/DELETE carry @Throttle(MUTATION_THROTTLE) from core/throttle.ts:17 (convention of book-characters.controller.ts:95,143,165)",
+        "Full Swagger: @ApiTags, @ApiOperation, @ApiParam x3, @ApiQuery q/pageNumber/pageSize, @ApiBody, @ApiOkResponse/@ApiCreatedResponse/@ApiNoContentResponse/@ApiNotFoundResponse/@ApiBadRequestResponse with createZodDto classes",
+        "Controller, service and repository registered in characters.module.ts; no Prisma or business logic in the controller"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T8",
+      "slice": "S2",
+      "title": "Backend tests: fact CRUD, ownership, validation, search, pagination, ordering",
+      "specRef": "04 'Backend unit / integration' bullets 1-2; S2 gate",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/characters/api/character-facts.controller.test.ts",
+        "apps/api/src/modules/characters/application/character-facts.service.test.ts"
+      ],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "decisions": ["D01", "D02", "D03", "D07", "D15", "D16", "D20"],
+      "acceptance": ["A02", "A03", "A04", "A05", "A08"],
+      "doneWhen": [
+        "createTestApp integration: create -> list -> update -> delete round trip; response shapes parse with the shared schemas",
+        "401 unauthenticated; 404 with no fact payload for foreign book, foreign character, character not linked to the book, soft-deleted book, soft-deleted character, fact of another BookCharacter used on PATCH and DELETE, unknown factId",
+        "Path book forging: a fact of book A cannot be read, edited or deleted via /books/B/... for the same character",
+        "Validation: blank title/text after trim, title 121, text 5001, chapter 101, page 0/-1/1.5 rejected; page > book pagesCount rejected with pageExceedsBook; page accepted when pagesCount is null",
+        "Ordering: createdAt DESC then id DESC including two rows with identical createdAt; editing an older fact does not move it",
+        "Pagination: 45 facts -> pages of 20/20/5, totalCount 45, pagesCount 3; pageSize 21 rejected",
+        "Search: q matches title and text, case-insensitive, collapsed spaces, finds a hit that lives on page 3 of the unfiltered list, '%' and '_' treated literally; q never leaks another BookCharacter's facts"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T9",
+      "slice": "S2",
+      "title": "Build shared, regenerate OpenAPI and the Orval client for the fact endpoints",
+      "specRef": "S2 bullet 4; 00_START_HERE Execute 5; CLAUDE.md §2, §6.10",
+      "layer": "contract",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "decisions": ["D17"],
+      "acceptance": ["A20"],
+      "doneWhen": [
+        "pnpm --filter @app/shared build, then pnpm gen:api ran; generated diff only adds the facts endpoints/models (no unrelated churn)",
+        "No hand edits under apps/web/src/shared/api/generated/**",
+        "pnpm typecheck green across packages"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S2 gate: character-facts-contract.test.ts 30/30, character-fact.test.ts 5/5, character-facts.controller.test.ts 44/44 (real Postgres); typecheck + lint green; gen:api additive; code-reviewer APPROVED WITH NITS (all 5 fixed), security-reviewer APPROVED (0 findings above Info)"
+      ]
+    },
+    {
+      "id": "T10",
+      "slice": "S3",
+      "title": "Character deletion preview reports the fact count",
+      "specRef": "D15 'Extend existing character deletion preview with impact count'; S3 bullet 1",
+      "layer": "shared",
+      "files": [
+        "packages/shared/src/characters.ts",
+        "apps/api/src/modules/characters/infrastructure/characters.repository.ts",
+        "apps/api/src/modules/characters/api/character-trash.controller.test.ts"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "decisions": ["D15"],
+      "acceptance": ["A15"],
+      "doneWhen": [
+        "CharacterDeletionPreviewSchema (characters.ts:399-408) gains factCount: z.number().int()",
+        "countDeletionImpact (characters.repository.ts:396-431) adds client.characterFact.count({ where: { bookCharacter: { characterId } } })",
+        "A trash/preview controller test asserts factCount equals the facts across all of the character's appearances"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S3 impl: typecheck + lint green; character-merge.test 8/8, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-trash.controller.test 13/13; gen:api diff limited to factCount + counts.facts. Pending T11/T16 tests + review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T11",
+      "slice": "S3",
+      "title": "Lifecycle tests: soft delete/restore keeps facts, purge and unlink cascade, relink does not resurrect",
+      "specRef": "D15; traps 1-3; S3 gate; 04 bullet on trash/unlink tests",
+      "layer": "test",
+      "files": ["apps/api/src/modules/characters/api/character-facts-lifecycle.controller.test.ts"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "decisions": ["D15"],
+      "acceptance": ["A14", "A15"],
+      "doneWhen": [
+        "Character soft delete: facts GET returns 404 and the character_facts rows still exist; restore returns the same fact ids and content",
+        "Book soft delete: same as above for the book; restore returns the same facts",
+        "Character purge (CharacterLifecycleService.purge, character-lifecycle.service.ts:51) and book purge (book-lifecycle.service.ts:65) remove the rows through the FK cascade",
+        "Unlink (DELETE /api/books/:bookId/characters/:characterId) removes the appearance's facts; facts of the same character in another book survive; relinking yields an empty facts list",
+        "A failed unlink (404 path) leaves all facts intact"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16: character-facts-lifecycle.controller.test 10/10, character-merge-facts.controller.test 9/9 (overlap/nonoverlap timestamps, rollback x2, interleaving A+B with deterministic gates + pg_locks), character-merge.test 12/12, character-merge.controller.test 7/7, character-merge.service.test 5/5. Awaiting S3 code review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T12",
+      "slice": "S3",
+      "title": "Merge counts contract gains facts",
+      "specRef": "D18 'Update merge preview/result stats'; trap 8; S3 bullet 5",
+      "layer": "shared",
+      "files": ["packages/shared/src/characters.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D18"],
+      "acceptance": ["A16", "A17"],
+      "doneWhen": [
+        "CharacterMergeCountsSchema (characters.ts:840-849) gains facts: CharacterMergeEntityCountsSchema; both CharacterMergePreviewViewSchema and CharacterMergeResultViewSchema inherit it",
+        "facts.moved = every loser fact (on repointed and on dropped appearances); facts.dropped is always 0 (TD7)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S3 impl: typecheck + lint green; character-merge.test 8/8, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-trash.controller.test 13/13; gen:api diff limited to factCount + counts.facts. Pending T11/T16 tests + review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T13",
+      "slice": "S3",
+      "title": "Merge domain plan: fact reparent pairs and counts, no dedupe",
+      "specRef": "D18; trap 4; S3 bullet 2",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-merge.ts",
+        "apps/api/src/modules/characters/domain/character-merge.test.ts"
+      ],
+      "dependsOn": ["T12"],
+      "mandatory": true,
+      "decisions": ["D18"],
+      "acceptance": ["A16", "A17"],
+      "doneWhen": [
+        "CharacterMergePlanInput: loserBookCharacters rows carry factCount; survivorBookIds is replaced by survivor appearances { bookId, id }",
+        "CharacterMergePlan gains factReparents: { fromBookCharacterId, toBookCharacterId }[] with one entry per dropped loser appearance that has facts, pointing at the survivor appearance in the same book",
+        "counts.facts = { dropped: 0, moved: sum of loser factCount }",
+        "No comparison of fact title/text anywhere in the plan",
+        "Unit tests: overlap-only, nonoverlap-only, mixed; identical fact titles on both sides still counted and moved"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S3 impl: typecheck + lint green; character-merge.test 8/8, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-trash.controller.test 13/13; gen:api diff limited to factCount + counts.facts. Pending T11/T16 tests + review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ],
+      "notes": [
+        "After S3 review: one factReparents entry per dropped loser appearance (not only those with facts)."
+      ]
+    },
+    {
+      "id": "T14",
+      "slice": "S3",
+      "title": "Merge repository: survivor appearance ids, loser fact counts, timestamp-preserving reparent",
+      "specRef": "D18 timestamp invariant; trap 4; v2 anchors bullet 3; S3 bullet 4",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/characters/infrastructure/character-merge.repository.ts"],
+      "dependsOn": ["T2", "T13"],
+      "mandatory": true,
+      "decisions": ["D18"],
+      "acceptance": ["A16", "A17"],
+      "doneWhen": [
+        "findSurvivorBookIds (character-merge.repository.ts:276-285) returns { bookId, id } (or a new findSurvivorAppearances replaces it)",
+        "findLoserBookCharacters (:189-207) also selects _count.facts",
+        "reparentFacts issues a parameterized $executeRaw UPDATE character_facts SET book_character_id = $to WHERE book_character_id = $from — no Prisma update/updateMany on characterFact, so @updatedAt is not bumped (TD2)",
+        "Takes the transaction client; no new Prisma usage outside this repository"
+      ],
+      "status": "done",
+      "notes": [
+        "findSurvivorBookIds replaced by findSurvivorAppearances; countFactsOutsideAppearances added for the T15 guard."
+      ],
+      "evidence": [
+        "2026-10-16 S3 impl: typecheck + lint green; character-merge.test 8/8, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-trash.controller.test 13/13; gen:api diff limited to factCount + counts.facts. Pending T11/T16 tests + review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T15",
+      "slice": "S3",
+      "title": "Merge service: reparent facts before deleting loser appearances, counts in preview and result",
+      "specRef": "D18; trap 4; S3 bullets 2-3",
+      "layer": "application",
+      "files": ["apps/api/src/modules/characters/application/character-merge.service.ts"],
+      "dependsOn": ["T3", "T14"],
+      "mandatory": true,
+      "decisions": ["D18"],
+      "acceptance": ["A16", "A17"],
+      "doneWhen": [
+        "applyPlan (character-merge.service.ts:154-188) runs every factReparents entry BEFORE deleteBookCharacters (:167), inside the same tx",
+        "Loser fact counts are read inside the merge transaction after acquireMergeLock (:338), so facts committed by a writer that held the shared guard are included",
+        "preview() returns counts.facts from the same plan builder",
+        "A disappearing parent under a concurrent writer yields that writer's 404 (fact service), never a success followed by cascade"
+      ],
+      "status": "done",
+      "notes": [
+        "Stated assumption (S3): applyPlan also runs assertNoFactWouldCascade before deleting loser appearances — counts loser facts outside repointed appearances and throws ConflictError (rolling back) if any would cascade. Unreachable under the shared/exclusive lock protocol; kept as a defence for D18 zero-loss.",
+        "Superseded after S3 code review: the assertNoFactWouldCascade guard and countFactsOutsideAppearances were removed; instead factReparents is planned for EVERY dropped loser appearance regardless of factCount, so correctness does not depend on count freshness."
+      ],
+      "evidence": [
+        "2026-10-16 S3 impl: typecheck + lint green; character-merge.test 8/8, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-trash.controller.test 13/13; gen:api diff limited to factCount + counts.facts. Pending T11/T16 tests + review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T16",
+      "slice": "S3",
+      "title": "Merge DB tests: overlap/nonoverlap, timestamps, rollback, controlled interleaving",
+      "specRef": "D18 (unit, integration and rollback tests required); 04 merge bullet; S3 gate",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/characters/api/character-merge.controller.test.ts",
+        "apps/api/src/modules/characters/application/character-merge.service.test.ts",
+        "apps/api/src/modules/characters/api/character-merge-facts.concurrency.test.ts"
+      ],
+      "dependsOn": ["T15", "T8"],
+      "mandatory": true,
+      "decisions": ["D18"],
+      "acceptance": ["A16", "A17"],
+      "doneWhen": [
+        "Nonoverlap: loser appearance repointed; its facts keep id, bookCharacterId, title, text, chapter, page, createdAt and updatedAt (read from DB before/after, toEqual)",
+        "Overlap: all loser facts end on the survivor appearance of that book with identical id, content, createdAt AND updatedAt; survivor's own facts untouched; facts with identical titles on both sides all retained",
+        "Preview and result counts.facts match the DB delta; existing merge count fixtures updated for the new key",
+        "Rollback: an induced failure after reparent (e.g. spy on deleteBookCharacters or hardDeleteCharacter throwing) leaves every fact on its original appearance",
+        "Interleaving A: a writer tx holds the shared guard and inserts a fact on a loser appearance; merge is started and observed waiting (pg_locks or a deterministic barrier); after writer commit the merge completes and the new fact is on the survivor",
+        "Interleaving B: merge holds the exclusive lock; concurrent create and update on the loser appearance wait, then return 404, and no orphan or lost committed fact exists",
+        "Tests run against the real Postgres, not mocks"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16: character-facts-lifecycle.controller.test 10/10, character-merge-facts.controller.test 9/9 (overlap/nonoverlap timestamps, rollback x2, interleaving A+B with deterministic gates + pg_locks), character-merge.test 12/12, character-merge.controller.test 7/7, character-merge.service.test 5/5. Awaiting S3 code review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T17",
+      "slice": "S3",
+      "title": "Regenerate client for deletion-preview and merge-count contract changes; fix blast radius",
+      "specRef": "trap 8; S3 bullet 5; CLAUDE.md §9 blast-radius",
+      "layer": "contract",
+      "files": [
+        "apps/web/src/shared/api/generated/**",
+        "apps/web/src/features/characters/model/characters.fixtures.ts",
+        "apps/web/src/features/characters/components/delete-character-dialog.test.tsx"
+      ],
+      "dependsOn": ["T10", "T15"],
+      "mandatory": true,
+      "decisions": ["D15", "D18"],
+      "acceptance": ["A20"],
+      "doneWhen": [
+        "pnpm --filter @app/shared build && pnpm gen:api ran; generated diff limited to factCount and counts.facts",
+        "/blast-radius run for packages/shared/src/characters.ts; fixtures that build CharacterDeletionPreview or merge counts include the new keys; the touched tests pass",
+        "pnpm typecheck green"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S3 impl: typecheck + lint green; character-merge.test 8/8, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-trash.controller.test 13/13; gen:api diff limited to factCount + counts.facts. Pending T11/T16 tests + review.",
+        "2026-10-16 S3 gate after review fixes: character-merge.test 12/12, character-merge.service.test 5/5, character-merge.controller.test 7/7, character-merge-facts.controller.test 9/9, character-facts-lifecycle.controller.test 10/10, character-trash.controller.test 13/13; code-reviewer APPROVED WITH NITS (Medium + Lows fixed). Web typecheck green; api typecheck red only from S4's in-progress portability fixtures (not S3)."
+      ]
+    },
+    {
+      "id": "T18",
+      "slice": "S4",
+      "title": "CharacterBundle v2 contract with nested facts, numeric fact limits, v1 compatibility, extended result DTOs",
+      "specRef": "D19 incl. 'Bounded import implementation'; trap 5; S4 bullet 1",
+      "layer": "shared",
+      "files": ["packages/shared/src/character-portability.ts"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "decisions": ["D19"],
+      "acceptance": ["A18", "A19"],
+      "doneWhen": [
+        "CHARACTER_BUNDLE_FORMAT_VERSION (:28) becomes 2; the v1 schema is kept as its own schema with z.literal(1) and the current strict BundleAppearanceSchema (:87-119), so a v1 file containing a facts key is still rejected",
+        "Exported numeric constants CHARACTER_BUNDLE_FACTS_PER_APPEARANCE_MAX and CHARACTER_BUNDLE_FACTS_TOTAL_MAX sit with the other CHARACTER_BUNDLE_*_MAX exports (:40-50); values frozen per TD9 (provisional 200 / 2000)",
+        "BundleFactSchema .strict(): title/text/chapter/page with the CHARACTER_FACT_INPUT_LIMITS rules from T1, createdAt and updatedAt as z.iso.datetime(); no id, no bookCharacterId, no isSpoiler",
+        "v2 appearance = v1 appearance + facts: z.array(BundleFactSchema).max(CHARACTER_BUNDLE_FACTS_PER_APPEARANCE_MAX) (required in v2)",
+        "Bundle-wide fact total > CHARACTER_BUNDLE_FACTS_TOTAL_MAX produces an issue that classifyBundleParseError (domain/character-portability.ts:367-372) classifies as tooLarge, either a too_big issue with origin 'array' or an explicit classifier branch; covered by tests",
+        "A single parse entry point applies upgradeLegacyCharacterBundle (:387) to v1 input, parses v1 then normalises every appearance to facts: [], parses v2 directly, and rejects any other formatVersion as invalid",
+        "CharacterImportCreatedSchema (:429) gains facts; CharacterImportSkippedSchema (:445) gains factsMissingBook; CharacterImportResultViewSchema.formatVersion reports the version of the uploaded file",
+        "No field maps BookCharacter.description into facts"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S4: character-portability.test 32/32, json-value-budget.test 6/6, character-portability.controller.test 34/34 (x2); transport: 1.69 MB v2 import 200, 8 MiB+1 -> 413, value budget+1 -> 413, other route >1 MB -> 413, unauthenticated -> 401; api typecheck green; gen:api re-run (bundle formatVersion 2, factsMissingBook, facts). Awaiting security re-check + code review.",
+        "S4 rounds 1-3 + member cap, 2026-10-17: bounded-array 33/33, json-value-budget 13/13, character-portability 32/32, character-portability.controller 35/35 (full file, 1 worker); api typecheck/lint/prettier clean; security re-check #3 APPROVE WITH CHANGES, required member cap implemented"
+      ]
+    },
+    {
+      "id": "T19",
+      "slice": "S4",
+      "title": "Export nests every fact under its appearance",
+      "specRef": "D19 'Export new formatVersion: 2 with facts[]'; S4 bullet 1",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/characters/infrastructure/character-portability.repository.ts",
+        "apps/api/src/modules/characters/domain/character-portability.ts"
+      ],
+      "dependsOn": ["T18"],
+      "mandatory": true,
+      "decisions": ["D19"],
+      "acceptance": ["A19"],
+      "doneWhen": [
+        "appearanceSelect used by loadCharacters (character-portability.repository.ts:76) also selects facts ordered createdAt DESC, id DESC with title, text, chapter, page, createdAt, updatedAt",
+        "ExportAppearanceRow and serializeCharacterBundle (domain/character-portability.ts:477-491) emit facts[] with ISO createdAt/updatedAt and formatVersion 2",
+        "Export applies no fact limit or truncation; an export larger than the import caps is still complete (the mismatch surfaces at import as tooLarge, never as a shorter export)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S4: character-portability.test 32/32, json-value-budget.test 6/6, character-portability.controller.test 34/34 (x2); transport: 1.69 MB v2 import 200, 8 MiB+1 -> 413, value budget+1 -> 413, other route >1 MB -> 413, unauthenticated -> 401; api typecheck green; gen:api re-run (bundle formatVersion 2, factsMissingBook, facts). Awaiting security re-check + code review.",
+        "S4 rounds 1-3 + member cap, 2026-10-17: bounded-array 33/33, json-value-budget 13/13, character-portability 32/32, character-portability.controller 35/35 (full file, 1 worker); api typecheck/lint/prettier clean; security re-check #3 APPROVE WITH CHANGES, required member cap implemented"
+      ]
+    },
+    {
+      "id": "T20",
+      "slice": "S4",
+      "title": "Import plans and inserts facts with fresh ids under the new appearance ids, skip-and-count on missing books",
+      "specRef": "D19 'New UUIDs ... preserve fact timestamps ... skip its facts and count/report them'; S4 bullet 3",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-portability.ts",
+        "apps/api/src/modules/characters/infrastructure/character-portability.repository.ts",
+        "apps/api/src/modules/characters/application/character-portability.service.ts"
+      ],
+      "dependsOn": ["T18"],
+      "mandatory": true,
+      "decisions": ["D19"],
+      "acceptance": ["A18", "A19"],
+      "doneWhen": [
+        "CharacterImportPlan gains facts: ImportFactRow[] with id = newId(), bookCharacterId = the freshly generated appearance id, and createdAt/updatedAt from the bundle",
+        "An appearance skipped for an unowned/missing book adds its facts.length to skipped.factsMissingBook and plans no fact rows for it",
+        "created.facts equals the number of planned fact rows",
+        "insertGraph (character-portability.repository.ts:187) inserts facts with createMany after bookCharacter.createMany, inside the same HEAVY_TRANSACTION_OPTIONS transaction (character-portability.service.ts:70-80)",
+        "A DB test proves createMany kept the bundle's updatedAt (Prisma @updatedAt did not overwrite it); if it does overwrite, a scoped fix is applied in the repository and documented in TD12",
+        "v1 import creates zero facts and leaves description exactly as in the file"
+      ],
+      "status": "done",
+      "notes": [
+        "Stated assumption: facts of a duplicate appearance (same book twice in one bundle character, previously dropped silently) are attached to the kept appearance and counted in created.facts, so no record is silently lost (D19). createMany preserved explicit updatedAt (verified on scratch DB)."
+      ],
+      "evidence": [
+        "2026-10-16 S4: character-portability.test 32/32, json-value-budget.test 6/6, character-portability.controller.test 34/34 (x2); transport: 1.69 MB v2 import 200, 8 MiB+1 -> 413, value budget+1 -> 413, other route >1 MB -> 413, unauthenticated -> 401; api typecheck green; gen:api re-run (bundle formatVersion 2, factsMissingBook, facts). Awaiting security re-check + code review.",
+        "S4 rounds 1-3 + member cap, 2026-10-17: bounded-array 33/33, json-value-budget 13/13, character-portability 32/32, character-portability.controller 35/35 (full file, 1 worker); api typecheck/lint/prettier clean; security re-check #3 APPROVE WITH CHANGES, required member cap implemented"
+      ]
+    },
+    {
+      "id": "T21",
+      "slice": "S4",
+      "title": "Import transport: HTTP preflight and a route-scoped JSON body limit for POST /api/characters/import",
+      "specRef": "D19 'Transport preflight'; 00_START_HERE 'Portability transport trap'; v2 anchors bullet 1; S4 bullet 2",
+      "layer": "core",
+      "files": [
+        "apps/api/src/core/body-parsers.ts",
+        "apps/api/src/bootstrap.ts",
+        "apps/api/src/test/create-test-app.ts",
+        "packages/shared/src/character-portability.ts"
+      ],
+      "dependsOn": ["T18"],
+      "mandatory": true,
+      "decisions": ["D19"],
+      "acceptance": ["A19"],
+      "doneWhen": [
+        "The serialized byte size of a bundle at CHARACTER_BUNDLE_FACTS_TOTAL_MAX max-length facts is measured and recorded in tasks.json TD9 and progress.md",
+        "A shared constant (e.g. CHARACTER_BUNDLE_MAX_BYTES) defines the import byte budget; one core function registers a JSON parser for exactly POST /api/characters/import with that limit before the global JSON_BODY_LIMIT parser",
+        "bootstrap.ts (:14, :37) and create-test-app.ts (:18, :47) both call that one function, so the test app cannot drift from production",
+        "JSON_BODY_LIMIT stays '1mb' for every other route",
+        "security-reviewer has reviewed the change (authenticated route, existing 10/min import throttle at character-portability.controller.ts:65)",
+        "If the reviewer rejects the scoped limit, TD9 records the blocker and the supported byte budget instead, and no task claims full round-trip support"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S4: character-portability.test 32/32, json-value-budget.test 6/6, character-portability.controller.test 34/34 (x2); transport: 1.69 MB v2 import 200, 8 MiB+1 -> 413, value budget+1 -> 413, other route >1 MB -> 413, unauthenticated -> 401; api typecheck green; gen:api re-run (bundle formatVersion 2, factsMissingBook, facts). Awaiting security re-check + code review.",
+        "S4 rounds 1-3 + member cap, 2026-10-17: bounded-array 33/33, json-value-budget 13/13, character-portability 32/32, character-portability.controller 35/35 (full file, 1 worker); api typecheck/lint/prettier clean; security re-check #3 APPROVE WITH CHANGES, required member cap implemented"
+      ]
+    },
+    {
+      "id": "T22",
+      "slice": "S4",
+      "title": "Portability tests: v1 fixtures, v2 HTTP round trip, limits, skip, rollback, transport",
+      "specRef": "04 portability bullet; S4 gate",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/characters/domain/character-portability.test.ts",
+        "apps/api/src/modules/characters/api/character-portability.controller.test.ts"
+      ],
+      "dependsOn": ["T19", "T20", "T21"],
+      "mandatory": true,
+      "decisions": ["D19"],
+      "acceptance": ["A18", "A19"],
+      "doneWhen": [
+        "Existing v1 and legacy fixtures (retired spoiler flags, narratorType 'unreliable') still import; result.created.facts = 0; description preserved verbatim",
+        "Unknown formatVersion (0, 3, missing) -> 422 invalid; v2 with an extra key on a fact -> invalid; v1 with a facts key -> invalid",
+        "Per-appearance limit and limit+1, total limit and limit+1: limit passes, limit+1 -> 422 character_import_too_large",
+        "Round trip through HTTP: GET /api/characters/export -> POST /api/characters/import on a second user; facts recreated with new ids under the new appearance ids; title, text, chapter, page, createdAt, updatedAt equal",
+        "Missing book: facts of the skipped appearance counted in skipped.factsMissingBook and absent from the DB",
+        "Transaction failure (forced error in insertGraph after facts) -> nothing written",
+        "Transport: a v2 payload above 1 MB and within the import budget is accepted at /api/characters/import; a payload above the budget -> 413; a > 1 MB JSON body to another route (e.g. POST /api/books/:bookId/characters/:characterId/facts) still -> 413"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S4: character-portability.test 32/32, json-value-budget.test 6/6, character-portability.controller.test 34/34 (x2); transport: 1.69 MB v2 import 200, 8 MiB+1 -> 413, value budget+1 -> 413, other route >1 MB -> 413, unauthenticated -> 401; api typecheck green; gen:api re-run (bundle formatVersion 2, factsMissingBook, facts). Awaiting security re-check + code review.",
+        "S4 rounds 1-3 + member cap, 2026-10-17: bounded-array 33/33, json-value-budget 13/13, character-portability 32/32, character-portability.controller 35/35 (full file, 1 worker); api typecheck/lint/prettier clean; security re-check #3 APPROVE WITH CHANGES, required member cap implemented"
+      ]
+    },
+    {
+      "id": "T23",
+      "slice": "S4",
+      "title": "Regenerate client for bundle v2 and import result changes",
+      "specRef": "S4 bullet 4; trap 8",
+      "layer": "contract",
+      "files": ["apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T22"],
+      "mandatory": true,
+      "decisions": ["D19"],
+      "acceptance": ["A20"],
+      "doneWhen": [
+        "pnpm --filter @app/shared build && pnpm gen:api ran; diff limited to bundle/import-result models",
+        "pnpm typecheck green; /blast-radius run for packages/shared/src/character-portability.ts"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S4: character-portability.test 32/32, json-value-budget.test 6/6, character-portability.controller.test 34/34 (x2); transport: 1.69 MB v2 import 200, 8 MiB+1 -> 413, value budget+1 -> 413, other route >1 MB -> 413, unauthenticated -> 401; api typecheck green; gen:api re-run (bundle formatVersion 2, factsMissingBook, facts). Awaiting security re-check + code review.",
+        "2026-10-17: shared build + gen:api; import DTO named via Object.defineProperty (was AugmentedZodDto); generated diff = facts endpoints/models, factCount, counts.facts, bundle v2 models, import body v1|v2 union; pnpm typecheck green; portability consumers (character-portability.controller 35/35, character-portability 32/32, bounded-array 33/33, json-value-budget 13/13); no web caller of import/export"
+      ]
+    },
+    {
+      "id": "T24",
+      "slice": "S5",
+      "title": "Route helpers know the facts tab and q; canonical, smart and book-switch paths preserve tab and clear q",
+      "specRef": "D10, D11; trap 7; integration map 'Context resolution / routes'",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/model/character-routes.ts",
+        "apps/web/src/features/characters/model/character-details-context.ts",
+        "apps/web/src/features/characters/components/character-context-select.tsx",
+        "apps/web/src/features/characters/components/character-appearances.tsx",
+        "apps/web/src/features/characters/components/character-details-page.tsx",
+        "apps/web/src/features/characters/model/character-routes.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D10", "D11"],
+      "acceptance": ["A07"],
+      "doneWhen": [
+        "CharacterRouteArgs accepts an optional tab ('overview' | 'facts') and getCharacterDetailsPath emits tab=facts only for facts (overview omitted); query string built in one place, no ad-hoc concatenation at call sites",
+        "canonicalCharacterDetailsHref (character-details-context.ts:21-33) keeps tab (and q) when it rewrites ?bookId&view",
+        "Smart-mode redirect (character-details-page.tsx:224-235) keeps tab",
+        "CharacterContextSelect (character-context-select.tsx:40-46) and the appearance links (character-appearances.tsx:186) pass the current tab and never pass q, so a book switch keeps the tab and clears q",
+        "Entry points to a different character (catalog :109, roster card :107, book-characters-tab :83, actions menu :57) still emit no tab, so a different character opens on Overview",
+        "Unit tests for the builder and canonicalisation cover overview/facts, bookId, view=global, smart"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass)."
+      ],
+      "notes": [
+        "CharacterRouteArgs kept unchanged (shared with getCharacterEditPath, which has no tabs); getCharacterDetailsPath takes CharacterRouteArgs & { tab?, q? } and builds the query with URLSearchParams in one place. Smart redirect keeps q as well as tab (same book)."
+      ]
+    },
+    {
+      "id": "T25",
+      "slice": "S5",
+      "title": "Facts query keys and the scoped infinite query hook",
+      "specRef": "D08, D16, D20; S5 bullet 3; integration map 'Cache'",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/api/character-keys.ts",
+        "apps/web/src/features/characters/api/character-keys.test.ts",
+        "apps/web/src/features/characters/api/use-character-facts-infinite.ts"
+      ],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "decisions": ["D08", "D16", "D20"],
+      "acceptance": ["A08", "A09"],
+      "doneWhen": [
+        "characterKeys gains factsScope(characterId, bookId) and factsInfinite(characterId, bookId, q) under the 'characters' root, so the existing characterKeys.all invalidations (unlink, delete, merge) also refresh facts",
+        "useCharacterFactsInfinite calls the generated client with pageSize CHARACTER_FACTS_PAGE_SIZE, parses with PaginatedCharacterFactsSchema, getNextPageParam = page < pagesCount ? page + 1 : undefined (pattern of use-book-characters-infinite.ts:16-28), initialPageParam 1",
+        "The hook has an enabled flag; it is only mounted/enabled for book mode with the Facts tab active (no fetch for Overview, global or smart)",
+        "Query key changes with bookId and q, so a new book or q starts from page 1; no placeholderData/keepPreviousData that would show the previous book's facts",
+        "character-keys.test.ts asserts different book or q -> different key, and factsScope is a prefix of factsInfinite"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass)."
+      ],
+      "notes": [
+        "No enabled flag: the facts list only mounts when the Facts panel is active (Radix Tabs unmounts inactive content) and a concrete book is selected; keys take an options object { characterId, bookId, q }."
+      ]
+    },
+    {
+      "id": "T26",
+      "slice": "S5",
+      "title": "Details page: PageTabs Overview/Facts with nuqs, Overview content untouched",
+      "specRef": "D08, D09, D10, D11; integration map 'Detail page / layout', 'Tabs'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-details-page.tsx"],
+      "dependsOn": ["T24"],
+      "mandatory": true,
+      "decisions": ["D08", "D09", "D10", "D11"],
+      "acceptance": ["A06", "A07"],
+      "doneWhen": [
+        "Exactly two PageTabs items, overview and facts; tab state via useQueryState('tab', parseAsStringLiteral(['overview','facts']).withDefault('overview')) as in book-details-view.tsx:38-43",
+        "Hero, CharacterContextSelect and the back link stay above the tabs; CharacterAppearancesSidebar stays outside the tabs in the right column",
+        "Overview panel renders CharacterAppearancesMobile, CharacterBookSection, CharacterProfileSection, CharacterFormsSection with the same props as today (character-details-page.tsx:198-203); reveal state stays in CharacterDetailsContextView",
+        "Tabs are present in book, global and smart modes"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass).",
+        "Also removed two pre-existing <div role=\"alert\"> wrappers around CharactersErrorState in character-details-page.tsx (it already renders role=alert) - double announcement found in S5/S6 review."
+      ]
+    },
+    {
+      "id": "T27",
+      "slice": "S5",
+      "title": "Facts panel: search, list grid, infinite footer, and every loading/empty/error/no-book state",
+      "specRef": "D08, D10, D14, D16, D20; S5 bullets 3-4",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-facts-tab.tsx",
+        "apps/web/src/features/characters/components/character-facts-list.tsx"
+      ],
+      "dependsOn": ["T25", "T26", "T28"],
+      "mandatory": true,
+      "decisions": ["D08", "D10", "D14", "D16", "D20"],
+      "acceptance": ["A05", "A08", "A09", "A10"],
+      "doneWhen": [
+        "Global mode and smart mode without a concrete book: a prompt to select a book whose action moves focus to the existing CharacterContextSelect; no facts request is made; no new selector",
+        "Book mode: DebouncedSearchInput bound to nuqs q (300 ms, >= 2 chars, normalised, clear button); q change restarts from page 1",
+        "Initial load: skeleton grid; initial error: CharactersErrorState with retry; never rendered as empty",
+        "Zero facts without q: EmptyState with the empty-notes illustration and translated copy passed via the state prop (lib/empty-states.ts entries hold hardcoded Ukrainian, so stateKey is not used); its Add CTA is added in T36, not here",
+        "Zero hits with q: EmptyState with the empty-search illustration and a clear-search action, never the add-first-fact copy",
+        "List: grid-cols-1, 2 columns from the desktop breakpoint; InfiniteScrollFooter with state derived from isFetchNextPageError / isFetchingNextPage / hasNextPage (pattern characters-catalog-view.tsx:56); next-page error keeps loaded cards and retries only that page",
+        "totalCount shown inside the panel (not as a tab badge, which would force a fetch while the tab is inactive)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass)."
+      ]
+    },
+    {
+      "id": "T28",
+      "slice": "S5",
+      "title": "Read-only fact preview card and skeleton",
+      "specRef": "D05; S5 bullet 4; trap 11",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-fact-card.tsx",
+        "apps/web/src/features/characters/components/character-fact-card-skeleton.tsx"
+      ],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "decisions": ["D05"],
+      "acceptance": ["A11"],
+      "doneWhen": [
+        "Card uses Book Nest card tokens (rounded-xl border border-border bg-card as NoteCardSkeleton / notes cards); title line-clamp-2, body line-clamp-3 or 4",
+        "Chapter and page metadata rendered only when non-null",
+        "No 'Читати повністю' control, no menu, no click handler in this slice (both arrive in S6 with their behaviour)",
+        "No Note-only elements (category, favorite, pin, spoiler gate)",
+        "Skeleton adapted from NoteCardSkeleton (features/notes/components/note-card-skeleton.tsx:3-18)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass)."
+      ]
+    },
+    {
+      "id": "T29",
+      "slice": "S5",
+      "title": "i18n for tabs, facts list states and search; relabel the book description",
+      "specRef": "D09; integration map 'i18n'",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D09", "D14"],
+      "acceptance": ["A06", "A20"],
+      "doneWhen": [
+        "characters.page.bookDescription (uk.json:8178, en.json:8178) becomes 'Загальний опис у цій книзі' / 'General description in this book'; characters.edit.bookDescription (uk.json:8030) unchanged",
+        "New keys for tab labels Огляд / Overview and Факти / Facts, search label/placeholder/clear, empty, empty-search, no-book prompt, error, all-shown and load-more error; existing characters.tab key (used by book-details-view) untouched",
+        "Added via the /add-i18n-key flow; node .claude/scripts/check-i18n-parity.mjs passes; no Ukrainian literals in components"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass)."
+      ]
+    },
+    {
+      "id": "T30",
+      "slice": "S5",
+      "title": "Frontend tests for tabs, routing, scoping and list states",
+      "specRef": "04 'Frontend unit / UI' bullets 1-2; S5 gate",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/components/character-details-page.test.tsx",
+        "apps/web/src/features/characters/components/character-facts-tab.test.tsx"
+      ],
+      "dependsOn": ["T27", "T29"],
+      "mandatory": true,
+      "decisions": ["D05", "D08", "D10", "D11", "D14", "D16", "D20"],
+      "acceptance": ["A05", "A06", "A07", "A08", "A09", "A10"],
+      "doneWhen": [
+        "Existing character-details-page tests pass unchanged except for intended label text",
+        "Default tab is Overview with no tab param; ?tab=facts opens Facts directly; smart single-appearance redirect and canonical redirect keep tab=facts",
+        "Switching book via the context select keeps tab=facts and drops q; facts of the previous book are never rendered after the switch (fetch boundary mock with a delayed second response)",
+        "Global and smart-without-book show the select-book prompt and issue no facts request",
+        "Search: fewer than 2 chars does not request; a committed q requests pageNumber=1 with q; clear restores the full list",
+        "States: skeleton, initial error with retry, empty (no add CTA yet in S5), empty-search with clear, next-page error keeps cards and retry requests the failed page only, exhausted list stops requesting",
+        "Mocks at the fetch boundary, not React Query hooks (CLAUDE.md §7)"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-16 S5: code-reviewer APPROVED WITH NITS (2 Medium + 4 Low fixed); tests character-routes 8/8, character-details-context 5/5, character-keys 12/12, character-fact-card 6/6, character-facts-tab 27/27, character-details-page 48/48 (unchanged), debounced-search-input 6/6; web typecheck + lint + i18n parity green. accessibility-auditor + frontend-performance-auditor run once on the combined S5+S6 UI in the T40 browser pass (S5 is a read-only subset of the S6 UI; local stack with the new API is only up for that pass)."
+      ]
+    },
+    {
+      "id": "T31",
+      "slice": "S6",
+      "title": "Fact mutation hooks with scoped invalidation and 404 handling",
+      "specRef": "D12, D13, D20; S6 bullet 3",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/api/use-create-character-fact.ts",
+        "apps/web/src/features/characters/api/use-update-character-fact.ts",
+        "apps/web/src/features/characters/api/use-delete-character-fact.ts"
+      ],
+      "dependsOn": ["T25"],
+      "mandatory": true,
+      "decisions": ["D12", "D13", "D20"],
+      "acceptance": ["A03", "A13"],
+      "doneWhen": [
+        "Hooks call only the generated client; on success invalidate characterKeys.factsScope(characterId, bookId) so list and totalCount refresh; no optimistic removal on delete",
+        "On a 404 (fact, appearance or character gone, incl. after a merge) the scope is invalidated as well, so the UI refetches instead of showing stale data"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T32",
+      "slice": "S6",
+      "title": "CharacterFactFormDialog: one RHF + Zod dialog for create and edit",
+      "specRef": "D04, D13; S6 bullet 1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-fact-form-dialog.tsx",
+        "apps/web/src/features/characters/model/character-fact-form-schema.ts"
+      ],
+      "dependsOn": ["T31", "T38"],
+      "mandatory": true,
+      "decisions": ["D03", "D04", "D13"],
+      "acceptance": ["A02", "A03"],
+      "doneWhen": [
+        "One component with a create/edit target union (pattern NoteFormDialog note-form-dialog.tsx:49-52), shared Dialog primitives, initial focus on the title field",
+        "Form schema mirrors the shared limits (CHARACTER_FACT_INPUT_LIMITS) with translated messages; title and text required after trim",
+        "Chapter uses SuggestionCombobox fed by useBookChapters(bookId) (book-note-form-adapter.tsx:42-55); page max from bookPageCeiling({ pagesCount: useBookPagesCount(bookId), technicalMax }) and re-validated when the ceiling loads (note-form-dialog.tsx:131-134)",
+        "Text field shows a remaining-characters counter",
+        "Edit submit is disabled while the form is not dirty; submit and cancel are disabled while pending; a failed save keeps the dialog open with the user's input and shows server field errors or a toast"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T33",
+      "slice": "S6",
+      "title": "Unsaved-draft guard on every close and navigation path",
+      "specRef": "D11 'Guard unsaved form drafts during navigation'; D13; S6 bullet 2",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-fact-form-dialog.tsx",
+        "apps/web/src/features/characters/hooks/use-character-fact-draft-guard.ts"
+      ],
+      "dependsOn": ["T32"],
+      "mandatory": true,
+      "decisions": ["D11", "D13"],
+      "acceptance": ["A12"],
+      "doneWhen": [
+        "While dirty, Cancel, the X button, Escape and outside click open DiscardConfirmDialog (features/books/index.ts:17) instead of closing; clean form closes immediately",
+        "Stay keeps every typed value and returns focus into the form; Discard closes and resets",
+        "beforeunload listener active only while dirty (pattern character-edit-page.tsx:234-242)",
+        "Browser Back/Forward while dirty is intercepted with a history sentinel entry (pattern useMobilePageOverviewPanel, components/ui/mobile-page-overview-panel.tsx:241-262, preserving Next's history state) and routed through the same DiscardConfirmDialog (TD11)",
+        "In-app links, the context select and appearance links are unreachable while the modal dialog is open (Radix modal), so a book change cannot drop a draft; verified in the browser (T40)",
+        "No double submission while a mutation is in flight"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T34",
+      "slice": "S6",
+      "title": "Card ellipsis menu and one list-level delete AlertDialog",
+      "specRef": "D05 'Ellipsis menu for Edit/Delete'; D12",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-fact-card.tsx",
+        "apps/web/src/features/characters/components/delete-character-fact-dialog.tsx",
+        "apps/web/src/features/characters/components/character-facts-list.tsx"
+      ],
+      "dependsOn": ["T31"],
+      "mandatory": true,
+      "decisions": ["D05", "D12"],
+      "acceptance": ["A13"],
+      "doneWhen": [
+        "Card has an accessible DropdownMenu (aria-label) with Edit and Delete; Edit opens CharacterFactFormDialog in edit mode",
+        "Exactly one DeleteCharacterFactDialog instance per list (not one per card, unlike note-archive-card.tsx:155-171); it names the fact title",
+        "Confirm is disabled while pending; dialog closes and toast shows only after server success; on failure the dialog and card stay and an error toast shows; on 404 the list refetches and the dialog closes"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T35",
+      "slice": "S6",
+      "title": "Real overflow detection with 'Читати повністю' and the full-view dialog, shipped together",
+      "specRef": "D06; trap 11; S6 bullet 1",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/character-fact-card.tsx",
+        "apps/web/src/features/characters/components/character-fact-full-view-dialog.tsx"
+      ],
+      "dependsOn": ["T28"],
+      "mandatory": true,
+      "decisions": ["D06"],
+      "acceptance": ["A11"],
+      "doneWhen": [
+        "Overflow measured with useFittedLineClamp (hooks/use-fitted-line-clamp.ts:23) or an equivalent ref measurement on the body and the title; the action renders only when one of them is clamped",
+        "Full-view dialog follows NoteFullViewDialog (note-full-view-dialog.tsx:27-60): focus moves to the scrollable body on open and returns to the trigger on close; shows title, full text, chapter/page when present",
+        "Trigger and dialog land in the same change; no route is added"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T36",
+      "slice": "S6",
+      "title": "Add-fact entry points: toolbar button and empty-state CTA",
+      "specRef": "D04, D14 'no facts + Add CTA'",
+      "layer": "web",
+      "files": ["apps/web/src/features/characters/components/character-facts-tab.tsx"],
+      "dependsOn": ["T32"],
+      "mandatory": true,
+      "decisions": ["D04", "D14"],
+      "acceptance": ["A03", "A10"],
+      "doneWhen": [
+        "Book mode shows an Add button next to search and the empty (no q) state's primary action; both open the create dialog",
+        "The empty-search state keeps its clear-search action and has no add action"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T37",
+      "slice": "S6",
+      "title": "Unlink confirmation shows a server-grounded fact count; character delete preview lists facts",
+      "specRef": "D15 'existing unlink confirmation must display server-grounded affected facts count'; trap 1; S6 bullet 3",
+      "layer": "web",
+      "files": [
+        "apps/web/src/features/characters/components/unlink-character-dialog.tsx",
+        "apps/web/src/features/characters/components/book-characters-tab.tsx",
+        "apps/web/src/features/characters/components/character-details-actions-menu.tsx",
+        "apps/web/src/features/characters/components/delete-character-dialog.tsx"
+      ],
+      "dependsOn": ["T17", "T25"],
+      "mandatory": true,
+      "decisions": ["D15"],
+      "acceptance": ["A14"],
+      "doneWhen": [
+        "UnlinkCharacterDialog receives bookId and characterId from both call sites (book-characters-tab.tsx:142, character-details-actions-menu.tsx) and, while open, reads totalCount from the facts list endpoint (TD10)",
+        "Loading shows a skeleton; count > 0 shows the count and an explicit irreversible-deletion warning that relinking will not restore them; count 0 shows no fact warning; a failed count shows an explicit 'could not load' line, never 0",
+        "Confirm behaviour unchanged otherwise; after unlink, characterKeys.all invalidation also clears facts",
+        "DeletionImpactList (delete-character-dialog.tsx:23-31) gains a factCount row with a plural i18n key"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed",
+        "Deviation (recorded 2026-10-17): Confirm is disabled only while the server count is loading (re-enabled on success and on error, where the could-not-load line explains). Reason: D15 requires the confirmation to display the server-grounded count; letting the user confirm before it renders would defeat that. Raised by code review L6 and the accessibility audit."
+      ]
+    },
+    {
+      "id": "T38",
+      "slice": "S6",
+      "title": "i18n for the form, validation messages, menu, delete, full view, discard, unlink and delete-preview counts",
+      "specRef": "integration map 'i18n'",
+      "layer": "web",
+      "files": ["apps/web/src/messages/uk.json", "apps/web/src/messages/en.json"],
+      "dependsOn": ["T29"],
+      "mandatory": true,
+      "decisions": ["D04", "D06", "D12", "D13", "D15"],
+      "acceptance": ["A20"],
+      "doneWhen": [
+        "Every new S6 string exists in uk and en with ICU plurals for counts; check-i18n-parity.mjs passes; no hardcoded user-facing text in components"
+      ],
+      "status": "done",
+      "evidence": [
+        "S6 implemented 2026-10-17; web typecheck/lint/prettier green; card 6/6, facts-tab 27/27, details-page 48/48, book-characters-tab 21/21, delete-character-dialog 6/6, character-keys 12/12; code-review pending",
+        "S6 + review fixes (M1-M3, L1-L6), 2026-10-17: web typecheck clean, eslint 0 errors, prettier clean; character-details-page 48/48, character-facts-tab 27/27, character-fact-card 6/6, book-characters-tab 21/21, delete-character-dialog 6/6; code-reviewer APPROVE WITH CHANGES -> fixed"
+      ]
+    },
+    {
+      "id": "T39",
+      "slice": "S6",
+      "title": "Frontend tests for mutations, dialogs, guard, delete, full view and unlink count",
+      "specRef": "04 'Frontend unit / UI' bullets 2-5; S6 gate",
+      "layer": "test",
+      "files": [
+        "apps/web/src/features/characters/components/character-fact-form-dialog.test.tsx",
+        "apps/web/src/features/characters/components/delete-character-fact-dialog.test.tsx",
+        "apps/web/src/features/characters/components/character-fact-card.test.tsx",
+        "apps/web/src/features/characters/components/unlink-character-dialog.test.tsx",
+        "apps/web/src/features/characters/api/character-fact-mutations.test.tsx"
+      ],
+      "dependsOn": ["T33", "T34", "T35", "T36", "T37"],
+      "mandatory": true,
+      "decisions": ["D04", "D06", "D12", "D13", "D15"],
+      "acceptance": ["A02", "A03", "A11", "A12", "A13", "A14"],
+      "doneWhen": [
+        "Form: required/limit errors, page over book ceiling, unchanged edit cannot submit, server error keeps input, pending disables actions",
+        "Guard: Cancel, X, Escape, outside click while dirty open the discard dialog; Stay keeps values; Discard closes; clean form closes at once; beforeunload is prevented only while dirty; a popstate while dirty opens the discard dialog",
+        "Delete: one dialog instance for N cards, names the fact, disabled while pending, failure keeps dialog and card, 404 refetches",
+        "Full view: action absent when not clamped and present when clamped (layout measurement stubbed), opens the dialog, focus returns to the trigger",
+        "Unlink: shows count from the server, shows the error line (not 0) when the count request fails",
+        "Mutation hooks invalidate exactly the facts scope of that book/character"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-17: character-fact-mutations 7, unlink-character-dialog 6, character-fact-card 11, delete-character-fact-dialog 6, character-fact-form-dialog 36 (form 15, guard 13, history 8) - each file run separately, all green; real Back/beforeunload/clamp verified in the T40 browser pass"
+      ]
+    },
+    {
+      "id": "T40",
+      "slice": "S6",
+      "title": "Browser verification: desktop and 390 px, keyboard, focus, dark/light",
+      "specRef": "S6 gate; S7 bullet 3; A11, A12, A20; CLAUDE.md §9 FE",
+      "layer": "test",
+      "files": ["docs/specs/character-facts/progress.md"],
+      "dependsOn": ["T39"],
+      "mandatory": true,
+      "decisions": ["D05", "D06", "D08", "D11", "D13", "D17"],
+      "acceptance": ["A06", "A07", "A11", "A12", "A20"],
+      "doneWhen": [
+        "pnpm dev:web and dev:api start clean with no console errors on the details page",
+        "Screenshots or recorded observations for: two columns on desktop and one at 390 px, Overview unchanged, Facts states, create/edit/delete, full view, discard prompt on Escape/outside/Back, unlink count, light and dark",
+        "Keyboard-only pass: tabs, menu, dialogs, focus return",
+        "Any check jsdom cannot model is recorded as manual evidence; anything not run is recorded as not run"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-17 headless Playwright 1.62.1 against web :3100 + api :4100 on scratch DB booknest_facts: 15/15 scenarios (overview default, 2 columns desktop, infinite 20->47, search, create/edit/delete, discard on Escape/outside/Back, full view, page ceiling 422 message, unlink count, 390 px no overflow, dark, empty/no-book, spoiler reveal + book switch). accessibility-auditor keyboard walk: 5 in-scope focus/live-region failures fixed and re-verified in browser (+ details-menu unlink cancel); pre-existing theme/shared issues recorded in progress.md. Only console error: expected 401 refresh probe on /login.",
+        "frontend-performance-auditor not run: host RAM (1.3-3.9 GB free, two runs reaped) cannot hold Next dev + API + Playwright together with the auditor. No memo/virtualization was added (rule 6); page size 20 with infinite scroll. Waiver recorded 2026-10-17; run it before release if wanted."
+      ]
+    },
+    {
+      "id": "T41",
+      "slice": "S7",
+      "title": "Final gates, blast radius and live API proof",
+      "specRef": "S7 bullets 1-3; 04 'Verification commands'; D17",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T40", "T23", "T16", "T11"],
+      "mandatory": true,
+      "decisions": ["D17"],
+      "acceptance": ["A01", "A20"],
+      "doneWhen": [
+        "pnpm --filter @app/shared build, pnpm gen:api with no surprise diff, pnpm typecheck, pnpm lint, pnpm format:check all green (output captured)",
+        "/blast-radius run for packages/shared, prisma schema/migration, merge/portability repository and service signatures; consumer tests it selects pass",
+        "Focused vitest runs listed with pass/fail counts for every test file touched in T1-T39, plus raw-sql-indexes.test.ts",
+        "curl with an authenticated test user: GET/POST/PATCH/DELETE facts, merge preview with counts.facts, export with formatVersion 2, import of that export",
+        "Per-slice code-reviewer (+ migration-reviewer for S1, security-reviewer for S2/S4, UI auditors for S5/S6) findings resolved"
+      ],
+      "status": "done",
+      "evidence": [
+        "2026-10-17: pnpm typecheck green, pnpm lint 0 errors (8 pre-existing warnings), format clean after prettier --write on tasks.json; live API curl captured (health 200 + x-request-id, facts list/search/422/401/404); full API suite (blast radius for core/** + create-test-app + prisma) was started with VITEST_MAX_WORKERS=2 but reaped by the host for low memory before any result - NOT run to completion",
+        "2026-10-17 (after VERIFY): gen:api re-run -> generated tree md5 identical before/after (5abd009d...), so no hand edits; curl on :4100: POST 201, PATCH 200 (createdAt kept, updatedAt moved), PATCH {} 400, DELETE 204, DELETE again 404 character_fact_not_found, PATCH via other book 404, merge-preview counts.facts {moved:50,dropped:0}, deletion-preview factCount 50, export formatVersion 2 with 50 facts, import of that export 200 created.facts 50. Blast radius, 1 worker: raw-sql-indexes + create-test-app + json-value-budget + characters domain/application/infrastructure 26 files/371 tests; characters api controllers 31 files/438 tests (153+132+153); cross-module tags unlink/deletion, species maintenance, auth, http-error filter, settings 6 files/151 tests - all green. NOT run: the remaining ~140 createTestApp files of the full API suite (host reaped the full run for low memory) - CI runs them on push."
+      ]
+    },
+    {
+      "id": "T42",
+      "slice": "S7",
+      "title": "progress.md resumability checkpoint",
+      "specRef": "00_START_HERE 'Session progress / token economy'; S0 bullet 4; S7 bullet 4; 04 final report item 6",
+      "layer": "process",
+      "files": ["docs/specs/character-facts/progress.md"],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["D17"],
+      "acceptance": ["A20"],
+      "doneWhen": [
+        "Created after the first green slice and updated after each accepted slice: HEAD, git status, stage, done task ids, last gate commands with date/commit, blockers, next action",
+        "Points into tasks.json; does not duplicate task bodies"
+      ],
+      "status": "done",
+      "evidence": ["progress.md updated 2026-10-17"]
+    },
+    {
+      "id": "T43",
+      "slice": "S7",
+      "title": "spec-auditor VERIFY and final report",
+      "specRef": "S7 bullets 1, 4; 04 'Final report required'",
+      "layer": "process",
+      "files": ["docs/specs/character-facts/tasks.json"],
+      "dependsOn": ["T41", "T42"],
+      "mandatory": true,
+      "decisions": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D11",
+        "D12",
+        "D13",
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D18",
+        "D19",
+        "D20"
+      ],
+      "acceptance": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A18",
+        "A19",
+        "A20"
+      ],
+      "doneWhen": [
+        "Every mandatory task is done with a file:line proof from git diff 14367c22..HEAD; no drift outside tasks/technicalDecisions",
+        "Final report lists worktree/commit, drift, reused components, migration file, merge and round-trip evidence, commands with pass/fail counts, unrun gates, known limitations, and confirms no commit/push without consent"
+      ],
+      "status": "done",
+      "evidence": [
+        "spec-auditor VERIFY 2026-10-17 (docs/specs/character-facts/verify-report.md): D01-D20 implemented, no data-loss path found; its partial items closed afterwards (curl PATCH/DELETE/merge/export/import, gen:api idempotence, characters + cross-module tests, T6/T21/T37 notes, progress.md rewritten, perf-audit waiver recorded)"
+      ]
+    }
+  ],
+  "decisionCoverage": {
+    "D01": ["T1", "T2", "T4", "T6", "T7", "T8"],
+    "D02": ["T2", "T4", "T6", "T8"],
+    "D03": ["T1", "T2", "T5", "T6", "T8", "T32"],
+    "D04": ["T32", "T36", "T38", "T39"],
+    "D05": ["T28", "T30", "T34", "T40"],
+    "D06": ["T35", "T38", "T39", "T40"],
+    "D07": ["T1", "T2", "T4", "T6", "T7", "T8"],
+    "D08": ["T25", "T26", "T27", "T30", "T40"],
+    "D09": ["T26", "T29"],
+    "D10": ["T24", "T26", "T27", "T30"],
+    "D11": ["T24", "T26", "T30", "T33", "T40"],
+    "D12": ["T6", "T7", "T31", "T34", "T38", "T39"],
+    "D13": ["T31", "T32", "T33", "T38", "T39", "T40"],
+    "D14": ["T27", "T29", "T30", "T36"],
+    "D15": ["T2", "T4", "T6", "T8", "T10", "T11", "T17", "T37", "T38", "T39"],
+    "D16": ["T1", "T4", "T5", "T7", "T8", "T25", "T27", "T30"],
+    "D17": ["T9", "T40", "T41", "T42"],
+    "D18": ["T3", "T6", "T12", "T13", "T14", "T15", "T16", "T17"],
+    "D19": ["T18", "T19", "T20", "T21", "T22", "T23"],
+    "D20": ["T1", "T7", "T8", "T25", "T27", "T30", "T31"]
+  },
+  "acceptanceCoverage": {
+    "A01": ["T2", "T41"],
+    "A02": ["T1", "T5", "T8", "T32", "T39"],
+    "A03": ["T6", "T7", "T8", "T31", "T32", "T36", "T39"],
+    "A04": ["T4", "T6", "T7", "T8"],
+    "A05": ["T6", "T8", "T27", "T30"],
+    "A06": ["T26", "T29", "T30", "T40"],
+    "A07": ["T24", "T26", "T30", "T40"],
+    "A08": ["T1", "T4", "T5", "T7", "T8", "T25", "T27", "T30"],
+    "A09": ["T25", "T27", "T30"],
+    "A10": ["T27", "T30", "T36"],
+    "A11": ["T28", "T35", "T39", "T40"],
+    "A12": ["T33", "T39", "T40"],
+    "A13": ["T31", "T34", "T39"],
+    "A14": ["T11", "T37", "T39"],
+    "A15": ["T10", "T11"],
+    "A16": ["T12", "T13", "T14", "T15", "T16"],
+    "A17": ["T3", "T6", "T12", "T13", "T14", "T15", "T16"],
+    "A18": ["T18", "T20", "T22"],
+    "A19": ["T18", "T19", "T20", "T21", "T22"],
+    "A20": ["T9", "T17", "T23", "T29", "T38", "T40", "T41", "T42"]
+  },
+  "technicalDecisions": [
+    {
+      "id": "TD1",
+      "topic": "Lock protocol between fact writers and merge",
+      "recommendation": "Fact create/update/delete take pg_advisory_xact_lock_shared on the existing per-user merge key (ADVISORY_LOCK_CLASS.characterMerge, 'char-merge:<userId>') as the first statement of their transaction, then validate scope and write. Merge keeps its exclusive pg_advisory_xact_lock on the same key. Single key: no lock-ordering problem, no deadlock with merge's relationship/membership writer locks, writers never block each other.",
+      "alternativesRejected": "Per-appearance row locks or per-(bookId,characterId) advisory keys: need sorted multi-key acquisition and still lose a fact written on a loser appearance created after merge read loserBookCharacters, because hardDeleteCharacter (character-merge.service.ts:358) cascades every appearance not in the plan.",
+      "evidence": [
+        "character-merge.repository.ts:56-64 exclusive lock keyed per user",
+        "character-merge.service.ts:128-152 merge already joins other writers' lock protocols (precedent)",
+        "core/database/advisory-lock.ts:3-33 lock class registry, exclusive helper only",
+        "core/database/transaction-runner.ts:9-16 no isolation override -> READ COMMITTED, so merge statements after the lock see facts committed by a writer that held the shared lock",
+        "Postgres FK checks only take FOR KEY SHARE on the parent; without the guard a fact inserted between merge's reparent UPDATE and its DELETE would be cascaded away"
+      ],
+      "affects": ["T3", "T6", "T15", "T16"]
+    },
+    {
+      "id": "TD2",
+      "topic": "Preserving createdAt/updatedAt on FK-only reparent",
+      "recommendation": "Parameterized $executeRaw UPDATE character_facts SET book_character_id = $to WHERE book_character_id = $from in CharacterMergeRepository. Prisma @updatedAt is set client-side, so raw SQL leaves updated_at untouched; DB test asserts before/after equality.",
+      "evidence": [
+        "No CREATE TRIGGER in apps/api/prisma/migrations (only pg_temp functions in 20261009130000_species_catalog_backfill)",
+        "Non-overlap appearances keep their id (repointBookCharacters changes only characterId, character-merge.repository.ts:363-374), so their facts need no write at all"
+      ],
+      "affects": ["T14", "T16"]
+    },
+    {
+      "id": "TD3",
+      "topic": "Search strategy and index",
+      "recommendation": "Prisma contains + mode 'insensitive' over title and text with escapeLikePattern, exactly as notes do; composite btree (book_character_id, created_at DESC, id DESC) declared in schema.prisma. No trigram GIN index.",
+      "evidence": [
+        "modules/notes/infrastructure/book-notes-where.ts:79-87 (ILIKE via contains, escaped)",
+        "core/database/like-pattern.ts:3-5 escapeLikePattern",
+        "Only trigram indexes in the repo are authors/publishers (CLAUDE.md §6 trap list, raw-sql-indexes.test.ts:42-43); a facts trigram index would be a 17th hand-written index for a dataset already narrowed to one BookCharacter"
+      ],
+      "affects": ["T2", "T4"]
+    },
+    {
+      "id": "TD4",
+      "topic": "API surface details",
+      "recommendation": "New CharacterFactsController at api/books/:bookId/characters/:characterId/facts (separate from BookCharactersController, which is already 173 lines); query names q/pageNumber/pageSize with pageSize default and max 20; PATCH returns the view, DELETE 204; @Throttle(MUTATION_THROTTLE) on mutations; Swagger tag 'characters' so Orval keeps it in the characters endpoints file.",
+      "evidence": [
+        "core/throttle.ts:17 MUTATION_THROTTLE; book-characters.controller.ts:95,143,165",
+        "common.ts:127-143 paginationQueryFields; catalog uses q (characters.ts:604), roster and theories use search (characters.ts:375, character-theories.ts:89); spec mandates q",
+        "apps/web/orval.config.ts:17 tags-split"
+      ],
+      "affects": ["T1", "T7"]
+    },
+    {
+      "id": "TD5",
+      "topic": "Server-side page ceiling",
+      "recommendation": "Characters-local assertFactPageWithinBook with a CHARACTER_FACT error code, same rule as timeline. Do not extract a core helper in this change.",
+      "evidence": [
+        "Notes do not validate page against pagesCount server-side (no pagesCount use in modules/notes outside series-before-continuation)",
+        "timeline/domain/assert-page-within-book.ts:7-19 and quotes.service.ts:182-190 are the existing server-side patterns"
+      ],
+      "affects": ["T5", "T6"]
+    },
+    {
+      "id": "TD6",
+      "topic": "Constant naming",
+      "recommendation": "Keep the spec's CHARACTER_FACTS_PAGE_SIZE, CHARACTER_BUNDLE_FACTS_PER_APPEARANCE_MAX and CHARACTER_BUNDLE_FACTS_TOTAL_MAX names. Group the fact input limits into CHARACTER_FACT_INPUT_LIMITS (CLAUDE.md §8.10, mirrors NOTE_INPUT_LIMITS notes.ts:19-25). Bundle limits stay top-level to match their neighbours.",
+      "evidence": [
+        "packages/shared/src/character-portability.ts:40-50 top-level CHARACTER_BUNDLE_*_MAX exports"
+      ],
+      "affects": ["T1", "T18"]
+    },
+    {
+      "id": "TD7",
+      "topic": "Merge counts shape",
+      "recommendation": "counts.facts uses the existing CharacterMergeEntityCountsSchema { dropped, moved }; moved = all loser facts, dropped always 0. Uniform with the other eight entries; '0 dropped' makes zero fact loss visible.",
+      "evidence": ["packages/shared/src/characters.ts:833-849"],
+      "affects": ["T12", "T13"]
+    },
+    {
+      "id": "TD8",
+      "topic": "v1/v2 bundle parsing",
+      "recommendation": "Keep the strict v1 schema untouched (literal 1), add a v2 schema (literal 2, appearances with required facts[]), and dispatch on formatVersion after upgradeLegacyCharacterBundle; v1 is normalised to v2 with facts: []. The total-facts cap emits an issue the classifier maps to tooLarge.",
+      "evidence": [
+        "character-portability.ts:307-385 strict bundle schema with superRefine; :387-427 legacy upgrade",
+        "domain/character-portability.ts:367-372 classifier only recognises too_big on arrays, so a plain custom issue would surface as invalid"
+      ],
+      "affects": ["T18", "T20", "T22"]
+    },
+    {
+      "id": "TD9",
+      "topic": "Fact import limits and HTTP body budget",
+      "recommendation": "Freeze 200 per appearance and 2,000 total (match CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX 200 and CHARACTER_BUNDLE_THEORIES_MAX 2000). Register a route-scoped JSON parser for POST /api/characters/import only, with a 25 MiB budget constant in packages/shared, via one core function shared by bootstrap.ts and create-test-app.ts. Keep 1mb everywhere else. Needs security-reviewer sign-off; if refused, record the 1 MB budget as a blocker and do not claim round-trip.",
+      "evidence": [
+        "Measured this run with node: one max-length Cyrillic fact serialises to 10,571 bytes; 1 MB holds 99 of them or about 745 facts of 600 chars; 200 max facts = 2.11 MB; 2,000 = 21.1 MB",
+        "bootstrap.ts:14, :37 global 1mb; create-test-app.ts:18, :47 duplicates it",
+        "MEDIA_MAX_UPLOAD_BYTES = 20 MiB (packages/shared/src/media.ts:3) is an existing authenticated upload budget",
+        "Import is JwtProtected and throttled 10/min (character-portability.controller.ts:27-28, :65)",
+        "apps/web/src/proxy.ts:8 matcher excludes /api; deploy/Caddyfile sets no request body limit"
+      ],
+      "knownLimitation": "Export is unbounded by design (D19: bounds are not a creation cap). A library with more than 2,000 facts, or more than 200 in one appearance, exports completely but its file is rejected at import with character_import_too_large. That is explicit, not silent, and matches D19's 'surface the capacity mismatch'.",
+      "affects": ["T18", "T21", "T22"],
+      "revisions": [
+        {
+          "date": "2026-10-16",
+          "by": "orchestrator after security-reviewer (APPROVE WITH CHANGES)",
+          "change": "Import body is parsed after guards (auth + throttle) in DeferredJsonBodyInterceptor; global parser skips only POST /api/characters/import and keeps 1mb. Budget lowered from 25 MiB to 8 MiB because API containers run with mem_limit 384m. Added: raw-buffer structural value budget (bytes/8) before JSON.parse, early-exit array validation in bundle schemas (fixes pre-existing Zod issue amplification: 100 KB of {} -> 574 MB heap), 1-permit BoundedSemaphore admission (503 when busy). body-parser 2.3.0 + @types/body-parser added as direct deps (already in lockfile; audit clean)."
+        },
+        {
+          "date": "2026-10-16",
+          "by": "security re-check REJECT (H1 bundle superRefine over raw over-long arrays: 2 MB -> 678 MB; H2 legacy v1 upgrade 5.5 s sync CPU) + S4 code review",
+          "change": "Done 2026-10-17: max(..., {abort:true}) + refinements gated on no prior issues, cheap legacy narratorType check, bytes-per-value 16, 30 s body read deadline (408), deferred route owned by characters module with path normalisation, import DTO documents v1|v2, grouped transport constants, fact validators reused, boundedArray regression tests."
+        },
+        {
+          "date": "2026-10-17",
+          "by": "security re-check #3 APPROVE WITH CHANGES (H1/H2/L3/L4 verified closed; semaphore releases on every path incl. abort/408/413; no deferred-route bypass skips both budgets)",
+          "change": "Required: per-object member cap 64 in the verify hook (413 character_import_too_large). All 15 bundle objects are strict, max 30 keys. Closes one-object-with-524K-keys Zod scan (0.4-0.8 s sync, >128 MB). Done 2026-10-17: maxJsonObjectMembers 64 in CHARACTER_IMPORT_TRANSPORT (apps/api/src/modules/characters/api/character-import-transport.ts), enforced in core/json-value-budget.ts; json-value-budget 13/13, portability controller 35/35. Follow-up probe: 1000 characters x 8 appearances x 64 unknown keys (7.2 MB, 522K values) -> Zod 8 ms, 43 issues, ~1 MB, because boundedArray stops at the first invalid element. TD9 signed off."
+        },
+        {
+          "date": "2026-10-17",
+          "by": "S4 code review L4 (grouped constants)",
+          "change": "Byte/value/member/deadline/admission budgets live in one api-side object CHARACTER_IMPORT_TRANSPORT instead of a shared constant (T21 doneWhen named a shared constant only as an example); the web app has no import UI, so nothing outside apps/api reads them."
+        }
+      ],
+      "knownLimitations": [
+        "Re-imported facts sharing an identical createdAt get fresh random ids, so their relative order under (createdAt DESC, id DESC) may differ from the source library.",
+        "The same error code character_import_too_large arrives as 413 (byte/value budget) or 422 (count caps); clients must branch on code, not status.",
+        "Capacity is bound by the 8 MiB byte budget before the 2000-fact cap: one max-length Cyrillic fact serializes to 10,571 B, so a bundle of max-length facts fits about 793 facts; 2000 such facts would be ~21.15 MB and get an explicit 413 character_import_too_large. Export never truncates. Realistic exports average 81.5 B per JSON value and stay far below the budget."
+      ]
+    },
+    {
+      "id": "TD10",
+      "topic": "Source of the unlink fact count",
+      "recommendation": "No new endpoint: when the unlink dialog opens, call the facts list with pageSize=1 and no q and read totalCount, which is server-computed for that exact appearance.",
+      "evidence": [
+        "unlink-character-dialog.tsx:18-23 has no ids today; call sites book-characters-tab.tsx:142 and character-details-actions-menu.tsx",
+        "unlink returns 204 with no body (book-characters.controller.ts:158-172)"
+      ],
+      "affects": ["T37"]
+    },
+    {
+      "id": "TD11",
+      "topic": "Client-side navigation guard for the dirty fact form",
+      "recommendation": "No reusable SPA guard exists. The form is a modal Dialog, so in-app links, the context select and appearance links are not clickable while it is open. Cover the remaining paths: Dialog close intents (Cancel/X/Escape/outside) -> DiscardConfirmDialog, beforeunload while dirty, and Back/Forward via a history sentinel entry modelled on useMobilePageOverviewPanel. Keep it in a feature-local hook; do not build a global router guard.",
+      "evidence": [
+        "Only beforeunload listeners: book-form.tsx:750-757, character-edit-page.tsx:234-242",
+        "Only popstate/pushState pattern: components/ui/mobile-page-overview-panel.tsx:241-262",
+        "DiscardConfirmDialog exported from features/books/index.ts:17"
+      ],
+      "affects": ["T33"]
+    },
+    {
+      "id": "TD12",
+      "topic": "Imported fact timestamps",
+      "recommendation": "Insert facts with createMany passing createdAt and updatedAt from the bundle; prove in a DB test that @updatedAt does not overwrite the explicit value. If it does, use a parameterized raw insert or a same-transaction restore inside CharacterPortabilityRepository only.",
+      "evidence": [
+        "character-portability.repository.ts:187-226 insertGraph uses createMany for every entity"
+      ],
+      "affects": ["T20", "T22"]
+    },
+    {
+      "id": "TD13",
+      "topic": "Overflow detection for 'Читати повністю'",
+      "recommendation": "Reuse useFittedLineClamp (it reports isClamped via layout + ResizeObserver) on the body; measure the title the same way.",
+      "evidence": [
+        "apps/web/src/hooks/use-fitted-line-clamp.ts:23-60",
+        "features/notes/components/note-preview.tsx:34-69"
+      ],
+      "affects": ["T35"]
+    },
+    {
+      "id": "TD14",
+      "topic": "Where the fact count is displayed",
+      "recommendation": "Inside the Facts panel, not as a PageTabs badge: a badge would fetch while the tab is inactive and break D08's lazy fetch.",
+      "evidence": [
+        "components/page-tabs.tsx:9-13 badge slot",
+        "book-details-view.tsx:44-58 badge drives an always-on summary query"
+      ],
+      "affects": ["T27"]
+    }
+  ],
+  "openDecisions": [],
+  "verifiedAssertions": [
+    {
+      "claim": "Nothing named CharacterFact / character_facts exists yet",
+      "specRef": "D01; S0",
+      "verdict": "CONFIRMED",
+      "evidence": "git grep -i 'CharacterFact|character_facts|CHARACTER_FACTS|characterFacts' over apps and packages returns nothing (generated included); no partial implementation"
+    },
+    {
+      "claim": "BookCharacter has description + descriptionIsSpoiler",
+      "specRef": "D09; trap 6",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:1123 model, :1132 description, :1149 descriptionIsSpoiler; book/character FKs onDelete Cascade :1157-1158; no deletedAt on BookCharacter"
+    },
+    {
+      "claim": "unlink() calls deleteBookCharacter()",
+      "specRef": "trap 1",
+      "verdict": "CONFIRMED",
+      "evidence": "book-characters.service.ts:231-256 -> characters.repository.ts:478-483 (bookCharacter.delete)"
+    },
+    {
+      "claim": "applyPlan deletes duplicate appearances before repointing",
+      "specRef": "trap 4",
+      "verdict": "CONFIRMED",
+      "evidence": "character-merge.service.ts:167 deleteBookCharacters then :168 repointBookCharacters; loser hard-deleted at :358"
+    },
+    {
+      "claim": "Merge advisory lock serialises merges only",
+      "specRef": "trap 4; v2 anchors",
+      "verdict": "CONFIRMED",
+      "evidence": "character-merge.repository.ts:56-64, key char-merge:<userId>, class 7 (core/database/advisory-lock.ts:7); acquired at character-merge.service.ts:338"
+    },
+    {
+      "claim": "Merge plan can map dropped loser appearances to survivor appearances",
+      "specRef": "trap 4 'Extend domain plan'",
+      "verdict": "FALSE",
+      "evidence": "findSurvivorBookIds returns book ids only (character-merge.repository.ts:276-285); survivor appearance ids must be added (T14)"
+    },
+    {
+      "claim": "Character soft delete sets deletedAt, purge later",
+      "specRef": "trap 2",
+      "verdict": "CONFIRMED",
+      "evidence": "character-lifecycle.service.ts:91 softDelete, :76 restore, :51 purge; characters.repository.ts:1061-1070 updateMany deletedAt"
+    },
+    {
+      "claim": "Book soft delete has the same distinction",
+      "specRef": "trap 3",
+      "verdict": "CONFIRMED",
+      "evidence": "modules/books/application/book-lifecycle.service.ts:103 softDelete, :90 restore, :65 purge"
+    },
+    {
+      "claim": "Existing owned-appearance lookup is safe to reuse for facts",
+      "specRef": "integration map 'Ownership'",
+      "verdict": "FALSE",
+      "evidence": "characters.repository.ts:642-649 findOwnedBookCharacter filters character.deletedAt but not book.deletedAt; fact queries need their own scoped lookup (T4)"
+    },
+    {
+      "claim": "Reading context enforced in character-details.assembler / reading-context-window",
+      "specRef": "integration map 'Reading context'",
+      "verdict": "CONFIRMED",
+      "evidence": "character-details.assembler.ts:47-82 loadMaskedCharacterDetails; reading-context-window.ts:39-66; book details pass contextBookId = bookId and require that appearance (book-characters.service.ts:158-179)"
+    },
+    {
+      "claim": "character-portability.ts formatVersion=1, BundleAppearanceSchema has no facts",
+      "specRef": "trap 5",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/character-portability.ts:28, :311 z.literal; :87-119 strict, not exported"
+    },
+    {
+      "claim": "Legacy upgrade path lives in application/character-portability.service.ts",
+      "specRef": "trap 5",
+      "verdict": "MOVED",
+      "evidence": "upgradeLegacyCharacterBundle is in packages/shared/src/character-portability.ts:387-427; the service only calls it at character-portability.service.ts:85"
+    },
+    {
+      "claim": "CharacterImportCreatedSchema / SkippedSchema and the tooLarge path exist",
+      "specRef": "trap 5; D19",
+      "verdict": "CONFIRMED",
+      "evidence": "character-portability.ts:429, :445, :459; tooLarge code :54; classifier domain/character-portability.ts:367-372 (array too_big only)"
+    },
+    {
+      "claim": "JSON_BODY_LIMIT = '1mb' in bootstrap.ts",
+      "specRef": "D19; v2 anchors",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/bootstrap.ts:14, :37; duplicated in apps/api/src/test/create-test-app.ts:18, :47 (not mentioned by the spec)"
+    },
+    {
+      "claim": "CharacterMergeCountsSchema",
+      "specRef": "trap 8",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/characters.ts:840-849; preview :860-865, result :869-873"
+    },
+    {
+      "claim": "Character deletion preview exists",
+      "specRef": "D15",
+      "verdict": "CONFIRMED",
+      "evidence": "characters.ts:399-408; character-lifecycle.service.ts:37-49; characters.repository.ts:396-431; FE delete-character-dialog.tsx:23-31, :90-100"
+    },
+    {
+      "claim": "Merge preview/result stats are shown to the user",
+      "specRef": "D18",
+      "verdict": "FALSE",
+      "evidence": "No non-generated consumer of characterMergeController* or characterPortabilityController* in apps/web/src; merge and portability are API-only, so the stats change is API-DTO-only"
+    },
+    {
+      "claim": "character-details-page.tsx sections",
+      "specRef": "integration map 'Detail page'",
+      "verdict": "CONFIRMED",
+      "evidence": "character-details-page.tsx:191-203 Hero, ContextSelect, AppearancesMobile, BookSection, ProfileSection, FormsSection; sidebar :206"
+    },
+    {
+      "claim": "character-book-section.tsx owns the description label",
+      "specRef": "D09",
+      "verdict": "CONFIRMED",
+      "evidence": "character-book-section.tsx:128 t('bookDescription') in characters.page; uk.json:8178 'Опис у книзі', en.json:8178; edit page uses characters.edit.bookDescription (uk.json:8030)"
+    },
+    {
+      "claim": "Route builder only knows bookId/view",
+      "specRef": "integration map; trap 7",
+      "verdict": "CONFIRMED",
+      "evidence": "character-routes.ts:3-22"
+    },
+    {
+      "claim": "character-details-context.ts canonicalises and smart mode redirects",
+      "specRef": "trap 7",
+      "verdict": "MOVED",
+      "evidence": "href computed in character-details-context.ts:21-33, but both router.replace calls live in character-details-page.tsx:73-79 (canonical) and :224-235 (smart)"
+    },
+    {
+      "claim": "Book switching goes through CharacterContextSelect",
+      "specRef": "trap 7; D11",
+      "verdict": "FALSE",
+      "evidence": "Incomplete: the appearance sidebar/mobile list also switches books via character-appearances.tsx:186; both need tab preservation (T24)"
+    },
+    {
+      "claim": "PageTabs + nuqs in book-details-view.tsx",
+      "specRef": "D08, D11",
+      "verdict": "CONFIRMED",
+      "evidence": "components/page-tabs.tsx:30-98; book-details-view.tsx:38, :43, :74-95"
+    },
+    {
+      "claim": "Notes NoteFormDialog / NoteFullViewDialog / NoteArchiveCard / NoteCardSkeleton / DeleteNoteDialog / notes-archive-content / notes-archive-query",
+      "specRef": "integration map",
+      "verdict": "CONFIRMED",
+      "evidence": "features/notes/components/note-form-dialog.tsx:54, note-full-view-dialog.tsx:27, note-archive-card.tsx, note-card-skeleton.tsx:3, delete-note-dialog.tsx:18, notes-archive-content.tsx:79-104, features/notes/model/notes-archive-query.ts:104"
+    },
+    {
+      "claim": "note-form-schema.ts lives in notes components",
+      "specRef": "integration map 'Edit/create form'",
+      "verdict": "MOVED",
+      "evidence": "apps/web/src/features/notes/model/note-form-schema.ts"
+    },
+    {
+      "claim": "ChapterCombobox at apps/web/src/components/chapter-combobox.tsx",
+      "specRef": "D13; integration map",
+      "verdict": "MOVED",
+      "evidence": "Renamed to SuggestionCombobox in f59d3151 (after d5af308a): apps/web/src/components/suggestion-combobox.tsx:35, fed by useBookChapters (features/books/api/use-book-chapters.ts:10), used at book-note-form-adapter.tsx:42-55"
+    },
+    {
+      "claim": "DebouncedSearchInput 300 ms / 2 chars",
+      "specRef": "D16",
+      "verdict": "CONFIRMED",
+      "evidence": "components/debounced-search-input.tsx:8-9, normalizeSearchQuery :99-101"
+    },
+    {
+      "claim": "InfiniteScrollFooter + use-infinite-scroll-sentinel",
+      "specRef": "D08, D20",
+      "verdict": "CONFIRMED",
+      "evidence": "components/infinite-scroll-footer.tsx:30-78; hooks/use-infinite-scroll-sentinel.ts:12, :19"
+    },
+    {
+      "claim": "use-book-characters-infinite.ts",
+      "specRef": "integration map 'Endless scroll'",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/api/use-book-characters-infinite.ts:12-30"
+    },
+    {
+      "claim": "DiscardConfirmDialog",
+      "specRef": "D13",
+      "verdict": "CONFIRMED",
+      "evidence": "features/books/components/discard-confirm-dialog.tsx:27 (gained onCloseAutoFocus in the drift), exported features/books/index.ts:17"
+    },
+    {
+      "claim": "A reusable unsaved-changes guard for SPA navigation exists",
+      "specRef": "D13 'real solution for client-side navigation'",
+      "verdict": "FALSE",
+      "evidence": "None. beforeunload only at book-form.tsx:750-757 and character-edit-page.tsx:234-242; history sentinel only in components/ui/mobile-page-overview-panel.tsx:241-262 (TD11)"
+    },
+    {
+      "claim": "bookPageCeiling + useBookPagesCount",
+      "specRef": "D13",
+      "verdict": "CONFIRMED",
+      "evidence": "features/books/model/book-page-ceiling.ts:5; features/books/api/use-book.ts:14"
+    },
+    {
+      "claim": "Notes validate page against the book on the server",
+      "specRef": "D03 'within valid book page ceiling'; A02 'FE and BE'",
+      "verdict": "FALSE",
+      "evidence": "Notes validate only on the FE; server-side precedent is timeline/domain/assert-page-within-book.ts:7-19 and quotes.service.ts:182-190 (TD5)"
+    },
+    {
+      "claim": "EmptyState with empty-notes / empty-search illustrations",
+      "specRef": "D14",
+      "verdict": "CONFIRMED",
+      "evidence": "components/empty-state.tsx:20; lib/empty-states.ts:128, :183; apps/web/public/illustrations/empty-notes.png, empty-search.png. Entries hold hardcoded Ukrainian, so pass translated state objects"
+    },
+    {
+      "claim": "CharactersErrorState",
+      "specRef": "D14",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/components/characters-error-state.tsx:13"
+    },
+    {
+      "claim": "UnlinkCharacterDialog can show a count",
+      "specRef": "D15; trap 1",
+      "verdict": "CONFIRMED",
+      "evidence": "unlink-character-dialog.tsx:18-58 exists but takes no ids and has no count; call sites book-characters-tab.tsx:142, character-details-actions-menu.tsx:43-61"
+    },
+    {
+      "claim": "character-keys.ts scoped keys",
+      "specRef": "integration map 'Cache'",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/api/character-keys.ts:21-47, all under 'characters' root"
+    },
+    {
+      "claim": "Paginator in apps/api/src/core",
+      "specRef": "integration map 'Pagination'",
+      "verdict": "CONFIRMED",
+      "evidence": "core/paginator.ts:10 buildPaginator, :25 pageSlice (offset skip/take)"
+    },
+    {
+      "claim": "Characters module pagination shape",
+      "specRef": "caller check",
+      "verdict": "CONFIRMED",
+      "evidence": "paginationQueryFields common.ts:127-143; roster search characters.ts:373-377; catalog q :604; theories search character-theories.ts:84-89"
+    },
+    {
+      "claim": "Notes search uses ILIKE without trigram",
+      "specRef": "caller check; D16",
+      "verdict": "CONFIRMED",
+      "evidence": "book-notes-where.ts:79-87 contains + insensitive + escapeLikePattern; trigram only on authors/publishers migrations"
+    },
+    {
+      "claim": "Mutation throttling in the characters module",
+      "specRef": "S2 bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "@Throttle(MUTATION_THROTTLE) core/throttle.ts:17 at book-characters.controller.ts:95,143,165; theories/forms/groups use inline limits"
+    },
+    {
+      "claim": "Spec-named test files exist",
+      "specRef": "04 tests",
+      "verdict": "CONFIRMED",
+      "evidence": "book-character-reading-context.controller.test.ts, character-merge.test.ts, character-merge.service.test.ts, character-merge.controller.test.ts, character-portability.test.ts, character-portability.controller.test.ts, character-trash.controller.test.ts, raw-sql-indexes.test.ts, character-details-page.test.tsx, character-keys.test.ts, note-form-dialog.test.tsx, note-full-view-dialog.test.tsx, notes-archive-content.test.tsx all present; packages/shared has no test runner"
+    },
+    {
+      "claim": "OpenAPI + Orval pipeline",
+      "specRef": "integration map 'OpenAPI'",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/scripts/generate-openapi.ts; apps/web/orval.config.ts:17 tags-split"
+    },
+    {
+      "claim": "Worktree matches reference d5af308a",
+      "specRef": "00_START_HERE",
+      "verdict": "STALE",
+      "evidence": "HEAD 14367c22 is 44 files ahead; relevant drift: chapter-combobox -> suggestion-combobox, discard-confirm-dialog, character-edit-page/alias editor, uk/en messages, core/text-usage. No drift in merge, portability, lifecycle, bootstrap or details-page files"
+    }
+  ]
+}

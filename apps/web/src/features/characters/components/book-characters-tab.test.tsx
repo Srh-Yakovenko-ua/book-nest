@@ -530,6 +530,37 @@ describe("BookCharactersTab invalidation", () => {
   });
 });
 
+describe("BookCharactersTab unlink focus", () => {
+  async function requestUnlinkOf(name: string): Promise<HTMLElement> {
+    await screen.findByRole("heading", { name });
+    const menuTrigger = within(cardFor(name)).getByRole("button", { name: "Дії з персонажем" });
+    await userEvent.click(menuTrigger);
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Прибрати з цієї книги" }));
+    await screen.findByRole("alertdialog", { name: "Прибрати з цієї книги" });
+    return menuTrigger;
+  }
+
+  it("returns focus to the row menu when the unlink is cancelled", async () => {
+    renderTab();
+    const menuTrigger = await requestUnlinkOf("Ґеральт");
+
+    await userEvent.click(screen.getByRole("button", { name: "Скасувати" }));
+
+    await waitFor(() => expect(menuTrigger).toHaveFocus());
+  });
+
+  it("moves focus to the add button once the character is unlinked", async () => {
+    renderTab();
+    await requestUnlinkOf("Ґеральт");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Прибрати" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Додати персонажа" })).toHaveFocus(),
+    );
+  });
+});
+
 describe("BookCharactersTab summary strip", () => {
   it("shows favorites and POV without a total characters chip", async () => {
     respondToSummary = () =>

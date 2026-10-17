@@ -10,5 +10,5 @@ export type CharacterBundleDtoFormatVersion =
   (typeof CharacterBundleDtoFormatVersion)[keyof typeof CharacterBundleDtoFormatVersion];
 
 export const CharacterBundleDtoFormatVersion = {
-  NUMBER_1: 1,
+  NUMBER_2: 2,
 } as const;
