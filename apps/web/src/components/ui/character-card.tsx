@@ -150,10 +150,6 @@ function CharacterCard({
             </p>
           )}
 
-          {density === "compact" && hasMetadata ? (
-            <CompactMetadata meta={meta} role={role} traits={traits} />
-          ) : null}
-
           {density === "default" && role !== undefined ? (
             <Badge className="mt-1.5" variant={role.variant ?? "secondary"}>
               {role.label}
@@ -173,6 +169,10 @@ function CharacterCard({
           </div>
         )}
       </div>
+
+      {density === "compact" && hasMetadata ? (
+        <CompactMetadata meta={meta} role={role} traits={traits} />
+      ) : null}
 
       {bookTitle === undefined ? null : (
         <p className="mt-4 flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
@@ -273,7 +273,7 @@ function CompactMetadata({
   traits,
 }: Pick<CharacterCardProps, "meta" | "role" | "traits">) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+    <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1">
       {role === undefined ? null : (
         <Badge variant={role.variant ?? "secondary"}>{role.label}</Badge>
       )}
