@@ -212,7 +212,12 @@ describe("character relationship path finder", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.found).toBe(true);
     expect(res.body.edges).toHaveLength(1);
-    expect(res.body.edges[0]).toMatchObject({ category: null, type: null, typeHidden: true });
+    expect(res.body.edges[0]).toMatchObject({
+      category: null,
+      directionality: null,
+      type: null,
+      typeHidden: true,
+    });
     expect(JSON.stringify(res.body)).not.toContain("biological_parent_of");
   });
 
@@ -288,19 +293,60 @@ describe("character relationship path finder", () => {
     const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
     const alice = await createCharacter(owner.accessToken, "Alice");
     const bob = await createCharacter(owner.accessToken, "Bob");
+    const ownerBookId = await createBook(owner.accessToken);
+    const intruderBookId = await createBook(intruder.accessToken);
 
     const foreign = await authed(
       "get",
-      `/api/character-relationships/path?fromId=${alice}&toId=${bob}`,
+      `/api/character-relationships/path?fromId=${alice}&toId=${bob}&contextBookId=${intruderBookId}`,
       intruder.accessToken,
     );
     expect(foreign.status).toBe(HttpStatus.NOT_FOUND);
 
     const missing = await authed(
       "get",
-      `/api/character-relationships/path?fromId=${MISSING_ID}&toId=${bob}`,
+      `/api/character-relationships/path?fromId=${MISSING_ID}&toId=${bob}&contextBookId=${ownerBookId}`,
       owner.accessToken,
     );
     expect(missing.status).toBe(HttpStatus.NOT_FOUND);
+    expect(missing.body.code).toBe(foreign.body.code);
+  });
+
+  it("rejects a path request without a contextBookId", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(
+      accessToken,
+      socialEdge({ bookId, sourceCharacterId: alice, targetCharacterId: bob }),
+    );
+
+    const res = await authed(
+      "get",
+      `/api/character-relationships/path?fromId=${alice}&toId=${bob}`,
+      accessToken,
+    );
+
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "contextBookId" })]),
+    );
+  });
+
+  it("404s a contextBookId owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const intruderBookId = await createBook(intruder.accessToken);
+    const alice = await createCharacter(owner.accessToken, "Alice");
+    const bob = await createCharacter(owner.accessToken, "Bob");
+
+    const res = await authed(
+      "get",
+      `/api/character-relationships/path?fromId=${alice}&toId=${bob}&contextBookId=${intruderBookId}`,
+      owner.accessToken,
+    );
+
+    expect(res.status).toBe(HttpStatus.NOT_FOUND);
   });
 });

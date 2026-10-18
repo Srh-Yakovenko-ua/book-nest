@@ -13,6 +13,7 @@ export type CharacterDetailsRequest = CharacterDetailsMode | { kind: "invalid-bo
 
 type CharacterDetailsLocation = CharacterDetailsSearch & {
   q: string;
+  relationshipSearch?: URLSearchParams;
   tab: CharacterDetailsTab;
 };
 
@@ -30,10 +31,14 @@ export function canonicalCharacterDetailsHref({
   characterId: string;
   search: CharacterDetailsLocation;
 }): Nullable<string> {
-  const { bookId, q, tab, view } = search;
+  const { bookId, q, relationshipSearch, tab, view } = search;
   if (view === null) return null;
-  if (bookId !== null) return getCharacterDetailsPath({ bookId, characterId, q, tab });
-  return view === CHARACTER_GLOBAL_VIEW ? null : getCharacterDetailsPath({ characterId, q, tab });
+  if (bookId !== null) {
+    return getCharacterDetailsPath({ bookId, characterId, q, relationshipSearch, tab });
+  }
+  return view === CHARACTER_GLOBAL_VIEW
+    ? null
+    : getCharacterDetailsPath({ characterId, q, relationshipSearch, tab });
 }
 
 export function characterRouteArgsOf({

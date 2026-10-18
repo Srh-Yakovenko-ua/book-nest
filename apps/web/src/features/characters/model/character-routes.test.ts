@@ -48,6 +48,20 @@ describe("getCharacterDetailsPath", () => {
     );
   });
 
+  it("keeps the relationships tab and its list state after the facts search", () => {
+    expect(
+      getCharacterDetailsPath({
+        bookId: "book-1",
+        characterId: "char-1",
+        q: "silver",
+        relationshipSearch: new URLSearchParams({ relQ: "brother", relSort: "newest" }),
+        tab: "relationships",
+      }),
+    ).toBe(
+      "/characters/char-1?bookId=book-1&tab=relationships&q=silver&relQ=brother&relSort=newest",
+    );
+  });
+
   it("drops an empty search", () => {
     expect(
       getCharacterDetailsPath({ bookId: "book-1", characterId: "char-1", q: "", tab: "facts" }),

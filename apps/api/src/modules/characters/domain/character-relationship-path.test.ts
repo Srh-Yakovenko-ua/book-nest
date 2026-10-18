@@ -9,6 +9,10 @@ import { describe, expect, it } from "vitest";
 
 import type { GraphEdgeSource, GraphNodeSource } from "./character-graph.js";
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
+import type {
+  ReaderBookPosition,
+  RelationshipReaderContext,
+} from "./relationship-reader-projection.js";
 
 import { findVisibleRelationshipPath } from "./character-relationship-path.js";
 
@@ -31,13 +35,24 @@ function chain(): GraphEdgeSource[] {
   ];
 }
 
+function contextBookReaderContext(position: ReaderBookPosition): RelationshipReaderContext {
+  return {
+    books: new Map([
+      [BOOK, { id: BOOK, partNumber: null, position, seriesId: null, title: "Book" }],
+    ]),
+    scope: { contextBookId: BOOK, kind: "as_of" },
+  };
+}
+
 function edgeSource(overrides: Partial<GraphEdgeSource>): GraphEdgeSource {
   return {
     bookStates: [stateSource({})],
     category: "social",
+    createdAt: new Date("2024-01-01T00:00:00.000Z"),
     customType: null,
     directionality: "symmetric",
     id: "rel-1",
+    isCanonical: true,
     sourceCharacterId: ALICE,
     sourceLabel: null,
     targetCharacterId: BOB,
@@ -56,6 +71,7 @@ function find({
   mode = "all",
   nodes = [],
   partNumberById = new Map<string, Nullable<number>>(),
+  readerPosition = { kind: "unknown" },
   revealEdgeIds = new Set<string>(),
   toId,
   typeFilter = null,
@@ -67,6 +83,7 @@ function find({
   mode?: CharacterGraphMode;
   nodes?: GraphNodeSource[];
   partNumberById?: Map<string, Nullable<number>>;
+  readerPosition?: ReaderBookPosition;
   revealEdgeIds?: Set<string>;
   toId: string;
   typeFilter?: Nullable<Set<RelationshipType>>;
@@ -79,6 +96,7 @@ function find({
     mode,
     nodes,
     partNumberById,
+    readerContext: contextBookReaderContext(readerPosition),
     revealEdgeIds,
     toId,
     typeFilter,
@@ -214,8 +232,44 @@ describe("findVisibleRelationshipPath", () => {
 
     expect(result.found).toBe(true);
     expect(result.edges).toHaveLength(1);
-    expect(result.edges[0]).toMatchObject({ category: null, type: null, typeHidden: true });
+    expect(result.edges[0]).toMatchObject({
+      category: null,
+      directionality: null,
+      type: null,
+      typeHidden: true,
+    });
     expect(JSON.stringify(result)).not.toContain("biological_parent_of");
+  });
+
+  it("cannot route through an edge whose introduction lies beyond the reader position", () => {
+    const edges = [
+      edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: BOB }),
+      edgeSource({
+        bookStates: [stateSource({ id: "state-2", introducedPage: 80, relationshipId: "rel-2" })],
+        id: "rel-2",
+        sourceCharacterId: BOB,
+        targetCharacterId: CAROL,
+      }),
+    ];
+    const nodes = [nodeSource({ id: ALICE }), nodeSource({ id: BOB }), nodeSource({ id: CAROL })];
+
+    const early = find({
+      edges,
+      fromId: ALICE,
+      nodes,
+      readerPosition: { kind: "position", reader: { page: 40 } },
+      toId: CAROL,
+    });
+    const late = find({
+      edges,
+      fromId: ALICE,
+      nodes,
+      readerPosition: { kind: "position", reader: { page: 80 } },
+      toId: CAROL,
+    });
+
+    expect(early.found).toBe(false);
+    expect(late.edges.map((edge) => edge.id)).toEqual(["rel-1", "rel-2"]);
   });
 
   it("treats fromId equal to toId as a trivially connected single node", () => {

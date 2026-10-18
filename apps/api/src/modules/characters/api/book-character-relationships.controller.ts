@@ -1,4 +1,4 @@
-import type { CharacterRelationshipContextView } from "@app/shared";
+import type { CharacterRelationshipSafeContextView } from "@app/shared";
 
 import { BookCharacterRelationshipsQuerySchema } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
@@ -17,7 +17,7 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { RelationshipContextService } from "../application/relationship-context.service.js";
 import { BookCharacterRelationshipsQueryDto } from "./input-dto/book-character-relationships-query.input-dto.js";
-import { CharacterRelationshipContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
+import { CharacterRelationshipSafeContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
 
 @ApiTags("character-relationships")
 @Controller("api/books/:bookId/character-relationships")
@@ -29,7 +29,7 @@ export class BookCharacterRelationshipsController {
   @ApiOkResponse({
     description: "Spoiler-safe relationships with their effective state in this book",
     isArray: true,
-    type: CharacterRelationshipContextViewDto,
+    type: CharacterRelationshipSafeContextViewDto,
   })
   @ApiOperation({ summary: "List spoiler-safe relationships effective in a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
@@ -55,7 +55,7 @@ export class BookCharacterRelationshipsController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Query(new ZodQueryPipe(BookCharacterRelationshipsQuerySchema))
     query: BookCharacterRelationshipsQueryDto,
-  ): Promise<CharacterRelationshipContextView[]> {
+  ): Promise<CharacterRelationshipSafeContextView[]> {
     return this.contextService.listForBook({ bookId, query, userId: user.id });
   }
 }

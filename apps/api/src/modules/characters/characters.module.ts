@@ -41,12 +41,14 @@ import { CharacterPortabilityService } from "./application/character-portability
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
 import { CharacterPurgeReconciler } from "./application/character-purge.reconciler.js";
 import { CharacterRelationshipPathService } from "./application/character-relationship-path.service.js";
+import { CharacterRelationshipsListService } from "./application/character-relationships-list.service.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
 import { CharacterTheoriesService } from "./application/character-theories.service.js";
 import { CharacterViewMapper } from "./application/character-view.mapper.js";
 import { CharactersService } from "./application/characters.service.js";
 import { RelationshipBookStateService } from "./application/relationship-book-state.service.js";
 import { RelationshipContextService } from "./application/relationship-context.service.js";
+import { RelationshipReaderScopeResolver } from "./application/relationship-reader-scope.resolver.js";
 import { SeriesCharactersService } from "./application/series-characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterCustomLabelsRepository } from "./infrastructure/character-custom-labels.repository.js";
@@ -56,6 +58,7 @@ import { CharacterGraphLayoutsRepository } from "./infrastructure/character-grap
 import { CharacterGroupsRepository } from "./infrastructure/character-groups.repository.js";
 import { CharacterMergeRepository } from "./infrastructure/character-merge.repository.js";
 import { CharacterPortabilityRepository } from "./infrastructure/character-portability.repository.js";
+import { CharacterRelationshipsListRepository } from "./infrastructure/character-relationships-list.repository.js";
 import { CharacterRelationshipsRepository } from "./infrastructure/character-relationships.repository.js";
 import { CharacterTheoriesRepository } from "./infrastructure/character-theories.repository.js";
 import { CharactersRepository } from "./infrastructure/characters.repository.js";
@@ -111,8 +114,11 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterPortabilityRepository,
     CharacterRelationshipsService,
     RelationshipContextService,
+    RelationshipReaderScopeResolver,
     RelationshipBookStateService,
     CharacterRelationshipsRepository,
+    CharacterRelationshipsListService,
+    CharacterRelationshipsListRepository,
     CharacterRelationshipPathService,
     CharacterTheoriesService,
     CharacterTheoriesRepository,

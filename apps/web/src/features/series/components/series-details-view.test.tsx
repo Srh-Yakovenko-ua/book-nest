@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen } from "@/test-utils";
+import messages from "@/messages/uk.json";
+import { renderWithProviders, screen, within } from "@/test-utils";
 
 import {
   makeSeriesBookView,
@@ -107,5 +108,27 @@ describe("SeriesDetailsView", () => {
 
     expect(screen.getAllByText("Прогрес читання").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Читання серії ще не розпочато").length).toBeGreaterThan(0);
+  });
+
+  it("adds a characters tab after notes and keeps the books tab open by default", () => {
+    const labels = messages.series.details.tabs;
+
+    renderView(makeSeriesDetailsView());
+
+    const tabs = within(screen.getByRole("tablist")).getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      labels.books,
+      labels.about,
+      labels.notes,
+      labels.characters,
+    ]);
+    expect(screen.getByRole("tab", { name: labels.books })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: labels.characters })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
   });
 });

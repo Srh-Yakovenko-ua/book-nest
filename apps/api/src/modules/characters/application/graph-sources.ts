@@ -22,9 +22,11 @@ export function toGraphEdgeSource(relationship: RelationshipDetailsRow): GraphEd
   return {
     bookStates: relationship.bookStates,
     category: relationship.category,
+    createdAt: relationship.createdAt,
     customType: relationship.customType,
     directionality: relationship.directionality,
     id: relationship.id,
+    isCanonical: relationship.isCanonical,
     sourceCharacterId: relationship.sourceCharacterId,
     sourceLabel: relationship.sourceLabel,
     targetCharacterId: relationship.targetCharacterId,

@@ -21,22 +21,23 @@ import {
   CharacterEntityKindSchema,
   CharacterGroupTypeSchema,
   getFamilyAncestryRole,
-  RelationshipBookStateStatusSchema,
-  RelationshipCategorySchema,
-  RelationshipDirectionalitySchema,
-  RelationshipIntensitySchema,
-  RelationshipTypeSchema,
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 import { createHash } from "node:crypto";
 
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
-import type { ReadingPositionGate } from "./reading-position.js";
+import type { RelationshipReaderContext } from "./relationship-reader-projection.js";
 
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 import { isMembershipVisibleInContext } from "./character-group-visibility.js";
 import { pickEffectiveBookState } from "./character-relationship.mapper.js";
-import { isHiddenByReadingPosition } from "./reading-position.js";
+import {
+  isBookStateDescriptionHidden,
+  maskBookStateStatus,
+  maskEdgeSemantics,
+  maskIntensity,
+  projectRelationshipForReader,
+} from "./relationship-reader-projection.js";
 
 const GRAPH_VERSION_LENGTH = 16;
 
@@ -48,9 +49,11 @@ const MODE_CATEGORIES: Record<CharacterGraphMode, Nullable<RelationshipCategory[
 export type GraphEdgeSource = {
   bookStates: RelationshipBookStateSource[];
   category: string;
+  createdAt: Date;
   customType: Nullable<string>;
   directionality: string;
   id: string;
+  isCanonical: boolean;
   sourceCharacterId: string;
   sourceLabel: Nullable<string>;
   targetCharacterId: string;
@@ -92,7 +95,7 @@ export type PreparedEdge = {
   category: Nullable<RelationshipCategory>;
   description: Nullable<string>;
   descriptionHidden: boolean;
-  directionality: RelationshipDirectionality;
+  directionality: Nullable<RelationshipDirectionality>;
   id: string;
   intensity: Nullable<RelationshipIntensity>;
   revealed: boolean;
@@ -124,7 +127,7 @@ type BuildCharacterGraphInput = {
   nodeLimit: number;
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
-  positionGate?: Nullable<ReadingPositionGate>;
+  readerContext: RelationshipReaderContext;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
 };
@@ -142,13 +145,12 @@ type ClusterResult = {
 
 export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterGraphView {
   const nodeById = new Map(input.nodes.map((node) => [node.id, node]));
-  const { edges: preparedEdges, hasHiddenEdges } = computeVisibleGraphEdges({
+  const preparedEdges = computeVisibleGraphEdges({
     categoryFilter: input.categoryFilter,
     edges: input.edges,
     mode: input.mode,
     nodes: input.nodes,
-    partNumberById: input.partNumberById,
-    positionGate: input.positionGate,
+    readerContext: input.readerContext,
     revealEdgeIds: input.revealEdgeIds,
     typeFilter: input.typeFilter,
   });
@@ -211,7 +213,7 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
       nodes,
     }),
     hiddenContent: {
-      hasHiddenEdges,
+      hasHiddenEdges: false,
       hasLockedEdges: bounded.edges.some((edge) => edge.typeHidden),
       truncated: bounded.truncated,
     },
@@ -235,8 +237,7 @@ export function computeVisibleGraphEdges({
   edges,
   mode,
   nodes,
-  partNumberById,
-  positionGate,
+  readerContext,
   revealEdgeIds,
   typeFilter,
 }: {
@@ -244,83 +245,66 @@ export function computeVisibleGraphEdges({
   edges: GraphEdgeSource[];
   mode: CharacterGraphMode;
   nodes: GraphNodeSource[];
-  partNumberById: Map<string, Nullable<number>>;
-  positionGate?: Nullable<ReadingPositionGate>;
+  readerContext: RelationshipReaderContext;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
-}): { edges: PreparedEdge[]; hasHiddenEdges: boolean } {
+}): PreparedEdge[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const effectiveCategories = combineCategoryFilters({
     categoryFilter,
     modeCategories: computeModeCategories(mode),
   });
 
-  let hasHiddenEdges = false;
   const preparedEdges: PreparedEdge[] = [];
   for (const edge of edges) {
-    const effective = pickEffectiveBookState({ partNumberById, states: edge.bookStates });
-    if (effective === null) {
-      continue;
-    }
-    if (effective.hideRelationshipAsSpoiler) {
-      hasHiddenEdges = true;
-      continue;
-    }
-    if (
-      isHiddenByReadingPosition({
-        content: {
-          audioSeconds: effective.introducedAudioSeconds,
-          chapter: effective.introducedChapter,
-          page: effective.introducedPage,
-        },
-        contentBookId: effective.bookId,
-        gate: positionGate ?? null,
-      })
-    ) {
-      hasHiddenEdges = true;
+    const projection = projectRelationshipForReader({
+      context: readerContext,
+      relationship: edge,
+    });
+    if (projection === null || projection.effective === null) {
       continue;
     }
     if (!nodeById.has(edge.sourceCharacterId) || !nodeById.has(edge.targetCharacterId)) {
       continue;
     }
 
-    const revealable = effective.isTypeSpoiler || effective.isDescriptionSpoiler;
+    const effective = projection.effective;
+    const revealable = projection.typeHidden || effective.state.isDescriptionSpoiler;
     const revealed = revealable && revealEdgeIds.has(edge.id);
-    const typeHidden = effective.isTypeSpoiler && !revealed;
-    const descriptionHidden = effective.isDescriptionSpoiler && !revealed;
-    const category = typeHidden ? null : RelationshipCategorySchema.parse(edge.category);
-    const type = typeHidden ? null : RelationshipTypeSchema.parse(edge.type);
+    const typeHidden = projection.typeHidden && !revealed;
+    const descriptionHidden = isBookStateDescriptionHidden({ revealed, state: effective.state });
+    const semantics = maskEdgeSemantics({ relationship: edge, typeHidden });
 
     if (
-      !passesCategoryFilter({ category, effectiveCategories }) ||
-      !passesTypeFilter({ type, typeFilter })
+      !passesCategoryFilter({ category: semantics.category, effectiveCategories }) ||
+      !passesTypeFilter({ type: semantics.type, typeFilter })
     ) {
       continue;
     }
 
     preparedEdges.push({
-      category,
-      description: descriptionHidden ? null : effective.description,
+      category: semantics.category,
+      description: descriptionHidden ? null : effective.state.description,
       descriptionHidden,
-      directionality: RelationshipDirectionalitySchema.parse(edge.directionality),
+      directionality: semantics.directionality,
       id: edge.id,
-      intensity:
-        typeHidden || effective.intensity === null
-          ? null
-          : RelationshipIntensitySchema.parse(effective.intensity),
+      intensity: maskIntensity({ intensity: effective.state.intensity, typeHidden }),
       revealed,
       source: edge.sourceCharacterId,
-      sourceLabel: typeHidden ? null : edge.sourceLabel,
-      status: RelationshipBookStateStatusSchema.parse(effective.status),
+      sourceLabel: semantics.sourceLabel,
+      status: maskBookStateStatus({
+        endReached: effective.endReached,
+        status: effective.state.status,
+      }),
       target: edge.targetCharacterId,
-      targetLabel: typeHidden ? null : edge.targetLabel,
-      type,
+      targetLabel: semantics.targetLabel,
+      type: semantics.type,
       typeHidden,
-      updatedAt: maxDate(edge.updatedAt, effective.updatedAt),
+      updatedAt: projection.visibleChangedAt,
     });
   }
 
-  return { edges: preparedEdges, hasHiddenEdges };
+  return preparedEdges;
 }
 
 export function toGraphEdgeView(edge: PreparedEdge): CharacterGraphEdgeView {

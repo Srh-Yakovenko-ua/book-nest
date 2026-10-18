@@ -39,6 +39,36 @@ describe("canonicalCharacterDetailsHref", () => {
     ).toBe("/characters/char-1?tab=facts&q=silver");
   });
 
+  it("drops a conflicting view and keeps the relationships tab with its list state", () => {
+    expect(
+      canonicalCharacterDetailsHref({
+        characterId: "char-1",
+        search: {
+          bookId: "book-1",
+          q: "",
+          relationshipSearch: new URLSearchParams({ relCat: "family,romance" }),
+          tab: "relationships",
+          view: "global",
+        },
+      }),
+    ).toBe("/characters/char-1?bookId=book-1&tab=relationships&relCat=family%2Cromance");
+  });
+
+  it("drops an unknown view and keeps the relationships list state on the smart context", () => {
+    expect(
+      canonicalCharacterDetailsHref({
+        characterId: "char-1",
+        search: {
+          bookId: null,
+          q: "",
+          relationshipSearch: new URLSearchParams({ relBook: "book-2" }),
+          tab: "relationships",
+          view: "unknown",
+        },
+      }),
+    ).toBe("/characters/char-1?tab=relationships&relBook=book-2");
+  });
+
   it("leaves the overview tab and an empty search out of the canonical path", () => {
     expect(
       canonicalCharacterDetailsHref({

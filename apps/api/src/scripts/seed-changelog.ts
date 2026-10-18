@@ -1435,6 +1435,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Вкладка «Цитати» на сторінці книги",
     version: null,
   },
+  {
+    bodyEn:
+      "You can now record how characters are related to each other. A character's page has a Relationships tab for the selected book or across all books, with search, filters by type, status and intensity, and several ways to sort. On a book's Characters tab you can switch between List, Relationships and an interactive Graph, where you can zoom, focus on one character, group characters and find the shortest path between two of them. A series page now has a Characters tab with the same three views, shown as of a book you pick, by default the last one you finished, so later parts stay out of sight. A relationship is added in two steps, first who and what type, then its status, intensity, description and where it starts and ends in a book, and you can edit it, remove it from one book or delete it entirely. Spoilers stay hidden until you reveal them: a spoiler type or description is covered, a relationship that starts further than where you are in the book does not appear, and an ended one is not shown as ended until you reach that point.",
+    bodyUk:
+      "Тепер можна відзначати, як персонажі пов'язані між собою. На сторінці персонажа з'явилася вкладка «Зв'язки» для обраної книги або для всіх книг одразу, з пошуком, фільтрами за типом, статусом та інтенсивністю і кількома способами сортування. На вкладці «Персонажі» в книзі можна перемикатися між режимами «Список», «Зв'язки» та інтерактивним «Граф», де можна масштабувати, зосередитися на одному персонажі, групувати персонажів і знаходити найкоротший шлях між двома з них. На сторінці серії з'явилася вкладка «Персонажі» з тими самими трьома режимами, яка показує стан на обрану книгу серії, за замовчуванням на останню прочитану, тож наступні частини не потрапляють на очі. Зв'язок додається у два кроки: спершу хто і який тип, потім статус, інтенсивність, опис і де він починається й закінчується в книзі. Його можна змінити, прибрати з однієї книги або видалити повністю. Спойлери приховані, доки ви їх не відкриєте: тип чи опис зі спойлером закрито, зв'язок, що починається далі, ніж ви дочитали, не показується, а завершений не позначається завершеним, поки ви не дійдете до цього місця.",
+    category: "feature",
+    publishedAt: "2026-10-18T00:00:02.000Z",
+    slug: "character-relationships",
+    titleEn: "Character relationships",
+    titleUk: "Зв'язки між персонажами",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
