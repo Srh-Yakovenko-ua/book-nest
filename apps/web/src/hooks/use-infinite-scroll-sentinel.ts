@@ -21,7 +21,6 @@ export function useInfiniteScrollSentinel({
   onLoadMore,
 }: UseInfiniteScrollSentinelParams): (element: Nullable<HTMLElement>) => void {
   const [sentinel, setSentinel] = useState<Nullable<HTMLElement>>(null);
-  const [isIntersecting, setIsIntersecting] = useState(false);
   const onLoadMoreRef = useRef(onLoadMore);
 
   useEffect(() => {
@@ -29,24 +28,21 @@ export function useInfiniteScrollSentinel({
   });
 
   useEffect(() => {
+    if (!enabled) return;
     if (sentinel === null) return;
     if (typeof IntersectionObserver === "undefined") return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        setIsIntersecting(entries.some((entry) => entry.isIntersecting));
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        onLoadMoreRef.current();
       },
       { rootMargin: SENTINEL.rootMargin, threshold: SENTINEL.threshold },
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [sentinel]);
-
-  useEffect(() => {
-    if (!enabled || !isIntersecting) return;
-    onLoadMoreRef.current();
-  }, [enabled, isIntersecting]);
+  }, [enabled, sentinel]);
 
   return setSentinel;
 }
