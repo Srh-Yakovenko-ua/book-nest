@@ -46,12 +46,10 @@ import {
   useCharacterFactsSearch,
 } from "../model/use-character-details-query";
 import { CharacterAppearancesMobile, CharacterAppearancesSidebar } from "./character-appearances";
-import { CharacterBookSection } from "./character-book-section";
 import { CharacterContextSelect } from "./character-context-select";
 import { CharacterDetailsHero } from "./character-details-hero";
 import { CharacterFactsTab } from "./character-facts-tab";
-import { CharacterFormsSection } from "./character-forms-section";
-import { CharacterProfileSection } from "./character-profile-section";
+import { CharacterOverview } from "./character-overview";
 import { CharacterUnavailableContext } from "./character-unavailable-context";
 import { CharactersErrorState } from "./characters-error-state";
 
@@ -188,6 +186,7 @@ function CharacterDetailsContextView({
     pending: revealState.pending,
   };
   const activeBookId = mode.kind === "book" ? mode.bookId : null;
+  const editHref = getCharacterEditPath(characterRouteArgsOf({ characterId, mode }));
   const appearancesProps = {
     activeBookId,
     appearances,
@@ -215,7 +214,7 @@ function CharacterDetailsContextView({
           <CharacterDetailsHero
             appearance={appearance}
             character={character}
-            editHref={getCharacterEditPath(characterRouteArgsOf({ characterId, mode }))}
+            editHref={editHref}
             reveal={reveal}
           />
           <CharacterContextSelect
@@ -233,19 +232,12 @@ function CharacterDetailsContextView({
           >
             <PageTabsPanel className="flex flex-col gap-6" value="overview">
               <CharacterAppearancesMobile {...appearancesProps} />
-              {appearance === undefined ? null : (
-                <CharacterBookSection
-                  appearance={appearance}
-                  character={character}
-                  reveal={reveal}
-                />
-              )}
-              <CharacterProfileSection
+              <CharacterOverview
                 appearance={appearance}
                 character={character}
+                editHref={editHref}
                 reveal={reveal}
               />
-              <CharacterFormsSection character={character} reveal={reveal} />
             </PageTabsPanel>
             <PageTabsPanel value="facts">
               <CharacterFactsTab

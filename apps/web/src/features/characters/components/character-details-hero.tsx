@@ -25,6 +25,7 @@ import {
   REVEAL_FOCUS_TARGET,
   revealFocusTarget,
 } from "../model/character-spoiler";
+import { CharacterClampedText } from "./character-clamped-text";
 import { CharacterDetailsActionsMenu } from "./character-details-actions-menu";
 import { CharacterSpoilerField } from "./character-spoiler-field";
 
@@ -38,6 +39,14 @@ type CharacterDetailsHeroProps = {
 type HeroRevealField = Extract<CharacterRevealFieldKey, "displayName" | "portrait">;
 
 const HERO_REVEAL_FIELDS: readonly HeroRevealField[] = ["displayName", "portrait"];
+
+const HERO_LAYOUT = {
+  descriptionLines: 3,
+  withDescription:
+    "[grid-template-areas:'meta_meta''portrait_headline''description_description'] sm:grid-rows-[auto_auto_1fr] sm:[grid-template-areas:'portrait_meta''portrait_headline''portrait_description']",
+  withoutDescription:
+    "[grid-template-areas:'meta_meta''portrait_headline'] sm:grid-rows-[auto_1fr] sm:[grid-template-areas:'portrait_meta''portrait_headline']",
+} as const;
 
 export function CharacterDetailsHero({
   appearance,
@@ -53,6 +62,7 @@ export function CharacterDetailsHero({
   const updateCharacter = useUpdateCharacter();
 
   const title = appearance?.displayName ?? character.name;
+  const neutralDescription = character.neutralDescription?.trim() ?? "";
   const importance = appearance === undefined ? null : explicitImportance(appearance.importance);
   const isPov = appearance?.isPovCharacter === true;
   const pendingFavorite = updateCharacter.isPending
@@ -73,7 +83,14 @@ export function CharacterDetailsHero({
 
   return (
     <section className="relative flex flex-col gap-5 overflow-hidden rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-detail-block md:p-7">
-      <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 [grid-template-areas:'meta_meta''portrait_headline'] sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-x-7 sm:[grid-template-areas:'portrait_meta''portrait_headline']">
+      <div
+        className={cn(
+          "grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:gap-x-7",
+          neutralDescription.length === 0
+            ? HERO_LAYOUT.withoutDescription
+            : HERO_LAYOUT.withDescription,
+        )}
+      >
         <div className="flex items-start justify-between gap-3 [grid-area:meta]">
           <div className="flex flex-wrap items-center gap-1.5">
             {importance === null ? null : (
@@ -151,6 +168,15 @@ export function CharacterDetailsHero({
             </div>
           )}
         </div>
+
+        {neutralDescription.length === 0 ? null : (
+          <div className="min-w-0 [grid-area:description]">
+            <CharacterClampedText
+              collapsedLines={HERO_LAYOUT.descriptionLines}
+              text={neutralDescription}
+            />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -180,7 +206,7 @@ function HeroPortrait({ portrait, title }: { portrait: Nullable<MediaView>; titl
           alt={title}
           className="object-cover"
           fill
-          sizes="(min-width: 640px) 180px, 104px"
+          sizes="(min-width: 640px) 152px, 104px"
           src={portrait.urls.card}
           unoptimized
         />
