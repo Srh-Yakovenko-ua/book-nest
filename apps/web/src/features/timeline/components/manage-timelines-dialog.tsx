@@ -4,11 +4,10 @@ import type { ReorderTimelinesInput, TimelineView } from "@app/shared";
 
 import { TIMELINE_ERROR_CODES } from "@app/shared";
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
-import { TruncatedText } from "@/components/truncated-text";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,21 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/http-client";
 
 import { useBookTimelines } from "../api/use-book-timelines";
 import { useReorderTimelines } from "../api/use-reorder-timelines";
 import { useSetDefaultTimeline } from "../api/use-set-default-timeline";
-import { markerStyle } from "../model/color-key";
+import { ManageTimelineRow } from "./manage-timeline-row";
 
 const MANAGE_SKELETON_ROWS = 3;
 
@@ -43,6 +34,11 @@ type ManageTimelinesDialogProps = {
   onEdit: (timeline: TimelineView) => void;
 };
 
+type MoveTimelineOptions = {
+  direction: "down" | "up";
+  index: number;
+};
+
 export function ManageTimelinesDialog({
   bookId,
   onClose,
@@ -52,17 +48,25 @@ export function ManageTimelinesDialog({
 }: ManageTimelinesDialogProps) {
   const t = useTranslations("timeline.manage");
   const tRoot = useTranslations("timeline");
-  const tStates = useTranslations("timeline.states");
   const tToast = useTranslations("timeline.toast");
 
   const timelinesQuery = useBookTimelines(bookId);
   const reorderTimelines = useReorderTimelines();
   const setDefaultTimeline = useSetDefaultTimeline();
+  const operationInFlightRef = useRef(false);
   const isBusy = reorderTimelines.isPending || setDefaultTimeline.isPending;
 
   const orderedTimelines = [...(timelinesQuery.data?.timelines ?? [])].sort(
     (first, second) => first.position - second.position,
   );
+
+  function isBlocked() {
+    return isBusy || operationInFlightRef.current;
+  }
+
+  function releaseOperation() {
+    operationInFlightRef.current = false;
+  }
 
   function handleMutationError(error: unknown) {
     if (
@@ -76,12 +80,12 @@ export function ManageTimelinesDialog({
     toast.error(tToast("lineError"));
   }
 
-  function moveTimeline(index: number, direction: "down" | "up") {
-    const timeline = orderedTimelines[index];
-    if (timeline === undefined) return;
+  function moveTimeline({ direction, index }: MoveTimelineOptions) {
+    if (isBlocked()) return;
 
-    const neighbor = direction === "up" ? orderedTimelines[index - 1] : orderedTimelines[index + 1];
-    if (neighbor === undefined) return;
+    const timeline = orderedTimelines[index];
+    const neighbor = orderedTimelines[direction === "up" ? index - 1 : index + 1];
+    if (timeline === undefined || neighbor === undefined) return;
 
     const input: ReorderTimelinesInput =
       direction === "up"
@@ -96,64 +100,55 @@ export function ManageTimelinesDialog({
             timelineId: timeline.id,
           };
 
+    operationInFlightRef.current = true;
     reorderTimelines.mutate(
       { bookId, input },
       {
         onError: handleMutationError,
+        onSettled: releaseOperation,
         onSuccess: () => toast.success(tToast("reordered")),
       },
     );
   }
 
   function makeDefault(timeline: TimelineView) {
+    if (isBlocked()) return;
+
+    operationInFlightRef.current = true;
     setDefaultTimeline.mutate(
       { bookId, input: { expectedUpdatedAt: timeline.updatedAt }, timelineId: timeline.id },
       {
         onError: handleMutationError,
+        onSettled: releaseOperation,
         onSuccess: () => toast.success(tToast("defaultChanged")),
       },
     );
   }
 
+  function handleCreate() {
+    if (isBlocked()) return;
+    onCreate();
+  }
+
+  function handleEdit(timeline: TimelineView) {
+    if (isBlocked()) return;
+    onEdit(timeline);
+  }
+
+  function handleDelete(timeline: TimelineView) {
+    if (isBlocked()) return;
+    onDelete(timeline);
+  }
+
   function renderBody() {
     if (timelinesQuery.data === undefined) {
       if (timelinesQuery.isError) {
-        return (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
-            <p className="text-sm text-muted-foreground">{tStates("errorText")}</p>
-            <Button
-              onClick={() => void timelinesQuery.refetch()}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              <UiIcon name="refresh" size={14} />
-              {tStates("retry")}
-            </Button>
-          </div>
-        );
+        return <ManageTimelinesError onRetry={() => void timelinesQuery.refetch()} />;
       }
-
-      return (
-        <div aria-busy aria-label={t("loading")} className="flex flex-col gap-2" role="status">
-          {Array.from({ length: MANAGE_SKELETON_ROWS }, (_, index) => (
-            <Skeleton className="h-16 w-full rounded-lg" key={index} />
-          ))}
-        </div>
-      );
+      return <ManageTimelinesLoading />;
     }
 
-    if (orderedTimelines.length === 0) {
-      return (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-8 text-center">
-          <p className="text-sm text-muted-foreground">{t("emptyTitle")}</p>
-          <Button onClick={onCreate} size="sm" type="button">
-            <UiIcon name="plus" size={16} />
-            {tRoot("newLine")}
-          </Button>
-        </div>
-      );
-    }
+    if (orderedTimelines.length === 0) return <ManageTimelinesEmpty onCreate={handleCreate} />;
 
     return (
       <>
@@ -161,7 +156,7 @@ export function ManageTimelinesDialog({
           <span className="text-sm text-muted-foreground tabular-nums">
             {t("lineCount", { count: orderedTimelines.length })}
           </span>
-          <Button onClick={onCreate} size="sm" type="button">
+          <Button disabled={isBusy} onClick={handleCreate} size="sm" type="button">
             <UiIcon name="plus" size={16} />
             {tRoot("newLine")}
           </Button>
@@ -170,97 +165,17 @@ export function ManageTimelinesDialog({
         <div className="min-h-0 overflow-hidden rounded-lg border border-border">
           <ul className="flex max-h-[60vh] min-h-0 flex-col divide-y divide-border overflow-x-hidden overflow-y-auto">
             {orderedTimelines.map((timeline, index) => (
-              <li
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5"
+              <ManageTimelineRow
+                canMoveDown={index < orderedTimelines.length - 1}
+                canMoveUp={index > 0}
+                isBusy={isBusy}
                 key={timeline.id}
-              >
-                <span
-                  aria-hidden
-                  className="size-3 shrink-0 rounded-full"
-                  style={markerStyle(timeline.colorKey)}
-                />
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <TruncatedText
-                      className="text-sm font-medium text-foreground"
-                      text={timeline.name}
-                    />
-                    {timeline.isDefault ? (
-                      <Badge className="shrink-0" variant="secondary">
-                        {t("defaultBadge")}
-                      </Badge>
-                    ) : null}
-                  </div>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {t("eventCount", { count: timeline.eventsCount })}
-                  </span>
-                </div>
-
-                <div className="order-last flex w-full shrink-0 items-center justify-end gap-1 sm:order-none sm:w-auto">
-                  <Button
-                    aria-label={t("moveUp", { name: timeline.name })}
-                    className="size-9"
-                    disabled={index === 0 || isBusy}
-                    onClick={() => moveTimeline(index, "up")}
-                    size="icon-sm"
-                    variant="ghost"
-                  >
-                    <UiIcon name="arrow-up" size={16} />
-                  </Button>
-                  <Button
-                    aria-label={t("moveDown", { name: timeline.name })}
-                    className="size-9"
-                    disabled={index === orderedTimelines.length - 1 || isBusy}
-                    onClick={() => moveTimeline(index, "down")}
-                    size="icon-sm"
-                    variant="ghost"
-                  >
-                    <UiIcon name="arrow-down" size={16} />
-                  </Button>
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      aria-label={t("rowMenu", { name: timeline.name })}
-                      className="size-9 shrink-0"
-                      size="icon-sm"
-                      variant="ghost"
-                    >
-                      <UiIcon name="more" size={18} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-60">
-                    <DropdownMenuItem onSelect={() => onEdit(timeline)}>
-                      <UiIcon name="edit" size={16} />
-                      {t("edit")}
-                    </DropdownMenuItem>
-                    {timeline.isDefault ? null : (
-                      <DropdownMenuItem disabled={isBusy} onSelect={() => makeDefault(timeline)}>
-                        <UiIcon name="star" size={16} />
-                        {t("setDefault")}
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    {timeline.isDefault ? (
-                      <>
-                        <DropdownMenuItem disabled variant="destructive">
-                          <UiIcon name="trash" size={16} />
-                          {t("delete")}
-                        </DropdownMenuItem>
-                        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                          {t("deleteDefaultHint")}
-                        </DropdownMenuLabel>
-                      </>
-                    ) : (
-                      <DropdownMenuItem onSelect={() => onDelete(timeline)} variant="destructive">
-                        <UiIcon name="trash" size={16} />
-                        {t("delete")}
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </li>
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onMakeDefault={makeDefault}
+                onMove={(direction) => moveTimeline({ direction, index })}
+                timeline={timeline}
+              />
             ))}
           </ul>
         </div>
@@ -285,5 +200,46 @@ export function ManageTimelinesDialog({
         {renderBody()}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ManageTimelinesEmpty({ onCreate }: { onCreate: () => void }) {
+  const t = useTranslations("timeline.manage");
+  const tRoot = useTranslations("timeline");
+
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border px-6 py-8 text-center">
+      <p className="text-sm text-muted-foreground">{t("emptyTitle")}</p>
+      <Button onClick={onCreate} size="sm" type="button">
+        <UiIcon name="plus" size={16} />
+        {tRoot("newLine")}
+      </Button>
+    </div>
+  );
+}
+
+function ManageTimelinesError({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations("timeline.states");
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border p-3">
+      <p className="text-sm text-muted-foreground">{t("errorText")}</p>
+      <Button onClick={onRetry} size="sm" type="button" variant="secondary">
+        <UiIcon name="refresh" size={14} />
+        {t("retry")}
+      </Button>
+    </div>
+  );
+}
+
+function ManageTimelinesLoading() {
+  const t = useTranslations("timeline.manage");
+
+  return (
+    <div aria-busy aria-label={t("loading")} className="flex flex-col gap-2" role="status">
+      {Array.from({ length: MANAGE_SKELETON_ROWS }, (_, index) => (
+        <Skeleton className="h-16 w-full rounded-lg" key={index} />
+      ))}
+    </div>
   );
 }
