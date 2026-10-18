@@ -82,6 +82,31 @@ export default tseslint.config(
         { allowExpressionValues: true, roles: ["tabpanel", "region"], tags: [] },
       ],
       "react-hooks/set-state-in-effect": "warn",
+      "react/forbid-component-props": [
+        "error",
+        {
+          forbid: [
+            {
+              disallowedFor: ["Badge", "Button", "GenreIcon", "Link", "UiIcon"],
+              message:
+                "A title prop renders a native browser tooltip. Use TooltipHint, or TruncatedText for clipped text.",
+              propName: "title",
+            },
+          ],
+        },
+      ],
+      "react/forbid-dom-props": [
+        "error",
+        {
+          forbid: [
+            {
+              message:
+                "A title attribute renders a native browser tooltip. Use TooltipHint, or TruncatedText for clipped text.",
+              propName: "title",
+            },
+          ],
+        },
+      ],
       "react/prop-types": "off",
       "react/react-in-jsx-scope": "off",
     },
@@ -178,6 +203,13 @@ export default tseslint.config(
       "jsx-a11y/click-events-have-key-events": "off",
       "jsx-a11y/no-noninteractive-element-interactions": "off",
       "perfectionist/sort-objects": "off",
+    },
+  },
+
+  {
+    files: ["apps/web/src/components/ui/sidebar.tsx"],
+    rules: {
+      "react/forbid-dom-props": "off",
     },
   },
 

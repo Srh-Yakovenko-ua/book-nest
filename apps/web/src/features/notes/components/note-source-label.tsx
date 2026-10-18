@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
+import { TruncatedText } from "@/components/truncated-text";
 import { assertNever } from "@/lib/assert-never";
 
 type SourceBook = { seriesPosition: Nullable<number>; title: string };
@@ -38,9 +39,7 @@ function SourceLine({ icon, label }: { icon: UiIconName; label: string }) {
   return (
     <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
       <UiIcon aria-hidden className="shrink-0 text-icon" name={icon} size={13} />
-      <span className="min-w-0 truncate" title={label}>
-        {label}
-      </span>
+      <TruncatedText text={label} />
     </p>
   );
 }
