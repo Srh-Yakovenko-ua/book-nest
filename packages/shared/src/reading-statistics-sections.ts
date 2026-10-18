@@ -23,6 +23,8 @@ export const HERO_RECENT_READS_LIMIT = 4;
 
 export const INSIGHT_CARDS_LIMIT = 4;
 
+export const OVERVIEW_INSIGHTS_LIMIT = 3;
+
 export const RECORDS_LIMIT = 4;
 
 export const ReadingStatisticsMetaSchema = z
@@ -86,6 +88,19 @@ export const ReadingStatisticsInsightsSectionSchema = z.object({
 
 export type ReadingStatisticsInsightsSection = z.infer<
   typeof ReadingStatisticsInsightsSectionSchema
+>;
+
+export const ReadingStatisticsOverviewInsightsSchema = z
+  .object({
+    pages: z.array(ReadingStatisticsInsightSchema).max(OVERVIEW_INSIGHTS_LIMIT),
+    reads: z.array(ReadingStatisticsInsightSchema).max(OVERVIEW_INSIGHTS_LIMIT),
+  })
+  .describe(
+    "Observations shown next to the overview chart, one ranked list per dynamics metric. The lists are chosen independently, so a reads comparison never hides the pages one, and a list may be empty.",
+  );
+
+export type ReadingStatisticsOverviewInsights = z.infer<
+  typeof ReadingStatisticsOverviewInsightsSchema
 >;
 
 export const ReadingStatisticsBucketSchema = z.object({

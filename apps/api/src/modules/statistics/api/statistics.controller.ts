@@ -1,6 +1,15 @@
-import type { ReadingDayDetails, ReadingStatisticsOverview } from "@app/shared";
+import type {
+  ReadingDayDetails,
+  ReadingStatisticsActivityPage,
+  ReadingStatisticsCompletedReadsPage,
+  ReadingStatisticsOverview,
+} from "@app/shared";
 
-import { isoDay, ReadingStatisticsOverviewQuerySchema } from "@app/shared";
+import {
+  isoDay,
+  ReadingStatisticsIntervalQuerySchema,
+  ReadingStatisticsOverviewQuerySchema,
+} from "@app/shared";
 import { Controller, Get, Param, Query } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -18,9 +27,13 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { HEAVY_READ_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ReadingDayDetailsService } from "../application/reading-day-details.service.js";
+import { ReadingIntervalDetailsService } from "../application/reading-interval-details.service.js";
 import { StatisticsOverviewService } from "../application/statistics-overview.service.js";
+import { ReadingStatisticsIntervalQueryDto } from "./input-dto/reading-statistics-interval.query.input-dto.js";
 import { ReadingStatisticsOverviewQueryDto } from "./input-dto/reading-statistics-overview.query.input-dto.js";
 import { ReadingDayDetailsDto } from "./view-dto/reading-day-details.view-dto.js";
+import { ReadingStatisticsActivityPageDto } from "./view-dto/reading-statistics-activity-page.view-dto.js";
+import { ReadingStatisticsCompletedReadsPageDto } from "./view-dto/reading-statistics-completed-reads-page.view-dto.js";
 import { ReadingStatisticsOverviewDto } from "./view-dto/reading-statistics-overview.view-dto.js";
 
 @ApiTags("statistics")
@@ -28,8 +41,30 @@ import { ReadingStatisticsOverviewDto } from "./view-dto/reading-statistics-over
 export class StatisticsController {
   constructor(
     private readonly readingDayDetailsService: ReadingDayDetailsService,
+    private readonly readingIntervalDetailsService: ReadingIntervalDetailsService,
     private readonly statisticsOverviewService: StatisticsOverviewService,
   ) {}
+
+  @ApiBadRequestResponse({ description: "Invalid range, page size or cursor" })
+  @ApiOkResponse({
+    description: "Every finished reading cycle inside one chart bucket, newest first",
+    type: ReadingStatisticsCompletedReadsPageDto,
+  })
+  @ApiOperation({ summary: "List the reading cycles finished inside a date range" })
+  @ApiQuery({ name: "from", required: true })
+  @ApiQuery({ name: "to", required: true })
+  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @Get("completed-reads")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  getCompletedReads(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ReadingStatisticsIntervalQuerySchema))
+    query: ReadingStatisticsIntervalQueryDto,
+  ): Promise<ReadingStatisticsCompletedReadsPage> {
+    return this.readingIntervalDetailsService.getCompletedReads({ query, userId: user.id });
+  }
 
   @ApiBadRequestResponse({ description: "Invalid period or comparison combination" })
   @ApiOkResponse({
@@ -51,6 +86,27 @@ export class StatisticsController {
     query: ReadingStatisticsOverviewQueryDto,
   ): Promise<ReadingStatisticsOverview> {
     return this.statisticsOverviewService.getOverview({ query, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Invalid range, page size or cursor" })
+  @ApiOkResponse({
+    description: "The recorded page progress inside one chart bucket, per day and book",
+    type: ReadingStatisticsActivityPageDto,
+  })
+  @ApiOperation({ summary: "List the pages read per day and book inside a date range" })
+  @ApiQuery({ name: "from", required: true })
+  @ApiQuery({ name: "to", required: true })
+  @ApiQuery({ name: "cursor", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @Get("reading-activity")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  getReadingActivity(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ReadingStatisticsIntervalQuerySchema))
+    query: ReadingStatisticsIntervalQueryDto,
+  ): Promise<ReadingStatisticsActivityPage> {
+    return this.readingIntervalDetailsService.getReadingActivity({ query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Invalid date" })

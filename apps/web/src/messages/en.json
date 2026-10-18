@@ -8859,10 +8859,12 @@
     "metaTitle": "Reading statistics",
     "title": "Statistics",
     "subtitle": "How you read in the selected period: dynamics, tastes, progress and records.",
-    "dividers": {
-      "tastes": "Reading tastes",
-      "progress": "Progress and achievements",
-      "reading": "Reading overview"
+    "tabs": {
+      "label": "Statistics sections",
+      "overview": "Overview",
+      "activity": "Activity",
+      "tastes": "Tastes",
+      "progress": "Progress"
     },
     "states": {
       "loading": "Loading statistics",
@@ -8937,15 +8939,9 @@
       "showMore": "Show {count} more",
       "showLess": "Show less"
     },
-    "hero": {
-      "title": {
-        "year": "{year} in books",
-        "last_12_months": "The last 12 months",
-        "custom": "{range}",
-        "all_time": "Your reading, all time"
-      },
-      "subtitle": "A short picture of the period: what you finished and what stands out.",
-      "recentTitle": "Recently finished"
+    "recentReads": {
+      "title": "Recently finished",
+      "empty": "No reads finished in this period yet."
     },
     "kpi": {
       "lowerBoundValue": "≥ {value}",
@@ -8979,8 +8975,6 @@
     },
     "insights": {
       "title": "Insights",
-      "description": "Observations the backend picked as the most notable for this period.",
-      "empty": "No reliable observations for this period yet.",
       "codes": {
         "completed_reads_vs_comparison": "{direction, select, up {You finished <value>{currentValue, plural, one {# read} other {# reads}}</value> — {absoluteDelta} more than the {comparisonValue} in the comparison period.} other {You finished <value>{currentValue, plural, one {# read} other {# reads}}</value> — {absoluteDelta} fewer than the {comparisonValue} in the comparison period.}}",
         "pages_read_vs_comparison": "{direction, select, up {You read <value>{currentValue, plural, one {# page} other {# pages}}</value> — {absoluteDelta} more than the {comparisonValue} in the comparison period.} other {You read <value>{currentValue, plural, one {# page} other {# pages}}</value> — {absoluteDelta} fewer than the {comparisonValue} in the comparison period.}}",
@@ -9010,6 +9004,8 @@
       "empty": "No data to chart for this period.",
       "current": "Current period",
       "comparison": "Comparison period",
+      "legendCurrent": "Current period: {range}",
+      "legendComparison": "Comparison period: {range}",
       "comparisonLowerBound": "Pages are not compared: the comparison period starts before full tracking began, so its pages are incomplete.",
       "peakReads": "Busiest stretch: {range} — {reads, plural, one {# read} other {# reads}}.",
       "peakPages": "Busiest stretch: {range} — {pages, plural, one {# page} other {# pages}}.",
@@ -9020,7 +9016,9 @@
         "comparison": "{metric} in the comparison period: {value}"
       },
       "srBucket": "{range}: {reads, plural, one {# read} other {# reads}} · {pages} pages",
-      "srComparison": "Comparison period, {range}: {metric} — {value}."
+      "srComparison": "Comparison period, {range}: {metric} — {value}.",
+      "bucketsLabel": "Chart buckets: arrow keys move between buckets, Enter opens the details",
+      "openHint": "Select a bar to see exactly what went into it."
     },
     "calendar": {
       "title": "Reading calendar",
@@ -9100,6 +9098,22 @@
         "noRating": "Not rated",
         "deletedBook": "This book was removed from the library",
         "relatedTitle": "Related"
+      },
+      "bucket": {
+        "title": "{metric}: {range}",
+        "close": "Close details",
+        "seriesLabel": "Details period",
+        "loading": "Loading the bucket details",
+        "error": "Could not load the bucket details",
+        "retry": "Try again",
+        "unsupported": "There is no exact list for this bucket.",
+        "readsTotal": "{count, plural, one {# finished read} other {# finished reads}}",
+        "readsEmpty": "No reads were finished in this bucket.",
+        "activeDaysLabel": "Active days",
+        "observedOnly": "This bucket starts before {date}, when full tracking began, so it shows only the records that survived.",
+        "pagesEmpty": "No pages were recorded in this bucket.",
+        "pagesEmptyObservedOnly": "No page records survived for this bucket. That does not mean nothing was read.",
+        "loadMore": "Show more"
       }
     },
     "ratings": {
@@ -9211,6 +9225,8 @@
     },
     "goal": {
       "title": "Reading goal",
+      "currentTitle": "Current goal",
+      "snapshotNote": "Shows the goal as it stands today, whatever period is selected.",
       "description": "The active goal with the nearest deadline.",
       "empty": "No active goal",
       "emptyDescription": "Create a goal to see its progress right here.",

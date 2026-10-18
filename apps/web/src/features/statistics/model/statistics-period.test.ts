@@ -4,6 +4,7 @@ import {
   canCompareStatisticsPeriod,
   customRangeIssue,
   defaultStatisticsCompareMode,
+  isPeriodIncludingDay,
   selectableYearBounds,
   todayIsoDay,
   toOverviewParams,
@@ -126,5 +127,24 @@ describe("selectableYearBounds", () => {
 
     expect(bounds.max).toBe(2026);
     expect(bounds.min).toBeLessThan(bounds.max);
+  });
+});
+
+describe("isPeriodIncludingDay", () => {
+  it.each([
+    ["a calendar year still running", { from: "2026-01-01", kind: "year", to: TODAY }, true],
+    ["the last 12 months", { from: "2025-04-01", kind: "last_12_months", to: TODAY }, true],
+    ["a custom range ending today", { from: "2026-03-31", kind: "custom", to: TODAY }, true],
+    ["all time", { from: null, kind: "all_time", to: TODAY }, true],
+    ["a past calendar year", { from: "2025-01-01", kind: "year", to: "2025-12-31" }, false],
+    [
+      "a custom range ending yesterday",
+      { from: "2026-03-01", kind: "custom", to: "2026-03-30" },
+      false,
+    ],
+  ] as const)("answers for %s", (_, period, expected) => {
+    expect(isPeriodIncludingDay({ day: TODAY, period: { ...period, granularity: "month" } })).toBe(
+      expected,
+    );
   });
 });

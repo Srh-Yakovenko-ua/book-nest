@@ -68,6 +68,8 @@ export type ReturningAuthor = {
   name: string;
 };
 
+type CompletedReadsCursor = { finishedAt: string; id: string };
+
 @Injectable()
 export class StatisticsCompletionRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -167,6 +169,39 @@ export class StatisticsCompletionRepository {
         },
         state: READING_CYCLE_STATE.finished,
         userId,
+      },
+      ...completedReadArgs,
+    });
+  }
+
+  findCompletedReadsPage({
+    after,
+    from,
+    limit,
+    to,
+    userId,
+  }: {
+    after: Nullable<CompletedReadsCursor>;
+    from: string;
+    limit: number;
+    to: string;
+    userId: string;
+  }): Promise<CompletedReadRow[]> {
+    return this.prisma.bookReadingCycle.findMany({
+      orderBy: [{ finishedAt: "desc" }, { id: "asc" }],
+      take: limit,
+      where: {
+        finishedAt: { gte: parseIsoDate(from), lte: parseIsoDate(to), not: null },
+        state: READING_CYCLE_STATE.finished,
+        userId,
+        ...(after === null
+          ? {}
+          : {
+              OR: [
+                { finishedAt: { lt: parseIsoDate(after.finishedAt) } },
+                { finishedAt: parseIsoDate(after.finishedAt), id: { gt: after.id } },
+              ],
+            }),
       },
       ...completedReadArgs,
     });

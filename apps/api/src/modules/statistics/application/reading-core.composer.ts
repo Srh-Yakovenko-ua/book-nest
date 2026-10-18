@@ -16,7 +16,11 @@ import type { StatisticsPeriodScope } from "../domain/statistics-drilldown.js";
 import type { DayActivityRow } from "../infrastructure/statistics-activity.repository.js";
 import type { CompletionTotals } from "../infrastructure/statistics-completion.repository.js";
 
-import { compareByFinishedAtDesc, countUniqueBooks, toBookRef } from "../domain/completed-read.js";
+import {
+  compareByFinishedAtDesc,
+  countUniqueBooks,
+  toCompletedReadRef,
+} from "../domain/completed-read.js";
 import { summarizeRatings } from "../domain/reading-ratings.js";
 import { resolveCoverageAvailability, toCoverage } from "../domain/statistics-availability.js";
 import { buildStatisticsBuckets } from "../domain/statistics-buckets.js";
@@ -25,11 +29,7 @@ import {
   toRateComparison,
   toScoreComparison,
 } from "../domain/statistics-delta.js";
-import {
-  toBookContextActions,
-  toCompletedReadsDrilldown,
-  toReadingCycleDrilldown,
-} from "../domain/statistics-drilldown.js";
+import { toCompletedReadsDrilldown } from "../domain/statistics-drilldown.js";
 
 export type ComparisonInputs = {
   activeDays: number;
@@ -182,15 +182,7 @@ export class ReadingCoreComposer {
     return [...reads]
       .sort(compareByFinishedAtDesc)
       .slice(0, HERO_RECENT_READS_LIMIT)
-      .map((read) => ({
-        authorName: read.authors[0]?.name ?? null,
-        book: toBookRef(read),
-        contextActions: toBookContextActions(read),
-        drilldown: toReadingCycleDrilldown(read),
-        finishedAt: read.finishedAt,
-        rating: read.rating,
-        readingCycleId: read.readingCycleId,
-      }));
+      .map(toCompletedReadRef);
   }
 
   private toBuckets({

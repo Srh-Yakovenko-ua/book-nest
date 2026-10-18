@@ -16,6 +16,7 @@ import {
   ReadingStatisticsKpisSchema,
   ReadingStatisticsLibraryBalanceSectionSchema,
   ReadingStatisticsMetaSchema,
+  ReadingStatisticsOverviewInsightsSchema,
   ReadingStatisticsRecordsSectionSchema,
   ReadingStatisticsSeriesSectionSchema,
 } from "./reading-statistics-sections.js";
@@ -56,6 +57,7 @@ export const ReadingStatisticsOverviewSchema = z.object({
   languages: ReadingStatisticsLanguagesSectionSchema,
   libraryBalance: ReadingStatisticsLibraryBalanceSectionSchema,
   meta: ReadingStatisticsMetaSchema,
+  overviewInsights: ReadingStatisticsOverviewInsightsSchema,
   period: ReadingStatisticsPeriodSchema,
   publishers: ReadingStatisticsPublishersSectionSchema,
   ratings: ReadingStatisticsRatingsSectionSchema,

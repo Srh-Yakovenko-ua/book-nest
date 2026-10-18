@@ -12,17 +12,28 @@ import { CompletedReadDetails } from "./details/completed-read-details";
 import { StatisticsBookCover } from "./details/statistics-book-cover";
 import { StatisticsDetailSurface } from "./details/statistics-detail-surface";
 
-export function CompletedReadCard({ read }: { read: CompletedReadRef }) {
+type CompletedReadCardVariant = "ranking" | "recent";
+
+export function CompletedReadCard({
+  read,
+  variant = "ranking",
+}: {
+  read: CompletedReadRef;
+  variant?: CompletedReadCardVariant;
+}) {
   const locale = useLocale();
   const t = useTranslations("statistics.details.completedRead");
   const target = buildStatisticsDrilldownTarget(read.drilldown);
+  const isDateShown = variant === "recent" || read.rating === null;
 
   const preview = (
     <span className="flex w-full flex-col gap-1.5">
       <StatisticsBookCover coverThumbUrl={read.book.coverThumbUrl} title={read.book.title} />
       <span className="line-clamp-2 text-xs font-medium text-foreground">{read.book.title}</span>
       <span className="flex items-center gap-1.5 text-[0.6875rem] text-muted-foreground">
-        {read.rating === null ? formatDayShort(read.finishedAt, locale) : null}
+        {isDateShown ? (
+          <time dateTime={read.finishedAt}>{formatDayShort(read.finishedAt, locale)}</time>
+        ) : null}
         {read.rating === null ? null : <RatingScore className="text-xs" value={read.rating} />}
       </span>
     </span>

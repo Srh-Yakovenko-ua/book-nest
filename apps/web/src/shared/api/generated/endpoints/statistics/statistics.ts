@@ -20,8 +20,12 @@ import type {
 
 import type {
   ReadingDayDetailsDto,
+  ReadingStatisticsActivityPageDto,
+  ReadingStatisticsCompletedReadsPageDto,
   ReadingStatisticsOverviewDto,
+  StatisticsControllerGetCompletedReadsParams,
   StatisticsControllerGetOverviewParams,
+  StatisticsControllerGetReadingActivityParams,
 } from "../../model";
 
 import { customInstance } from "../../../mutator";
@@ -42,6 +46,210 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export type statisticsControllerGetCompletedReadsResponse200 = {
+  data: ReadingStatisticsCompletedReadsPageDto;
+  status: 200;
+};
+
+export type statisticsControllerGetCompletedReadsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type statisticsControllerGetCompletedReadsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type statisticsControllerGetCompletedReadsResponseSuccess =
+  statisticsControllerGetCompletedReadsResponse200 & {
+    headers: Headers;
+  };
+export type statisticsControllerGetCompletedReadsResponseError = (
+  | statisticsControllerGetCompletedReadsResponse400
+  | statisticsControllerGetCompletedReadsResponse401
+) & {
+  headers: Headers;
+};
+
+export type statisticsControllerGetCompletedReadsResponse =
+  | statisticsControllerGetCompletedReadsResponseSuccess
+  | statisticsControllerGetCompletedReadsResponseError;
+
+export const getStatisticsControllerGetCompletedReadsUrl = (
+  params: StatisticsControllerGetCompletedReadsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/statistics/completed-reads?${stringifiedParams}`
+    : `/api/statistics/completed-reads`;
+};
+
+/**
+ * @summary List the reading cycles finished inside a date range
+ */
+export const statisticsControllerGetCompletedReads = async (
+  params: StatisticsControllerGetCompletedReadsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<statisticsControllerGetCompletedReadsResponse> => {
+  return customInstance<statisticsControllerGetCompletedReadsResponse>(
+    getStatisticsControllerGetCompletedReadsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getStatisticsControllerGetCompletedReadsQueryKey = (
+  params?: StatisticsControllerGetCompletedReadsParams,
+) => {
+  return [`/api/statistics/completed-reads`, ...(params ? [params] : [])] as const;
+};
+
+export const getStatisticsControllerGetCompletedReadsQueryOptions = <
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getStatisticsControllerGetCompletedReadsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>
+  > = ({ signal }) => statisticsControllerGetCompletedReads(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type StatisticsControllerGetCompletedReadsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>
+>;
+export type StatisticsControllerGetCompletedReadsQueryError = void;
+
+export function useStatisticsControllerGetCompletedReads<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetCompletedReads<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetCompletedReads<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the reading cycles finished inside a date range
+ */
+
+export function useStatisticsControllerGetCompletedReads<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetCompletedReadsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetCompletedReads>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getStatisticsControllerGetCompletedReadsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export type statisticsControllerGetOverviewResponse200 = {
   data: ReadingStatisticsOverviewDto;
@@ -216,6 +424,210 @@ export function useStatisticsControllerGetOverview<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getStatisticsControllerGetOverviewQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type statisticsControllerGetReadingActivityResponse200 = {
+  data: ReadingStatisticsActivityPageDto;
+  status: 200;
+};
+
+export type statisticsControllerGetReadingActivityResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type statisticsControllerGetReadingActivityResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type statisticsControllerGetReadingActivityResponseSuccess =
+  statisticsControllerGetReadingActivityResponse200 & {
+    headers: Headers;
+  };
+export type statisticsControllerGetReadingActivityResponseError = (
+  | statisticsControllerGetReadingActivityResponse400
+  | statisticsControllerGetReadingActivityResponse401
+) & {
+  headers: Headers;
+};
+
+export type statisticsControllerGetReadingActivityResponse =
+  | statisticsControllerGetReadingActivityResponseSuccess
+  | statisticsControllerGetReadingActivityResponseError;
+
+export const getStatisticsControllerGetReadingActivityUrl = (
+  params: StatisticsControllerGetReadingActivityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/statistics/reading-activity?${stringifiedParams}`
+    : `/api/statistics/reading-activity`;
+};
+
+/**
+ * @summary List the pages read per day and book inside a date range
+ */
+export const statisticsControllerGetReadingActivity = async (
+  params: StatisticsControllerGetReadingActivityParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<statisticsControllerGetReadingActivityResponse> => {
+  return customInstance<statisticsControllerGetReadingActivityResponse>(
+    getStatisticsControllerGetReadingActivityUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getStatisticsControllerGetReadingActivityQueryKey = (
+  params?: StatisticsControllerGetReadingActivityParams,
+) => {
+  return [`/api/statistics/reading-activity`, ...(params ? [params] : [])] as const;
+};
+
+export const getStatisticsControllerGetReadingActivityQueryOptions = <
+  TData = Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetReadingActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getStatisticsControllerGetReadingActivityQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>
+  > = ({ signal }) => statisticsControllerGetReadingActivity(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type StatisticsControllerGetReadingActivityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>
+>;
+export type StatisticsControllerGetReadingActivityQueryError = void;
+
+export function useStatisticsControllerGetReadingActivity<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetReadingActivityParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetReadingActivity<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetReadingActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+          TError,
+          Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useStatisticsControllerGetReadingActivity<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetReadingActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List the pages read per day and book inside a date range
+ */
+
+export function useStatisticsControllerGetReadingActivity<
+  TData = Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+  TError = void,
+>(
+  params: StatisticsControllerGetReadingActivityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof statisticsControllerGetReadingActivity>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getStatisticsControllerGetReadingActivityQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

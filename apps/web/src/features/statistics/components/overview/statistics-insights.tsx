@@ -1,17 +1,11 @@
 "use client";
 
-import type {
-  ReadingStatisticsInsight,
-  ReadingStatisticsInsightsSection,
-  ReadingStatisticsInsightTone,
-} from "@app/shared";
+import type { ReadingStatisticsInsight, ReadingStatisticsInsightTone } from "@app/shared";
 
 import { useLocale, useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
-import { Card } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
-import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { toContextActionLink } from "../../model/statistics-drilldown";
@@ -24,7 +18,6 @@ import {
 import { toInsightView } from "../../model/statistics-insights";
 import { useGenreName } from "../../model/use-genre-name";
 import { StatisticsSection } from "../statistics-section";
-import { StatisticsSectionState } from "../statistics-states";
 
 const INSIGHT_TONE_CLASS = {
   negative: "bg-warning-soft text-warning",
@@ -32,7 +25,31 @@ const INSIGHT_TONE_CLASS = {
   positive: "bg-success-soft text-success",
 } as const satisfies Record<ReadingStatisticsInsightTone, string>;
 
-export function StatisticsInsightBody({
+export function StatisticsInsights({
+  insights,
+  isLowerBound,
+}: {
+  insights: readonly ReadingStatisticsInsight[];
+  isLowerBound: boolean;
+}) {
+  const t = useTranslations("statistics.insights");
+
+  if (insights.length === 0) return null;
+
+  return (
+    <StatisticsSection title={t("title")}>
+      <ul className="flex flex-col divide-y divide-border">
+        {insights.map((insight) => (
+          <li className="py-3 first:pt-0 last:pb-0" key={`${insight.code}-${insight.category}`}>
+            <StatisticsInsightBody insight={insight} isLowerBound={isLowerBound} />
+          </li>
+        ))}
+      </ul>
+    </StatisticsSection>
+  );
+}
+
+function StatisticsInsightBody({
   insight,
   isLowerBound,
 }: {
@@ -88,47 +105,5 @@ export function StatisticsInsightBody({
         )}
       </div>
     </div>
-  );
-}
-
-export function StatisticsInsights({
-  insights,
-  isLowerBound,
-}: {
-  insights: ReadingStatisticsInsightsSection;
-  isLowerBound: boolean;
-}) {
-  const locale = useLocale();
-  const t = useTranslations("statistics.insights");
-
-  return (
-    <StatisticsSection
-      description={t("description", { count: formatNumber(insights.items.length, locale) })}
-      title={t("title")}
-    >
-      {insights.items.length === 0 ? (
-        <StatisticsSectionState kind="empty" title={t("empty")} />
-      ) : (
-        <div
-          aria-label={t("title")}
-          className="-mx-1 snap-x snap-mandatory overflow-x-auto rounded-lg px-1 pb-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:overflow-visible"
-          role="region"
-          tabIndex={0}
-        >
-          <ul className="flex gap-3 lg:grid lg:grid-cols-2 xl:grid-cols-4">
-            {insights.items.map((insight) => (
-              <li
-                className="w-[85%] shrink-0 snap-start lg:w-auto lg:shrink"
-                key={`${insight.code}-${insight.category}`}
-              >
-                <Card className="h-full px-4 py-3.5">
-                  <StatisticsInsightBody insight={insight} isLowerBound={isLowerBound} />
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </StatisticsSection>
   );
 }

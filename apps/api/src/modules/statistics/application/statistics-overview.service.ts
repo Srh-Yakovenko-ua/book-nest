@@ -18,7 +18,11 @@ import {
   isRangeFullyReliable,
   resolveActivityHistoryQuality,
 } from "../domain/activity-history-quality.js";
-import { buildInsightPool } from "../domain/insight-engine.js";
+import {
+  buildInsightPool,
+  buildOverviewInsights,
+  type InsightEngineInput,
+} from "../domain/insight-engine.js";
 import { countEligibleDays, toActiveDays } from "../domain/reading-calendar.js";
 import { collectDiscoveries } from "../domain/reading-discoveries.js";
 import { summarizeRatings } from "../domain/reading-ratings.js";
@@ -146,7 +150,7 @@ export class StatisticsOverviewService {
     });
 
     const ratings = summarizeRatings(reads);
-    const insights = buildInsightPool({
+    const insightInput: InsightEngineInput = {
       comparison:
         comparisonInputs === null
           ? null
@@ -167,7 +171,8 @@ export class StatisticsOverviewService {
       topAuthor: topAuthorOf(reads),
       topGenre: topGenreOf(reads),
       topLanguage: topLanguageOf(reads),
-    });
+    };
+    const insights = buildInsightPool(insightInput);
 
     return {
       authors: this.tastesComposer.buildAuthors({ periodScope, reads, returningAuthors }),
@@ -220,6 +225,7 @@ export class StatisticsOverviewService {
         timezone: settings.timezone,
         weekStartDay: settings.weekStartDay,
       },
+      overviewInsights: buildOverviewInsights(insightInput),
       period,
       publishers: this.tastesComposer.buildPublishers({ periodScope, reads }),
       ratings: this.tastesComposer.buildRatings(reads),

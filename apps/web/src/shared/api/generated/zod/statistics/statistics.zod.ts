@@ -8,6 +8,331 @@
 import * as zod from "zod";
 
 /**
+ * @summary List the reading cycles finished inside a date range
+ */
+export const statisticsControllerGetCompletedReadsQueryCursorMax = 512;
+
+export const statisticsControllerGetCompletedReadsQueryFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCompletedReadsQueryLimitDefault = 20;
+export const statisticsControllerGetCompletedReadsQueryLimitMax = 50;
+
+export const statisticsControllerGetCompletedReadsQueryToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const StatisticsControllerGetCompletedReadsQueryParams = zod.object({
+  cursor: zod.string().max(statisticsControllerGetCompletedReadsQueryCursorMax).optional(),
+  from: zod.iso.date().regex(statisticsControllerGetCompletedReadsQueryFromRegExp),
+  limit: zod
+    .int()
+    .min(1)
+    .max(statisticsControllerGetCompletedReadsQueryLimitMax)
+    .default(statisticsControllerGetCompletedReadsQueryLimitDefault),
+  to: zod.iso.date().regex(statisticsControllerGetCompletedReadsQueryToRegExp),
+});
+
+export const statisticsControllerGetCompletedReadsResponseItemsItemBookBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownOneBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownOneReadingCycleIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownTwoDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersFinishedFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersFinishedToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMaxMin = 0.5;
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMaxMax = 10;
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMaxMultipleOf = 0.5;
+
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMinMin = 0.5;
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMinMax = 10;
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMinMultipleOf = 0.5;
+
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreePeriodFromRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreePeriodToRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetCompletedReadsResponseItemsItemFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCompletedReadsResponseItemsItemRatingMin = 0.5;
+export const statisticsControllerGetCompletedReadsResponseItemsItemRatingMax = 10;
+export const statisticsControllerGetCompletedReadsResponseItemsItemRatingMultipleOf = 0.5;
+
+export const statisticsControllerGetCompletedReadsResponseItemsItemReadingCycleIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetCompletedReadsResponseRangeFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCompletedReadsResponseRangeToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetCompletedReadsResponseTotalCountMin = 0;
+export const statisticsControllerGetCompletedReadsResponseTotalCountMax = 9007199254740991;
+
+export const StatisticsControllerGetCompletedReadsResponse = zod
+  .object({
+    items: zod.array(
+      zod
+        .object({
+          authorName: zod.string().nullable(),
+          book: zod
+            .object({
+              bookId: zod
+                .uuid()
+                .regex(statisticsControllerGetCompletedReadsResponseItemsItemBookBookIdRegExp),
+              bookState: zod.enum(["active", "soft_deleted"]),
+              coverThumbUrl: zod.string().nullable(),
+              title: zod.string(),
+            })
+            .describe(
+              "A historical book reference. bookState says whether the book still exists in the library, so a completed read stays visible after the book is moved to trash.",
+            ),
+          contextActions: zod.array(
+            zod
+              .union([
+                zod.object({
+                  authorId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemOneAuthorIdRegExp,
+                    ),
+                  kind: zod.enum(["open_author"]),
+                }),
+                zod.object({
+                  bookId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemTwoBookIdRegExp,
+                    ),
+                  kind: zod.enum(["open_book"]),
+                }),
+                zod.object({
+                  goalId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemThreeGoalIdRegExp,
+                    ),
+                  kind: zod.enum(["open_goal"]),
+                }),
+                zod.object({
+                  kind: zod.enum(["open_publisher"]),
+                  publisherId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemFourPublisherIdRegExp,
+                    ),
+                }),
+                zod.object({
+                  kind: zod.enum(["open_series"]),
+                  seriesId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemContextActionsItemFiveSeriesIdRegExp,
+                    ),
+                }),
+              ])
+              .describe(
+                "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+              ),
+          ),
+          drilldown: zod
+            .union([
+              zod.object({
+                bookId: zod
+                  .uuid()
+                  .regex(
+                    statisticsControllerGetCompletedReadsResponseItemsItemDrilldownOneBookIdRegExp,
+                  ),
+                kind: zod.enum(["reading_cycle"]),
+                readingCycleId: zod
+                  .uuid()
+                  .regex(
+                    statisticsControllerGetCompletedReadsResponseItemsItemDrilldownOneReadingCycleIdRegExp,
+                  ),
+              }),
+              zod.object({
+                date: zod.iso
+                  .date()
+                  .regex(
+                    statisticsControllerGetCompletedReadsResponseItemsItemDrilldownTwoDateRegExp,
+                  ),
+                kind: zod.enum(["reading_day"]),
+              }),
+              zod.object({
+                filters: zod.object({
+                  authorId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersAuthorIdRegExp,
+                    )
+                    .optional(),
+                  finishedFrom: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersFinishedFromRegExp,
+                    )
+                    .optional(),
+                  finishedTo: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersFinishedToRegExp,
+                    )
+                    .optional(),
+                  genre: zod.string().optional(),
+                  language: zod
+                    .enum([
+                      "ukrainian",
+                      "english",
+                      "polish",
+                      "german",
+                      "french",
+                      "spanish",
+                      "other",
+                    ])
+                    .optional(),
+                  publisherId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersPublisherIdRegExp,
+                    )
+                    .optional(),
+                  ratingMax: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMaxMin,
+                    )
+                    .max(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMaxMax,
+                    )
+                    .multipleOf(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMaxMultipleOf,
+                    )
+                    .optional(),
+                  ratingMin: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMinMin,
+                    )
+                    .max(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMinMax,
+                    )
+                    .multipleOf(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersRatingMinMultipleOf,
+                    )
+                    .optional(),
+                  seriesId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreeFiltersSeriesIdRegExp,
+                    )
+                    .optional(),
+                }),
+                kind: zod.enum(["completed_reads_subset"]),
+                period: zod.object({
+                  from: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreePeriodFromRegExp,
+                    )
+                    .nullable(),
+                  to: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetCompletedReadsResponseItemsItemDrilldownThreePeriodToRegExp,
+                    ),
+                }),
+              }),
+            ])
+            .describe(
+              "Where a click on this number leads. It always reproduces the exact set the number was computed from, never a broader related list.",
+            ),
+          finishedAt: zod.iso
+            .date()
+            .regex(statisticsControllerGetCompletedReadsResponseItemsItemFinishedAtRegExp),
+          rating: zod
+            .number()
+            .min(statisticsControllerGetCompletedReadsResponseItemsItemRatingMin)
+            .max(statisticsControllerGetCompletedReadsResponseItemsItemRatingMax)
+            .multipleOf(statisticsControllerGetCompletedReadsResponseItemsItemRatingMultipleOf)
+            .nullable(),
+          readingCycleId: zod
+            .uuid()
+            .regex(statisticsControllerGetCompletedReadsResponseItemsItemReadingCycleIdRegExp),
+        })
+        .describe(
+          "One completed read-through. The same book appears once per completed read, so a reread is a second row rather than an overwritten one.",
+        ),
+    ),
+    nextCursor: zod.string().nullable(),
+    range: zod.object({
+      from: zod.iso.date().regex(statisticsControllerGetCompletedReadsResponseRangeFromRegExp),
+      to: zod.iso.date().regex(statisticsControllerGetCompletedReadsResponseRangeToRegExp),
+    }),
+    totalCount: zod
+      .int()
+      .min(statisticsControllerGetCompletedReadsResponseTotalCountMin)
+      .max(statisticsControllerGetCompletedReadsResponseTotalCountMax),
+  })
+  .describe(
+    "Every finished reading cycle whose finish date falls inside the range, newest first. A reread is its own row, and a book moved to trash keeps its rows.",
+  );
+
+/**
  * @summary Get the reading statistics overview for a period
  */
 export const statisticsControllerGetOverviewQueryFromRegExp = new RegExp(
@@ -1603,6 +1928,550 @@ export const statisticsControllerGetOverviewResponseMetaActivityHistoryReliableF
 export const statisticsControllerGetOverviewResponseMetaGeneratedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
 );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsComparisonValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsComparisonValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsCurrentValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsCurrentValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsComparisonValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsComparisonValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsCurrentValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsCurrentValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsActiveDaysMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsPagesReadMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsWeekdayMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsWeekdayMax = 6;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsDaysMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsDaysMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsEndDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsStartDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsCompletedReadCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsCompletedReadCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsShareOfCompletedReadsMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsShareOfCompletedReadsMax = 1;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixParamsAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixParamsCompletedReadCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixParamsCompletedReadCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenParamsMarathonLengthMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenParamsMarathonLengthMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenParamsSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsAverageRatingMin = 0.5;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsAverageRatingMax = 10;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsHighRatedReadsCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsHighRatedReadsCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsRatedReadsCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsRatedReadsCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineParamsAuthorCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineParamsAuthorCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsCompletedReadCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsCompletedReadCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsShareOfKnownMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsShareOfKnownMax = 1;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsPagesMax = 3;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsComparisonValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsComparisonValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsCurrentValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsCurrentValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsComparisonValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsComparisonValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsCurrentValueMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsCurrentValueMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsActiveDaysMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsPagesReadMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsWeekdayMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsWeekdayMax = 6;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsDaysMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsDaysMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsEndDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsStartDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsCompletedReadCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsCompletedReadCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsShareOfCompletedReadsMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsShareOfCompletedReadsMax = 1;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixParamsAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixParamsCompletedReadCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixParamsCompletedReadCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenParamsMarathonLengthMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenParamsMarathonLengthMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenParamsSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsAverageRatingMin = 0.5;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsAverageRatingMax = 10;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsHighRatedReadsCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsHighRatedReadsCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsRatedReadsCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsRatedReadsCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineParamsAuthorCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineParamsAuthorCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionOneAuthorIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionTwoBookIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionThreeGoalIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionFourPublisherIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionFiveSeriesIdRegExp =
+  new RegExp(
+    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+  );
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsCompletedReadCountMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsCompletedReadCountMax = 9007199254740991;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsShareOfKnownMin = 0;
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsShareOfKnownMax = 1;
+
+export const statisticsControllerGetOverviewResponseOverviewInsightsReadsMax = 3;
+
 export const statisticsControllerGetOverviewResponsePeriodFromRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -6055,6 +6924,1474 @@ export const StatisticsControllerGetOverviewResponse = zod.object({
     .describe(
       "Context the whole response was built with. reliableFrom is the first day from which the activity ledger is known to be complete; anything before it is observed history rather than a full record.",
     ),
+  overviewInsights: zod
+    .object({
+      pages: zod
+        .array(
+          zod
+            .union([
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["reading"]),
+                code: zod.enum(["completed_reads_vs_comparison"]),
+                params: zod.object({
+                  absoluteDelta: zod.number(),
+                  comparisonValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsComparisonValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsComparisonValueMax,
+                    ),
+                  currentValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsCurrentValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOneParamsCurrentValueMax,
+                    ),
+                  percentDelta: zod.number().nullable(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["reading"]),
+                code: zod.enum(["pages_read_vs_comparison"]),
+                params: zod.object({
+                  absoluteDelta: zod.number(),
+                  comparisonValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsComparisonValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsComparisonValueMax,
+                    ),
+                  currentValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsCurrentValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemTwoParamsCurrentValueMax,
+                    ),
+                  percentDelta: zod.number().nullable(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["activity"]),
+                code: zod.enum(["most_active_weekday"]),
+                params: zod.object({
+                  activeDays: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsActiveDaysMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsActiveDaysMax,
+                    ),
+                  pagesRead: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsPagesReadMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsPagesReadMax,
+                    ),
+                  weekday: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsWeekdayMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemThreeParamsWeekdayMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["activity"]),
+                code: zod.enum(["longest_streak_in_period"]),
+                params: zod.object({
+                  days: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsDaysMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsDaysMax,
+                    ),
+                  endDate: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsEndDateRegExp,
+                    ),
+                  startDate: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFourParamsStartDateRegExp,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["genres"]),
+                code: zod.enum(["top_genre_share"]),
+                params: zod.object({
+                  completedReadCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsCompletedReadCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsCompletedReadCountMax,
+                    ),
+                  genreKey: zod.string(),
+                  shareOfCompletedReads: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsShareOfCompletedReadsMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemFiveParamsShareOfCompletedReadsMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["authors"]),
+                code: zod.enum(["top_author_reads"]),
+                params: zod.object({
+                  authorId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixParamsAuthorIdRegExp,
+                    ),
+                  authorName: zod.string(),
+                  completedReadCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixParamsCompletedReadCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSixParamsCompletedReadCountMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["series"]),
+                code: zod.enum(["series_marathon"]),
+                params: zod.object({
+                  marathonLength: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenParamsMarathonLengthMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenParamsMarathonLengthMax,
+                    ),
+                  seriesId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemSevenParamsSeriesIdRegExp,
+                    ),
+                  seriesName: zod.string(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["ratings"]),
+                code: zod.enum(["high_rating_share"]),
+                params: zod.object({
+                  averageRating: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsAverageRatingMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsAverageRatingMax,
+                    ),
+                  highRatedReadsCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsHighRatedReadsCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsHighRatedReadsCountMax,
+                    ),
+                  ratedReadsCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsRatedReadsCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemEightParamsRatedReadsCountMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["discovery"]),
+                code: zod.enum(["new_authors_discovered"]),
+                params: zod.object({
+                  authorCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineParamsAuthorCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemNineParamsAuthorCountMax,
+                    ),
+                  firstAuthorName: zod.string(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["languages"]),
+                code: zod.enum(["dominant_language"]),
+                params: zod.object({
+                  completedReadCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsCompletedReadCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsCompletedReadCountMax,
+                    ),
+                  language: zod.enum([
+                    "ukrainian",
+                    "english",
+                    "polish",
+                    "german",
+                    "french",
+                    "spanish",
+                    "other",
+                  ]),
+                  shareOfKnown: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsShareOfKnownMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsPagesItemOnezeroParamsShareOfKnownMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+            ])
+            .describe(
+              "One deterministic observation about the selected period. The backend decides which observations are true and worth showing; the wording lives in the frontend translations keyed by code.",
+            ),
+        )
+        .max(statisticsControllerGetOverviewResponseOverviewInsightsPagesMax),
+      reads: zod
+        .array(
+          zod
+            .union([
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["reading"]),
+                code: zod.enum(["completed_reads_vs_comparison"]),
+                params: zod.object({
+                  absoluteDelta: zod.number(),
+                  comparisonValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsComparisonValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsComparisonValueMax,
+                    ),
+                  currentValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsCurrentValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOneParamsCurrentValueMax,
+                    ),
+                  percentDelta: zod.number().nullable(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["reading"]),
+                code: zod.enum(["pages_read_vs_comparison"]),
+                params: zod.object({
+                  absoluteDelta: zod.number(),
+                  comparisonValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsComparisonValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsComparisonValueMax,
+                    ),
+                  currentValue: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsCurrentValueMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemTwoParamsCurrentValueMax,
+                    ),
+                  percentDelta: zod.number().nullable(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["activity"]),
+                code: zod.enum(["most_active_weekday"]),
+                params: zod.object({
+                  activeDays: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsActiveDaysMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsActiveDaysMax,
+                    ),
+                  pagesRead: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsPagesReadMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsPagesReadMax,
+                    ),
+                  weekday: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsWeekdayMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemThreeParamsWeekdayMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["activity"]),
+                code: zod.enum(["longest_streak_in_period"]),
+                params: zod.object({
+                  days: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsDaysMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsDaysMax,
+                    ),
+                  endDate: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsEndDateRegExp,
+                    ),
+                  startDate: zod.iso
+                    .date()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFourParamsStartDateRegExp,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["genres"]),
+                code: zod.enum(["top_genre_share"]),
+                params: zod.object({
+                  completedReadCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsCompletedReadCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsCompletedReadCountMax,
+                    ),
+                  genreKey: zod.string(),
+                  shareOfCompletedReads: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsShareOfCompletedReadsMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemFiveParamsShareOfCompletedReadsMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["authors"]),
+                code: zod.enum(["top_author_reads"]),
+                params: zod.object({
+                  authorId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixParamsAuthorIdRegExp,
+                    ),
+                  authorName: zod.string(),
+                  completedReadCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixParamsCompletedReadCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSixParamsCompletedReadCountMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["series"]),
+                code: zod.enum(["series_marathon"]),
+                params: zod.object({
+                  marathonLength: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenParamsMarathonLengthMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenParamsMarathonLengthMax,
+                    ),
+                  seriesId: zod
+                    .uuid()
+                    .regex(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemSevenParamsSeriesIdRegExp,
+                    ),
+                  seriesName: zod.string(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["ratings"]),
+                code: zod.enum(["high_rating_share"]),
+                params: zod.object({
+                  averageRating: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsAverageRatingMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsAverageRatingMax,
+                    ),
+                  highRatedReadsCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsHighRatedReadsCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsHighRatedReadsCountMax,
+                    ),
+                  ratedReadsCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsRatedReadsCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemEightParamsRatedReadsCountMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["discovery"]),
+                code: zod.enum(["new_authors_discovered"]),
+                params: zod.object({
+                  authorCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineParamsAuthorCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemNineParamsAuthorCountMax,
+                    ),
+                  firstAuthorName: zod.string(),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+              zod.object({
+                action: zod
+                  .union([
+                    zod.object({
+                      authorId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionOneAuthorIdRegExp,
+                        ),
+                      kind: zod.enum(["open_author"]),
+                    }),
+                    zod.object({
+                      bookId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionTwoBookIdRegExp,
+                        ),
+                      kind: zod.enum(["open_book"]),
+                    }),
+                    zod.object({
+                      goalId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionThreeGoalIdRegExp,
+                        ),
+                      kind: zod.enum(["open_goal"]),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_publisher"]),
+                      publisherId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionFourPublisherIdRegExp,
+                        ),
+                    }),
+                    zod.object({
+                      kind: zod.enum(["open_series"]),
+                      seriesId: zod
+                        .uuid()
+                        .regex(
+                          statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroActionFiveSeriesIdRegExp,
+                        ),
+                    }),
+                  ])
+                  .optional()
+                  .describe(
+                    "Related navigation offered next to the metric. It is deliberately separate from the drill-down because it does not reproduce the same set.",
+                  ),
+                category: zod.enum(["languages"]),
+                code: zod.enum(["dominant_language"]),
+                params: zod.object({
+                  completedReadCount: zod
+                    .int()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsCompletedReadCountMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsCompletedReadCountMax,
+                    ),
+                  language: zod.enum([
+                    "ukrainian",
+                    "english",
+                    "polish",
+                    "german",
+                    "french",
+                    "spanish",
+                    "other",
+                  ]),
+                  shareOfKnown: zod
+                    .number()
+                    .min(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsShareOfKnownMin,
+                    )
+                    .max(
+                      statisticsControllerGetOverviewResponseOverviewInsightsReadsItemOnezeroParamsShareOfKnownMax,
+                    ),
+                }),
+                tone: zod.enum(["positive", "neutral", "negative"]),
+              }),
+            ])
+            .describe(
+              "One deterministic observation about the selected period. The backend decides which observations are true and worth showing; the wording lives in the frontend translations keyed by code.",
+            ),
+        )
+        .max(statisticsControllerGetOverviewResponseOverviewInsightsReadsMax),
+    })
+    .describe(
+      "Observations shown next to the overview chart, one ranked list per dynamics metric. The lists are chosen independently, so a reads comparison never hides the pages one, and a list may be empty.",
+    ),
   period: zod
     .object({
       from: zod.iso
@@ -7423,6 +9760,111 @@ export const StatisticsControllerGetOverviewResponse = zod.object({
       "Series activity in the period. mostActive counts read-throughs, so a reread of one part counts again; topProgress and lifecycle count distinct books moving forward for the first time, so a reread never advances them twice.",
     ),
 });
+
+/**
+ * @summary List the pages read per day and book inside a date range
+ */
+export const statisticsControllerGetReadingActivityQueryCursorMax = 512;
+
+export const statisticsControllerGetReadingActivityQueryFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetReadingActivityQueryLimitDefault = 20;
+export const statisticsControllerGetReadingActivityQueryLimitMax = 50;
+
+export const statisticsControllerGetReadingActivityQueryToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const StatisticsControllerGetReadingActivityQueryParams = zod.object({
+  cursor: zod.string().max(statisticsControllerGetReadingActivityQueryCursorMax).optional(),
+  from: zod.iso.date().regex(statisticsControllerGetReadingActivityQueryFromRegExp),
+  limit: zod
+    .int()
+    .min(1)
+    .max(statisticsControllerGetReadingActivityQueryLimitMax)
+    .default(statisticsControllerGetReadingActivityQueryLimitDefault),
+  to: zod.iso.date().regex(statisticsControllerGetReadingActivityQueryToRegExp),
+});
+
+export const statisticsControllerGetReadingActivityResponseActiveDaysMin = 0;
+export const statisticsControllerGetReadingActivityResponseActiveDaysMax = 9007199254740991;
+
+export const statisticsControllerGetReadingActivityResponseBooksCountMin = 0;
+export const statisticsControllerGetReadingActivityResponseBooksCountMax = 9007199254740991;
+
+export const statisticsControllerGetReadingActivityResponseItemsItemBookBookIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const statisticsControllerGetReadingActivityResponseItemsItemDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetReadingActivityResponseItemsItemPagesReadMin = 0;
+export const statisticsControllerGetReadingActivityResponseItemsItemPagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetReadingActivityResponsePagesReadMin = 0;
+export const statisticsControllerGetReadingActivityResponsePagesReadMax = 9007199254740991;
+
+export const statisticsControllerGetReadingActivityResponseRangeFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetReadingActivityResponseRangeToRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const statisticsControllerGetReadingActivityResponseReliableFromRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const StatisticsControllerGetReadingActivityResponse = zod
+  .object({
+    activeDays: zod
+      .int()
+      .min(statisticsControllerGetReadingActivityResponseActiveDaysMin)
+      .max(statisticsControllerGetReadingActivityResponseActiveDaysMax),
+    booksCount: zod
+      .int()
+      .min(statisticsControllerGetReadingActivityResponseBooksCountMin)
+      .max(statisticsControllerGetReadingActivityResponseBooksCountMax),
+    historyQuality: zod.enum(["exact", "legacy_observed_only"]),
+    items: zod.array(
+      zod.object({
+        book: zod
+          .object({
+            bookId: zod
+              .uuid()
+              .regex(statisticsControllerGetReadingActivityResponseItemsItemBookBookIdRegExp),
+            bookState: zod.enum(["active", "soft_deleted"]),
+            coverThumbUrl: zod.string().nullable(),
+            title: zod.string(),
+          })
+          .describe(
+            "A historical book reference. bookState says whether the book still exists in the library, so a completed read stays visible after the book is moved to trash.",
+          ),
+        date: zod.iso
+          .date()
+          .regex(statisticsControllerGetReadingActivityResponseItemsItemDateRegExp),
+        pagesRead: zod
+          .int()
+          .min(statisticsControllerGetReadingActivityResponseItemsItemPagesReadMin)
+          .max(statisticsControllerGetReadingActivityResponseItemsItemPagesReadMax),
+      }),
+    ),
+    nextCursor: zod.string().nullable(),
+    pagesRead: zod
+      .int()
+      .min(statisticsControllerGetReadingActivityResponsePagesReadMin)
+      .max(statisticsControllerGetReadingActivityResponsePagesReadMax),
+    range: zod.object({
+      from: zod.iso.date().regex(statisticsControllerGetReadingActivityResponseRangeFromRegExp),
+      to: zod.iso.date().regex(statisticsControllerGetReadingActivityResponseRangeToRegExp),
+    }),
+    reliableFrom: zod.iso
+      .date()
+      .regex(statisticsControllerGetReadingActivityResponseReliableFromRegExp),
+  })
+  .describe(
+    "The recorded page progress inside the range, one row per day and book, newest day first. The totals cover the whole range, not just this page. historyQuality legacy_observed_only means the range starts before reliableFrom, so the rows are what survived rather than everything that was read.",
+  );
 
 /**
  * @summary Get the full reading details of one day
