@@ -1,4 +1,4 @@
-import type { BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookDetailsView, OwnershipStatus, ReadingStatus } from "@app/shared";
 import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 
 import { BulkActionResultSchema } from "@app/shared";
@@ -209,9 +209,9 @@ export function useToggleFavorite() {
     },
     onSuccess: (_data, { id, isFavorite }) => {
       const detailKey = bookKeys.detail(id);
-      const cached = queryClient.getQueryData<BookView>(detailKey);
+      const cached = queryClient.getQueryData<BookDetailsView>(detailKey);
       if (cached !== undefined) {
-        queryClient.setQueryData<BookView>(detailKey, { ...cached, isFavorite });
+        queryClient.setQueryData<BookDetailsView>(detailKey, { ...cached, isFavorite });
       }
     },
   });

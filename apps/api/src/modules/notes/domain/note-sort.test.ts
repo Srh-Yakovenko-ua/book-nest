@@ -48,6 +48,7 @@ describe("book archive sort", () => {
     expect(BOOK_NOTE_SORT_ORDER_BY.page).toEqual([
       { book: { title: "asc" } },
       { page: { nulls: "last", sort: "asc" } },
+      { createdAt: "desc" },
       { id: "asc" },
     ]);
     expect(BOOK_NOTE_SORT_ORDER_BY.recently_updated).toEqual([

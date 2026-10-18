@@ -8,6 +8,7 @@
 import type { NotesControllerBookFacetsCategoryItem } from "./notesControllerBookFacetsCategoryItem";
 import type { NotesControllerBookFacetsHasChapter } from "./notesControllerBookFacetsHasChapter";
 import type { NotesControllerBookFacetsHasPage } from "./notesControllerBookFacetsHasPage";
+import type { NotesControllerBookFacetsSearchIn } from "./notesControllerBookFacetsSearchIn";
 
 export type NotesControllerBookFacetsParams = {
   /**
@@ -36,4 +37,5 @@ export type NotesControllerBookFacetsParams = {
    * @maxLength 100
    */
   search?: string;
+  searchIn?: NotesControllerBookFacetsSearchIn;
 };

@@ -1,6 +1,9 @@
 import type { NoteView } from "@app/shared";
 
 import type { InfiniteScrollState } from "@/hooks/use-infinite-scroll-sentinel";
+import type { EmptyStateEntry } from "@/lib/empty-states";
+
+export type NotesArchiveEmptyCopy = Partial<Record<NotesArchiveEmptyReason, EmptyStateEntry>>;
 
 export type NotesArchiveEmptyReason = "filters" | "library" | "search";
 

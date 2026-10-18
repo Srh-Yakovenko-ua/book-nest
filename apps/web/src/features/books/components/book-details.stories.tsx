@@ -1,14 +1,14 @@
-import type { BookView } from "@app/shared";
+import type { BookDetailsView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
 import { BookDetails } from "./book-details";
-import { DETAILS_GENRES_FIXTURE, makeBookView } from "./book-details.fixtures";
+import { DETAILS_GENRES_FIXTURE, makeBookDetailsView } from "./book-details.fixtures";
 
 type Handler = (path: string, init?: RequestInit) => Response;
 
-function detailHandler(id: string, book: BookView | null): Handler {
+function detailHandler(id: string, book: BookDetailsView | null): Handler {
   return (path, init) => {
     if (path.includes("/api/genres")) return jsonResponse(200, DETAILS_GENRES_FIXTURE);
     if (path.includes(id) && (init?.method ?? "GET") === "GET") {
@@ -60,7 +60,7 @@ export const SoloBook: Story = {
     mockFetch(
       detailHandler(
         "aaaaaaaa-aaaa-4aaa-8aaa-solo00000001",
-        makeBookView({ id: "aaaaaaaa-aaaa-4aaa-8aaa-solo00000001" }),
+        makeBookDetailsView({ id: "aaaaaaaa-aaaa-4aaa-8aaa-solo00000001" }),
       ),
     );
   },
@@ -85,7 +85,7 @@ export const SeriesBook: Story = {
     mockFetch(
       detailHandler(
         "aaaaaaaa-aaaa-4aaa-8aaa-series0000001",
-        makeBookView({
+        makeBookDetailsView({
           bookType: "series_part",
           id: "aaaaaaaa-aaaa-4aaa-8aaa-series0000001",
           partNumber: 1,
@@ -136,7 +136,7 @@ export const EmptyOptionalBlocks: Story = {
     mockFetch(
       detailHandler(
         "aaaaaaaa-aaaa-4aaa-8aaa-empty00000001",
-        makeBookView({
+        makeBookDetailsView({
           ageCategory: "not_specified",
           cover: null,
           dedication: null,

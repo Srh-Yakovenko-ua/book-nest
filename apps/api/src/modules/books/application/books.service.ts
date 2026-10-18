@@ -1,4 +1,10 @@
-import type { BookView, CreateBookInput, Nullable, UpdateBookInput } from "@app/shared";
+import type {
+  BookDetailsView,
+  BookView,
+  CreateBookInput,
+  Nullable,
+  UpdateBookInput,
+} from "@app/shared";
 
 import { OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -207,13 +213,14 @@ export class BooksService {
     return this.viewAssembler.viewOf(book);
   }
 
-  async getById(userId: string, bookId: string): Promise<BookView> {
+  async getById(userId: string, bookId: string): Promise<BookDetailsView> {
     const book = await this.booksRepository.findOwnedById(userId, bookId);
     if (book === null) {
       throw new NotFoundError("Book not found");
     }
 
-    return this.viewAssembler.viewOf(book);
+    const notesCount = await this.booksRepository.countActiveBookNotes({ bookId, userId });
+    return { ...this.viewAssembler.viewOf(book), notesCount };
   }
 
   async update(userId: string, bookId: string, input: UpdateBookInput): Promise<BookView> {

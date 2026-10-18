@@ -6,7 +6,7 @@ import type { ComponentProps } from "react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import { makeQuote, stubTextMetrics } from "../../model/quotes.fixtures";
@@ -78,7 +78,7 @@ beforeEach(() => {
       return Promise.resolve(new Response(null, { status: 204 }));
     }
     if (url === "/api/books/book-1" && method === "GET") {
-      return Promise.resolve(jsonResponse(makeBookView({ id: "book-1", pagesCount: 300 })));
+      return Promise.resolve(jsonResponse(makeBookDetailsView({ id: "book-1", pagesCount: 300 })));
     }
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });

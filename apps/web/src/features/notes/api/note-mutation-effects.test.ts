@@ -45,11 +45,13 @@ describe("refreshAfterNoteMutation overviews", () => {
   });
 });
 
-describe("refreshAfterNoteMutation chapter suggestions", () => {
+describe("refreshAfterNoteMutation book queries", () => {
   const SEEDED_KEYS = {
-    bookDetail: bookKeys.detail("book-1"),
     notedBookChapters: bookKeys.chapters("book-1"),
+    notedBookDeliveries: bookKeys.deliveryHistory("book-1"),
+    notedBookDetail: bookKeys.detail("book-1"),
     otherBookChapters: bookKeys.chapters("book-2"),
+    otherBookDetail: bookKeys.detail("book-2"),
   } as const;
 
   async function staleAfter(mutation: Parameters<typeof refreshAfterNoteMutation>[1]) {
@@ -59,30 +61,47 @@ describe("refreshAfterNoteMutation chapter suggestions", () => {
     await refreshAfterNoteMutation(queryClient, mutation);
 
     return {
-      bookDetail: queryClient.getQueryState(SEEDED_KEYS.bookDetail)?.isInvalidated,
       notedBookChapters: queryClient.getQueryState(SEEDED_KEYS.notedBookChapters)?.isInvalidated,
+      notedBookDeliveries: queryClient.getQueryState(SEEDED_KEYS.notedBookDeliveries)
+        ?.isInvalidated,
+      notedBookDetail: queryClient.getQueryState(SEEDED_KEYS.notedBookDetail)?.isInvalidated,
       otherBookChapters: queryClient.getQueryState(SEEDED_KEYS.otherBookChapters)?.isInvalidated,
+      otherBookDetail: queryClient.getQueryState(SEEDED_KEYS.otherBookDetail)?.isInvalidated,
     };
   }
 
-  it.each(["create", "update", "delete"] as const)(
-    "marks only the noted book's chapters stale after a book note %s",
+  it.each(["create", "delete"] as const)(
+    "marks only the noted book's detail and chapters stale after a book note %s",
     async (kind) => {
       expect(await staleAfter({ kind, note: makeBookNote() })).toEqual({
-        bookDetail: false,
         notedBookChapters: true,
+        notedBookDeliveries: false,
+        notedBookDetail: true,
         otherBookChapters: false,
+        otherBookDetail: false,
       });
     },
   );
 
+  it("keeps the book detail fresh after a book note update", async () => {
+    expect(await staleAfter({ kind: "update", note: makeBookNote() })).toEqual({
+      notedBookChapters: true,
+      notedBookDeliveries: false,
+      notedBookDetail: false,
+      otherBookChapters: false,
+      otherBookDetail: false,
+    });
+  });
+
   it.each(["create", "update", "delete"] as const)(
-    "leaves every book's chapters alone after a series note %s",
+    "leaves every book query alone after a series note %s",
     async (kind) => {
       expect(await staleAfter({ kind, note: makeSeriesNote() })).toEqual({
-        bookDetail: false,
         notedBookChapters: false,
+        notedBookDeliveries: false,
+        notedBookDetail: false,
         otherBookChapters: false,
+        otherBookDetail: false,
       });
     },
   );

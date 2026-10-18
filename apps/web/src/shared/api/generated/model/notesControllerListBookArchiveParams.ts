@@ -9,6 +9,7 @@ import type { NotesControllerListBookArchiveCategoryItem } from "./notesControll
 import type { NotesControllerListBookArchiveFilter } from "./notesControllerListBookArchiveFilter";
 import type { NotesControllerListBookArchiveHasChapter } from "./notesControllerListBookArchiveHasChapter";
 import type { NotesControllerListBookArchiveHasPage } from "./notesControllerListBookArchiveHasPage";
+import type { NotesControllerListBookArchiveSearchIn } from "./notesControllerListBookArchiveSearchIn";
 import type { NotesControllerListBookArchiveSort } from "./notesControllerListBookArchiveSort";
 
 export type NotesControllerListBookArchiveParams = {
@@ -38,6 +39,7 @@ export type NotesControllerListBookArchiveParams = {
    * @maxLength 100
    */
   search?: string;
+  searchIn?: NotesControllerListBookArchiveSearchIn;
   filter?: NotesControllerListBookArchiveFilter;
   /**
    * @minimum 1

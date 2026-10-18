@@ -7,7 +7,7 @@ import Image from "next/image";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { expect, waitFor, within } from "storybook/test";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { getQueryClient } from "@/lib/query-client";
 
 import {
@@ -165,7 +165,7 @@ function mockFetch(details: CharacterDetailsView) {
     if (path.includes("/api/species")) return Promise.resolve(jsonResponse(200, STORY.species));
     if (path.endsWith(`/api/books/${STORY.bookId}`))
       return Promise.resolve(
-        jsonResponse(200, makeBookView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),
+        jsonResponse(200, makeBookDetailsView({ id: STORY.bookId, pagesCount: STORY.pagesCount })),
       );
     return Promise.resolve(jsonResponse(200, {}));
   }) as typeof fetch;

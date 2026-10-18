@@ -1411,6 +1411,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Факти про персонажа",
     version: null,
   },
+  {
+    bodyEn:
+      "A book's page now has a Notes tab right after Overview, and the My notes block is gone from Overview. The tab label shows how many notes the book has. Inside, you can search this book's notes by title, text, chapter, custom category and page, use the All, Favorites, Pinned, No spoilers and With spoilers quick filters with their counts, filter by several categories at once and pick one of five ways to sort, with By page as the default. The list keeps loading as you scroll, and Add note opens the form with this book already selected. Filters and sorting are kept in the page address, so a link opens the same list and the browser's Back and Forward buttons work as expected. If you switch to another tab of the book and come back, you return to the same place in the list. Spoiler notes stay hidden until you reveal them, as before.",
+    bodyUk:
+      "На сторінці книги з'явилася вкладка «Нотатки», одразу після вкладки «Огляд», а блоку «Мої нотатки» в огляді більше немає. На назві вкладки видно, скільки в книзі нотаток. Усередині є пошук серед нотаток цієї книги за заголовком, текстом, розділом, власною категорією та сторінкою, швидкі фільтри «Усі», «Улюблені», «Закріплені», «Без спойлерів» і «Зі спойлерами» з кількістю, фільтр за кількома категоріями одразу і п'ять способів сортування, де за замовчуванням діє «За сторінкою». Список довантажується під час прокручування, а кнопка «Додати нотатку» відкриває форму, де цю книгу вже вибрано. Фільтри й сортування зберігаються в адресі сторінки, тож за посиланням відкриється той самий список, а кнопки «Назад» і «Вперед» у браузері працюють як слід. Якщо перейти на іншу вкладку книги й повернутися, ви опинитеся на тому ж місці списку. Нотатки зі спойлерами, як і раніше, приховані, доки ви їх не відкриєте.",
+    category: "improvement",
+    publishedAt: "2026-10-18T00:00:00.000Z",
+    slug: "book-notes-tab",
+    titleEn: "Notes tab on the book page",
+    titleUk: "Вкладка «Нотатки» на сторінці книги",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

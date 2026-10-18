@@ -19,7 +19,7 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { stubTextMetrics } from "@/features/quotes/model/quotes.fixtures";
 import { fireEvent, renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -178,7 +178,7 @@ beforeEach(() => {
     }
     if (method === "GET" && url.endsWith("/api/books/book-1")) {
       return bookDetailGate.then(() =>
-        jsonResponse(makeBookView({ id: "book-1", pagesCount: servedPagesCount })),
+        jsonResponse(makeBookDetailsView({ id: "book-1", pagesCount: servedPagesCount })),
       );
     }
     const { pathname, searchParams } = new URL(url, "http://localhost");

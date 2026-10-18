@@ -160,7 +160,10 @@ export const PrefilledFromBookView: Story = {
           path.includes("aaaaaaaa-aaaa-4aaa-8aaa-prefill00001") &&
           (init?.method ?? "GET") === "GET"
         ) {
-          return jsonResponse(200, makeBook({ id: "aaaaaaaa-aaaa-4aaa-8aaa-prefill00001" }));
+          return jsonResponse(200, {
+            ...makeBook({ id: "aaaaaaaa-aaaa-4aaa-8aaa-prefill00001" }),
+            notesCount: 0,
+          });
         }
         return emptyPage(8);
       }),
@@ -208,7 +211,10 @@ export const ChangingReadingStatusFiresConfirm: Story = {
           path.includes("aaaaaaaa-aaaa-4aaa-8aaa-confirm00001") &&
           (init?.method ?? "GET") === "GET"
         ) {
-          return jsonResponse(200, makeBook({ id: "aaaaaaaa-aaaa-4aaa-8aaa-confirm00001" }));
+          return jsonResponse(200, {
+            ...makeBook({ id: "aaaaaaaa-aaaa-4aaa-8aaa-confirm00001" }),
+            notesCount: 0,
+          });
         }
         return emptyPage(8);
       }),

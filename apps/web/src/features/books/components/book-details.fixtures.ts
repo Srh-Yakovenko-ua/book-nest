@@ -1,4 +1,11 @@
-import type { BookView } from "@app/shared";
+import type { BookDetailsView, BookView } from "@app/shared";
+
+export function makeBookDetailsView({
+  notesCount = 0,
+  ...overrides
+}: Partial<BookDetailsView> = {}): BookDetailsView {
+  return { ...makeBookView(overrides), notesCount };
+}
 
 export function makeBookView(overrides: Partial<BookView> = {}): BookView {
   return {

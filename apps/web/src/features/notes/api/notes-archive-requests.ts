@@ -81,6 +81,7 @@ function toBookDatasetParams(params: NotesDatasetParams): NotesControllerBookFac
     hasChapter: toQueryFlag(params.hasChapter),
     hasPage: toQueryFlag(params.hasPage),
     search: params.search,
+    searchIn: params.searchIn,
   };
 }
 

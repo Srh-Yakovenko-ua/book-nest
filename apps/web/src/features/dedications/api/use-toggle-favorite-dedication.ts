@@ -1,4 +1,4 @@
-import type { BookView } from "@app/shared";
+import type { BookDetailsView, BookView } from "@app/shared";
 
 import { BookViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +24,16 @@ export function useToggleFavoriteDedication() {
       void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(id) });
     },
     onSuccess: (book) => {
-      queryClient.setQueryData<BookView>(bookKeys.detail(book.id), book);
+      const detailKey = bookKeys.detail(book.id);
+      const cachedDetail = queryClient.getQueryData<BookDetailsView>(detailKey);
+      if (cachedDetail === undefined) {
+        void queryClient.invalidateQueries({ exact: true, queryKey: detailKey });
+        return;
+      }
+      queryClient.setQueryData<BookDetailsView>(detailKey, {
+        ...book,
+        notesCount: cachedDetail.notesCount,
+      });
     },
   });
 }

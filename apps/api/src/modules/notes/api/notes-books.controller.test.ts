@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -248,7 +249,7 @@ describe("GET /api/notes/books sort across pages", () => {
     expect(ids).toEqual([simmonsNote, ...byId(herbertNotes), ...byId(asimovNotes)]);
   });
 
-  it("BOOK-Q-06 orders by book title, then page with missing pages last, then id", async () => {
+  it("BOOK-Q-06 orders by book title, then page with missing pages last, then id for equal timestamps", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const duneId = await createBook(accessToken, { author: "Frank Herbert", title: "Dune" });
     const anathemId = await createBook(accessToken, {
@@ -262,6 +263,10 @@ describe("GET /api/notes/books sort across pages", () => {
       await createBookNote(accessToken, duneId, { page: 10 }),
       await createBookNote(accessToken, duneId, { page: 10 }),
     ];
+    await app.get(PrismaService).note.updateMany({
+      data: { createdAt: new Date("2026-03-01T12:00:00.000Z") },
+      where: { id: { in: page10Notes } },
+    });
 
     const ids = await collectPages(accessToken, "page", 3);
 

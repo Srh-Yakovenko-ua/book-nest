@@ -21,6 +21,7 @@ const NOTE_MUTATION_EFFECTS = {
     delete: ["list", "facets", "summary"],
     update: ["list", "facets"],
   },
+  changesBookNotesCount: { create: true, delete: true, update: false },
   overviewScopes: {
     create: { book: ["books", "series"], series: ["series"] },
     delete: { book: ["books", "series"], series: ["books", "series"] },
@@ -28,6 +29,7 @@ const NOTE_MUTATION_EFFECTS = {
   },
 } as const satisfies {
   archiveParts: Record<NoteMutationKind, readonly NotesArchivePart[]>;
+  changesBookNotesCount: Record<NoteMutationKind, boolean>;
   overviewScopes: Record<NoteMutationKind, Record<NoteEntityType, readonly NotesArchiveScope[]>>;
 };
 
@@ -37,17 +39,24 @@ export async function refreshAfterNoteMutation(
 ): Promise<void> {
   const scope = NOTES_ARCHIVE_SCOPE_BY_ENTITY[note.entityType];
   const detailsKey = noteDetailsKey(note);
-  const chaptersKey = noteChaptersKey(note);
+  const bookId = noteBookId(note);
   const keys: QueryKey[] = [
     ...NOTE_MUTATION_EFFECTS.archiveParts[kind].map((part) => notesKeys.archivePart(scope, part)),
     ...NOTE_MUTATION_EFFECTS.overviewScopes[kind][note.entityType].map((overviewScope) =>
       notesKeys.archivePart(overviewScope, "overview"),
     ),
     ...(detailsKey === null ? [] : [detailsKey]),
-    ...(chaptersKey === null ? [] : [chaptersKey]),
+    ...(bookId === null ? [] : [bookKeys.chapters(bookId)]),
   ];
+  const exactKeys: QueryKey[] =
+    bookId !== null && NOTE_MUTATION_EFFECTS.changesBookNotesCount[kind]
+      ? [bookKeys.detail(bookId)]
+      : [];
 
-  await Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+  await Promise.all([
+    ...keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+    ...exactKeys.map((queryKey) => queryClient.invalidateQueries({ exact: true, queryKey })),
+  ]);
 }
 
 export function writeUpdatedNote(queryClient: QueryClient, note: NoteView): void {
@@ -73,13 +82,13 @@ export function writeUpdatedNote(queryClient: QueryClient, note: NoteView): void
   );
 }
 
-function noteChaptersKey(note: NoteView): Nullable<QueryKey> {
+function noteBookId(note: NoteView): Nullable<string> {
   const entity = noteEntityRefFromNote(note);
   if (entity === null) return null;
 
   switch (entity.type) {
     case "book":
-      return bookKeys.chapters(entity.book.id);
+      return entity.book.id;
     case "series":
       return null;
     default:
