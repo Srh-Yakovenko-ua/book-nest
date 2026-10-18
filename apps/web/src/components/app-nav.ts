@@ -18,6 +18,7 @@ import {
   Shapes,
   ShoppingBag,
   Tags,
+  Target,
   Truck,
   UsersRound,
 } from "lucide-react";
@@ -66,6 +67,7 @@ type NavMessageKey =
   | "nav.delivery"
   | "nav.favorites"
   | "nav.genres"
+  | "nav.goals"
   | "nav.home"
   | "nav.lists"
   | "nav.loans"
@@ -113,6 +115,7 @@ export const APP_NAV = {
           to: "/books-to-buy",
         },
         { icon: ListChecks, kind: "link", labelKey: "nav.lists", match: "prefix", to: "/lists" },
+        { icon: Target, kind: "link", labelKey: "nav.goals", match: "prefix", to: "/goals" },
       ],
       labelKey: "nav.groups.books",
     },

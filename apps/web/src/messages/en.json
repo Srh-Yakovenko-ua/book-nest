@@ -32,6 +32,7 @@
     "loansLent": "Lent out",
     "loansHistory": "Loan history",
     "lists": "Lists",
+    "goals": "Reading goals",
     "notes": "Notes",
     "notesBooks": "Book notes",
     "notesSeries": "Series notes",
@@ -8762,6 +8763,8 @@
       "emptyDescription": "Turn this themed list into a reading challenge.",
       "noBooksHint": "Add books to the list first",
       "loading": "Loading the goal…",
+      "loadError": "Couldn’t load the goal",
+      "retry": "Try again",
       "create": "Create a goal",
       "createNew": "Create a new goal",
       "view": "View the goal",
@@ -8784,14 +8787,32 @@
       "editTitle": "Edit the goal",
       "source": "Books from: “{name}”",
       "sourceBooks": "{count, plural, one {# book} other {# books}}",
+      "snapshotBooks": "{count, plural, one {# book} other {# books}} fixed in the goal",
       "name": "Goal name",
       "nameOptional": "optional",
       "namePlaceholder": "Read books from “{name}”",
+      "namePlaceholderGeneric": "For example, “Autumn reading sprint”",
       "targetCount": "Books to read",
       "targetHint": "{count, plural, one {# book} other {# books}} in the list",
+      "snapshotHint": "{count, plural, one {# book} other {# books}} in the goal",
+      "targetPresets": {
+        "label": "Quick pick for the number of books",
+        "all": "All · {count}",
+        "max": "Max · {count}"
+      },
       "deadline": "By date",
       "deadlinePlaceholder": "Pick a date",
-      "explanation": "Only books from this list finished after the goal was created count towards it.",
+      "deadlineShortcuts": {
+        "label": "Quick pick for the deadline",
+        "endOfMonth": "End of month",
+        "inMonths": "In {count, plural, one {# month} other {# months}}",
+        "endOfYear": "End of year"
+      },
+      "explanation": "The goal's books are fixed when it's created, so later changes to the list don't affect it. Each book counts once if you finish it from the day the goal was created through the deadline day, inclusive.",
+      "autoArchive": {
+        "completed": "The previous goal for this list was reached. Once you create a new one, the previous goal moves to the archive automatically.",
+        "expired": "The previous goal for this list is past its deadline. Once you create a new one, the previous goal moves to the archive automatically."
+      },
       "cancel": "Cancel",
       "submit": "Create a goal",
       "save": "Save",
@@ -8800,33 +8821,175 @@
         "deadlinePast": "Pick a date later than today",
         "nameMax": "The name can be at most {max} characters",
         "targetMin": "At least one book",
-        "targetMax": "The list holds only {count, plural, one {# book} other {# books}}"
+        "targetMax": "The list holds only {count, plural, one {# book} other {# books}}",
+        "snapshotTargetMax": "The goal holds only {count, plural, one {# book} other {# books}}",
+        "targetCap": "A goal can have at most {count, plural, one {# book} other {# books}}"
       }
     },
     "detail": {
       "metaTitle": "Reading goal",
       "back": "Back to “{name}”",
-      "backToLists": "Back to lists",
+      "backToGoals": "Back to goals",
       "deadline": "by {date}",
-      "daysLeft": "{count, plural, one {# day} other {# days}} left",
+      "daysLeft": "{count, plural, =0 {last day today} one {# day left} other {# days left}}",
       "daysOverdue": "{count, plural, one {# day} other {# days}} overdue",
       "completedOn": "finished {date}",
-      "progress": "{completed} of {target} · {percent}%",
+      "progress": "{completed} of {target, plural, one {# book} other {# books}}",
       "progressLabel": "Goal progress: {percent}%",
       "remaining": "{count, plural, one {# book} other {# books}} to go",
-      "countedBooks": "Counted books ({count})",
       "countedEmpty": "No book has been counted yet",
-      "countedEmptyHint": "Only books from the list finished after the goal was created count towards it.",
+      "countedEmptyHint": "Books that were in the list when the goal was created count once finished, from the day it was created through the deadline day, inclusive.",
       "finishedOn": "finished {date}",
       "coverAlt": "Cover of “{title}”",
       "edit": "Edit the goal",
       "archive": "Archive",
       "delete": "Delete",
+      "tabs": {
+        "label": "Goal sections",
+        "overview": "Overview",
+        "books": "Books",
+        "activity": "Activity"
+      },
+      "overview": {
+        "stats": {
+          "title": "Progress and time",
+          "counted": "Counted",
+          "countedValue": "{completed} of {target}",
+          "remaining": "To go",
+          "remainingValue": "{count, plural, one {# book} other {# books}}",
+          "elapsed": "Elapsed",
+          "elapsedValue": "{elapsed} of {total, plural, one {# day} other {# days}}",
+          "deadline": "Deadline"
+        },
+        "pace": {
+          "title": "Pace",
+          "unavailable": "Pace is tracked only while the goal is active.",
+          "ahead": "{count, plural, one {# book} other {# books}} ahead",
+          "behind": "{count, plural, one {# book} other {# books}} behind",
+          "actual": "Your pace",
+          "required": "Pace needed",
+          "booksPerDay": "{count, plural, one {# book} other {# books}} a day",
+          "daysPerBook": "{count, plural, one {# day} other {# days}} per book",
+          "noData": "Not enough data yet",
+          "lastCounted": "Last counted book",
+          "noneCounted": "None yet",
+          "daysAgo": "{count, plural, =0 {today} one {# day ago} other {# days ago}}"
+        },
+        "risk": {
+          "title": "Risks",
+          "none": "No risks detected.",
+          "reasons": {
+            "behind_schedule": "Progress is behind the planned schedule",
+            "deadline_soon": "The deadline is very close",
+            "no_recent_progress": "No new book has been counted in a while",
+            "required_pace_high": "Making it in time needs a much faster reading pace"
+          }
+        },
+        "projection": {
+          "title": "Forecast",
+          "date": "At the current pace, you will reach the goal on {date}",
+          "early": "{count, plural, one {# day} other {# days}} before the deadline",
+          "late": "{count, plural, one {# day} other {# days}} after the deadline",
+          "onDeadline": "right on the deadline day",
+          "confidence": {
+            "high": "High-confidence forecast",
+            "medium": "Medium-confidence forecast"
+          },
+          "low": "The forecast is rough for now: too few books are counted to name a date.",
+          "none": "Not enough data for a forecast yet."
+        },
+        "checkpoints": {
+          "title": "Checkpoints",
+          "target": "{count, plural, one {# book} other {# books}} by {date}",
+          "current": "{current} of {target} counted",
+          "achievedOn": "reached on {date}",
+          "achievedLate": "late: reached afterwards, on {date}",
+          "status": {
+            "achieved": "Reached",
+            "upcoming": "Upcoming",
+            "missed": "Missed"
+          }
+        },
+        "recentActivity": {
+          "title": "Recent events",
+          "showAll": "Full activity"
+        }
+      },
+      "books": {
+        "scopeLabel": "Books to show",
+        "scope": {
+          "all": "All",
+          "counted": "Counted",
+          "remaining": "Not counted yet"
+        },
+        "snapshotHint": "The books were fixed when the goal was created, so later changes to the list don't affect it. A book counts if you finish it from the day the goal was created through the deadline day, inclusive.",
+        "listLabel": "Goal books",
+        "counted": "Counted",
+        "notCounted": "Not counted",
+        "finishedOutsideWindow": "finished {date}, outside the goal period",
+        "finishedWithoutDate": "no finish date set",
+        "pages": "p. {current} of {total}",
+        "pagesWithoutTotal": "p. {current}",
+        "loadMoreError": "Couldn't load more books",
+        "empty": {
+          "all": {
+            "title": "This goal has no books",
+            "description": "The books fixed when the goal was created are no longer available."
+          },
+          "remaining": {
+            "title": "Every book is counted",
+            "description": "All books in this goal have already been counted."
+          },
+          "showAll": "Show all books"
+        },
+        "error": {
+          "title": "Couldn't load the goal's books",
+          "description": "Check your connection and try again.",
+          "retry": "Try again"
+        }
+      },
+      "activity": {
+        "filterLabel": "Event type",
+        "allTypes": "All events",
+        "listLabel": "Goal history",
+        "loadMoreError": "Couldn't load more events",
+        "empty": {
+          "title": "No events yet",
+          "description": "Counted books and changes to the goal will show up here."
+        },
+        "filteredEmpty": {
+          "title": "No events of this type",
+          "description": "Pick another type or show the whole history.",
+          "showAll": "Show all events"
+        },
+        "error": {
+          "title": "Couldn't load the history",
+          "description": "Check your connection and try again.",
+          "retry": "Try again"
+        },
+        "detail": {
+          "bookCounted": "Finished {date} · {completed} of {target} counted",
+          "bookUncounted": {
+            "deadline_changed": "Finished {date}, which is outside the goal period after it changed",
+            "finished_date_changed": "The finish date moved from {date} outside the goal period",
+            "finished_date_removed": "The finish date {date} was removed"
+          },
+          "deadlineChanged": "New deadline: {to} instead of {from}",
+          "goalCompleted": "Reached {date}",
+          "goalCompletedEarly": "Reached {date}, {days, plural, =0 {right on the deadline day} one {# day before the deadline} other {# days before the deadline}}",
+          "goalCreated": "Read {target} of {snapshot, plural, one {# book} other {# books}} by {deadline}",
+          "goalExpired": "Deadline {deadline}: {completed} of {target} counted",
+          "nameAdded": "New name: “{to}”",
+          "nameChanged": "“{from}” → “{to}”",
+          "nameRemoved": "Name “{from}” removed",
+          "targetChanged": "Now {to, plural, one {# book} other {# books}} instead of {from}"
+        }
+      },
       "loading": "Loading the goal…",
       "notFoundTitle": "Goal not found",
       "notFoundDescription": "It may have been deleted, or it belongs to another user.",
       "errorTitle": "Couldn't load the goal",
-      "errorDescription": "Try reloading the page.",
+      "errorDescription": "Check your connection and try again.",
       "archiveDialog": {
         "title": "Archive this goal?",
         "description": "The goal will disappear from the list sidebar and stay reachable only by direct link. The list will be free to take a new goal.",
@@ -8852,7 +9015,138 @@
       "archived": "Goal archived",
       "deleted": "Goal deleted",
       "conflict": "This list already has an active goal",
+      "activeExists": "This list already has an active goal. Opening it.",
       "error": "Something went wrong"
+    },
+    "pace": {
+      "ahead": "Ahead of plan",
+      "on_track": "On track",
+      "behind": "Behind plan",
+      "critical": "Far behind"
+    },
+    "risk": {
+      "low": "Low risk",
+      "medium": "Moderate risk",
+      "high": "High risk",
+      "critical": "Critical risk"
+    },
+    "result": {
+      "completed": "Result: reached",
+      "expired": "Result: overdue",
+      "none": "No result"
+    },
+    "activityType": {
+      "goal_created": "Goal created",
+      "book_counted": "Book counted",
+      "book_uncounted": "Book no longer counted",
+      "target_changed": "Target changed",
+      "deadline_changed": "Deadline changed",
+      "goal_renamed": "Goal renamed",
+      "goal_completed": "Goal reached",
+      "goal_expired": "Goal ran out of time",
+      "goal_archived": "Goal archived"
+    },
+    "catalog": {
+      "metaTitle": "Reading goals",
+      "title": "Reading goals",
+      "subtitle": "All your reading challenges: progress, pace and deadlines",
+      "create": "New goal",
+      "listHeading": "Goal list",
+      "loadMoreError": "Couldn't load more goals",
+      "kpi": {
+        "label": "Goals summary",
+        "active": "Active",
+        "completed": "Reached",
+        "needsAttention": "Need attention",
+        "successRate": "Success rate",
+        "successRateDetail": "{successful} of {finished} finished goals reached",
+        "successRateEmpty": "No finished goals yet",
+        "loadError": "Couldn't load the goals summary"
+      },
+      "filters": {
+        "label": "Goal status",
+        "all": "All",
+        "active": "Active",
+        "completed": "Reached",
+        "expired": "Overdue",
+        "archived": "Archived"
+      },
+      "sort": {
+        "label": "Sort goals",
+        "created_desc": "Newest first",
+        "created_asc": "Oldest first",
+        "deadline_asc": "Nearest deadline",
+        "deadline_desc": "Furthest deadline",
+        "progress_desc": "Most progress",
+        "progress_asc": "Least progress",
+        "risk_desc": "Highest risk"
+      },
+      "view": {
+        "label": "View",
+        "grid": "Grid",
+        "list": "List"
+      },
+      "card": {
+        "sourceList": "List:",
+        "listDeleted": "List deleted",
+        "progress": "{completed} of {target, plural, one {# book} other {# books}}",
+        "progressLabel": "Goal progress: {percent}%",
+        "deadline": "By {date}",
+        "daysLeft": "{count, plural, =0 {last day} one {# day left} other {# days left}}",
+        "completedOn": "reached on {date}"
+      },
+      "empty": {
+        "title": "Set your first reading goal",
+        "description": "Pick a book list, decide how many to read and by when, and progress is tracked automatically.",
+        "create": "New goal"
+      },
+      "filteredEmpty": {
+        "title": "No goals with this status",
+        "description": "Pick another status or show all goals.",
+        "showAll": "Show all goals"
+      },
+      "error": {
+        "title": "Couldn't load your goals",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "attention": {
+        "title": "Need attention",
+        "listGoal": "Goal for the “{name}” list",
+        "untitled": "Untitled goal",
+        "remaining": "{count, plural, one {# book} other {# books}} left",
+        "reasons": {
+          "behindSchedule": "Behind plan",
+          "deadlineSoon": "Deadline is close",
+          "deadlineSoonDays": "{count, plural, =0 {Deadline is today} one {# day to the deadline} other {# days to the deadline}}",
+          "noRecentProgress": "No newly counted books for a while",
+          "noRecentProgressDays": "{count, plural, one {# day without a newly counted book} other {# days without a newly counted book}}",
+          "requiredPaceHigh": "Needs a high reading pace"
+        }
+      },
+      "bestResult": {
+        "title": "Best result",
+        "fallbackName": "Goal of {count, plural, one {# book} other {# books}}",
+        "summary": "Reached on {date}, {count, plural, =0 {on the deadline day} one {# day before the deadline} other {# days before the deadline}}"
+      }
+    },
+    "picker": {
+      "title": "Choose a list for the goal",
+      "description": "A goal counts books from one list. Only lists that already have books are shown here.",
+      "search": "Search lists",
+      "searchPlaceholder": "List name",
+      "results": "Lists with books",
+      "bookCount": "{count, plural, one {# book} other {# books}}",
+      "loading": "Loading your lists…",
+      "checking": "Checking whether the list has a goal…",
+      "lookupError": "Couldn't check this list's goal. Try again.",
+      "loadError": "Couldn't load your lists",
+      "retry": "Try again",
+      "loadMoreError": "Couldn't load more lists",
+      "noMatches": "No list matches this name",
+      "emptyTitle": "No lists with books yet",
+      "emptyDescription": "A goal is set for a book list. Create a list or add books to one, then come back here.",
+      "toLists": "Go to lists"
     }
   },
   "statistics": {

@@ -20,12 +20,13 @@ type GoalDetailsProps = {
 
 export function GoalDetails({ id }: GoalDetailsProps) {
   const t = useTranslations("goals.detail");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  const { data, error, isPending } = useGoalDetail(id);
+  const { data, error, isFetching, isPending, refetch } = useGoalDetail(id);
 
   if (isPending) {
     return (
-      <output aria-busy="true" aria-label={t("loading")} className="flex flex-col gap-6 lg:gap-8">
+      <output aria-busy="true" aria-label={t("loading")} className="flex flex-col gap-6">
         <Skeleton className="h-5 w-40 rounded-md" />
         <div className="flex flex-col gap-3">
           <Skeleton className="h-9 w-72 rounded-lg" />
@@ -41,7 +42,7 @@ export function GoalDetails({ id }: GoalDetailsProps) {
     );
   }
 
-  if (error !== null) {
+  if (data === undefined) {
     const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
     return (
       <div
@@ -64,10 +65,18 @@ export function GoalDetails({ id }: GoalDetailsProps) {
             {isNotFound ? t("notFoundDescription") : t("errorDescription")}
           </p>
         </div>
-        <Button onClick={() => router.push("/lists")} variant="secondary">
-          <UiIcon name="arrow-left" size={16} />
-          {t("backToLists")}
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          {isNotFound ? null : (
+            <Button disabled={isFetching} onClick={() => void refetch()}>
+              <UiIcon name="refresh" size={16} />
+              {tCommon("retry")}
+            </Button>
+          )}
+          <Button onClick={() => router.push("/goals")} variant="secondary">
+            <UiIcon name="arrow-left" size={16} />
+            {t("backToGoals")}
+          </Button>
+        </div>
       </div>
     );
   }

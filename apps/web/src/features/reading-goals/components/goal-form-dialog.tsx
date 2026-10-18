@@ -1,6 +1,6 @@
 "use client";
 
-import type { Nullable, ReadingGoalView } from "@app/shared";
+import type { Nullable, ReadingGoalResult, ReadingGoalView } from "@app/shared";
 import type { RefObject } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -39,13 +40,18 @@ import {
   createGoalFormSchema,
   GOAL_FORM,
   goalFormDefaults,
+  hasGoalChanges,
   maxTargetCount,
   toCreateGoalInput,
   toUpdateGoalInput,
 } from "../model/goal-form";
+import { GoalDeadlineShortcuts, GoalTargetPresets } from "./goal-form-quick-picks";
 
-const CONFLICT_STATUS = 409;
-const CALENDAR_YEAR_SPAN = 10;
+const GOAL_FORM_DIALOG = {
+  calendarYearSpan: 10,
+  conflictStatus: 409,
+  quickPickUpdate: { shouldDirty: true, shouldTouch: true, shouldValidate: true },
+} as const;
 
 const FIELD_ID = {
   deadline: "goal-form-deadline",
@@ -58,12 +64,27 @@ const FIELD_ID = {
 } as const;
 
 export type GoalFormMode =
-  { goal: ReadingGoalView; kind: "edit" } | { kind: "create"; listId: string };
+  | { goal: ReadingGoalView; kind: "edit" }
+  | { kind: "create"; listId: string; previousOutcome: Nullable<ReadingGoalResult> };
+
+const BOOK_COUNT_COPY = {
+  create: {
+    description: "sourceBooks",
+    hint: "targetHint",
+    targetMax: "errors.targetMax",
+  },
+  edit: {
+    description: "snapshotBooks",
+    hint: "snapshotHint",
+    targetMax: "errors.snapshotTargetMax",
+  },
+} as const satisfies Record<GoalFormMode["kind"], Record<string, string>>;
 
 type GoalFormDialogProps = {
   bookCount: number;
   listName: Nullable<string>;
   mode: GoalFormMode;
+  onCreated?: (goal: ReadingGoalView) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   openerRef: RefObject<HTMLButtonElement | null>;
@@ -73,6 +94,7 @@ export function GoalFormDialog({
   bookCount,
   listName,
   mode,
+  onCreated,
   onOpenChange,
   open,
   openerRef,
@@ -82,24 +104,31 @@ export function GoalFormDialog({
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="sm:max-w-md"
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain sm:max-w-md"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           openerRef.current?.focus();
         }}
+        onOpenAutoFocus={focusDialogSurface}
       >
         <DialogHeader>
-          <DialogTitle>{mode.kind === "edit" ? t("editTitle") : t("title")}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="pr-8 break-words">
+            {mode.kind === "edit" ? t("editTitle") : t("title")}
+          </DialogTitle>
+          <DialogDescription className="break-words">
             {listName === null ? null : `${t("source", { name: listName })} · `}
-            {t("sourceBooks", { count: bookCount })}
+            {t(BOOK_COUNT_COPY[mode.kind].description, { count: bookCount })}
           </DialogDescription>
         </DialogHeader>
+        {mode.kind === "create" && mode.previousOutcome !== null ? (
+          <AutoArchiveHint previousOutcome={mode.previousOutcome} />
+        ) : null}
         {open ? (
           <GoalForm
             bookCount={bookCount}
             listName={listName}
             mode={mode}
+            onCreated={onCreated}
             onDone={() => onOpenChange(false)}
           />
         ) : null}
@@ -108,15 +137,34 @@ export function GoalFormDialog({
   );
 }
 
+function AutoArchiveHint({ previousOutcome }: { previousOutcome: ReadingGoalResult }) {
+  const t = useTranslations("goals.form");
+
+  return (
+    <p className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs leading-relaxed text-info">
+      <UiIcon aria-hidden className="mt-px shrink-0" name="info" size={14} />
+      <span>{t(`autoArchive.${previousOutcome}`)}</span>
+    </p>
+  );
+}
+
+function focusDialogSurface(event: Event) {
+  event.preventDefault();
+  if (!(event.currentTarget instanceof HTMLElement)) return;
+  event.currentTarget.focus();
+}
+
 function GoalForm({
   bookCount,
   listName,
   mode,
+  onCreated,
   onDone,
 }: {
   bookCount: number;
   listName: Nullable<string>;
   mode: GoalFormMode;
+  onCreated?: (goal: ReadingGoalView) => void;
   onDone: () => void;
 }) {
   const t = useTranslations("goals.form");
@@ -125,21 +173,27 @@ function GoalForm({
   const weekStartsOn = useWeekStartsOn();
   const createGoal = useCreateGoal();
   const updateGoal = useUpdateGoal();
+  const copy = BOOK_COUNT_COPY[mode.kind];
+  const defaults = goalFormDefaults({
+    bookCount,
+    goal: mode.kind === "edit" ? mode.goal : null,
+  });
 
   const form = useForm<GoalFormValues, unknown, GoalFormValues>({
-    defaultValues: goalFormDefaults({
-      bookCount,
-      goal: mode.kind === "edit" ? mode.goal : null,
-    }),
+    defaultValues: defaults,
     mode: "onTouched",
     resolver: zodResolver(
       createGoalFormSchema({
         bookCount,
+        initialDeadline: defaults.deadline,
         messages: {
           deadlinePast: tErrors("deadlinePast"),
           nameMax: tErrors("nameMax", { max: GOAL_FORM.nameMax }),
           required: tErrors("required"),
-          targetMax: tErrors("targetMax", { count: bookCount }),
+          targetMax:
+            bookCount > GOAL_FORM.maxTargetCount
+              ? tErrors("targetCap", { count: GOAL_FORM.maxTargetCount })
+              : t(copy.targetMax, { count: bookCount }),
           targetMin: tErrors("targetMin"),
         },
       }),
@@ -151,16 +205,25 @@ function GoalForm({
     formState: { errors },
     handleSubmit,
     register,
+    setValue,
   } = form;
 
-  const deadline = useWatch({ control, name: "deadline" });
+  const [deadline, name, targetCount] = useWatch({
+    control,
+    name: ["deadline", "name", "targetCount"],
+  });
   const isPending = createGoal.isPending || updateGoal.isPending;
   const isDeadlineBlocked = deadline === "" || errors.deadline !== undefined;
+  const isUnchanged =
+    mode.kind === "edit" &&
+    !hasGoalChanges(
+      toUpdateGoalInput({ initial: defaults, values: { deadline, name, targetCount } }),
+    );
   const now = new Date();
 
   function reportFailure(error: unknown) {
     if (applyFieldErrors(form, error)) return;
-    if (error instanceof ApiError && error.status === CONFLICT_STATUS) {
+    if (error instanceof ApiError && error.status === GOAL_FORM_DIALOG.conflictStatus) {
       toast.error(tToast("conflict"));
       return;
     }
@@ -173,17 +236,21 @@ function GoalForm({
         { input: toCreateGoalInput(values), listId: mode.listId },
         {
           onError: reportFailure,
-          onSuccess: () => {
+          onSuccess: (goal) => {
             toast.success(tToast("created"));
             onDone();
+            onCreated?.(goal);
           },
         },
       );
       return;
     }
 
+    const input = toUpdateGoalInput({ initial: defaults, values });
+    if (!hasGoalChanges(input)) return;
+
     updateGoal.mutate(
-      { goalId: mode.goal.id, input: toUpdateGoalInput(values) },
+      { goalId: mode.goal.id, input },
       {
         onError: reportFailure,
         onSuccess: () => {
@@ -208,7 +275,11 @@ function GoalForm({
           className="h-10"
           id={FIELD_ID.name}
           maxLength={GOAL_FORM.nameMax}
-          placeholder={listName === null ? undefined : t("namePlaceholder", { name: listName })}
+          placeholder={
+            listName === null
+              ? t("namePlaceholderGeneric")
+              : t("namePlaceholder", { name: listName })
+          }
           {...register("name")}
         />
         <FieldError error={errors.name} id={FIELD_ID.nameError} />
@@ -216,7 +287,7 @@ function GoalForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor={FIELD_ID.targetCount}>{t("targetCount")}</Label>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Controller
             control={control}
             name="targetCount"
@@ -247,10 +318,15 @@ function GoalForm({
               />
             )}
           />
-          <span className="text-xs text-muted-foreground" id={FIELD_ID.targetCountHint}>
-            {t("targetHint", { count: bookCount })}
-          </span>
+          <GoalTargetPresets
+            bookCount={bookCount}
+            onSelect={(value) => setValue("targetCount", value, GOAL_FORM_DIALOG.quickPickUpdate)}
+            value={targetCount}
+          />
         </div>
+        <span className="text-xs text-muted-foreground" id={FIELD_ID.targetCountHint}>
+          {t(copy.hint, { count: bookCount })}
+        </span>
         <FieldError error={errors.targetCount} id={FIELD_ID.targetCountError} />
       </div>
 
@@ -267,7 +343,7 @@ function GoalForm({
               defaultMonth={now}
               describedBy={errors.deadline ? FIELD_ID.deadlineError : undefined}
               disablePast
-              endMonth={endOfYear(addYears(now, CALENDAR_YEAR_SPAN))}
+              endMonth={endOfYear(addYears(now, GOAL_FORM_DIALOG.calendarYearSpan))}
               id={FIELD_ID.deadline}
               invalid={errors.deadline !== undefined}
               onChange={(date) => field.onChange(date ? dateToIsoDay(date) : "")}
@@ -279,6 +355,11 @@ function GoalForm({
             />
           )}
         />
+        <GoalDeadlineShortcuts
+          onSelect={(value) => setValue("deadline", value, GOAL_FORM_DIALOG.quickPickUpdate)}
+          today={now}
+          value={deadline}
+        />
         <FieldError error={errors.deadline} id={FIELD_ID.deadlineError} />
       </div>
 
@@ -288,7 +369,11 @@ function GoalForm({
         <Button disabled={isPending} onClick={onDone} type="button" variant="secondary">
           {t("cancel")}
         </Button>
-        <Button disabled={isPending || isDeadlineBlocked} loading={isPending} type="submit">
+        <Button
+          disabled={isPending || isDeadlineBlocked || isUnchanged}
+          loading={isPending}
+          type="submit"
+        >
           {mode.kind === "edit" ? t("save") : t("submit")}
         </Button>
       </DialogFooter>

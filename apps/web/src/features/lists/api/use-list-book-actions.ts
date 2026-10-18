@@ -4,7 +4,7 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { BookViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { goalKeys } from "@/features/reading-goals";
+import { invalidateGoalQueries } from "@/features/reading-goals/api/goal-keys";
 import {
   bookReadingControllerChangeReadingStatus,
   booksControllerUpdate,
@@ -33,7 +33,7 @@ export function useSetListBookReadingStatus(listId: string) {
       ),
     onSuccess: () => {
       cache.readingStatusChanged();
-      void queryClient.invalidateQueries({ queryKey: goalKeys.forList(listId) });
+      void invalidateGoalQueries(queryClient);
     },
   });
 }

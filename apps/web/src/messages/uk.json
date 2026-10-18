@@ -32,6 +32,7 @@
     "loansLent": "Передано іншим",
     "loansHistory": "Історія позик",
     "lists": "Списки",
+    "goals": "Цілі читання",
     "notes": "Нотатки",
     "notesBooks": "Нотатки до книг",
     "notesSeries": "Нотатки до серій",
@@ -8762,6 +8763,8 @@
       "emptyDescription": "Перетворіть цю тематичну добірку на читацький виклик.",
       "noBooksHint": "Спочатку додайте книги до списку",
       "loading": "Завантаження цілі…",
+      "loadError": "Не вдалося завантажити ціль",
+      "retry": "Спробувати ще раз",
       "create": "Створити ціль",
       "createNew": "Створити нову ціль",
       "view": "Переглянути ціль",
@@ -8784,14 +8787,32 @@
       "editTitle": "Редагувати ціль",
       "source": "Джерело книг: «{name}»",
       "sourceBooks": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "snapshotBooks": "Зафіксовано в цілі: {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "name": "Назва цілі",
       "nameOptional": "необовʼязково",
       "namePlaceholder": "Прочитати книги зі списку «{name}»",
+      "namePlaceholderGeneric": "Наприклад, «Осінній книжковий марафон»",
       "targetCount": "Прочитати книг",
       "targetHint": "У списку {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "snapshotHint": "У цілі {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "targetPresets": {
+        "label": "Швидкий вибір кількості книг",
+        "all": "Усі · {count}",
+        "max": "Максимум · {count}"
+      },
       "deadline": "До дати",
       "deadlinePlaceholder": "Оберіть дату",
-      "explanation": "Ціль рахується лише за книгами з цього списку, прочитаними після її створення.",
+      "deadlineShortcuts": {
+        "label": "Швидкий вибір дедлайну",
+        "endOfMonth": "Кінець місяця",
+        "inMonths": "Через {count, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяця}}",
+        "endOfYear": "Кінець року"
+      },
+      "explanation": "Склад книг фіксується під час створення цілі, тож пізніші зміни списку на неї не впливають. Кожна книга зараховується один раз, якщо її дочитано з дня створення цілі по день дедлайну включно.",
+      "autoArchive": {
+        "completed": "Попередню ціль цього списку виконано. Щойно ви створите нову, попередня автоматично перейде в архів.",
+        "expired": "Дедлайн попередньої цілі цього списку минув. Щойно ви створите нову, попередня автоматично перейде в архів."
+      },
       "cancel": "Скасувати",
       "submit": "Створити ціль",
       "save": "Зберегти",
@@ -8800,33 +8821,175 @@
         "deadlinePast": "Оберіть дату пізніше за сьогодні",
         "nameMax": "Назва не довша за {max} символів",
         "targetMin": "Щонайменше одна книга",
-        "targetMax": "У списку лише {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+        "targetMax": "У списку лише {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "snapshotTargetMax": "У цілі лише {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "targetCap": "Не більше ніж {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} в одній цілі"
       }
     },
     "detail": {
       "metaTitle": "Ціль читання",
       "back": "До списку «{name}»",
-      "backToLists": "До списків",
+      "backToGoals": "До цілей",
       "deadline": "до {date}",
-      "daysLeft": "залишилося {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "daysLeft": "{count, plural, =0 {сьогодні останній день} one {залишився # день} few {залишилося # дні} many {залишилося # днів} other {залишилося # дня}}",
       "daysOverdue": "прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
       "completedOn": "завершено {date}",
-      "progress": "{completed} із {target} · {percent}%",
+      "progress": "{completed} із {target, plural, one {# книги} few {# книг} many {# книг} other {# книги}}",
       "progressLabel": "Прогрес цілі: {percent}%",
       "remaining": "Залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
-      "countedBooks": "Зараховані книги ({count})",
       "countedEmpty": "Ще жодної книги не зараховано",
-      "countedEmptyHint": "У ціль зараховуються лише книги зі списку, дочитані після її створення.",
+      "countedEmptyHint": "У ціль зараховуються книги, які були в списку на момент її створення й дочитані з дня створення по день дедлайну включно.",
       "finishedOn": "дочитано {date}",
       "coverAlt": "Обкладинка книги «{title}»",
       "edit": "Редагувати ціль",
       "archive": "Архівувати",
       "delete": "Видалити",
+      "tabs": {
+        "label": "Розділи цілі",
+        "overview": "Огляд",
+        "books": "Книги",
+        "activity": "Історія"
+      },
+      "overview": {
+        "stats": {
+          "title": "Прогрес і час",
+          "counted": "Зараховано",
+          "countedValue": "{completed} із {target}",
+          "remaining": "Залишилося",
+          "remainingValue": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+          "elapsed": "Минуло",
+          "elapsedValue": "{elapsed} із {total, plural, one {# дня} few {# днів} many {# днів} other {# дня}}",
+          "deadline": "Дедлайн"
+        },
+        "pace": {
+          "title": "Темп",
+          "unavailable": "Темп відстежується лише для активної цілі.",
+          "ahead": "Випередження — {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+          "behind": "Відставання — {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+          "actual": "Ваш темп",
+          "required": "Потрібний темп",
+          "booksPerDay": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}} на день",
+          "daysPerBook": "{count, plural, one {# день} few {# дні} many {# днів} other {# дня}} на книгу",
+          "noData": "Ще замало даних",
+          "lastCounted": "Остання зарахована книга",
+          "noneCounted": "Ще жодної",
+          "daysAgo": "{count, plural, =0 {сьогодні} one {# день тому} few {# дні тому} many {# днів тому} other {# дня тому}}"
+        },
+        "risk": {
+          "title": "Ризики",
+          "none": "Ризиків не виявлено.",
+          "reasons": {
+            "behind_schedule": "Прогрес відстає від запланованого графіка",
+            "deadline_soon": "До дедлайну лишилося зовсім мало часу",
+            "no_recent_progress": "Давно не було нових зарахованих книг",
+            "required_pace_high": "Щоб устигнути, потрібен значно вищий темп читання"
+          }
+        },
+        "projection": {
+          "title": "Прогноз",
+          "date": "Якщо темп збережеться, ціль буде виконано {date}",
+          "early": "на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} раніше дедлайну",
+          "late": "на {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} пізніше дедлайну",
+          "onDeadline": "саме в день дедлайну",
+          "confidence": {
+            "high": "Висока точність прогнозу",
+            "medium": "Середня точність прогнозу"
+          },
+          "low": "Прогноз поки приблизний: книг зараховано ще замало, щоб назвати дату.",
+          "none": "Поки недостатньо даних для прогнозу."
+        },
+        "checkpoints": {
+          "title": "Контрольні точки",
+          "target": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}} до {date}",
+          "current": "зараховано {current} із {target}",
+          "achievedOn": "досягнуто {date}",
+          "achievedLate": "не вчасно: досягнуто пізніше, {date}",
+          "status": {
+            "achieved": "Досягнуто",
+            "upcoming": "Попереду",
+            "missed": "Пропущено"
+          }
+        },
+        "recentActivity": {
+          "title": "Останні події",
+          "showAll": "Уся історія"
+        }
+      },
+      "books": {
+        "scopeLabel": "Які книги показати",
+        "scope": {
+          "all": "Усі",
+          "counted": "Зараховані",
+          "remaining": "Ще не зараховані"
+        },
+        "snapshotHint": "Склад книг зафіксовано під час створення цілі, тож пізніші зміни списку на неї не впливають. Книга зараховується, якщо її дочитано з дня створення цілі по день дедлайну включно.",
+        "listLabel": "Книги цілі",
+        "counted": "Зараховано",
+        "notCounted": "Не зараховано",
+        "finishedOutsideWindow": "дочитано {date}, поза періодом цілі",
+        "finishedWithoutDate": "дату завершення не вказано",
+        "pages": "стор. {current} із {total}",
+        "pagesWithoutTotal": "стор. {current}",
+        "loadMoreError": "Не вдалося завантажити наступні книги",
+        "empty": {
+          "all": {
+            "title": "У цілі немає книг",
+            "description": "Книги, зафіксовані під час створення цілі, більше недоступні."
+          },
+          "remaining": {
+            "title": "Незарахованих книг немає",
+            "description": "Усі книги цілі вже зараховано."
+          },
+          "showAll": "Показати всі книги"
+        },
+        "error": {
+          "title": "Не вдалося завантажити книги цілі",
+          "description": "Перевірте зʼєднання й спробуйте ще раз.",
+          "retry": "Спробувати ще раз"
+        }
+      },
+      "activity": {
+        "filterLabel": "Тип події",
+        "allTypes": "Усі події",
+        "listLabel": "Історія цілі",
+        "loadMoreError": "Не вдалося завантажити наступні події",
+        "empty": {
+          "title": "Подій ще немає",
+          "description": "Тут зʼявлятимуться зараховані книги та зміни цілі."
+        },
+        "filteredEmpty": {
+          "title": "Немає подій цього типу",
+          "description": "Оберіть інший тип або покажіть усю історію.",
+          "showAll": "Показати всі події"
+        },
+        "error": {
+          "title": "Не вдалося завантажити історію",
+          "description": "Перевірте зʼєднання й спробуйте ще раз.",
+          "retry": "Спробувати ще раз"
+        },
+        "detail": {
+          "bookCounted": "Дочитано {date} · зараховано {completed} із {target}",
+          "bookUncounted": {
+            "deadline_changed": "Дочитано {date}, але після зміни періоду цілі ця дата вже поза ним",
+            "finished_date_changed": "Дату завершення перенесено з {date} за межі періоду цілі",
+            "finished_date_removed": "Дату завершення {date} прибрано"
+          },
+          "deadlineChanged": "Новий дедлайн — {to} замість {from}",
+          "goalCompleted": "Виконано {date}",
+          "goalCompletedEarly": "Виконано {date}, {days, plural, =0 {саме в день дедлайну} one {за # день до дедлайну} few {за # дні до дедлайну} many {за # днів до дедлайну} other {за # дня до дедлайну}}",
+          "goalCreated": "Прочитати {target} із {snapshot, plural, one {# книги} few {# книг} many {# книг} other {# книги}} до {deadline}",
+          "goalExpired": "Дедлайн {deadline}: зараховано {completed} із {target}",
+          "nameAdded": "Нова назва — «{to}»",
+          "nameChanged": "«{from}» → «{to}»",
+          "nameRemoved": "Назву «{from}» прибрано",
+          "targetChanged": "Тепер {to, plural, one {# книга} few {# книги} many {# книг} other {# книги}} замість {from}"
+        }
+      },
       "loading": "Завантаження цілі…",
       "notFoundTitle": "Ціль не знайдено",
       "notFoundDescription": "Можливо, її було видалено або вона належить іншому користувачеві.",
       "errorTitle": "Не вдалося завантажити ціль",
-      "errorDescription": "Спробуйте оновити сторінку.",
+      "errorDescription": "Перевірте зʼєднання й спробуйте ще раз.",
       "archiveDialog": {
         "title": "Заархівувати ціль?",
         "description": "Ціль зникне з бічної панелі списку й лишиться доступною лише за прямим посиланням. Список зможе прийняти нову ціль.",
@@ -8852,7 +9015,138 @@
       "archived": "Ціль заархівовано",
       "deleted": "Ціль видалено",
       "conflict": "Для цього списку вже є активна ціль",
+      "activeExists": "У цього списку вже є активна ціль. Відкриваємо її.",
       "error": "Щось пішло не так"
+    },
+    "pace": {
+      "ahead": "Випереджає план",
+      "on_track": "За планом",
+      "behind": "Відстає від плану",
+      "critical": "Критичне відставання"
+    },
+    "risk": {
+      "low": "Низький ризик",
+      "medium": "Помірний ризик",
+      "high": "Високий ризик",
+      "critical": "Критичний ризик"
+    },
+    "result": {
+      "completed": "Результат: виконана",
+      "expired": "Результат: прострочена",
+      "none": "Без результату"
+    },
+    "activityType": {
+      "goal_created": "Ціль створено",
+      "book_counted": "Книгу зараховано",
+      "book_uncounted": "Книгу вилучено із зарахованих",
+      "target_changed": "Змінено кількість книг",
+      "deadline_changed": "Змінено дедлайн",
+      "goal_renamed": "Ціль перейменовано",
+      "goal_completed": "Ціль виконано",
+      "goal_expired": "Строк цілі минув",
+      "goal_archived": "Ціль заархівовано"
+    },
+    "catalog": {
+      "metaTitle": "Цілі читання",
+      "title": "Цілі читання",
+      "subtitle": "Усі ваші читацькі виклики: прогрес, темп і дедлайни",
+      "create": "Нова ціль",
+      "listHeading": "Список цілей",
+      "loadMoreError": "Не вдалося завантажити наступні цілі",
+      "kpi": {
+        "label": "Підсумки цілей",
+        "active": "Активні",
+        "completed": "Виконані",
+        "needsAttention": "Потребують уваги",
+        "successRate": "Успішність",
+        "successRateDetail": "Виконано {successful} із {finished} завершених",
+        "successRateEmpty": "Ще немає завершених цілей",
+        "loadError": "Не вдалося завантажити підсумки цілей"
+      },
+      "filters": {
+        "label": "Статус цілей",
+        "all": "Усі",
+        "active": "Активні",
+        "completed": "Виконані",
+        "expired": "Прострочені",
+        "archived": "Архів"
+      },
+      "sort": {
+        "label": "Сортування цілей",
+        "created_desc": "Спочатку нові",
+        "created_asc": "Спочатку давні",
+        "deadline_asc": "Найближчий дедлайн",
+        "deadline_desc": "Найвіддаленіший дедлайн",
+        "progress_desc": "Найбільший прогрес",
+        "progress_asc": "Найменший прогрес",
+        "risk_desc": "Найвищий ризик"
+      },
+      "view": {
+        "label": "Вигляд",
+        "grid": "Сітка",
+        "list": "Список"
+      },
+      "card": {
+        "sourceList": "Список:",
+        "listDeleted": "Список видалено",
+        "progress": "{completed} із {target, plural, one {# книги} few {# книг} many {# книг} other {# книги}}",
+        "progressLabel": "Прогрес цілі: {percent}%",
+        "deadline": "До {date}",
+        "daysLeft": "{count, plural, =0 {останній день} one {залишився # день} few {залишилося # дні} many {залишилося # днів} other {залишилося # дня}}",
+        "completedOn": "виконано {date}"
+      },
+      "empty": {
+        "title": "Поставте першу ціль читання",
+        "description": "Оберіть список книг, визначте, скільки прочитати й до якої дати, а прогрес рахуватиметься автоматично.",
+        "create": "Нова ціль"
+      },
+      "filteredEmpty": {
+        "title": "Немає цілей із цим статусом",
+        "description": "Оберіть інший статус або покажіть усі цілі.",
+        "showAll": "Показати всі цілі"
+      },
+      "error": {
+        "title": "Не вдалося завантажити цілі",
+        "description": "Перевірте зʼєднання й спробуйте ще раз.",
+        "retry": "Спробувати ще раз"
+      },
+      "attention": {
+        "title": "Потребують уваги",
+        "listGoal": "Ціль для списку «{name}»",
+        "untitled": "Ціль без назви",
+        "remaining": "залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+        "reasons": {
+          "behindSchedule": "Відстає від плану",
+          "deadlineSoon": "Дедлайн уже близько",
+          "deadlineSoonDays": "{count, plural, =0 {Дедлайн сьогодні} one {До дедлайну # день} few {До дедлайну # дні} many {До дедлайну # днів} other {До дедлайну # дня}}",
+          "noRecentProgress": "Давно немає нових зарахованих книг",
+          "noRecentProgressDays": "{count, plural, one {# день без нових зарахованих книг} few {# дні без нових зарахованих книг} many {# днів без нових зарахованих книг} other {# дня без нових зарахованих книг}}",
+          "requiredPaceHigh": "Потрібен високий темп читання"
+        }
+      },
+      "bestResult": {
+        "title": "Найкращий результат",
+        "fallbackName": "Ціль на {count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}}",
+        "summary": "Виконано {date}, {count, plural, =0 {у день дедлайну} one {за # день до дедлайну} few {за # дні до дедлайну} many {за # днів до дедлайну} other {за # дня до дедлайну}}"
+      }
+    },
+    "picker": {
+      "title": "Оберіть список для цілі",
+      "description": "Ціль рахує книги з одного списку. Тут показано лише списки, у яких уже є книги.",
+      "search": "Пошук списків",
+      "searchPlaceholder": "Назва списку",
+      "results": "Списки з книгами",
+      "bookCount": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "loading": "Завантажуємо списки…",
+      "checking": "Перевіряємо, чи є в списку ціль…",
+      "lookupError": "Не вдалося перевірити ціль цього списку. Спробуйте ще раз.",
+      "loadError": "Не вдалося завантажити списки",
+      "retry": "Спробувати ще раз",
+      "loadMoreError": "Не вдалося завантажити ще списки",
+      "noMatches": "Немає списку з такою назвою",
+      "emptyTitle": "Поки немає списків із книгами",
+      "emptyDescription": "Ціль ставиться для списку книг. Створіть список або додайте книги в наявний і поверніться сюди.",
+      "toLists": "До списків"
     }
   },
   "statistics": {
