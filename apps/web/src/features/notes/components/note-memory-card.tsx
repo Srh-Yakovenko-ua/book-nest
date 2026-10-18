@@ -9,7 +9,6 @@ import { Fragment, useId } from "react";
 import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/format";
 
@@ -18,6 +17,7 @@ import type { RecordNoteImpression } from "../hooks/use-note-rediscovery-impress
 
 import { useRecordImpressionWhenVisible } from "../hooks/use-note-rediscovery-impression";
 import { noteCategoryLabel } from "../model/note-category-label";
+import { NoteCategoryBadge } from "./note-category-badge";
 import { NoteEntityLocation } from "./note-entity-location";
 
 type NoteMemoryCardProps = {
@@ -85,15 +85,7 @@ export function NoteMemoryCard({
         </p>
       </div>
 
-      {category === null ? null : (
-        <Badge
-          className="block max-w-full min-w-0 self-start truncate"
-          title={category}
-          variant="secondary"
-        >
-          {category}
-        </Badge>
-      )}
+      {category === null ? null : <NoteCategoryBadge category={category} className="self-start" />}
 
       <NoteEntityLocation note={note} placement="card" />
 

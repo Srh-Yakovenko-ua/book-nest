@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
+import { TruncatedText } from "@/components/truncated-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +32,6 @@ import { useBookTimelines } from "../api/use-book-timelines";
 import { useReorderTimelines } from "../api/use-reorder-timelines";
 import { useSetDefaultTimeline } from "../api/use-set-default-timeline";
 import { markerStyle } from "../model/color-key";
-import { TruncatedText } from "./truncated-text";
 
 const MANAGE_SKELETON_ROWS = 3;
 

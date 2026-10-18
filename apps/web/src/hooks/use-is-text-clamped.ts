@@ -12,6 +12,13 @@ type ClampedText<TElement extends HTMLElement> = {
   ref: RefObject<Nullable<TElement>>;
 };
 
+export function isTextClamped(element: HTMLElement) {
+  return (
+    element.scrollHeight > element.clientHeight + OVERFLOW_TOLERANCE_PX ||
+    element.scrollWidth > element.clientWidth + OVERFLOW_TOLERANCE_PX
+  );
+}
+
 export function useIsTextClamped<TElement extends HTMLElement>(
   text: string,
 ): ClampedText<TElement> {
@@ -22,12 +29,7 @@ export function useIsTextClamped<TElement extends HTMLElement>(
     const element = ref.current;
     if (element === null) return;
 
-    const measure = () => {
-      setIsClamped(
-        element.scrollHeight > element.clientHeight + OVERFLOW_TOLERANCE_PX ||
-          element.scrollWidth > element.clientWidth + OVERFLOW_TOLERANCE_PX,
-      );
-    };
+    const measure = () => setIsClamped(isTextClamped(element));
 
     measure();
 

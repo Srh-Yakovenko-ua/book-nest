@@ -23,6 +23,7 @@ import { noteCategoryLabel } from "../model/note-category-label";
 import { noteEntityHref } from "../model/note-entity";
 import { notesArchiveHref } from "../model/notes-archive-href";
 import { NOTE_CARD_LAYOUT } from "./note-card-layout";
+import { NoteCategoryBadge } from "./note-category-badge";
 import { NoteEntityCover } from "./note-entity-cover";
 import { NoteEntityLocation } from "./note-entity-location";
 import { NotePreview } from "./note-preview";
@@ -170,15 +171,7 @@ function BeforeContinuationNote({
     <li className={NOTE_CARD_LAYOUT.compact.shell}>
       <SeriesBookSourceLabel book={note.sourceBook} />
 
-      {category === null ? null : (
-        <Badge
-          className="block max-w-full min-w-0 self-start truncate"
-          title={category}
-          variant="secondary"
-        >
-          {category}
-        </Badge>
-      )}
+      {category === null ? null : <NoteCategoryBadge category={category} className="self-start" />}
 
       {note.isSpoiler ? (
         <NoteSpoilerGate entityType={note.entityType} layout="compact" onOpen={openNote} />
