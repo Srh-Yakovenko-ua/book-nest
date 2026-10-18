@@ -40,7 +40,7 @@ afterAll(async () => {
   await context.close();
 });
 
-function authed(method: "get" | "post", path: string, token: string): request.Test {
+function authed(method: "delete" | "get" | "post", path: string, token: string): request.Test {
   return request(app.getHttpServer())[method](path).set("Authorization", `Bearer ${token}`);
 }
 
@@ -203,6 +203,114 @@ describe("GET /api/notes/books/facets", () => {
       expect.objectContaining({ count: 1, name: "Neil Gaiman" }),
       expect.objectContaining({ count: 1, name: "Terry Pratchett" }),
     ]);
+  });
+});
+
+describe("GET /api/notes/books/facets for one book", () => {
+  it("computes one book's quick counts under both search and category", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const duneId = await createBook(accessToken, { authors: ["Frank Herbert"], title: "Dune" });
+    const hyperionId = await createBook(accessToken, {
+      authors: ["Dan Simmons"],
+      title: "Hyperion",
+    });
+    await createBookNote(accessToken, duneId, {
+      category: "plot",
+      isFavorite: true,
+      text: "The spice harvest",
+    });
+    await createBookNote(accessToken, duneId, { category: "plot", text: "Desert" });
+    await createBookNote(accessToken, duneId, { category: "characters", text: "Spice addiction" });
+    await createBookNote(accessToken, hyperionId, { category: "plot", text: "Spice trade" });
+
+    const res = await authed(
+      "get",
+      `${BOOK_FACETS_PATH}?book=${duneId}&category=plot&search=spice`,
+      accessToken,
+    );
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.quickCounts).toEqual({
+      all: 1,
+      favorite: 1,
+      no_spoiler: 1,
+      pinned: 0,
+      with_spoiler: 0,
+    });
+  });
+
+  it("counts only notes whose own fields match when searchIn=notes", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const duneId = await createBook(accessToken, { authors: ["Frank Herbert"], title: "Dune" });
+    await createBookNote(accessToken, duneId, { category: "plot", text: "Sand covers every dune" });
+    await createBookNote(accessToken, duneId, { category: "characters", text: "Spice" });
+
+    const notesOnly = await authed(
+      "get",
+      `${BOOK_FACETS_PATH}?book=${duneId}&search=Dune&searchIn=notes`,
+      accessToken,
+    );
+    const withBook = await authed(
+      "get",
+      `${BOOK_FACETS_PATH}?book=${duneId}&search=Dune`,
+      accessToken,
+    );
+
+    expect(notesOnly.body.quickCounts.all).toBe(1);
+    expect(notesOnly.body.categories).toEqual([{ category: "plot", count: 1 }]);
+    expect(withBook.body.quickCounts.all).toBe(2);
+  });
+
+  it("returns zero facets for another user's book id", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin();
+    const ownerBookId = await createBook(owner.accessToken, {
+      authors: ["Frank Herbert"],
+      title: "Dune",
+    });
+    await createBookNote(owner.accessToken, ownerBookId, { category: "plot", isPinned: true });
+    const strangerBookId = await createBook(stranger.accessToken, {
+      authors: ["Dan Simmons"],
+      title: "Hyperion",
+    });
+    await createBookNote(stranger.accessToken, strangerBookId, { category: "plot" });
+
+    const res = await authed(
+      "get",
+      `${BOOK_FACETS_PATH}?book=${strangerBookId}`,
+      owner.accessToken,
+    );
+
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.quickCounts).toEqual({
+      all: 0,
+      favorite: 0,
+      no_spoiler: 0,
+      pinned: 0,
+      with_spoiler: 0,
+    });
+    expect(res.body.categories).toEqual([]);
+    expect(res.body.customCategories).toEqual([]);
+    expect(res.body.authors).toEqual([]);
+    expect(res.body.books.map((book: { id: string }) => book.id)).not.toContain(strangerBookId);
+  });
+
+  it("excludes soft-deleted notes from one book's facets", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const duneId = await createBook(accessToken, { authors: ["Frank Herbert"], title: "Dune" });
+    await createBookNote(accessToken, duneId, { category: "plot" });
+    await createBookNote(accessToken, duneId, { category: "plot", isPinned: true });
+    const trashedId = await createBookNote(accessToken, duneId, {
+      category: "characters",
+      isPinned: true,
+    });
+    await authed("delete", `/api/notes/${trashedId}`, accessToken).expect(HttpStatus.OK);
+
+    const res = await authed("get", `${BOOK_FACETS_PATH}?book=${duneId}`, accessToken);
+
+    expect(res.body.quickCounts).toMatchObject({ all: 2, pinned: 1 });
+    expect(res.body.categories).toEqual([{ category: "plot", count: 2 }]);
+    expect(res.body.books).toEqual([{ count: 2, id: duneId, title: "Dune" }]);
   });
 });
 

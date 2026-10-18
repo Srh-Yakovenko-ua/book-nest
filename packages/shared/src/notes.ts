@@ -87,6 +87,10 @@ export type SeriesNoteSort = z.infer<typeof SeriesNoteSortSchema>;
 
 export const NOTE_ARCHIVE_SORT_DEFAULT = "newest" satisfies BookNoteSort & SeriesNoteSort;
 
+export const BookNoteSearchScopeSchema = z.enum(["notes_and_book", "notes"]);
+
+export type BookNoteSearchScope = z.infer<typeof BookNoteSearchScopeSchema>;
+
 export const CreateNoteInputSchema = z.object({
   category: NoteCategorySchema.nullish(),
   chapter: z.string().trim().max(NOTE_INPUT_LIMITS.chapterMax).nullish(),
@@ -136,6 +140,7 @@ const bookNotesDatasetQueryFields = {
   hasChapter: NoteBooleanQuerySchema.optional(),
   hasPage: NoteBooleanQuerySchema.optional(),
   search: noteArchiveSearchField,
+  searchIn: BookNoteSearchScopeSchema.default(BookNoteSearchScopeSchema.enum.notes_and_book),
 };
 
 const seriesNotesDatasetQueryFields = {

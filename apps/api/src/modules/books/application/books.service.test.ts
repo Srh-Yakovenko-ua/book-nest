@@ -44,6 +44,7 @@ const OTHER_LOAN_CONTACT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab";
 
 type Repository = {
   acquireBookLock: ReturnType<typeof vi.fn>;
+  countActiveBookNotes: ReturnType<typeof vi.fn>;
   countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   favoritesSummary: ReturnType<typeof vi.fn>;
@@ -114,6 +115,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
 
 function buildService(
   overrides: {
+    countActiveBookNotes?: number;
     countForLibrary?: number;
     create?: BookWithRelations;
     favoritesSummary?: FavoritesSummaryView;
@@ -138,6 +140,7 @@ function buildService(
 } {
   const repository = {
     acquireBookLock: vi.fn().mockResolvedValue(undefined),
+    countActiveBookNotes: vi.fn().mockResolvedValue(overrides.countActiveBookNotes ?? 0),
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     favoritesSummary: vi.fn().mockResolvedValue(
@@ -682,6 +685,53 @@ describe("BooksService.getById", () => {
     const { service } = buildService({ findOwnedById: null });
 
     await expect(service.getById(OTHER_USER_ID, BOOK_ID)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("counts the caller's active notes for the requested book and returns them as notesCount", async () => {
+    const { repository, service } = buildService({
+      countActiveBookNotes: 11,
+      findOwnedById: bookRow({ userId: USER_ID }),
+    });
+
+    const view = await service.getById(USER_ID, BOOK_ID);
+
+    expect(repository.countActiveBookNotes).toHaveBeenCalledTimes(1);
+    expect(repository.countActiveBookNotes).toHaveBeenCalledWith({
+      bookId: BOOK_ID,
+      userId: USER_ID,
+    });
+    expect(view.notesCount).toBe(11);
+  });
+
+  it("does not count notes when the book does not belong to the caller", async () => {
+    const { repository, service } = buildService({ findOwnedById: null });
+
+    await expect(service.getById(OTHER_USER_ID, BOOK_ID)).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.countActiveBookNotes).not.toHaveBeenCalled();
+  });
+});
+
+describe("BooksService notes count outside getById", () => {
+  it("does not count notes or return notesCount when a book is created", async () => {
+    const { repository, service } = buildService({ countActiveBookNotes: 11 });
+
+    const view = await service.create(USER_ID, minimalCreateInput());
+
+    expect(repository.countActiveBookNotes).not.toHaveBeenCalled();
+    expect(view).not.toHaveProperty("notesCount");
+  });
+
+  it("does not count notes or return notesCount when a book is updated", async () => {
+    const { repository, service } = buildService({
+      countActiveBookNotes: 11,
+      findOwnedById: bookRow(),
+      updateOwned: bookRow({ title: "Updated Title" }),
+    });
+
+    const view = await service.update(USER_ID, BOOK_ID, { title: "Updated Title" });
+
+    expect(repository.countActiveBookNotes).not.toHaveBeenCalled();
+    expect(view).not.toHaveProperty("notesCount");
   });
 });
 

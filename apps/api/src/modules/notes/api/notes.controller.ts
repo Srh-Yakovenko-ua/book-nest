@@ -101,6 +101,7 @@ export class NotesController {
       "Get the contextual facets of the current user's book notes; every dimension ignores its own selection and the quick filter",
   })
   @ApiQuery({ name: "search", required: false })
+  @ApiQuery({ name: "searchIn", required: false })
   @ApiQuery({ name: "book", required: false })
   @ApiQuery({ name: "author", required: false })
   @ApiQuery({ name: "category", required: false })
@@ -250,6 +251,7 @@ export class NotesController {
   })
   @ApiOperation({ summary: "List and search the current user's book notes archive" })
   @ApiQuery({ name: "search", required: false })
+  @ApiQuery({ name: "searchIn", required: false })
   @ApiQuery({ name: "filter", required: false })
   @ApiQuery({ name: "book", required: false })
   @ApiQuery({ name: "author", required: false })

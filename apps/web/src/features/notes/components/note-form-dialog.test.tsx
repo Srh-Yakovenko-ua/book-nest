@@ -221,7 +221,8 @@ beforeEach(() => {
     if (method === "GET" && chaptersBookId !== undefined)
       return Promise.resolve(jsonResponse({ chapters: LIBRARY.chapters[chaptersBookId] ?? [] }));
     const book = LIBRARY.books.find(({ id }) => url === `/api/books/${id}`);
-    if (method === "GET" && book !== undefined) return Promise.resolve(jsonResponse(book));
+    if (method === "GET" && book !== undefined)
+      return Promise.resolve(jsonResponse({ ...book, notesCount: 0 }));
     if (method !== "GET") {
       const body =
         init?.body === undefined ? {} : (JSON.parse(String(init.body)) as Record<string, unknown>);

@@ -767,6 +767,8 @@ export const notesControllerBookFacetsQueryBookMax = 100;
 
 export const notesControllerBookFacetsQuerySearchMax = 100;
 
+export const notesControllerBookFacetsQuerySearchInDefault = `notes_and_book`;
+
 export const NotesControllerBookFacetsQueryParams = zod.object({
   category: zod
     .array(
@@ -800,6 +802,9 @@ export const NotesControllerBookFacetsQueryParams = zod.object({
   hasChapter: zod.enum(["true", "false"]).optional(),
   hasPage: zod.enum(["true", "false"]).optional(),
   search: zod.string().max(notesControllerBookFacetsQuerySearchMax).optional(),
+  searchIn: zod
+    .enum(["notes_and_book", "notes"])
+    .default(notesControllerBookFacetsQuerySearchInDefault),
 });
 
 export const notesControllerBookFacetsResponseCategoriesItemCountMin = 0;
@@ -2024,6 +2029,7 @@ export const notesControllerListBookArchiveQueryBookMax = 100;
 
 export const notesControllerListBookArchiveQuerySearchMax = 100;
 
+export const notesControllerListBookArchiveQuerySearchInDefault = `notes_and_book`;
 export const notesControllerListBookArchiveQueryFilterDefault = `all`;
 export const notesControllerListBookArchiveQueryPageNumberDefault = 1;
 export const notesControllerListBookArchiveQueryPageNumberMax = 21474836;
@@ -2066,6 +2072,9 @@ export const NotesControllerListBookArchiveQueryParams = zod.object({
   hasChapter: zod.enum(["true", "false"]).optional(),
   hasPage: zod.enum(["true", "false"]).optional(),
   search: zod.string().max(notesControllerListBookArchiveQuerySearchMax).optional(),
+  searchIn: zod
+    .enum(["notes_and_book", "notes"])
+    .default(notesControllerListBookArchiveQuerySearchInDefault),
   filter: zod
     .enum(["all", "no_spoiler", "with_spoiler", "favorite", "pinned"])
     .default(notesControllerListBookArchiveQueryFilterDefault),

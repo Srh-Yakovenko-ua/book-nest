@@ -1,6 +1,6 @@
-import type { NoteCategory, NoteFilter } from "@app/shared";
+import type { BookNoteSearchScope, NoteCategory, NoteFilter } from "@app/shared";
 
-import { NOTE_INPUT_LIMITS, NoteEntityTypeSchema } from "@app/shared";
+import { BookNoteSearchScopeSchema, NOTE_INPUT_LIMITS, NoteEntityTypeSchema } from "@app/shared";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
@@ -18,6 +18,7 @@ export type BookNotesDataset = {
   hasChapter: boolean | undefined;
   hasPage: boolean | undefined;
   search: string | undefined;
+  searchIn: BookNoteSearchScope;
   userId: string;
 };
 
@@ -39,6 +40,7 @@ function buildBookNotesDatasetWhere({
   hasChapter,
   hasPage,
   search,
+  searchIn,
   userId,
 }: BookNotesDataset): Prisma.NoteWhereInput {
   const conditions: Prisma.NoteWhereInput[] = [
@@ -70,18 +72,28 @@ function buildBookNotesDatasetWhere({
   }
 
   if (search !== undefined) {
-    conditions.push({ OR: buildBookNoteSearchConditions(search) });
+    conditions.push({ OR: buildBookNoteSearchConditions({ search, searchIn }) });
   }
 
   return { AND: conditions };
 }
 
-function buildBookNoteSearchConditions(search: string): Prisma.NoteWhereInput[] {
+function buildBookNoteSearchConditions({
+  search,
+  searchIn,
+}: {
+  search: string;
+  searchIn: BookNoteSearchScope;
+}): Prisma.NoteWhereInput[] {
   const contains = { contains: escapeLikePattern(search), mode: "insensitive" } as const;
+  const bookConditions =
+    searchIn === BookNoteSearchScopeSchema.enum.notes
+      ? []
+      : buildBookTextSearchConditions(search).map((condition) => ({ book: condition }));
   const conditions: Prisma.NoteWhereInput[] = [
     { text: contains },
     { title: contains },
-    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
+    ...bookConditions,
     { chapter: contains },
     { customCategory: contains },
   ];

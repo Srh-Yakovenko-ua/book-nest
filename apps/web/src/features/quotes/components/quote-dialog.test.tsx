@@ -120,7 +120,7 @@ beforeEach(() => {
     if (chaptersBookId !== undefined)
       return Promise.resolve(jsonResponse({ chapters: CHAPTERS_BY_BOOK[chaptersBookId] ?? [] }));
     const book = LIBRARY.find(({ id }) => url === `/api/books/${id}`);
-    if (book !== undefined) return Promise.resolve(jsonResponse(book));
+    if (book !== undefined) return Promise.resolve(jsonResponse({ ...book, notesCount: 0 }));
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);

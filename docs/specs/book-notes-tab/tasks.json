@@ -1,0 +1,986 @@
+{
+  "spec": "docs/specs/book-notes-tab/spec.md",
+  "specFiles": [
+    "docs/specs/book-notes-tab/spec.md (00_START_HERE, 01_APPROVED_DECISIONS #01-#20, 02_TECHNICAL_CONTRACT A-E, 03_FILE_MAP, 04_TEST_MATRIX NAV-01..REG-01, HANDOFF, prompts 01-04, CLAUDE_START_PROMPT)"
+  ],
+  "baseCommit": "6b948851",
+  "specReferenceCommit": "4a9a5d6",
+  "generatedAt": "2026-10-17T17:23:05Z",
+  "scope": {
+    "included": [
+      "Decisions #01-#20 (immutable, binding; #18 = B)",
+      "02_TECHNICAL_CONTRACT A-E as doneWhen criteria",
+      "04_TEST_MATRIX NAV-01..REG-01 mapped to tasks",
+      "Stage order 1-4 as slices S1-S4; each slice leaves typecheck green",
+      "Removal of the Overview BookNotesBlock usage and the code it leaves dead (D6)",
+      "Detail-cache writers that would drop notesCount (finding F1, not named by the spec but required by #16)",
+      "docs/specs/book-notes-tab/progress.md resumability checkpoint"
+    ],
+    "excluded": [
+      "Note model / Prisma migration: contract A 'no Prisma migration unless genuinely needed'; Note has @@index([bookId]) (schema.prisma Note model), a COUNT by bookId needs nothing new",
+      "Deleting GET /api/books/:id/notes, EntityNotesBlock, SeriesNotesBlock or notesKeys.bySeries: contract A bullet 2 and E.1",
+      "Global archive route, controls, sorts other than the page tie-break of D2, series notes, spoiler gate behavior: E.1, E.2, #19",
+      "New facets endpoint or facets optimisation without measurement: contract C bullet 2 (see D4)",
+      "Book/author selectors, summary cards, sidebar, grid/list toggle, title/author sorts in the tab: #02, #05, #11",
+      "Global reveal toggle or new inline spoiler reveal: #19",
+      "Cross-book scroll restore and persistent (local/session/global store) scroll or page state: #18 B, contract D",
+      "Sticky toolbar, FAB, nested scroll container, new art/assets: #15, contract D",
+      "Toast CTA / note-jump / auto-navigation after create: #09 C",
+      "Commits, pushes, branch switches: 00_START_HERE worktree safety, user consent required",
+      "docs/features refresh: not requested by the spec"
+    ]
+  },
+  "sliceGates": {
+    "S1": "pnpm --filter @app/shared build; targeted API tests (T3, T6, note-sort.test.ts); pnpm gen:api with a diff limited to the getById response type and the new search-scope query param; blast-radius on packages/shared; typecheck + lint green; code-reviewer + security-reviewer (query contract change)",
+    "S2": "targeted web tests (T12, T13, T14, book-details-view test); i18n parity uk/en; typecheck + lint + knip on the removed files; code-reviewer + accessibility-auditor",
+    "S3": "targeted web tests (T15-T19 + note-mutation-effects.test.ts + notes-archive-content.test.tsx); typecheck + lint; code-reviewer + frontend-performance-auditor + accessibility-auditor",
+    "S4": "T20-T23; spec-auditor VERIFY"
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "slice": "S1",
+      "layer": "shared",
+      "title": "Detail-only BookDetailsViewSchema with notesCount",
+      "specRef": "#16; A bullet 3; Stage 1 step 1",
+      "files": ["packages/shared/src/books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D1"],
+      "decisions": ["#16", "#13"],
+      "matrix": ["COUNT-01"],
+      "doneWhen": [
+        "BookDetailsViewSchema = BookViewSchema.extend({ notesCount: z.number().int().nonnegative() }) and type BookDetailsView exported via the @app/shared barrel",
+        "BookViewSchema itself is unchanged (no notesCount key, required or optional), so list/library/mutation contracts do not move",
+        "pnpm --filter @app/shared build green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "slice": "S1",
+      "layer": "api",
+      "title": "GET /api/books/:id returns an accurate notesCount without touching list reads",
+      "specRef": "#16; A bullet 3; Stage 1 step 1",
+      "files": [
+        "apps/api/src/modules/books/infrastructure/books.repository.ts",
+        "apps/api/src/modules/books/application/books.service.ts",
+        "apps/api/src/modules/books/api/books.controller.ts",
+        "apps/api/src/modules/books/api/view-dto/book-details.view-dto.ts"
+      ],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "blockedBy": ["D1"],
+      "decisions": ["#16"],
+      "matrix": ["COUNT-01", "COUNT-02"],
+      "doneWhen": [
+        "BooksRepository gets a dedicated count method (e.g. countActiveBookNotes(userId, bookId, client = this.prisma)) using prisma.note.count with where userId, bookId, entityType 'book', deletedAt null; it is NOT added to withRelations (books.repository.ts:183) or any list include",
+        "BooksService.getById resolves the book and the count (after the 404 check) and returns { ...viewOf(book), notesCount }; return type BookDetailsView",
+        "books.controller.ts getById (:302) declares Promise<BookDetailsView> and @ApiOkResponse type BookDetailsViewDto (new createZodDto(BookDetailsViewSchema) file)",
+        "no import from modules/notes into modules/books (notes already imports books, book-notes-where.ts:9; avoid a cycle)",
+        "no Prisma migration in the diff"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "slice": "S1",
+      "layer": "test",
+      "title": "notesCount tests: 0/11, soft-deleted, other user, series notes, lists untouched",
+      "specRef": "Stage 1 step 4; COUNT-01; COUNT-02",
+      "files": [
+        "apps/api/src/modules/books/application/books.service.test.ts",
+        "apps/api/src/modules/books/api/books.controller.test.ts"
+      ],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "decisions": ["#16", "#13"],
+      "matrix": ["COUNT-01", "COUNT-02"],
+      "doneWhen": [
+        "GET /api/books/:id: notesCount 0 for a book without notes, 11 with 11 active notes",
+        "soft-deleted notes, another user's notes and series notes are not counted",
+        "a book listing response (GET /api/books) has no notesCount key on items",
+        "service unit test asserts the count method is called with (userId, bookId) only from getById"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "slice": "S1",
+      "layer": "api",
+      "title": "Book-context page order: page ASC NULLS LAST, createdAt DESC, id ASC",
+      "specRef": "#03; #11; B bullets 1-2; Stage 1 step 2",
+      "files": [
+        "apps/api/src/modules/notes/domain/note-sort.ts",
+        "apps/api/src/modules/notes/domain/note-sort.test.ts",
+        "apps/api/src/modules/notes/api/notes-books.controller.test.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D2"],
+      "decisions": ["#03", "#11"],
+      "matrix": ["SORT-01", "SORT-02"],
+      "doneWhen": [
+        "with D2 = global tie-break: BOOK_NOTE_SORT_ORDER_BY.page = [bookTitle, page, newest, idTiebreaker]; within one book this is exactly page ASC NULLS LAST, createdAt DESC, id ASC",
+        "note-sort.test.ts:48 expectation updated; the 'no pinned term outside pinned_first' and 'id last' tests (:22, :26) still pass",
+        "BOOK_NOTES_ORDER_BY and SERIES_NOTES_ORDER_BY unchanged",
+        "integration test on GET /api/notes/books?book=<id>&sort=page: pages 3, 5, 5, null with distinct createdAt -> 3, 5 (newer), 5 (older), null; equal createdAt -> id order; a pinned note does not jump ahead",
+        "integration test for newest, oldest, recently_updated, pinned_first on one book",
+        "the intentional global tie-break difference is stated in the slice handoff"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "slice": "S1",
+      "layer": "shared",
+      "title": "Opt-in note-fields-only search scope for list and facets",
+      "specRef": "#06; B bullet 3; Stage 1 step 3; FIND-02",
+      "files": [
+        "packages/shared/src/notes.ts",
+        "apps/api/src/modules/notes/infrastructure/book-notes-where.ts",
+        "apps/api/src/modules/notes/application/note-archive-dataset.ts",
+        "apps/api/src/modules/notes/api/notes.controller.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "blockedBy": ["D3"],
+      "decisions": ["#06"],
+      "matrix": ["FIND-01", "FIND-02"],
+      "doneWhen": [
+        "bookNotesDatasetQueryFields (notes.ts:130) gains one optional enum param (name per D3, e.g. searchIn: notes_and_book | notes, default notes_and_book), so BookNotesQuerySchema and BookNotesFacetsQuerySchema both accept it",
+        "BookNotesDataset carries it; buildBookNoteSearchConditions omits the buildBookTextSearchConditions branch (book-notes-where.ts:84) only for 'notes'; text/title/chapter/customCategory/exact page unchanged",
+        "toBookNotesDataset maps it; @ApiQuery added on books (notes.controller.ts:252-262) and books/facets (:103-109)",
+        "the default keeps the global archive request and response identical"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "slice": "S1",
+      "layer": "test",
+      "title": "Scoped list/facets API tests: search scope, filters, categories, pagination, access",
+      "specRef": "Stage 1 steps 3-4; A bullet 1; C bullet 1",
+      "files": [
+        "apps/api/src/modules/notes/api/notes-books.controller.test.ts",
+        "apps/api/src/modules/notes/api/notes-books-facets.controller.test.ts"
+      ],
+      "dependsOn": ["T4", "T5"],
+      "mandatory": true,
+      "decisions": ["#06", "#12", "#13", "#20"],
+      "matrix": ["SCOPE-01", "FIND-01", "FIND-02", "FACET-01", "PAG-01", "COUNT-02"],
+      "doneWhen": [
+        "search = parent book title with notes-only scope returns only notes whose own fields match; default scope still returns all of that book's notes (global regression)",
+        "book=[A] with each of the five filter values, category and customCategory returns only book A notes",
+        "facets for book=[A]: quickCounts and category counts count only book A; category counts ignore the selected category (self-exclusion); quick counts respect search + category",
+        "another user's bookId -> empty page and zero facets; soft-deleted notes excluded from list and facets",
+        "41 notes, pageSize 20: pages 1, 2, 3 return 20, 20, 1 and pagesCount 3; 20 notes -> pagesCount 1"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "slice": "S1",
+      "layer": "contract",
+      "title": "Regenerate the API client and parse the detail with BookDetailsViewSchema",
+      "specRef": "Verification commands (gen:api); Stage 1 step 4",
+      "files": [
+        "apps/api/openapi.json",
+        "apps/web/src/shared/api/generated/**",
+        "apps/web/src/features/books/api/use-book.ts"
+      ],
+      "dependsOn": ["T2", "T5"],
+      "mandatory": true,
+      "decisions": ["#16"],
+      "matrix": ["COUNT-01"],
+      "doneWhen": [
+        "pnpm gen:api run; generated diff limited to the getById response type and the new search-scope param (plus their models)",
+        "bookQueryOptions (use-book.ts:23-31) parses with BookDetailsViewSchema and returns BookDetailsView; useBookPagesCount still compiles",
+        "/blast-radius run on the shared change; pnpm typecheck green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "slice": "S1",
+      "layer": "web",
+      "title": "Detail-cache writers keep notesCount (finding F1)",
+      "specRef": "#16 'no fake zero'; A bullet 4",
+      "files": [
+        "apps/web/src/features/books/api/use-book-mutation-sync.ts",
+        "apps/web/src/features/dedications/api/use-toggle-favorite-dedication.ts"
+      ],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "blockedBy": ["D1"],
+      "decisions": ["#16"],
+      "matrix": ["COUNT-01", "COUNT-02"],
+      "doneWhen": [
+        "use-book-mutation-sync.ts:17 writes { ...book, notesCount: previous.notesCount } when a cached detail exists; with no cached detail it does not write a notesCount-less entry (invalidates the exact detail key instead)",
+        "use-toggle-favorite-dedication.ts:27 follows the same rule",
+        "unit test: after a BookView mutation response the cached detail still has the prior notesCount"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Notes tab right after Overview with a positive-only badge; Overview block removed",
+      "specRef": "#01; #13; #16; Stage 2 step 1",
+      "files": [
+        "apps/web/src/features/books/components/book-details-view.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "decisions": ["#01", "#13", "#16"],
+      "matrix": ["NAV-01", "COUNT-01"],
+      "doneWhen": [
+        "DETAIL_TABS (:34) = overview, notes, history, characters, timeline",
+        "notes item badge rendered like the characters badge (:52-57) only when book.notesCount > 0; no badge for 0",
+        "<BookNotesBlock> (:84) and its import (:17) removed; the other Overview blocks keep their order",
+        "<PageTabsPanel value='notes'> renders <BookNotesTab book={book} key={book.id} />",
+        "tab label from an i18n key present in uk.json ('Нотатки') and en.json"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Delete code left dead by the Overview removal",
+      "specRef": "E.1 'dead imports unless proven unused globally'",
+      "files": [
+        "apps/web/src/features/notes/components/book-notes-block.tsx",
+        "apps/web/src/features/notes/components/book-notes-block.test.tsx",
+        "apps/web/src/features/notes/api/use-book-notes.ts",
+        "apps/web/src/features/notes/index.ts"
+      ],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "blockedBy": ["D6"],
+      "decisions": ["#01"],
+      "matrix": ["REG-01"],
+      "doneWhen": [
+        "with D6 = delete: the three files are gone, barrel line index.ts:1 removed, BookNotesTab exported instead",
+        "EntityNotesBlock, SeriesNotesBlock, use-series-notes, notesKeys.bySeries and the BE route note.controller.ts:63 untouched",
+        "pnpm knip reports nothing new for features/notes"
+      ],
+      "status": "partial",
+      "verifyGap": "doneWhen 1-2 met. doneWhen 3: pnpm knip is not run locally per CLAUDE.md section 9; CI runs it on push. Manual check: every new export is referenced outside its file."
+    },
+    {
+      "id": "T11",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Book notes tab query model: namespaced nuqs keys, 5 sorts, immutable book scope",
+      "specRef": "#07; #11; #12; C bullet 3; Stage 3 step 1",
+      "files": [
+        "apps/web/src/features/notes/model/book-notes-tab-query.ts",
+        "apps/web/src/features/notes/model/use-book-notes-tab-query.ts",
+        "apps/web/src/features/notes/model/book-notes-tab-query.test.ts"
+      ],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "blockedBy": ["D5"],
+      "decisions": ["#06", "#07", "#11", "#12"],
+      "matrix": ["NAV-02", "SCOPE-01", "FIND-01"],
+      "doneWhen": [
+        "one grouped constant object holds the parsers for noteQ, noteFilter (default all), noteSort (default page; options exactly page, newest, oldest, recently_updated, pinned_first), noteCategory, noteCustomCategory, reusing the NoteFilterSchema / NoteCategorySchema / NoteCustomCategorySchema option sets",
+        "list params come from the bookId prop, never from the URL: book: [bookId] always present, scope 'books', pageSize 20, search scope 'notes' (T5)",
+        "search committed via committedNotesSearch('text_or_page_number', q): 'a' not committed, '7' committed, 'ab' committed",
+        "the reset patch nulls only the five note keys; tab and character* keys untouched",
+        "unit tests cover parse/defaults, invalid sort falling back to page, reset patch shape, book scope surviving clear-all"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "slice": "S2",
+      "layer": "web",
+      "title": "NotesArchiveContent: compatible embedded layout and opt-out of focus-on-append",
+      "specRef": "#05; #14; D bullets 2-3; A11Y-01",
+      "files": [
+        "apps/web/src/features/notes/components/notes-archive-content.tsx",
+        "apps/web/src/features/notes/components/notes-archive-content.test.tsx",
+        "apps/web/src/features/notes/model/notes-archive-list-state.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "decisions": ["#05", "#14", "#20"],
+      "matrix": ["UI-01", "STATE-01", "A11Y-01", "REG-01"],
+      "doneWhen": [
+        "the layout prop accepts 'embedded' (single column, no lg:grid-cols-2) alongside grid | list; global archive call sites compile unchanged",
+        "focus-on-load (:117-128) is opt-out via a prop; the global archive keeps focusing the first new card (existing test still green)",
+        "empty copy for the book context ('no notes for this book' + add CTA) is distinct from search-empty (clear search) and filters-empty (reset filters); archive empty copy unchanged",
+        "new tests: embedded renders one column with no book header; focus does not move when opted out"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "slice": "S2",
+      "layer": "web",
+      "title": "Compact book notes toolbar: add, search, 5 chips, category multiselect, 5 sorts",
+      "specRef": "#02; #04; #06; #11; #12; #15; Stage 2 step 3",
+      "files": [
+        "apps/web/src/features/notes/components/book-notes-toolbar.tsx",
+        "apps/web/src/messages/uk.json",
+        "apps/web/src/messages/en.json"
+      ],
+      "dependsOn": ["T11"],
+      "mandatory": true,
+      "decisions": ["#02", "#04", "#06", "#11", "#12", "#13", "#15"],
+      "matrix": ["FACET-01", "FIND-01", "UI-02"],
+      "doneWhen": [
+        "uses DebouncedSearchInput, NotesQuickChips (counts = facets quickCounts, countsPending while facets load), FacetMultiselect fed by the notes-category-selection conversion of facets category counts, Select (desktop) + MobileSortSheet (mobile) with exactly 5 options",
+        "no view toggle, no book/author selector, no summary cards, no NotesAdvancedFilters sheet",
+        "mobile: controls stack vertically, the chips row scrolls horizontally, no sticky/fixed positioning",
+        "clearing categories keeps q/filter/sort; all labels via next-intl keys present in uk and en"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "slice": "S2",
+      "layer": "web",
+      "title": "BookNotesTab adapter: list, states, add dialog, spoiler-safe cards",
+      "specRef": "#02; #05; #14; #19; Stage 2 steps 2 and 4",
+      "files": [
+        "apps/web/src/features/notes/components/book-notes-tab.tsx",
+        "apps/web/src/features/notes/components/book-notes-tab.test.tsx"
+      ],
+      "dependsOn": ["T11", "T12", "T13"],
+      "mandatory": true,
+      "decisions": ["#02", "#05", "#09", "#14", "#19"],
+      "matrix": ["UI-01", "STATE-01", "FIND-01", "COUNT-01"],
+      "doneWhen": [
+        "composes useNotesArchiveList + useNotesFacets with T11 params, BookNotesToolbar and NotesArchiveContent layout 'embedded'",
+        "Add opens NoteFormDialog target { mode: 'preselected', entity } with the book entity (shape as book-notes-block.tsx:17-25); success = existing toast only (note-form-dialog.tsx:138)",
+        "initial load shows the skeleton, never the empty state; first-page error shows NotesErrorState with retry",
+        "tests: no book header/cover on cards; three distinct empty states with their actions; spoiler text absent from the DOM until the gate is opened (NoteSpoilerGate unchanged)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Lazy fetch, cache reuse and cross-book placeholder guard",
+      "specRef": "#17; D bullet 1; Stage 3 step 2",
+      "files": [
+        "apps/web/src/features/notes/components/book-notes-tab.tsx",
+        "apps/web/src/features/books/components/book-details-view.test.tsx"
+      ],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "decisions": ["#16", "#17"],
+      "matrix": ["COUNT-01", "SCOPE-02"],
+      "doneWhen": [
+        "BookDetailsView on tab=overview makes no request to /api/notes/books, /api/notes/books/facets or /api/books/:id/notes (fetch-boundary mock) while the badge shows notesCount",
+        "Notes -> History -> Notes on the same book shows cached cards immediately (no skeleton) while a background refetch runs",
+        "placeholder data from other criteria renders the skeleton, not the previous cards (precedent book-characters-tab.tsx:227); book B never renders book A cards (keyed mount, test with two books)",
+        "a late response for book A does not render after switching to book B"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "slice": "S3",
+      "layer": "web",
+      "title": "URL state: deep links, back/forward, no cross-book criteria leak",
+      "specRef": "#07; #18 B; C bullet 3; NAV-02",
+      "files": ["apps/web/src/features/notes/components/book-notes-tab.test.tsx"],
+      "dependsOn": ["T11", "T14"],
+      "mandatory": true,
+      "decisions": ["#07", "#18"],
+      "matrix": ["NAV-02"],
+      "doneWhen": [
+        "?tab=notes&noteFilter=favorite opens the tab with the Favorites chip active and the request sends filter=favorite",
+        "with the nuqs testing adapter, back/forward restores the prior noteQ/noteSort",
+        "navigating to book B without note params yields defaults (all / page / no categories / empty q); explicit params on B's URL win",
+        "the global archive keys (q, filter, sort, book) are neither read nor written by the tab"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Automatic 20-per-page endless scroll with in-place retry",
+      "specRef": "#20; D bullet 3; Stage 3 step 3",
+      "files": ["apps/web/src/features/notes/components/book-notes-tab.test.tsx"],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "decisions": ["#14", "#20"],
+      "matrix": ["PAG-01", "PAG-02", "A11Y-01"],
+      "doneWhen": [
+        "InfiniteScrollFooter state mapping follows book-characters-tab.tsx:269-273 (error / none / loading / idle)",
+        "0, 1, 11, 20 notes: exactly one list request; 21 and 40: two; 41: three and no fourth",
+        "no fetch while a page is pending; nothing fetched while the Notes panel is inactive (unmounted)",
+        "a next-page error keeps loaded cards; retry refetches only the next page",
+        "observer-driven append does not move focus (T12 opt-out); the footer status stays aria-live polite"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Mutation effects: refresh the affected book's detail on create/delete",
+      "specRef": "#09; #10; #13; #16; A bullet 4; Stage 3 step 5",
+      "files": [
+        "apps/web/src/features/notes/api/note-mutation-effects.ts",
+        "apps/web/src/features/notes/api/note-mutation-effects.test.ts"
+      ],
+      "dependsOn": ["T7"],
+      "mandatory": true,
+      "decisions": ["#09", "#10", "#13", "#16"],
+      "matrix": ["COUNT-02", "SCROLL-02"],
+      "doneWhen": [
+        "create and delete of a book note invalidate bookKeys.detail(bookId) with exact: true for that book only; update does not",
+        "series-note mutations do not touch any book detail key",
+        "existing archive / overview / byBook / chapters invalidations and writeUpdatedNote unchanged (existing tests green)",
+        "a test asserts another book's detail query is not invalidated"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "slice": "S3",
+      "layer": "web",
+      "title": "Same-book scroll anchor restore; reset on criteria change; no cross-book restore",
+      "specRef": "#08; #10; #18 B; D bullet 4; Stage 3 step 4",
+      "files": [
+        "apps/web/src/features/books/components/book-details-view.tsx",
+        "apps/web/src/features/notes/components/book-notes-tab.tsx",
+        "apps/web/src/features/notes/model/book-notes-scroll-anchor.ts",
+        "apps/web/src/features/notes/components/book-notes-tab.test.tsx"
+      ],
+      "dependsOn": ["T15"],
+      "mandatory": true,
+      "blockedBy": ["D7"],
+      "decisions": ["#08", "#10", "#18"],
+      "matrix": ["SCROLL-01", "SCROLL-02", "NAV-02"],
+      "doneWhen": [
+        "the anchor { bookId, criteriaKey, noteId, offset } lives in a ref owned by the Book Details page (D7) and resets when book.id changes; no localStorage / sessionStorage / Zustand",
+        "returning to Notes on the same book with the same criteria restores the anchored note's offset after the cached pages render; a missing anchor falls back to the nearest rendered neighbour or the saved scroll position",
+        "a criteria change scrolls the results start into view only when it is above the viewport (book-characters-tab.tsx:87-94 pattern) and restarts at page 1",
+        "after an edit that moves or hides a card, or a delete, there is no programmatic jump to the moved note",
+        "test: book A -> book B -> back to A does not restore A's anchor"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "slice": "S4",
+      "layer": "test",
+      "title": "Gates: typecheck, lint, format, targeted API + web suites, gen:api idempotence",
+      "specRef": "Definition of done; Verification commands; Stage 4 steps 2 and 4",
+      "files": [],
+      "dependsOn": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16",
+        "T17",
+        "T18",
+        "T19"
+      ],
+      "mandatory": true,
+      "decisions": [],
+      "matrix": ["REG-01"],
+      "doneWhen": [
+        "pnpm typecheck, pnpm lint, pnpm format:check exit 0 (recorded)",
+        "API: note-sort, notes-books, notes-books-facets, notes-series*, notes.controller, books.controller, books.service tests green (commands and counts recorded)",
+        "web: notes feature tests, book-details-view, characters tab, timeline and reading-history tests green",
+        "gen:api rerun produces no diff; git diff --check clean; no migration, no new endpoint, no hardcoded Ukrainian in components"
+      ],
+      "status": "done",
+      "proof": "progress.md Gates and Test runs: typecheck, lint, format:check, gen:api no diff; API 13 files and web 17 files green, each run alone with one worker."
+    },
+    {
+      "id": "T21",
+      "slice": "S4",
+      "layer": "test",
+      "title": "Regression: global books/series archives and series notes",
+      "specRef": "E.1; REG-01; Stage 4 step 2",
+      "files": [],
+      "dependsOn": ["T20"],
+      "mandatory": true,
+      "decisions": ["#01", "#19"],
+      "matrix": ["REG-01", "SORT-02", "FIND-02"],
+      "doneWhen": [
+        "notes-archive-view, notes-archive-content, note-archive-card, note-form-dialog and series notes block tests green",
+        "global archive sort=page differs only in the documented tie-break; default search still matches book metadata"
+      ],
+      "status": "done",
+      "proof": "progress.md Test runs: notes-archive-view 36/36, notes-archive-content 20/20, note-archive-card 44/44, note-form-dialog 73/73. No web test exists for SeriesNotesBlock or EntityNotesBlock; neither file is in the diff."
+    },
+    {
+      "id": "T22",
+      "slice": "S4",
+      "layer": "test",
+      "title": "Browser QA (headless Playwright + Storybook at 390px)",
+      "specRef": "Stage 4 step 3",
+      "files": [],
+      "dependsOn": ["T20"],
+      "mandatory": true,
+      "decisions": ["#08", "#15", "#18", "#19", "#20"],
+      "matrix": ["NAV-01", "NAV-02", "SCROLL-01", "UI-02", "A11Y-01", "SCOPE-02"],
+      "doneWhen": [
+        "evidence (screenshots or logs) for: tab order, badge on Overview with no notes request, same-book restore, cross-book no restore, 41-note auto-append, mobile toolbar at 390px, spoiler not revealed by search",
+        "any scenario not exercised is reported NOT RUN with a reason"
+      ],
+      "status": "done",
+      "proof": "progress.md Browser runs: browser-check 17/17 after the toolbar fix, spoiler-search-check 5/5, mutation-check, toolbar screenshots at 1024/1280/1920. Not run items listed under Not run."
+    },
+    {
+      "id": "T23",
+      "slice": "S4",
+      "layer": "docs",
+      "title": "spec-auditor VERIFY and final report",
+      "specRef": "HANDOFF; Stage 4 step 5",
+      "files": ["docs/specs/book-notes-tab/progress.md"],
+      "dependsOn": ["T21", "T22"],
+      "mandatory": true,
+      "decisions": [],
+      "matrix": [],
+      "doneWhen": [
+        "the VERIFY table covers T1-T22 with file:line proof; 20/20 decisions and all 20 matrix IDs marked PASS / FAIL / NOT RUN",
+        "git diff --stat summary and the deliberate global changes (D2 tie-break, D3 param) listed"
+      ],
+      "status": "done",
+      "proof": "verify-report.md and progress.md updated 2026-10-18."
+    }
+  ],
+  "decisionCoverage": {
+    "#01": ["T9", "T10", "T21"],
+    "#02": ["T13", "T14"],
+    "#03": ["T4"],
+    "#04": ["T13"],
+    "#05": ["T12", "T14"],
+    "#06": ["T5", "T6", "T11", "T13"],
+    "#07": ["T11", "T16"],
+    "#08": ["T19", "T22"],
+    "#09": ["T14", "T18"],
+    "#10": ["T18", "T19"],
+    "#11": ["T4", "T11", "T13"],
+    "#12": ["T6", "T11", "T13"],
+    "#13": ["T1", "T3", "T6", "T9", "T13", "T18"],
+    "#14": ["T12", "T14", "T17"],
+    "#15": ["T13", "T22"],
+    "#16": ["T1", "T2", "T3", "T7", "T8", "T9", "T15", "T18"],
+    "#17": ["T15"],
+    "#18": ["T16", "T19", "T22"],
+    "#19": ["T14", "T21", "T22"],
+    "#20": ["T6", "T12", "T17", "T22"]
+  },
+  "matrixCoverage": {
+    "NAV-01": ["T9", "T22"],
+    "NAV-02": ["T11", "T16", "T19", "T22"],
+    "COUNT-01": ["T1", "T2", "T3", "T9", "T15"],
+    "COUNT-02": ["T3", "T6", "T8", "T18"],
+    "SORT-01": ["T4"],
+    "SORT-02": ["T4", "T21"],
+    "SCOPE-01": ["T6", "T11"],
+    "SCOPE-02": ["T15", "T17", "T22"],
+    "FIND-01": ["T5", "T6", "T11", "T13", "T14"],
+    "FIND-02": ["T5", "T6", "T21"],
+    "FACET-01": ["T6", "T13"],
+    "PAG-01": ["T6", "T17"],
+    "PAG-02": ["T17"],
+    "STATE-01": ["T12", "T14"],
+    "UI-01": ["T12", "T14"],
+    "UI-02": ["T13", "T22"],
+    "SCROLL-01": ["T19", "T22"],
+    "SCROLL-02": ["T18", "T19"],
+    "A11Y-01": ["T12", "T17", "T22"],
+    "REG-01": ["T10", "T12", "T20", "T21"]
+  },
+  "technicalDecisions": [
+    {
+      "id": "TD1",
+      "topic": "Lazy loading",
+      "recommendation": "Rely on Radix TabsContent unmounting inactive panels (page-tabs.tsx:86, no forceMount); the list/facets hooks need no enabled flag"
+    },
+    {
+      "id": "TD2",
+      "topic": "Cross-book and cross-criteria flash",
+      "recommendation": "Key BookNotesTab by book.id (precedent book-details-view.tsx:87-93) and treat isPlaceholderData as loading inside the tab (precedent book-characters-tab.tsx:227); the global archive keeps its dimmed-refresh behavior (notes-archive-list-state.ts)"
+    },
+    {
+      "id": "TD3",
+      "topic": "Focus on auto-append",
+      "recommendation": "Opt-out prop on NotesArchiveContent; the global archive keeps focusing the first new card (contract D 'preserve global archive behavior')"
+    },
+    {
+      "id": "TD4",
+      "topic": "Detail invalidation",
+      "recommendation": "invalidateQueries({ queryKey: bookKeys.detail(id), exact: true }), because the detail key prefixes chapters and deliveries (book-keys.ts:10-12)"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "blocks": ["T1", "T2", "T8"],
+      "specRef": "#16; A bullet 3",
+      "question": "Shape of the notesCount contract",
+      "options": [
+        "A1: detail-only BookDetailsViewSchema = BookViewSchema.extend({ notesCount }) on GET /api/books/:id; FE detail-cache writers merge the previous notesCount",
+        "A2: optional notesCount on BookViewSchema, filled for single-book responses (getById and the loadView paths)"
+      ],
+      "codebaseMakesCheaper": "A1: one count call in getById, and two FE writers need a merge (use-book-mutation-sync.ts:17, use-toggle-favorite-dedication.ts:27). A2 needs a count on about 20 single-book response paths (17 loadView calls, getById, update at books.service.ts:359); one missed path drops the badge",
+      "recommendation": "A1: the field is required where it is guaranteed, BookView stays untouched, and mutations pay no extra COUNT",
+      "answer": "A1 (detail-only BookDetailsViewSchema + FE cache merge)",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    },
+    {
+      "id": "D2",
+      "blocks": ["T4"],
+      "specRef": "#03; B bullet 2",
+      "question": "How to get page ASC NULLS LAST, createdAt DESC, id ASC for the tab",
+      "options": [
+        "Global tie-break: BOOK_NOTE_SORT_ORDER_BY.page = [bookTitle, page, newest, id]",
+        "New sort value (e.g. page_in_book) in BookNoteSortSchema",
+        "Implicit order switch when exactly one book is in scope"
+      ],
+      "codebaseMakesCheaper": "Option 1 is one line plus note-sort.test.ts:48; the old id tie-break was arbitrary because Note.id is a random uuid(). Option 2 leaks into the global archive sort menu (sortOptions = BookNoteSortSchema.options, notes-archive-config.ts:42) and needs gen:api. Option 3 is hidden behavior",
+      "recommendation": "Option 1, documented as an intentional global tie-break change",
+      "answer": "Option 1 (global page tie-break newest before id, documented)",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    },
+    {
+      "id": "D3",
+      "blocks": ["T5", "T6", "T11"],
+      "specRef": "B bullet 3; FIND-02",
+      "question": "How to stop a query for the book's own title from matching every note in the tab",
+      "options": [
+        "Explicit opt-in query param on list and facets (the default keeps archive semantics)",
+        "Implicit: skip book-metadata conditions when book has exactly one id",
+        "Leave as is and accept FIND-02 failing"
+      ],
+      "codebaseMakesCheaper": "The explicit param is one enum in bookNotesDatasetQueryFields (notes.ts:130), shared by both schemas, plus one branch at book-notes-where.ts:84. The implicit option changes the global archive's 'show book notes' flow (use-notes-archive-query.ts:107-108 sets book=[id]), which E.1 forbids",
+      "recommendation": "Explicit param; confirm the name (proposal: searchIn = notes_and_book | notes)",
+      "answer": "Explicit param searchIn = notes_and_book | notes, default notes_and_book",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    },
+    {
+      "id": "D4",
+      "blocks": [],
+      "specRef": "C bullet 2",
+      "question": "Optimise bookFacets for the single-book tab (skip the book/author aggregation)?",
+      "options": [
+        "No backend change; the tab ignores the book/author dimensions",
+        "Add a flag that skips the two extra aggregations"
+      ],
+      "codebaseMakesCheaper": "No change: notes-facets.service.ts:29-38 already runs the four queries in parallel, and the spec forbids optimising an unmeasured cost",
+      "recommendation": "No change now; revisit only if a facets call is measured as slow",
+      "answer": "No change",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    },
+    {
+      "id": "D5",
+      "blocks": ["T11"],
+      "specRef": "#07; C bullet 3",
+      "question": "How to namespace the tab's URL keys",
+      "options": [
+        "Own parser object with prefixed keys noteQ / noteFilter / noteSort / noteCategory / noteCustomCategory",
+        "Reuse NOTES_ARCHIVE_PARSERS.books through a nuqs urlKeys mapping"
+      ],
+      "codebaseMakesCheaper": "Prefixed keys mirror the characters tab (characters-roster-query.ts:33-50). urlKeys has no precedent in apps/web, and the archive sort parser defaults to newest with 7 options, so it would need an override anyway",
+      "recommendation": "Prefixed keys with the names the spec suggests",
+      "answer": "Prefixed keys noteQ/noteFilter/noteSort/noteCategory/noteCustomCategory",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    },
+    {
+      "id": "D6",
+      "blocks": ["T10"],
+      "specRef": "E.1",
+      "question": "Delete BookNotesBlock, its test and useBookNotes once Overview stops using them?",
+      "options": ["Delete them (the BE route stays)", "Keep them unused"],
+      "codebaseMakesCheaper": "book-details-view.tsx:84 is the only consumer; keeping them leaves unused exports that knip flags",
+      "recommendation": "Delete; keep EntityNotesBlock, SeriesNotesBlock and GET /api/books/:id/notes",
+      "answer": "Delete BookNotesBlock, its test, useBookNotes; keep BE route, EntityNotesBlock, SeriesNotesBlock",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    },
+    {
+      "id": "D7",
+      "blocks": ["T19"],
+      "specRef": "#08; D bullet 4",
+      "question": "Where the same-book scroll anchor lives across tab switches",
+      "options": [
+        "Ref owned by BookDetailsView (lives as long as the book page), reset on book.id change, passed to BookNotesTab",
+        "forceMount the Notes panel after the first open and hide it"
+      ],
+      "codebaseMakesCheaper": "PageTabsPanel unmounts inactive panels (page-tabs.tsx:86), so a page-level ref survives tab switches; forceMount keeps the observer and DOM alive behind other tabs and needs extra isActive gating",
+      "recommendation": "Page-level ref",
+      "answer": "Page-level ref in BookDetailsView reset on book.id",
+      "answeredBy": "assumption: recommendation adopted per package rule (stop only on fundamental conflict), 2026-10-17"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "File map paths exist at HEAD",
+      "specRef": "03_FILE_MAP",
+      "verdict": "CONFIRMED",
+      "evidence": "43 of 44 mapped source files exist; drift since 4a9a5d6 in mapped areas is only apps/web/src/components/debounced-search-input.tsx (+12) and empty-state.tsx (+5) (git diff --stat 4a9a5d6..HEAD)"
+    },
+    {
+      "claim": "book-notes-where.ts sits next to note-sort.ts in domain/",
+      "specRef": "03_FILE_MAP Backend 'Archive fetch and sorting'",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/notes/infrastructure/book-notes-where.ts (same path at 4a9a5d6)"
+    },
+    {
+      "claim": "Book Details tabs use Radix PageTabs/PageTabsPanel with nuqs key 'tab'",
+      "specRef": "D bullet 1; C bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "book-details-view.tsx:34 DETAIL_TABS overview,history,characters,timeline; :38 parseAsStringLiteral default overview; :43 useQueryState('tab'); page-tabs.tsx:86 TabsPrimitive.Content without forceMount, so inactive panels unmount"
+    },
+    {
+      "claim": "BookNotesBlock renders on Overview",
+      "specRef": "#01; E.1",
+      "verdict": "CONFIRMED",
+      "evidence": "book-details-view.tsx:17 import, :84 <BookNotesBlock book={book} />; it is the only consumer (features/notes/index.ts:1 barrel export)"
+    },
+    {
+      "claim": "EntityNotesBlock is used for series",
+      "specRef": "E.1",
+      "verdict": "CONFIRMED",
+      "evidence": "features/notes/components/series-notes-block.tsx:29; book-notes-block.tsx:28 is the other consumer"
+    },
+    {
+      "claim": "GET /api/books/:id/notes fetches all notes for the preview",
+      "specRef": "A bullet 2",
+      "verdict": "MOVED",
+      "evidence": "route is in apps/api/src/modules/notes/api/note.controller.ts:63 (file map names only notes.controller.ts); service notes.service.ts:122-126; repository notes.repository.ts:240-245 orderBy BOOK_NOTES_ORDER_BY; only FE consumer useBookNotes (api/use-book-notes.ts:10) via book-notes-block.tsx:15"
+    },
+    {
+      "claim": "GET /api/notes/books accepts book, pageNumber, pageSize, sort, search, filter, category, customCategory",
+      "specRef": "A bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "notes.controller.ts:252-267 (also author, hasPage, hasChapter); schema packages/shared/src/notes.ts:150-156"
+    },
+    {
+      "claim": "GET /api/notes/books/facets exists with the same dataset scope",
+      "specRef": "A bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "notes.controller.ts:103-114; BookNotesFacetsQuerySchema = bookNotesDatasetQueryFields notes.ts:160"
+    },
+    {
+      "claim": "Page size 20",
+      "specRef": "#20",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/notes.ts:17 NOTES_DEFAULT_PAGE_SIZE = 20; web notes-archive-query.ts:58 NOTES_ARCHIVE.pageSize 20"
+    },
+    {
+      "claim": "notesCount is not in BookViewSchema",
+      "specRef": "A bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/books.ts:1148-1191; BookViewDto = createZodDto(BookViewSchema) apps/api/src/modules/books/api/view-dto/book.view-dto.ts:4"
+    },
+    {
+      "claim": "Detail read path: books.service getById -> book-view-assembler -> book.mapper -> books.repository",
+      "specRef": "03_FILE_MAP Backend",
+      "verdict": "CONFIRMED",
+      "evidence": "books.controller.ts:302-309 getById; books.service.ts:210-217 findOwnedById + viewAssembler.viewOf; book-view-assembler.ts:22-28; books.repository.ts:855 findOwnedById"
+    },
+    {
+      "claim": "A mandatory BookView count would cost a query per library card",
+      "specRef": "A bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "viewOf is used by list endpoints: book-library-read.service.ts:70, :117, dedications.service.ts:53, list-details.service.ts:83, wishlist.service.ts:69, reading-queue.service.ts:82; shared include withRelations books.repository.ts:183-186 already carries a _count used by lists"
+    },
+    {
+      "claim": "(implicit) Only GET /api/books/:id writes the detail cache, so a detail-only notesCount survives non-count mutations",
+      "specRef": "A bullet 4 'Update without count-changing mutation need not refetch the count'",
+      "verdict": "FALSE",
+      "evidence": "use-book-mutation-sync.ts:17 setQueryData(bookKeys.detail(book.id), book) with every BookView mutation response (17 loadView endpoints); use-toggle-favorite-dedication.ts:21-27 same; use-book-actions.ts:212-214 spreads cached (safe). Without a merge the badge vanishes after e.g. a reading-status change (finding F1, task T8)"
+    },
+    {
+      "claim": "BOOK_NOTE_SORT_ORDER_BY.page = book title, page, id",
+      "specRef": "B bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/notes/domain/note-sort.ts:21; page term :13 { page: { nulls: 'last', sort: 'asc' } }; pinned only in pinned_first :22; test note-sort.test.ts:48"
+    },
+    {
+      "claim": "BOOK_NOTES_ORDER_BY = pinned, page, newest, id",
+      "specRef": "B bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "note-sort.ts:26-31; only consumer notes.repository.ts:242 (listByBook, the Overview preview endpoint)"
+    },
+    {
+      "claim": "Global archive search also matches parent book metadata",
+      "specRef": "B bullet 3; FIND-02",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/notes/infrastructure/book-notes-where.ts:84 buildBookTextSearchConditions(search) mapped onto book; note fields text/title/chapter/customCategory :82-86; exact page :88-91, :109-117"
+    },
+    {
+      "claim": "Search covers note text/title/chapter/category/page",
+      "specRef": "FIND-01 vs B bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "contract B says 'custom category'; only customCategory is text-matched (book-notes-where.ts:86); standard category enum values are not searchable. Read FIND-01 'category' as custom category (contract B wins); no new standard-category text search"
+    },
+    {
+      "claim": "Ownership and soft-delete hold for the archive dataset",
+      "specRef": "A bullet 1; SCOPE-01",
+      "verdict": "CONFIRMED",
+      "evidence": "book-notes-where.ts:44-51 active note + active book + entityType book + userId; :53-55 bookId in; a foreign bookId yields an empty page, not 404"
+    },
+    {
+      "claim": "Search min 2 chars, single digit page allowed, server has no min length",
+      "specRef": "#06; B bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "web notes-archive-query.ts:67-70 minLength 2, pageNumberPattern /^\\d$/; :166-170 committedNotesSearch; :183-186 isNotesSearchCommittable; books searchRule text_or_page_number notes-archive-config.ts:40; server notes.ts:125 trim+max only; normalizeSearch note-archive-dataset.ts:22"
+    },
+    {
+      "claim": "DebouncedSearchInput debounces 300ms",
+      "specRef": "#06",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/debounced-search-input.tsx:11 SEARCH_DEBOUNCE_MS = 300, :65"
+    },
+    {
+      "claim": "NotesFacetsService.bookFacets also computes book and author dimensions",
+      "specRef": "C bullet 2",
+      "verdict": "CONFIRMED",
+      "evidence": "notes-facets.service.ts:29-38; bookCounts drops bookIds (:31, self-exclusion) so the unused book dimension aggregates all of the user's books; category self-exclusion :33 withoutCategoryDimension; quick counts :30 over the full dataset"
+    },
+    {
+      "claim": "NOTES_ARCHIVE.quickFilters holds the five quick filters",
+      "specRef": "#04; C bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/notes/model/notes-archive-query.ts:59-65 all, favorite, pinned, no_spoiler, with_spoiler (in notes-archive-query.ts, not notes-archive-config.ts)"
+    },
+    {
+      "claim": "NotesQuickChips, FacetMultiselect, notes-category-selection exist for reuse",
+      "specRef": "C bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "notes-quick-chips.tsx:18 (counts, countsPending props); apps/web/src/components/facet-multiselect.tsx; features/notes/model/notes-category-selection.ts (43 lines)"
+    },
+    {
+      "claim": "NotesArchiveContent models grid|list and focuses a newly loaded card",
+      "specRef": "D bullets 2-3",
+      "verdict": "CONFIRMED",
+      "evidence": "notes-archive-content.tsx:36 view: NotesViewMode; :172-174 lg:grid-cols-2 for grid; :117-128 loadMore stores index, ref focuses first control of first new card"
+    },
+    {
+      "claim": "NoteArchiveCard supports layout='embedded' without the entity header",
+      "specRef": "#05; D bullet 2",
+      "verdict": "ALREADY DONE",
+      "evidence": "note-card-layout.ts:22-28 embedded; note-archive-card.tsx:47 hasEntityHeader = layout !== 'embedded'; spoiler gate receives layout :139"
+    },
+    {
+      "claim": "NoteFormDialog supports target 'preselected'",
+      "specRef": "Stage 2 step 2",
+      "verdict": "CONFIRMED",
+      "evidence": "note-form-dialog.tsx:47, :52 { entity: NoteEntityRef; mode: 'preselected' }; entity shape built in book-notes-block.tsx:17-25"
+    },
+    {
+      "claim": "Create already ends with a standard success toast, no CTA",
+      "specRef": "#09 C",
+      "verdict": "ALREADY DONE",
+      "evidence": "note-form-dialog.tsx:138 toast.success(tToast('created')); dialog closes via onDone :78"
+    },
+    {
+      "claim": "InfiniteScrollFooter + sentinel prevent double fetch",
+      "specRef": "#20; PAG-02",
+      "verdict": "CONFIRMED",
+      "evidence": "infinite-scroll-footer.tsx:40 sentinel enabled only when state === 'idle'; use-infinite-scroll-sentinel.ts:8 rootMargin 480px, :47; error branch :45-50 Button with ref={focusOnMount} (moves focus on next-page error); status :58-61 aria-live polite"
+    },
+    {
+      "claim": "List and facets queries use keepPreviousData",
+      "specRef": "D bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "use-notes-archive-list.ts:18; use-notes-facets.ts:29; neither takes an enabled flag; notes-archive-list-state.ts:28-40 shows placeholder pages as ready+isRefreshing when non-empty"
+    },
+    {
+      "claim": "Query keys scoped by criteria and book",
+      "specRef": "A bullet 1",
+      "verdict": "CONFIRMED",
+      "evidence": "notes-keys.ts:14-17 archiveList(params) / archiveFacets(scope, params) include book[]"
+    },
+    {
+      "claim": "bookKeys.detail exists",
+      "specRef": "A bullet 4",
+      "verdict": "CONFIRMED",
+      "evidence": "book-keys.ts:12; it prefixes chapters :10 and deliveryHistory :11, so invalidation must pass exact: true to avoid refetching deliveries"
+    },
+    {
+      "claim": "note-mutation-effects refreshes the book detail",
+      "specRef": "A bullet 4",
+      "verdict": "FALSE",
+      "evidence": "note-mutation-effects.ts:41-48 invalidates archive parts, overview, notesKeys.byBook and bookKeys.chapters (:82) only; bookKeys.detail never invalidated (work for T18)"
+    },
+    {
+      "claim": "Global archive URL keys are un-namespaced",
+      "specRef": "#07; C bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "use-notes-archive-query.ts:60 useQueryStates(NOTES_ARCHIVE_PARSERS.books); keys q, filter, view, book, author, category, customCategory, hasPage, hasChapter, sort notes-archive-query.ts:89-114; books sort default newest :111-113"
+    },
+    {
+      "claim": "Existing nuqs namespacing precedent on Book Details",
+      "specRef": "C bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "features/characters/model/characters-roster-query.ts:33-43 prefixed keys characterSearch/characterSort/...; :47-50 CHARACTERS_ROSTER_RESET null patches; use-characters-roster-query.ts:39-58; nuqs ^2.9.2 (pnpm-workspace.yaml:102); no urlKeys usage in apps/web/src"
+    },
+    {
+      "claim": "Per-book tab counts already come from Book Details",
+      "specRef": "#16",
+      "verdict": "FALSE",
+      "evidence": "characters badge uses a separate summary query book-details-view.tsx:44-45, :52-57; timeline label uses useTimelineSummary :46, :62. No count field on BookView; #16 deliberately chooses a different source"
+    },
+    {
+      "claim": "BookNoteSortSchema has the five tab sorts",
+      "specRef": "#11",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/notes.ts:65-73 newest, oldest, recently_updated, title, author, page, pinned_first; NOTE_ARCHIVE_SORT_DEFAULT newest :88; tab needs a 5-option subset with default page"
+    },
+    {
+      "claim": "Note fields page/createdAt/updatedAt/deletedAt; no migration needed",
+      "specRef": "03_FILE_MAP data model; A bullet 3",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:556 model Note; @@index([bookId]) and @@index([userId, deletedAt]); Book.notes relation in model Book (schema.prisma:222 +53)"
+    },
+    {
+      "claim": "Mobile sort sheet exists",
+      "specRef": "D bullet 6",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/components/ui/mobile-sort-sheet.tsx used by notes-archive-toolbar.tsx:10, :66; desktop Select :88-105"
+    },
+    {
+      "claim": "Targeted tests exist",
+      "specRef": "03_FILE_MAP tests",
+      "verdict": "CONFIRMED",
+      "evidence": "all 11 named files exist; there is no notes-facets.service test ('if present' -> absent; domain/note-facets.test.ts exists); GET /api/books/:id integration tests live in apps/api/src/modules/books/api/books.controller.test.ts"
+    },
+    {
+      "claim": "Book Details tab panels remount per book",
+      "specRef": "#18 B; SCOPE-02",
+      "verdict": "CONFIRMED",
+      "evidence": "book-details.tsx:22 useBook(id), :79 <BookDetailsView> unkeyed; tab bodies keyed by book.id book-details-view.tsx:87-93 (precedent for keyed mounting); fresh observer means keepPreviousData cannot carry book A into book B"
+    }
+  ],
+  "assumptions": [
+    "Quick-filter label stays the existing archive label (Улюблені) per contract C \"existing labels\"; decision #04 lists it as Обрані.",
+    "NotesArchiveContent prop keeps its name view (not layout) so archive call sites compile unchanged; embedded added as a third value.",
+    "S1 review Low 4 (shared writeBookDetail helper) not applied: two uses, project extracts on the third.",
+    "Scroll anchor (#08) is captured synchronously in BookDetailsView.changeTab when leaving notes, not from scroll events: a real Chromium run showed the per-scroll capture being overwritten by the scroll clamp of the shorter tab. Leaving via browser back/forward does not restore (the anchor is only captured on a tab click).",
+    "Because Book Details tabs are not sticky, a user always scrolls up to the tablist before switching; in real runs the restore keeps the same top card at the same offset (desktop and 390px), and the neighbour/scrollY fallbacks are unit-tested only.",
+    "A11y pre-existing, out of scope (shared components): mobile-sort-sheet focus return and label-in-name, facet-multiselect aria-checked, PageTabs tablist name, restore scroll on arrow-key tab activation."
+  ]
+}

@@ -1,5 +1,6 @@
 import type {
   BookDeletionResult,
+  BookDetailsView,
   BookFacetsView,
   BookView,
   DedicationsQuickCounts,
@@ -76,6 +77,7 @@ import { TrashedBooksQueryDto } from "./input-dto/trashed-books-query.input-dto.
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 import { WishlistQueryDto } from "./input-dto/wishlist-query.input-dto.js";
 import { BookDeletionResultDto } from "./view-dto/book-deletion-result.view-dto.js";
+import { BookDetailsViewDto } from "./view-dto/book-details.view-dto.js";
 import { BookFacetsViewDto } from "./view-dto/book-facets.view-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { DedicationsQuickCountsViewDto } from "./view-dto/dedications-quick-counts.view-dto.js";
@@ -297,14 +299,14 @@ export class BooksController {
   }
 
   @ApiNotFoundResponse({ description: "Book not found" })
-  @ApiOkResponse({ description: "The requested book", type: BookViewDto })
+  @ApiOkResponse({ description: "The requested book", type: BookDetailsViewDto })
   @ApiOperation({ summary: "Get a book by id" })
   @Get(":id")
   @JwtProtected()
   getById(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
-  ): Promise<BookView> {
+  ): Promise<BookDetailsView> {
     return this.booksService.getById(user.id, id);
   }
 

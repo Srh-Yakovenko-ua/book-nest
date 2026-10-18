@@ -19,9 +19,12 @@ const FOOTER = {
   sentinel: "flex min-h-12 items-center justify-center",
 } as const;
 
+type InfiniteScrollErrorFocus = "none" | "retry";
+
 type InfiniteScrollFooterProps = {
   allShownLabel?: string;
   className?: string;
+  errorFocus?: InfiniteScrollErrorFocus;
   errorLabel: string;
   onLoadMore: () => void;
   retryLabel?: string;
@@ -31,6 +34,7 @@ type InfiniteScrollFooterProps = {
 export function InfiniteScrollFooter({
   allShownLabel,
   className,
+  errorFocus = "retry",
   errorLabel,
   onLoadMore,
   retryLabel,
@@ -44,7 +48,12 @@ export function InfiniteScrollFooter({
       return (
         <div className={cn(FOOTER.error, className)} role="alert">
           <p className="text-sm text-error">{errorLabel}</p>
-          <Button onClick={onLoadMore} ref={focusOnMount} size="sm" variant="secondary">
+          <Button
+            onClick={onLoadMore}
+            ref={errorFocus === "retry" ? focusOnMount : undefined}
+            size="sm"
+            variant="secondary"
+          >
             <UiIcon name="refresh" size={FOOTER.retryIconSize} />
             {retryLabel ?? t("retry")}
           </Button>

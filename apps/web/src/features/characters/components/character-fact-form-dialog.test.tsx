@@ -6,7 +6,7 @@ import { CHARACTER_FACT_ERROR_CODES } from "@app/shared";
 import { act, useRef, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { makeBookDetailsView } from "@/features/books/components/book-details.fixtures";
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import type { CharacterFactFormTarget } from "../model/character-fact-form-schema";
@@ -84,7 +84,7 @@ let respondToSave: () => Promise<Response>;
 let saveRequests: SaveRequest[];
 
 function bookWithPages(pagesCount: Nullable<number>): Response {
-  return jsonResponse(makeBookView({ pagesCount }));
+  return jsonResponse(makeBookDetailsView({ pagesCount }));
 }
 
 function deferredResponse() {

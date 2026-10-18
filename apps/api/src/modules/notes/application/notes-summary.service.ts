@@ -1,5 +1,6 @@
 import type { BookNotesSummaryView, SeriesNotesSummaryView } from "@app/shared";
 
+import { BookNotesFacetsQuerySchema, SeriesNotesFacetsQuerySchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { subDays } from "date-fns";
 
@@ -11,7 +12,10 @@ import { NotesFacetsRepository } from "../infrastructure/notes-facets.repository
 import { NotesSummaryRepository } from "../infrastructure/notes-summary.repository.js";
 import { toBookNotesDataset, toSeriesNotesDataset } from "./note-archive-dataset.js";
 
-const UNFILTERED_ARCHIVE_QUERY = {};
+const UNFILTERED_ARCHIVE_QUERY = {
+  book: BookNotesFacetsQuerySchema.parse({}),
+  series: SeriesNotesFacetsQuerySchema.parse({}),
+} as const;
 
 @Injectable()
 export class NotesSummaryService {
@@ -22,7 +26,7 @@ export class NotesSummaryService {
 
   async bookSummary({ userId }: { userId: string }): Promise<BookNotesSummaryView> {
     const since = recentWindowStart(new Date());
-    const dataset = toBookNotesDataset({ query: UNFILTERED_ARCHIVE_QUERY, userId });
+    const dataset = toBookNotesDataset({ query: UNFILTERED_ARCHIVE_QUERY.book, userId });
 
     const [bookCounts, createdLast30DaysCount] = await Promise.all([
       this.facetsRepository.bookNoteCounts(dataset),
@@ -37,7 +41,7 @@ export class NotesSummaryService {
 
   async seriesSummary({ userId }: { userId: string }): Promise<SeriesNotesSummaryView> {
     const since = recentWindowStart(new Date());
-    const dataset = toSeriesNotesDataset({ query: UNFILTERED_ARCHIVE_QUERY, userId });
+    const dataset = toSeriesNotesDataset({ query: UNFILTERED_ARCHIVE_QUERY.series, userId });
 
     const [seriesCounts, createdLast30DaysCount] = await Promise.all([
       this.facetsRepository.seriesNoteCounts(dataset),

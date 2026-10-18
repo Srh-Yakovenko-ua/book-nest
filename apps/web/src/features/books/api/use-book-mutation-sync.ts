@@ -1,4 +1,4 @@
-import type { BookView } from "@app/shared";
+import type { BookDetailsView, BookView } from "@app/shared";
 
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -14,7 +14,16 @@ export function useBookMutationSync() {
   const queryClient = useQueryClient();
 
   return (book: BookView) => {
-    queryClient.setQueryData(bookKeys.detail(book.id), book);
+    const detailKey = bookKeys.detail(book.id);
+    const cachedDetail = queryClient.getQueryData<BookDetailsView>(detailKey);
+    if (cachedDetail === undefined) {
+      void queryClient.invalidateQueries({ exact: true, queryKey: detailKey });
+    } else {
+      queryClient.setQueryData<BookDetailsView>(detailKey, {
+        ...book,
+        notesCount: cachedDetail.notesCount,
+      });
+    }
     void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(book.id) });
     void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
     void queryClient.invalidateQueries({

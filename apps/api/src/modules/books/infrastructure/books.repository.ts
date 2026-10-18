@@ -13,6 +13,7 @@ import type {
 import {
   DEFAULT_CURRENCY,
   LoanTypeSchema,
+  NoteEntityTypeSchema,
   OwnershipStatusSchema,
   WISHLIST_SORT_DEFAULT,
 } from "@app/shared";
@@ -620,6 +621,21 @@ export class BooksRepository {
           where: { bookId },
         });
       }
+    });
+  }
+
+  countActiveBookNotes(
+    { bookId, userId }: { bookId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    return client.note.count({
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        book: SOFT_DELETE_SCOPE.active,
+        bookId,
+        entityType: NoteEntityTypeSchema.enum.book,
+        userId,
+      },
     });
   }
 

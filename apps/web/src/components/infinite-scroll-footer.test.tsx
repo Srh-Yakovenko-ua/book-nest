@@ -90,4 +90,24 @@ describe("InfiniteScrollFooter", () => {
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
+
+  it("moves focus to the retry button when a page fails", () => {
+    renderFooter("error");
+
+    expect(screen.getByRole("button")).toHaveFocus();
+  });
+
+  it("leaves focus where it was when the caller opts out of the error focus", () => {
+    renderWithProviders(
+      <InfiniteScrollFooter
+        errorFocus="none"
+        errorLabel={LABELS.error}
+        onLoadMore={vi.fn()}
+        state="error"
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(LABELS.error);
+    expect(screen.getByRole("button")).not.toHaveFocus();
+  });
 });

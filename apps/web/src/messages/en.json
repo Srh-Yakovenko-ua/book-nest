@@ -6321,6 +6321,16 @@
       "errorDescription": "Try refreshing the page.",
       "retry": "Refresh"
     },
+    "bookTab": {
+      "empty": {
+        "title": "This book has no notes yet.",
+        "description": "Write down thoughts, questions, review ideas or important details you’ll want to come back to."
+      },
+      "resultsFound": "{count, plural, one {Found # note} other {Found # notes}}",
+      "searchLabel": "Search this book’s notes",
+      "searchPlaceholder": "Search by text, chapter, page or category…",
+      "tab": "Notes"
+    },
     "blocks": {
       "add": "Add note",
       "addFirst": "Add your first note",
