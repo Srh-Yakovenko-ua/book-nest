@@ -56,7 +56,7 @@ Walk `tasks.json` in dependency order, grouping into slices that leave the repo 
 
 ## Stage 5 — Per-slice review
 
-After a meaningful slice, launch reviewers in one turn (parallel `Agent` calls): always `code-reviewer`; plus `security-reviewer` if the slice touches auth / input / env / deps, `migration-reviewer` if it touches `prisma/**`, the UI auditors if it touches `apps/web`.
+After a meaningful slice, launch reviewers in one turn (parallel `Agent` calls): always `code-reviewer`; plus `security-reviewer` if `bash .claude/scripts/security-shaped.sh` lists any file of the slice (auth, input, env, deps, deploy, CI), `migration-reviewer` if it touches `prisma/**`, the UI auditors if it touches `apps/web`.
 
 Findings get fixed inside the slice, not deferred to a cleanup pass that never comes.
 

@@ -53,6 +53,10 @@ Run from the repo root.
 
 Server and database helpers over SSH: `pnpm server:ps`, `pnpm server:stats`, `pnpm server:logs`, `pnpm server:health`, `pnpm db:size`, `pnpm db:copy:dev`.
 
+## Claude Code
+
+The repo carries its whole Claude Code setup: agents, skills, hooks, settings and MCP servers. Start `claude` from the repo root, since hooks only load from the directory a session starts in. [`docs/tools/claude-code.md`](./docs/tools/claude-code.md) lists the tools and plugins to install once.
+
 ## More docs
 
 - [`CLAUDE.md`](./CLAUDE.md): architecture, conventions, and the full command reference.

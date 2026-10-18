@@ -14,7 +14,7 @@ During development no gate runs (CLAUDE.md §9). This is the one moment they do,
 1. Collect the `MAIN:` lines from every subagent report of this task (their NOT_VERIFIED sections). Keep the non-test ones that step 2 does not cover, such as `db:generate` or `gen:api`. Test lines go to CI.
 2. Run `bash .claude/scripts/gates.sh` from the repo root. It diffs the working tree against `HEAD` (pass another base, e.g. `origin/dev`, to check a whole branch) and runs `pnpm typecheck`, eslint on changed code files and prettier on changed files. Each gate prints `ok` or `FAIL` with the last 40 lines of its log, and it prints how many related test files it left to CI.
 3. Run the leftover `MAIN:` lines from step 1.
-4. If the script prints the contract-shaped note, run `/blast-radius`, and tell the user that this change should reach dev through a PR (CI tests it, nothing deploys) rather than a direct push, where a red test blocks the dev deploy. That is how `dev` went red on 2026-08-08.
+4. If the script prints the contract-shaped note, run `/blast-radius`, and tell the user that this change should reach dev through a PR (CI tests it, nothing deploys) rather than a direct push, where a red test blocks the dev deploy. That is how `dev` went red on 2026-08-08. If it prints the security-shaped note and no `security-reviewer` has reported DONE on those files since their last edit, run it now: the commit hook asks for exactly those files otherwise.
 5. Report in one block: one line per gate (`typecheck ok`, `lint FAIL 2 errors in x.ts`), the count of tests left to CI, then each failure with its `file:line` and a one-line cause. Do not paste green output.
 
 ## Running tests here anyway

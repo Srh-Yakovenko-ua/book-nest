@@ -54,7 +54,7 @@ Subagents are useful for:
 | [`frontend-performance-auditor`](./frontend-performance-auditor.md) | opus  | Bundle size, re-renders, web vitals, memory leaks, CLS/LCP issues                                                          |
 | [`accessibility-auditor`](./accessibility-auditor.md)               | opus  | WCAG compliance, keyboard nav, ARIA, contrast, focus management                                                            |
 | [`seo-auditor`](./seo-auditor.md)                                   | opus  | SSR markup, per-route/locale metadata, hreflang, sitemap/robots, indexability                                              |
-| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, cookies/CORS/headers, auth/authz, dep CVEs                                              |
+| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, auth/authz, deploy/CI/Docker; findings at confidence 8+ only                            |
 | [`migration-reviewer`](./migration-reviewer.md)                     | opus  | Prisma/Postgres migration safety — data loss, destructive DDL, locks, forward-only reversibility                           |
 | [`spec-auditor`](./spec-auditor.md)                                 | opus  | Both ends of spec-driven work: PLAN (verify spec vs code, emit `tasks.json`) and VERIFY (diff vs `tasks.json`, gap report) |
 
@@ -99,7 +99,7 @@ Reviewing a diff before commit?
 ├── FE performance concern → frontend-performance-auditor
 ├── A11y concern → accessibility-auditor
 ├── SEO / SSR markup concern → seo-auditor
-├── Security-sensitive change → security-reviewer
+├── Security-sensitive change (security-shaped.sh lists a file) → security-reviewer
 └── Migration / schema change → migration-reviewer
 ```
 

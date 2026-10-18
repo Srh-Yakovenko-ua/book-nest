@@ -78,4 +78,8 @@ fi
 if printf '%s\n' "$CHANGED" | grep -qE '^(packages/shared/|apps/api/prisma/|apps/api/src/core/)|repository\.ts$|\.service\.ts$|input-dto/'; then
   echo "note contract-shaped change: run /blast-radius, and prefer a PR into dev over a direct push so CI tests it before any deploy"
 fi
+SECURITY_SHAPED="$({ git diff --name-only "$BASE"; git ls-files --others --exclude-standard; } | sort -u | bash "$ROOT/.claude/scripts/security-shaped.sh")"
+if [ -n "$SECURITY_SHAPED" ]; then
+  echo "note security-shaped change ($(printf '%s\n' "$SECURITY_SHAPED" | grep -c .) files: $(printf '%s\n' "$SECURITY_SHAPED" | head -5 | paste -sd, -)): run security-reviewer on the diff before committing; the commit hook asks for any such file it has not seen"
+fi
 exit "$FAILED"

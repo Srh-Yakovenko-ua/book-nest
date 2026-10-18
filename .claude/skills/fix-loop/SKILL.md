@@ -10,14 +10,14 @@ A review that produces forty findings and a fix pass that touches sixty files is
 ## Steps
 
 1. **Scope.** `git diff HEAD --stat` plus `git ls-files --others --exclude-standard`. That file list is the whole review surface; reviewers get it in the brief with "review this diff only".
-2. **Review, in parallel, at most three agents at once.** Always `code-reviewer`. Add `migration-reviewer` for `apps/api/prisma/**`, `security-reviewer` for auth, API input, forms, env or deps, and `accessibility-auditor` or `frontend-performance-auditor` for UI. `seo-auditor` is added for routing, metadata or next-intl.
-3. **Triage before any fix.** Keep only BLOCKER and MAJOR (security: Critical and High) whose basis is `doc`, `rule`, `bug` or `measured`. Open each kept `file:line` yourself, one Read: a finding that does not hold in the code is declined. `smell` findings and the "Not introduced here" section are never fixed in this loop. The user's rule is to fix only what was asked, so they go to the user as a list.
+2. **Review, in parallel, at most three agents at once.** Always `code-reviewer`. Add `migration-reviewer` for `apps/api/prisma/**`, `security-reviewer` whenever `bash .claude/scripts/security-shaped.sh` lists a file of the scope (auth, API input, env, deps, `deploy/`, workflows, Dockerfiles; the commit hook asks for exactly these files until a reviewer has seen them), and `accessibility-auditor` or `frontend-performance-auditor` for UI. `seo-auditor` is added for routing, metadata or next-intl.
+3. **Triage before any fix.** Keep only BLOCKER and MAJOR (security: Critical and High) whose basis is `doc`, `rule`, `bug` or `measured`. Open each kept `file:line` yourself, one Read: a finding that does not hold in the code is declined. A security finding below confidence 8 is declined unread. A Critical or High that one Read neither confirms nor refutes goes to its own `security-reviewer` run, briefed with that single finding and told to return only a confidence and the line that decides it; fix it only at 8 or above. This second, independent look is what keeps a confident-sounding false positive from costing a fix round. `smell` findings and the "Not introduced here" section are never fixed in this loop. The user's rule is to fix only what was asked, so they go to the user as a list.
 4. **Fix through the path owner, one brief per owner.**
    - `apps/api/src/**` → `backend-engineer`.
    - `apps/web/src/**` → `frontend-engineer`, or `design-engineer` for a purely visual finding.
    - Test files → the matching test engineer.
      Paste the confirmed findings verbatim with `file:line`, plus: "fix exactly these, change nothing else".
-5. **Round 2, narrow.** Re-run only the reviewers whose findings were fixed, scoped to the files the fixes changed, and pass them the declined list so they do not raise it again. Stop after this round. Anything still open goes to the user; a third round is the user's call.
+5. **Round 2, narrow.** Re-run only the reviewers whose findings were fixed, scoped to the files the fixes changed, and pass them the declined list so they do not raise it again. A fix that touched a security-shaped file needs `security-reviewer` in this round even if its findings came from another reviewer, because the commit hook asks for any such file whose content no reviewer has seen. Stop after this round. Anything still open goes to the user; a third round is the user's call.
 6. **Gates once:** the `/check` skill. Tests run in CI.
 
 ## Report

@@ -12,7 +12,7 @@ You are a senior frontend engineer working on apps/web — a Next.js 16 App Rout
 
 # Project context
 
-- Monorepo at `/Users/macbookpro14/WebstormProjects/book-nest/`
+- Monorepo root: `git rev-parse --show-toplevel`
 - Main package: `apps/web/`
 - Shared types: `packages/shared/` (imported as `@app/shared`)
 - Full docs in `/docs/` — read `docs/architecture.md`, `docs/patterns.md`, `docs/tools/tailwind.md`, `docs/tools/shadcn.md` for anything you're unsure about

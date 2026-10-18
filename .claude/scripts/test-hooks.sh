@@ -6,10 +6,15 @@ HOOKS="$ROOT/.claude/hooks"
 SID="hooktest-$$"
 STATE="$ROOT/.claude/state/$SID"
 export CLAUDE_PROJECT_DIR="$ROOT"
+export BOOKNEST_SECURITY_GATE=0
 PASS=0
 FAIL=0
+SEC_REPO="$(mktemp -d)"
 
-cleanup() { [ -d "$STATE" ] && find "$STATE" -delete; }
+cleanup() {
+  [ -d "$STATE" ] && find "$STATE" -delete
+  [ -d "$SEC_REPO" ] && find "$SEC_REPO" -delete
+}
 trap cleanup EXIT
 mkdir -p "$STATE"
 
@@ -285,6 +290,64 @@ stop_case block "Готово, сервис исправлен." "agent NOT_VERI
 stop_case allow "Готово. Missing: гейты при коммите, CI: loans.service.test.ts" "agent NOT_VERIFIED relayed" "" "$(t_prompt 'почини')" "$ENGINEER" "$ENGINEER_DONE"
 stop_case allow "Готово." "docs agent, nothing open" "" "$(t_prompt 'опиши фичу')" "$CURATOR" "$CURATOR_DONE"
 stop_case block "Готово." "notification NOT_VERIFIED dropped" "" "$(t_notify 'Loans tests' "STATUS: DONE${NL}NOT_VERIFIED:${NL}CI: apps/api/src/modules/loans/loans.service.test.ts")"
+
+SHAPED_IN="deploy/Caddyfile
+.github/workflows/deploy.yml
+apps/api/Dockerfile
+apps/api/docker-entrypoint.sh
+apps/api/src/modules/auth/application/auth.service.ts
+apps/api/src/modules/books/api/books.controller.ts
+apps/api/src/modules/books/api/input-dto/create-book.dto.ts
+apps/api/src/config/env.ts
+pnpm-lock.yaml
+apps/web/next.config.ts
+apps/api/src/modules/auth/api/auth.controller.test.ts
+apps/api/src/modules/books/application/books.service.ts
+apps/web/src/features/books/components/book-card.tsx
+docs/security.md
+.claude/hooks/guard-bash.sh"
+check "$(printf '%s\n' "$SHAPED_IN" | head -10)" "$(printf '%s\n' "$SHAPED_IN" | bash "$ROOT/.claude/scripts/security-shaped.sh" 2>/dev/null)" "security-shaped filter"
+
+sec_git() { git -C "$SEC_REPO" -c user.name=hooktest -c user.email=hooktest@example.com "$@"; }
+
+sec_commit_case() {
+  local want="$1" cmd="$2" label="$3"
+  local out code
+  out="$(jq -n --arg c "$cmd" --arg s "$SID" --arg cwd "$SEC_REPO" \
+    '{tool_name:"Bash",tool_input:{command:$c},session_id:$s,cwd:$cwd}' \
+    | CLAUDE_PROJECT_DIR="$SEC_REPO" BOOKNEST_SECURITY_GATE=1 "$HOOKS/guard-bash.sh")"
+  code=$?
+  check "$want" "$(decision_of "$out" "$code")" "security gate: $label"
+}
+
+security_review_ends() {
+  jq -n --arg m "$1" '{agent_id:"sr1",agent_type:"security-reviewer",last_assistant_message:$m}' \
+    | CLAUDE_PROJECT_DIR="$SEC_REPO" "$HOOKS/subagent-stop.sh" >/dev/null 2>&1
+}
+
+sec_git init -q
+mkdir -p "$SEC_REPO/deploy" "$SEC_REPO/apps/web/src"
+printf 'a\n' > "$SEC_REPO/deploy/Caddyfile"
+printf 'a\n' > "$SEC_REPO/apps/web/src/a.tsx"
+sec_git add -A
+sec_git commit -qm init
+
+printf 'b\n' > "$SEC_REPO/apps/web/src/a.tsx"
+sec_git add apps/web/src/a.tsx
+sec_commit_case allow 'git commit -m "feat(web): x"' "nothing security-shaped staged"
+printf 'b\n' > "$SEC_REPO/deploy/Caddyfile"
+sec_git add deploy/Caddyfile
+sec_commit_case ask 'git commit -m "fix(deploy): x"' "deploy file no reviewer saw"
+security_review_ends "STATUS: PARTIAL${NL}FINDINGS: none"
+sec_commit_case ask 'git commit -m "fix(deploy): x"' "a PARTIAL review records nothing"
+security_review_ends "STATUS: DONE${NL}FINDINGS: none"
+sec_commit_case allow 'git commit -m "fix(deploy): x"' "reviewed content commits"
+printf 'c\n' > "$SEC_REPO/deploy/Caddyfile"
+sec_commit_case allow 'git commit -m "fix(deploy): x"' "staged copy is still the reviewed one"
+sec_commit_case ask 'git commit -am "fix(deploy): x"' "commit -a takes the unreviewed working copy"
+sec_git add deploy/Caddyfile
+sec_commit_case ask 'git commit -m "fix(deploy): x"' "edited after the review"
+sec_commit_case deny 'git commit -m "update"' "a commitlint deny still wins"
 
 echo "hooks: $PASS passed, $FAIL failed"
 [ "$FAIL" = 0 ]

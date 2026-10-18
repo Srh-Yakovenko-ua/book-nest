@@ -281,6 +281,34 @@ check_commit_text() {
   return 0
 }
 
+check_security_review() {
+  [ "$IS_COMMIT" = 1 ] && [ -z "$AGENT_ID" ] || return 0
+  [ "${BOOKNEST_SECURITY_GATE:-1}" = 0 ] && return 0
+  local ledger="$PROJECT_DIR/.claude/state/security-reviewed" all=0 files path blob pending="" count=0
+  in_code "${G}commit[[:space:]]+${A}(-[A-Za-z]*a[A-Za-z]*|--all)([[:space:]]|$)" && all=1
+  if [ "$all" = 1 ]; then
+    files="$(git -C "$PROJECT_DIR" diff --name-only --diff-filter=d HEAD 2>/dev/null)"
+  else
+    files="$(git -C "$PROJECT_DIR" diff --cached --name-only --diff-filter=d 2>/dev/null)"
+  fi
+  files="$(printf '%s\n' "$files" | bash "$(dirname "$0")/../scripts/security-shaped.sh")"
+  [ -z "$files" ] && return 0
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    if [ "$all" = 1 ]; then
+      blob="$(git -C "$PROJECT_DIR" hash-object -- "$path" 2>/dev/null)"
+    else
+      blob="$(git -C "$PROJECT_DIR" rev-parse ":$path" 2>/dev/null)"
+    fi
+    [ -f "$ledger" ] && grep -qxF "$blob $path" "$ledger" && continue
+    count=$((count + 1))
+    [ "$count" -le 6 ] && pending="${pending:+$pending, }$path"
+  done <<< "$files"
+  [ "$count" = 0 ] && return 0
+  [ "$count" -gt 6 ] && pending="$pending and $((count - 6)) more"
+  ask "This commit carries security-shaped files no security-reviewer has seen in this exact content: ${pending}. Run security-reviewer on the diff first (its DONE report records what it saw), send confirmed Critical/High through /fix-loop, then commit. Approve only to commit without that review."
+}
+
 check_server_databases
 check_local_data
 check_git
@@ -288,6 +316,7 @@ check_ux_lookup_wrapper
 check_subagent_limits
 check_main_loop_gates
 check_commit_text
+check_security_review
 
 if [ -n "$DENY" ]; then
   jq -n --arg r "$DENY" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'

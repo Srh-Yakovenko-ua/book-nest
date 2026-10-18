@@ -257,10 +257,19 @@
       }
     ]
   },
+  "extraKnownMarketplaces": {
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
+    }
+  },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": false,
     "chrome-devtools-mcp@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true
+    "playwright@claude-plugins-official": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false
   },
   "attribution": {
     "commit": "",

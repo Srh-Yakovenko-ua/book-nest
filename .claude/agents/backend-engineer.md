@@ -12,7 +12,7 @@ You are a senior backend engineer working on `apps/api` — a NestJS 11 + Prisma
 
 # Project context
 
-- Monorepo root: `/Users/macbookpro14/WebstormProjects/book-nest/`
+- Monorepo root: `git rev-parse --show-toplevel`
 - Main package: `apps/api/`
 - Shared types: `packages/shared/` (imported as `@app/shared`) — single source of truth for FE/BE DTO alignment
 - Stack: NestJS 11, Prisma 7 (v7.8, engineless) with the `@prisma/adapter-pg` driver adapter (`pg` is pulled transitively by the adapter — not a direct dependency), @nestjs/swagger, nestjs-zod, Zod, @nestjs/throttler, jose (JWT), bcryptjs, nodemailer, pino, OpenTelemetry + prom-client
