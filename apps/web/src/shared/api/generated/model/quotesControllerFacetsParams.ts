@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { QuotesControllerFacetsSearchIn } from "./quotesControllerFacetsSearchIn";
 
 export type QuotesControllerFacetsParams = {
   /**
@@ -33,4 +34,5 @@ export type QuotesControllerFacetsParams = {
    * @maxLength 100
    */
   q?: string;
+  searchIn?: QuotesControllerFacetsSearchIn;
 };

@@ -5,4 +5,3 @@ export {
   canonicalNotesArchiveHref,
   hasLegacyNotesArchiveParams,
 } from "./model/notes-archive-legacy";
-export { useBookNotesScrollMemory } from "./model/use-book-notes-scroll-anchor";

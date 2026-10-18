@@ -3639,6 +3639,9 @@ export const booksControllerGetByIdResponseSeriesTagsDefault = [];
 export const booksControllerGetByIdResponseNotesCountMin = 0;
 export const booksControllerGetByIdResponseNotesCountMax = 9007199254740991;
 
+export const booksControllerGetByIdResponseQuotesCountMin = 0;
+export const booksControllerGetByIdResponseQuotesCountMax = 9007199254740991;
+
 export const BooksControllerGetByIdResponse = zod.object({
   ageCategory: zod.enum([
     "not_specified",
@@ -4010,6 +4013,10 @@ export const BooksControllerGetByIdResponse = zod.object({
     .int()
     .min(booksControllerGetByIdResponseNotesCountMin)
     .max(booksControllerGetByIdResponseNotesCountMax),
+  quotesCount: zod
+    .int()
+    .min(booksControllerGetByIdResponseQuotesCountMin)
+    .max(booksControllerGetByIdResponseQuotesCountMax),
 });
 
 /**

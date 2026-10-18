@@ -33,6 +33,7 @@ export function useToggleFavoriteDedication() {
       queryClient.setQueryData<BookDetailsView>(detailKey, {
         ...book,
         notesCount: cachedDetail.notesCount,
+        quotesCount: cachedDetail.quotesCount,
       });
     },
   });

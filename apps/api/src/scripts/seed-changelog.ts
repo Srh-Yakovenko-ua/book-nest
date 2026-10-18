@@ -1423,6 +1423,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Вкладка «Нотатки» на сторінці книги",
     version: null,
   },
+  {
+    bodyEn:
+      "A book's page now has a Quotes tab right after Notes, and the quotes block is gone from Overview. When the book has quotes, the tab label shows how many. Inside, you can search this book's quotes by text, comment, chapter and page, and use the All, Favorites, With a comment, No spoilers and With spoilers quick filters with their counts. Quotes are sorted by page by default, so they follow the reading order, and you can also show the newest or the oldest first. They appear in a single column and load 20 at a time as you scroll. The search, filter and sorting are kept in the page address, so a link opens the same list. If you switch to another tab of the book and come back, you return to the same place in the list. Spoiler quotes stay hidden until you reveal them, in search results too. You can still add a quote right from the tab.",
+    bodyUk:
+      "На сторінці книги з'явилася вкладка «Цитати», одразу після вкладки «Нотатки», а блоку з цитатами в огляді більше немає. Якщо в книзі є цитати, на назві вкладки видно, скільки їх. Усередині є пошук серед цитат цієї книги за текстом, коментарем, розділом і сторінкою та швидкі фільтри «Усі», «Улюблені», «З коментарем», «Без спойлерів» і «Зі спойлерами» з кількістю. За замовчуванням цитати впорядковані за сторінкою, тобто в порядку читання, а ще їх можна показати спершу нові або спершу старі. Цитати йдуть однією колонкою й довантажуються під час прокручування, по 20 за раз. Пошук, фільтр і сортування зберігаються в адресі сторінки, тож за посиланням відкриється той самий список. Якщо перейти на іншу вкладку книги й повернутися, ви опинитеся на тому ж місці списку. Цитати зі спойлерами, як і раніше, приховані, доки ви їх не відкриєте, зокрема й у результатах пошуку. Додати цитату можна прямо з вкладки.",
+    category: "improvement",
+    publishedAt: "2026-10-18T00:00:01.000Z",
+    slug: "book-quotes-tab",
+    titleEn: "Quotes tab on the book page",
+    titleUk: "Вкладка «Цитати» на сторінці книги",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

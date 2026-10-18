@@ -1,5 +1,4 @@
 import type {
-  BookQuotesView,
   CreateQuoteInput,
   Nullable,
   Paginator,
@@ -132,28 +131,6 @@ export class QuotesService {
     });
   }
 
-  async listForBook({
-    bookId,
-    userId,
-  }: {
-    bookId: string;
-    userId: string;
-  }): Promise<BookQuotesView> {
-    await this.findOwnedBookOrThrow(userId, bookId);
-
-    const [quotes, counts] = await Promise.all([
-      this.quotesRepository.listForBook(userId, bookId),
-      this.quotesRepository.bookCounts(userId, bookId),
-    ]);
-
-    return {
-      favoritesCount: counts.favorites,
-      items: quotes.map((quote) => this.toView(quote)),
-      spoilerCount: counts.spoiler,
-      totalCount: counts.total,
-    };
-  }
-
   async summary({ userId }: { userId: string }): Promise<QuotesSummaryView> {
     return buildQuotesSummary(await this.quotesRepository.summaryData(userId));
   }
@@ -227,6 +204,7 @@ function toQuotesDataset(query: QuotesFacetsQuery, userId: string): QuotesDatase
     createdFrom: query.createdFrom,
     createdTo: query.createdTo,
     search: normalizeSearch(query.q),
+    searchIn: query.searchIn,
     userId,
   };
 }

@@ -22,6 +22,7 @@ export function useBookMutationSync() {
       queryClient.setQueryData<BookDetailsView>(detailKey, {
         ...book,
         notesCount: cachedDetail.notesCount,
+        quotesCount: cachedDetail.quotesCount,
       });
     }
     void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(book.id) });

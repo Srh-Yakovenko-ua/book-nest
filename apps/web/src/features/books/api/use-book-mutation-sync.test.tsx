@@ -11,17 +11,21 @@ import { useBookMutationSync } from "./use-book-mutation-sync";
 const BOOK_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 describe("useBookMutationSync", () => {
-  it("keeps the cached notes count when a mutation answers with a plain book", () => {
+  it("keeps the cached notes and quotes counts when a mutation answers with a plain book", () => {
     const client = new QueryClient();
     client.setQueryData(
       bookKeys.detail(BOOK_ID),
-      makeBookDetailsView({ id: BOOK_ID, notesCount: 7, title: "До правки" }),
+      makeBookDetailsView({ id: BOOK_ID, notesCount: 7, quotesCount: 3, title: "До правки" }),
     );
     const mutated = makeBookView({ id: BOOK_ID, title: "Після правки" });
 
     syncWith(client)(mutated);
 
-    expect(client.getQueryData(bookKeys.detail(BOOK_ID))).toEqual({ ...mutated, notesCount: 7 });
+    expect(client.getQueryData(bookKeys.detail(BOOK_ID))).toEqual({
+      ...mutated,
+      notesCount: 7,
+      quotesCount: 3,
+    });
   });
 
   it("does not cache a book without a notes count when no detail was cached", () => {
