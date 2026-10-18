@@ -24,10 +24,16 @@ type IntersectionObserverRecord = {
   callback: IntersectionObserverCallback;
   elements: Element[];
   instance: IntersectionObserver;
+  reportedVisibility: Nullable<boolean>;
 };
 
 type RenderProvidersOptions = Omit<RenderOptions, "wrapper"> & {
   queryClient?: QueryClient;
+};
+
+type ViewportControls = {
+  enterViewport: () => void;
+  leaveViewportWithoutNotifying: () => void;
 };
 
 export function createTestQueryClient(): QueryClient {
@@ -39,8 +45,18 @@ export function createTestQueryClient(): QueryClient {
   });
 }
 
-export function mockIntersectionObserver(): { enterViewport: () => void } {
+export function mockIntersectionObserver(): ViewportControls {
   const observers: IntersectionObserverRecord[] = [];
+  const viewport = { isVisible: false };
+
+  function notify(record: IntersectionObserverRecord, targets: Element[]) {
+    if (targets.length === 0) return;
+    const entries = targets.map(
+      (target) => ({ isIntersecting: viewport.isVisible, target }) as IntersectionObserverEntry,
+    );
+    record.reportedVisibility = viewport.isVisible;
+    record.callback(entries, record.instance);
+  }
 
   class IntersectionObserverStub implements IntersectionObserver {
     readonly root: Nullable<Document | Element> = null;
@@ -50,7 +66,7 @@ export function mockIntersectionObserver(): { enterViewport: () => void } {
     private readonly record: IntersectionObserverRecord;
 
     constructor(callback: IntersectionObserverCallback) {
-      this.record = { callback, elements: [], instance: this };
+      this.record = { callback, elements: [], instance: this, reportedVisibility: null };
       observers.push(this.record);
     }
 
@@ -61,6 +77,7 @@ export function mockIntersectionObserver(): { enterViewport: () => void } {
 
     observe(element: Element) {
       this.record.elements.push(element);
+      notify(this.record, [element]);
     }
 
     takeRecords(): IntersectionObserverEntry[] {
@@ -79,19 +96,21 @@ export function mockIntersectionObserver(): { enterViewport: () => void } {
   afterEach(() => {
     vi.unstubAllGlobals();
     observers.length = 0;
+    viewport.isVisible = false;
   });
 
   return {
     enterViewport() {
+      viewport.isVisible = true;
       act(() => {
         for (const observer of [...observers]) {
-          const entries = observer.elements.map(
-            (target) => ({ isIntersecting: true, target }) as IntersectionObserverEntry,
-          );
-          if (entries.length === 0) continue;
-          observer.callback(entries, observer.instance);
+          if (observer.reportedVisibility === viewport.isVisible) continue;
+          notify(observer, observer.elements);
         }
       });
+    },
+    leaveViewportWithoutNotifying() {
+      viewport.isVisible = false;
     },
   };
 }

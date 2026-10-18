@@ -80,6 +80,23 @@ describe("InfiniteScrollFooter", () => {
     expect(onLoadMore).toHaveBeenCalledTimes(2);
   });
 
+  it("does not load another page when the loaded page pushes the sentinel out of view before the browser reports it", () => {
+    const { onLoadMore, rerender } = renderFooter("idle");
+
+    viewport.enterViewport();
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <InfiniteScrollFooter errorLabel={LABELS.error} onLoadMore={onLoadMore} state="loading" />,
+    );
+    viewport.leaveViewportWithoutNotifying();
+    rerender(
+      <InfiniteScrollFooter errorLabel={LABELS.error} onLoadMore={onLoadMore} state="idle" />,
+    );
+
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
   it("retries from the error state", async () => {
     const user = userEvent.setup();
     const { onLoadMore } = renderFooter("error");
