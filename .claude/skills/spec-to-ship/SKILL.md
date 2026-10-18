@@ -52,7 +52,7 @@ Walk `tasks.json` in dependency order, grouping into slices that leave the repo 
 - Hand the subagent the relevant `tasks.json` entries verbatim, including `doneWhen`. A subagent does not see this conversation.
 - Mark each task `done` in `tasks.json` only after its `doneWhen` criteria hold.
 
-**Gate:** each slice ends with `pnpm typecheck` and `pnpm lint` green before the next one starts. A red slice is fixed, not carried forward.
+**Gate:** each slice ends with its review, not with gates: per-slice gate runs on a long feature pinned the dev machine. Gates run once at the end through `/check` (or per slice only if the user asks), and a red gate is fixed before the report, not carried forward.
 
 ## Stage 5 — Per-slice review
 
@@ -73,11 +73,10 @@ This is the stage that catches the requirement that got quietly downgraded. Do n
 ## Stage 7 — Gates and live verification
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm format:check
-pnpm exec vitest run <path>   # the test files the spec's slices touched
+bash .claude/scripts/gates.sh
 ```
 
-The full `pnpm test` and `pnpm knip` run in CI on every push to `dev` — do not run them locally unless the user asks.
+Tests, including the ones the spec's slices added, run in CI on the PR into `dev`, never locally unless the user asks. List them by path in the report.
 
 Backend additionally: `pnpm gen:api` produces no surprise diff, `pnpm dev:api` starts clean, and the affected endpoint is curled with the output captured. Frontend additionally: `pnpm dev:web` starts clean and the UI is verified visually.
 

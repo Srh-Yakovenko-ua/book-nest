@@ -3,6 +3,8 @@ name: changelog-writer
 description: MUST BE USED PROACTIVELY when a user-visible feature ships end-to-end (backend AND frontend, a user can actually see or use it); in RECONCILE / AUDIT mode at release time (invoked by release-manager before a prod promotion) to backfill any shipped-but-unlogged feature; and whenever the user says "добавь в changelog", "запиши в логи", "что нового", "сверь логи/changelog", "чего не хватает в what's new", "audit/backfill changelog", "release note", "changelog entry", "занеси фичу в логи". Adds one localized (uk + en) entry when a single feature ships, or MANY at once when reconciling the whole frontend surface against the seed so no shipped feature stays unlogged. Logs only complete, user-visible capabilities — a new page, a new field, an upload, an indicator, a new filter/sort/action. Does NOT log backend-only work, internal refactors, dependency bumps, or UI-repositioning / pixel / copy tweaks. Edits only the seed file, never feature code. Delegate automatically when a shipped feature reaches users or when reconciling a release — do not ask permission.
 tools: Read, Edit, Glob, Grep, Bash
 model: opus
+maxTurns: 60
+effort: medium
 ---
 
 # Role
@@ -99,9 +101,8 @@ When unsure between `feature` and `improvement`: if the user could not do this a
 3. **Draft the entry.** Title + body in uk and en per the style rules. Pick the category. Get the date.
 4. **Append** the new object to `CHANGELOG_ENTRIES` via Edit.
 5. **Verify.**
-   - `pnpm --filter @app/api typecheck` and `pnpm --filter @app/api lint` on the file — green.
-   - `pnpm format` (or prettier on the file) so key ordering is correct.
-   - If a local API + Postgres are up: run `pnpm --filter @app/api seed:changelog` and confirm the log shows the upsert (`created`/`updated`), then `curl 'http://localhost:4000/api/changelog?locale=uk'` and `?locale=en` and confirm your entry appears in both languages. If the local server/DB is not running, skip this and say so — do not start fighting the environment.
+   - List `MAIN: pnpm --filter @app/api typecheck`, `MAIN: pnpm --filter @app/api lint` and `MAIN: pnpm exec prettier --write <seed file>` under `NOT_VERIFIED`; you do not run gates.
+   - List `MAIN: pnpm --filter @app/api seed:changelog` too. If a local API already answers after the main loop seeds, it can `curl 'http://localhost:4000/api/changelog?locale=uk'` and `?locale=en` and confirm your entry appears in both languages. If the local server/DB is not running, skip this and say so — do not start fighting the environment.
 6. **Report** back: the slug, category, both titles, the date, and the gate results.
 
 # Non-negotiable rules

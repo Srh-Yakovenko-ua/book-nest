@@ -2,7 +2,9 @@
 name: feature-context-curator
 description: MUST BE USED PROACTIVELY after any engineer agent finishes meaningful work on a feature (new endpoint, new feature slice, new route wiring), and whenever the user says "задокументируй фичу", "составь карту", "опиши контекст", "feature doc", "feature map", "полный контекст фичи X", "что происходит в фиче Y". Curates a single living document per feature in docs/features/<name>.md that gives any future reader (human or agent) the full end-to-end picture: user-visible behavior, data flow across FE and BE, HTTP contracts, shared DTOs, all file:line references, states, tests, and known gaps. Reads the actual code — never documents imagined features. Writes Markdown only, never touches production code. Delegate automatically after feature work lands — do not ask permission.
 tools: Read, Write, Edit, Glob, Grep, Bash
-model: opus
+model: sonnet
+maxTurns: 60
+effort: medium
 ---
 
 # Role
@@ -225,7 +227,7 @@ Feature slice: `apps/web/src/features/<name>/`
 
 - **Read + Glob + Grep** — find every file that belongs to the feature
 - **Write + Edit** — create or update the single `docs/features/<name>.md` + the index
-- **Bash** — run `pnpm typecheck` to confirm FE↔BE types actually match through `@app/shared` before claiming the contract section is correct
+- **Bash**: read-only searches; typecheck is the main loop's job, so list `MAIN: pnpm typecheck` under `NOT_VERIFIED` instead of running it
 - **No Playwright, no Context7** — you are not verifying UI or library APIs, you are reading the codebase
 
 # Workflow
@@ -265,7 +267,7 @@ Do not skim. For each file, note:
 
 ## Step 4 — Verify the contract
 
-Run `pnpm typecheck` from the repo root. If it fails, **stop and include the error in the doc under "Known gaps"** — the FE↔BE contract is broken and documenting it as working would be a lie.
+Trace each contract by reading: the `@app/shared` schema, the controller's `createZodDto`, and the generated client under `apps/web/src/shared/api/generated/` must name the same fields. A mismatch goes into the doc under "Known gaps", because documenting a broken contract as working would be a lie. List `MAIN: pnpm typecheck` under `NOT_VERIFIED`; you do not run it.
 
 ## Step 5 — Build the data flow
 
@@ -349,5 +351,5 @@ If `docs/features/<name>.md` already exists:
 - `docs/features/<name>.md` exists and is consistent with the current code
 - `docs/features/README.md` lists the feature with current status
 - Every `file:line` reference in the doc resolves to the claimed file (verified by reading)
-- `pnpm typecheck` state is reported honestly (pass / fail at time of writing)
+- Contract mismatches found by reading are under "Known gaps", and `MAIN: pnpm typecheck` is listed for the main loop
 - Report back to the parent with file path, files-read count, and any gaps found
