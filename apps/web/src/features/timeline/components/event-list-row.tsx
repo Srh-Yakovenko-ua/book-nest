@@ -96,7 +96,7 @@ export function EventListRow({
         <div className={LIST_ROW_STYLES.eventCell}>
           <TruncatedText className="text-sm font-medium text-foreground" text={event.title} />
           {event.summary === null ? null : (
-            <span className="min-w-0 truncate text-xs text-muted-foreground">{event.summary}</span>
+            <TruncatedText className="text-xs text-muted-foreground" text={event.summary} />
           )}
           {context === null ? null : (
             <TruncatedText className="text-xs text-muted-foreground" text={context} />
