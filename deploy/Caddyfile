@@ -73,3 +73,20 @@ mail.book-nest.net {
 
 	reverse_proxy mailpit:8025
 }
+
+db.book-nest.net {
+	encode zstd gzip
+
+	basic_auth {
+		team $2a$14$m/gCOSZjDz6AZxNOd6k9QO12X5FJoQkFFnipkGYLRFmTUx9kjBeLu
+	}
+
+	header {
+		X-Frame-Options DENY
+		Content-Security-Policy "frame-ancestors 'none'"
+		Referrer-Policy no-referrer
+		X-Robots-Tag noindex
+	}
+
+	reverse_proxy cloudbeaver:8978
+}
