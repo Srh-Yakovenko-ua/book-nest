@@ -18,6 +18,7 @@ import type { ReadingStatisticsOverviewDtoKpis } from "./readingStatisticsOvervi
 import type { ReadingStatisticsOverviewDtoLanguages } from "./readingStatisticsOverviewDtoLanguages";
 import type { ReadingStatisticsOverviewDtoLibraryBalance } from "./readingStatisticsOverviewDtoLibraryBalance";
 import type { ReadingStatisticsOverviewDtoMeta } from "./readingStatisticsOverviewDtoMeta";
+import type { ReadingStatisticsOverviewDtoOverviewInsights } from "./readingStatisticsOverviewDtoOverviewInsights";
 import type { ReadingStatisticsOverviewDtoPeriod } from "./readingStatisticsOverviewDtoPeriod";
 import type { ReadingStatisticsOverviewDtoPublishers } from "./readingStatisticsOverviewDtoPublishers";
 import type { ReadingStatisticsOverviewDtoRatings } from "./readingStatisticsOverviewDtoRatings";
@@ -46,6 +47,8 @@ export interface ReadingStatisticsOverviewDto {
   libraryBalance: ReadingStatisticsOverviewDtoLibraryBalance;
   /** Context the whole response was built with. reliableFrom is the first day from which the activity ledger is known to be complete; anything before it is observed history rather than a full record. */
   meta: ReadingStatisticsOverviewDtoMeta;
+  /** Observations shown next to the overview chart, one ranked list per dynamics metric. The lists are chosen independently, so a reads comparison never hides the pages one, and a list may be empty. */
+  overviewInsights: ReadingStatisticsOverviewDtoOverviewInsights;
   /** The period the backend actually used, after normalization. from is null only for all time, which has no lower bound; to is always a real day because reading statistics never look into the future. */
   period: ReadingStatisticsOverviewDtoPeriod;
   /** Publishers behind the completed reads. Reads whose publisher was never recorded stay out of the ranking and show up in coverage instead of becoming an unknown bucket. */

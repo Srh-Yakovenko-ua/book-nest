@@ -1,7 +1,12 @@
 import type { OwnershipStatus, ReadingStatus } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
-import { ReadingDayDetailsSchema, ReadingStatisticsOverviewSchema } from "@app/shared";
+import {
+  ReadingDayDetailsSchema,
+  ReadingStatisticsActivityPageSchema,
+  ReadingStatisticsCompletedReadsPageSchema,
+  ReadingStatisticsOverviewSchema,
+} from "@app/shared";
 import { addDays } from "date-fns";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -551,5 +556,252 @@ describe("GET /api/statistics/reading-days/:date", () => {
       .get("/api/statistics/reading-days/not-a-date")
       .set("Authorization", `Bearer ${reader.accessToken}`);
     expect(response.status).toBe(400);
+  });
+});
+
+const LAST_YEAR = String(CURRENT_YEAR - 1);
+
+const MARCH = { from: `${LAST_YEAR}-03-01`, to: `${LAST_YEAR}-03-31` } as const;
+
+function intervalDetails(
+  path: "completed-reads" | "reading-activity",
+  user: AuthenticatedUser,
+  query: Record<string, string>,
+) {
+  return request(app.getHttpServer())
+    .get(`/api/statistics/${path}`)
+    .query(query)
+    .set("Authorization", `Bearer ${user.accessToken}`);
+}
+
+async function marchBucket() {
+  const response = await overview(reader, { period: "year", year: LAST_YEAR });
+  const parsed = ReadingStatisticsOverviewSchema.parse(response.body);
+  return parsed.dynamics.buckets.find((bucket) => bucket.start === MARCH.from);
+}
+
+describe("GET /api/statistics/completed-reads and /reading-activity", () => {
+  it.each(["completed-reads", "reading-activity"] as const)(
+    "rejects an anonymous request to %s",
+    async (path) => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/statistics/${path}`)
+        .query(MARCH);
+      expect(response.status).toBe(401);
+    },
+  );
+
+  it.each([
+    ["a reversed range", { from: MARCH.to, to: MARCH.from }],
+    [
+      "a range longer than a year",
+      { from: `${LAST_YEAR}-01-01`, to: `${String(CURRENT_YEAR)}-02-01` },
+    ],
+    ["a malformed date", { from: "2026-13-01", to: MARCH.to }],
+    ["a missing bound", { from: MARCH.from }],
+    ["an empty page", { ...MARCH, limit: "0" }],
+    ["an oversized page", { ...MARCH, limit: "51" }],
+    ["a forged cursor", { ...MARCH, cursor: "not-a-cursor" }],
+  ])("rejects %s on both endpoints", async (_, query) => {
+    const [reads, activity] = await Promise.all([
+      intervalDetails("completed-reads", reader, query),
+      intervalDetails("reading-activity", reader, query),
+    ]);
+
+    expect(reads.status).toBe(400);
+    expect(activity.status).toBe(400);
+  });
+});
+
+describe("GET /api/statistics/completed-reads", () => {
+  it("lists every cycle finished in the bucket, rereads apart and trashed books kept", async () => {
+    const reread = await createBook({ title: "Reread", userId: reader.userId });
+    const trashed = await createBook({ title: "Trashed", userId: reader.userId });
+    for (const finishedIsoDate of [`${LAST_YEAR}-03-05`, `${LAST_YEAR}-03-20`]) {
+      await insertFinishedReadingCycle(prisma, {
+        bookId: reread,
+        finishedIsoDate,
+        userId: reader.userId,
+      });
+    }
+    await insertFinishedReadingCycle(prisma, {
+      bookId: trashed,
+      finishedIsoDate: `${LAST_YEAR}-03-10`,
+      rating: 8,
+      userId: reader.userId,
+    });
+    await insertFinishedReadingCycle(prisma, {
+      bookId: reread,
+      finishedIsoDate: `${LAST_YEAR}-04-01`,
+      userId: reader.userId,
+    });
+    const trashedAt = new Date();
+    await prisma.book.update({
+      data: { deletedAt: trashedAt, purgeAt: addDays(trashedAt, TRASH_RETENTION.days) },
+      where: { id: trashed },
+    });
+
+    const response = await intervalDetails("completed-reads", reader, MARCH);
+
+    expect(response.status).toBe(200);
+    const page = ReadingStatisticsCompletedReadsPageSchema.parse(response.body);
+    expect(page.items.map((item) => [item.finishedAt, item.book.title])).toEqual([
+      [`${LAST_YEAR}-03-20`, "Reread"],
+      [`${LAST_YEAR}-03-10`, "Trashed"],
+      [`${LAST_YEAR}-03-05`, "Reread"],
+    ]);
+    expect(new Set(page.items.map((item) => item.readingCycleId)).size).toBe(3);
+    expect(page.items[1]).toMatchObject({ book: { bookState: "soft_deleted" }, rating: 8 });
+    expect(page.totalCount).toBe(3);
+    expect(page.nextCursor).toBeNull();
+    expect((await marchBucket())?.completedReads).toBe(page.totalCount);
+  });
+
+  it("pages through the bucket without repeating or skipping a cycle", async () => {
+    const bookId = await createBook({ title: "Series", userId: reader.userId });
+    for (const day of ["03", "12", "12", "25"]) {
+      await insertFinishedReadingCycle(prisma, {
+        bookId,
+        finishedIsoDate: `${LAST_YEAR}-03-${day}`,
+        userId: reader.userId,
+      });
+    }
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let pageIndex = 0; pageIndex < 4; pageIndex += 1) {
+      const response = await intervalDetails("completed-reads", reader, {
+        ...MARCH,
+        limit: "1",
+        ...(cursor === undefined ? {} : { cursor }),
+      });
+      const page = ReadingStatisticsCompletedReadsPageSchema.parse(response.body);
+      seen.push(...page.items.map((item) => item.readingCycleId));
+      cursor = page.nextCursor ?? undefined;
+      if (page.nextCursor === null) break;
+    }
+
+    expect(seen).toHaveLength(4);
+    expect(new Set(seen).size).toBe(4);
+    expect(cursor).toBeUndefined();
+  });
+
+  it("keeps another reader's cycles out of the bucket", async () => {
+    const other = await context.registerVerifyAndLogin({
+      email: "other@example.com",
+      nickname: "other",
+    });
+    const bookId = await createBook({ title: "Theirs", userId: other.userId });
+    await insertFinishedReadingCycle(prisma, {
+      bookId,
+      finishedIsoDate: `${LAST_YEAR}-03-15`,
+      userId: other.userId,
+    });
+
+    const mine = ReadingStatisticsCompletedReadsPageSchema.parse(
+      (await intervalDetails("completed-reads", reader, MARCH)).body,
+    );
+    const theirs = ReadingStatisticsCompletedReadsPageSchema.parse(
+      (await intervalDetails("completed-reads", other, MARCH)).body,
+    );
+
+    expect(mine).toMatchObject({ items: [], totalCount: 0 });
+    expect(theirs.totalCount).toBe(1);
+  });
+});
+
+describe("GET /api/statistics/reading-activity", () => {
+  it("lists the recorded pages per day and book, matching the bucket even with no finished book", async () => {
+    await trustActivityFrom(`${LAST_YEAR}-01-01`);
+    const first = await createBook({ title: "First", userId: reader.userId });
+    const second = await createBook({ title: "Second", userId: reader.userId });
+    await recordReading({ bookId: first, isoDate: `${LAST_YEAR}-03-02`, page: 10, pagesRead: 10 });
+    await recordReading({ bookId: first, isoDate: `${LAST_YEAR}-03-02`, page: 20, pagesRead: 10 });
+    await recordReading({ bookId: second, isoDate: `${LAST_YEAR}-03-02`, page: 50, pagesRead: 50 });
+    await recordReading({ bookId: first, isoDate: `${LAST_YEAR}-03-15`, page: 50, pagesRead: 30 });
+    await recordReading({
+      bookId: second,
+      isoDate: `${LAST_YEAR}-04-01`,
+      page: 149,
+      pagesRead: 99,
+    });
+
+    const response = await intervalDetails("reading-activity", reader, MARCH);
+
+    expect(response.status).toBe(200);
+    const page = ReadingStatisticsActivityPageSchema.parse(response.body);
+    expect(page.items.map((item) => [item.date, item.book.title, item.pagesRead])).toEqual([
+      [`${LAST_YEAR}-03-15`, "First", 30],
+      [`${LAST_YEAR}-03-02`, "Second", 50],
+      [`${LAST_YEAR}-03-02`, "First", 20],
+    ]);
+    expect(page).toMatchObject({
+      activeDays: 2,
+      booksCount: 2,
+      historyQuality: "exact",
+      nextCursor: null,
+      pagesRead: 100,
+    });
+    const bucket = await marchBucket();
+    expect(bucket?.pagesRead).toBe(page.pagesRead);
+    expect(bucket?.completedReads).toBe(0);
+  });
+
+  it("labels a bucket that starts before the reliable history as observed only", async () => {
+    await trustActivityFrom(`${LAST_YEAR}-03-10`);
+    const bookId = await createBook({ title: "Legacy", userId: reader.userId });
+    await recordReading({ bookId, isoDate: `${LAST_YEAR}-03-12`, page: 40, pagesRead: 40 });
+
+    const page = ReadingStatisticsActivityPageSchema.parse(
+      (await intervalDetails("reading-activity", reader, MARCH)).body,
+    );
+
+    expect(page).toMatchObject({
+      historyQuality: "legacy_observed_only",
+      pagesRead: 40,
+      reliableFrom: `${LAST_YEAR}-03-10`,
+    });
+  });
+
+  it("pages through the contributions without repeating or skipping one", async () => {
+    await trustActivityFrom(`${LAST_YEAR}-01-01`);
+    const first = await createBook({ title: "First", userId: reader.userId });
+    const second = await createBook({ title: "Second", userId: reader.userId });
+    await recordReading({ bookId: first, isoDate: `${LAST_YEAR}-03-02`, page: 25, pagesRead: 25 });
+    await recordReading({ bookId: second, isoDate: `${LAST_YEAR}-03-02`, page: 25, pagesRead: 25 });
+    await recordReading({ bookId: first, isoDate: `${LAST_YEAR}-03-09`, page: 40, pagesRead: 15 });
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let pageIndex = 0; pageIndex < 3; pageIndex += 1) {
+      const response = await intervalDetails("reading-activity", reader, {
+        ...MARCH,
+        limit: "1",
+        ...(cursor === undefined ? {} : { cursor }),
+      });
+      const page = ReadingStatisticsActivityPageSchema.parse(response.body);
+      expect(page.pagesRead).toBe(65);
+      seen.push(...page.items.map((item) => `${item.date}:${item.book.bookId}`));
+      cursor = page.nextCursor ?? undefined;
+    }
+
+    expect(seen).toHaveLength(3);
+    expect(new Set(seen).size).toBe(3);
+    expect(cursor).toBeUndefined();
+  });
+
+  it("keeps another reader's pages out of the bucket", async () => {
+    const other = await context.registerVerifyAndLogin({
+      email: "other@example.com",
+      nickname: "other",
+    });
+    const bookId = await createBook({ title: "Theirs", userId: other.userId });
+    await recordReading({ bookId, isoDate: `${LAST_YEAR}-03-02`, page: 70, pagesRead: 70 });
+
+    const page = ReadingStatisticsActivityPageSchema.parse(
+      (await intervalDetails("reading-activity", reader, MARCH)).body,
+    );
+
+    expect(page).toMatchObject({ activeDays: 0, booksCount: 0, items: [], pagesRead: 0 });
   });
 });

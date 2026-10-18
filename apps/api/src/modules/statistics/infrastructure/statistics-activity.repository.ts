@@ -40,6 +40,8 @@ export type DayBookWithPresentation = DayBookRow & {
   title: string;
 };
 
+type ActivityContributionsCursor = { bookId: string; date: string; pagesRead: number };
+
 @Injectable()
 export class StatisticsActivityRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -86,6 +88,59 @@ export class StatisticsActivityRepository {
         .parse(rows)
         .map((row) => [row.bookId, row.pagesRead]),
     );
+  }
+
+  async findContributionsPage({
+    after,
+    from,
+    limit,
+    to,
+    userId,
+  }: {
+    after: Nullable<ActivityContributionsCursor>;
+    from: string;
+    limit: number;
+    to: string;
+    userId: string;
+  }): Promise<DayBookWithPresentation[]> {
+    const afterDate = after?.date ?? null;
+    const afterPages = after?.pagesRead ?? null;
+    const afterBookId = after?.bookId ?? null;
+    const rows = await this.prisma.$queryRaw`
+      SELECT contribution.date AS "date", contribution.book_id AS "bookId", contribution."pagesRead"
+      FROM (
+        SELECT event.date, event.book_id, SUM(event.pages_read)::int AS "pagesRead"
+        FROM book_reading_progress_events event
+        JOIN books book ON book.id = event.book_id
+        WHERE book.user_id = ${userId}::uuid
+          AND event.date >= ${from}::date
+          AND event.date <= ${to}::date
+        GROUP BY event.date, event.book_id
+        HAVING SUM(event.pages_read) > 0
+      ) contribution
+      WHERE ${afterDate}::date IS NULL
+        OR contribution.date < ${afterDate}::date
+        OR (
+          contribution.date = ${afterDate}::date
+          AND (
+            contribution."pagesRead" < ${afterPages}::int
+            OR (
+              contribution."pagesRead" = ${afterPages}::int
+              AND contribution.book_id > ${afterBookId}::uuid
+            )
+          )
+        )
+      ORDER BY contribution.date DESC, contribution."pagesRead" DESC, contribution.book_id ASC
+      LIMIT ${limit}
+    `;
+
+    return this.withPresentation({
+      rows: z
+        .array(DayBookRowSchema)
+        .parse(rows)
+        .map((row) => ({ ...row, date: toIsoDate(row.date) })),
+      userId,
+    });
   }
 
   async findDayBookPreviews({

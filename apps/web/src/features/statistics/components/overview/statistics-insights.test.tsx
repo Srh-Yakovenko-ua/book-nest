@@ -22,9 +22,7 @@ function getInsightText(text: string): HTMLElement {
 }
 
 function render(items: ReadingStatisticsInsight[], isLowerBound = false) {
-  return renderWithProviders(
-    <StatisticsInsights insights={{ items }} isLowerBound={isLowerBound} />,
-  );
+  return renderWithProviders(<StatisticsInsights insights={items} isLowerBound={isLowerBound} />);
 }
 
 const STREAK: ReadingStatisticsInsight = {
@@ -148,11 +146,9 @@ describe("StatisticsInsights", () => {
     expect(screen.getByText("12 днів", { selector: "strong" })).toBeInTheDocument();
   });
 
-  it("shows an honest empty state when the backend selected nothing", () => {
-    render([]);
+  it("renders no panel at all when nothing was selected", () => {
+    const { container } = render([]);
 
-    expect(
-      screen.getByText("Для цього періоду ще немає надійних спостережень."),
-    ).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });

@@ -1,15 +1,44 @@
-import { describe, expect, it } from "vitest";
+import type { ComponentProps, ReactNode } from "react";
 
-import { renderWithProviders, screen } from "@/test-utils";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({
+    children,
+    href,
+    ...props
+  }: ComponentProps<"a"> & { children: ReactNode; href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
+import { renderWithProviders, screen, userEvent } from "@/test-utils";
+
+import type { StatisticsDestination } from "../../model/statistics-view";
 
 import { overviewFixture } from "../../model/statistics.fixtures";
 import { StatisticsKpiGrid } from "./statistics-kpi-grid";
 
 const { kpis } = overviewFixture();
 
+const onOpen = vi.fn<(destination: StatisticsDestination) => void>();
+
+function destinationHref(destination: StatisticsDestination): string {
+  return `/statistics?${new URLSearchParams(destination).toString()}`;
+}
+
 describe("StatisticsKpiGrid", () => {
   it("names the cycle count as reads and the distinct count as books", () => {
-    renderWithProviders(<StatisticsKpiGrid isLowerBound={false} kpis={kpis} />);
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound={false}
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
 
     expect(screen.getByText("37")).toBeInTheDocument();
     expect(screen.getByText("читань")).toBeInTheDocument();
@@ -18,7 +47,14 @@ describe("StatisticsKpiGrid", () => {
   });
 
   it("shows rating coverage instead of implying every read was rated", () => {
-    renderWithProviders(<StatisticsKpiGrid isLowerBound={false} kpis={kpis} />);
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound={false}
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
 
     expect(screen.getByText("8,6")).toBeInTheDocument();
     expect(screen.getByText("28 із 37 читань оцінено")).toBeInTheDocument();
@@ -27,6 +63,7 @@ describe("StatisticsKpiGrid", () => {
   it("renders an unavailable average rating as a dash, never as zero", () => {
     renderWithProviders(
       <StatisticsKpiGrid
+        destinationHref={destinationHref}
         isLowerBound={false}
         kpis={{
           ...kpis,
@@ -38,6 +75,7 @@ describe("StatisticsKpiGrid", () => {
             value: null,
           },
         }}
+        onOpen={onOpen}
       />,
     );
 
@@ -49,6 +87,7 @@ describe("StatisticsKpiGrid", () => {
   it("trusts availability over the value, not the other way round", () => {
     renderWithProviders(
       <StatisticsKpiGrid
+        destinationHref={destinationHref}
         isLowerBound={false}
         kpis={{
           ...kpis,
@@ -60,6 +99,7 @@ describe("StatisticsKpiGrid", () => {
             value: 8.6,
           },
         }}
+        onOpen={onOpen}
       />,
     );
 
@@ -71,6 +111,7 @@ describe("StatisticsKpiGrid", () => {
   it("renders a known zero as a real zero", () => {
     renderWithProviders(
       <StatisticsKpiGrid
+        destinationHref={destinationHref}
         isLowerBound={false}
         kpis={{
           ...kpis,
@@ -78,6 +119,7 @@ describe("StatisticsKpiGrid", () => {
           pagesRead: { availability: "available", comparison: null, value: 0 },
           uniqueBooksCompleted: { comparison: null, value: 0 },
         }}
+        onOpen={onOpen}
       />,
     );
 
@@ -86,7 +128,14 @@ describe("StatisticsKpiGrid", () => {
   });
 
   it("marks monotonic values as a lower bound when the ledger is legacy", () => {
-    renderWithProviders(<StatisticsKpiGrid isLowerBound kpis={kpis} />);
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
 
     expect(screen.getByText("≥ 12 840")).toBeInTheDocument();
     expect(screen.getByText("≥ 96")).toBeInTheDocument();
@@ -95,6 +144,7 @@ describe("StatisticsKpiGrid", () => {
   it("renders a zero-baseline comparison without inventing a percentage", () => {
     renderWithProviders(
       <StatisticsKpiGrid
+        destinationHref={destinationHref}
         isLowerBound={false}
         kpis={{
           ...kpis,
@@ -103,6 +153,7 @@ describe("StatisticsKpiGrid", () => {
             value: 37,
           },
         }}
+        onOpen={onOpen}
       />,
     );
 
@@ -114,6 +165,7 @@ describe("StatisticsKpiGrid", () => {
   it("renders an unchanged comparison without a percentage", () => {
     renderWithProviders(
       <StatisticsKpiGrid
+        destinationHref={destinationHref}
         isLowerBound={false}
         kpis={{
           ...kpis,
@@ -122,6 +174,7 @@ describe("StatisticsKpiGrid", () => {
             value: 37,
           },
         }}
+        onOpen={onOpen}
       />,
     );
 
@@ -131,6 +184,7 @@ describe("StatisticsKpiGrid", () => {
   it("renders a rate comparison in percentage points", () => {
     renderWithProviders(
       <StatisticsKpiGrid
+        destinationHref={destinationHref}
         isLowerBound={false}
         kpis={{
           ...kpis,
@@ -141,10 +195,57 @@ describe("StatisticsKpiGrid", () => {
             value: 96,
           },
         }}
+        onOpen={onOpen}
       />,
     );
 
     expect(screen.getByText("6,4 в.п.")).toBeInTheDocument();
     expect(screen.getByText("41,6% днів періоду")).toBeInTheDocument();
+  });
+
+  it("orders the four KPIs as reads, pages, active days and rating", () => {
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound={false}
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
+
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
+      "/statistics?metric=reads&section=dynamics&tab=activity",
+      "/statistics?metric=pages&section=dynamics&tab=activity",
+      "/statistics?section=calendar&tab=activity",
+      "/statistics?section=ratings&tab=tastes",
+    ]);
+  });
+
+  it("opens the destination in place on a plain click and leaves modified clicks to the browser", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <StatisticsKpiGrid
+        destinationHref={destinationHref}
+        isLowerBound={false}
+        kpis={kpis}
+        onOpen={onOpen}
+      />,
+    );
+    const [, pagesLink] = screen.getAllByRole("link");
+    if (pagesLink === undefined) throw new Error("pages KPI link is missing");
+
+    await user.click(pagesLink);
+    expect(onOpen).toHaveBeenLastCalledWith({
+      metric: "pages",
+      section: "dynamics",
+      tab: "activity",
+    });
+
+    onOpen.mockClear();
+    pagesLink.addEventListener("click", (event) => event.preventDefault());
+    await user.keyboard("{Control>}");
+    await user.click(pagesLink);
+    await user.keyboard("{/Control}");
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });

@@ -3,11 +3,13 @@ import type {
   Nullable,
   ReadingStatisticsInsight,
   ReadingStatisticsInsightCategory,
+  ReadingStatisticsInsightCode,
   ReadingStatisticsInsightTone,
+  ReadingStatisticsOverviewInsights,
   StatisticsStreakSpan,
 } from "@app/shared";
 
-import { INSIGHT_CARDS_LIMIT } from "@app/shared";
+import { INSIGHT_CARDS_LIMIT, OVERVIEW_INSIGHTS_LIMIT } from "@app/shared";
 
 import type { MostActiveWeekday } from "./reading-calendar.js";
 import type { DiscoveredEntity } from "./reading-discoveries.js";
@@ -36,6 +38,22 @@ const PRIORITY: Record<ReadingStatisticsInsight["code"], number> = {
   top_author_reads: 8,
   top_genre_share: 7,
 };
+
+const OVERVIEW_INSIGHT_CODES = {
+  pages: ["pages_read_vs_comparison", "longest_streak_in_period", "most_active_weekday"],
+  reads: [
+    "completed_reads_vs_comparison",
+    "series_marathon",
+    "new_authors_discovered",
+    "top_genre_share",
+    "top_author_reads",
+    "high_rating_share",
+    "dominant_language",
+  ],
+} as const satisfies Record<
+  keyof ReadingStatisticsOverviewInsights,
+  readonly ReadingStatisticsInsightCode[]
+>;
 
 export type InsightEngineInput = {
   comparison: Nullable<{ completedReads: number; pagesRead: Nullable<number> }>;
@@ -76,6 +94,17 @@ export function buildInsightPool(input: InsightEngineInput): InsightPool {
   return {
     featuredInsight: featured?.insight ?? null,
     items: rest.slice(0, INSIGHT_CARDS_LIMIT).map((candidate) => candidate.insight),
+  };
+}
+
+export function buildOverviewInsights(
+  input: InsightEngineInput,
+): ReadingStatisticsOverviewInsights {
+  const ranked = collectCandidates(input).sort(compareCandidates);
+
+  return {
+    pages: overviewPool({ metric: "pages", ranked }),
+    reads: overviewPool({ metric: "reads", ranked }),
   };
 }
 
@@ -233,6 +262,21 @@ function diversify(candidates: InsightCandidate[]): InsightCandidate[] {
   return kept;
 }
 
+function overviewPool({
+  metric,
+  ranked,
+}: {
+  metric: keyof ReadingStatisticsOverviewInsights;
+  ranked: InsightCandidate[];
+}): ReadingStatisticsInsight[] {
+  const codes: readonly ReadingStatisticsInsightCode[] = OVERVIEW_INSIGHT_CODES[metric];
+
+  return ranked
+    .filter((candidate) => codes.includes(candidate.insight.code))
+    .slice(0, OVERVIEW_INSIGHTS_LIMIT)
+    .map((candidate) => withoutValueJudgment(candidate.insight));
+}
+
 function tasteCandidates(input: InsightEngineInput): InsightCandidate[] {
   const candidates: InsightCandidate[] = [];
   const { marathon, ratings, topAuthor, topGenre, topLanguage } = input;
@@ -335,4 +379,8 @@ function toneOf(absoluteDelta: number): ReadingStatisticsInsightTone {
     return "positive";
   }
   return absoluteDelta < 0 ? "negative" : "neutral";
+}
+
+function withoutValueJudgment(insight: ReadingStatisticsInsight): ReadingStatisticsInsight {
+  return insight.tone === "negative" ? { ...insight, tone: "neutral" } : insight;
 }

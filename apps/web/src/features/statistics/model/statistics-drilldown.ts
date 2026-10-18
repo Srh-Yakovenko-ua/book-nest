@@ -1,4 +1,5 @@
 import type {
+  CompletedReadsFilter,
   Nullable,
   ReadingStatisticsContextAction,
   ReadingStatisticsDrilldown,
@@ -11,6 +12,7 @@ export type StatisticsContextActionLink = {
 
 export type StatisticsDrilldownTarget =
   | { date: string; kind: "reading_day" }
+  | { from: string; kind: "completed_reads_interval"; to: string }
   | { kind: "reading_cycle"; readingCycleId: string }
   | { kind: "unsupported"; reason: StatisticsUnsupportedReason };
 
@@ -21,7 +23,7 @@ export function buildStatisticsDrilldownTarget(
 ): StatisticsDrilldownTarget {
   switch (drilldown.kind) {
     case "completed_reads_subset":
-      return { kind: "unsupported", reason: "COMPLETED_READS_SUBSET_HAS_NO_EXACT_DESTINATION" };
+      return toCompletedReadsIntervalTarget(drilldown.filters);
     case "reading_cycle":
       return { kind: "reading_cycle", readingCycleId: drilldown.readingCycleId };
     case "reading_day":
@@ -55,4 +57,13 @@ export function toContextActionLinks(
   actions: readonly ReadingStatisticsContextAction[],
 ): StatisticsContextActionLink[] {
   return actions.map(toContextActionLink);
+}
+
+function toCompletedReadsIntervalTarget(filters: CompletedReadsFilter): StatisticsDrilldownTarget {
+  const { finishedFrom, finishedTo, ...narrowing } = filters;
+  const isDateRangeOnly = Object.values(narrowing).every((value) => value === undefined);
+
+  return finishedFrom !== undefined && finishedTo !== undefined && isDateRangeOnly
+    ? { from: finishedFrom, kind: "completed_reads_interval", to: finishedTo }
+    : { kind: "unsupported", reason: "COMPLETED_READS_SUBSET_HAS_NO_EXACT_DESTINATION" };
 }

@@ -42,6 +42,7 @@ export * from "./reading-queue.js";
 export * from "./reading-statistics-calendar.js";
 export * from "./reading-statistics-common.js";
 export * from "./reading-statistics-insights.js";
+export * from "./reading-statistics-intervals.js";
 export * from "./reading-statistics-sections.js";
 export * from "./reading-statistics-tastes.js";
 export * from "./reading-statistics.js";

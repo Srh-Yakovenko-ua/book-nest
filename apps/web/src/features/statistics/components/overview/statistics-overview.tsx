@@ -4,14 +4,20 @@ import type { ReadingStatisticsOverview } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
+import type { PageTabsItem } from "@/components/page-tabs";
+
+import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
 
 import type { StatisticsScopeState } from "../../model/statistics-scope-state";
+import type { UseStatisticsParamsResult } from "../../model/use-statistics-params";
 
 import { useReadingStatisticsOverview } from "../../api/use-reading-statistics-overview";
 import { isLowerBoundComparison } from "../../model/statistics-dynamics";
 import { toStatisticsScopeState } from "../../model/statistics-scope-state";
+import { STATISTICS_VIEW, toStatisticsTab } from "../../model/statistics-view";
 import { useStatisticsParams } from "../../model/use-statistics-params";
+import { useStatisticsView } from "../../model/use-statistics-view";
 import { StatisticsPeriodControls } from "../controls/statistics-period-controls";
 import { LibraryBalanceSection } from "../progress/library-balance-section";
 import { ReadingGoalCard } from "../progress/reading-goal-card";
@@ -19,11 +25,10 @@ import { RecordsSection } from "../progress/records-section";
 import { SeriesSection } from "../progress/series-section";
 import { ReadingCalendarCard } from "../reading/reading-calendar-card";
 import { ReadingDynamicsCard } from "../reading/reading-dynamics-card";
-import { StatisticsDivider } from "../statistics-section";
+import { StatisticsFocusTarget } from "../statistics-focus-target";
 import {
   StatisticsError,
   StatisticsNote,
-  StatisticsPeriodEmpty,
   StatisticsRefetchError,
   StatisticsRefreshingNote,
   StatisticsSectionState,
@@ -35,9 +40,7 @@ import { GenresSection } from "../tastes/genres-section";
 import { LanguagesSection } from "../tastes/languages-section";
 import { PublishersSection } from "../tastes/publishers-section";
 import { RatingsSection } from "../tastes/ratings-section";
-import { StatisticsHero } from "./statistics-hero";
-import { StatisticsInsights } from "./statistics-insights";
-import { StatisticsKpiGrid } from "./statistics-kpi-grid";
+import { StatisticsOverviewTab } from "./statistics-overview-tab";
 
 export function StatisticsOverview() {
   const t = useTranslations("statistics");
@@ -68,30 +71,16 @@ export function StatisticsOverview() {
       {scope.isRefreshing ? <StatisticsRefreshingNote /> : null}
       {scope.isRefetchError ? <StatisticsRefetchError onRetry={scope.retry} /> : null}
 
-      <StatisticsBody
-        isRequestable={params.isRequestable}
-        onShowAllTime={() => params.setPeriod("all_time")}
-        scope={scope}
-      />
+      <StatisticsBody params={params} scope={scope} />
     </div>
   );
 }
 
-function hasReadingActivity(overview: ReadingStatisticsOverview): boolean {
-  return (
-    overview.kpis.completedReads.value > 0 ||
-    (overview.kpis.pagesRead.value ?? 0) > 0 ||
-    overview.calendar.activeDays > 0
-  );
-}
-
 function StatisticsBody({
-  isRequestable,
-  onShowAllTime,
+  params,
   scope,
 }: {
-  isRequestable: boolean;
-  onShowAllTime: () => void;
+  params: UseStatisticsParamsResult;
   scope: StatisticsScopeState<ReadingStatisticsOverview>;
 }) {
   const t = useTranslations("statistics");
@@ -102,7 +91,7 @@ function StatisticsBody({
   }
 
   if (overview === undefined) {
-    return isRequestable ? (
+    return params.isRequestable ? (
       <StatisticsSkeleton />
     ) : (
       <StatisticsSectionState
@@ -114,70 +103,95 @@ function StatisticsBody({
   }
 
   const isLowerBound = overview.meta.activityHistory.selectedPeriodQuality === "legacy_lower_bound";
-  const isComparisonLowerBound = isLowerBoundComparison({
-    comparison: overview.comparison,
-    reliableFrom: overview.meta.activityHistory.reliableFrom,
-  });
-
-  if (!hasReadingActivity(overview)) {
-    return (
-      <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
-        <StatisticsPeriodEmpty onShowAllTime={onShowAllTime} />
-        <StatisticsDivider title={t("dividers.progress")} />
-        <ReadingGoalCard goal={overview.goal} />
-        <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-      </div>
-    );
-  }
 
   return (
     <div aria-busy={scope.isRefreshing} className="flex flex-col gap-6">
       {isLowerBound ? <StatisticsNote>{t("states.lowerBound")}</StatisticsNote> : null}
 
-      <StatisticsHero hero={overview.hero} isLowerBound={isLowerBound} period={overview.period} />
-      <StatisticsKpiGrid isLowerBound={isLowerBound} kpis={overview.kpis} />
-      <StatisticsInsights insights={overview.insights} isLowerBound={isLowerBound} />
+      <StatisticsTabs isLowerBound={isLowerBound} overview={overview} params={params} />
+    </div>
+  );
+}
 
-      <StatisticsDivider title={t("dividers.reading")} />
+function StatisticsTabs({
+  isLowerBound,
+  overview,
+  params,
+}: {
+  isLowerBound: boolean;
+  overview: ReadingStatisticsOverview;
+  params: UseStatisticsParamsResult;
+}) {
+  const t = useTranslations("statistics.tabs");
+  const view = useStatisticsView(params.state);
+  const isComparisonLowerBound = isLowerBoundComparison({
+    comparison: overview.comparison,
+    reliableFrom: overview.meta.activityHistory.reliableFrom,
+  });
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+  const items: PageTabsItem[] = STATISTICS_VIEW.tabs.map((value) => ({ label: t(value), value }));
+
+  return (
+    <PageTabs
+      ariaLabel={t("label")}
+      items={items}
+      onValueChange={(value) => view.setTab(toStatisticsTab(value))}
+      value={view.tab}
+    >
+      <PageTabsPanel className="flex flex-col gap-6" value="overview">
+        <StatisticsOverviewTab
+          isComparisonLowerBound={isComparisonLowerBound}
+          isLowerBound={isLowerBound}
+          onShowAllTime={() => params.setPeriod("all_time")}
+          overview={overview}
+          today={params.today}
+          view={view}
+        />
+      </PageTabsPanel>
+
+      <PageTabsPanel className="flex flex-col gap-6" value="activity">
+        <StatisticsFocusTarget isTarget={view.section === "dynamics"}>
           <ReadingDynamicsCard
+            comparison={overview.comparison}
             dynamics={overview.dynamics}
             isComparisonLowerBound={isComparisonLowerBound}
+            metric={view.metric}
+            onMetricChange={view.setMetric}
             period={overview.period}
+            variant="full"
           />
+        </StatisticsFocusTarget>
+        <StatisticsFocusTarget isTarget={view.section === "calendar"}>
+          <ReadingCalendarCard calendar={overview.calendar} meta={overview.meta} />
+        </StatisticsFocusTarget>
+      </PageTabsPanel>
+
+      <PageTabsPanel className="flex flex-col gap-6" value="tastes">
+        <StatisticsFocusTarget isTarget={view.section === "ratings"}>
+          <RatingsSection ratings={overview.ratings} />
+        </StatisticsFocusTarget>
+
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <GenresSection genres={overview.genres} />
+          <AuthorsSection authors={overview.authors} />
         </div>
-        <ReadingGoalCard goal={overview.goal} />
-      </div>
 
-      <ReadingCalendarCard calendar={overview.calendar} meta={overview.meta} />
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <PublishersSection publishers={overview.publishers} />
+          <LanguagesSection languages={overview.languages} />
+        </div>
 
-      <StatisticsDivider title={t("dividers.tastes")} />
+        {overview.period.kind === "all_time" ? null : (
+          <DiscoveriesSection discoveries={overview.discoveries} />
+        )}
+      </PageTabsPanel>
 
-      <RatingsSection ratings={overview.ratings} />
-
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <GenresSection genres={overview.genres} />
-        <AuthorsSection authors={overview.authors} />
-      </div>
-
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <PublishersSection publishers={overview.publishers} />
-        <LanguagesSection languages={overview.languages} />
-      </div>
-
-      {overview.period.kind === "all_time" ? null : (
-        <DiscoveriesSection discoveries={overview.discoveries} />
-      )}
-
-      <StatisticsDivider title={t("dividers.progress")} />
-
-      <SeriesSection series={overview.series} />
-
-      <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
-
-      <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
-    </div>
+      <PageTabsPanel className="flex flex-col gap-6" value="progress">
+        <ReadingGoalCard goal={overview.goal} variant="full" />
+        <SeriesSection series={overview.series} />
+        <LibraryBalanceSection libraryBalance={overview.libraryBalance} />
+        <RecordsSection isLowerBound={isLowerBound} records={overview.records} />
+      </PageTabsPanel>
+    </PageTabs>
   );
 }

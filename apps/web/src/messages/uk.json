@@ -8849,10 +8849,12 @@
     "metaTitle": "Статистика читання",
     "title": "Статистика",
     "subtitle": "Як ви читали за обраний період: динаміка, смаки, прогрес і рекорди.",
-    "dividers": {
-      "tastes": "Читацькі вподобання",
-      "progress": "Прогрес і досягнення",
-      "reading": "Огляд читання"
+    "tabs": {
+      "label": "Розділи статистики",
+      "overview": "Огляд",
+      "activity": "Активність",
+      "tastes": "Вподобання",
+      "progress": "Прогрес"
     },
     "states": {
       "loading": "Завантажуємо статистику",
@@ -8927,15 +8929,9 @@
       "showMore": "Показати ще {count}",
       "showLess": "Згорнути"
     },
-    "hero": {
-      "title": {
-        "year": "{year} у книгах",
-        "last_12_months": "Останні 12 місяців",
-        "custom": "{range}",
-        "all_time": "Ваше читання за весь час"
-      },
-      "subtitle": "Коротка картина періоду: що ви завершили і що з цього виділяється.",
-      "recentTitle": "Нещодавно завершені"
+    "recentReads": {
+      "title": "Нещодавно завершені",
+      "empty": "За цей період ще немає завершених прочитань."
     },
     "kpi": {
       "lowerBoundValue": "≥ {value}",
@@ -8969,8 +8965,6 @@
     },
     "insights": {
       "title": "Інсайти",
-      "description": "Спостереження, які бекенд обрав як найпомітніші для цього періоду.",
-      "empty": "Для цього періоду ще немає надійних спостережень.",
       "codes": {
         "completed_reads_vs_comparison": "{direction, select, up {Ви завершили <value>{currentValue, plural, one {# читання} few {# читання} many {# читань} other {# читання}}</value> — на {absoluteDelta} більше, ніж у періоді порівняння ({comparisonValue}).} other {Ви завершили <value>{currentValue, plural, one {# читання} few {# читання} many {# читань} other {# читання}}</value> — на {absoluteDelta} менше, ніж у періоді порівняння ({comparisonValue}).}}",
         "pages_read_vs_comparison": "{direction, select, up {Прочитано <value>{currentValue, plural, one {# сторінку} few {# сторінки} many {# сторінок} other {# сторінки}}</value> — на {absoluteDelta} більше, ніж у періоді порівняння ({comparisonValue}).} other {Прочитано <value>{currentValue, plural, one {# сторінку} few {# сторінки} many {# сторінок} other {# сторінки}}</value> — на {absoluteDelta} менше, ніж у періоді порівняння ({comparisonValue}).}}",
@@ -9000,6 +8994,8 @@
       "empty": "За цей період немає даних для графіка.",
       "current": "Поточний період",
       "comparison": "Період порівняння",
+      "legendCurrent": "Поточний період: {range}",
+      "legendComparison": "Період порівняння: {range}",
       "comparisonLowerBound": "Сторінки не порівнюються: період порівняння починається раніше, ніж запрацював повний облік, тож його сторінки неповні.",
       "peakReads": "Найактивніший відрізок: {range} — {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}}.",
       "peakPages": "Найактивніший відрізок: {range} — {pages, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінки}}.",
@@ -9010,7 +9006,9 @@
         "comparison": "{metric} у періоді порівняння: {value}"
       },
       "srBucket": "{range}: {reads, plural, one {# читання} few {# читання} many {# читань} other {# читання}} · {pages} сторінок",
-      "srComparison": "Період порівняння, {range}: {metric} — {value}."
+      "srComparison": "Період порівняння, {range}: {metric} — {value}.",
+      "bucketsLabel": "Відрізки графіка: стрілки переходять між відрізками, Enter відкриває деталі",
+      "openHint": "Натисніть на стовпчик, щоб побачити, що саме сюди увійшло."
     },
     "calendar": {
       "title": "Читацький календар",
@@ -9090,6 +9088,22 @@
         "noRating": "Без оцінки",
         "deletedBook": "Книгу видалено з бібліотеки",
         "relatedTitle": "Повʼязане"
+      },
+      "bucket": {
+        "title": "{metric}: {range}",
+        "close": "Закрити деталі",
+        "seriesLabel": "Період деталей",
+        "loading": "Завантажуємо деталі відрізка",
+        "error": "Не вдалося завантажити деталі відрізка",
+        "retry": "Спробувати ще раз",
+        "unsupported": "Для цього відрізка немає точного списку.",
+        "readsTotal": "{count, plural, one {# завершене читання} few {# завершені читання} many {# завершених читань} other {# завершеного читання}}",
+        "readsEmpty": "У цьому відрізку немає завершених прочитань.",
+        "activeDaysLabel": "Активні дні",
+        "observedOnly": "Відрізок починається раніше за {date}, коли запрацював повний облік, тому тут лише записи, що збереглися.",
+        "pagesEmpty": "У цьому відрізку немає записаних сторінок.",
+        "pagesEmptyObservedOnly": "Записів про сторінки за цей відрізок не збереглося. Це не означає, що читання не було.",
+        "loadMore": "Показати ще"
       }
     },
     "ratings": {
@@ -9201,6 +9215,8 @@
     },
     "goal": {
       "title": "Ціль читання",
+      "currentTitle": "Поточна ціль",
+      "snapshotNote": "Показано поточний стан цілі незалежно від обраного періоду.",
       "description": "Найближча активна ціль.",
       "empty": "Активної цілі немає",
       "emptyDescription": "Створіть ціль, щоб бачити прогрес просто тут.",

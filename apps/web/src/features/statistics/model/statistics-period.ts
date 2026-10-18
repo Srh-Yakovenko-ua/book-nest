@@ -1,6 +1,7 @@
 import type {
   Nullable,
   ReadingStatisticsCompareMode,
+  ReadingStatisticsPeriod,
   ReadingStatisticsPeriodKind,
 } from "@app/shared";
 
@@ -82,6 +83,18 @@ export function defaultStatisticsCompareMode(
   kind: ReadingStatisticsPeriodKind,
 ): ReadingStatisticsCompareMode {
   return kind === "year" ? "same_period_last_year" : "previous_period";
+}
+
+export function isPeriodIncludingDay({
+  day,
+  period,
+}: {
+  day: string;
+  period: ReadingStatisticsPeriod;
+}): boolean {
+  const date = parseISO(day);
+  const startsBeforeOrOn = period.from === null || !isBefore(date, parseISO(period.from));
+  return startsBeforeOrOn && !isAfter(date, parseISO(period.to));
 }
 
 export function isStatisticsDay(value: string): boolean {
