@@ -14,7 +14,7 @@ export const CHARACTER_PATH_MAX_VISITED_NODES = 5000;
 export const CharacterRelationshipPathQuerySchema = z.object({
   ...readingPositionQueryFields,
   categories: queryStringArray(RelationshipCategorySchema),
-  contextBookId: z.uuid().optional(),
+  contextBookId: z.uuid(),
   fromId: z.uuid(),
   mode: CharacterGraphModeSchema.default("all"),
   relationshipTypes: queryStringArray(RelationshipTypeSchema),

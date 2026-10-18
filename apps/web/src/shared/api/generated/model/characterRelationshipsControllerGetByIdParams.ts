@@ -5,28 +5,48 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { CharacterRelationshipsControllerGetByIdScope } from "./characterRelationshipsControllerGetByIdScope";
 
 export type CharacterRelationshipsControllerGetByIdParams = {
   /**
-   * Reader audiobook seconds within the context book for page-level spoiler masking
+   * Reader audiobook seconds within the selected book for page-level spoiler masking
    * @minimum 0
    * @maximum 2147483647
    */
   contextAudioSeconds?: number;
   /**
-   * Reader chapter within the context book for page-level spoiler masking
+   * Reader chapter within the selected book for page-level spoiler masking
    * @minimum 0
    * @maximum 2147483647
    */
   contextChapter?: number;
   /**
-   * Reader page within the context book for page-level spoiler masking
+   * Reader page within the selected book for page-level spoiler masking
    * @minimum 0
    * @maximum 2147483647
    */
   contextPage?: number;
   /**
+   * Selected book for the character or series scope; not allowed with the book scope
    * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
   contextBookId?: string;
+  /**
+   * Reveal the description of one permitted book state in this response
+   * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  revealDescriptionBookStateId?: string;
+  /**
+   * Reveal the masked type fields of this visible relationship
+   */
+  revealType?: string;
+  /**
+   * Reader scope; must be sent together with scopeId
+   */
+  scope?: CharacterRelationshipsControllerGetByIdScope;
+  /**
+   * Id of the character, book or series scope
+   * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  scopeId?: string;
 };

@@ -92,7 +92,7 @@ export const CharacterGraphEdgeViewSchema = z.object({
   category: RelationshipCategorySchema.nullable(),
   description: z.string().nullable(),
   descriptionHidden: z.boolean(),
-  directionality: RelationshipDirectionalitySchema,
+  directionality: RelationshipDirectionalitySchema.nullable(),
   id: z.string(),
   intensity: RelationshipIntensitySchema.nullable(),
   revealed: z.boolean(),

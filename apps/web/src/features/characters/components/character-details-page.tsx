@@ -13,6 +13,7 @@ import type { PageTabsItem } from "@/components/page-tabs";
 import { UiIcon } from "@/components/icons";
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRelationshipListSearch } from "@/features/character-relationships";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import type { AppearanceListState } from "./character-appearances";
@@ -50,6 +51,7 @@ import { CharacterContextSelect } from "./character-context-select";
 import { CharacterDetailsHero } from "./character-details-hero";
 import { CharacterFactsTab } from "./character-facts-tab";
 import { CharacterOverview } from "./character-overview";
+import { CharacterRelationshipsTab } from "./character-relationships-tab";
 import { CharacterUnavailableContext } from "./character-unavailable-context";
 import { CharactersErrorState } from "./characters-error-state";
 
@@ -78,10 +80,11 @@ export function CharacterDetailsPage({ characterId }: CharacterDetailsPageProps)
   const [view] = useQueryState("view", parseAsString);
   const [tab] = useCharacterDetailsTab();
   const [q] = useCharacterFactsSearch();
+  const relationshipSearch = useRelationshipListSearch();
   const request = resolveCharacterDetailsRequest({ bookId, view });
   const canonicalHref = canonicalCharacterDetailsHref({
     characterId,
-    search: { bookId, q, tab, view },
+    search: { bookId, q, relationshipSearch, tab, view },
   });
 
   useEffect(() => {
@@ -246,6 +249,14 @@ function CharacterDetailsContextView({
                 onChooseBook={appearances.length === 0 ? null : openContextSelect}
               />
             </PageTabsPanel>
+            <PageTabsPanel value="relationships">
+              <CharacterRelationshipsTab
+                appearance={appearance}
+                appearances={appearances}
+                character={character}
+                mode={mode}
+              />
+            </PageTabsPanel>
           </PageTabs>
         </article>
 
@@ -265,6 +276,7 @@ function CharacterDetailsLoader({
   const router = useRouter();
   const [tab] = useCharacterDetailsTab();
   const [q] = useCharacterFactsSearch();
+  const relationshipSearch = useRelationshipListSearch();
   const [listState, setListState] = useState<AppearanceListState>(INITIAL_LIST_STATE);
   const base = useCharacterDetails({ characterId });
 
@@ -274,7 +286,7 @@ function CharacterDetailsLoader({
       : resolveCharacterDetailsMode({ appearances: base.data.appearances, request });
   const smartBookHref =
     request.kind === "smart" && mode?.kind === "book"
-      ? getCharacterDetailsPath({ bookId: mode.bookId, characterId, q, tab })
+      ? getCharacterDetailsPath({ bookId: mode.bookId, characterId, q, relationshipSearch, tab })
       : null;
 
   useEffect(() => {

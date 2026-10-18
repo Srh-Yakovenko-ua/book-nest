@@ -7,11 +7,11 @@ import {
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { ResolvedReadingContext } from "../domain/context-books.js";
-
 import { findVisibleRelationshipPath } from "../domain/character-relationship-path.js";
-import { resolveReadingContext } from "../domain/context-books.js";
-import { buildReadingPositionGate } from "../domain/reading-position.js";
+import {
+  readerAllowedBookIds,
+  readerPartNumberById,
+} from "../domain/relationship-reader-projection.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
@@ -21,6 +21,7 @@ import {
   toGraphFilterSet,
   toGraphNodeSource,
 } from "./graph-sources.js";
+import { RelationshipReaderScopeResolver } from "./relationship-reader-scope.resolver.js";
 
 @Injectable()
 export class CharacterRelationshipPathService {
@@ -28,6 +29,7 @@ export class CharacterRelationshipPathService {
     private readonly relationshipsRepository: CharacterRelationshipsRepository,
     private readonly charactersRepository: CharactersRepository,
     private readonly accessAsserter: CharacterAccessAsserter,
+    private readonly scopeResolver: RelationshipReaderScopeResolver,
   ) {}
 
   async findPath({
@@ -38,27 +40,24 @@ export class CharacterRelationshipPathService {
     userId: string;
   }): Promise<CharacterRelationshipPathView> {
     await this.assertEndpointsOwned({ characterIds: [query.fromId, query.toId], userId });
-    const context = await this.resolveContext({ contextBookId: query.contextBookId, userId });
+    const context = await this.scopeResolver.resolveContextBook({
+      contextBookId: query.contextBookId,
+      reader: readingPositionFromQuery(query),
+      userId,
+    });
+    const allowedBookIds = readerAllowedBookIds(context);
     const relationships = await this.relationshipsRepository.listRelationshipsInBooks({
-      bookIds: context.allowedBookIds,
+      bookIds: allowedBookIds,
       userId,
     });
     const characterIds = [
       ...new Set([...collectEndpointCharacterIds(relationships), query.fromId, query.toId]),
     ];
     const nodeRows = await this.charactersRepository.listGraphNodes({
-      bookIds: context.allowedBookIds,
+      bookIds: allowedBookIds,
       characterIds,
       userId,
     });
-
-    const positionGate =
-      query.contextBookId === undefined
-        ? null
-        : buildReadingPositionGate({
-            contextBookId: query.contextBookId,
-            reader: readingPositionFromQuery(query),
-          });
 
     return findVisibleRelationshipPath({
       categoryFilter: toGraphFilterSet(query.categories),
@@ -67,8 +66,8 @@ export class CharacterRelationshipPathService {
       maxVisitedNodes: CHARACTER_PATH_MAX_VISITED_NODES,
       mode: query.mode,
       nodes: nodeRows.map(toGraphNodeSource),
-      partNumberById: context.partNumberById,
-      positionGate,
+      partNumberById: readerPartNumberById(context),
+      readerContext: context,
       revealEdgeIds: new Set(query.revealEdgeIds ?? []),
       toId: query.toId,
       typeFilter: toGraphFilterSet(query.relationshipTypes),
@@ -85,28 +84,6 @@ export class CharacterRelationshipPathService {
     return this.accessAsserter.assertCharactersOwned({
       characterIds,
       notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
-      userId,
-    });
-  }
-
-  private async resolveContext({
-    contextBookId,
-    userId,
-  }: {
-    contextBookId: string | undefined;
-    userId: string;
-  }): Promise<ResolvedReadingContext> {
-    if (contextBookId === undefined) {
-      const books = await this.charactersRepository.listOwnedBooks({ userId });
-      return {
-        allowedBookIds: books.map((book) => book.id),
-        partNumberById: new Map(books.map((book) => [book.id, book.partNumber])),
-      };
-    }
-    return resolveReadingContext({
-      contextBookId,
-      notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound,
-      reader: this.charactersRepository,
       userId,
     });
   }

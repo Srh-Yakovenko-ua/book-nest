@@ -12,6 +12,18 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  makeCharacterPage,
+  makeEditableRelationship,
+  makeMaskedRelationshipEdge,
+  makeRelationshipDetails,
+  makeRelationshipEdge,
+  makeRelationshipListItem,
+  makeRelationshipPage,
+  makeRosterCharacter,
+  RELATIONSHIP_FIXTURE,
+} from "@/features/character-relationships/model/relationships.fixtures";
+import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
@@ -1232,5 +1244,282 @@ describe("CharacterDetailsPage overview", () => {
     expect(await screen.findByText(shown)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Форми та образи" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: EMPTY_OVERVIEW_TITLE })).not.toBeInTheDocument();
+  });
+});
+
+describe("CharacterDetailsPage relationships tab", () => {
+  const copy = messages.relationships;
+  const tabs = messages.characters.facts.tabs;
+  const RELATIONSHIPS_PATH = "/api/character-relationships";
+  const DETAILS_PATH = `${RELATIONSHIPS_PATH}/${RELATIONSHIP_FIXTURE.relationshipId}`;
+  const ROSTER_PATH = /^\/api\/books\/[^/]+\/characters$/;
+  const FACTS_PATH = /^\/api\/books\/[^/]+\/characters\/char-1\/facts$/;
+  const CHARACTER_PATH = /^\/api\/characters\/[^/]+$/;
+  const MASKED_RELATIONSHIP = makeRelationshipListItem({
+    relationship: makeMaskedRelationshipEdge(),
+  });
+  const OPEN_RELATIONSHIP = copy.card.open
+    .replace("{source}", RELATIONSHIP_FIXTURE.geralt.name)
+    .replace("{target}", RELATIONSHIP_FIXTURE.ciri.name);
+
+  type SentRequest = { body: unknown; method: string; url: URL };
+
+  function createdRelationships(): unknown[] {
+    return sentRequests()
+      .filter(({ method, url }) => method === "POST" && url.pathname === RELATIONSHIPS_PATH)
+      .map(({ body }) => body);
+  }
+
+  function listRequests(): Record<string, string>[] {
+    return sentRequests()
+      .filter(({ method, url }) => method === "GET" && url.pathname === RELATIONSHIPS_PATH)
+      .map(({ url }) => Object.fromEntries(url.searchParams));
+  }
+
+  async function openCreateEditor(): Promise<HTMLElement> {
+    await userEvent.click(await screen.findByRole("button", { name: copy.toolbar.create }));
+    return screen.findByRole("dialog", { name: copy.editor.createTitle });
+  }
+
+  function sentRequests(): SentRequest[] {
+    return fetchMock.mock.calls.map(([input, init]) => {
+      const request = init as RequestInit | undefined;
+      const body: unknown = typeof request?.body === "string" ? JSON.parse(request.body) : null;
+      return {
+        body,
+        method: (request?.method ?? "GET").toUpperCase(),
+        url: new URL(String(input), "http://localhost"),
+      };
+    });
+  }
+
+  beforeEach(() => {
+    respondWith(
+      makeCharacterDetails({ appearances: [appearanceIn(firstBook), appearanceIn(secondBook)] }),
+    );
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "http://localhost");
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "POST" && url.pathname === RELATIONSHIPS_PATH) {
+        return Promise.resolve(jsonResponse(makeEditableRelationship(), 201));
+      }
+      if (method !== "GET") {
+        return Promise.reject(new Error(`unexpected ${method} ${url.pathname}`));
+      }
+      if (url.pathname === RELATIONSHIPS_PATH) {
+        return Promise.resolve(jsonResponse(makeRelationshipPage([MASKED_RELATIONSHIP])));
+      }
+      if (url.pathname === DETAILS_PATH) {
+        const relationship =
+          url.searchParams.get("revealType") === "true"
+            ? makeRelationshipEdge()
+            : makeMaskedRelationshipEdge();
+        return Promise.resolve(jsonResponse(makeRelationshipDetails({ relationship })));
+      }
+      if (ROSTER_PATH.test(url.pathname)) {
+        return Promise.resolve(
+          jsonResponse(makeCharacterPage([makeRosterCharacter(RELATIONSHIP_FIXTURE.ciri)])),
+        );
+      }
+      if (FACTS_PATH.test(url.pathname)) {
+        return Promise.resolve(
+          jsonResponse({ items: [], page: 1, pagesCount: 0, pageSize: 20, totalCount: 0 }),
+        );
+      }
+      if (CHARACTER_PATH.test(url.pathname)) {
+        return Promise.resolve(respondToDetails(String(input)));
+      }
+      return Promise.reject(new Error(`unexpected ${method} ${url.pathname}`));
+    });
+  });
+
+  it("opens the tab from the URL and lists the relationships of the character in that book", async () => {
+    renderPage("bookId=book-1&tab=relationships");
+
+    expect(await screen.findByRole("button", { name: OPEN_RELATIONSHIP })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: tabs.relationships })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(listRequests()).toEqual([
+      expect.objectContaining({ contextBookId: "book-1", scope: "character", scopeId: "char-1" }),
+    ]);
+  });
+
+  it("lists the relationships across every book on the general profile", async () => {
+    renderPage("view=global&tab=relationships");
+
+    await screen.findByRole("button", { name: OPEN_RELATIONSHIP });
+
+    expect(listRequests()).toEqual([
+      expect.objectContaining({ scope: "character", scopeId: "char-1" }),
+    ]);
+    expect(listRequests()[0]).not.toHaveProperty("contextBookId");
+  });
+
+  it("offers the books of the character as a list filter on the general profile", async () => {
+    renderPage("view=global&tab=relationships");
+
+    await userEvent.click(await screen.findByRole("button", { name: copy.filters.trigger }));
+    const filters = await screen.findByRole("dialog", { name: copy.filters.title });
+    await userEvent.click(within(filters).getByRole("combobox", { name: copy.filters.book.label }));
+
+    expect(await screen.findByRole("option", { name: firstBook.title })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: secondBook.title })).toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      search: "bookId=book-1",
+      settled: () => screen.findByRole("tabpanel", { name: tabs.overview }),
+      tab: tabs.overview,
+    },
+    {
+      search: "bookId=book-1&tab=facts",
+      settled: () => screen.findByText(messages.characters.facts.empty.title),
+      tab: tabs.facts,
+    },
+  ])("asks for no relationships while the $tab tab is open", async ({ search, settled }) => {
+    renderPage(search);
+
+    await settled();
+
+    expect(sentRequests().filter(({ url }) => url.pathname.startsWith(RELATIONSHIPS_PATH))).toEqual(
+      [],
+    );
+  });
+
+  it("keeps the tab and the list state when the only book of the character is opened", async () => {
+    respondWith(makeCharacterDetails({ appearances: [appearanceIn(firstBook)] }));
+    renderPage("tab=relationships&relQ=ciri&relCat=family,romantic&relSort=newest");
+
+    await waitFor(() => expect(replace).toHaveBeenCalled());
+
+    const target = new URL(String(replace.mock.lastCall?.[0]), "http://localhost");
+    expect(target.pathname).toBe("/characters/char-1");
+    expect(Object.fromEntries(target.searchParams)).toEqual({
+      bookId: "book-1",
+      relCat: "family,romantic",
+      relQ: "ciri",
+      relSort: "newest",
+      tab: "relationships",
+    });
+  });
+
+  it.each([
+    { href: "/characters/char-1?bookId=book-2&tab=relationships", option: secondBook.title },
+    {
+      href: "/characters/char-1?view=global&tab=relationships",
+      option: messages.characters.page.globalProfile,
+    },
+  ])(
+    "switches the context to $option on the tab and drops the list state",
+    async ({ href, option }) => {
+      renderPage("bookId=book-1&tab=relationships&relQ=ciri&relCat=family");
+
+      await userEvent.click(
+        await screen.findByRole("combobox", { name: messages.characters.page.contextLabel }),
+      );
+      await userEvent.click(await screen.findByRole("option", { name: option }));
+
+      expect(push).toHaveBeenCalledWith(href);
+    },
+  );
+
+  it("closes the details and masks the revealed type again when the book changes", async () => {
+    const pageAt = (search: string) => (
+      <NuqsTestingAdapter hasMemory searchParams={search}>
+        <CharacterDetailsPage characterId="char-1" />
+      </NuqsTestingAdapter>
+    );
+    const { rerender } = renderWithProviders(pageAt("bookId=book-1&tab=relationships"));
+
+    await userEvent.click(await screen.findByRole("button", { name: OPEN_RELATIONSHIP }));
+    const firstDetails = await screen.findByRole("dialog", { name: copy.details.title });
+    await userEvent.click(
+      await within(firstDetails).findByRole("button", { name: copy.details.type.reveal }),
+    );
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: copy.reveal.confirm,
+      }),
+    );
+    await within(firstDetails).findByText(copy.types.guardian_of);
+
+    rerender(pageAt("bookId=book-2&tab=relationships"));
+
+    await waitFor(() =>
+      expect(listRequests().map((query) => query.contextBookId)).toContain("book-2"),
+    );
+    const openInNextBook = await screen.findByRole("button", { name: OPEN_RELATIONSHIP });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await userEvent.click(openInNextBook);
+    const nextDetails = await screen.findByRole("dialog", { name: copy.details.title });
+
+    expect(await within(nextDetails).findByText(copy.details.type.hiddenTitle)).toBeInTheDocument();
+    expect(within(nextDetails).queryByText(copy.types.guardian_of)).not.toBeInTheDocument();
+    const nextBookReveals = sentRequests()
+      .filter(
+        ({ url }) =>
+          url.pathname === DETAILS_PATH && url.searchParams.get("contextBookId") === "book-2",
+      )
+      .map(({ url }) => url.searchParams.get("revealType"));
+    expect(nextBookReveals).toContain(null);
+    expect(nextBookReveals).not.toContain("true");
+  });
+
+  it("opens the editor with the character of the page fixed as a participant", async () => {
+    renderPage("bookId=book-1&tab=relationships");
+
+    const editor = within(await openCreateEditor());
+
+    expect(containerOf(editor.getByText(copy.editor.participants.focus), "div")).toHaveTextContent(
+      "Ґеральт",
+    );
+    expect(
+      editor.queryByRole("combobox", { name: copy.editor.participants.source }),
+    ).not.toBeInTheDocument();
+    expect(
+      editor.getByRole("combobox", { name: copy.editor.participants.target }),
+    ).toBeInTheDocument();
+  });
+
+  it("saves a relationship created in a book for that book without asking for one", async () => {
+    const { book, ciri, geralt, secondBook } = RELATIONSHIP_FIXTURE;
+    respondWith(
+      makeCharacterDetails({
+        appearances: [book, secondBook].map(({ id, title }) =>
+          appearanceIn(bookOf(id, title), { characterId: geralt.id }),
+        ),
+        id: geralt.id,
+      }),
+    );
+    renderWithProviders(
+      <NuqsTestingAdapter searchParams={`bookId=${book.id}&tab=relationships`}>
+        <CharacterDetailsPage characterId={geralt.id} />
+      </NuqsTestingAdapter>,
+    );
+
+    const editor = within(await openCreateEditor());
+    await userEvent.click(editor.getByRole("combobox", { name: copy.editor.participants.target }));
+    await userEvent.click(await screen.findByRole("option", { name: new RegExp(`${ciri.name}$`) }));
+    await userEvent.click(editor.getByRole("combobox", { name: copy.editor.type.label }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: new RegExp(`^${copy.types.guardian_of}`) }),
+    );
+    await userEvent.click(editor.getByRole("button", { name: copy.editor.actions.next }));
+    const create = await editor.findByRole("button", { name: copy.editor.actions.create });
+
+    expect(editor.getByText(book.title)).toBeInTheDocument();
+    expect(
+      editor.queryByRole("combobox", { name: copy.editor.book.label }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(create);
+    await waitFor(() => expect(createdRelationships()).toHaveLength(1));
+    expect(createdRelationships()[0]).toMatchObject({
+      initialBookStates: [{ bookId: book.id }],
+      sourceCharacterId: geralt.id,
+      targetCharacterId: ciri.id,
+    });
   });
 });

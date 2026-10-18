@@ -207,12 +207,17 @@ describe("book character graph", () => {
     const res = await authed("get", `/api/books/${bookId}/character-graph`, accessToken);
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.edges).toHaveLength(1);
-    expect(res.body.edges[0]).toMatchObject({ category: null, type: null, typeHidden: true });
+    expect(res.body.edges[0]).toMatchObject({
+      category: null,
+      directionality: null,
+      type: null,
+      typeHidden: true,
+    });
     expect(res.body.hiddenContent.hasLockedEdges).toBe(true);
     expect(JSON.stringify(res.body)).not.toContain("biological_parent_of");
   });
 
-  it("cannot traverse a hidden edge during a focus traversal", async () => {
+  it("cannot traverse a hidden edge during a focus traversal and never advertises it", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
@@ -244,7 +249,7 @@ describe("book character graph", () => {
     expect(res.body.nodes.map((node: { id: string }) => node.id).sort()).toEqual(
       [alice, bob].sort(),
     );
-    expect(res.body.hiddenContent.hasHiddenEdges).toBe(true);
+    expect(res.body.hiddenContent.hasHiddenEdges).toBe(false);
   });
 
   it("un-masks only the named reveal edge", async () => {
@@ -397,7 +402,7 @@ describe("book character graph", () => {
     ]);
   });
 
-  it("hides a not-yet-reached edge and its orphaned nodes from the graph", async () => {
+  it("hides a not-yet-reached edge and its orphaned nodes from the graph without advertising it", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
@@ -419,7 +424,7 @@ describe("book character graph", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.edges).toHaveLength(0);
     expect(res.body.nodes).toHaveLength(0);
-    expect(res.body.hiddenContent.hasHiddenEdges).toBe(true);
+    expect(res.body.hiddenContent.hasHiddenEdges).toBe(false);
   });
 
   it("reveals the edge and node degree once the reader page reaches it", async () => {
@@ -447,7 +452,7 @@ describe("book character graph", () => {
     expect(res.body.nodes.every((node: { degree: number }) => node.degree === 1)).toBe(true);
   });
 
-  it("keeps a positionless edge visible and ignores position without a reader position", async () => {
+  it("hides an edge with an introduction marker when the reader position is unknown", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const alice = await createCharacter(accessToken, "Alice");
@@ -467,7 +472,7 @@ describe("book character graph", () => {
       accessToken,
     );
     expect(withoutPosition.status).toBe(HttpStatus.OK);
-    expect(withoutPosition.body.edges).toHaveLength(1);
+    expect(withoutPosition.body.edges).toEqual([]);
     expect(withoutPosition.body.hiddenContent.hasHiddenEdges).toBe(false);
   });
 

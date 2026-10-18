@@ -142,6 +142,14 @@ const graphNodeSelect = {
   updatedAt: true,
 } satisfies Prisma.CharacterSelect;
 
+const readerBookSelect = {
+  id: true,
+  partNumber: true,
+  readingProgress: { select: { currentPage: true, finishedAt: true } },
+  seriesId: true,
+  title: true,
+} satisfies Prisma.BookSelect;
+
 const GLOBAL_CHARACTER_ORDER_BY: Record<
   CharacterListSort,
   Prisma.CharacterOrderByWithRelationInput[]
@@ -323,6 +331,8 @@ export type GraphNodeRow = {
   updatedAt: Date;
 };
 
+export type ReaderBookRow = Prisma.BookGetPayload<{ select: typeof readerBookSelect }>;
+
 export type RosterPageRow = Prisma.BookCharacterGetPayload<{ select: typeof rosterPageSelect }>;
 
 export type RosterSummaryRow = Prisma.BookCharacterGetPayload<{
@@ -337,6 +347,10 @@ export type SeriesBookRow = {
   createdAt: Date;
   id: string;
   partNumber: Nullable<number>;
+};
+
+export type SeriesMemberReadingContextRow = SeriesReadingContextBookRow & {
+  seriesId: Nullable<string>;
 };
 
 export type SeriesReadingContextBookRow = {
@@ -886,15 +900,16 @@ export class CharactersRepository {
     return groups.map((group) => group.characterId);
   }
 
-  listOwnedBooks({
-    userId,
-  }: {
-    userId: string;
-  }): Promise<{ id: string; partNumber: Nullable<number> }[]> {
-    return this.prisma.book.findMany({
-      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
-      select: { id: true, partNumber: true },
-      where: { ...SOFT_DELETE_SCOPE.active, userId },
+  listOwnedReaderBooks(
+    { bookIds, userId }: { bookIds: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<ReaderBookRow[]> {
+    if (bookIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return client.book.findMany({
+      select: readerBookSelect,
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
   }
 
@@ -966,6 +981,26 @@ export class CharactersRepository {
         readingProgress: { select: { finishedAt: true } },
       },
       where: { ...SOFT_DELETE_SCOPE.active, seriesId, userId },
+    });
+  }
+
+  listSeriesBooksReadingContextBySeries(
+    { seriesIds, userId }: { seriesIds: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<SeriesMemberReadingContextRow[]> {
+    if (seriesIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return client.book.findMany({
+      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
+      select: {
+        createdAt: true,
+        id: true,
+        partNumber: true,
+        readingProgress: { select: { finishedAt: true } },
+        seriesId: true,
+      },
+      where: { ...SOFT_DELETE_SCOPE.active, seriesId: { in: seriesIds }, userId },
     });
   }
 

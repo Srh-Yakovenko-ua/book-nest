@@ -11,7 +11,7 @@ import type { PageTabsItem } from "@/components/page-tabs";
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { Badge } from "@/components/ui/badge";
 import {
-  BookCharactersTab,
+  BookCharactersPanel,
   toCharacterBookContext,
   useBookCharacterSummary,
 } from "@/features/characters";
@@ -96,7 +96,7 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
             <ReadingHistoryTab book={book} isActive={tab === "history"} key={book.id} />
           </PageTabsPanel>
           <PageTabsPanel value="characters">
-            <BookCharactersTab book={book} key={book.id} />
+            <BookCharactersPanel book={book} key={book.id} />
           </PageTabsPanel>
           <PageTabsPanel value="timeline">
             <BookTimelineBlock book={book} key={book.id} />

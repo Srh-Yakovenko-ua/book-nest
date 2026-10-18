@@ -2,12 +2,17 @@ import type {
   CharacterRelationshipDeletionResultView,
   CharacterRelationshipDetailsView,
   CharacterRelationshipPathView,
+  CharacterRelationshipSafeDetailsView,
+  PaginatedCharacterRelationshipListView,
 } from "@app/shared";
 
 import {
   CharacterRelationshipDetailsQuerySchema,
+  CharacterRelationshipListQuerySchema,
+  CharacterRelationshipListSortSchema,
   CharacterRelationshipPathQuerySchema,
   CreateCharacterRelationshipSchema,
+  RelationshipReaderScopeSchema,
   UpdateCharacterRelationshipSchema,
   UpsertRelationshipBookStateSchema,
 } from "@app/shared";
@@ -47,10 +52,12 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterRelationshipPathService } from "../application/character-relationship-path.service.js";
+import { CharacterRelationshipsListService } from "../application/character-relationships-list.service.js";
 import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
 import { RelationshipBookStateService } from "../application/relationship-book-state.service.js";
 import { RelationshipContextService } from "../application/relationship-context.service.js";
 import { CharacterRelationshipDetailsQueryDto } from "./input-dto/character-relationship-details-query.input-dto.js";
+import { CharacterRelationshipListQueryDto } from "./input-dto/character-relationship-list-query.input-dto.js";
 import { CharacterRelationshipPathQueryDto } from "./input-dto/character-relationship-path-query.input-dto.js";
 import { CreateCharacterRelationshipInputDto } from "./input-dto/create-character-relationship.input-dto.js";
 import { UpdateCharacterRelationshipInputDto } from "./input-dto/update-character-relationship.input-dto.js";
@@ -58,6 +65,8 @@ import { UpsertRelationshipBookStateInputDto } from "./input-dto/upsert-relation
 import { CharacterRelationshipDeletionResultViewDto } from "./view-dto/character-relationship-deletion-result.view-dto.js";
 import { CharacterRelationshipDetailsViewDto } from "./view-dto/character-relationship-details.view-dto.js";
 import { CharacterRelationshipPathViewDto } from "./view-dto/character-relationship-path.view-dto.js";
+import { CharacterRelationshipSafeDetailsViewDto } from "./view-dto/character-relationship-safe-details.view-dto.js";
+import { PaginatedCharacterRelationshipListViewDto } from "./view-dto/paginated-character-relationship-list.view-dto.js";
 
 @ApiTags("character-relationships")
 @Controller("api/character-relationships")
@@ -68,9 +77,89 @@ export class CharacterRelationshipsController {
     private readonly contextService: RelationshipContextService,
     private readonly bookStateService: RelationshipBookStateService,
     private readonly pathService: CharacterRelationshipPathService,
+    private readonly listService: CharacterRelationshipsListService,
   ) {}
 
-  @ApiNotFoundResponse({ description: "A character endpoint was not found" })
+  @ApiBadRequestResponse({
+    description:
+      "Invalid scope combination, filter or search term, or the context book does not belong to the series",
+  })
+  @ApiNotFoundResponse({ description: "The scope character, book or series, or the context book" })
+  @ApiOkResponse({
+    description: "A page of relationships projected and spoiler-masked for the reader scope",
+    type: PaginatedCharacterRelationshipListViewDto,
+  })
+  @ApiOperation({ summary: "List spoiler-safe relationships for a character, book or series" })
+  @ApiQuery({
+    description: "Reader scope",
+    enum: RelationshipReaderScopeSchema.options,
+    name: "scope",
+    required: true,
+  })
+  @ApiQuery({
+    description: "Id of the character, book or series scope",
+    name: "scopeId",
+    required: true,
+  })
+  @ApiQuery({
+    description:
+      "Selected book: switches the character scope to that book, picks the series reading context; not allowed with the book scope",
+    name: "contextBookId",
+    required: false,
+  })
+  @ApiQuery({
+    description:
+      "Only relationships with a visible state in this book (character scope without contextBookId)",
+    name: "bookId",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Search over visible names, labels and descriptions, 2 to 100 characters",
+    name: "q",
+    required: false,
+  })
+  @ApiQuery({ description: "Comma-separated or repeated", name: "categories", required: false })
+  @ApiQuery({
+    description: "Comma-separated or repeated",
+    name: "relationshipTypes",
+    required: false,
+  })
+  @ApiQuery({ description: "Comma-separated or repeated", name: "statuses", required: false })
+  @ApiQuery({ description: "Comma-separated or repeated", name: "intensities", required: false })
+  @ApiQuery({ name: "isCanonical", required: false })
+  @ApiQuery({
+    enum: CharacterRelationshipListSortSchema.options,
+    name: "sort",
+    required: false,
+  })
+  @ApiQuery({ name: "pageNumber", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the selected book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the selected book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the selected book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
+  @Get()
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(CharacterRelationshipListQuerySchema))
+    query: CharacterRelationshipListQueryDto,
+  ): Promise<PaginatedCharacterRelationshipListView> {
+    return this.listService.list({ query, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed, e.g. a missing contextBookId" })
+  @ApiNotFoundResponse({ description: "A character endpoint or the context book was not found" })
   @ApiOkResponse({
     description: "The shortest spoiler-safe chain connecting two characters",
     type: CharacterRelationshipPathViewDto,
@@ -78,7 +167,11 @@ export class CharacterRelationshipsController {
   @ApiOperation({ summary: "Find the shortest spoiler-safe path between two characters" })
   @ApiQuery({ name: "fromId", required: true })
   @ApiQuery({ name: "toId", required: true })
-  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({
+    description: "Owned book that bounds the spoiler-safe reading context",
+    name: "contextBookId",
+    required: true,
+  })
   @ApiQuery({ name: "mode", required: false })
   @ApiQuery({ name: "categories", required: false })
   @ApiQuery({ name: "relationshipTypes", required: false })
@@ -126,26 +219,56 @@ export class CharacterRelationshipsController {
     return this.relationshipsService.create({ input: body, userId: user.id });
   }
 
-  @ApiNotFoundResponse({ description: "Relationship or context book not found" })
-  @ApiOkResponse({
-    description: "The relationship, spoiler-masked to a reading context when contextBookId is set",
-    type: CharacterRelationshipDetailsViewDto,
+  @ApiBadRequestResponse({
+    description: "Invalid scope combination, or the context book does not belong to the series",
   })
-  @ApiOperation({ summary: "Get a relationship with its spoiler-safe per-book state history" })
+  @ApiNotFoundResponse({
+    description: "Relationship, scope, context book or revealed book state not found",
+  })
+  @ApiOkResponse({
+    description: "The relationship projected and spoiler-masked for the selected reader scope",
+    type: CharacterRelationshipSafeDetailsViewDto,
+  })
+  @ApiOperation({ summary: "Get a spoiler-safe relationship view for a reader scope" })
   @ApiParam({ description: "Relationship id", name: "relationshipId" })
-  @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({
-    description: "Reader chapter within the context book for page-level spoiler masking",
+    description: "Reader scope; must be sent together with scopeId",
+    enum: RelationshipReaderScopeSchema.options,
+    name: "scope",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Id of the character, book or series scope",
+    name: "scopeId",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Selected book for the character or series scope; not allowed with the book scope",
+    name: "contextBookId",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reveal the masked type fields of this visible relationship",
+    name: "revealType",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reveal the description of one permitted book state in this response",
+    name: "revealDescriptionBookStateId",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader chapter within the selected book for page-level spoiler masking",
     name: "contextChapter",
     required: false,
   })
   @ApiQuery({
-    description: "Reader page within the context book for page-level spoiler masking",
+    description: "Reader page within the selected book for page-level spoiler masking",
     name: "contextPage",
     required: false,
   })
   @ApiQuery({
-    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
+    description: "Reader audiobook seconds within the selected book for page-level spoiler masking",
     name: "contextAudioSeconds",
     required: false,
   })
@@ -155,8 +278,23 @@ export class CharacterRelationshipsController {
     @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
     @Query(new ZodQueryPipe(CharacterRelationshipDetailsQuerySchema))
     query: CharacterRelationshipDetailsQueryDto,
-  ): Promise<CharacterRelationshipDetailsView> {
+  ): Promise<CharacterRelationshipSafeDetailsView> {
     return this.contextService.getDetails({ query, relationshipId, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Relationship not found" })
+  @ApiOkResponse({
+    description: "The full, unmasked relationship with every per-book state for authoring",
+    type: CharacterRelationshipDetailsViewDto,
+  })
+  @ApiOperation({ summary: "Get the full relationship record for the owner to edit" })
+  @ApiParam({ description: "Relationship id", name: "relationshipId" })
+  @Get(":relationshipId/edit")
+  getForEdit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
+  ): Promise<CharacterRelationshipDetailsView> {
+    return this.contextService.getEditableDetails({ relationshipId, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

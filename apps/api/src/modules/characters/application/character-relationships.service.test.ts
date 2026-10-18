@@ -194,6 +194,7 @@ describe("CharacterRelationshipsService family diagnostics", () => {
 
     await expect(service.create({ input: parentInput, userId: USER_ID })).rejects.toMatchObject({
       code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected,
+      details: { severity: "conflict" },
     });
     expect(createRelationship).not.toHaveBeenCalled();
   });
@@ -217,7 +218,10 @@ describe("CharacterRelationshipsService family diagnostics", () => {
         }),
         userId: USER_ID,
       }),
-    ).rejects.toMatchObject({ code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected });
+    ).rejects.toMatchObject({
+      code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected,
+      details: { severity: "warning" },
+    });
     expect(createRelationship).not.toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { CHARACTER_INT4_MAX } from "./characters.js";
 import { readingPositionQueryFields } from "./common.js";
+import { MediaViewSchema } from "./media.js";
 
 const RELATIONSHIP_LABEL_MAX = 120;
 const RELATIONSHIP_CUSTOM_TYPE_MAX = 60;
@@ -395,10 +396,71 @@ export const UpdateCharacterRelationshipSchema = z
 
 export type UpdateCharacterRelationship = z.infer<typeof UpdateCharacterRelationshipSchema>;
 
-export const CharacterRelationshipDetailsQuerySchema = z.object({
-  ...readingPositionQueryFields,
-  contextBookId: z.uuid().optional(),
-});
+export const RelationshipReaderScopeSchema = z.enum(["character", "book", "series"]);
+
+export type RelationshipReaderScope = z.infer<typeof RelationshipReaderScopeSchema>;
+
+export const READING_POSITION_QUERY_KEYS = [
+  "contextAudioSeconds",
+  "contextChapter",
+  "contextPage",
+] as const;
+
+const refineRelationshipDetailsQuery = (
+  value: {
+    contextAudioSeconds?: number;
+    contextBookId?: string;
+    contextChapter?: number;
+    contextPage?: number;
+    revealDescriptionBookStateId?: string;
+    scope?: RelationshipReaderScope;
+    scopeId?: string;
+  },
+  ctx: z.RefinementCtx,
+): void => {
+  if ((value.scope === undefined) !== (value.scopeId === undefined)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "scope and scopeId must be provided together",
+      path: [value.scope === undefined ? "scope" : "scopeId"],
+    });
+  }
+  if (value.scope === "book" && value.contextBookId !== undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "contextBookId is not allowed with the book scope",
+      path: ["contextBookId"],
+    });
+  }
+  const hasSelectedBook = value.scope === "book" || value.contextBookId !== undefined;
+  const positionKey = READING_POSITION_QUERY_KEYS.find((key) => value[key] !== undefined);
+  if (positionKey !== undefined && !hasSelectedBook) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "A reading position requires the book scope or a contextBookId",
+      path: [positionKey],
+    });
+  }
+  const hasConcreteBookContext = hasSelectedBook || value.scope === "series";
+  if (value.revealDescriptionBookStateId !== undefined && !hasConcreteBookContext) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "revealDescriptionBookStateId requires a book or series context",
+      path: ["revealDescriptionBookStateId"],
+    });
+  }
+};
+
+export const CharacterRelationshipDetailsQuerySchema = z
+  .object({
+    ...readingPositionQueryFields,
+    contextBookId: z.uuid().optional(),
+    revealDescriptionBookStateId: z.uuid().optional(),
+    revealType: z.stringbool().optional(),
+    scope: RelationshipReaderScopeSchema.optional(),
+    scopeId: z.uuid().optional(),
+  })
+  .superRefine(refineRelationshipDetailsQuery);
 
 export type CharacterRelationshipDetailsQuery = z.infer<
   typeof CharacterRelationshipDetailsQuerySchema
@@ -486,14 +548,87 @@ export type CharacterRelationshipDetailsView = z.infer<
   typeof CharacterRelationshipDetailsViewSchema
 >;
 
-export const CharacterRelationshipContextViewSchema = z.object({
-  effectiveState: CharacterRelationshipBookStateViewSchema.nullable(),
-  history: z.array(CharacterRelationshipBookStateViewSchema),
-  relationship: CharacterRelationshipViewSchema,
+export const SafeParticipantViewSchema = z.object({
+  avatar: MediaViewSchema.nullable(),
+  id: z.string(),
+  name: z.string(),
 });
 
-export type CharacterRelationshipContextView = z.infer<
-  typeof CharacterRelationshipContextViewSchema
+export type SafeParticipantView = z.infer<typeof SafeParticipantViewSchema>;
+
+export const SafeRelationshipEdgeViewSchema = z.object({
+  category: RelationshipCategorySchema.nullable(),
+  createdAt: z.string(),
+  customType: z.string().nullable(),
+  directionality: RelationshipDirectionalitySchema.nullable(),
+  id: z.string(),
+  isCanonical: z.boolean().nullable(),
+  source: SafeParticipantViewSchema,
+  sourceLabel: z.string().nullable(),
+  target: SafeParticipantViewSchema,
+  targetLabel: z.string().nullable(),
+  type: RelationshipTypeSchema.nullable(),
+  typeHidden: z.boolean(),
+  visibleChangedAt: z.string(),
+});
+
+export type SafeRelationshipEdgeView = z.infer<typeof SafeRelationshipEdgeViewSchema>;
+
+export const SafeBookStateViewSchema = z.object({
+  bookId: z.string(),
+  bookTitle: z.string(),
+  description: z.string().nullable(),
+  descriptionHidden: z.boolean(),
+  endedAudioSeconds: z.number().int().nullable(),
+  endedChapter: z.string().nullable(),
+  endedPage: z.number().int().nullable(),
+  id: z.string(),
+  intensity: RelationshipIntensitySchema.nullable(),
+  introducedAudioSeconds: z.number().int().nullable(),
+  introducedChapter: z.string().nullable(),
+  introducedPage: z.number().int().nullable(),
+  partNumber: z.number().int().nullable(),
+  status: RelationshipBookStateStatusSchema.nullable(),
+});
+
+export type SafeBookStateView = z.infer<typeof SafeBookStateViewSchema>;
+
+export const CharacterRelationshipSafeDetailsViewSchema = z.object({
+  effectiveState: SafeBookStateViewSchema.nullable(),
+  history: z.array(SafeBookStateViewSchema),
+  relationship: SafeRelationshipEdgeViewSchema,
+});
+
+export type CharacterRelationshipSafeDetailsView = z.infer<
+  typeof CharacterRelationshipSafeDetailsViewSchema
+>;
+
+const CharacterRelationshipSafeContextEdgeViewSchema = CharacterRelationshipViewSchema.extend({
+  directionality: RelationshipDirectionalitySchema.nullable(),
+  isCanonical: z.boolean().nullable(),
+});
+
+export type CharacterRelationshipSafeContextEdgeView = z.infer<
+  typeof CharacterRelationshipSafeContextEdgeViewSchema
+>;
+
+const CharacterRelationshipSafeContextBookStateViewSchema =
+  CharacterRelationshipBookStateViewSchema.extend({
+    status: RelationshipBookStateStatusSchema.nullable(),
+  });
+
+export type CharacterRelationshipSafeContextBookStateView = z.infer<
+  typeof CharacterRelationshipSafeContextBookStateViewSchema
+>;
+
+export const CharacterRelationshipSafeContextViewSchema = z.object({
+  effectiveState: CharacterRelationshipSafeContextBookStateViewSchema.nullable(),
+  history: z.array(CharacterRelationshipSafeContextBookStateViewSchema),
+  relationship: CharacterRelationshipSafeContextEdgeViewSchema,
+});
+
+export type CharacterRelationshipSafeContextView = z.infer<
+  typeof CharacterRelationshipSafeContextViewSchema
 >;
 
 export const CharacterRelationshipDeletionResultViewSchema = z.object({

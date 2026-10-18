@@ -21,6 +21,23 @@ const detailsInclude = {
   targetCharacter: { select: { name: true } },
 } satisfies Prisma.CharacterRelationshipInclude;
 
+const readerParticipantSelect = {
+  avatarMedia: true,
+  id: true,
+  name: true,
+} satisfies Prisma.CharacterSelect;
+
+const readerDetailsInclude = {
+  bookStates: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
+  sourceCharacter: { select: readerParticipantSelect },
+  targetCharacter: { select: readerParticipantSelect },
+} satisfies Prisma.CharacterRelationshipInclude;
+
+export const ACTIVE_PARTICIPANTS_SCOPE = {
+  sourceCharacter: { deletedAt: null },
+  targetCharacter: { deletedAt: null },
+} satisfies Prisma.CharacterRelationshipWhereInput;
+
 export type CreateBookStateData = UpdateBookStateData & {
   bookId: string;
   relationshipId: string;
@@ -38,6 +55,10 @@ export type CreateRelationshipData = {
   type: string;
   userId: string;
 };
+
+export type ReaderRelationshipDetailsRow = Prisma.CharacterRelationshipGetPayload<{
+  include: typeof readerDetailsInclude;
+}>;
 
 export type RelationshipAncestryEdge = {
   sourceCharacterId: string;
@@ -138,6 +159,16 @@ export class CharacterRelationshipsRepository {
     });
   }
 
+  findOwnedReaderRelationship(
+    { relationshipId, userId }: { relationshipId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<ReaderRelationshipDetailsRow>> {
+    return client.characterRelationship.findFirst({
+      include: readerDetailsInclude,
+      where: { ...ACTIVE_PARTICIPANTS_SCOPE, id: relationshipId, userId },
+    });
+  }
+
   findOwnedRelationshipBare(
     { relationshipId, userId }: { relationshipId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
@@ -155,24 +186,25 @@ export class CharacterRelationshipsRepository {
     });
   }
 
-  listRelationshipsInBooks({
-    bookIds,
-    userId,
-  }: {
-    bookIds: string[];
-    userId: string;
-  }): Promise<RelationshipDetailsRow[]> {
+  listRelationshipsInBooks(
+    { bookIds, userId }: { bookIds: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<RelationshipDetailsRow[]> {
     if (bookIds.length === 0) {
       return Promise.resolve([]);
     }
-    return this.prisma.characterRelationship.findMany({
+    return client.characterRelationship.findMany({
       include: {
-        bookStates: { orderBy: [{ createdAt: "asc" }], where: { bookId: { in: bookIds } } },
+        bookStates: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          where: { bookId: { in: bookIds } },
+        },
         sourceCharacter: { select: { name: true } },
         targetCharacter: { select: { name: true } },
       },
       orderBy: [{ createdAt: "asc" }],
       where: {
+        ...ACTIVE_PARTICIPANTS_SCOPE,
         bookStates: { some: { bookId: { in: bookIds } } },
         userId,
       },

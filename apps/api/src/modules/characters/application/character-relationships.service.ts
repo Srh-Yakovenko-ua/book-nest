@@ -375,12 +375,14 @@ export class CharacterRelationshipsService {
     if (conflict !== undefined) {
       throw new ConflictError(conflict.message, {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected,
+        details: { severity: conflict.severity },
       });
     }
     const warning = diagnostics.find((diagnostic) => diagnostic.severity === "warning");
     if (warning !== undefined && !allowFamilyCycle) {
       throw new ConflictError(warning.message, {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.familyCycleDetected,
+        details: { severity: warning.severity },
       });
     }
     return diagnostics.filter((diagnostic) => diagnostic.severity === "warning");

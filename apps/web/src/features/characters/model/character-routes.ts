@@ -1,6 +1,6 @@
 export const CHARACTER_GLOBAL_VIEW = "global";
 
-export const CHARACTER_DETAILS_TABS = ["overview", "facts"] as const;
+export const CHARACTER_DETAILS_TABS = ["overview", "facts", "relationships"] as const;
 
 export const CHARACTER_DETAILS_TAB_DEFAULT = "overview" satisfies CharacterDetailsTab;
 
@@ -12,6 +12,7 @@ export type CharacterRouteArgs =
 
 type CharacterDetailsRouteArgs = CharacterRouteArgs & {
   q?: string;
+  relationshipSearch?: URLSearchParams;
   tab?: CharacterDetailsTab;
 };
 
@@ -25,6 +26,7 @@ export function getCharacterDetailsPath(args: CharacterDetailsRouteArgs): string
     search.set("tab", args.tab);
   }
   if (args.q !== undefined && args.q.length > 0) search.set("q", args.q);
+  args.relationshipSearch?.forEach((value, key) => search.set(key, value));
   return `/characters/${args.characterId}${queryStringOf(search)}`;
 }
 

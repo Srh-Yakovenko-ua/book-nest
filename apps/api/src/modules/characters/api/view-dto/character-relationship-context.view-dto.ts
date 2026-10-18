@@ -1,6 +1,6 @@
-import { CharacterRelationshipContextViewSchema } from "@app/shared";
+import { CharacterRelationshipSafeContextViewSchema } from "@app/shared";
 import { createZodDto } from "nestjs-zod";
 
-export class CharacterRelationshipContextViewDto extends createZodDto(
-  CharacterRelationshipContextViewSchema,
+export class CharacterRelationshipSafeContextViewDto extends createZodDto(
+  CharacterRelationshipSafeContextViewSchema,
 ) {}

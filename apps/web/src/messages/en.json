@@ -4403,7 +4403,8 @@
       "tabs": {
         "books": "Books in series",
         "about": "About the series",
-        "notes": "Notes"
+        "notes": "Notes",
+        "characters": "Characters"
       },
       "booksEmpty": {
         "title": "This series has no books yet",
@@ -4486,7 +4487,34 @@
         "errorDescription": "Try refreshing the page.",
         "back": "Back to series"
       },
-      "duplicateParts": "Some books share the same part number: {parts}. The reading order may be inaccurate."
+      "duplicateParts": "Some books share the same part number: {parts}. The reading order may be inaccurate.",
+      "characters": {
+        "context": {
+          "label": "As of book",
+          "hint": "Characters and relationships are shown up to and including this book, with no spoilers from later parts.",
+          "option": "Part {part} · {title}",
+          "loading": "Working out the reading context…",
+          "error": "Couldn't work out the reading context for this series. Please try again."
+        },
+        "noBooks": {
+          "title": "This series has no books yet",
+          "description": "Add a book to the series to browse its characters and the relationships between them."
+        },
+        "cast": {
+          "searchLabel": "Search series characters",
+          "searchPlaceholder": "Search by name…",
+          "searchClear": "Clear search",
+          "empty": {
+            "title": "No characters yet",
+            "description": "The books of the series up to the selected part have no characters yet."
+          },
+          "noResults": {
+            "title": "No one found",
+            "description": "Try a different name or clear the search.",
+            "clear": "Clear search"
+          }
+        }
+      }
     },
     "editDialog": {
       "title": "Edit series",
@@ -8211,7 +8239,8 @@
       },
       "tabs": {
         "facts": "Facts",
-        "overview": "Overview"
+        "overview": "Overview",
+        "relationships": "Relationships"
       },
       "toast": {
         "created": "Fact added",
@@ -8512,6 +8541,12 @@
       "factsWarning": "{count, plural, one {# fact} other {# facts}} about the character in this book will be deleted permanently. Adding the character to the book again won't restore them.",
       "title": "Remove from this book",
       "unlinking": "Removing…"
+    },
+    "viewModes": {
+      "graph": "Graph",
+      "label": "Characters view",
+      "list": "List",
+      "relationships": "Relationships"
     }
   },
   "species": {
@@ -9613,6 +9648,552 @@
         "streakDaysAtLeast": "{count, plural, one {≥ # day in a row} other {≥ # days in a row}}",
         "recordedOnly": "Among recorded days: part of the period predates full history tracking."
       }
+    }
+  },
+  "relationships": {
+    "card": {
+      "actions": {
+        "delete": "Delete",
+        "edit": "Edit",
+        "menu": "Relationship actions: {source} and {target}"
+      },
+      "books": "Books with this relationship",
+      "canonical": "Canon",
+      "descriptionHidden": "Description hidden to avoid spoilers",
+      "moreBooks": "+{count}",
+      "open": "Open relationship: {source} and {target}",
+      "participantLabel": "{name}: {label}",
+      "typeHidden": "Relationship type hidden"
+    },
+    "categories": {
+      "conflict": "Conflict",
+      "custom": "Custom",
+      "family": "Family",
+      "hierarchy": "Hierarchy",
+      "mentorship": "Mentorship",
+      "romantic": "Romance",
+      "social": "Social",
+      "supernatural": "Supernatural"
+    },
+    "deleteDialog": {
+      "bookStates": "{count, plural, =0 {It has no book details.} one {Its details for # book will be deleted with it.} other {Its details for # books will be deleted with it.}}",
+      "cancel": "Cancel",
+      "confirm": "Delete everywhere",
+      "deleting": "Deleting…",
+      "description": "The relationship between {source} and {target} will be deleted from every book and series.",
+      "descriptionUnknown": "The relationship will be deleted from every book and series, together with all its details.",
+      "title": "Delete relationship?"
+    },
+    "details": {
+      "actions": {
+        "delete": "Delete",
+        "edit": "Edit"
+      },
+      "description": "Details of the relationship between two characters.",
+      "error": {
+        "description": "Check your connection and try again.",
+        "retry": "Try again",
+        "title": "Could not load the relationship"
+      },
+      "history": {
+        "descriptionGlobal": "Open the relationship from a book to see this description.",
+        "descriptionHidden": "Description hidden to avoid spoilers.",
+        "empty": "This relationship has no book entries yet.",
+        "ended": "Ends: {position}",
+        "heading": "History by book",
+        "introduced": "Starts: {position}",
+        "part": "Book {number}",
+        "revealDescription": "Show description"
+      },
+      "labels": "Roles",
+      "loading": "Loading the relationship",
+      "notAvailable": {
+        "description": "This relationship is no longer available in this context.",
+        "title": "Relationship not available"
+      },
+      "revealError": "Could not show the hidden details. Try again.",
+      "revealRetry": "Try again",
+      "revealUnavailable": "These details cannot be shown in this context.",
+      "state": "Current state",
+      "title": "Character relationship",
+      "type": {
+        "heading": "Relationship type",
+        "hiddenDescription": "It may reveal parts of the story you have not reached yet.",
+        "hiddenTitle": "Relationship type hidden",
+        "reveal": "Show type"
+      }
+    },
+    "directionality": {
+      "directed": "Directed",
+      "hidden": "Direction hidden",
+      "symmetric": "Mutual"
+    },
+    "editor": {
+      "actions": {
+        "back": "Back",
+        "cancel": "Cancel",
+        "close": "Close",
+        "create": "Create relationship",
+        "next": "Next",
+        "save": "Save"
+      },
+      "book": {
+        "current": "Current book",
+        "editHint": "Status, description and spoilers are stored separately for each book.",
+        "heading": "Details for a book",
+        "label": "Book",
+        "noState": "This book has no details yet. Fill in the fields to add them.",
+        "none": "No book, add later",
+        "noneEdit": "Not selected",
+        "placeholder": "Choose a book",
+        "remove": "Remove details for this book",
+        "requiredHint": "Choose the series book these details belong to.",
+        "skipHint": "The relationship will be saved without book details. You can add them later.",
+        "untitled": "Untitled book"
+      },
+      "createDescription": "Choose a character and the relationship type, then add details for a book.",
+      "createTitle": "New relationship",
+      "discard": {
+        "description": "Unsaved changes to the relationship will be lost.",
+        "title": "Discard changes?"
+      },
+      "editDescription": "Change the type, roles or details for a book. Participants and direction stay as they are.",
+      "editTitle": "Edit relationship",
+      "errors": {
+        "audioInvalid": "Enter a time above zero as h:mm:ss or mm:ss.",
+        "bookNotFound": "This book was not found. Choose another one.",
+        "bookRequired": "Choose a book",
+        "characterNotFound": "This character no longer exists. Choose another one.",
+        "customTypeRequired": "Enter a type name",
+        "directionMismatch": "The direction does not match the type. Choose the type again.",
+        "duplicate": "This relationship between these characters already exists.",
+        "invalidValue": "Check this field.",
+        "pageInvalid": "Enter a whole number above zero",
+        "participantRequired": "Choose a character",
+        "selfReference": "A character cannot be related to themselves.",
+        "tooLong": "No more than {max} characters",
+        "typeRequired": "Choose a relationship type",
+        "validation": "Could not save: check the highlighted fields."
+      },
+      "familyCycle": {
+        "blockedDescription": "These characters are already recorded as each other’s direct ancestors. Choose another relationship type.",
+        "blockedTitle": "The relationship contradicts the family tree",
+        "confirm": "Save anyway",
+        "warningDescription": "With this relationship a character becomes their own ancestor. That happens in stories with time travel or reincarnation.",
+        "warningTitle": "The relationship closes a family loop"
+      },
+      "gone": {
+        "description": "It may have been deleted already.",
+        "title": "Relationship not found"
+      },
+      "labels": {
+        "hint": "What each character is called in this relationship, for example “mentor” and “apprentice”.",
+        "placeholder": "For example, mentor",
+        "source": "Role: {name}",
+        "sourceFallback": "Role of the first character",
+        "target": "Role: {name}",
+        "targetFallback": "Role of the second character",
+        "toggle": "More settings"
+      },
+      "loadError": {
+        "description": "Check your connection and try again.",
+        "retry": "Try again",
+        "title": "Could not load the relationship"
+      },
+      "loading": "Loading relationship",
+      "participants": {
+        "directedHint": "The type reads from the first character to the second.",
+        "focus": "This character",
+        "legend": "Characters",
+        "locked": "Participants and direction cannot be changed after creation.",
+        "source": "First character",
+        "swap": "Swap characters",
+        "target": "Second character"
+      },
+      "picker": {
+        "all": "All characters",
+        "empty": "No characters found",
+        "error": "Could not load characters",
+        "inBook": "In this book",
+        "loading": "Searching…",
+        "placeholder": "Choose a character",
+        "search": "Search characters",
+        "searchHint": "Type at least {min} characters to search all characters."
+      },
+      "positions": {
+        "audio": "Audio",
+        "audioPlaceholder": "1:05:30",
+        "chapter": "Chapter",
+        "ended": "End",
+        "introduced": "Start",
+        "page": "Page"
+      },
+      "spoilers": {
+        "description": "Description is a spoiler",
+        "descriptionHint": "The description for this book stays hidden until the reader reaches the start of the relationship.",
+        "heading": "Spoilers",
+        "hint": "These settings hide the relationship from readers, not from the characters.",
+        "relationship": "Hide the whole relationship",
+        "relationshipHint": "Until the reader reaches the start of the relationship, it does not appear at all.",
+        "type": "Relationship type is a spoiler",
+        "typeHint": "Until the reader reaches the start of the relationship, they only see that the characters are connected."
+      },
+      "state": {
+        "description": "Description",
+        "descriptionPlaceholder": "What happens between the characters in this book",
+        "intensity": "Intensity",
+        "intensityNone": "Not set",
+        "status": "Status",
+        "statusHint": "“Secret” means the characters keep this relationship hidden within the story. To hide it from readers, use the spoiler settings below."
+      },
+      "steps": {
+        "book": "Details for a book",
+        "edge": "Relationship"
+      },
+      "type": {
+        "canonical": "Canonical relationship",
+        "canonicalHint": "Confirmed by the text, not your guess or a fan theory.",
+        "category": "Category",
+        "customLabel": "Type name",
+        "customPlaceholder": "For example, sworn brothers",
+        "directionality": "Direction",
+        "directionalityAuto": "Set by the relationship type.",
+        "directionalityLocked": "The direction cannot be changed after creation.",
+        "directionalityPending": "Depends on the type",
+        "empty": "No type found",
+        "label": "Relationship type",
+        "placeholder": "Choose a type",
+        "search": "Search types"
+      }
+    },
+    "filters": {
+      "apply": "Apply",
+      "book": {
+        "any": "All books",
+        "label": "Book"
+      },
+      "canonical": {
+        "any": "All",
+        "canonical": "Canon only",
+        "label": "Canon",
+        "nonCanonical": "Non-canon only"
+      },
+      "clear": "Reset filters",
+      "description": "Narrow the list by type, state and book.",
+      "intensities": "Intensity",
+      "statuses": "Status",
+      "title": "Relationship filters",
+      "trigger": "Filters",
+      "types": {
+        "empty": "No such type",
+        "label": "Relationship types",
+        "placeholder": "Choose relationship types",
+        "search": "Search types…"
+      }
+    },
+    "graph": {
+      "a11y": {
+        "edge": "Press Enter to open the relationship details.",
+        "node": "Press Enter to open the character preview. Drag to move it."
+      },
+      "canvasLabel": "Relationship graph canvas",
+      "controls": {
+        "categories": {
+          "empty": "No such category",
+          "label": "Categories",
+          "placeholder": "All categories",
+          "search": "Search categories…"
+        },
+        "clusterBy": {
+          "group": "By group",
+          "importance": "By importance",
+          "label": "Grouping",
+          "none": "No grouping"
+        },
+        "depth": {
+          "label": "Depth",
+          "option": "{depth, plural, one {# step} other {# steps}}"
+        },
+        "focus": {
+          "label": "Focus",
+          "none": "Whole graph"
+        },
+        "mode": {
+          "all": "All",
+          "family": "Family",
+          "label": "Relationships"
+        },
+        "reset": "Reset filters",
+        "title": "Graph settings",
+        "types": {
+          "empty": "No such type",
+          "label": "Types",
+          "placeholder": "All types",
+          "search": "Search types…"
+        }
+      },
+      "edge": {
+        "description": "Relationship “{label}”: {source} and {target}",
+        "hiddenType": "Hidden type",
+        "open": "Open relationship “{label}”: {source} and {target}"
+      },
+      "empty": {
+        "description": "There are no relationships to show in this reading context yet.",
+        "title": "No visible relationships"
+      },
+      "error": {
+        "description": "Check your connection and try again.",
+        "retry": "Try again",
+        "title": "Couldn’t load the graph"
+      },
+      "filteredEmpty": {
+        "description": "No relationships match these settings.",
+        "reset": "Reset filters",
+        "title": "Nothing matches"
+      },
+      "groupTypes": {
+        "clan": "Clan",
+        "court": "Court",
+        "cult": "Cult",
+        "custom": "Other group",
+        "family": "Family",
+        "guild": "Guild",
+        "house": "House",
+        "kingdom": "Kingdom",
+        "order": "Order",
+        "organization": "Organization",
+        "team": "Team"
+      },
+      "heading": "Relationship graph",
+      "layout": {
+        "reset": "Auto layout",
+        "resetError": "Couldn’t reset the saved layout",
+        "save": "Save layout",
+        "saved": "Layout saved",
+        "saveError": "Couldn’t save the layout",
+        "saving": "Saving…"
+      },
+      "legend": {
+        "title": "Clusters on the graph"
+      },
+      "loading": "Loading the graph…",
+      "node": {
+        "open": "Open the preview of {name}",
+        "openFavorite": "Open the preview of {name}, favorite"
+      },
+      "notices": {
+        "locked": "Some relationship types are hidden to avoid spoilers.",
+        "truncated": "The graph shows at most {nodes} characters and {edges} relationships. Use focus or filters to narrow it down."
+      },
+      "path": {
+        "clear": "Clear",
+        "error": "Couldn’t find the path.",
+        "found": "{count, plural, one {Connected in # step} other {Connected in # steps}}",
+        "from": "From",
+        "idle": "Choose two characters to see how they are connected.",
+        "loading": "Looking for a connection…",
+        "notFound": "There is no visible connection between these characters in this context.",
+        "placeholder": "Choose a character",
+        "retry": "Try again",
+        "sameCharacter": "Choose two different characters.",
+        "sequence": "Path between the characters",
+        "title": "Shortest path",
+        "to": "To",
+        "unavailable": "Choose a book in the series to search for connections."
+      },
+      "preview": {
+        "close": "Close preview",
+        "connections": "{count, plural, one {# connection} other {# connections}}",
+        "favorite": "Favorite",
+        "focus": "Focus on this character",
+        "label": "Character preview",
+        "openPage": "Character page"
+      },
+      "updating": "Updating the graph…",
+      "zoom": {
+        "fit": "Fit the graph",
+        "in": "Zoom in",
+        "label": "Zoom",
+        "out": "Zoom out"
+      }
+    },
+    "intensities": {
+      "high": "High",
+      "low": "Low",
+      "medium": "Medium"
+    },
+    "list": {
+      "allShown": "All relationships are shown",
+      "count": "{count, plural, one {# relationship} other {# relationships}}",
+      "empty": {
+        "book": {
+          "description": "Relationships between the characters of this book will appear here.",
+          "title": "No relationships in this book yet"
+        },
+        "character": {
+          "description": "Relationships of this character with other characters will appear here.",
+          "title": "This character has no relationships yet"
+        },
+        "create": "Add relationship",
+        "series": {
+          "description": "Relationships between the characters of this series will appear here.",
+          "title": "No relationships in this series yet"
+        }
+      },
+      "error": {
+        "description": "Check your connection and try again.",
+        "retry": "Try again",
+        "title": "Could not load relationships"
+      },
+      "heading": "Relationships",
+      "loadMoreError": "Could not load more relationships",
+      "loading": "Loading relationships",
+      "noResults": {
+        "clear": "Reset filters",
+        "description": "Try changing the search or the filters.",
+        "title": "Nothing found"
+      }
+    },
+    "position": {
+      "audio": "audio {time}",
+      "chapter": "ch. {chapter}",
+      "page": "p. {page}"
+    },
+    "removeBookStateDialog": {
+      "cancel": "Cancel",
+      "confirm": "Remove from book",
+      "description": "The relationship details for “{book}” will be deleted. The relationship itself and its details for other books stay.",
+      "descriptionUnknown": "The relationship details for this book will be deleted. The relationship itself and its details for other books stay.",
+      "removing": "Removing…",
+      "title": "Remove details for this book?"
+    },
+    "reveal": {
+      "cancel": "Cancel",
+      "confirm": "Show",
+      "description": {
+        "description": "The description for “{book}” may contain spoilers.",
+        "title": "Show the description?"
+      },
+      "type": {
+        "description": "The type, roles and canon status may reveal parts of the story you have not reached yet.",
+        "title": "Show the relationship type?"
+      }
+    },
+    "sort": {
+      "label": "Sort",
+      "mobile": {
+        "close": "Close",
+        "description": "Choose the order of relationships",
+        "title": "Sort relationships"
+      },
+      "options": {
+        "name_asc": "By name (A to Z)",
+        "name_desc": "By name (Z to A)",
+        "newest": "Newest first",
+        "recently_updated": "Recently updated"
+      }
+    },
+    "statuses": {
+      "active": "Active",
+      "ended": "Ended",
+      "hidden": "Secret",
+      "unknown": "Unknown"
+    },
+    "toast": {
+      "bookStateGone": "The details for this book were already removed",
+      "bookStateRemoved": "Book details removed",
+      "createError": "Could not create the relationship",
+      "created": "Relationship created",
+      "deleteError": "Could not delete the relationship",
+      "deleted": "Relationship deleted",
+      "deletedElsewhere": "This relationship was already deleted",
+      "gone": "This relationship was already deleted",
+      "removeBookStateError": "Could not remove the book details",
+      "updateError": "Could not save the changes",
+      "updated": "Relationship updated"
+    },
+    "toolbar": {
+      "categoriesLabel": "Relationship categories",
+      "clearAll": "Reset all",
+      "create": "Add relationship",
+      "searchClear": "Clear search",
+      "searchLabel": "Search relationships",
+      "searchPlaceholder": "Search by name, type or description",
+      "searchTooShort": "Type at least {min} characters to search"
+    },
+    "types": {
+      "acquaintance_of": "Acquaintance of",
+      "adoptive_child_of": "Adoptive child of",
+      "adoptive_parent_of": "Adoptive parent of",
+      "ally_of": "Ally of",
+      "ancestor_of": "Ancestor of",
+      "best_friend_of": "Best friend of",
+      "betrayed": "Betrayed",
+      "betrayed_by": "Betrayed by",
+      "biological_child_of": "Biological child of",
+      "biological_parent_of": "Biological parent of",
+      "blood_bonded_to": "Blood-bonded to",
+      "clone_of": "Clone of",
+      "commander_of": "Commander of",
+      "companion_of": "Companion of",
+      "creation_of": "Creation of",
+      "creator_of": "Creator of",
+      "custom": "Custom type",
+      "descendant_of": "Descendant of",
+      "distrusts": "Distrusts",
+      "employee_of": "Employee of",
+      "employer_of": "Employer of",
+      "enemy_of": "Enemy of",
+      "engaged_to": "Engaged to",
+      "ex_partner_of": "Ex-partner of",
+      "ex_spouse_of": "Ex-spouse of",
+      "feud_with": "Feuding with",
+      "friend_of": "Friend of",
+      "guardian_of": "Guardian of",
+      "half_sibling_of": "Half-sibling of",
+      "healer_of": "Healer of",
+      "hunted_by": "Hunted by",
+      "hunts": "Hunts",
+      "leader_of": "Leader of",
+      "magically_bonded_to": "Magically bonded to",
+      "master_of": "Master of",
+      "member_of_same_group": "Member of the same group",
+      "mentor_of": "Mentor of",
+      "mutual_romantic_interest": "Mutual romantic interest",
+      "neighbor_of": "Neighbor of",
+      "opposes": "Opposes",
+      "partner_of": "Partner of",
+      "patient_of": "Patient of",
+      "possessed_by": "Possessed by",
+      "possesses": "Possesses",
+      "protected_by": "Protected by",
+      "protector_of": "Protector of",
+      "pupil_of": "Pupil of",
+      "reincarnation_of": "Reincarnation of",
+      "relative_of": "Relative of",
+      "rival_of": "Rival of",
+      "romantic_interest_of": "Romantic interest of",
+      "romantic_tension_with": "Romantic tension with",
+      "rules_over": "Rules over",
+      "servant_of": "Servant of",
+      "serves_under": "Serves under",
+      "shares_body_with": "Shares a body with",
+      "sibling_of": "Sibling of",
+      "soulmate_of": "Soulmate of",
+      "spouse_of": "Spouse of",
+      "step_child_of": "Stepchild of",
+      "step_parent_of": "Stepparent of",
+      "step_sibling_of": "Step-sibling of",
+      "student_of": "Student of",
+      "subject_of": "Subject of",
+      "subordinate_of": "Subordinate of",
+      "summoned_by": "Summoned by",
+      "summoner_of": "Summoner of",
+      "teacher_of": "Teacher of",
+      "trusted_by": "Trusted by",
+      "twin_of": "Twin of",
+      "unrequited_love_for": "Unrequited love for",
+      "ward_of": "Ward of"
     }
   }
 }
