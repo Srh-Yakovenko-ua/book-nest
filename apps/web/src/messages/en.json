@@ -6829,14 +6829,22 @@
       "menuLabel": "Quote actions",
       "retry": "Retry"
     },
-    "bookBlock": {
-      "title": "Quotes from this book",
-      "titleWithCount": "Quotes from this book · {count}",
-      "summary": "{total, plural, one {# quote} other {# quotes}} · {favorites, plural, one {# favorite} other {# favorites}} · {spoilers, plural, one {# with a spoiler} other {# with spoilers}}",
-      "viewAll": "View all quotes from this book",
+    "bookTab": {
+      "tab": "Quotes",
+      "searchLabel": "Search this book’s quotes",
+      "searchPlaceholder": "Search by text, comment, chapter or page…",
+      "resultsFound": "{count, plural, one {Found # quote} other {Found # quotes}}",
       "empty": {
         "title": "This book has no quotes yet",
         "description": "Save a beautiful passage, an important thought or a line you will want to come back to."
+      },
+      "emptySearch": {
+        "description": "Try another word, a page number or a chapter name."
+      },
+      "emptyFilters": {
+        "title": "No quotes match this filter",
+        "description": "Pick another filter or reset it to see every quote from this book.",
+        "clear": "Reset filter"
       }
     },
     "card": {

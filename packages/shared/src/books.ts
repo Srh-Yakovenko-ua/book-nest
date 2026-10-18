@@ -1194,6 +1194,7 @@ export type BookView = z.infer<typeof BookViewSchema>;
 
 export const BookDetailsViewSchema = BookViewSchema.extend({
   notesCount: z.number().int().nonnegative(),
+  quotesCount: z.number().int().nonnegative(),
 });
 
 export type BookDetailsView = z.infer<typeof BookDetailsViewSchema>;

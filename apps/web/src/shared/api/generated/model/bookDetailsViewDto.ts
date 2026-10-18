@@ -97,4 +97,9 @@ export interface BookDetailsViewDto {
    * @maximum 9007199254740991
    */
   notesCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  quotesCount: number;
 }

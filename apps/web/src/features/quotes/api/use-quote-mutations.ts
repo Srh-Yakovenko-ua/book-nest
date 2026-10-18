@@ -29,41 +29,49 @@ type UpdateQuoteVariables = {
 };
 
 export function useCreateQuote() {
-  const syncQuotes = useQuoteSync();
+  const sync = useQuoteSync();
 
   return useMutation({
     mutationFn: async ({ bookId, input }: CreateQuoteVariables): Promise<QuoteView> =>
       QuoteViewSchema.parse(await bookQuotesControllerCreateQuote(bookId, input)),
-    onSuccess: syncQuotes,
+    onSuccess: sync.afterCountChange,
   });
 }
 
 export function useDeleteQuote() {
-  const syncQuotes = useQuoteSync();
+  const sync = useQuoteSync();
 
   return useMutation({
     mutationFn: async ({ bookId, quoteId }: DeleteQuoteVariables): Promise<void> => {
       await bookQuotesControllerDeleteQuote(bookId, quoteId);
     },
-    onSuccess: syncQuotes,
+    onSuccess: sync.afterCountChange,
   });
 }
 
 export function useUpdateQuote() {
-  const syncQuotes = useQuoteSync();
+  const sync = useQuoteSync();
 
   return useMutation({
     mutationFn: async ({ bookId, input, quoteId }: UpdateQuoteVariables): Promise<QuoteView> =>
       QuoteViewSchema.parse(await bookQuotesControllerUpdateQuote(bookId, quoteId, input)),
-    onSuccess: syncQuotes,
+    onSuccess: sync.afterEdit,
   });
 }
 
 function useQuoteSync() {
   const queryClient = useQueryClient();
 
-  return (_result: unknown, { bookId }: { bookId: string }) => {
+  function refreshQuotes(bookId: string) {
     void queryClient.invalidateQueries({ queryKey: quoteKeys.root });
     void queryClient.invalidateQueries({ queryKey: bookKeys.chapters(bookId) });
+  }
+
+  return {
+    afterCountChange: (_result: unknown, { bookId }: { bookId: string }) => {
+      refreshQuotes(bookId);
+      void queryClient.invalidateQueries({ exact: true, queryKey: bookKeys.detail(bookId) });
+    },
+    afterEdit: (_result: unknown, { bookId }: { bookId: string }) => refreshQuotes(bookId),
   };
 }

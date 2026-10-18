@@ -163,6 +163,7 @@ export const PrefilledFromBookView: Story = {
           return jsonResponse(200, {
             ...makeBook({ id: "aaaaaaaa-aaaa-4aaa-8aaa-prefill00001" }),
             notesCount: 0,
+            quotesCount: 0,
           });
         }
         return emptyPage(8);
@@ -214,6 +215,7 @@ export const ChangingReadingStatusFiresConfirm: Story = {
           return jsonResponse(200, {
             ...makeBook({ id: "aaaaaaaa-aaaa-4aaa-8aaa-confirm00001" }),
             notesCount: 0,
+            quotesCount: 0,
           });
         }
         return emptyPage(8);

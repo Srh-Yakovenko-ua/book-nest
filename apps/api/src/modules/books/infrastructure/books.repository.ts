@@ -639,6 +639,20 @@ export class BooksRepository {
     });
   }
 
+  countActiveBookQuotes(
+    { bookId, userId }: { bookId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    return client.quote.count({
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        book: SOFT_DELETE_SCOPE.active,
+        bookId,
+        userId,
+      },
+    });
+  }
+
   async countDedicationQuickFilters({
     filters,
   }: {

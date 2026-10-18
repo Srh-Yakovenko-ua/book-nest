@@ -17,27 +17,45 @@ import { QuoteComment } from "./quote-comment";
 import { QuoteFullViewDialog } from "./quote-full-view-dialog";
 import { QuoteMeta } from "./quote-meta";
 
-export function QuoteArchiveCard({ quote }: { quote: QuoteView }) {
+type QuoteArchiveCardLayoutSpec = {
+  fitsBodyToCard: boolean;
+  shell: string;
+  showsBook: boolean;
+};
+
+const QUOTE_ARCHIVE_CARD_LAYOUT = {
+  archive: {
+    fitsBodyToCard: true,
+    shell: cn(QUOTE_CARD_SHELL.base, QUOTE_CARD_SHELL.interactive, QUOTE_CARD_SHELL.fixedHeight),
+    showsBook: true,
+  },
+  embedded: {
+    fitsBodyToCard: false,
+    shell: cn(QUOTE_CARD_SHELL.base, QUOTE_CARD_SHELL.interactive),
+    showsBook: false,
+  },
+} as const satisfies Record<string, QuoteArchiveCardLayoutSpec>;
+
+type QuoteArchiveCardProps = {
+  layout?: keyof typeof QUOTE_ARCHIVE_CARD_LAYOUT;
+  quote: QuoteView;
+};
+
+export function QuoteArchiveCard({ layout = "archive", quote }: QuoteArchiveCardProps) {
   const t = useTranslations("quotes.card");
-  const bookHref = `/books/${quote.bookId}`;
+  const { fitsBodyToCard, shell, showsBook } = QUOTE_ARCHIVE_CARD_LAYOUT[layout];
+  const bookHref = showsBook ? `/books/${quote.bookId}` : null;
   const fullView = useQuoteFullView();
   const [card, setCard] = useState<Nullable<HTMLElement>>(null);
 
   return (
-    <article
-      className={cn(
-        QUOTE_CARD_SHELL.base,
-        QUOTE_CARD_SHELL.interactive,
-        QUOTE_CARD_SHELL.fixedHeight,
-      )}
-      ref={setCard}
-    >
+    <article className={shell} ref={setCard}>
       <div className="flex shrink-0 items-start gap-2">
-        <QuoteBookHeader book={quote.book} />
+        {showsBook ? <QuoteBookHeader book={quote.book} /> : null}
         <QuoteActions className="ml-auto" quote={quote} />
       </div>
 
-      <QuoteBody fitTo={card} onExpand={fullView.openFrom} quote={quote} />
+      <QuoteBody fitTo={fitsBodyToCard ? card : null} onExpand={fullView.openFrom} quote={quote} />
 
       <QuoteMeta isCompact quote={quote} />
 

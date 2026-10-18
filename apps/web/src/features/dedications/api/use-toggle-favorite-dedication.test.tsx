@@ -26,11 +26,16 @@ afterEach(() => {
 });
 
 describe("useToggleFavoriteDedication", () => {
-  it("keeps the cached notes count after the book comes back without one", async () => {
+  it("keeps the cached notes and quotes counts after the book comes back without them", async () => {
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     client.setQueryData(
       bookKeys.detail(BOOK_ID),
-      makeBookDetailsView({ id: BOOK_ID, isFavoriteDedication: false, notesCount: 4 }),
+      makeBookDetailsView({
+        id: BOOK_ID,
+        isFavoriteDedication: false,
+        notesCount: 4,
+        quotesCount: 9,
+      }),
     );
     fetchMock.mockResolvedValue(
       jsonResponse(makeBookView({ id: BOOK_ID, isFavoriteDedication: true })),
@@ -44,6 +49,7 @@ describe("useToggleFavoriteDedication", () => {
     expect(client.getQueryData(bookKeys.detail(BOOK_ID))).toMatchObject({
       isFavoriteDedication: true,
       notesCount: 4,
+      quotesCount: 9,
     });
   });
 

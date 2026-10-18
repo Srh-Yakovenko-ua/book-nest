@@ -82,6 +82,10 @@ export const QuoteSortSchema = z.enum([
 
 export type QuoteSort = z.infer<typeof QuoteSortSchema>;
 
+export const QuoteSearchScopeSchema = z.enum(["quotes_and_book", "quotes"]);
+
+export type QuoteSearchScope = z.infer<typeof QuoteSearchScopeSchema>;
+
 const CREATED_RANGE_MESSAGE = "createdFrom must not be later than createdTo";
 
 const quotesDatasetQueryFields = {
@@ -91,6 +95,7 @@ const quotesDatasetQueryFields = {
   createdFrom: isoDay().optional(),
   createdTo: isoDay().optional(),
   q: z.string().trim().max(QUOTE_SEARCH_MAX).optional(),
+  searchIn: QuoteSearchScopeSchema.default(QuoteSearchScopeSchema.enum.quotes_and_book),
 };
 
 function refineCreatedRange(
@@ -157,15 +162,6 @@ export const QuoteViewSchema = z.object({
 });
 
 export type QuoteView = z.infer<typeof QuoteViewSchema>;
-
-export const BookQuotesViewSchema = z.object({
-  favoritesCount: z.number().int().nonnegative(),
-  items: z.array(QuoteViewSchema),
-  spoilerCount: z.number().int().nonnegative(),
-  totalCount: z.number().int().nonnegative(),
-});
-
-export type BookQuotesView = z.infer<typeof BookQuotesViewSchema>;
 
 export const PaginatedQuotesSchema = createPaginatedSchema(QuoteViewSchema);
 

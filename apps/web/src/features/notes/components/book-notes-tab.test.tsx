@@ -9,7 +9,10 @@ import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { BookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
+
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
+import { createBookTabScrollMemory } from "@/hooks/use-book-tab-scroll-anchor";
 import {
   mockIntersectionObserver,
   renderWithProviders,
@@ -19,10 +22,7 @@ import {
   within,
 } from "@/test-utils";
 
-import type { BookNotesScrollMemory } from "../model/use-book-notes-scroll-anchor";
-
 import { makeBookNote } from "../model/notes.fixtures";
-import { createBookNotesScrollMemory } from "../model/use-book-notes-scroll-anchor";
 import { BookNotesTab } from "./book-notes-tab";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -41,7 +41,7 @@ type PageMeta = { page: number; pagesCount: number; totalCount: number };
 
 type TabRender = {
   book?: BookView;
-  memory?: BookNotesScrollMemory;
+  memory?: BookTabScrollMemory;
   onUrlUpdate?: OnUrlUpdateFunction;
   queryClient?: QueryClient;
   search?: string;
@@ -218,7 +218,7 @@ function sentinelStatus(): HTMLElement | undefined {
 
 function tab({
   book = BOOK,
-  memory = createBookNotesScrollMemory(),
+  memory = createBookTabScrollMemory(),
   onUrlUpdate,
   search = "",
 }: Omit<TabRender, "queryClient">) {
@@ -246,7 +246,7 @@ beforeEach(() => {
       return json({ chapters: [] });
     }
     if (method === "GET" && url.pathname === "/api/books/book-1") {
-      return json({ ...BOOK, notesCount: 1 });
+      return json({ ...BOOK, notesCount: 1, quotesCount: 0 });
     }
     return Promise.reject(new Error(`unexpected ${method} ${url.pathname}`));
   });
@@ -615,7 +615,7 @@ describe("BookNotesTab URL criteria", () => {
 
 describe("BookNotesTab scroll position", () => {
   it("returns to the note captured on leaving, not to where a later scroll clamped the page", async () => {
-    const memory = createBookNotesScrollMemory();
+    const memory = createBookTabScrollMemory();
     respondToList = fortyOneNotesPage;
     layOutNotesInOneColumn();
 
@@ -628,7 +628,7 @@ describe("BookNotesTab scroll position", () => {
 
     memory.capture();
     await scrollWindowTo(541);
-    expect(memory.anchorRef.current).toMatchObject({ noteId: "note-24", offset: -30 });
+    expect(memory.anchorRef.current).toMatchObject({ cardId: "note-24", offset: -30 });
 
     rerender(<NuqsTestingAdapter hasMemory>{null}</NuqsTestingAdapter>);
     const scrollTo = vi.spyOn(window, "scrollTo");
@@ -641,7 +641,7 @@ describe("BookNotesTab scroll position", () => {
   });
 
   it("keeps its own position when the criteria in the URL changed while the tab was away", async () => {
-    const memory = createBookNotesScrollMemory();
+    const memory = createBookTabScrollMemory();
     const queryClient = cachingQueryClient();
     respondToList = fortyOneNotesPage;
     layOutNotesInOneColumn();
@@ -650,7 +650,7 @@ describe("BookNotesTab scroll position", () => {
     await screen.findByText("Нотатка номер 20");
     await scrollWindowTo(1030);
     memory.capture();
-    expect(memory.anchorRef.current?.noteId).toBe("note-9");
+    expect(memory.anchorRef.current?.cardId).toBe("note-9");
     view.unmount();
 
     window.scrollTo({ top: 0 });

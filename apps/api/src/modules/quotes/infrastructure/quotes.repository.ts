@@ -1,6 +1,6 @@
-import type { Nullable, QuoteFilter, QuoteSort } from "@app/shared";
+import type { Nullable, QuoteFilter, QuoteSearchScope, QuoteSort } from "@app/shared";
 
-import { QUOTE_PAGE_MAX, QuoteFilterSchema } from "@app/shared";
+import { QUOTE_PAGE_MAX, QuoteFilterSchema, QuoteSearchScopeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -30,12 +30,6 @@ const quoteWithBook = {
   include: { book: { include: { coverMedia: true } } },
 } satisfies Prisma.QuoteDefaultArgs;
 
-export type BookQuoteCounts = {
-  favorites: number;
-  spoiler: number;
-  total: number;
-};
-
 export type OwnedBook = {
   id: string;
   pagesCount: Nullable<number>;
@@ -60,6 +54,7 @@ export type QuotesDatasetInput = {
   createdFrom: string | undefined;
   createdTo: string | undefined;
   search: string | undefined;
+  searchIn: QuoteSearchScope;
   userId: string;
 };
 
@@ -119,22 +114,6 @@ export class QuotesRepository {
       select: { author: { select: { id: true, name: true } }, bookId: true },
       where: { bookId: { in: bookIds } },
     });
-  }
-
-  async bookCounts(userId: string, bookId: string): Promise<BookQuoteCounts> {
-    const base: Prisma.QuoteWhereInput = {
-      ...SOFT_DELETE_SCOPE.active,
-      book: SOFT_DELETE_SCOPE.active,
-      bookId,
-      userId,
-    };
-    const [total, favorites, spoiler] = await Promise.all([
-      this.prisma.quote.count({ where: base }),
-      this.prisma.quote.count({ where: { ...base, isFavorite: true } }),
-      this.prisma.quote.count({ where: { ...base, isSpoiler: true } }),
-    ]);
-
-    return { favorites, spoiler, total };
   }
 
   async bookQuoteCounts(dataset: QuotesDatasetInput): Promise<QuoteBookCount[]> {
@@ -286,14 +265,6 @@ export class QuotesRepository {
       skip,
       take,
       where: buildQuotesWhere(filter),
-      ...quoteWithBook,
-    });
-  }
-
-  listForBook(userId: string, bookId: string): Promise<QuoteWithBook[]> {
-    return this.prisma.quote.findMany({
-      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-      where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...quoteWithBook,
     });
   }
@@ -492,6 +463,7 @@ function buildQuotesDatasetWhere({
   createdFrom,
   createdTo,
   search,
+  searchIn,
   userId,
 }: QuotesDatasetInput): Prisma.QuoteWhereInput {
   const book: Prisma.BookWhereInput = { ...SOFT_DELETE_SCOPE.active };
@@ -511,19 +483,29 @@ function buildQuotesDatasetWhere({
   }
 
   if (search !== undefined) {
-    where.OR = buildQuoteSearchConditions(search);
+    where.OR = buildQuoteSearchConditions({ search, searchIn });
   }
 
   return where;
 }
 
-function buildQuoteSearchConditions(search: string): Prisma.QuoteWhereInput[] {
+function buildQuoteSearchConditions({
+  search,
+  searchIn,
+}: {
+  search: string;
+  searchIn: QuoteSearchScope;
+}): Prisma.QuoteWhereInput[] {
   const contains = { contains: search, mode: "insensitive" } as const;
+  const bookConditions =
+    searchIn === QuoteSearchScopeSchema.enum.quotes
+      ? []
+      : buildBookTextSearchConditions(search).map((condition) => ({ book: condition }));
   const conditions: Prisma.QuoteWhereInput[] = [
     { text: contains },
     { comment: contains },
     { chapter: contains },
-    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
+    ...bookConditions,
   ];
 
   const pageMatch = Number.parseInt(search, 10);

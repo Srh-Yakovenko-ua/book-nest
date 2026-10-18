@@ -1,2 +1,2 @@
-export { BookQuotesBlock } from "./components/book-quotes-block";
+export { BookQuotesTab } from "./components/book-quotes-tab";
 export { QuotesView } from "./components/quotes-view";

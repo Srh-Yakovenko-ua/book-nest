@@ -219,8 +219,11 @@ export class BooksService {
       throw new NotFoundError("Book not found");
     }
 
-    const notesCount = await this.booksRepository.countActiveBookNotes({ bookId, userId });
-    return { ...this.viewAssembler.viewOf(book), notesCount };
+    const [notesCount, quotesCount] = await Promise.all([
+      this.booksRepository.countActiveBookNotes({ bookId, userId }),
+      this.booksRepository.countActiveBookQuotes({ bookId, userId }),
+    ]);
+    return { ...this.viewAssembler.viewOf(book), notesCount, quotesCount };
   }
 
   async update(userId: string, bookId: string, input: UpdateBookInput): Promise<BookView> {
