@@ -1,16 +1,11 @@
 "use client";
 
-import type {
-  BookCharacterView,
-  CharacterDetailsView,
-  CharacterRevealFieldKey,
-  Nullable,
-} from "@app/shared";
+import type { BookCharacterView, CharacterRevealFieldKey, Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { Quote } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Fragment, useId } from "react";
+import { useId } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -26,14 +21,13 @@ import {
   REVEAL_FOCUS_TARGET,
   revealFocusTarget,
 } from "../model/character-spoiler";
-import { CharacterAliasCard } from "./character-alias-card";
 import { CharacterClampedText } from "./character-clamped-text";
 import { CharacterHiddenGroupNotice } from "./character-hidden-group-notice";
+import { CharacterOverviewCard } from "./character-overview-card";
 import { CharacterSpoilerField } from "./character-spoiler-field";
 
-type BookCardProps = {
+type BookFieldsProps = {
   appearance: BookCharacterView;
-  character: CharacterDetailsView;
   reveal: CharacterRevealControl;
 };
 
@@ -44,38 +38,149 @@ type BookTextFieldKey = Extract<
 
 const DIGITS_ONLY = /^\d+$/;
 
-export function CharacterBookSection({ appearance, character, reveal }: BookCardProps) {
+export function BookBasicsFields({ appearance, reveal }: BookFieldsProps) {
   const t = useTranslations("characters.page");
-  const headingId = useId();
+  const tStatus = useTranslations("characters.status");
+  const speciesLabel = useSpeciesLabel();
 
-  const bookAliases = character.aliases.filter((alias) => alias.bookId === appearance.bookId);
-  const bookAliasesHidden = isFieldHidden(character.hiddenFields, "bookAliases");
-  const hasContent =
-    hasTraits({ appearance, character }) ||
-    hasBookText(appearance, "description") ||
-    hasBookText(appearance, "appearanceNotes") ||
-    hasBookText(appearance, "personalImpression") ||
-    bookAliases.length > 0 ||
-    bookAliasesHidden;
-
-  if (!hasContent) return null;
+  const status = explicitStatus(appearance.status);
+  const statusText =
+    status === null
+      ? null
+      : status === BOOK_CHARACTER_STATUS.custom
+        ? (appearance.statusCustomText ?? tStatus(status))
+        : tStatus(status);
+  const showsSpeciesOverride = hasSpeciesOverride(appearance);
+  const showsStatus = hasStatus(appearance);
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl text-ink" id={headingId}>
-        {t("bookSection")}
-      </h2>
-      <TraitsCard appearance={appearance} character={character} reveal={reveal} />
-      <DescriptionCard appearance={appearance} reveal={reveal} />
-      <ImpressionCard appearance={appearance} reveal={reveal} />
-      <CharacterAliasCard
-        aliases={bookAliases}
-        field="bookAliases"
-        hidden={bookAliasesHidden}
+    <div className="flex flex-col gap-4">
+      {showsSpeciesOverride || showsStatus ? (
+        <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          {showsSpeciesOverride ? (
+            <CharacterSpoilerField
+              hidden={isFieldHidden(appearance.hiddenFields, "speciesOverride")}
+              label={t("speciesOverride")}
+              reveal={revealPropsOf(reveal, "speciesOverride")}
+            >
+              {speciesLabel(appearance.speciesOverride)}
+            </CharacterSpoilerField>
+          ) : null}
+          {showsStatus ? (
+            <CharacterSpoilerField
+              hidden={isFieldHidden(appearance.hiddenFields, "status")}
+              label={t("status")}
+              reveal={revealPropsOf(reveal, "status")}
+            >
+              {statusText}
+            </CharacterSpoilerField>
+          ) : null}
+        </div>
+      ) : null}
+      {hasRoles(appearance) ? <RolesGroup appearance={appearance} reveal={reveal} /> : null}
+    </div>
+  );
+}
+
+export function BookImpressionFields({ appearance, reveal }: BookFieldsProps) {
+  const t = useTranslations("characters.page");
+  const tAttitude = useTranslations("characters.attitude");
+
+  return (
+    <div className="flex flex-col gap-4">
+      {appearance.attitude === null ? null : (
+        <TraitCell focusField={null} label={t("attitude")}>
+          {tAttitude(appearance.attitude)}
+        </TraitCell>
+      )}
+      {hasBookText(appearance, "personalImpression") ? (
+        <div className="flex gap-3 rounded-[14px] border-l-2 border-l-[var(--terracotta)] bg-muted/50 p-3.5 sm:p-4">
+          <Quote aria-hidden className="mt-0.5 size-4 shrink-0 text-[var(--terracotta)]" />
+          <div className="min-w-0 flex-1">
+            <BookTextField
+              appearance={appearance}
+              fadeClassName="from-muted/50"
+              field="personalImpression"
+              label={t("impressionCaption")}
+              reveal={reveal}
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function CharacterDescriptionsCard({ appearance, reveal }: BookFieldsProps) {
+  const t = useTranslations("characters.page");
+  const tEdit = useTranslations("characters.edit");
+  const hasDescription = hasBookText(appearance, "description");
+  const hasAppearanceNotes = hasBookText(appearance, "appearanceNotes");
+
+  if (!hasDescription && !hasAppearanceNotes) return null;
+
+  return (
+    <FormSection icon="book-open-text" title={tEdit("descriptionsSection")}>
+      <BookTextField
+        appearance={appearance}
+        field="description"
+        label={t("bookDescription")}
         reveal={reveal}
-        title={t("bookAliases")}
       />
-    </section>
+      {hasDescription && hasAppearanceNotes ? <Separator /> : null}
+      <BookTextField
+        appearance={appearance}
+        field="appearanceNotes"
+        label={t("appearanceNotes")}
+        reveal={reveal}
+      />
+    </FormSection>
+  );
+}
+
+export function CharacterNarrativeCard({ appearance, reveal }: BookFieldsProps) {
+  const t = useTranslations("characters.edit");
+
+  return (
+    <CharacterOverviewCard
+      groups={[
+        hasFirstAppearance(appearance)
+          ? {
+              content: <FirstAppearance appearance={appearance} />,
+              key: "first-appearance",
+              title: t("firstAppearance"),
+            }
+          : null,
+        hasNarrator(appearance)
+          ? {
+              content: <NarratorCell appearance={appearance} reveal={reveal} />,
+              key: "perspective",
+              title: t("perspectiveGroup"),
+            }
+          : null,
+      ]}
+      icon="quote"
+      title={t("narrativeSection")}
+    />
+  );
+}
+
+export function hasBookBasics(appearance: BookCharacterView): boolean {
+  return hasSpeciesOverride(appearance) || hasStatus(appearance) || hasRoles(appearance);
+}
+
+export function hasBookImpression(appearance: BookCharacterView): boolean {
+  return appearance.attitude !== null || hasBookText(appearance, "personalImpression");
+}
+
+export function hasBookOverview(appearance: BookCharacterView): boolean {
+  return (
+    hasBookBasics(appearance) ||
+    hasBookText(appearance, "description") ||
+    hasBookText(appearance, "appearanceNotes") ||
+    hasFirstAppearance(appearance) ||
+    hasNarrator(appearance) ||
+    hasBookImpression(appearance)
   );
 }
 
@@ -107,38 +212,6 @@ function BookTextField({
   );
 }
 
-function DescriptionCard({
-  appearance,
-  reveal,
-}: {
-  appearance: BookCharacterView;
-  reveal: CharacterRevealControl;
-}) {
-  const t = useTranslations("characters.page");
-  const hasDescription = hasBookText(appearance, "description");
-  const hasAppearanceNotes = hasBookText(appearance, "appearanceNotes");
-
-  if (!hasDescription && !hasAppearanceNotes) return null;
-
-  return (
-    <FormSection icon="file-text" title={t("descriptionCard")}>
-      <BookTextField
-        appearance={appearance}
-        field="description"
-        label={t("bookDescription")}
-        reveal={reveal}
-      />
-      {hasDescription && hasAppearanceNotes ? <Separator /> : null}
-      <BookTextField
-        appearance={appearance}
-        field="appearanceNotes"
-        label={t("appearanceNotes")}
-        reveal={reveal}
-      />
-    </FormSection>
-  );
-}
-
 function FirstAppearance({ appearance }: { appearance: BookCharacterView }) {
   const t = useTranslations("characters.page");
   const chapter = appearance.firstAppearanceChapter;
@@ -161,9 +234,6 @@ function FirstAppearance({ appearance }: { appearance: BookCharacterView }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {t("firstAppearance")}
-      </span>
       {facts.length === 0 ? null : (
         <ul className="flex flex-wrap gap-1.5">
           {facts.map((fact) => (
@@ -211,64 +281,19 @@ function hasRoles(appearance: BookCharacterView): boolean {
   return appearance.roles.length > 0 || isFieldHidden(appearance.hiddenFields, "roles");
 }
 
-function hasTraitGrid({
-  appearance,
-  character,
-}: {
-  appearance: BookCharacterView;
-  character: CharacterDetailsView;
-}): boolean {
+function hasSpeciesOverride(appearance: BookCharacterView): boolean {
   return (
-    isFieldHidden(appearance.hiddenFields, "status") ||
-    explicitStatus(appearance.status) !== null ||
-    isFieldHidden(appearance.hiddenFields, "speciesOverride") ||
-    appearance.speciesOverride !== null ||
-    character.species !== null ||
-    (appearance.attitude ?? character.globalAttitude) !== null ||
-    hasNarrator(appearance)
+    appearance.speciesOverride !== null || isFieldHidden(appearance.hiddenFields, "speciesOverride")
   );
 }
 
-function hasTraits(args: { appearance: BookCharacterView; character: CharacterDetailsView }) {
-  return hasTraitGrid(args) || hasRoles(args.appearance) || hasFirstAppearance(args.appearance);
-}
-
-function ImpressionCard({
-  appearance,
-  reveal,
-}: {
-  appearance: BookCharacterView;
-  reveal: CharacterRevealControl;
-}) {
-  const t = useTranslations("characters.page");
-
-  if (!hasBookText(appearance, "personalImpression")) return null;
-
+function hasStatus(appearance: BookCharacterView): boolean {
   return (
-    <FormSection icon="heart" title={t("impressionCard")}>
-      <div className="flex gap-3 rounded-[14px] border-l-2 border-l-[var(--terracotta)] bg-muted/50 p-3.5 sm:p-4">
-        <Quote aria-hidden className="mt-0.5 size-4 shrink-0 text-[var(--terracotta)]" />
-        <div className="min-w-0 flex-1">
-          <BookTextField
-            appearance={appearance}
-            fadeClassName="from-muted/50"
-            field="personalImpression"
-            label={t("impressionCaption")}
-            reveal={reveal}
-          />
-        </div>
-      </div>
-    </FormSection>
+    explicitStatus(appearance.status) !== null || isFieldHidden(appearance.hiddenFields, "status")
   );
 }
 
-function NarratorCell({
-  appearance,
-  reveal,
-}: {
-  appearance: BookCharacterView;
-  reveal: CharacterRevealControl;
-}) {
+function NarratorCell({ appearance, reveal }: BookFieldsProps) {
   const t = useTranslations("characters.page");
   const tNarrator = useTranslations("characters.narratorType");
   const unreliableHidden = isFieldHidden(appearance.hiddenFields, "unreliableNarrator");
@@ -299,13 +324,7 @@ function revealPropsOf(reveal: CharacterRevealControl, field: CharacterRevealFie
   };
 }
 
-function RolesGroup({
-  appearance,
-  reveal,
-}: {
-  appearance: BookCharacterView;
-  reveal: CharacterRevealControl;
-}) {
+function RolesGroup({ appearance, reveal }: BookFieldsProps) {
   const t = useTranslations("characters.page");
   const tRole = useTranslations("characters.roleType");
   const labelId = useId();
@@ -348,54 +367,11 @@ function RolesGroup({
   );
 }
 
-function SpeciesCell({
-  appearance,
-  character,
-  reveal,
-}: {
-  appearance: BookCharacterView;
-  character: CharacterDetailsView;
-  reveal: CharacterRevealControl;
-}) {
-  const t = useTranslations("characters.page");
-  const speciesLabel = useSpeciesLabel();
-  const overrideHidden = isFieldHidden(appearance.hiddenFields, "speciesOverride");
-
-  if (appearance.speciesOverride !== null) {
-    return (
-      <TraitCell caption={t("sourceBook")} focusField="speciesOverride" label={t("species")}>
-        {speciesLabel(appearance.speciesOverride)}
-      </TraitCell>
-    );
-  }
-
-  const hiddenOverride = overrideHidden ? (
-    <CharacterSpoilerField
-      hidden
-      label={t("speciesOverride")}
-      reveal={revealPropsOf(reveal, "speciesOverride")}
-    >
-      {null}
-    </CharacterSpoilerField>
-  ) : null;
-
-  if (character.species === null) return hiddenOverride;
-
-  return (
-    <TraitCell caption={t("sourceGlobal")} focusField={null} label={t("species")}>
-      {speciesLabel(character.species)}
-      {hiddenOverride === null ? null : <div className="mt-2">{hiddenOverride}</div>}
-    </TraitCell>
-  );
-}
-
 function TraitCell({
-  caption,
   children,
   focusField,
   label,
 }: {
-  caption?: string;
   children: ReactNode;
   focusField: Nullable<CharacterRevealFieldKey>;
   label: string;
@@ -419,71 +395,6 @@ function TraitCell({
         {label}
       </span>
       <div className="text-sm leading-relaxed text-foreground">{children}</div>
-      {caption === undefined ? null : (
-        <span className="text-xs text-muted-foreground">{caption}</span>
-      )}
     </div>
-  );
-}
-
-function TraitsCard({ appearance, character, reveal }: BookCardProps) {
-  const t = useTranslations("characters.page");
-  const tAttitude = useTranslations("characters.attitude");
-  const tStatus = useTranslations("characters.status");
-
-  const statusHidden = isFieldHidden(appearance.hiddenFields, "status");
-  const status = explicitStatus(appearance.status);
-  const statusText =
-    status === null
-      ? null
-      : status === BOOK_CHARACTER_STATUS.custom
-        ? (appearance.statusCustomText ?? tStatus(status))
-        : tStatus(status);
-  const attitude = appearance.attitude ?? character.globalAttitude;
-
-  const zones = [
-    hasTraitGrid({ appearance, character }) ? (
-      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2" key="traits">
-        {statusHidden || statusText !== null ? (
-          <CharacterSpoilerField
-            hidden={statusHidden}
-            label={t("status")}
-            reveal={revealPropsOf(reveal, "status")}
-          >
-            {statusText}
-          </CharacterSpoilerField>
-        ) : null}
-        <SpeciesCell appearance={appearance} character={character} reveal={reveal} />
-        {attitude === null ? null : (
-          <TraitCell
-            caption={appearance.attitude === null ? t("sourceGlobal") : t("sourceBook")}
-            focusField={null}
-            label={t("attitude")}
-          >
-            {tAttitude(attitude)}
-          </TraitCell>
-        )}
-        {hasNarrator(appearance) ? <NarratorCell appearance={appearance} reveal={reveal} /> : null}
-      </div>
-    ) : null,
-    hasRoles(appearance) ? (
-      <RolesGroup appearance={appearance} key="roles" reveal={reveal} />
-    ) : null,
-    hasFirstAppearance(appearance) ? (
-      <FirstAppearance appearance={appearance} key="first-appearance" />
-    ) : null,
-  ].filter((zone) => zone !== null);
-
-  if (zones.length === 0) return null;
-
-  return (
-    <FormSection icon="user" title={t("traitsCard")}>
-      {zones.map((zone, index) => (
-        <Fragment key={zone.key}>
-          {index === 0 ? null : <Separator />}
-          {zone}
-        </Fragment>
-      ))}
-    </FormSection>
   );
 }

@@ -1,66 +1,96 @@
 "use client";
 
-import type { CharacterAliasView, CharacterRevealFieldKey } from "@app/shared";
+import type {
+  BookCharacterView,
+  CharacterAliasView,
+  CharacterDetailsView,
+  CharacterRevealFieldKey,
+  Nullable,
+} from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { FormSection } from "@/features/books";
 import { cn } from "@/lib/utils";
 
 import {
   type CharacterRevealControl,
+  isFieldHidden,
   REVEAL_FOCUS_TARGET,
   revealFocusTarget,
 } from "../model/character-spoiler";
 import { CharacterHiddenGroupNotice } from "./character-hidden-group-notice";
+import { CharacterOverviewCard } from "./character-overview-card";
 
-type CharacterAliasCardProps = {
+type AliasField = Extract<CharacterRevealFieldKey, "bookAliases" | "globalAliases">;
+
+type AliasGroupData = {
   aliases: CharacterAliasView[];
-  field: Extract<CharacterRevealFieldKey, "bookAliases" | "globalAliases">;
   hidden: boolean;
-  reveal: CharacterRevealControl;
-  title: string;
 };
 
-export function CharacterAliasCard({
-  aliases,
-  field,
-  hidden,
-  reveal,
-  title,
-}: CharacterAliasCardProps) {
-  const t = useTranslations("characters.page");
+type CharacterAliasCardProps = {
+  appearance: BookCharacterView | undefined;
+  character: CharacterDetailsView;
+  reveal: CharacterRevealControl;
+};
 
-  if (aliases.length === 0 && !hidden) return null;
+export function CharacterAliasCard({ appearance, character, reveal }: CharacterAliasCardProps) {
+  const t = useTranslations("characters.page");
+  const tAliases = useTranslations("characters.aliases");
+  const globalGroup = globalAliasGroupOf(character);
+  const bookGroup = bookAliasGroupOf({ appearance, character });
 
   return (
-    <FormSection icon="tag" title={title}>
-      <div
-        aria-label={title}
-        className={cn("flex flex-col gap-3 rounded-lg", REVEAL_FOCUS_TARGET.focusClassName)}
-        role="group"
-        {...revealFocusTarget(field)}
-      >
-        {aliases.length === 0 ? null : (
-          <ul className="flex flex-wrap gap-2">
-            {aliases.map((alias) => (
-              <AliasChip alias={alias} key={alias.id} />
-            ))}
-          </ul>
-        )}
-        {hidden ? (
-          <CharacterHiddenGroupNotice
-            accessibleName={t("revealHiddenAliasesAria", { group: title })}
-            actionLabel={t("revealHiddenAliases")}
-            message={t("hiddenAliasesNotice")}
-            onReveal={() => void reveal.onReveal(field)}
-            revealing={reveal.pending === field}
-          />
-        ) : null}
-      </div>
-    </FormSection>
+    <CharacterOverviewCard
+      groups={[
+        isAliasGroupShown(globalGroup)
+          ? {
+              content: (
+                <AliasGroup
+                  field="globalAliases"
+                  group={globalGroup}
+                  reveal={reveal}
+                  title={t("globalAliases")}
+                />
+              ),
+              key: "global",
+              title: t("globalAliases"),
+            }
+          : null,
+        bookGroup !== null && isAliasGroupShown(bookGroup)
+          ? {
+              content: (
+                <AliasGroup
+                  field="bookAliases"
+                  group={bookGroup}
+                  reveal={reveal}
+                  title={t("bookAliases")}
+                />
+              ),
+              key: "book",
+              title: t("bookAliases"),
+            }
+          : null,
+      ]}
+      icon="tag"
+      title={tAliases("sectionTitle")}
+    />
+  );
+}
+
+export function hasAliases({
+  appearance,
+  character,
+}: {
+  appearance: BookCharacterView | undefined;
+  character: CharacterDetailsView;
+}): boolean {
+  const bookGroup = bookAliasGroupOf({ appearance, character });
+  return (
+    isAliasGroupShown(globalAliasGroupOf(character)) ||
+    (bookGroup !== null && isAliasGroupShown(bookGroup))
   );
 }
 
@@ -90,4 +120,69 @@ function AliasChip({ alias }: { alias: CharacterAliasView }) {
       </Tooltip>
     </li>
   );
+}
+
+function AliasGroup({
+  field,
+  group,
+  reveal,
+  title,
+}: {
+  field: AliasField;
+  group: AliasGroupData;
+  reveal: CharacterRevealControl;
+  title: string;
+}) {
+  const t = useTranslations("characters.page");
+
+  return (
+    <div
+      aria-label={title}
+      className={cn("flex flex-col gap-3 rounded-lg", REVEAL_FOCUS_TARGET.focusClassName)}
+      role="group"
+      {...revealFocusTarget(field)}
+    >
+      {group.aliases.length === 0 ? null : (
+        <ul className="flex flex-wrap gap-2">
+          {group.aliases.map((alias) => (
+            <AliasChip alias={alias} key={alias.id} />
+          ))}
+        </ul>
+      )}
+      {group.hidden ? (
+        <CharacterHiddenGroupNotice
+          accessibleName={t("revealHiddenAliasesAria", { group: title })}
+          actionLabel={t("revealHiddenAliases")}
+          message={t("hiddenAliasesNotice")}
+          onReveal={() => void reveal.onReveal(field)}
+          revealing={reveal.pending === field}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function bookAliasGroupOf({
+  appearance,
+  character,
+}: {
+  appearance: BookCharacterView | undefined;
+  character: CharacterDetailsView;
+}): Nullable<AliasGroupData> {
+  if (appearance === undefined) return null;
+  return {
+    aliases: character.aliases.filter((alias) => alias.bookId === appearance.bookId),
+    hidden: isFieldHidden(character.hiddenFields, "bookAliases"),
+  };
+}
+
+function globalAliasGroupOf(character: CharacterDetailsView): AliasGroupData {
+  return {
+    aliases: character.aliases.filter((alias) => alias.bookId === null),
+    hidden: isFieldHidden(character.hiddenFields, "globalAliases"),
+  };
+}
+
+function isAliasGroupShown(group: AliasGroupData): boolean {
+  return group.aliases.length > 0 || group.hidden;
 }

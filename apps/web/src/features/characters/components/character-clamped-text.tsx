@@ -8,14 +8,16 @@ import { useAnimatedHeight } from "@/hooks/use-animated-height";
 import { cn } from "@/lib/utils";
 
 type CharacterClampedTextProps = {
+  collapsedLines?: number;
   defaultExpanded?: boolean;
   fadeClassName?: string;
   text: string;
 };
 
-const COLLAPSED_LINES = 7;
+const DEFAULT_COLLAPSED_LINES = 7;
 
 export function CharacterClampedText({
+  collapsedLines = DEFAULT_COLLAPSED_LINES,
   defaultExpanded = false,
   fadeClassName = "from-card",
   text,
@@ -25,7 +27,7 @@ export function CharacterClampedText({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const { containerRef, contentRef, isClamped } = useAnimatedHeight<HTMLParagraphElement>({
     collapsedHeight: collapsedTextHeight,
-    contentKey: text,
+    contentKey: `${collapsedLines}:${text}`,
     expanded,
   });
 
@@ -38,6 +40,7 @@ export function CharacterClampedText({
         >
           <p
             className="text-sm leading-relaxed whitespace-pre-line text-foreground/90"
+            data-collapsed-lines={collapsedLines}
             id={textId}
             ref={contentRef}
           >
@@ -75,6 +78,7 @@ export function CharacterClampedText({
 
 function collapsedTextHeight(content: HTMLParagraphElement): number {
   const lineHeight = Number.parseFloat(getComputedStyle(content).lineHeight);
-  if (Number.isNaN(lineHeight)) return content.scrollHeight;
-  return Math.round(lineHeight * COLLAPSED_LINES);
+  const lines = Number(content.dataset.collapsedLines);
+  if (Number.isNaN(lineHeight) || Number.isNaN(lines)) return content.scrollHeight;
+  return Math.round(lineHeight * lines);
 }

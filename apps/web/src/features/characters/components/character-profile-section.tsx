@@ -3,16 +3,20 @@
 import type { BookCharacterView, CharacterDetailsView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useId } from "react";
 
-import { FormSection } from "@/features/books";
 import { useSpeciesLabel } from "@/features/species";
 
-import { type CharacterRevealControl, isFieldHidden } from "../model/character-spoiler";
-import { CharacterAliasCard } from "./character-alias-card";
-import { CharacterClampedText } from "./character-clamped-text";
+import type { CharacterRevealControl } from "../model/character-spoiler";
 
-type CharacterProfileSectionProps = {
+import {
+  BookBasicsFields,
+  BookImpressionFields,
+  hasBookBasics,
+  hasBookImpression,
+} from "./character-book-section";
+import { CharacterOverviewCard } from "./character-overview-card";
+
+type ProfileCardProps = {
   appearance: BookCharacterView | undefined;
   character: CharacterDetailsView;
   reveal: CharacterRevealControl;
@@ -26,82 +30,81 @@ type ProfileFact = {
 
 const UNKNOWN_VALUE = "unknown";
 
-export function CharacterProfileSection({
-  appearance,
-  character,
-  reveal,
-}: CharacterProfileSectionProps) {
-  const t = useTranslations("characters.page");
-  const headingId = useId();
-  const facts = useProfileFacts({ appearance, character });
-
-  const neutralDescription = character.neutralDescription?.trim() ?? "";
-  const globalAliases = character.aliases.filter((alias) => alias.bookId === null);
-  const globalAliasesHidden = isFieldHidden(character.hiddenFields, "globalAliases");
-
-  if (
-    facts.length === 0 &&
-    neutralDescription.length === 0 &&
-    globalAliases.length === 0 &&
-    !globalAliasesHidden
-  ) {
-    return null;
-  }
+export function CharacterAttitudeCard({ appearance, character, reveal }: ProfileCardProps) {
+  const t = useTranslations("characters.edit");
+  const tAttitude = useTranslations("characters.attitude");
+  const tPage = useTranslations("characters.page");
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl text-ink" id={headingId}>
-        {t("profileSection")}
-      </h2>
-
-      {facts.length === 0 ? null : (
-        <FormSection icon="info" title={t("generalInfoCard")}>
-          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            {facts.map((fact) => (
-              <div className="flex flex-col gap-1" key={fact.key}>
-                <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  {fact.label}
-                </dt>
-                <dd className="text-sm text-foreground">{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </FormSection>
-      )}
-
-      {neutralDescription.length === 0 ? null : (
-        <FormSection icon="note" title={t("neutralDescription")}>
-          <CharacterClampedText text={neutralDescription} />
-        </FormSection>
-      )}
-
-      <CharacterAliasCard
-        aliases={globalAliases}
-        field="globalAliases"
-        hidden={globalAliasesHidden}
-        reveal={reveal}
-        title={t("globalAliases")}
-      />
-    </section>
+    <CharacterOverviewCard
+      groups={[
+        character.globalAttitude === null
+          ? null
+          : {
+              content: (
+                <ProfileFactList
+                  facts={[
+                    {
+                      key: "attitude",
+                      label: tPage("attitude"),
+                      value: tAttitude(character.globalAttitude),
+                    },
+                  ]}
+                />
+              ),
+              key: "global",
+              title: t("attitudeGlobalGroup"),
+            },
+        appearance === undefined || !hasBookImpression(appearance)
+          ? null
+          : {
+              content: <BookImpressionFields appearance={appearance} reveal={reveal} />,
+              key: "book",
+              title: t("attitudeBookGroup"),
+            },
+      ]}
+      icon="heart"
+      title={t("attitudeSection")}
+    />
   );
 }
 
-function useProfileFacts({
-  appearance,
-  character,
-}: {
-  appearance: BookCharacterView | undefined;
-  character: CharacterDetailsView;
-}): ProfileFact[] {
+export function CharacterBasicsCard({ appearance, character, reveal }: ProfileCardProps) {
+  const t = useTranslations("characters.edit");
+  const facts = useGlobalProfileFacts(character);
+
+  return (
+    <CharacterOverviewCard
+      groups={[
+        facts.length === 0
+          ? null
+          : {
+              content: <ProfileFactList facts={facts} />,
+              key: "global",
+              title: t("basicsGlobalGroup"),
+            },
+        appearance === undefined || !hasBookBasics(appearance)
+          ? null
+          : {
+              content: <BookBasicsFields appearance={appearance} reveal={reveal} />,
+              key: "book",
+              title: t("basicsBookGroup"),
+            },
+      ]}
+      icon="user"
+      title={t("basicsSection")}
+    />
+  );
+}
+
+export function useGlobalProfileFacts(character: CharacterDetailsView): ProfileFact[] {
   const t = useTranslations("characters.page");
-  const tAttitude = useTranslations("characters.attitude");
   const tEntity = useTranslations("characters.entityKind");
   const tGender = useTranslations("characters.gender");
   const speciesLabel = useSpeciesLabel();
 
-  const showsGlobalSpecies = appearance === undefined || appearance.speciesOverride !== null;
-  const showsGlobalAttitude = appearance === undefined || appearance.attitude !== null;
   const pronouns = character.pronouns?.trim() ?? "";
+  const species = speciesLabel(character.species);
   const facts: ProfileFact[] = [];
 
   if (character.entityKind !== UNKNOWN_VALUE) {
@@ -117,19 +120,26 @@ function useProfileFacts({
           : tGender(character.gender),
     });
   }
-  const species = showsGlobalSpecies ? speciesLabel(character.species) : null;
-  if (species !== null) {
-    facts.push({ key: "species", label: t("species"), value: species });
-  }
   if (pronouns.length > 0) {
     facts.push({ key: "pronouns", label: t("pronouns"), value: pronouns });
   }
-  if (showsGlobalAttitude && character.globalAttitude !== null) {
-    facts.push({
-      key: "attitude",
-      label: t("attitude"),
-      value: tAttitude(character.globalAttitude),
-    });
+  if (species !== null) {
+    facts.push({ key: "species", label: t("species"), value: species });
   }
   return facts;
+}
+
+function ProfileFactList({ facts }: { facts: readonly ProfileFact[] }) {
+  return (
+    <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+      {facts.map((fact) => (
+        <div className="flex flex-col gap-1" key={fact.key}>
+          <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            {fact.label}
+          </dt>
+          <dd className="text-sm text-foreground">{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }

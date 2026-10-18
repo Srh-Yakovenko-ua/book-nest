@@ -8326,6 +8326,16 @@
       "openBook": "Open book: {title}",
       "openFormPortrait": "Open image: {name}",
       "openGlobalProfile": "Open the global profile",
+      "overviewEmpty": {
+        "noAdditional": {
+          "description": "Apart from the short description, there are no other details about this character yet. Add them in the editor.",
+          "title": "No additional information"
+        },
+        "noInformation": {
+          "description": "Add a description, roles, your attitude or other names, and they will show up here.",
+          "title": "No information about this character yet"
+        }
+      },
       "pinnedContext": "Current context",
       "pov": "POV",
       "profileSection": "About the character",

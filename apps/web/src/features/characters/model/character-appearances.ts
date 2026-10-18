@@ -1,7 +1,7 @@
 import type { BookCharacterView, Nullable } from "@app/shared";
 
 export const APPEARANCE_LIST = {
-  collapsedCount: 5,
+  collapsedCount: 4,
 } as const;
 
 type AppearanceListWindow = {

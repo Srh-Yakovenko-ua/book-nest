@@ -70,6 +70,12 @@ function characterRequests(): URLSearchParams[] {
     .map((url) => new URL(url, "http://localhost").searchParams);
 }
 
+function containerOf(element: HTMLElement, selector: string): HTMLElement {
+  const container = element.closest<HTMLElement>(selector);
+  if (container === null) throw new Error(`no ${selector} around ${element.textContent ?? ""}`);
+  return container;
+}
+
 function ContextSwitch({ bookId }: { bookId: string }) {
   const [, setBookId] = useQueryState("bookId", parseAsString);
   return (
@@ -104,6 +110,20 @@ function makeForm(index: number, overrides: Partial<CharacterFormView> = {}): Ch
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
+}
+
+function overviewCard(title: string): HTMLElement {
+  return containerOf(screen.getByRole("heading", { level: 2, name: title }), "section");
+}
+
+function overviewGroup(title: string): HTMLElement {
+  return containerOf(screen.getByRole("heading", { level: 3, name: title }), "div");
+}
+
+function overviewGroupTitles(cardTitle: string): string[] {
+  return within(overviewCard(cardTitle))
+    .getAllByRole("heading", { level: 3 })
+    .map((heading) => heading.textContent ?? "");
 }
 
 function renderPage(search = "", options: Parameters<typeof renderWithProviders>[1] = {}) {
@@ -155,7 +175,9 @@ describe("CharacterDetailsPage context from the URL", () => {
   it("opens the only book of a character without a context and makes that URL canonical", async () => {
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "У вибраній книзі" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Особливості в цій книзі" }),
+    ).toBeInTheDocument();
     expect(replace).toHaveBeenCalledWith("/characters/char-1?bookId=book-1");
     expect(push).not.toHaveBeenCalled();
   });
@@ -166,8 +188,12 @@ describe("CharacterDetailsPage context from the URL", () => {
     );
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Про персонажа" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "У вибраній книзі" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Основне про персонажа" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Особливості в цій книзі" }),
+    ).not.toBeInTheDocument();
     expect(contextualRequests()).toHaveLength(0);
     expect(replace).not.toHaveBeenCalled();
   });
@@ -175,8 +201,12 @@ describe("CharacterDetailsPage context from the URL", () => {
   it("keeps the general profile chosen explicitly even with a single book", async () => {
     renderPage("view=global");
 
-    expect(await screen.findByRole("heading", { name: "Про персонажа" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "У вибраній книзі" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Основне про персонажа" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Особливості в цій книзі" }),
+    ).not.toBeInTheDocument();
     expect(contextualRequests()).toHaveLength(0);
     expect(replace).not.toHaveBeenCalled();
   });
@@ -184,7 +214,9 @@ describe("CharacterDetailsPage context from the URL", () => {
   it("lets the book win over a conflicting view and drops the view with a replace", async () => {
     renderPage("bookId=book-1&view=global");
 
-    expect(await screen.findByRole("heading", { name: "У вибраній книзі" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Особливості в цій книзі" }),
+    ).toBeInTheDocument();
     expect(replace).toHaveBeenCalledWith("/characters/char-1?bookId=book-1");
   });
 
@@ -194,7 +226,9 @@ describe("CharacterDetailsPage context from the URL", () => {
     );
     renderPage("view=unknown");
 
-    expect(await screen.findByRole("heading", { name: "Про персонажа" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Основне про персонажа" }),
+    ).toBeInTheDocument();
     expect(replace).toHaveBeenCalledWith("/characters/char-1");
   });
 
@@ -264,14 +298,16 @@ describe("CharacterDetailsPage context from the URL", () => {
     contextualStatus = 200;
     await userEvent.click(retry);
 
-    expect(await screen.findByRole("heading", { name: "У вибраній книзі" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Особливості в цій книзі" }),
+    ).toBeInTheDocument();
     expect(contextualRequests()).toHaveLength(2);
   });
 
   it("sends only the context book and never a reading position", async () => {
     renderPage("bookId=book-1");
 
-    await screen.findByRole("heading", { name: "У вибраній книзі" });
+    await screen.findByRole("heading", { name: "Особливості в цій книзі" });
 
     expect(contextualRequests().map((query) => Object.fromEntries(query))).toEqual([
       { contextBookId: "book-1" },
@@ -306,7 +342,7 @@ describe("CharacterDetailsPage appearances", () => {
   it("uses the compact book data of the appearance instead of fetching each book", async () => {
     renderPage("bookId=book-1");
 
-    await screen.findByRole("heading", { name: "У вибраній книзі" });
+    await screen.findByRole("heading", { name: "Особливості в цій книзі" });
 
     expect(
       fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/books/")),
@@ -333,6 +369,8 @@ describe("CharacterDetailsPage appearances", () => {
 
     await screen.findByRole("heading", { level: 1, name: "Ґеральт" });
 
+    expect(sidebarBookTitles()).toEqual(["Перша", "Без номера", "Кров ельфів", "Хрещення вогнем"]);
+    await userEvent.click(within(sidebar()).getByRole("button", { name: "Показати всі 5 книг" }));
     expect(sidebarBookTitles()).toEqual([
       "Перша",
       "Без номера",
@@ -342,7 +380,7 @@ describe("CharacterDetailsPage appearances", () => {
     ]);
   });
 
-  it("shows five books, pins the current one and keeps the list expanded across contexts", async () => {
+  it("shows four books, pins the current one and keeps the list expanded across contexts", async () => {
     const books = Array.from({ length: 7 }, (_, index) =>
       bookOf(`book-${index + 1}`, `Книга ${index + 1}`),
     );
@@ -354,16 +392,9 @@ describe("CharacterDetailsPage appearances", () => {
       </NuqsTestingAdapter>,
     );
 
-    await screen.findByRole("heading", { name: "У вибраній книзі" });
+    await screen.findByRole("heading", { name: "Особливості в цій книзі" });
     expect(within(sidebar()).getByText("Поточний контекст")).toBeInTheDocument();
-    expect(sidebarBookTitles()).toEqual([
-      "Книга 7",
-      "Книга 1",
-      "Книга 2",
-      "Книга 3",
-      "Книга 4",
-      "Книга 5",
-    ]);
+    expect(sidebarBookTitles()).toEqual(["Книга 7", "Книга 1", "Книга 2", "Книга 3", "Книга 4"]);
 
     await userEvent.click(within(sidebar()).getByRole("button", { name: "Показати всі 7 книг" }));
     expect(sidebarBookTitles()).toHaveLength(7);
@@ -373,7 +404,7 @@ describe("CharacterDetailsPage appearances", () => {
     await waitFor(() =>
       expect(contextualRequests().map((query) => query.get("contextBookId"))).toContain("book-1"),
     );
-    await screen.findByRole("heading", { name: "У вибраній книзі" });
+    await screen.findByRole("heading", { name: "Особливості в цій книзі" });
 
     expect(within(sidebar()).getByRole("button", { name: "Згорнути" })).toBeInTheDocument();
     expect(sidebarBookTitles()).toHaveLength(7);
@@ -457,24 +488,101 @@ describe("CharacterDetailsPage hero", () => {
 });
 
 describe("CharacterDetailsPage book cards", () => {
-  it("names the effective species and attitude with their source", async () => {
+  it("shows an inherited species once, in the general information and not in the book", async () => {
     respondWith(
       makeCharacterDetails({
-        appearances: [appearanceIn(firstBook, { attitude: "like" })],
-        globalAttitude: "neutral",
+        appearances: [appearanceIn(firstBook)],
         species: SPECIES_REFS.witcher,
       }),
     );
     renderPage("bookId=book-1");
 
-    const species = await screen.findByRole("group", { name: "Вид" });
-    expect(within(species).getByText("Відьмак")).toBeInTheDocument();
-    expect(within(species).getByText("Із загального профілю")).toBeInTheDocument();
+    await screen.findByRole("heading", { level: 3, name: "Особливості в цій книзі" });
+
+    expect(within(overviewGroup("Загальна інформація")).getByText("Відьмак")).toBeInTheDocument();
     expect(screen.getAllByText("Відьмак")).toHaveLength(1);
-    const attitude = screen.getByRole("group", { name: "Ставлення" });
-    expect(attitude).toHaveTextContent("Подобається");
-    expect(attitude).toHaveTextContent("Для цієї книги");
-    expect(screen.getByText("Нейтрально")).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Вид у цій книзі" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the general species in the general information and the override in the book", async () => {
+    respondWith(
+      makeCharacterDetails({
+        appearances: [appearanceIn(firstBook, { speciesOverride: SPECIES_REFS.mutant })],
+        species: SPECIES_REFS.witcher,
+      }),
+    );
+    renderPage("bookId=book-1");
+
+    await screen.findByRole("heading", { level: 3, name: "Особливості в цій книзі" });
+
+    expect(within(overviewGroup("Загальна інформація")).getByText("Відьмак")).toBeInTheDocument();
+    const bookFeatures = within(overviewGroup("Особливості в цій книзі"));
+    expect(bookFeatures.getByRole("group", { name: "Вид у цій книзі" })).toHaveTextContent(
+      "Мутант",
+    );
+    expect(bookFeatures.getByRole("group", { name: "Статус" })).toHaveTextContent("Живий");
+    expect(bookFeatures.queryByText("Відьмак")).not.toBeInTheDocument();
+    expect(overviewGroupTitles("Основне про персонажа")).toEqual([
+      "Загальна інформація",
+      "Особливості в цій книзі",
+    ]);
+  });
+
+  it("keeps a hidden species override masked instead of falling back to the general one", async () => {
+    respondWith(
+      makeCharacterDetails({
+        appearances: [appearanceIn(firstBook, { hiddenFields: ["speciesOverride"] })],
+        species: SPECIES_REFS.witcher,
+      }),
+    );
+    renderPage("bookId=book-1");
+
+    const override = await screen.findByRole("group", { name: "Вид у цій книзі" });
+
+    expect(
+      within(override).getByRole("button", { name: "Показати поле: Вид у цій книзі" }),
+    ).toBeInTheDocument();
+    expect(within(override).queryByText("Відьмак")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Відьмак")).toHaveLength(1);
+  });
+
+  it("puts the general attitude and the book attitude into their own groups", async () => {
+    respondWith(
+      makeCharacterDetails({
+        appearances: [appearanceIn(firstBook, { attitude: "like" })],
+        globalAttitude: "neutral",
+      }),
+    );
+    renderPage("bookId=book-1");
+
+    await screen.findByRole("heading", { level: 2, name: "Моє ставлення та враження" });
+
+    expect(within(overviewGroup("Загальне ставлення")).getByText("Нейтрально")).toBeInTheDocument();
+    expect(
+      within(overviewGroup("Враження від цієї книги")).getByRole("group", { name: "Ставлення" }),
+    ).toHaveTextContent("Подобається");
+    expect(overviewGroupTitles("Моє ставлення та враження")).toEqual([
+      "Загальне ставлення",
+      "Враження від цієї книги",
+    ]);
+  });
+
+  it("never repeats an inherited attitude among the book impressions", async () => {
+    respondWith(
+      makeCharacterDetails({
+        appearances: [appearanceIn(firstBook)],
+        globalAttitude: "neutral",
+      }),
+    );
+    renderPage("bookId=book-1");
+
+    await screen.findByRole("heading", { level: 2, name: "Моє ставлення та враження" });
+
+    expect(screen.getAllByText("Нейтрально")).toHaveLength(1);
+    expect(screen.queryByRole("group", { name: "Ставлення" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Враження від цієї книги" }),
+    ).not.toBeInTheDocument();
   });
 
   it("lists the first appearance from chapter to audio position", async () => {
@@ -492,10 +600,14 @@ describe("CharacterDetailsPage book cards", () => {
     );
     renderPage("bookId=book-1");
 
-    expect(await screen.findByText("Розділ 3")).toBeInTheDocument();
-    expect(screen.getByText("стор. 42")).toBeInTheDocument();
-    expect(screen.getByText("Аудіо 01:24:35")).toBeInTheDocument();
-    expect(screen.getByText("На мосту")).toBeInTheDocument();
+    await screen.findByRole("heading", { level: 3, name: "Перша поява" });
+
+    expect(overviewGroupTitles("Роль у розповіді")).toEqual(["Перша поява"]);
+    const firstAppearance = within(overviewGroup("Перша поява"));
+    expect(firstAppearance.getByText("Розділ 3")).toBeInTheDocument();
+    expect(firstAppearance.getByText("стор. 42")).toBeInTheDocument();
+    expect(firstAppearance.getByText("Аудіо 01:24:35")).toBeInTheDocument();
+    expect(firstAppearance.getByText("На мосту")).toBeInTheDocument();
   });
 
   it("names the species by its label in the current locale", async () => {
@@ -511,7 +623,7 @@ describe("CharacterDetailsPage book cards", () => {
 
 describe("CharacterDetailsPage forms", () => {
   function formHeadings(): string[] {
-    return screen
+    return within(screen.getByRole("group", { name: "Форми та образи" }))
       .queryAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent ?? "");
   }
@@ -880,8 +992,8 @@ describe("CharacterDetailsPage spoiler reveal in a book", () => {
         .getAllByRole("button", { name: /^Показати приховані:/ })
         .map((button) => button.getAttribute("aria-label")),
     ).toEqual([
-      "Показати приховані: Інші імена в цій книзі",
       "Показати приховані: Інші імена персонажа",
+      "Показати приховані: Інші імена в цій книзі",
     ]);
   });
 
@@ -965,5 +1077,160 @@ describe("CharacterDetailsPage spoiler reveal on the global profile", () => {
     expect(screen.getAllByRole("group", { name: /Інші імена/ })).toHaveLength(1);
     expect(screen.getAllByText("Є приховані імена")).toHaveLength(1);
     expect(document.body).not.toHaveTextContent("Різник із Блавікену");
+  });
+});
+
+describe("CharacterDetailsPage overview", () => {
+  const EMPTY_OVERVIEW_TITLE = /інформації.*немає/i;
+
+  function characterWithoutDetails(
+    overrides: Partial<CharacterDetailsView> = {},
+  ): CharacterDetailsView {
+    return makeCharacterDetails({
+      appearances: [appearanceIn(firstBook, { status: null })],
+      entityKind: "unknown",
+      ...overrides,
+    });
+  }
+
+  it.each(["view=global", "bookId=book-1"])(
+    "shows the neutral description once, in the hero, clamped to three lines (%s)",
+    async (search) => {
+      respondWith(
+        makeCharacterDetails({
+          appearances: [appearanceIn(firstBook)],
+          neutralDescription: "Мисливець на чудовиськ",
+        }),
+      );
+      renderPage(search);
+
+      const hero = containerOf(
+        await screen.findByRole("heading", { level: 1, name: "Ґеральт" }),
+        "section",
+      );
+
+      expect(screen.getAllByText("Мисливець на чудовиськ")).toHaveLength(1);
+      expect(within(hero).getByText("Мисливець на чудовиськ")).toHaveAttribute(
+        "data-collapsed-lines",
+        "3",
+      );
+    },
+  );
+
+  it("places the book texts in the descriptions card, each clamped to seven lines", async () => {
+    respondWith(
+      makeCharacterDetails({
+        appearances: [
+          appearanceIn(firstBook, {
+            appearanceNotes: "Шрам через око",
+            description: "Мандрує трактом",
+          }),
+        ],
+      }),
+    );
+    renderPage("bookId=book-1");
+
+    await screen.findByRole("heading", { level: 2, name: "Описи в цій книзі" });
+
+    const descriptions = within(overviewCard("Описи в цій книзі"));
+    const bookDescription = descriptions.getByRole("group", { name: "Загальний опис у цій книзі" });
+    const appearanceNotes = descriptions.getByRole("group", { name: "Особливості зовнішності" });
+    expect(within(bookDescription).getByText("Мандрує трактом")).toHaveAttribute(
+      "data-collapsed-lines",
+      "7",
+    );
+    expect(within(appearanceNotes).getByText("Шрам через око")).toHaveAttribute(
+      "data-collapsed-lines",
+      "7",
+    );
+  });
+
+  it("gathers the general and the book aliases into one card, general first", async () => {
+    respondToDetails = (url) => jsonResponse(maskedSpoilerCharacter(url));
+    renderPage("bookId=book-1");
+
+    await screen.findByRole("group", { name: "Інші імена в цій книзі" });
+
+    expect(screen.getAllByRole("heading", { level: 2, name: "Інші імена" })).toHaveLength(1);
+    expect(overviewGroupTitles("Інші імена")).toEqual([
+      "Інші імена персонажа",
+      "Інші імена в цій книзі",
+    ]);
+  });
+
+  it.each([
+    {
+      neutralDescription: null,
+      search: "view=global",
+      title: "Інформації про персонажа ще немає",
+    },
+    {
+      neutralDescription: "Мисливець на чудовиськ",
+      search: "view=global",
+      title: "Додаткової інформації немає",
+    },
+    {
+      neutralDescription: null,
+      search: "bookId=book-1",
+      title: "Інформації про персонажа ще немає",
+    },
+    {
+      neutralDescription: "Мисливець на чудовиськ",
+      search: "bookId=book-1",
+      title: "Додаткової інформації немає",
+    },
+  ])(
+    "shows a single empty overview titled «$title» for $search",
+    async ({ neutralDescription, search, title }) => {
+      respondWith(characterWithoutDetails({ neutralDescription }));
+      renderPage(search);
+
+      expect(await screen.findAllByRole("heading", { name: EMPTY_OVERVIEW_TITLE })).toEqual([
+        screen.getByRole("heading", { name: title }),
+      ]);
+      expect(screen.getAllByRole("button", { name: "Редагувати" })).toHaveLength(1);
+      expect(
+        screen.queryByRole("heading", { name: "Основне про персонажа" }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    { href: "/characters/char-1/edit?view=global", search: "view=global" },
+    { href: "/characters/char-1/edit?bookId=book-1", search: "bookId=book-1" },
+  ])("edits the same context from the empty overview ($search)", async ({ href, search }) => {
+    respondWith(characterWithoutDetails());
+    renderPage(search);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Редагувати" }));
+
+    expect(push).toHaveBeenCalledWith(href);
+  });
+
+  it("keeps a masked book description in place of the empty overview", async () => {
+    respondWith(
+      characterWithoutDetails({
+        appearances: [appearanceIn(firstBook, { hiddenFields: ["description"], status: null })],
+      }),
+    );
+    renderPage("bookId=book-1");
+
+    expect(
+      await screen.findByRole("button", { name: "Показати поле: Загальний опис у цій книзі" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: EMPTY_OVERVIEW_TITLE })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Редагувати" })).not.toBeInTheDocument();
+  });
+
+  it.each<{ overrides: Partial<CharacterDetailsView>; shown: string }>([
+    { overrides: { forms: [makeForm(0)] }, shown: "Форма 0" },
+    { overrides: { hiddenFields: ["forms"] }, shown: "Є приховані форми" },
+  ])("shows the forms instead of the empty overview ($shown)", async ({ overrides, shown }) => {
+    respondWith(characterWithoutDetails(overrides));
+    renderPage("view=global");
+
+    expect(await screen.findByText(shown)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Форми та образи" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: EMPTY_OVERVIEW_TITLE })).not.toBeInTheDocument();
   });
 });
